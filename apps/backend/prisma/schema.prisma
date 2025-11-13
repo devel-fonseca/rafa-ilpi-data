@@ -1,0 +1,282 @@
+// apps/backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// SCHEMA GLOBAL (public)
+// ============================================
+
+enum PlanType {
+  FREE
+  BASICO
+  PROFISSIONAL
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum Gender {
+  MASCULINO
+  FEMININO
+  OUTRO
+  NAO_INFORMADO
+}
+
+enum CivilStatus {
+  SOLTEIRO
+  CASADO
+  DIVORCIADO
+  VIUVO
+  UNIAO_ESTAVEL
+}
+
+enum BloodType {
+  A_POSITIVO
+  A_NEGATIVO
+  B_POSITIVO
+  B_NEGATIVO
+  AB_POSITIVO
+  AB_NEGATIVO
+  O_POSITIVO
+  O_NEGATIVO
+  NAO_INFORMADO
+}
+
+// Planos disponíveis
+model Plan {
+  id                String         @id @default(uuid())
+  name              String         @unique
+  type              PlanType       @unique
+  maxResidents      Int            // 5, 20, 100, -1 (ilimitado)
+  maxUsers          Int            // 2, 5, 15, -1 (ilimitado)
+  priceMonthly      Decimal        @db.Decimal(10, 2) // R$ 0, 299, 499, custom
+  features          Json           // Lista de features habilitadas
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  subscriptions     Subscription[]
+
+  @@map("plans")
+}
+
+// Tenants (ILPIs/Instituições)
+model Tenant {
+  id                String         @id @default(uuid())
+  name              String         // Nome da ILPI
+  slug              String         @unique // Ex: "casa-do-idoso-campinas"
+  cnpj              String?        @unique
+  email             String
+  phone             String?
+  status            TenantStatus   @default(TRIAL)
+  schemaName        String         @unique // Ex: "tenant_abc123"
+
+  // Endereço
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  subscription      Subscription?
+  users             User[]
+
+  @@map("tenants")
+}
+
+// Assinatura do tenant
+model Subscription {
+  id                String         @id @default(uuid())
+  tenantId          String         @unique
+  planId            String
+
+  startDate         DateTime       @default(now())
+  endDate           DateTime?
+  trialEndsAt       DateTime?
+
+  status            String         // ACTIVE, CANCELLED, PAST_DUE
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan              Plan           @relation(fields: [planId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// Usuários (multi-tenant)
+model User {
+  id                String         @id @default(uuid())
+  tenantId          String
+
+  name              String
+  email             String
+  password          String         // bcrypt hash
+
+  role              String         // ADMIN, MANAGER, USER, VIEWER
+
+  isActive          Boolean        @default(true)
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens     RefreshToken[]
+
+  @@unique([tenantId, email])
+  @@map("users")
+}
+
+// Refresh tokens para JWT
+model RefreshToken {
+  id                String         @id @default(uuid())
+  userId            String
+  token             String         @unique
+  expiresAt         DateTime
+
+  createdAt         DateTime       @default(now())
+
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// SCHEMA POR TENANT (tenant_xxx)
+// Será criado dinamicamente para cada tenant
+// Este modelo serve como template
+// ============================================
+
+// Residente
+model Resident {
+  id                String         @id @default(uuid())
+
+  // Dados Pessoais
+  nome              String
+  cpf               String         @unique
+  rg                String?
+  orgaoExpedidor    String?
+  cns               String?        // Cartão Nacional de Saúde
+  genero            Gender
+  dataNascimento    DateTime
+  estadoCivil       CivilStatus?
+  naturalidade      String?
+  nacionalidade     String         @default("Brasileira")
+  nomeMae           String?
+  nomePai           String?
+
+  // Documentos (URLs no MinIO)
+  fotoUrl           String?
+  docPessoaisUrl    String?        // RG, CPF digitalizados
+  cnsCardUrl        String?
+
+  // Endereço Atual
+  enderecoAtual     String?
+  bairroAtual       String?
+  cidadeAtual       String?
+  estadoAtual       String?
+  cepAtual          String?
+  pontoReferenciaAtual String?
+
+  // Endereço de Origem
+  enderecoOrigem    String?
+  bairroOrigem      String?
+  cidadeOrigem      String?
+  estadoOrigem      String?
+  cepOrigem         String?
+
+  // Contato de Emergência
+  contatoEmergenciaNome      String?
+  contatoEmergenciaParentesco String?
+  contatoEmergenciaTelefone   String?
+  contatoEmergenciaEmail      String?
+
+  // Responsável Legal
+  responsavelLegalNome        String?
+  responsavelLegalCpf         String?
+  responsavelLegalRg          String?
+  responsavelLegalTelefone    String?
+  responsavelLegalEmail       String?
+  responsavelLegalEndereco    String?
+  responsavelLegalParentesco  String?
+  responsavelDocumentosUrl    String?
+
+  // Dados de Admissão
+  dataAdmissao      DateTime
+  motivoAdmissao    String?
+  observacoesAdmissao String?     @db.Text
+  termoAdmissaoUrl  String?
+  consentimentoLgpdUrl String?
+  consentimentoImagemUrl String?
+  comprovanteEnderecoUrl String?
+
+  // Saúde
+  tipoSanguineo     BloodType      @default(NAO_INFORMADO)
+  altura            Decimal?       @db.Decimal(5, 2) // em cm
+  peso              Decimal?       @db.Decimal(5, 2) // em kg
+
+  dependenciaFisica     String?    // INDEPENDENTE, PARCIAL, TOTAL
+  dependenciaMental     String?    // INDEPENDENTE, PARCIAL, TOTAL
+
+  medicamentosUso       String?    @db.Text
+  alergias              String?    @db.Text
+  doencasCronicas       String?    @db.Text
+  observacoesSaude      String?    @db.Text
+  laudoMedicoUrl        String?
+
+  // Planos de Saúde
+  temPlanoSaude     Boolean        @default(false)
+  planoSaudeNome    String?
+  planoSaudeNumero  String?
+  planoSaudeValidade DateTime?
+  planoSaudeCarteiraUrl String?
+
+  // Pertences
+  pertencesLista    Json?          // Array de objetos {item, quantidade, observacao}
+  pertencesObservacoes String?     @db.Text
+
+  // Acomodação
+  quartoNumero      String?
+  leitoNumero       String?
+
+  // Controle
+  ativo             Boolean        @default(true)
+  dataSaida         DateTime?
+  motivoSaida       String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relações (para futuro)
+  // registrosDiarios  RegistroDiario[]
+  // medicacoes        Medicacao[]
+  // avaliacoesAvd     AvaliacaoAvd[]
+
+  @@map("residents")
+}
+
+// Modelo para Registros Diários (você definirá depois)
+// model RegistroDiario {
+//   id                String         @id @default(uuid())
+//   residenteId       String
+//   data              DateTime
+//   // ... campos que você definirá
+//
+//   residente         Resident       @relation(fields: [residenteId], references: [id], onDelete: Cascade)
+//
+//   @@map("registros_diarios")
+// }
