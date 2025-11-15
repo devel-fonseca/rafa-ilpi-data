@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -13,10 +13,10 @@ export const api = axios.create({
 // Request interceptor - adiciona token JWT
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token
+    const accessToken = useAuthStore.getState().accessToken
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`
     }
 
     return config
@@ -41,7 +41,7 @@ api.interceptors.response.use(
 
         if (!refreshToken) {
           useAuthStore.getState().clearAuth()
-          window.location.href = '/auth/login'
+          window.location.href = '/login'
           return Promise.reject(error)
         }
 
@@ -50,10 +50,13 @@ api.interceptors.response.use(
           refreshToken,
         })
 
-        const { accessToken } = response.data
+        const { accessToken, refreshToken: newRefreshToken } = response.data
 
-        // Atualiza token
+        // Atualiza tokens
         useAuthStore.getState().updateToken(accessToken)
+        if (newRefreshToken) {
+          useAuthStore.setState({ refreshToken: newRefreshToken })
+        }
 
         // Retry requisição original
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
@@ -61,7 +64,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh falhou - desloga
         useAuthStore.getState().clearAuth()
-        window.location.href = '/auth/login'
+        window.location.href = '/login'
         return Promise.reject(refreshError)
       }
     }
@@ -69,3 +72,21 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// ==================== API FUNCTIONS ====================
+
+/**
+ * Busca informações do tenant (instituição)
+ */
+export async function getTenantInfo(tenantId: string) {
+  const response = await api.get(`/tenants/${tenantId}`)
+  return response.data
+}
+
+/**
+ * Busca informações completas do residente
+ */
+export async function getResidentInfo(residentId: string) {
+  const response = await api.get(`/residents/${residentId}`)
+  return response.data
+}

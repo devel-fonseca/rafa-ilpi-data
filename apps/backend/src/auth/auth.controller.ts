@@ -15,8 +15,8 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { SelectTenantDto } from './dto/select-tenant.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -26,31 +26,15 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  /**
-   * POST /auth/register
-   * Registrar novo usuário
-   */
-  @ApiOperation({ summary: 'Registrar novo usuário' })
-  @ApiResponse({
-    status: 201,
-    description: 'Usuário criado com sucesso',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Dados inválidos ou limite de usuários atingido',
-  })
-  @Public()
-  @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
-  }
 
   /**
    * POST /auth/login
    * Login do usuário
    */
-  @ApiOperation({ summary: 'Login de usuário' })
+  @ApiOperation({
+    summary: 'Login de usuário',
+    description: 'Login de usuário. Se o usuário tem múltiplos tenants, retorna lista para seleção.',
+  })
   @ApiResponse({
     status: 200,
     description: 'Login realizado com sucesso. Retorna access token e refresh token',
@@ -64,6 +48,33 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  /**
+   * POST /auth/select-tenant
+   * Selecionar tenant específico (quando usuário tem múltiplos)
+   */
+  @ApiOperation({
+    summary: 'Selecionar tenant',
+    description: 'Seleciona um tenant específico quando o usuário tem acesso a múltiplas ILPIs',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tenant selecionado. Retorna access token e refresh token',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Credenciais inválidas',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuário não encontrado no tenant especificado',
+  })
+  @Public()
+  @Post('select-tenant')
+  @HttpCode(HttpStatus.OK)
+  async selectTenant(@Body() selectTenantDto: SelectTenantDto) {
+    return this.authService.selectTenant(selectTenantDto);
   }
 
   /**

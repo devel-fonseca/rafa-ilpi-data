@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { SelectTenantDto } from './dto/select-tenant.dto';
 
 @Injectable()
 export class AuthService {
@@ -28,7 +30,7 @@ export class AuthService {
     // Verificar se tenant existe
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
-      include: { subscription: { include: { plan: true } } },
+      include: { subscriptions: { include: { plan: true }, take: 1 } },
     });
 
     if (!tenant) {
@@ -54,7 +56,7 @@ export class AuthService {
       where: { tenantId },
     });
 
-    const maxUsers = tenant.subscription?.plan.maxUsers || 0;
+    const maxUsers = tenant.subscriptions[0]?.plan.maxUsers || 0;
     if (maxUsers !== -1 && userCount >= maxUsers) {
       throw new BadRequestException(
         `Limite de ${maxUsers} usuários atingido para o plano atual`,
@@ -71,7 +73,7 @@ export class AuthService {
         name,
         email,
         password: hashedPassword,
-        role: userCount === 0 ? 'ADMIN' : 'USER', // Primeiro usuário é ADMIN
+        role: userCount === 0 ? 'admin' : 'user', // Primeiro usuário é admin
       },
       select: {
         id: true,
@@ -91,19 +93,121 @@ export class AuthService {
   }
 
   /**
-   * Login do usuário
+   * Login do usuário - Verifica se tem múltiplos tenants
    */
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // Buscar usuário
-    const user = await this.prisma.user.findFirst({
-      where: { email },
+    // Buscar todos os cadastros do usuário (pode ter múltiplos tenants)
+    const users = await this.prisma.user.findMany({
+      where: {
+        email,
+        isActive: true,
+      },
       include: {
         tenant: {
           include: {
-            subscription: {
+            subscriptions: {
               include: { plan: true },
+              where: {
+                status: {
+                  in: ['active', 'trialing'],
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (users.length === 0) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    // Verificar senha em qualquer um dos cadastros (assumindo mesma senha)
+    let passwordValid = false;
+    for (const user of users) {
+      const isValid = await this.comparePasswords(password, user.password);
+      if (isValid) {
+        passwordValid = true;
+        break;
+      }
+    }
+
+    if (!passwordValid) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    // Se usuário tem apenas um tenant, fazer login direto
+    if (users.length === 1) {
+      const user = users[0];
+
+      // Atualizar lastLogin
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() },
+      });
+
+      // Gerar tokens
+      const tokens = await this.generateTokens(user);
+
+      // Salvar refresh token no banco
+      await this.saveRefreshToken(user.id, tokens.refreshToken);
+
+      // Remover senha do retorno
+      const { password: _, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        ...tokens,
+      };
+    }
+
+    // Se usuário tem múltiplos tenants, retornar lista para seleção
+    return {
+      requiresTenantSelection: true,
+      tenants: users.map((user) => ({
+        id: user.tenant.id,
+        name: user.tenant.name,
+        role: user.role,
+        status: user.tenant.status,
+        plan: user.tenant.subscriptions[0]?.plan?.name || 'Free',
+      })),
+    };
+  }
+
+  /**
+   * Login com tenant específico (quando usuário tem múltiplos)
+   */
+  async selectTenant(selectTenantDto: SelectTenantDto) {
+    const { email, password, tenantId } = selectTenantDto;
+
+    // Buscar usuário no tenant específico
+    const user = await this.prisma.user.findUnique({
+      where: {
+        tenantId_email: {
+          tenantId,
+          email,
+        },
+      },
+      include: {
+        tenant: {
+          include: {
+            subscriptions: {
+              include: { plan: true },
+              where: {
+                status: {
+                  in: ['active', 'trialing'],
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
             },
           },
         },
@@ -111,7 +215,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      throw new NotFoundException('Usuário não encontrado neste tenant');
     }
 
     // Verificar se usuário está ativo
@@ -120,14 +224,16 @@ export class AuthService {
     }
 
     // Verificar senha
-    const isPasswordValid = await this.comparePasswords(
-      password,
-      user.password,
-    );
-
+    const isPasswordValid = await this.comparePasswords(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
+
+    // Atualizar lastLogin
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
 
     // Gerar tokens
     const tokens = await this.generateTokens(user);

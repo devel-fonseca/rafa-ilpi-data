@@ -1,59 +1,85 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
+import { Building2, LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function DashboardLayout() {
-  const { user } = useAuthStore()
+  const { user, logout } = useAuthStore()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-slate-900">Rafa ILPI</h1>
+            <div className="flex items-center gap-3">
+              <Building2 className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {user?.tenant?.name || 'Rafa ILPI'}
+                </h1>
+                <p className="text-xs text-gray-500">Sistema de Gestão</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-slate-600">
-                {user?.nome || 'Usuário'}
-              </span>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-xs text-gray-500">
+                  {user?.role === 'ADMIN' ? 'Administrador' :
+                   user?.role === 'MANAGER' ? 'Gerente' : 'Usuário'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </header>
 
       {/* Sidebar + Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <aside className="w-64 flex-shrink-0">
-            <nav className="space-y-1">
-              <Link
-                to="/dashboard"
-                className="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/dashboard/residentes"
-                className="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
-              >
-                Residentes
-              </Link>
-              <Link
-                to="/dashboard/registros-diarios"
-                className="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
-              >
-                Registros Diários
-              </Link>
-            </nav>
-          </aside>
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r">
+          <nav className="p-4 space-y-1">
+            <Link
+              to="/dashboard"
+              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/dashboard/residentes"
+              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Residentes
+            </Link>
+            <Link
+              to="/dashboard/registros-diarios"
+              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Registros Diários
+            </Link>
+          </nav>
+        </aside>
 
-          {/* Main Content */}
-          <main className="flex-1">
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-8">
             <Outlet />
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </div>
   )

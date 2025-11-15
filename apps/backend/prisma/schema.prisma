@@ -1,7 +1,12 @@
-// apps/backend/prisma/schema.prisma
+// ──────────────────────────────────────────────────────────────────────────────
+//  Prisma Schema – Sistema Multi‑Tenant para Residências de Idosos
+//  Data: 15/11/2025
+//  Autor: @efonseca78 (BR)
+// ──────────────────────────────────────────────────────────────────────────────
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -9,15 +14,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// SCHEMA GLOBAL (public)
-// ============================================
-
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS (usados em várias tabelas)
+// ──────────────────────────────────────────────────────────────────────────────
 enum PlanType {
   FREE
   BASICO
   PROFISSIONAL
   ENTERPRISE
+
+  @@map("PlanType")
 }
 
 enum TenantStatus {
@@ -25,6 +31,8 @@ enum TenantStatus {
   SUSPENDED
   CANCELLED
   TRIAL
+
+  @@map("TenantStatus")
 }
 
 enum Gender {
@@ -32,6 +40,8 @@ enum Gender {
   FEMININO
   OUTRO
   NAO_INFORMADO
+
+  @@map("Gender")
 }
 
 enum CivilStatus {
@@ -40,6 +50,8 @@ enum CivilStatus {
   DIVORCIADO
   VIUVO
   UNIAO_ESTAVEL
+
+  @@map("CivilStatus")
 }
 
 enum BloodType {
@@ -52,231 +64,307 @@ enum BloodType {
   O_POSITIVO
   O_NEGATIVO
   NAO_INFORMADO
+
+  @@map("BloodType")
 }
 
-// Planos disponíveis
-model Plan {
-  id                String         @id @default(uuid())
-  name              String         @unique
-  type              PlanType       @unique
-  maxResidents      Int            // 5, 20, 100, -1 (ilimitado)
-  maxUsers          Int            // 2, 5, 15, -1 (ilimitado)
-  priceMonthly      Decimal        @db.Decimal(10, 2) // R$ 0, 299, 499, custom
-  features          Json           // Lista de features habilitadas
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+enum RecordType {
+  HIGIENE
+  ALIMENTACAO
+  HIDRATACAO
+  MONITORAMENTO
+  ELIMINACAO
+  COMPORTAMENTO
+  INTERCORRENCIA
+  ATIVIDADES
+  VISITA
+  OUTROS
 
-  subscriptions     Subscription[]
+  @@map("RecordType")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PLANOS
+// ──────────────────────────────────────────────────────────────────────────────
+model Plan {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @unique
+  type         PlanType
+  maxResidents Int
+  maxUsers     Int
+  priceMonthly Decimal  @db.Decimal(10, 2)
+  features     Json     @default("[]")
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  subscriptions Subscription[]
 
   @@map("plans")
 }
 
-// Tenants (ILPIs/Instituições)
+// ──────────────────────────────────────────────────────────────────────────────
+//  TENANTS (Clínicas / Residências)
+// ──────────────────────────────────────────────────────────────────────────────
 model Tenant {
-  id                String         @id @default(uuid())
-  name              String         // Nome da ILPI
-  slug              String         @unique // Ex: "casa-do-idoso-campinas"
-  cnpj              String?        @unique
-  email             String
-  phone             String?
-  status            TenantStatus   @default(TRIAL)
-  schemaName        String         @unique // Ex: "tenant_abc123"
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String       @unique
+  cnpj       String?      @unique
+  email      String
+  phone      String?
+  status     TenantStatus @default(TRIAL)
+  schemaName String       @unique
 
-  // Endereço
-  address           String?
-  city              String?
-  state             String?
-  zipCode           String?
+  // Endereço detalhado
+  addressStreet     String?
+  addressNumber     String?
+  addressComplement String?
+  addressDistrict   String?
+  addressCity       String?
+  addressState      String?
+  addressZipCode    String?
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  deletedAt DateTime? @db.Timestamptz(3)
 
-  subscription      Subscription?
-  users             User[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+  users         User[]
+  residents     Resident[]
+  dailyRecords  DailyRecord[]
 
   @@map("tenants")
 }
 
-// Assinatura do tenant
+// ──────────────────────────────────────────────────────────────────────────────
+//  SUBSCRIPTIONS (Stripe‑style)
+// ──────────────────────────────────────────────────────────────────────────────
 model Subscription {
-  id                String         @id @default(uuid())
-  tenantId          String         @unique
-  planId            String
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @db.Uuid
+  planId             String    @db.Uuid
+  startDate          DateTime  @default(now()) @db.Timestamptz(3)
+  endDate            DateTime? @db.Timestamptz(3)
+  currentPeriodStart DateTime? @db.Timestamptz(3)
+  currentPeriodEnd   DateTime? @db.Timestamptz(3)
+  trialEndDate       DateTime? @db.Timestamptz(3)
+  status             String // trialing | active | past_due | canceled | unpaid | incomplete
 
-  startDate         DateTime       @default(now())
-  endDate           DateTime?
-  trialEndsAt       DateTime?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  status            String         // ACTIVE, CANCELLED, PAST_DUE
-
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan              Plan           @relation(fields: [planId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@map("subscriptions")
 }
 
-// Usuários (multi-tenant)
+// ──────────────────────────────────────────────────────────────────────────────
+//  USERS (por tenant)
+// ──────────────────────────────────────────────────────────────────────────────
 model User {
-  id                String         @id @default(uuid())
-  tenantId          String
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String    @db.Uuid
+  name                  String
+  email                 String
+  password              String
+  role                  String // admin | user | viewer (pode virar enum depois)
+  isActive              Boolean   @default(true)
+  lastLogin             DateTime? @db.Timestamptz(3)
+  passwordResetRequired Boolean   @default(false)
+  deletedAt             DateTime? @db.Timestamptz(3)
 
-  name              String
-  email             String
-  password          String         // bcrypt hash
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  role              String         // ADMIN, MANAGER, USER, VIEWER
-
-  isActive          Boolean        @default(true)
-
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  tenant            Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  refreshTokens     RefreshToken[]
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  dailyRecords  DailyRecord[]
 
   @@unique([tenantId, email])
   @@map("users")
 }
 
-// Refresh tokens para JWT
+// ──────────────────────────────────────────────────────────────────────────────
+//  REFRESH TOKENS
+// ──────────────────────────────────────────────────────────────────────────────
 model RefreshToken {
-  id                String         @id @default(uuid())
-  userId            String
-  token             String         @unique
-  expiresAt         DateTime
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
 
-  createdAt         DateTime       @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
 }
 
-// ============================================
-// SCHEMA POR TENANT (tenant_xxx)
-// Será criado dinamicamente para cada tenant
-// Este modelo serve como template
-// ============================================
-
-// Residente
+// ──────────────────────────────────────────────────────────────────────────────
+//  RESIDENTS – MODELO FINAL (conforme especificação)
+// ──────────────────────────────────────────────────────────────────────────────
 model Resident {
-  id                String         @id @default(uuid())
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
 
-  // Dados Pessoais
-  nome              String
-  cpf               String         @unique
-  rg                String?
-  orgaoExpedidor    String?
-  cns               String?        // Cartão Nacional de Saúde
-  genero            Gender
-  dataNascimento    DateTime
-  estadoCivil       CivilStatus?
-  naturalidade      String?
-  nacionalidade     String         @default("Brasileira")
-  nomeMae           String?
-  nomePai           String?
+  // 0 – Status
+  status String @default("Ativo") // Ativo | Inativo | Falecido
 
-  // Documentos (URLs no MinIO)
-  fotoUrl           String?
-  docPessoaisUrl    String?        // RG, CPF digitalizados
-  cnsCardUrl        String?
+  // 1 – Dados Pessoais
+  fullName    String
+  socialName  String?
+  cpf         String
+  rg          String?
+  rgIssuer    String?
+  education   String?
+  profession  String?
+  cns         String?
+  gender      Gender
+  civilStatus CivilStatus?
+  religion    String?
+  birthDate   DateTime     @db.Date
+  nationality String       @default("Brasileira")
+  birthCity   String?
+  birthState  String? // UF (2 letras)
+  motherName  String?
+  fatherName  String?
+  fotoUrl     String? // URL da foto do residente no MinIO
+  documents   Json         @default("[]") // URLs de documentos pessoais
 
-  // Endereço Atual
-  enderecoAtual     String?
-  bairroAtual       String?
-  cidadeAtual       String?
-  estadoAtual       String?
-  cepAtual          String?
-  pontoReferenciaAtual String?
+  // 2 – Endereços
+  // Atual
+  currentCep        String?
+  currentState      String?
+  currentCity       String?
+  currentStreet     String?
+  currentNumber     String?
+  currentComplement String?
+  currentDistrict   String?
+  currentPhone      String?
 
-  // Endereço de Origem
-  enderecoOrigem    String?
-  bairroOrigem      String?
-  cidadeOrigem      String?
-  estadoOrigem      String?
-  cepOrigem         String?
+  // Procedência
+  originCep        String?
+  originState      String?
+  originCity       String?
+  originStreet     String?
+  originNumber     String?
+  originComplement String?
+  originDistrict   String?
+  originPhone      String?
 
-  // Contato de Emergência
-  contatoEmergenciaNome      String?
-  contatoEmergenciaParentesco String?
-  contatoEmergenciaTelefone   String?
-  contatoEmergenciaEmail      String?
+  addressDocuments Json @default("[]") // comprovantes de endereço
 
-  // Responsável Legal
-  responsavelLegalNome        String?
-  responsavelLegalCpf         String?
-  responsavelLegalRg          String?
-  responsavelLegalTelefone    String?
-  responsavelLegalEmail       String?
-  responsavelLegalEndereco    String?
-  responsavelLegalParentesco  String?
-  responsavelDocumentosUrl    String?
+  // 3 – Contatos de Emergência (array JSON)
+  emergencyContacts Json @default("[]")
+  // [{ "name": "...", "phone": "...", "relationship": "..." }]
 
-  // Dados de Admissão
-  dataAdmissao      DateTime
-  motivoAdmissao    String?
-  observacoesAdmissao String?     @db.Text
-  termoAdmissaoUrl  String?
-  consentimentoLgpdUrl String?
-  consentimentoImagemUrl String?
-  comprovanteEnderecoUrl String?
+  // 4 – Responsável Legal
+  legalGuardianName       String?
+  legalGuardianCpf        String?
+  legalGuardianRg         String?
+  legalGuardianPhone      String?
+  legalGuardianType       String? // curador | procurador | responsável convencional
+  legalGuardianCep        String?
+  legalGuardianState      String?
+  legalGuardianCity       String?
+  legalGuardianStreet     String?
+  legalGuardianNumber     String?
+  legalGuardianComplement String?
+  legalGuardianDistrict   String?
+  legalGuardianDocuments  Json    @default("[]")
 
-  // Saúde
-  tipoSanguineo     BloodType      @default(NAO_INFORMADO)
-  altura            Decimal?       @db.Decimal(5, 2) // em cm
-  peso              Decimal?       @db.Decimal(5, 2) // em kg
+  // 5 – Admissão
+  admissionDate       DateTime  @db.Date
+  admissionType       String? // Voluntária | Involuntária | Judicial | outro
+  admissionReason     String?
+  admissionConditions String?
+  dischargeDate       DateTime? @db.Date
+  dischargeReason     String?
 
-  dependenciaFisica     String?    // INDEPENDENTE, PARCIAL, TOTAL
-  dependenciaMental     String?    // INDEPENDENTE, PARCIAL, TOTAL
+  // 6 – Saúde
+  healthStatus           String?
+  bloodType              BloodType @default(NAO_INFORMADO)
+  height                 Decimal?  @db.Decimal(5, 2) // metros
+  weight                 Decimal?  @db.Decimal(5, 1) // kg
+  dependencyLevel        String? // Grau I - Independente | Grau II - Semidependente | Grau III - Dependente
+  mobilityAid            Boolean?
+  specialNeeds           String?
+  functionalAspects      String?
+  medicationsOnAdmission String?
+  allergies              String?
+  chronicConditions      String?
+  dietaryRestrictions    String?
+  medicalReport          Json      @default("[]")
+  // [{ "url": "...", "date": "YYYY-MM-DD" }]
 
-  medicamentosUso       String?    @db.Text
-  alergias              String?    @db.Text
-  doencasCronicas       String?    @db.Text
-  observacoesSaude      String?    @db.Text
-  laudoMedicoUrl        String?
+  // 7 – Convênios / Planos de Saúde
+  healthPlans Json @default("[]")
+  // [{ "name": "...", "cardNumber": "...", "cardUrl": "..." }]
 
-  // Planos de Saúde
-  temPlanoSaude     Boolean        @default(false)
-  planoSaudeNome    String?
-  planoSaudeNumero  String?
-  planoSaudeValidade DateTime?
-  planoSaudeCarteiraUrl String?
+  // 8 – Pertences
+  belongings Json @default("[]")
+  // ["Óculos", "Aparelho auditivo", ...]
 
-  // Pertences
-  pertencesLista    Json?          // Array de objetos {item, quantidade, observacao}
-  pertencesObservacoes String?     @db.Text
+  // 9 – Acomodação
+  roomId String?
+  bedId  String?
 
-  // Acomodação
-  quartoNumero      String?
-  leitoNumero       String?
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 
-  // Controle
-  ativo             Boolean        @default(true)
-  dataSaida         DateTime?
-  motivoSaida       String?
+  // Relações
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyRecords DailyRecord[]
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  // Relações (para futuro)
-  // registrosDiarios  RegistroDiario[]
-  // medicacoes        Medicacao[]
-  // avaliacoesAvd     AvaliacaoAvd[]
-
+  // Índices
+  @@unique([tenantId, cpf])
+  @@index([tenantId, status])
+  @@index([tenantId, admissionDate(sort: Desc)])
+  @@index([deletedAt])
   @@map("residents")
 }
 
-// Modelo para Registros Diários (você definirá depois)
-// model RegistroDiario {
-//   id                String         @id @default(uuid())
-//   residenteId       String
-//   data              DateTime
-//   // ... campos que você definirá
-//
-//   residente         Resident       @relation(fields: [residenteId], references: [id], onDelete: Cascade)
-//
-//   @@map("registros_diarios")
-// }
+// ──────────────────────────────────────────────────────────────────────────────
+//  REGISTROS DIÁRIOS
+// ──────────────────────────────────────────────────────────────────────────────
+model DailyRecord {
+  id         String     @id @default(uuid()) @db.Uuid
+  tenantId   String     @db.Uuid
+  residentId String     @db.Uuid
+
+  // Tipo e metadados
+  type RecordType
+  date DateTime   @db.Date // Data do registro (sem hora)
+  time String // Hora no formato "HH:mm" (ex: "07:00", "14:30")
+
+  // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
+  data Json @default("{}")
+
+  // Responsável pelo registro
+  recordedBy String // Nome do profissional
+  userId     String @db.Uuid // ID do usuário que fez o registro
+
+  // Observações gerais (opcional)
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices para performance
+  @@index([tenantId, residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc), time])
+  @@index([deletedAt])
+  @@map("daily_records")
+}

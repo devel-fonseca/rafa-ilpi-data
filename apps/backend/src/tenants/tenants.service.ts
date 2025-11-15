@@ -1,0 +1,702 @@
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+  Logger,
+  InternalServerErrorException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateTenantDto } from './dto/create-tenant.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { TenantStatus } from '@prisma/client';
+
+@Injectable()
+export class TenantsService {
+  private readonly logger = new Logger(TenantsService.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Cria um novo tenant (ILPI) e o primeiro usuário admin
+   * Este método é usado no auto-registro
+   */
+  async create(createTenantDto: CreateTenantDto) {
+    const {
+      name,
+      cnpj,
+      email,
+      phone,
+      addressNumber,
+      addressComplement,
+      addressDistrict,
+      addressCity,
+      addressState,
+      addressZipCode,
+      adminName,
+      adminEmail,
+      adminPassword,
+      planId,
+    } = createTenantDto;
+
+    // Validar se CNPJ já existe
+    if (cnpj) {
+      const existingCnpj = await this.prisma.tenant.findUnique({
+        where: { cnpj },
+      });
+      if (existingCnpj) {
+        throw new ConflictException('CNPJ já cadastrado');
+      }
+    }
+
+    // Validar se plano existe
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+    });
+    if (!plan) {
+      throw new NotFoundException('Plano não encontrado');
+    }
+
+    // Gerar slug único baseado no nome
+    const baseSlug = this.generateSlug(name);
+    let slug = baseSlug;
+    let counter = 1;
+    while (await this.prisma.tenant.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    // Gerar nome do schema
+    const schemaName = `tenant_${slug.replace(/-/g, '_')}_${randomBytes(3).toString('hex')}`;
+
+    try {
+      // Iniciar transação
+      const result = await this.prisma.$transaction(async (prisma) => {
+        // 1. Criar o tenant
+        const tenant = await prisma.tenant.create({
+          data: {
+            name,
+            slug,
+            cnpj,
+            email,
+            phone,
+            addressNumber,
+            addressComplement,
+            addressDistrict,
+            addressCity,
+            addressState,
+            addressZipCode,
+            schemaName,
+            status: TenantStatus.TRIAL, // Iniciar com trial
+          },
+        });
+
+        // 2. Criar a subscription
+        const subscription = await prisma.subscription.create({
+          data: {
+            tenantId: tenant.id,
+            planId,
+            status: 'TRIAL',
+            startDate: new Date(),
+            trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias de trial
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        // 3. Criar o primeiro usuário (admin)
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        const user = await prisma.user.create({
+          data: {
+            tenantId: tenant.id,
+            name: adminName,
+            email: adminEmail,
+            password: hashedPassword,
+            role: UserRole.ADMIN,
+            isActive: true,
+          },
+        });
+
+        // 4. Criar o schema no PostgreSQL
+        await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+
+        // 5. Criar as tabelas do tenant no novo schema
+        // Por enquanto vamos criar apenas a estrutura básica
+        // Em produção, isso seria feito via migrations específicas
+        await this.createTenantSchema(schemaName);
+
+        this.logger.log(`Tenant criado com sucesso: ${tenant.id} (${schemaName})`);
+
+        return {
+          tenant,
+          subscription,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+        };
+      });
+
+      return result;
+    } catch (error) {
+      this.logger.error('Erro ao criar tenant:', error);
+      throw new InternalServerErrorException('Erro ao criar ILPI');
+    }
+  }
+
+  /**
+   * Lista todos os tenants (apenas SUPERADMIN)
+   */
+  async findAll(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [tenants, total] = await Promise.all([
+      this.prisma.tenant.findMany({
+        skip,
+        take: limit,
+        include: {
+          subscriptions: {
+            include: {
+              plan: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+          users: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+              isActive: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.tenant.count(),
+    ]);
+
+    return {
+      data: tenants,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Busca um tenant específico
+   */
+  async findOne(id: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        subscriptions: {
+          include: {
+            plan: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    return tenant;
+  }
+
+  /**
+   * Atualiza dados de um tenant
+   */
+  async update(id: string, updateTenantDto: UpdateTenantDto, currentUserId: string) {
+    // Verificar se tenant existe
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        users: {
+          where: { id: currentUserId },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    // Verificar se usuário é admin do tenant
+    if (!tenant.users[0] || tenant.users[0].role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Apenas administradores podem atualizar dados da ILPI');
+    }
+
+    // Validar CNPJ único se estiver sendo atualizado
+    if (updateTenantDto.cnpj && updateTenantDto.cnpj !== tenant.cnpj) {
+      const existingCnpj = await this.prisma.tenant.findUnique({
+        where: { cnpj: updateTenantDto.cnpj },
+      });
+      if (existingCnpj) {
+        throw new ConflictException('CNPJ já cadastrado');
+      }
+    }
+
+    return this.prisma.tenant.update({
+      where: { id },
+      data: updateTenantDto,
+    });
+  }
+
+  /**
+   * Soft delete de um tenant
+   */
+  async remove(id: string, currentUserId: string) {
+    // Verificar se tenant existe e usuário é admin
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+      include: {
+        users: {
+          where: { id: currentUserId },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    if (!tenant.users[0] || tenant.users[0].role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Apenas administradores podem desativar a ILPI');
+    }
+
+    // Soft delete - apenas mudar status
+    return this.prisma.tenant.update({
+      where: { id },
+      data: {
+        status: TenantStatus.SUSPENDED,
+        deletedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Adiciona um novo usuário ao tenant
+   */
+  async addUser(tenantId: string, addUserDto: AddUserToTenantDto, currentUserId: string) {
+    // Verificar se tenant existe e usuário é admin
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        users: {
+          where: { id: currentUserId },
+        },
+        subscriptions: {
+          include: {
+            plan: true,
+          },
+          where: {
+            status: {
+              in: ['ACTIVE', 'TRIAL'],
+            },
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    if (!tenant.users[0] || tenant.users[0].role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Apenas administradores podem adicionar usuários');
+    }
+
+    // Verificar limite de usuários do plano
+    const plan = tenant.subscriptions[0]?.plan;
+    if (plan) {
+      const currentUserCount = await this.prisma.user.count({
+        where: { tenantId, isActive: true },
+      });
+
+      if (plan.maxUsers !== -1 && currentUserCount >= plan.maxUsers) {
+        throw new BadRequestException(
+          `Limite de usuários do plano ${plan.name} atingido (${plan.maxUsers} usuários)`,
+        );
+      }
+    }
+
+    // Verificar se email já existe neste tenant
+    const existingUser = await this.prisma.user.findUnique({
+      where: {
+        tenantId_email: {
+          tenantId,
+          email: addUserDto.email,
+        },
+      },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email já cadastrado nesta ILPI');
+    }
+
+    // Gerar senha temporária se não fornecida
+    const temporaryPassword =
+      addUserDto.temporaryPassword ||
+      `Temp${randomBytes(4).toString('hex')}!`;
+
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+    // Criar o usuário
+    const user = await this.prisma.user.create({
+      data: {
+        tenantId,
+        name: addUserDto.name,
+        email: addUserDto.email,
+        password: hashedPassword,
+        role: addUserDto.role,
+        isActive: true,
+        passwordResetRequired: true, // Forçar troca de senha no primeiro login
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    // TODO: Enviar email de convite se solicitado
+    if (addUserDto.sendInviteEmail) {
+      this.logger.log(`TODO: Enviar email de convite para ${user.email}`);
+      // await this.emailService.sendInviteEmail(user.email, temporaryPassword);
+    }
+
+    return {
+      user,
+      temporaryPassword: addUserDto.sendInviteEmail ? undefined : temporaryPassword,
+    };
+  }
+
+  /**
+   * Lista usuários de um tenant
+   */
+  async listUsers(tenantId: string, currentUserId: string) {
+    // Verificar se usuário pertence ao tenant
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: currentUserId,
+        tenantId,
+      },
+    });
+
+    if (!user) {
+      throw new ForbiddenException('Acesso negado');
+    }
+
+    return this.prisma.user.findMany({
+      where: {
+        tenantId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        passwordResetRequired: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  /**
+   * Remove um usuário do tenant
+   */
+  async removeUser(tenantId: string, userId: string, currentUserId: string) {
+    // Verificar se tenant existe e usuário atual é admin
+    const currentUser = await this.prisma.user.findFirst({
+      where: {
+        id: currentUserId,
+        tenantId,
+      },
+    });
+
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Apenas administradores podem remover usuários');
+    }
+
+    // Não permitir auto-remoção
+    if (userId === currentUserId) {
+      throw new BadRequestException('Você não pode remover a si mesmo');
+    }
+
+    // Verificar se usuário a ser removido existe
+    const userToRemove = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        tenantId,
+      },
+    });
+
+    if (!userToRemove) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    // Verificar se não é o último admin
+    if (userToRemove.role === UserRole.ADMIN) {
+      const adminCount = await this.prisma.user.count({
+        where: {
+          tenantId,
+          role: UserRole.ADMIN,
+          isActive: true,
+        },
+      });
+
+      if (adminCount <= 1) {
+        throw new BadRequestException('Não é possível remover o último administrador');
+      }
+    }
+
+    // Soft delete - desativar usuário
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        deletedAt: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+      },
+    });
+  }
+
+  /**
+   * Métodos auxiliares
+   */
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^\w\s-]/g, '') // Remove caracteres especiais
+      .replace(/\s+/g, '-') // Substitui espaços por hífens
+      .replace(/-+/g, '-') // Remove hífens duplicados
+      .trim();
+  }
+
+  private async createTenantSchema(schemaName: string) {
+    // Criar tabelas específicas do tenant
+    // Estrutura completa baseada no schema.prisma e migration mais recente
+
+    const queries = [
+      // Tabela de residentes - ESTRUTURA COMPLETA
+      `CREATE TABLE IF NOT EXISTS "${schemaName}"."residents" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+        -- ========================================
+        -- SEÇÃO 1: DADOS PESSOAIS DO RESIDENTE
+        -- ========================================
+        foto_url TEXT,
+        nome TEXT NOT NULL,
+        nome_social TEXT,
+        cns TEXT,
+        cpf TEXT NOT NULL,
+        rg TEXT,
+        orgao_expedidor TEXT,
+        escolaridade TEXT,
+        profissao TEXT,
+        genero TEXT NOT NULL,
+        estado_civil TEXT,
+        religiao TEXT,
+        data_nascimento TIMESTAMP NOT NULL,
+        nacionalidade TEXT NOT NULL DEFAULT 'Brasileira',
+        naturalidade TEXT,
+        uf_nascimento TEXT,
+        nome_mae TEXT,
+        nome_pai TEXT,
+        documentos_pessoais_urls JSONB,
+        cns_card_url TEXT,
+
+        -- ========================================
+        -- SEÇÃO 2: ENDEREÇOS
+        -- ========================================
+        -- Endereço Atual
+        cep_atual TEXT,
+        estado_atual TEXT,
+        cidade_atual TEXT,
+        logradouro_atual TEXT,
+        numero_atual TEXT,
+        complemento_atual TEXT,
+        bairro_atual TEXT,
+        telefone_atual TEXT,
+
+        -- Endereço de Procedência
+        cep_procedencia TEXT,
+        estado_procedencia TEXT,
+        cidade_procedencia TEXT,
+        logradouro_procedencia TEXT,
+        numero_procedencia TEXT,
+        complemento_procedencia TEXT,
+        bairro_procedencia TEXT,
+        telefone_procedencia TEXT,
+        documentos_endereco_urls JSONB,
+
+        -- ========================================
+        -- SEÇÃO 3: CONTATOS DE EMERGÊNCIA
+        -- ========================================
+        contatos_emergencia JSONB,
+
+        -- ========================================
+        -- SEÇÃO 4: RESPONSÁVEL LEGAL
+        -- ========================================
+        responsavel_legal_nome TEXT,
+        responsavel_legal_cpf TEXT,
+        responsavel_legal_rg TEXT,
+        responsavel_legal_telefone TEXT,
+        responsavel_legal_tipo TEXT,
+        responsavel_legal_cep TEXT,
+        responsavel_legal_uf TEXT,
+        responsavel_legal_cidade TEXT,
+        responsavel_legal_logradouro TEXT,
+        responsavel_legal_numero TEXT,
+        responsavel_legal_complemento TEXT,
+        responsavel_legal_bairro TEXT,
+        responsavel_legal_documentos_urls JSONB,
+
+        -- ========================================
+        -- SEÇÃO 5: DADOS DE ADMISSÃO
+        -- ========================================
+        data_admissao TIMESTAMP NOT NULL,
+        tipo_admissao TEXT,
+        motivo_admissao TEXT,
+        condicoes_admissao TEXT,
+        data_desligamento TIMESTAMP,
+        motivo_desligamento TEXT,
+        termo_admissao_url TEXT,
+        consentimento_lgpd_url TEXT,
+        consentimento_imagem_url TEXT,
+        data_saida TIMESTAMP,
+        motivo_saida TEXT,
+        status TEXT NOT NULL DEFAULT 'ATIVO',
+
+        -- ========================================
+        -- SEÇÃO 6: INFORMAÇÕES DE SAÚDE
+        -- ========================================
+        necessidades_especiais TEXT,
+        restricoes_alimentares TEXT,
+        aspectos_funcionais TEXT,
+        necessita_auxilio_mobilidade BOOLEAN NOT NULL DEFAULT false,
+        situacao_saude TEXT,
+        tipo_sanguineo TEXT NOT NULL DEFAULT 'NAO_INFORMADO',
+        altura DECIMAL(5,2),
+        peso DECIMAL(5,2),
+        grau_dependencia TEXT,
+        medicamentos_uso TEXT,
+        alergias TEXT,
+        condicoes_cronicas TEXT,
+        observacoes_saude TEXT,
+        laudo_medico_url TEXT,
+        data_laudo_medico TIMESTAMP,
+
+        -- ========================================
+        -- SEÇÃO 7: PLANOS DE SAÚDE / CONVÊNIOS
+        -- ========================================
+        convenios JSONB,
+
+        -- ========================================
+        -- SEÇÃO 8: PERTENCES
+        -- ========================================
+        pertences_lista TEXT,
+        pertences_observacoes TEXT,
+
+        -- ========================================
+        -- SEÇÃO 9: ACOMODAÇÃO
+        -- ========================================
+        quarto_numero TEXT,
+        leito_numero TEXT,
+
+        -- ========================================
+        -- AUDITORIA
+        -- ========================================
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_by UUID,
+        updated_by UUID,
+        deleted_at TIMESTAMP,
+        deleted_by UUID
+      )`,
+
+      // Índices para a tabela residents
+      `CREATE INDEX IF NOT EXISTS idx_residents_cpf ON "${schemaName}"."residents"(cpf)`,
+      `CREATE INDEX IF NOT EXISTS idx_residents_nome ON "${schemaName}"."residents"(nome)`,
+      `CREATE INDEX IF NOT EXISTS idx_residents_status ON "${schemaName}"."residents"(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_residents_deleted_at ON "${schemaName}"."residents"(deleted_at)`,
+
+      // Tabela de audit_logs
+      `CREATE TABLE IF NOT EXISTS "${schemaName}"."audit_logs" (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id UUID NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        user_id UUID NOT NULL,
+        user_name VARCHAR(255),
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        changes JSONB,
+        metadata JSONB,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
+
+      // Índices para audit_logs
+      `CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON "${schemaName}"."audit_logs"(entity_type, entity_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON "${schemaName}"."audit_logs"(user_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON "${schemaName}"."audit_logs"(created_at DESC)`,
+    ];
+
+    for (const query of queries) {
+      await this.prisma.$executeRawUnsafe(query);
+    }
+
+    this.logger.log(`Schema ${schemaName} criado com sucesso - tabelas: residents, audit_logs`);
+  }
+}

@@ -1,12 +1,26 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import { AuthLayout } from '@/layouts/AuthLayout'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
-// Placeholder components (serão criados depois)
-const LoginPage = () => <div>Login Page</div>
-const DashboardPage = () => <div>Dashboard</div>
-const ResidentesPage = () => <div>Residentes</div>
-const RegistrosDiariosPage = () => <div>Registros Diários</div>
+// Auth Pages
+import Login from '@/pages/auth/Login'
+import Register from '@/pages/auth/Register'
+
+// Dashboard Pages
+import Dashboard from '@/pages/Dashboard'
+
+// Residents Pages
+import ResidentsList from '@/pages/residents/ResidentsList'
+import ResidentForm from '@/pages/residents/ResidentForm'
+import ResidentProfile from '@/pages/residents/ResidentProfile'
+import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
+
+// Daily Records Pages
+import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
+
+// Placeholder Pages (serão implementados futuramente)
+const SettingsPage = () => <div>Configurações</div>
+const UsersPage = () => <div>Usuários</div>
 
 export const router = createBrowserRouter([
   {
@@ -14,30 +28,60 @@ export const router = createBrowserRouter([
     element: <Navigate to="/dashboard" replace />,
   },
   {
-    path: '/auth',
-    element: <AuthLayout />,
-    children: [
-      {
-        path: 'login',
-        element: <LoginPage />,
-      },
-    ],
+    path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/register',
+    element: <Register />,
   },
   {
     path: '/dashboard',
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
-        element: <DashboardPage />,
+        element: <Dashboard />,
       },
       {
         path: 'residentes',
-        element: <ResidentesPage />,
+        element: <ResidentsList />,
+      },
+      {
+        path: 'residentes/new',
+        element: <ResidentForm />,
+      },
+      {
+        path: 'residentes/:id',
+        element: <ResidentProfile />,
+      },
+      {
+        path: 'residentes/:id/edit',
+        element: <ResidentForm />,
+      },
+      {
+        path: 'residentes/:id/print',
+        element: <ResidentPrintView />,
       },
       {
         path: 'registros-diarios',
-        element: <RegistrosDiariosPage />,
+        element: <DailyRecordsPage />,
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
+      },
+      {
+        path: 'users',
+        element: (
+          <ProtectedRoute requiredRole="ADMIN">
+            <UsersPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
