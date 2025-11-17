@@ -18,6 +18,11 @@ import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 // Daily Records Pages
 import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
 
+// Prescriptions Pages
+import PrescriptionsPage from '@/pages/prescriptions/PrescriptionsPage'
+import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
+import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
 const UsersPage = () => <div>Usuários</div>
@@ -70,6 +75,22 @@ export const router = createBrowserRouter([
       {
         path: 'registros-diarios',
         element: <DailyRecordsPage />,
+      },
+      {
+        path: 'prescricoes',
+        element: <PrescriptionsPage />,
+      },
+      {
+        path: 'prescricoes/new',
+        element: <PrescriptionForm />,
+      },
+      {
+        path: 'prescricoes/:id',
+        element: <PrescriptionDetails />,
+      },
+      {
+        path: 'prescricoes/:id/edit',
+        element: <PrescriptionForm />,
       },
       {
         path: 'settings',

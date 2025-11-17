@@ -10,6 +10,7 @@ import { TenantsModule } from './tenants/tenants.module';
 import { PlansModule } from './plans/plans.module';
 import { ResidentsModule } from './residents/residents.module';
 import { DailyRecordsModule } from './daily-records/daily-records.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AuditModule } from './audit/audit.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { winstonConfig } from './common/config/winston.config';
@@ -46,6 +47,7 @@ import { winstonConfig } from './common/config/winston.config';
     PlansModule,
     ResidentsModule,
     DailyRecordsModule,
+    PrescriptionsModule,
     AuditModule,
   ],
   providers: [

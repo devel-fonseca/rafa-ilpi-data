@@ -83,6 +83,93 @@ enum RecordType {
   @@map("RecordType")
 }
 
+enum PrescriptionType {
+  ROTINA
+  ALTERACAO_PONTUAL
+  ANTIBIOTICO
+  ALTO_RISCO
+  CONTROLADO
+  OUTRO
+
+  @@map("PrescriptionType")
+}
+
+enum AdministrationRoute {
+  VO
+  IM
+  EV
+  SC
+  TOPICA
+  SL
+  RETAL
+  OCULAR
+  NASAL
+  INALATORIA
+  OUTRA
+
+  @@map("AdministrationRoute")
+}
+
+enum MedicationPresentation {
+  COMPRIMIDO
+  CAPSULA
+  AMPOLA
+  GOTAS
+  SOLUCAO
+  SUSPENSAO
+  POMADA
+  CREME
+  SPRAY
+  INALADOR
+  ADESIVO
+  SUPOSITORIO
+  OUTRO
+
+  @@map("MedicationPresentation")
+}
+
+enum NotificationType {
+  AMARELA
+  AZUL
+  BRANCA_ESPECIAL
+  NAO_APLICA
+
+  @@map("NotificationType")
+}
+
+enum ControlledClass {
+  BZD
+  PSICOFARMACO
+  OPIOIDE
+  ANTICONVULSIVANTE
+  OUTRO
+
+  @@map("ControlledClass")
+}
+
+enum MedicationFrequency {
+  UMA_VEZ_DIA
+  DUAS_VEZES_DIA
+  SEIS_SEIS_H
+  OITO_OITO_H
+  DOZE_DOZE_H
+  PERSONALIZADO
+
+  @@map("MedicationFrequency")
+}
+
+enum SOSIndicationType {
+  DOR
+  FEBRE
+  ANSIEDADE
+  AGITACAO
+  NAUSEA
+  INSONIA
+  OUTRO
+
+  @@map("SOSIndicationType")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -129,10 +216,13 @@ model Tenant {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  subscriptions Subscription[]
-  users         User[]
-  residents     Resident[]
-  dailyRecords  DailyRecord[]
+  subscriptions             Subscription[]
+  users                     User[]
+  residents                 Resident[]
+  dailyRecords              DailyRecord[]
+  prescriptions             Prescription[]
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
 
   @@map("tenants")
 }
@@ -178,9 +268,11 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  refreshTokens RefreshToken[]
-  dailyRecords  DailyRecord[]
+  tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens             RefreshToken[]
+  dailyRecords              DailyRecord[]
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
 
   @@unique([tenantId, email])
   @@map("users")
@@ -317,8 +409,11 @@ model Resident {
   deletedAt DateTime? @db.Timestamptz(3)
 
   // Relações
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  dailyRecords DailyRecord[]
+  tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyRecords              DailyRecord[]
+  prescriptions             Prescription[]
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -367,4 +462,233 @@ model DailyRecord {
   @@index([residentId, date(sort: Desc), time])
   @@index([deletedAt])
   @@map("daily_records")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PRESCRIÇÕES MÉDICAS
+// ──────────────────────────────────────────────────────────────────────────────
+model Prescription {
+  id         String           @id @default(uuid()) @db.Uuid
+  tenantId   String           @db.Uuid
+  residentId String           @db.Uuid
+
+  // Dados do Prescritor
+  doctorName       String
+  doctorCrm        String
+  doctorCrmState   String // UF
+  prescriptionDate DateTime @db.Date
+  prescriptionType PrescriptionType
+  validUntil       DateTime? @db.Date // Obrigatório para ANTIBIOTICO e CONTROLADO
+
+  // Campos específicos para CONTROLADO
+  controlledClass    ControlledClass?
+  notificationNumber String?
+  notificationType   NotificationType?
+
+  // Anexos
+  prescriptionImageUrl String? // URL da receita médica (obrigatório para controlado)
+
+  // Observações gerais
+  notes String? @db.Text
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdBy String    @db.Uuid // ID do usuário que criou
+
+  // Relações
+  tenant              Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident            Resident                   @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  medications         Medication[]
+  sosMedications      SOSMedication[]
+  administrations     MedicationAdministration[]
+  sosAdministrations  SOSAdministration[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, validUntil])
+  @@index([deletedAt])
+  @@map("prescriptions")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MEDICAMENTOS CONTÍNUOS
+// ──────────────────────────────────────────────────────────────────────────────
+model Medication {
+  id             String                 @id @default(uuid()) @db.Uuid
+  prescriptionId String                 @db.Uuid
+
+  // Dados do medicamento
+  name           String // DCB (Denominação Comum Brasileira)
+  presentation   MedicationPresentation
+  concentration  String // Ex: "500mg", "5mg/mL"
+  dose           String // Ex: "1 cp", "20 gotas"
+  route          AdministrationRoute
+  frequency      MedicationFrequency
+  scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
+
+  // Período
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date // null = uso contínuo
+
+  // Flags especiais
+  isControlled        Boolean @default(false)
+  isHighRisk          Boolean @default(false)
+  requiresDoubleCheck Boolean @default(false) // Exige dupla checagem
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription    Prescription               @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  administrations MedicationAdministration[]
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([isControlled])
+  @@index([startDate, endDate])
+  @@index([deletedAt])
+  @@map("medications")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MEDICAÇÕES SOS (uso eventual)
+// ──────────────────────────────────────────────────────────────────────────────
+model SOSMedication {
+  id             String                 @id @default(uuid()) @db.Uuid
+  prescriptionId String                 @db.Uuid
+
+  // Dados do medicamento
+  name           String
+  presentation   MedicationPresentation
+  concentration  String
+  dose           String
+  route          AdministrationRoute
+
+  // Indicação e limites
+  indication        SOSIndicationType
+  indicationDetails String? // Ex: "dor > 7", "febre > 38°C"
+  minInterval       String // Ex: "6 horas", "4 horas"
+  maxDailyDoses     Int // Limite diário (ex: 3)
+
+  // Período de validade
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription       Prescription        @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosAdministrations SOSAdministration[]
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([indication])
+  @@index([deletedAt])
+  @@map("sos_medications")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ADMINISTRAÇÃO DE MEDICAMENTOS CONTÍNUOS
+// ──────────────────────────────────────────────────────────────────────────────
+model MedicationAdministration {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  prescriptionId String   @db.Uuid
+  medicationId   String   @db.Uuid
+  residentId     String   @db.Uuid
+
+  // Data/hora da administração
+  date          DateTime @db.Date
+  scheduledTime String // Horário programado (ex: "06:00")
+  actualTime    String? // Horário real de administração (se diferente)
+
+  // Status
+  wasAdministered Boolean @default(false)
+  reason          String? // Motivo de não administração
+
+  // Checagem
+  administeredBy  String // Nome do profissional
+  userId          String @db.Uuid
+  checkedBy       String? // Para dupla checagem
+  checkedByUserId String? @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication   Medication   @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([medicationId, date])
+  @@index([wasAdministered])
+  @@map("medication_administrations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ADMINISTRAÇÃO DE MEDICAÇÕES SOS
+// ──────────────────────────────────────────────────────────────────────────────
+model SOSAdministration {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
+  prescriptionId  String   @db.Uuid
+  sosMedicationId String   @db.Uuid
+  residentId      String   @db.Uuid
+
+  // Data/hora
+  date DateTime @db.Date
+  time String // Horário da administração
+
+  // Motivo
+  indication String // Descrição do motivo (ex: "dor intensa no joelho")
+
+  // Checagem
+  administeredBy String
+  userId         String @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription  Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosMedication SOSMedication @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  resident      Resident      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([sosMedicationId, date])
+  @@map("sos_administrations")
 }

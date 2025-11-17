@@ -274,11 +274,11 @@ export function DailyRecordsPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div>
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Registros Diários</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Registros Diários</h1>
           <p className="text-gray-600 mt-1">
             {resident?.fullName} |{' '}
             {format(new Date(selectedDate + 'T00:00:00'), "dd 'de' MMMM 'de' yyyy", {
@@ -299,7 +299,7 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Cards de Resumo em Grid */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6 mb-8">
         {/* Resumo de Hidratação */}
         {records && records.length > 0 && (() => {
           // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
@@ -398,7 +398,8 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Botões de Ação */}
-      <Card>
+      <div className="mb-8">
+        <Card>
         <CardContent className="p-6">
           <h2 className="font-semibold text-lg mb-4">Adicionar Registro</h2>
           <div className="flex flex-wrap gap-2">
@@ -445,6 +446,7 @@ export function DailyRecordsPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Timeline de Registros */}
       <Card>

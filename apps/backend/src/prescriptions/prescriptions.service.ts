@@ -1,0 +1,822 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { FilesService } from '../files/files.service';
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
+import { QueryPrescriptionDto } from './dto/query-prescription.dto';
+import { AdministerMedicationDto } from './dto/administer-medication.dto';
+import { AdministerSOSDto } from './dto/administer-sos.dto';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+import {
+  PrescriptionType,
+  ControlledClass,
+  NotificationType,
+  MedicationPresentation,
+  AdministrationRoute,
+  MedicationFrequency,
+  SOSIndicationType,
+} from '@prisma/client';
+
+@Injectable()
+export class PrescriptionsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly filesService: FilesService,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+  ) {}
+
+  /**
+   * Cria uma nova prescrição
+   */
+  async create(
+    createPrescriptionDto: CreatePrescriptionDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    try {
+      // 1. Verificar se residente existe e pertence ao tenant
+      const resident = await this.prisma.resident.findFirst({
+        where: {
+          id: createPrescriptionDto.residentId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
+
+      if (!resident) {
+        throw new NotFoundException('Residente não encontrado');
+      }
+
+      // 2. Validar campos obrigatórios por tipo de prescrição
+      this.validatePrescriptionByType(createPrescriptionDto);
+
+      // 3. Validar horários dos medicamentos
+      for (const medication of createPrescriptionDto.medications) {
+        this.validateScheduledTimes(medication.scheduledTimes);
+      }
+
+      // 4. Criar prescrição com medicamentos e SOS em transação
+      const prescription = await this.prisma.prescription.create({
+        data: {
+          tenantId,
+          residentId: createPrescriptionDto.residentId,
+          doctorName: createPrescriptionDto.doctorName,
+          doctorCrm: createPrescriptionDto.doctorCrm,
+          doctorCrmState: createPrescriptionDto.doctorCrmState,
+          prescriptionDate: new Date(createPrescriptionDto.prescriptionDate),
+          prescriptionType: createPrescriptionDto.prescriptionType as PrescriptionType,
+          validUntil: createPrescriptionDto.validUntil
+            ? new Date(createPrescriptionDto.validUntil)
+            : null,
+          controlledClass: createPrescriptionDto.controlledClass as ControlledClass | null,
+          notificationNumber: createPrescriptionDto.notificationNumber || null,
+          notificationType: createPrescriptionDto.notificationType as NotificationType | null,
+          prescriptionImageUrl:
+            createPrescriptionDto.prescriptionImageUrl || null,
+          notes: createPrescriptionDto.notes || null,
+          createdBy: userId,
+          medications: {
+            create: createPrescriptionDto.medications.map((med) => ({
+              name: med.name,
+              presentation: med.presentation as MedicationPresentation,
+              concentration: med.concentration,
+              dose: med.dose,
+              route: med.route as AdministrationRoute,
+              frequency: med.frequency as MedicationFrequency,
+              scheduledTimes: med.scheduledTimes,
+              startDate: new Date(med.startDate),
+              endDate: med.endDate ? new Date(med.endDate) : null,
+              isControlled: med.isControlled || false,
+              isHighRisk: med.isHighRisk || false,
+              requiresDoubleCheck: med.requiresDoubleCheck || false,
+              instructions: med.instructions || null,
+            })),
+          },
+          sosMedications: createPrescriptionDto.sosMedications
+            ? {
+                create: createPrescriptionDto.sosMedications.map((sos) => ({
+                  name: sos.name,
+                  presentation: sos.presentation as MedicationPresentation,
+                  concentration: sos.concentration,
+                  dose: sos.dose,
+                  route: sos.route as AdministrationRoute,
+                  indication: sos.indication as SOSIndicationType,
+                  indicationDetails: sos.indicationDetails || null,
+                  minInterval: sos.minInterval,
+                  maxDailyDoses: sos.maxDailyDoses,
+                  startDate: new Date(sos.startDate),
+                  endDate: sos.endDate ? new Date(sos.endDate) : null,
+                  instructions: sos.instructions || null,
+                })),
+              }
+            : undefined,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              fotoUrl: true,
+            },
+          },
+          medications: true,
+          sosMedications: true,
+        },
+      });
+
+      this.logger.info('Prescrição criada', {
+        prescriptionId: prescription.id,
+        tenantId,
+        userId,
+      });
+
+      return prescription;
+    } catch (error) {
+      this.logger.error('Erro ao criar prescrição', {
+        error: error.message,
+        tenantId,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Lista prescrições com filtros e paginação
+   */
+  async findAll(query: QueryPrescriptionDto, tenantId: string) {
+    const page = parseInt(query.page || '1', 10);
+    const limit = parseInt(query.limit || '10', 10);
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      tenantId,
+      deletedAt: null,
+    };
+
+    // Filtros
+    if (query.residentId) {
+      where.residentId = query.residentId;
+    }
+
+    if (query.prescriptionType) {
+      where.prescriptionType = query.prescriptionType;
+    }
+
+    if (query.isActive) {
+      where.isActive = query.isActive === 'true';
+    }
+
+    if (query.expiringInDays) {
+      const days = parseInt(query.expiringInDays, 10);
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + days);
+
+      where.validUntil = {
+        lte: futureDate,
+        gte: today,
+      };
+    }
+
+    if (query.hasControlled === 'true') {
+      where.medications = {
+        some: {
+          isControlled: true,
+        },
+      };
+    }
+
+    // Ordenação
+    const orderBy: any = {};
+    if (query.sortBy) {
+      orderBy[query.sortBy] = query.sortOrder || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
+    const [prescriptions, total] = await Promise.all([
+      this.prisma.prescription.findMany({
+        where,
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              fotoUrl: true,
+              roomId: true,
+              bedId: true,
+            },
+          },
+          medications: {
+            where: { deletedAt: null },
+            select: {
+              id: true,
+              name: true,
+              presentation: true,
+              dose: true,
+              isControlled: true,
+              isHighRisk: true,
+            },
+          },
+          sosMedications: {
+            where: { deletedAt: null },
+            select: {
+              id: true,
+              name: true,
+              indication: true,
+            },
+          },
+        },
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      this.prisma.prescription.count({ where }),
+    ]);
+
+    return {
+      data: prescriptions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * Busca uma prescrição por ID
+   */
+  async findOne(id: string, tenantId: string) {
+    const prescription = await this.prisma.prescription.findFirst({
+      where: {
+        id,
+        tenantId,
+        deletedAt: null,
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+            fotoUrl: true,
+            roomId: true,
+            bedId: true,
+            allergies: true,
+            chronicConditions: true,
+          },
+        },
+        medications: {
+          where: { deletedAt: null },
+        },
+        sosMedications: {
+          where: { deletedAt: null },
+        },
+      },
+    });
+
+    if (!prescription) {
+      throw new NotFoundException('Prescrição não encontrada');
+    }
+
+    return prescription;
+  }
+
+  /**
+   * Atualiza uma prescrição
+   */
+  async update(
+    id: string,
+    updatePrescriptionDto: UpdatePrescriptionDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Verificar se prescrição existe
+    const existing = await this.prisma.prescription.findFirst({
+      where: {
+        id,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Prescrição não encontrada');
+    }
+
+    // Validar tipo de prescrição se fornecido
+    if (updatePrescriptionDto.prescriptionType) {
+      this.validatePrescriptionByType(updatePrescriptionDto as any);
+    }
+
+    // Atualizar prescrição
+    const updated = await this.prisma.prescription.update({
+      where: { id },
+      data: {
+        doctorName: updatePrescriptionDto.doctorName,
+        doctorCrm: updatePrescriptionDto.doctorCrm,
+        doctorCrmState: updatePrescriptionDto.doctorCrmState,
+        prescriptionDate: updatePrescriptionDto.prescriptionDate
+          ? new Date(updatePrescriptionDto.prescriptionDate)
+          : undefined,
+        prescriptionType: updatePrescriptionDto.prescriptionType as PrescriptionType | undefined,
+        validUntil: updatePrescriptionDto.validUntil
+          ? new Date(updatePrescriptionDto.validUntil)
+          : undefined,
+        controlledClass: updatePrescriptionDto.controlledClass as ControlledClass | undefined,
+        notificationNumber: updatePrescriptionDto.notificationNumber,
+        notificationType: updatePrescriptionDto.notificationType as NotificationType | undefined,
+        prescriptionImageUrl: updatePrescriptionDto.prescriptionImageUrl,
+        notes: updatePrescriptionDto.notes,
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        medications: true,
+        sosMedications: true,
+      },
+    });
+
+    this.logger.info('Prescrição atualizada', {
+      prescriptionId: id,
+      tenantId,
+      userId,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove (soft delete) uma prescrição
+   */
+  async remove(id: string, tenantId: string, userId: string) {
+    const prescription = await this.prisma.prescription.findFirst({
+      where: {
+        id,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!prescription) {
+      throw new NotFoundException('Prescrição não encontrada');
+    }
+
+    await this.prisma.prescription.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    this.logger.info('Prescrição removida', {
+      prescriptionId: id,
+      tenantId,
+      userId,
+    });
+
+    return { message: 'Prescrição removida com sucesso' };
+  }
+
+  /**
+   * Obtém estatísticas do dashboard
+   */
+  async getDashboardStats(tenantId: string) {
+    const [
+      totalActive,
+      expiringIn5Days,
+      activeAntibiotics,
+      activeControlled,
+    ] = await Promise.all([
+      this.prisma.prescription.count({
+        where: { tenantId, isActive: true, deletedAt: null },
+      }),
+      this.prisma.prescription.count({
+        where: {
+          tenantId,
+          isActive: true,
+          deletedAt: null,
+          validUntil: {
+            lte: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+            gte: new Date(),
+          },
+        },
+      }),
+      this.prisma.prescription.count({
+        where: {
+          tenantId,
+          isActive: true,
+          deletedAt: null,
+          prescriptionType: 'ANTIBIOTICO',
+        },
+      }),
+      this.prisma.prescription.count({
+        where: {
+          tenantId,
+          isActive: true,
+          deletedAt: null,
+          prescriptionType: 'CONTROLADO',
+        },
+      }),
+    ]);
+
+    return {
+      totalActive,
+      expiringIn5Days,
+      activeAntibiotics,
+      activeControlled,
+    };
+  }
+
+  /**
+   * Obtém alertas críticos
+   */
+  async getCriticalAlerts(tenantId: string) {
+    const alerts = [];
+
+    // Prescrições vencidas
+    const expired = await this.prisma.prescription.count({
+      where: {
+        tenantId,
+        isActive: true,
+        validUntil: { lt: new Date() },
+        deletedAt: null,
+      },
+    });
+
+    if (expired > 0) {
+      alerts.push({
+        type: 'expired',
+        message: `Residentes com prescrição vencida (${expired})`,
+        count: expired,
+        severity: 'high',
+      });
+    }
+
+    // Controlados sem receita
+    const noReceipt = await this.prisma.prescription.count({
+      where: {
+        tenantId,
+        isActive: true,
+        prescriptionType: 'CONTROLADO',
+        prescriptionImageUrl: null,
+        deletedAt: null,
+      },
+    });
+
+    if (noReceipt > 0) {
+      alerts.push({
+        type: 'no_receipt',
+        message: `Medicamentos controlados sem receita anexada (${noReceipt})`,
+        count: noReceipt,
+        severity: 'high',
+      });
+    }
+
+    // Antibióticos sem validade
+    const noValidity = await this.prisma.prescription.count({
+      where: {
+        tenantId,
+        isActive: true,
+        prescriptionType: 'ANTIBIOTICO',
+        validUntil: null,
+        deletedAt: null,
+      },
+    });
+
+    if (noValidity > 0) {
+      alerts.push({
+        type: 'no_validity',
+        message: `Antibióticos sem validade registrada (${noValidity})`,
+        count: noValidity,
+        severity: 'medium',
+      });
+    }
+
+    return alerts;
+  }
+
+  /**
+   * Obtém prescrições próximas do vencimento
+   */
+  async getExpiringPrescriptions(days: number, tenantId: string) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+
+    const prescriptions = await this.prisma.prescription.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+        validUntil: {
+          lte: futureDate,
+          gte: new Date(),
+        },
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        medications: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        validUntil: 'asc',
+      },
+    });
+
+    return prescriptions.map((p) => ({
+      id: p.id,
+      residentId: p.residentId,
+      doctorName: p.doctorName,
+      doctorCrm: p.doctorCrm,
+      doctorCrmState: p.doctorCrmState,
+      prescriptionDate: p.prescriptionDate,
+      prescriptionType: p.prescriptionType,
+      validUntil: p.validUntil,
+      resident: p.resident,
+      medications: p.medications,
+      daysUntilExpiry: p.validUntil
+        ? Math.ceil(
+            (p.validUntil.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+          )
+        : 0,
+    }));
+  }
+
+  /**
+   * Obtém residentes com medicamentos controlados
+   */
+  async getResidentsWithControlled(tenantId: string) {
+    const prescriptions = await this.prisma.prescription.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+        prescriptionType: 'CONTROLADO',
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        medications: {
+          where: {
+            isControlled: true,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            dose: true,
+            scheduledTimes: true,
+          },
+        },
+      },
+    });
+
+    return prescriptions.map((p) => ({
+      prescriptionId: p.id,
+      residentId: p.resident.id,
+      residentName: p.resident.fullName,
+      doctorName: p.doctorName,
+      doctorCrm: p.doctorCrm,
+      controlledClass: p.controlledClass,
+      controlledClasses: p.controlledClass ? [p.controlledClass] : [],
+      notificationNumber: p.notificationNumber,
+      notificationType: p.notificationType,
+      medications: p.medications,
+    }));
+  }
+
+  /**
+   * Administra um medicamento contínuo
+   */
+  async administerMedication(
+    dto: AdministerMedicationDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Buscar medicamento e validar
+    const medication = await this.prisma.medication.findFirst({
+      where: {
+        id: dto.medicationId,
+        deletedAt: null,
+        prescription: {
+          tenantId,
+          isActive: true,
+          deletedAt: null,
+        },
+      },
+      include: {
+        prescription: {
+          select: {
+            residentId: true,
+          },
+        },
+      },
+    });
+
+    if (!medication) {
+      throw new NotFoundException('Medicamento não encontrado');
+    }
+
+    // Criar registro de administração
+    const administration = await this.prisma.medicationAdministration.create({
+      data: {
+        tenantId,
+        prescriptionId: medication.prescriptionId,
+        medicationId: dto.medicationId,
+        residentId: medication.prescription.residentId,
+        date: new Date(dto.date),
+        scheduledTime: dto.scheduledTime,
+        actualTime: dto.actualTime || null,
+        wasAdministered: dto.wasAdministered,
+        reason: dto.reason || null,
+        administeredBy: dto.administeredBy,
+        userId,
+        checkedBy: dto.checkedBy || null,
+        checkedByUserId: dto.checkedByUserId || null,
+        notes: dto.notes || null,
+      },
+    });
+
+    this.logger.info('Medicamento administrado', {
+      administrationId: administration.id,
+      medicationId: dto.medicationId,
+      tenantId,
+      userId,
+    });
+
+    return administration;
+  }
+
+  /**
+   * Administra uma medicação SOS
+   */
+  async administerSOSMedication(
+    dto: AdministerSOSDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Buscar medicação SOS e validar
+    const sosMedication = await this.prisma.sOSMedication.findFirst({
+      where: {
+        id: dto.sosMedicationId,
+        deletedAt: null,
+        prescription: {
+          tenantId,
+          isActive: true,
+          deletedAt: null,
+        },
+      },
+      include: {
+        prescription: {
+          select: {
+            residentId: true,
+          },
+        },
+      },
+    });
+
+    if (!sosMedication) {
+      throw new NotFoundException('Medicação SOS não encontrada');
+    }
+
+    // Verificar limite diário
+    const today = new Date(dto.date);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayCount = await this.prisma.sOSAdministration.count({
+      where: {
+        sosMedicationId: dto.sosMedicationId,
+        date: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+    });
+
+    if (todayCount >= sosMedication.maxDailyDoses) {
+      throw new BadRequestException(
+        `Limite diário de ${sosMedication.maxDailyDoses} doses já atingido`,
+      );
+    }
+
+    // Criar registro de administração SOS
+    const administration = await this.prisma.sOSAdministration.create({
+      data: {
+        tenantId,
+        prescriptionId: sosMedication.prescriptionId,
+        sosMedicationId: dto.sosMedicationId,
+        residentId: sosMedication.prescription.residentId,
+        date: new Date(dto.date),
+        time: dto.time,
+        indication: dto.indication,
+        administeredBy: dto.administeredBy,
+        userId,
+        notes: dto.notes || null,
+      },
+    });
+
+    this.logger.info('Medicação SOS administrada', {
+      administrationId: administration.id,
+      sosMedicationId: dto.sosMedicationId,
+      tenantId,
+      userId,
+    });
+
+    return administration;
+  }
+
+  /**
+   * Valida campos obrigatórios por tipo de prescrição
+   */
+  private validatePrescriptionByType(dto: CreatePrescriptionDto) {
+    // CONTROLADO: validade + receita + notificação obrigatórios
+    if (dto.prescriptionType === 'CONTROLADO') {
+      if (!dto.validUntil) {
+        throw new BadRequestException(
+          'Validade é obrigatória para medicamentos controlados',
+        );
+      }
+      if (!dto.prescriptionImageUrl) {
+        throw new BadRequestException(
+          'Receita médica é obrigatória para medicamentos controlados',
+        );
+      }
+      if (!dto.notificationNumber) {
+        throw new BadRequestException(
+          'Número da notificação é obrigatório para medicamentos controlados',
+        );
+      }
+      if (!dto.notificationType) {
+        throw new BadRequestException(
+          'Tipo de notificação é obrigatório para medicamentos controlados',
+        );
+      }
+      if (!dto.controlledClass) {
+        throw new BadRequestException(
+          'Classe do medicamento é obrigatória para medicamentos controlados',
+        );
+      }
+    }
+
+    // ANTIBIOTICO: validade obrigatória
+    if (dto.prescriptionType === 'ANTIBIOTICO') {
+      if (!dto.validUntil) {
+        throw new BadRequestException(
+          'Validade é obrigatória para antibióticos',
+        );
+      }
+    }
+
+    // Pelo menos 1 medicamento contínuo obrigatório
+    if (!dto.medications || dto.medications.length === 0) {
+      throw new BadRequestException(
+        'Pelo menos um medicamento contínuo é obrigatório',
+      );
+    }
+  }
+
+  /**
+   * Valida formato de horários (HH:mm)
+   */
+  private validateScheduledTimes(times: string[]) {
+    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+
+    for (const time of times) {
+      if (!timeRegex.test(time)) {
+        throw new BadRequestException(
+          `Horário inválido: ${time}. Use o formato HH:mm`,
+        );
+      }
+    }
+  }
+}

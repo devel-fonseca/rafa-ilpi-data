@@ -1,18 +1,35 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Calendar, Activity, FileText, Settings, UserPlus } from 'lucide-react'
+import { Users, Calendar, Activity, FileText, Settings, UserPlus, Pill } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/services/api'
+import { useResidentStats } from '@/hooks/useResidents'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  // Cards de estatísticas (placeholder por enquanto)
+  // Buscar estatísticas reais
+  const { data: residentsStats } = useResidentStats()
+
+  const { data: prescriptionsStats } = useQuery({
+    queryKey: ['prescriptions-stats'],
+    queryFn: async () => {
+      const response = await api.get('/prescriptions/stats/dashboard')
+      return response.data
+    },
+  })
+
+  const totalResidents = residentsStats?.total || 0
+  const totalPrescriptions = prescriptionsStats?.totalActive || 0
+
+  // Cards de estatísticas
   const stats = [
     {
       title: 'Residentes',
-      value: '0',
+      value: String(totalResidents),
       description: 'Total de residentes cadastrados',
       icon: Users,
       color: 'text-blue-600',
@@ -35,10 +52,10 @@ export default function Dashboard() {
       bgColor: 'bg-purple-100',
     },
     {
-      title: 'Medicações',
-      value: '0',
-      description: 'Pendentes hoje',
-      icon: FileText,
+      title: 'Prescrições',
+      value: String(totalPrescriptions),
+      description: 'Prescrições ativas',
+      icon: Pill,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
     },
@@ -63,9 +80,9 @@ export default function Dashboard() {
     {
       title: 'Medicações',
       description: 'Gerenciar medicações',
-      icon: Activity,
-      onClick: () => navigate('/dashboard/medicacoes'),
-      disabled: true,
+      icon: Pill,
+      onClick: () => navigate('/dashboard/prescricoes'),
+      disabled: false,
     },
     {
       title: 'Configurações',

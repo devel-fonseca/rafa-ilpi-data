@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut } from 'lucide-react'
+import { Building2, LogOut, Pill } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function DashboardLayout() {
@@ -70,6 +70,13 @@ export function DashboardLayout() {
               className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
               Registros Diários
+            </Link>
+            <Link
+              to="/dashboard/prescricoes"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Pill className="h-4 w-4" />
+              Medicações
             </Link>
           </nav>
         </aside>

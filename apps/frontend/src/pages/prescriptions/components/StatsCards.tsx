@@ -1,0 +1,74 @@
+import { FileText, AlertTriangle, Pill, Shield } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import type { DashboardStats } from '@/api/prescriptions.api'
+
+interface StatsCardsProps {
+  stats?: DashboardStats
+}
+
+export function StatsCards({ stats }: StatsCardsProps) {
+  if (!stats) {
+    return null
+  }
+
+  const cards = [
+    {
+      title: 'Prescrições Ativas',
+      value: stats.totalActive,
+      icon: FileText,
+      bgColor: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      valueColor: 'text-blue-600',
+    },
+    {
+      title: 'Vencendo em 5 dias',
+      value: stats.expiringIn5Days,
+      icon: AlertTriangle,
+      bgColor: 'bg-orange-100',
+      iconColor: 'text-orange-600',
+      valueColor: 'text-orange-600',
+    },
+    {
+      title: 'Antibióticos Ativos',
+      value: stats.activeAntibiotics,
+      icon: Pill,
+      bgColor: 'bg-green-100',
+      iconColor: 'text-green-600',
+      valueColor: 'text-green-600',
+    },
+    {
+      title: 'Controlados Ativos',
+      value: stats.activeControlled,
+      icon: Shield,
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      valueColor: 'text-purple-600',
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {cards.map((card) => (
+        <Card key={card.title}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div
+                className={`flex items-center justify-center w-12 h-12 ${card.bgColor} rounded-lg`}
+              >
+                <card.icon className={`h-6 w-6 ${card.iconColor}`} />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-600">
+                  {card.title}
+                </h3>
+                <p className={`text-2xl font-bold ${card.valueColor}`}>
+                  {card.value}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
