@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useResident, useDeleteResident } from '@/hooks/useResidents'
+import { usePrescriptions } from '@/hooks/usePrescriptions'
+import { api } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +33,12 @@ import {
   FileText,
   AlertCircle,
   Loader2,
+  User,
+  Pill,
+  Calendar,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -34,9 +49,58 @@ export default function ResidentProfile() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [deleteModal, setDeleteModal] = useState(false)
+  const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const deleteMutation = useDeleteResident()
+
+  // Funções de navegação entre datas
+  const goToPreviousDay = () => {
+    const currentDate = new Date(viewDate)
+    currentDate.setDate(currentDate.getDate() - 1)
+    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+  }
+
+  const goToNextDay = () => {
+    const currentDate = new Date(viewDate)
+    currentDate.setDate(currentDate.getDate() + 1)
+    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+  }
+
+  const goToToday = () => {
+    setViewDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
+  // Buscar prescrições do residente
+  const { prescriptions = [] } = usePrescriptions({
+    residentId: id,
+    page: 1,
+    limit: 100,
+  })
+
+  // Buscar registros diários da data selecionada
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const isViewingToday = viewDate === today
+
+  const { data: viewDateRecordsData, isLoading: isLoadingViewDate } = useQuery({
+    queryKey: ['daily-records', 'resident-profile', id, viewDate],
+    queryFn: async () => {
+      const response = await api.get(`/daily-records/resident/${id}/date/${viewDate}`)
+      return response.data
+    },
+    enabled: !!id && id !== 'new',
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  })
+
+  const viewDateRecords = Array.isArray(viewDateRecordsData) ? viewDateRecordsData : []
+
+  // Determinar quais registros mostrar
+  const dailyRecords = viewDateRecords
+  const displayDate = viewDate
+  const isToday = isViewingToday
 
   // Calcular idade
   const calculateAge = (birthDate: string) => {
@@ -48,6 +112,13 @@ export default function ResidentProfile() {
       age--
     }
     return age
+  }
+
+  // Calcular IMC
+  const calculateBMI = (weight?: number, height?: number) => {
+    if (!weight || !height) return null
+    const bmi = weight / (height * height)
+    return bmi.toFixed(1)
   }
 
   // Obter cor do badge de status
@@ -68,22 +139,6 @@ export default function ResidentProfile() {
     }
   }
 
-  // Traduzir grau de dependência
-  const translateDependency = (dependency?: string) => {
-    switch (dependency) {
-      case 'INDEPENDENTE':
-        return 'Independente'
-      case 'SEMI_DEPENDENTE':
-        return 'Semi-dependente'
-      case 'DEPENDENTE_PARCIAL':
-        return 'Dependente Parcial'
-      case 'DEPENDENTE_TOTAL':
-        return 'Dependente Total'
-      default:
-        return 'Não informado'
-    }
-  }
-
   // Traduzir estado civil
   const translateMaritalStatus = (status?: string) => {
     switch (status) {
@@ -97,8 +152,6 @@ export default function ResidentProfile() {
         return 'Viúvo(a)'
       case 'UNIAO_ESTAVEL':
         return 'União Estável'
-      case 'OUTRO':
-        return 'Outro'
       default:
         return 'Não informado'
     }
@@ -108,37 +161,27 @@ export default function ResidentProfile() {
   const translateBloodType = (bloodType?: string) => {
     if (!bloodType || bloodType === 'NAO_INFORMADO') return 'Não informado'
     const map: Record<string, string> = {
-      'A_POSITIVO': 'A+',
-      'A_NEGATIVO': 'A-',
-      'B_POSITIVO': 'B+',
-      'B_NEGATIVO': 'B-',
-      'AB_POSITIVO': 'AB+',
-      'AB_NEGATIVO': 'AB-',
-      'O_POSITIVO': 'O+',
-      'O_NEGATIVO': 'O-'
+      A_POSITIVO: 'A+',
+      A_NEGATIVO: 'A-',
+      B_POSITIVO: 'B+',
+      B_NEGATIVO: 'B-',
+      AB_POSITIVO: 'AB+',
+      AB_NEGATIVO: 'AB-',
+      O_POSITIVO: 'O+',
+      O_NEGATIVO: 'O-',
     }
     return map[bloodType] || bloodType
   }
 
-  // Traduzir escolaridade
-  const translateEducation = (education?: string) => {
-    switch (education) {
-      case 'NAO_ALFABETIZADO':
-        return 'Não Alfabetizado'
-      case 'FUNDAMENTAL_INCOMPLETO':
-        return 'Fundamental Incompleto'
-      case 'FUNDAMENTAL_COMPLETO':
-        return 'Fundamental Completo'
-      case 'MEDIO_INCOMPLETO':
-        return 'Médio Incompleto'
-      case 'MEDIO_COMPLETO':
-        return 'Médio Completo'
-      case 'SUPERIOR_INCOMPLETO':
-        return 'Superior Incompleto'
-      case 'SUPERIOR_COMPLETO':
-        return 'Superior Completo'
-      case 'POS_GRADUACAO':
-        return 'Pós-Graduação'
+  // Traduzir gênero
+  const translateGender = (gender: string) => {
+    switch (gender) {
+      case 'MASCULINO':
+        return 'Masculino'
+      case 'FEMININO':
+        return 'Feminino'
+      case 'OUTRO':
+        return 'Outro'
       default:
         return 'Não informado'
     }
@@ -184,46 +227,32 @@ export default function ResidentProfile() {
     )
   }
 
+  const activePrescriptions = prescriptions.filter((p: any) => p.status === 'ACTIVE')
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/dashboard/residentes')}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/residentes')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{resident.fullName}</h1>
             <div className="flex items-center gap-3 mt-2">
-              <Badge className={getStatusBadgeColor(resident.status)}>
-                {resident.status}
-              </Badge>
-              <span className="text-gray-600">
-                {calculateAge(resident.birthDate)} anos
-              </span>
-              {resident.cpf && (
-                <span className="text-gray-600">CPF: {resident.cpf}</span>
-              )}
+              <Badge className={getStatusBadgeColor(resident.status)}>{resident.status}</Badge>
+              <span className="text-gray-600">{calculateAge(resident.birthDate)} anos</span>
+              {resident.cpf && <span className="text-gray-600">CPF: {resident.cpf}</span>}
             </div>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
-          >
+          <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}>
             <Edit className="mr-2 h-4 w-4" />
             Editar
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setDeleteModal(true)}
-          >
+          <Button variant="destructive" onClick={() => setDeleteModal(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Remover
           </Button>
@@ -231,7 +260,7 @@ export default function ResidentProfile() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription className="text-xs">Data de Admissão</CardDescription>
@@ -260,9 +289,7 @@ export default function ResidentProfile() {
         <Card>
           <CardHeader className="pb-3">
             <CardDescription className="text-xs">Grau de Dependência</CardDescription>
-            <CardTitle className="text-lg">
-              {resident.dependencyLevel || '-'}
-            </CardTitle>
+            <CardTitle className="text-lg">{resident.dependencyLevel || '-'}</CardTitle>
           </CardHeader>
         </Card>
 
@@ -272,206 +299,233 @@ export default function ResidentProfile() {
             <CardTitle className="text-lg">{resident.legalGuardianName || '-'}</CardTitle>
           </CardHeader>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription className="text-xs">Prescrições Ativas</CardDescription>
+            <CardTitle className="text-lg">{activePrescriptions.length}</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
-          <TabsTrigger value="contact">Contato</TabsTrigger>
-          <TabsTrigger value="responsible">Responsável</TabsTrigger>
-          <TabsTrigger value="medical">Informações Médicas</TabsTrigger>
-          <TabsTrigger value="documents">Documentos</TabsTrigger>
+          <TabsTrigger value="personal">Dados do Residente</TabsTrigger>
+          <TabsTrigger value="prescriptions">
+            Prescrições ({activePrescriptions.length})
+          </TabsTrigger>
+          <TabsTrigger value="daily-records">Registros Diários</TabsTrigger>
         </TabsList>
 
-        {/* Dados Pessoais */}
+        {/* TAB 1: Dados do Residente com Accordions */}
         <TabsContent value="personal">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dados Pessoais</CardTitle>
-              <CardDescription>Informações básicas do residente</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-gray-500">Nome Completo</div>
-                  <div className="font-medium">{resident.fullName}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Nome Social</div>
-                  <div className="font-medium">{resident.socialName || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">CPF</div>
-                  <div className="font-medium">{resident.cpf || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">RG</div>
-                  <div className="font-medium">{resident.rg || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Órgão Emissor</div>
-                  <div className="font-medium">{resident.rgIssuer || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">CNS</div>
-                  <div className="font-medium">{resident.cns || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Data de Nascimento</div>
-                  <div className="font-medium">
-                    {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
+          <Accordion type="multiple" defaultValue={['photo-basic', 'addresses']} className="space-y-4">
+            {/* Accordion 1: Foto e Dados Básicos */}
+            <AccordionItem value="photo-basic">
+              <AccordionTrigger className="text-lg font-semibold">
+                Foto e Dados Básicos
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Foto 3x4 */}
+                  <div className="flex flex-col items-center">
+                    {resident.fotoUrl ? (
+                      <img
+                        src={resident.fotoUrl}
+                        alt={resident.fullName}
+                        className="w-32 h-40 object-cover rounded-lg shadow-md border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-32 h-40 bg-gray-100 rounded-lg shadow-md border-2 border-gray-200 flex items-center justify-center">
+                        <User className="h-16 w-16 text-gray-400" />
+                      </div>
+                    )}
+                    <span className="text-xs text-gray-500 mt-2">Foto 3x4</span>
                   </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Gênero</div>
-                  <div className="font-medium">
-                    {resident.gender === 'MASCULINO'
-                      ? 'Masculino'
-                      : resident.gender === 'FEMININO'
-                      ? 'Feminino'
-                      : 'Outro'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Estado Civil</div>
-                  <div className="font-medium">{translateMaritalStatus(resident.civilStatus)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Cidade de Nascimento</div>
-                  <div className="font-medium">
-                    {resident.birthCity && resident.birthState
-                      ? `${resident.birthCity}/${resident.birthState}`
-                      : 'Não informado'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Religião</div>
-                  <div className="font-medium">{resident.religion || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Escolaridade</div>
-                  <div className="font-medium">{resident.education || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Profissão</div>
-                  <div className="font-medium">{resident.profession || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Nome da Mãe</div>
-                  <div className="font-medium">{resident.motherName || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Nome do Pai</div>
-                  <div className="font-medium">{resident.fatherName || 'Não informado'}</div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="text-sm text-gray-500">Tipo de Admissão</div>
-                  <div className="font-medium">{resident.admissionType || 'Não informado'}</div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="text-sm text-gray-500">Motivo da Admissão</div>
-                  <div className="font-medium">{resident.admissionReason || 'Não informado'}</div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="text-sm text-gray-500">Condições na Admissão</div>
-                  <div className="font-medium">{resident.admissionConditions || 'Não informado'}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Contato */}
-        <TabsContent value="contact">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Endereço Atual</CardTitle>
-                <CardDescription>Endereço onde o residente está atualmente</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
-                      <div>
-                        <div className="text-sm text-gray-500">Endereço</div>
-                        <div className="font-medium">
-                          {resident.currentStreet
-                            ? `${resident.currentStreet}${resident.currentNumber ? `, ${resident.currentNumber}` : ''}${resident.currentComplement ? `, ${resident.currentComplement}` : ''}${resident.currentDistrict ? `, ${resident.currentDistrict}` : ''}${
-                                resident.currentCity ? `, ${resident.currentCity}` : ''
-                              }${resident.currentState ? `/${resident.currentState}` : ''}${
-                                resident.currentCep ? ` - CEP: ${resident.currentCep}` : ''
-                              }`
-                            : 'Não informado'}
-                        </div>
+                  {/* Dados Básicos */}
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500">Nome Completo</div>
+                      <div className="font-medium">{resident.fullName}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nome Social</div>
+                      <div className="font-medium">{resident.socialName || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">CPF</div>
+                      <div className="font-medium">{resident.cpf || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">RG</div>
+                      <div className="font-medium">{resident.rg || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Órgão Emissor</div>
+                      <div className="font-medium">{resident.rgIssuer || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">CNS</div>
+                      <div className="font-medium">{resident.cns || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Data de Nascimento</div>
+                      <div className="font-medium">
+                        {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
                       </div>
                     </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Idade</div>
+                      <div className="font-medium">{calculateAge(resident.birthDate)} anos</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Gênero</div>
+                      <div className="font-medium">{translateGender(resident.gender)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Estado Civil</div>
+                      <div className="font-medium">
+                        {translateMaritalStatus(resident.civilStatus)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Religião</div>
+                      <div className="font-medium">{resident.religion || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Escolaridade</div>
+                      <div className="font-medium">{resident.education || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Profissão</div>
+                      <div className="font-medium">{resident.profession || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nacionalidade</div>
+                      <div className="font-medium">{resident.nationality || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Naturalidade</div>
+                      <div className="font-medium">
+                        {resident.birthCity && resident.birthState
+                          ? `${resident.birthCity}/${resident.birthState}`
+                          : 'Não informado'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nome da Mãe</div>
+                      <div className="font-medium">{resident.motherName || 'Não informado'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nome do Pai</div>
+                      <div className="font-medium">{resident.fatherName || 'Não informado'}</div>
+                    </div>
                   </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
 
+            {/* Accordion 2: Endereços */}
+            <AccordionItem value="addresses">
+              <AccordionTrigger className="text-lg font-semibold">Endereços</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-6">
+                  {/* Endereço Atual */}
                   <div>
-                    <div className="flex items-start gap-3">
-                      <Phone className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="text-sm text-gray-500">Telefone</div>
-                        <div className="font-medium">{resident.currentPhone || 'Não informado'}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {resident.originStreet && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Endereço de Origem</CardTitle>
-                  <CardDescription>Endereço anterior do residente</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
-                        <div>
-                          <div className="text-sm text-gray-500">Endereço</div>
-                          <div className="font-medium">
-                            {`${resident.originStreet}${resident.originNumber ? `, ${resident.originNumber}` : ''}${resident.originComplement ? `, ${resident.originComplement}` : ''}${resident.originDistrict ? `, ${resident.originDistrict}` : ''}${
-                              resident.originCity ? `, ${resident.originCity}` : ''
-                            }${resident.originState ? `/${resident.originState}` : ''}${
-                              resident.originCep ? ` - CEP: ${resident.originCep}` : ''
-                            }`}
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Endereço Atual</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                          <div>
+                            <div className="text-sm text-gray-500">Endereço</div>
+                            <div className="font-medium">
+                              {resident.currentStreet
+                                ? `${resident.currentStreet}${
+                                    resident.currentNumber ? `, ${resident.currentNumber}` : ''
+                                  }${
+                                    resident.currentComplement
+                                      ? `, ${resident.currentComplement}`
+                                      : ''
+                                  }${
+                                    resident.currentDistrict ? `, ${resident.currentDistrict}` : ''
+                                  }${resident.currentCity ? `, ${resident.currentCity}` : ''}${
+                                    resident.currentState ? `/${resident.currentState}` : ''
+                                  }${resident.currentCep ? ` - CEP: ${resident.currentCep}` : ''}`
+                                : 'Não informado'}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    {resident.originPhone && (
                       <div>
                         <div className="flex items-start gap-3">
                           <Phone className="h-5 w-5 text-gray-400" />
                           <div>
                             <div className="text-sm text-gray-500">Telefone</div>
-                            <div className="font-medium">{resident.originPhone}</div>
+                            <div className="font-medium">
+                              {resident.currentPhone || 'Não informado'}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
 
-            {resident.emergencyContacts && resident.emergencyContacts.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contatos de Emergência</CardTitle>
-                  <CardDescription>Pessoas para contatar em caso de emergência</CardDescription>
-                </CardHeader>
-                <CardContent>
+                  {/* Endereço de Procedência */}
+                  {resident.originStreet && (
+                    <div className="pt-6 border-t">
+                      <h4 className="text-md font-semibold text-gray-900 mb-3">
+                        Endereço de Procedência
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                            <div>
+                              <div className="text-sm text-gray-500">Endereço</div>
+                              <div className="font-medium">
+                                {`${resident.originStreet}${
+                                  resident.originNumber ? `, ${resident.originNumber}` : ''
+                                }${
+                                  resident.originComplement ? `, ${resident.originComplement}` : ''
+                                }${resident.originDistrict ? `, ${resident.originDistrict}` : ''}${
+                                  resident.originCity ? `, ${resident.originCity}` : ''
+                                }${resident.originState ? `/${resident.originState}` : ''}${
+                                  resident.originCep ? ` - CEP: ${resident.originCep}` : ''
+                                }`}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {resident.originPhone && (
+                          <div>
+                            <div className="flex items-start gap-3">
+                              <Phone className="h-5 w-5 text-gray-400" />
+                              <div>
+                                <div className="text-sm text-gray-500">Telefone</div>
+                                <div className="font-medium">{resident.originPhone}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Accordion 3: Contatos de Emergência */}
+            <AccordionItem value="emergency-contacts">
+              <AccordionTrigger className="text-lg font-semibold">
+                Contatos de Emergência
+              </AccordionTrigger>
+              <AccordionContent>
+                {resident.emergencyContacts && resident.emergencyContacts.length > 0 ? (
                   <div className="space-y-4">
-                    {resident.emergencyContacts.map((contact: any, index: number) => (
+                    {resident.emergencyContacts.map((contact, index) => (
                       <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
@@ -483,169 +537,255 @@ export default function ResidentProfile() {
                             <div className="font-medium">{contact.phone}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500">Relacionamento</div>
+                            <div className="text-sm text-gray-500">Parentesco</div>
                             <div className="font-medium">{contact.relationship}</div>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    Nenhum contato de emergência cadastrado
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
 
-        {/* Responsável */}
-        <TabsContent value="responsible">
-          <Card>
-            <CardHeader>
-              <CardTitle>Responsável Legal</CardTitle>
-              <CardDescription>Informações do responsável pelo residente</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-gray-500">Nome</div>
-                  <div className="font-medium">{resident.legalGuardianName || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">CPF</div>
-                  <div className="font-medium">
-                    {resident.legalGuardianCpf || 'Não informado'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">RG</div>
-                  <div className="font-medium">
-                    {resident.legalGuardianRg || 'Não informado'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Tipo de Responsabilidade</div>
-                  <div className="font-medium">{resident.legalGuardianType || 'Não informado'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Telefone</div>
-                  <div className="font-medium">
-                    {resident.legalGuardianPhone || 'Não informado'}
-                  </div>
-                </div>
-                <div className="md:col-span-2">
-                  <div className="text-sm text-gray-500">Endereço</div>
-                  <div className="font-medium">
-                    {resident.legalGuardianStreet
-                      ? `${resident.legalGuardianStreet}${resident.legalGuardianNumber ? `, ${resident.legalGuardianNumber}` : ''}${resident.legalGuardianComplement ? `, ${resident.legalGuardianComplement}` : ''}${resident.legalGuardianDistrict ? `, ${resident.legalGuardianDistrict}` : ''}${
-                          resident.legalGuardianCity ? `, ${resident.legalGuardianCity}` : ''
-                        }${resident.legalGuardianState ? `/${resident.legalGuardianState}` : ''}${
-                          resident.legalGuardianCep ? ` - CEP: ${resident.legalGuardianCep}` : ''
-                        }`
-                      : 'Não informado'}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Informações Médicas */}
-        <TabsContent value="medical">
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações Gerais de Saúde</CardTitle>
-                <CardDescription>Dados básicos de saúde</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Accordion 4: Responsável Legal */}
+            <AccordionItem value="legal-guardian">
+              <AccordionTrigger className="text-lg font-semibold">
+                Responsável Legal
+              </AccordionTrigger>
+              <AccordionContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
-                    <div className="font-medium">{translateBloodType(resident.bloodType)}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Altura</div>
+                    <div className="text-sm text-gray-500">Nome</div>
                     <div className="font-medium">
-                      {resident.height ? `${resident.height} m` : 'Não informado'}
+                      {resident.legalGuardianName || 'Não informado'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Peso</div>
+                    <div className="text-sm text-gray-500">CPF</div>
                     <div className="font-medium">
-                      {resident.weight ? `${resident.weight} kg` : 'Não informado'}
+                      {resident.legalGuardianCpf || 'Não informado'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Grau de Dependência</div>
-                    <div className="font-medium">{resident.dependencyLevel || 'Não informado'}</div>
+                    <div className="text-sm text-gray-500">RG</div>
+                    <div className="font-medium">{resident.legalGuardianRg || 'Não informado'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Usa Auxílio de Mobilidade?</div>
+                    <div className="text-sm text-gray-500">Tipo de Responsabilidade</div>
                     <div className="font-medium">
-                      {resident.mobilityAid !== undefined
-                        ? resident.mobilityAid
-                          ? 'Sim'
-                          : 'Não'
+                      {resident.legalGuardianType || 'Não informado'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Telefone</div>
+                    <div className="font-medium">
+                      {resident.legalGuardianPhone || 'Não informado'}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-gray-500">Endereço</div>
+                    <div className="font-medium">
+                      {resident.legalGuardianStreet
+                        ? `${resident.legalGuardianStreet}${
+                            resident.legalGuardianNumber ? `, ${resident.legalGuardianNumber}` : ''
+                          }${
+                            resident.legalGuardianComplement
+                              ? `, ${resident.legalGuardianComplement}`
+                              : ''
+                          }${
+                            resident.legalGuardianDistrict
+                              ? `, ${resident.legalGuardianDistrict}`
+                              : ''
+                          }${resident.legalGuardianCity ? `, ${resident.legalGuardianCity}` : ''}${
+                            resident.legalGuardianState ? `/${resident.legalGuardianState}` : ''
+                          }${
+                            resident.legalGuardianCep ? ` - CEP: ${resident.legalGuardianCep}` : ''
+                          }`
+                        : 'Não informado'}
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Accordion 5: Admissão */}
+            <AccordionItem value="admission">
+              <AccordionTrigger className="text-lg font-semibold">Admissão</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Data de Admissão</div>
+                    <div className="font-medium">
+                      {resident.admissionDate
+                        ? format(new Date(resident.admissionDate), 'dd/MM/yyyy', { locale: ptBR })
+                        : 'Não informado'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Tipo de Admissão</div>
+                    <div className="font-medium">{resident.admissionType || 'Não informado'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Tempo na Instituição</div>
+                    <div className="font-medium">
+                      {resident.admissionDate
+                        ? `${Math.floor(
+                            (new Date().getTime() - new Date(resident.admissionDate).getTime()) /
+                              (1000 * 60 * 60 * 24 * 30)
+                          )} meses`
                         : 'Não informado'}
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <div className="text-sm text-gray-500">Estado de Saúde</div>
-                    <div className="font-medium">{resident.healthStatus || 'Não informado'}</div>
+                    <div className="text-sm text-gray-500">Motivo da Admissão</div>
+                    <div className="font-medium">{resident.admissionReason || 'Não informado'}</div>
                   </div>
-                  {resident.specialNeeds && (
-                    <div className="md:col-span-2">
-                      <div className="text-sm text-gray-500">Necessidades Especiais</div>
-                      <div className="font-medium">{resident.specialNeeds}</div>
+                  <div className="md:col-span-2">
+                    <div className="text-sm text-gray-500">Condições de Admissão</div>
+                    <div className="font-medium">
+                      {resident.admissionConditions || 'Não informado'}
                     </div>
-                  )}
-                  {resident.functionalAspects && (
-                    <div className="md:col-span-2">
-                      <div className="text-sm text-gray-500">Aspectos Funcionais</div>
-                      <div className="font-medium">{resident.functionalAspects}</div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Condições Médicas</CardTitle>
-                <CardDescription>Alergias, condições crônicas e medicamentos</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Alergias</div>
-                    <div className="font-medium">{resident.allergies || 'Não informado'}</div>
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Condições Crônicas</div>
-                    <div className="font-medium">{resident.chronicConditions || 'Não informado'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Medicamentos na Admissão</div>
-                    <div className="font-medium">{resident.medicationsOnAdmission || 'Não informado'}</div>
-                  </div>
-                  {resident.dietaryRestrictions && (
-                    <div>
-                      <div className="text-sm text-gray-500">Restrições Alimentares</div>
-                      <div className="font-medium">{resident.dietaryRestrictions}</div>
-                    </div>
+                  {resident.dischargeDate && (
+                    <>
+                      <div>
+                        <div className="text-sm text-gray-500">Data de Desligamento</div>
+                        <div className="font-medium">
+                          {format(new Date(resident.dischargeDate), 'dd/MM/yyyy', {
+                            locale: ptBR,
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Motivo do Desligamento</div>
+                        <div className="font-medium">
+                          {resident.dischargeReason || 'Não informado'}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
 
-            {resident.healthPlans && resident.healthPlans.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Planos de Saúde</CardTitle>
-                  <CardDescription>Planos de saúde do residente</CardDescription>
-                </CardHeader>
-                <CardContent>
+            {/* Accordion 6: Saúde e Condições Médicas */}
+            <AccordionItem value="health">
+              <AccordionTrigger className="text-lg font-semibold">
+                Saúde e Condições Médicas
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-6">
+                  {/* Dados Gerais */}
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Dados Gerais</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
+                        <div className="font-medium">{translateBloodType(resident.bloodType)}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Altura</div>
+                        <div className="font-medium">
+                          {resident.height ? `${resident.height} m` : 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Peso</div>
+                        <div className="font-medium">
+                          {resident.weight ? `${resident.weight} kg` : 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">IMC</div>
+                        <div className="font-medium">
+                          {calculateBMI(resident.weight, resident.height) || 'Não calculado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Grau de Dependência</div>
+                        <div className="font-medium">
+                          {resident.dependencyLevel || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Auxílio de Mobilidade</div>
+                        <div className="font-medium">
+                          {resident.mobilityAid !== undefined
+                            ? resident.mobilityAid
+                              ? 'Sim'
+                              : 'Não'
+                            : 'Não informado'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Condições e Observações */}
+                  <div className="border-t pt-6">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">
+                      Condições e Observações
+                    </h4>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Estado de Saúde</div>
+                        <div className="font-medium">
+                          {resident.healthStatus || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Necessidades Especiais</div>
+                        <div className="font-medium">
+                          {resident.specialNeeds || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Aspectos Funcionais</div>
+                        <div className="font-medium">
+                          {resident.functionalAspects || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Restrições Alimentares</div>
+                        <div className="font-medium">
+                          {resident.dietaryRestrictions || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Alergias</div>
+                        <div className="font-medium">{resident.allergies || 'Não informado'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Condições Crônicas</div>
+                        <div className="font-medium">
+                          {resident.chronicConditions || 'Não informado'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Medicamentos na Admissão</div>
+                        <div className="font-medium">
+                          {resident.medicationsOnAdmission || 'Não informado'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Accordion 7: Convênios e Planos de Saúde */}
+            <AccordionItem value="health-plans">
+              <AccordionTrigger className="text-lg font-semibold">
+                Convênios e Planos de Saúde
+              </AccordionTrigger>
+              <AccordionContent>
+                {resident.healthPlans && resident.healthPlans.length > 0 ? (
                   <div className="space-y-4">
-                    {resident.healthPlans.map((plan: any, index: number) => (
+                    {resident.healthPlans.map((plan, index) => (
                       <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -660,43 +800,230 @@ export default function ResidentProfile() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    Nenhum convênio cadastrado
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
 
-            {resident.belongings && resident.belongings.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pertences</CardTitle>
-                  <CardDescription>Bens pessoais do residente</CardDescription>
-                </CardHeader>
-                <CardContent>
+            {/* Accordion 8: Pertences */}
+            <AccordionItem value="belongings">
+              <AccordionTrigger className="text-lg font-semibold">Pertences</AccordionTrigger>
+              <AccordionContent>
+                {resident.belongings && resident.belongings.length > 0 ? (
                   <ul className="list-disc list-inside space-y-1">
-                    {resident.belongings.map((item: string, index: number) => (
-                      <li key={index} className="text-sm">{item}</li>
+                    {resident.belongings.map((item, index) => (
+                      <li key={index} className="text-sm">
+                        {item}
+                      </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-4">Nenhum pertence cadastrado</div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Accordion 9: Acomodação */}
+            <AccordionItem value="accommodation">
+              <AccordionTrigger className="text-lg font-semibold">Acomodação</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Número do Quarto</div>
+                    <div className="font-medium">{resident.roomId || 'Não informado'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Número do Leito</div>
+                    <div className="font-medium">{resident.bedId || 'Não informado'}</div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </TabsContent>
 
-        {/* Documentos */}
-        <TabsContent value="documents">
+        {/* TAB 2: Prescrições */}
+        <TabsContent value="prescriptions">
           <Card>
             <CardHeader>
-              <CardTitle>Documentos</CardTitle>
-              <CardDescription>Documentos digitalizados do residente</CardDescription>
+              <CardTitle>Prescrições Médicas</CardTitle>
+              <CardDescription>
+                Prescrições registradas para {resident.fullName}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center h-32 space-y-3">
-                <FileText className="h-10 w-10 text-gray-300" />
-                <div className="text-gray-500">Nenhum documento disponível</div>
-                <Button variant="outline" size="sm" disabled>
-                  Upload será implementado em breve
+              {prescriptions.length > 0 ? (
+                <div className="space-y-4">
+                  {prescriptions.map((prescription: any) => (
+                    <div
+                      key={prescription.id}
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/dashboard/prescricoes/${prescription.id}`)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Pill className="h-4 w-4 text-blue-600" />
+                            <h4 className="font-semibold">
+                              Prescrição de{' '}
+                              {format(new Date(prescription.prescriptionDate), 'dd/MM/yyyy', {
+                                locale: ptBR,
+                              })}
+                            </h4>
+                            <Badge
+                              variant={prescription.status === 'ACTIVE' ? 'default' : 'secondary'}
+                            >
+                              {prescription.status === 'ACTIVE' ? 'Ativa' : 'Inativa'}
+                            </Badge>
+                            {prescription.hasControlled && (
+                              <Badge variant="destructive">Controlado</Badge>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div>
+                              <span className="font-medium">Médico:</span>{' '}
+                              {prescription.doctorName}
+                            </div>
+                            <div>
+                              <span className="font-medium">Tipo:</span>{' '}
+                              {prescription.prescriptionType}
+                            </div>
+                            {prescription.expiryDate && (
+                              <div>
+                                <span className="font-medium">Validade:</span>{' '}
+                                {format(new Date(prescription.expiryDate), 'dd/MM/yyyy', {
+                                  locale: ptBR,
+                                })}
+                              </div>
+                            )}
+                            <div>
+                              <span className="font-medium">Medicamentos:</span>{' '}
+                              {prescription.medications?.length || 0}
+                            </div>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          Ver Detalhes
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <Pill className="h-12 w-12 text-gray-300" />
+                  <div className="text-gray-500">Nenhuma prescrição cadastrada</div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/dashboard/prescricoes/new')}
+                  >
+                    Criar primeira prescrição
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: Registros Diários */}
+        <TabsContent value="daily-records">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <CardTitle>Registros Diários</CardTitle>
+                  <CardDescription>
+                    {format(new Date(displayDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/dashboard/registros-diarios')}
+                >
+                  Ver Todos os Registros
                 </Button>
               </div>
+
+              {/* Navegação entre dias */}
+              <div className="flex items-center justify-between gap-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousDay}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Dia anterior
+                </Button>
+
+                {!isToday && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToToday}
+                  >
+                    Ir para hoje
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextDay}
+                  disabled={isToday}
+                  className="flex items-center gap-2"
+                >
+                  Próximo dia
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dailyRecords.length > 0 ? (
+                <div className="space-y-3">
+                  {dailyRecords.map((record: any) => (
+                    <div
+                      key={record.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold">{record.type}</span>
+                            <Badge variant="outline">{record.shift}</Badge>
+                            <span className="text-sm text-gray-500">{record.time}</span>
+                          </div>
+                          {record.description && (
+                            <p className="text-sm text-gray-600">{record.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <Calendar className="h-12 w-12 text-gray-300" />
+                  <div className="text-gray-500 font-medium">Nenhum registro encontrado</div>
+                  {isToday && (
+                    <p className="text-sm text-gray-400 text-center max-w-md">
+                      Use o botão "Dia anterior" acima para navegar até o último registro realizado
+                    </p>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/dashboard/registros-diarios?residentId=${id}&date=${displayDate}`)}
+                  >
+                    Criar novo registro
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -708,8 +1035,8 @@ export default function ResidentProfile() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o residente <strong>{resident.fullName}</strong>? Esta
-              ação não pode ser desfeita.
+              Tem certeza que deseja remover o residente <strong>{resident.fullName}</strong>?
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

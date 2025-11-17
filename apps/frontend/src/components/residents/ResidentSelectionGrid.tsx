@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
 import { getSignedFileUrl } from '@/services/upload'
+import { format, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 const ITEMS_PER_PAGE = 12
 
@@ -305,11 +307,18 @@ export function ResidentSelectionGrid({
 
                   {/* Último Registro */}
                   {lastRecord ? (
-                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
-                      </span>
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
+                        </span>
+                      </div>
+                      {lastRecord.date !== format(new Date(), 'yyyy-MM-dd') && (
+                        <span className="text-xs text-muted-foreground">
+                          em {format(parseISO(lastRecord.date), 'dd/MM/yyyy')}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
