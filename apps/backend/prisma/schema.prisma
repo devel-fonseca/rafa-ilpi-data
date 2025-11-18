@@ -176,11 +176,14 @@ enum SOSIndicationType {
 model Plan {
   id           String   @id @default(uuid()) @db.Uuid
   name         String   @unique
+  displayName  String
   type         PlanType
   maxResidents Int
   maxUsers     Int
-  priceMonthly Decimal  @db.Decimal(10, 2)
-  features     Json     @default("[]")
+  price        Decimal? @db.Decimal(10, 2)
+  trialDays    Int      @default(0)
+  isPopular    Boolean  @default(false)
+  features     Json     @default("{}")
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @db.Timestamptz(3)
 

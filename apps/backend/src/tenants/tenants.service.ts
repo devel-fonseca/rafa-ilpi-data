@@ -74,7 +74,7 @@ export class TenantsService {
     const schemaName = `tenant_${slug.replace(/-/g, '_')}_${randomBytes(3).toString('hex')}`;
 
     try {
-      // Iniciar transação
+      // Iniciar transação para criar tenant, subscription e usuário
       const result = await this.prisma.$transaction(async (prisma) => {
         // 1. Criar o tenant
         const tenant = await prisma.tenant.create({
@@ -121,16 +121,6 @@ export class TenantsService {
           },
         });
 
-        // 4. Criar o schema no PostgreSQL
-        await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
-
-        // 5. Criar as tabelas do tenant no novo schema
-        // Por enquanto vamos criar apenas a estrutura básica
-        // Em produção, isso seria feito via migrations específicas
-        await this.createTenantSchema(schemaName);
-
-        this.logger.log(`Tenant criado com sucesso: ${tenant.id} (${schemaName})`);
-
         return {
           tenant,
           subscription,
@@ -142,6 +132,21 @@ export class TenantsService {
           },
         };
       });
+
+      // 4. Criar o schema no PostgreSQL (FORA da transação)
+      try {
+        await this.prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+
+        // 5. Criar as tabelas do tenant no novo schema
+        await this.createTenantSchema(schemaName);
+
+        this.logger.log(`Tenant criado com sucesso: ${result.tenant.id} (${schemaName})`);
+      } catch (schemaError) {
+        // Se falhar ao criar schema, fazer rollback do tenant
+        this.logger.error(`Erro ao criar schema ${schemaName}, fazendo rollback:`, schemaError);
+        await this.prisma.tenant.delete({ where: { id: result.tenant.id } });
+        throw new InternalServerErrorException('Erro ao criar estrutura do banco de dados');
+      }
 
       return result;
     } catch (error) {

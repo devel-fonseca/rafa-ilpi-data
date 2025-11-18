@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
   Query,
   ParseIntPipe,
   DefaultValuePipe,
@@ -27,6 +28,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
+import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 interface JwtPayload {
   userId: string;
@@ -37,6 +40,8 @@ interface JwtPayload {
 
 @ApiTags('tenants')
 @Controller('tenants')
+@UseInterceptors(AuditInterceptor)
+@AuditEntity('tenant')
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
@@ -100,6 +105,7 @@ export class TenantsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @AuditAction('UPDATE')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Atualizar dados da ILPI',
@@ -119,6 +125,7 @@ export class TenantsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @AuditAction('DELETE')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Desativar ILPI',
@@ -136,6 +143,7 @@ export class TenantsController {
   @Post(':tenantId/users')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @AuditAction('CREATE_USER')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Adicionar usuário à ILPI',
@@ -172,6 +180,7 @@ export class TenantsController {
   @Delete(':tenantId/users/:userId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @AuditAction('DELETE_USER')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Remover usuário da ILPI',

@@ -15,12 +15,32 @@ interface Plan {
   id: string
   name: string
   displayName: string
-  price: number
+  price: string | null  // Prisma retorna Decimal como string no JSON
   maxUsers: number
   maxResidents: number
-  features: string[]
+  features: Record<string, boolean>
   trialDays: number
   isPopular?: boolean
+}
+
+// Mapa de features: flags booleanas → labels humanizadas
+const FEATURE_LABELS: Record<string, string> = {
+  residentes: 'Gestão de residentes',
+  registrosDiarios: 'Registros diários',
+  medicacoes: 'Módulo de medicações',
+  contratos: 'Contratos automatizados',
+  escalas: 'Escalas de trabalho',
+  financeiro: 'Financeiro',
+  relatoriosAnvisa: 'Relatórios ANVISA',
+  rh: 'Recursos Humanos',
+  suporte24h: 'Suporte 24h'
+}
+
+// Converte features do backend (JSON booleano) para array de strings
+function convertFeatures(features: Record<string, boolean>): string[] {
+  return Object.entries(features)
+    .filter(([_, enabled]) => enabled)
+    .map(([key]) => FEATURE_LABELS[key] || key)
 }
 
 export default function Register() {
@@ -95,7 +115,19 @@ export default function Register() {
         if (!formData.name) newErrors.name = 'Nome da ILPI é obrigatório'
         if (!formData.email) newErrors.email = 'Email é obrigatório'
         if (!formData.phone) newErrors.phone = 'Telefone é obrigatório'
-        if (!formData.addressZip) newErrors.addressZip = 'CEP é obrigatório'
+
+        // Validação de CEP
+        if (!formData.addressZip) {
+          newErrors.addressZip = 'CEP é obrigatório'
+        } else if (!/^\d{5}-\d{3}$/.test(formData.addressZip)) {
+          newErrors.addressZip = 'CEP deve estar no formato XXXXX-XXX'
+        }
+
+        // Validação de CNPJ (opcional, mas se preenchido deve estar correto)
+        if (formData.cnpj && !/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(formData.cnpj)) {
+          newErrors.cnpj = 'CNPJ deve estar no formato XX.XXX.XXX/XXXX-XX'
+        }
+
         if (!formData.addressStreet) newErrors.addressStreet = 'Rua é obrigatória'
         if (!formData.addressNumber) newErrors.addressNumber = 'Número é obrigatório'
         if (!formData.addressDistrict) newErrors.addressDistrict = 'Bairro é obrigatório'
@@ -106,8 +138,16 @@ export default function Register() {
       case 2: // Admin Data
         if (!formData.adminName) newErrors.adminName = 'Nome do administrador é obrigatório'
         if (!formData.adminEmail) newErrors.adminEmail = 'Email do administrador é obrigatório'
-        if (!formData.adminPassword) newErrors.adminPassword = 'Senha é obrigatória'
-        if (formData.adminPassword.length < 8) newErrors.adminPassword = 'Senha deve ter no mínimo 8 caracteres'
+
+        // Validação de senha complexa
+        if (!formData.adminPassword) {
+          newErrors.adminPassword = 'Senha é obrigatória'
+        } else if (formData.adminPassword.length < 8) {
+          newErrors.adminPassword = 'Senha deve ter no mínimo 8 caracteres'
+        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(formData.adminPassword)) {
+          newErrors.adminPassword = 'Senha deve conter: maiúscula, minúscula, número e caractere especial (@$!%*?&)'
+        }
+
         if (formData.adminPassword !== formData.adminPasswordConfirm) {
           newErrors.adminPasswordConfirm = 'As senhas não coincidem'
         }
@@ -141,9 +181,32 @@ export default function Register() {
     clearError()
 
     try {
-      const { adminPasswordConfirm, ...dataToSubmit } = formData
+      const { adminPasswordConfirm, addressZip, ...rest } = formData
+      const dataToSubmit = {
+        ...rest,
+        addressZipCode: addressZip  // Backend espera addressZipCode, não addressZip
+      }
+
+      // Salvar dados necessários antes de fazer logout
+      const adminEmail = formData.adminEmail
+      const tenantName = formData.name
+
       await register(dataToSubmit)
-      navigate('/dashboard')
+
+      // Limpar dados sensíveis e redirecionar para página de boas-vindas
+      localStorage.removeItem('registration-data')
+      sessionStorage.clear()
+
+      // Fazer logout para garantir sessão limpa
+      useAuthStore.getState().logout()
+
+      navigate('/welcome', {
+        replace: true,
+        state: {
+          adminEmail,
+          tenantName
+        }
+      })
     } catch (err) {
       // Erro já tratado no store
     }
@@ -151,9 +214,36 @@ export default function Register() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    let formattedValue = value
+
+    // Aplicar máscaras
+    if (name === 'cnpj') {
+      // Máscara CNPJ: XX.XXX.XXX/XXXX-XX
+      formattedValue = value
+        .replace(/\D/g, '') // Remove tudo que não é dígito
+        .replace(/^(\d{2})(\d)/, '$1.$2') // Coloca ponto após os 2 primeiros dígitos
+        .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3') // Coloca ponto após o 5º dígito
+        .replace(/\.(\d{3})(\d)/, '.$1/$2') // Coloca barra após o 8º dígito
+        .replace(/(\d{4})(\d)/, '$1-$2') // Coloca hífen após o 12º dígito
+        .substring(0, 18) // Limita ao tamanho máximo
+    } else if (name === 'addressZip') {
+      // Máscara CEP: XXXXX-XXX
+      formattedValue = value
+        .replace(/\D/g, '')
+        .replace(/^(\d{5})(\d)/, '$1-$2')
+        .substring(0, 9)
+    } else if (name === 'phone') {
+      // Máscara Telefone: (XX) XXXXX-XXXX
+      formattedValue = value
+        .replace(/\D/g, '')
+        .replace(/^(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2')
+        .substring(0, 15)
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: formattedValue
     }))
     // Limpar erro do campo ao digitar
     if (errors[name]) {
@@ -401,6 +491,11 @@ export default function Register() {
           </button>
         </div>
         {errors.adminPassword && <p className="text-sm text-red-500">{errors.adminPassword}</p>}
+        {!errors.adminPassword && (
+          <p className="text-xs text-gray-500">
+            Mínimo 8 caracteres com: maiúscula, minúscula, número e caractere especial (@$!%*?&)
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -472,9 +567,14 @@ export default function Register() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold">
-                        {plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toFixed(2)}`}
+                        {plan.price === null
+                          ? 'Sob consulta'
+                          : Number(plan.price) === 0
+                            ? 'Grátis'
+                            : `R$ ${Number(plan.price).toFixed(2)}`
+                        }
                       </p>
-                      {plan.price > 0 && <p className="text-sm text-gray-500">/mês</p>}
+                      {plan.price !== null && Number(plan.price) > 0 && <p className="text-sm text-gray-500">/mês</p>}
                       {plan.trialDays > 0 && (
                         <p className="text-sm text-green-600 font-medium mt-1">
                           {plan.trialDays} dias grátis
@@ -484,7 +584,7 @@ export default function Register() {
                   </div>
 
                   <div className="space-y-2 mt-3">
-                    {plan.features.map((feature, idx) => (
+                    {convertFeatures(plan.features).map((feature, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                         <span>{feature}</span>

@@ -12,7 +12,7 @@ export class PlansService {
   async findAll(): Promise<Plan[]> {
     return this.prisma.plan.findMany({
       orderBy: {
-        priceMonthly: 'asc',
+        price: 'asc',
       },
     });
   }
@@ -56,15 +56,18 @@ export class PlansService {
       this.findOne(targetPlanId),
     ]);
 
-    const isUpgrade = targetPlan.priceMonthly > currentPlan.priceMonthly;
-    const isDowngrade = targetPlan.priceMonthly < currentPlan.priceMonthly;
+    const currentPrice = currentPlan.price ? Number(currentPlan.price) : 0;
+    const targetPrice = targetPlan.price ? Number(targetPlan.price) : 0;
+
+    const isUpgrade = targetPrice > currentPrice;
+    const isDowngrade = targetPrice < currentPrice;
 
     return {
       currentPlan,
       targetPlan,
       isUpgrade,
       isDowngrade,
-      priceDifference: Number(targetPlan.priceMonthly) - Number(currentPlan.priceMonthly),
+      priceDifference: targetPrice - currentPrice,
       residentsDifference: targetPlan.maxResidents - currentPlan.maxResidents,
       usersDifference: targetPlan.maxUsers - currentPlan.maxUsers,
     };

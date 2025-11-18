@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 // Auth Pages
 import Login from '@/pages/auth/Login'
 import Register from '@/pages/auth/Register'
+import Welcome from '@/pages/auth/Welcome'
 
 // Dashboard Pages
 import Dashboard from '@/pages/Dashboard'
@@ -39,6 +40,10 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/welcome',
+    element: <Welcome />,
   },
   {
     path: '/dashboard',
