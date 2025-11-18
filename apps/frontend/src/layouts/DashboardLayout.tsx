@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function DashboardLayout() {
@@ -55,20 +55,23 @@ export function DashboardLayout() {
           <nav className="p-4 space-y-1">
             <Link
               to="/dashboard"
-              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
+              <Home className="h-4 w-4" />
               Dashboard
             </Link>
             <Link
               to="/dashboard/residentes"
-              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
+              <Users className="h-4 w-4" />
               Residentes
             </Link>
             <Link
               to="/dashboard/registros-diarios"
-              className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
+              <ClipboardList className="h-4 w-4" />
               Registros Diários
             </Link>
             <Link

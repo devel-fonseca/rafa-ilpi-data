@@ -23,11 +23,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Argumento para URL da API (passado em build time)
+ARG VITE_API_URL=http://localhost:3000
+ENV VITE_API_URL=$VITE_API_URL
+
 # Copiar dependências do stage anterior
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-# Build da aplicação
+# Build da aplicação com a variável de ambiente
 RUN npm run build
 
 # ------------------------------

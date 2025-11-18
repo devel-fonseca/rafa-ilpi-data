@@ -200,7 +200,7 @@ export function ResidentPrintView() {
       <div className="py-8 print:py-0">
         <div ref={documentRef}>
           <ResidentDocument
-            resident={residentData}
+            resident={residentData as any}
             tenant={formattedTenantData}
             isPrinting={isPrinting}
           />

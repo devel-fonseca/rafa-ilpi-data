@@ -21,6 +21,7 @@ export interface Resident {
   birthState?: string
   motherName?: string
   fatherName?: string
+  fotoUrl?: string
 
   // Endereços
   currentCep?: string
@@ -85,6 +86,23 @@ export interface Resident {
   createdAt: string
   updatedAt: string
   deletedAt?: string
+
+  // Arrays adicionais
+  emergencyContacts?: Array<{
+    name: string
+    phone: string
+    relationship: string
+  }>
+  healthPlans?: Array<{
+    name: string
+    cardNumber: string
+    cardUrl?: string
+  }>
+  belongings?: string[]
+  documents?: Array<{
+    type: string
+    url: string
+  }>
 }
 
 export interface ResidentsResponse {

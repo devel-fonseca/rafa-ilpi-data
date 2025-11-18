@@ -2,7 +2,6 @@
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
 yarn.lock
 
 # Build
@@ -43,7 +42,6 @@ Thumbs.db
 Dockerfile
 .dockerignore
 docker-compose.yml
-nginx.conf
 
 # Documentation
 README.md
@@ -52,6 +50,4 @@ docs/
 # Misc
 .prettierrc
 .eslintrc.js
-tsconfig.json
-vite.config.ts
 vitest.config.ts

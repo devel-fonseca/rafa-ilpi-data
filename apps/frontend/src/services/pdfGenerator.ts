@@ -60,6 +60,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN
 /**
  * Agrupa registros por tipo
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function groupRecordsByType(records: DailyRecord[]): Record<string, DailyRecord[]> {
   return records.reduce((acc, record) => {
     if (!acc[record.type]) {

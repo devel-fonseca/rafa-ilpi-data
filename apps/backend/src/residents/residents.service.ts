@@ -341,13 +341,36 @@ export class ResidentsService {
       }
 
       // Atualizar o residente
+      // Extrair campos JSON para tratamento explícito (conversão de tipo necessária para Prisma)
+      const {
+        emergencyContacts,
+        documents,
+        addressDocuments,
+        legalGuardianDocuments,
+        medicalReport,
+        healthPlans,
+        belongings,
+        ...restDto
+      } = updateResidentDto;
+
+      // Construir objeto de atualização com tipos corretos
+      // Cast para 'any' necessário porque Prisma espera InputJsonValue para campos JSON
+      const dataToUpdate: any = {
+        ...(restDto as any),
+      };
+
+      // Adicionar campos JSON apenas se foram enviados
+      if (emergencyContacts !== undefined) dataToUpdate.emergencyContacts = emergencyContacts;
+      if (documents !== undefined) dataToUpdate.documents = documents;
+      if (addressDocuments !== undefined) dataToUpdate.addressDocuments = addressDocuments;
+      if (legalGuardianDocuments !== undefined) dataToUpdate.legalGuardianDocuments = legalGuardianDocuments;
+      if (medicalReport !== undefined) dataToUpdate.medicalReport = medicalReport;
+      if (healthPlans !== undefined) dataToUpdate.healthPlans = healthPlans;
+      if (belongings !== undefined) dataToUpdate.belongings = belongings;
+
       const updated = await this.prisma.resident.update({
         where: { id },
-        data: {
-          ...updateResidentDto,
-          id: undefined, // Remover id do payload
-          tenantId: undefined, // Remover tenantId do payload (não pode ser atualizado)
-        },
+        data: dataToUpdate,
       });
 
       this.logger.info('Residente atualizado', {

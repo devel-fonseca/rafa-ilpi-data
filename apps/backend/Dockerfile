@@ -22,14 +22,17 @@ RUN npm ci
 # ------------------------------
 FROM node:20-alpine AS builder
 
+# Instalar OpenSSL para Prisma detectar corretamente
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copiar dependências do stage anterior
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-# Gerar Prisma Client
-RUN npx prisma generate
+# Limpar cache do Prisma e regenerar para Alpine com OpenSSL 3.0
+RUN rm -rf node_modules/.prisma && npx prisma generate
 
 # Build da aplicação
 RUN npm run build
@@ -42,8 +45,8 @@ RUN npm prune --production
 # ------------------------------
 FROM node:20-alpine AS production
 
-# Instalar dumb-init para gerenciar processos
-RUN apk add --no-cache dumb-init
+# Instalar dumb-init e OpenSSL para Prisma
+RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
 
@@ -56,6 +59,9 @@ COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
+
+# Regenerar Prisma Client no ambiente de produção (Alpine com OpenSSL 3.0)
+RUN rm -rf node_modules/.prisma && npx prisma generate
 
 # Criar diretório de logs
 RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs

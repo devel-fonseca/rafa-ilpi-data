@@ -30,7 +30,6 @@ import {
   Trash2,
   Phone,
   MapPin,
-  FileText,
   AlertCircle,
   Loader2,
   User,
@@ -82,7 +81,7 @@ export default function ResidentProfile() {
   const today = format(new Date(), 'yyyy-MM-dd')
   const isViewingToday = viewDate === today
 
-  const { data: viewDateRecordsData, isLoading: isLoadingViewDate } = useQuery({
+  const { data: viewDateRecordsData } = useQuery({
     queryKey: ['daily-records', 'resident-profile', id, viewDate],
     queryFn: async () => {
       const response = await api.get(`/daily-records/resident/${id}/date/${viewDate}`)
@@ -90,7 +89,7 @@ export default function ResidentProfile() {
     },
     enabled: !!id && id !== 'new',
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
   })
