@@ -1,14 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-export interface AuditLog {
+export interface AuditLogInput {
   entityType: string;
   entityId?: string;
   action: string;
   userId: string;
   userName: string;
   tenantId: string;
-  schemaName: string;
   details?: any;
   ipAddress?: string;
   userAgent?: string;
@@ -20,42 +19,24 @@ export class AuditService {
 
   constructor(private prisma: PrismaService) {}
 
-  async log(auditLog: AuditLog): Promise<void> {
+  async log(auditLog: AuditLogInput): Promise<void> {
     try {
-      const { schemaName, ...logData } = auditLog;
-
-      // Criar tabela de auditoria se não existir
-      await this.ensureAuditTable(schemaName);
-
-      // Inserir log de auditoria
-      await this.prisma.$queryRawUnsafe(`
-        INSERT INTO "${schemaName}"."audit_logs" (
-          entity_type,
-          entity_id,
-          action,
-          user_id,
-          user_name,
-          tenant_id,
-          details,
-          ip_address,
-          user_agent,
-          created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      `,
-        logData.entityType,
-        logData.entityId || null,
-        logData.action,
-        logData.userId,
-        logData.userName,
-        logData.tenantId,
-        JSON.stringify(logData.details || {}),
-        logData.ipAddress || null,
-        logData.userAgent || null,
-        new Date()
-      );
+      await this.prisma.auditLog.create({
+        data: {
+          tenantId: auditLog.tenantId,
+          entityType: auditLog.entityType,
+          entityId: auditLog.entityId || null,
+          action: auditLog.action,
+          userId: auditLog.userId,
+          userName: auditLog.userName,
+          details: auditLog.details || {},
+          ipAddress: auditLog.ipAddress || null,
+          userAgent: auditLog.userAgent || null,
+        },
+      });
 
       this.logger.log(
-        `Audit log created: ${logData.entityType} - ${logData.action} by ${logData.userName}`
+        `Audit log created: ${auditLog.entityType} - ${auditLog.action} by ${auditLog.userName}`
       );
     } catch (error) {
       this.logger.error('Failed to create audit log:', error);
@@ -64,7 +45,7 @@ export class AuditService {
   }
 
   async getAuditLogs(
-    schemaName: string,
+    tenantId: string,
     filters?: {
       entityType?: string;
       userId?: string;
@@ -76,80 +57,42 @@ export class AuditService {
     }
   ): Promise<any[]> {
     try {
-      await this.ensureAuditTable(schemaName);
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 50;
+      const skip = (page - 1) * limit;
 
-      let whereConditions = [];
-      let queryParams = [];
-      let paramCount = 0;
+      const where: any = { tenantId };
 
       if (filters?.entityType) {
-        paramCount++;
-        whereConditions.push(`entity_type = $${paramCount}`);
-        queryParams.push(filters.entityType);
+        where.entityType = filters.entityType;
       }
 
       if (filters?.userId) {
-        paramCount++;
-        whereConditions.push(`user_id = $${paramCount}`);
-        queryParams.push(filters.userId);
+        where.userId = filters.userId;
       }
 
       if (filters?.action) {
-        paramCount++;
-        whereConditions.push(`action = $${paramCount}`);
-        queryParams.push(filters.action);
+        where.action = filters.action;
       }
 
-      if (filters?.startDate) {
-        paramCount++;
-        whereConditions.push(`created_at >= $${paramCount}`);
-        queryParams.push(filters.startDate);
+      if (filters?.startDate || filters?.endDate) {
+        where.createdAt = {};
+        if (filters?.startDate) {
+          where.createdAt.gte = filters.startDate;
+        }
+        if (filters?.endDate) {
+          where.createdAt.lte = filters.endDate;
+        }
       }
 
-      if (filters?.endDate) {
-        paramCount++;
-        whereConditions.push(`created_at <= $${paramCount}`);
-        queryParams.push(filters.endDate);
-      }
+      const logs = await this.prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip,
+      });
 
-      const whereClause = whereConditions.length > 0
-        ? `WHERE ${whereConditions.join(' AND ')}`
-        : '';
-
-      const page = filters?.page || 1;
-      const limit = filters?.limit || 50;
-      const offset = (page - 1) * limit;
-
-      paramCount++;
-      const limitParam = paramCount;
-      queryParams.push(limit);
-
-      paramCount++;
-      const offsetParam = paramCount;
-      queryParams.push(offset);
-
-      const query = `
-        SELECT
-          id,
-          entity_type,
-          entity_id,
-          action,
-          user_id,
-          user_name,
-          tenant_id,
-          details,
-          ip_address,
-          user_agent,
-          created_at
-        FROM "${schemaName}"."audit_logs"
-        ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT $${limitParam} OFFSET $${offsetParam}
-      `;
-
-      const logs = await this.prisma.$queryRawUnsafe(query, ...queryParams);
-
-      return logs as any[];
+      return logs;
     } catch (error) {
       this.logger.error('Failed to get audit logs:', error);
       throw error;
@@ -157,126 +100,59 @@ export class AuditService {
   }
 
   async getAuditLogStats(
-    schemaName: string,
+    tenantId: string,
     startDate?: Date,
     endDate?: Date
   ): Promise<any> {
     try {
-      await this.ensureAuditTable(schemaName);
+      const where: any = { tenantId };
 
-      let whereConditions = [];
-      let queryParams = [];
-      let paramCount = 0;
-
-      if (startDate) {
-        paramCount++;
-        whereConditions.push(`created_at >= $${paramCount}`);
-        queryParams.push(startDate);
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) {
+          where.createdAt.gte = startDate;
+        }
+        if (endDate) {
+          where.createdAt.lte = endDate;
+        }
       }
-
-      if (endDate) {
-        paramCount++;
-        whereConditions.push(`created_at <= $${paramCount}`);
-        queryParams.push(endDate);
-      }
-
-      const whereClause = whereConditions.length > 0
-        ? `WHERE ${whereConditions.join(' AND ')}`
-        : '';
 
       // Estatísticas por tipo de entidade
-      const entityStats = await this.prisma.$queryRawUnsafe(`
-        SELECT
-          entity_type,
-          COUNT(*) as count
-        FROM "${schemaName}"."audit_logs"
-        ${whereClause}
-        GROUP BY entity_type
-        ORDER BY count DESC
-      `, ...queryParams);
+      const entityStats = await this.prisma.auditLog.groupBy({
+        by: ['entityType'],
+        where,
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+      });
 
       // Estatísticas por ação
-      const actionStats = await this.prisma.$queryRawUnsafe(`
-        SELECT
-          action,
-          COUNT(*) as count
-        FROM "${schemaName}"."audit_logs"
-        ${whereClause}
-        GROUP BY action
-        ORDER BY count DESC
-      `, ...queryParams);
+      const actionStats = await this.prisma.auditLog.groupBy({
+        by: ['action'],
+        where,
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+      });
 
-      // Estatísticas por usuário
-      const userStats = await this.prisma.$queryRawUnsafe(`
-        SELECT
-          user_name,
-          COUNT(*) as count
-        FROM "${schemaName}"."audit_logs"
-        ${whereClause}
-        GROUP BY user_name
-        ORDER BY count DESC
-        LIMIT 10
-      `, ...queryParams);
+      // Estatísticas por usuário (top 10)
+      const userStats = await this.prisma.auditLog.groupBy({
+        by: ['userName'],
+        where,
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10,
+      });
 
       // Total de logs
-      const totalResult = await this.prisma.$queryRawUnsafe(`
-        SELECT COUNT(*) as total
-        FROM "${schemaName}"."audit_logs"
-        ${whereClause}
-      `, ...queryParams) as any[];
+      const total = await this.prisma.auditLog.count({ where });
 
       return {
-        total: parseInt(totalResult[0].total),
-        byEntity: entityStats,
-        byAction: actionStats,
-        topUsers: userStats,
+        total,
+        byEntity: entityStats.map((s: any) => ({ entity_type: s.entityType, count: s._count.id })),
+        byAction: actionStats.map((s: any) => ({ action: s.action, count: s._count.id })),
+        topUsers: userStats.map((s: any) => ({ user_name: s.userName, count: s._count.id })),
       };
     } catch (error) {
       this.logger.error('Failed to get audit log stats:', error);
-      throw error;
-    }
-  }
-
-  private async ensureAuditTable(schemaName: string): Promise<void> {
-    try {
-      // Verificar se a tabela existe
-      const tableExists = await this.prisma.$queryRawUnsafe(`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables
-          WHERE table_schema = $1
-          AND table_name = 'audit_logs'
-        )
-      `, schemaName) as any[];
-
-      if (!tableExists[0].exists) {
-        // Criar tabela de auditoria
-        await this.prisma.$queryRawUnsafe(`
-          CREATE TABLE "${schemaName}"."audit_logs" (
-            id SERIAL PRIMARY KEY,
-            entity_type VARCHAR(50) NOT NULL,
-            entity_id VARCHAR(255),
-            action VARCHAR(50) NOT NULL,
-            user_id VARCHAR(255) NOT NULL,
-            user_name VARCHAR(255) NOT NULL,
-            tenant_id VARCHAR(255) NOT NULL,
-            details JSONB,
-            ip_address VARCHAR(45),
-            user_agent TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        // Criar índices
-        await this.prisma.$queryRawUnsafe(`
-          CREATE INDEX idx_audit_logs_entity_type ON "${schemaName}"."audit_logs" (entity_type);
-          CREATE INDEX idx_audit_logs_user_id ON "${schemaName}"."audit_logs" (user_id);
-          CREATE INDEX idx_audit_logs_created_at ON "${schemaName}"."audit_logs" (created_at);
-        `);
-
-        this.logger.log(`Audit table created for schema: ${schemaName}`);
-      }
-    } catch (error) {
-      this.logger.error(`Failed to ensure audit table for schema ${schemaName}:`, error);
       throw error;
     }
   }

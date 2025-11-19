@@ -12,6 +12,7 @@ import { ResidentsModule } from './residents/residents.module';
 import { DailyRecordsModule } from './daily-records/daily-records.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AuditModule } from './audit/audit.module';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { winstonConfig } from './common/config/winston.config';
 
@@ -49,6 +50,7 @@ import { winstonConfig } from './common/config/winston.config';
     DailyRecordsModule,
     PrescriptionsModule,
     AuditModule,
+    HealthModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

@@ -250,13 +250,13 @@ export function ResidentForm() {
   const mapEstadoCivilFromBackend = useCallback((estadoCivil: string | null | undefined): string => {
     if (!estadoCivil) return ''
     const mapping: Record<string, string> = {
-      'SOLTEIRO': 'solteiro',
-      'CASADO': 'casado',
-      'DIVORCIADO': 'divorciado',
-      'VIUVO': 'viuvo',
-      'UNIAO_ESTAVEL': 'uniao-estavel'
+      'SOLTEIRO': 'Solteiro(a)',
+      'CASADO': 'Casado(a)',
+      'DIVORCIADO': 'Divorciado(a)',
+      'VIUVO': 'Viúvo(a)',
+      'UNIAO_ESTAVEL': 'União Estável'
     }
-    return mapping[estadoCivil] || estadoCivil.toLowerCase()
+    return mapping[estadoCivil] || ''
   }, [])
 
   // Validação de CPF em tempo real
@@ -726,7 +726,7 @@ export function ResidentForm() {
         legalGuardianCpf: data.responsavelLegalCpf || null,
         legalGuardianRg: data.responsavelLegalRg || null,
         legalGuardianPhone: data.responsavelLegalTelefone || null,
-        legalGuardianType: data.responsavelLegalTipo && data.responsavelLegalTipo.trim() ? data.responsavelLegalTipo.toLowerCase() : undefined,
+        legalGuardianType: data.responsavelLegalTipo && data.responsavelLegalTipo.trim() ? data.responsavelLegalTipo : undefined,
         legalGuardianCep: data.responsavelLegalCep || null,
         legalGuardianState: data.responsavelLegalUf || null,
         legalGuardianCity: data.responsavelLegalCidade || null,
@@ -780,8 +780,13 @@ export function ResidentForm() {
           : [],
 
         // 9. Acomodação - NOMES EM INGLÊS
-        roomId: data.quartoNumero || null,
-        bedId: data.leitoNumero || null,
+        // Só envia roomId/bedId se for um UUID válido (para evitar erros de validação)
+        roomId: data.quartoNumero && data.quartoNumero.trim() &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.quartoNumero.trim())
+          ? data.quartoNumero.trim() : undefined,
+        bedId: data.leitoNumero && data.leitoNumero.trim() &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.leitoNumero.trim())
+          ? data.leitoNumero.trim() : undefined,
 
       }
 
@@ -1811,8 +1816,8 @@ export function ResidentForm() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="Grau I - Independente">Grau I - Independente</SelectItem>
-                                <SelectItem value="Grau II - Semi Independente">Grau II - Semi Independente</SelectItem>
-                                <SelectItem value="Grau III - Dependente total">Grau III - Dependente total</SelectItem>
+                                <SelectItem value="Grau II - Parcialmente dependente">Grau II - Parcialmente dependente</SelectItem>
+                                <SelectItem value="Grau III - Totalmente dependente">Grau III - Totalmente dependente</SelectItem>
                               </SelectContent>
                             </Select>
                           )}

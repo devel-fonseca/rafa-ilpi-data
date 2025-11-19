@@ -65,6 +65,13 @@ postgres_data/
 redis_data/
 minio_data/
 
+# Docker exported images
+docker-images-export/
+docker-build.log
+
+# Tasks (Claude Code todos)
+tasks/
+
 # Temporary files
 tmp/
 temp/

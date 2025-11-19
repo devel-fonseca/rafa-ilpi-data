@@ -355,9 +355,23 @@ export class ResidentsService {
 
       // Construir objeto de atualização com tipos corretos
       // Cast para 'any' necessário porque Prisma espera InputJsonValue para campos JSON
-      const dataToUpdate: any = {
-        ...(restDto as any),
-      };
+      // Filtrar apenas campos undefined para não sobrescrever valores existentes
+      // Nota: null e '' são valores válidos que o usuário pode querer salvar
+      const dataToUpdate: any = Object.fromEntries(
+        Object.entries(restDto).filter(([_, value]) => value !== undefined)
+      );
+
+      // Log para debug
+      this.logger.debug('Update resident data', {
+        residentId: id,
+        fieldsReceived: Object.keys(updateResidentDto),
+        fieldsToUpdate: Object.keys(dataToUpdate),
+        healthFields: {
+          healthStatus: updateResidentDto.healthStatus,
+          specialNeeds: updateResidentDto.specialNeeds,
+          allergies: updateResidentDto.allergies,
+        },
+      });
 
       // Adicionar campos JSON apenas se foram enviados
       if (emergencyContacts !== undefined) dataToUpdate.emergencyContacts = emergencyContacts;

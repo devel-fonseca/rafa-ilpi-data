@@ -15,7 +15,10 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
+
+// Helper para transformar string vazia em undefined
+const EmptyToUndefined = () => Transform(({ value }) => value === '' ? undefined : value);
 
 // DTOs aninhados para arrays complexos
 class EmergencyContactDto {
@@ -127,6 +130,7 @@ export class CreateResidentDto {
   gender: 'MASCULINO' | 'FEMININO' | 'OUTRO' | 'NAO_INFORMADO';
 
   @ApiProperty({ example: 'SOLTEIRO', enum: ['SOLTEIRO', 'CASADO', 'DIVORCIADO', 'VIUVO', 'UNIAO_ESTAVEL'], required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsEnum(['SOLTEIRO', 'CASADO', 'DIVORCIADO', 'VIUVO', 'UNIAO_ESTAVEL'])
   civilStatus?: 'SOLTEIRO' | 'CASADO' | 'DIVORCIADO' | 'VIUVO' | 'UNIAO_ESTAVEL';
@@ -293,10 +297,11 @@ export class CreateResidentDto {
   @IsString()
   legalGuardianPhone?: string;
 
-  @ApiProperty({ example: 'curador', enum: ['curador', 'procurador', 'responsável convencional'], required: false })
+  @ApiProperty({ example: 'Curador', enum: ['Curador', 'Procurador', 'Responsável Familiar (Convencional)'], required: false })
+  @EmptyToUndefined()
   @IsOptional()
-  @IsEnum(['curador', 'procurador', 'responsável convencional'])
-  legalGuardianType?: 'curador' | 'procurador' | 'responsável convencional';
+  @IsEnum(['Curador', 'Procurador', 'Responsável Familiar (Convencional)'])
+  legalGuardianType?: 'Curador' | 'Procurador' | 'Responsável Familiar (Convencional)';
 
   @ApiProperty({ example: '01234-567', required: false })
   @IsOptional()
@@ -346,6 +351,7 @@ export class CreateResidentDto {
   admissionDate: string;
 
   @ApiProperty({ example: 'Voluntária', enum: ['Voluntária', 'Involuntária', 'Judicial'], required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsEnum(['Voluntária', 'Involuntária', 'Judicial'])
   admissionType?: 'Voluntária' | 'Involuntária' | 'Judicial';
@@ -361,6 +367,7 @@ export class CreateResidentDto {
   admissionConditions?: string;
 
   @ApiProperty({ example: '2025-12-31T00:00:00.000Z', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsDateString()
   dischargeDate?: string | null;
@@ -395,10 +402,11 @@ export class CreateResidentDto {
   @Max(300)
   weight?: number;
 
-  @ApiProperty({ example: 'Grau II - Semidependente', enum: ['Grau I - Independente', 'Grau II - Semidependente', 'Grau III - Dependente'], required: false })
+  @ApiProperty({ example: 'Grau II - Parcialmente dependente', enum: ['Grau I - Independente', 'Grau II - Parcialmente dependente', 'Grau III - Totalmente dependente'], required: false })
+  @EmptyToUndefined()
   @IsOptional()
-  @IsEnum(['Grau I - Independente', 'Grau II - Semidependente', 'Grau III - Dependente'])
-  dependencyLevel?: 'Grau I - Independente' | 'Grau II - Semidependente' | 'Grau III - Dependente';
+  @IsEnum(['Grau I - Independente', 'Grau II - Parcialmente dependente', 'Grau III - Totalmente dependente'])
+  dependencyLevel?: 'Grau I - Independente' | 'Grau II - Parcialmente dependente' | 'Grau III - Totalmente dependente';
 
   @ApiProperty({ example: true, required: false })
   @IsOptional()
@@ -459,11 +467,13 @@ export class CreateResidentDto {
 
   // 9. Acomodação
   @ApiProperty({ example: 'uuid-quarto', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsUUID()
   roomId?: string;
 
   @ApiProperty({ example: 'uuid-leito', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsUUID()
   bedId?: string;

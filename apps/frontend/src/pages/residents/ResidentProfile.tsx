@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useResident, useDeleteResident } from '@/hooks/useResidents'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { api } from '@/services/api'
+import { getSignedFileUrl } from '@/services/upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,8 +50,27 @@ export default function ResidentProfile() {
   const { toast } = useToast()
   const [deleteModal, setDeleteModal] = useState(false)
   const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
   const { data: resident, isLoading, error } = useResident(id || '')
+
+  // Carregar URL assinada da foto quando o residente for carregado
+  useEffect(() => {
+    const loadPhotoUrl = async () => {
+      if (resident?.fotoUrl) {
+        try {
+          const signedUrl = await getSignedFileUrl(resident.fotoUrl)
+          setPhotoUrl(signedUrl)
+        } catch (error) {
+          console.error('Erro ao carregar foto do residente:', error)
+          setPhotoUrl(null)
+        }
+      } else {
+        setPhotoUrl(null)
+      }
+    }
+    loadPhotoUrl()
+  }, [resident?.fotoUrl])
   const deleteMutation = useDeleteResident()
 
   // Funções de navegação entre datas
@@ -329,9 +349,9 @@ export default function ResidentProfile() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Foto 3x4 */}
                   <div className="flex flex-col items-center">
-                    {resident.fotoUrl ? (
+                    {photoUrl ? (
                       <img
-                        src={resident.fotoUrl}
+                        src={photoUrl}
                         alt={resident.fullName}
                         className="w-32 h-40 object-cover rounded-lg shadow-md border-2 border-gray-200"
                       />

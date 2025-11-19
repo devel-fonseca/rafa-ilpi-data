@@ -87,7 +87,6 @@ export class AuditInterceptor implements NestInterceptor {
             userId: user.id,
             userName: user.name,
             tenantId: user.tenantId,
-            schemaName: user.tenant.schemaName,
             details,
             ipAddress: request.ip || request.connection?.remoteAddress,
             userAgent: request.headers['user-agent'],
