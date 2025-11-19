@@ -14,11 +14,11 @@ async function bootstrap() {
   // Config Service
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3000;
-  const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:5173';
+  const corsOrigin = configService.get('CORS_ORIGIN') || 'http://localhost:5173';
 
   // CORS
   app.enableCors({
-    origin: frontendUrl,
+    origin: corsOrigin,
     credentials: true,
   });
 
@@ -73,7 +73,7 @@ async function bootstrap() {
 
   console.log(`🚀 Server running on http://localhost:${port}/api`);
   console.log(`📚 API Docs: http://localhost:${port}/api/docs`);
-  console.log(`📚 Frontend: ${frontendUrl}`);
+  console.log(`📚 CORS Origin: ${corsOrigin}`);
 }
 
 bootstrap();
