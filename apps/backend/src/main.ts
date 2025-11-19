@@ -14,7 +14,10 @@ async function bootstrap() {
   // Config Service
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3000;
-  const corsOrigin = configService.get('CORS_ORIGIN') || 'http://localhost:5173';
+  // Suporta tanto CORS_ORIGIN (novo) quanto FRONTEND_URL (legado) para compatibilidade
+  const corsOrigin = configService.get('CORS_ORIGIN')
+    || configService.get('FRONTEND_URL')
+    || 'http://localhost:5173';
 
   // CORS
   app.enableCors({
