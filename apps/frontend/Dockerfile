@@ -24,7 +24,9 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Argumento para URL da API (passado em build time)
-ARG VITE_API_URL=http://localhost:3000
+# Em produção: usa /api (resolvida pelo nginx proxy)
+# Em desenvolvimento: api.ts usa localhost:3000/api como fallback
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 # Copiar dependências do stage anterior
