@@ -1,7 +1,10 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
 
-const API_URL = import.meta.env.VITE_API_URL || '/api'
+// Em desenvolvimento: usa localhost:3000
+// Em produção (Docker): usa URL relativa /api (resolvida pelo nginx proxy)
+// Pode ser sobrescrito com a variável VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000/api' : '/api')
 
 export const api = axios.create({
   baseURL: API_URL,
