@@ -704,7 +704,7 @@ model SOSAdministration {
 
 model AuditLog {
   id         Int      @id @default(autoincrement())
-  tenantId   String   @map("tenant_id")
+  tenantId   String   @map("tenant_id") @db.Uuid
   entityType String   @map("entity_type") @db.VarChar(50)
   entityId   String?  @map("entity_id") @db.VarChar(255)
   action     String   @db.VarChar(50)

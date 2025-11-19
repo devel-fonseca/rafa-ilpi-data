@@ -12,7 +12,7 @@ ALTER COLUMN "isPopular" SET NOT NULL;
 -- CreateTable
 CREATE TABLE "audit_logs" (
     "id" SERIAL NOT NULL,
-    "tenant_id" TEXT NOT NULL,
+    "tenant_id" UUID NOT NULL,
     "entity_type" VARCHAR(50) NOT NULL,
     "entity_id" VARCHAR(255),
     "action" VARCHAR(50) NOT NULL,
