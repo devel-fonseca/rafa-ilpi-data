@@ -227,6 +227,7 @@ model Tenant {
   prescriptions             Prescription[]
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
   auditLogs                 AuditLog[]
 
   @@map("tenants")
@@ -278,6 +279,7 @@ model User {
   dailyRecords              DailyRecord[]
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
 
   @@unique([tenantId, email])
   @@map("users")
@@ -419,6 +421,7 @@ model Resident {
   prescriptions             Prescription[]
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -696,6 +699,46 @@ model SOSAdministration {
   @@index([residentId, date(sort: Desc)])
   @@index([sosMedicationId, date])
   @@map("sos_administrations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  VACINAÇÕES / IMUNIZAÇÕES (RDC 502/2021 - Art. 39)
+// ──────────────────────────────────────────────────────────────────────────────
+model Vaccination {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  residentId     String   @db.Uuid
+
+  // 11 Campos obrigatórios (RDC 502/2021)
+  vaccine        String                    // 1) Vacina/Profilaxia (ex: "COVID-19", "Influenza")
+  dose           String                    // 3) Dose (ex: "1ª dose", "2ª dose", "Reforço")
+  date           DateTime   @db.Date       // 2) Data da vacinação
+  batch          String                    // 4) Lote do imunizante
+  manufacturer   String                    // 5) Fabricante
+  cnes           String                    // 6) CNES (Código Nacional do Estabelecimento de Saúde)
+  healthUnit     String                    // 7) Estabelecimento de Saúde
+  municipality   String                    // 8) Município
+  state          String                    // 9) UF (2 caracteres)
+  certificateUrl String?                   // 10) URL do comprovante (file upload)
+  notes          String?    @db.Text       // 11) Observações adicionais
+
+  // Auditoria
+  userId         String     @db.Uuid       // ID do usuário que registrou
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?  @db.Timestamptz(3) // Soft delete
+
+  // Relações
+  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident   @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices para performance
+  @@index([tenantId, residentId])
+  @@index([residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([deletedAt])
+  @@map("vaccinations")
 }
 
 // ==========================================

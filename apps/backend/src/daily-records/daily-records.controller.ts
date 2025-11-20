@@ -116,6 +116,37 @@ export class DailyRecordsController {
     return this.dailyRecordsService.findLatestByResidents(user.tenantId);
   }
 
+  @Get('resident/:residentId/dates')
+  @ApiOperation({
+    summary: 'Buscar datas com registros de um residente',
+    description:
+      'Retorna as datas que possuem registros para um residente em um determinado mês. Usado para indicadores no calendário.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Array de datas em formato YYYY-MM-DD',
+    schema: {
+      type: 'array',
+      items: { type: 'string', format: 'date' },
+      example: ['2025-11-15', '2025-11-16', '2025-11-20'],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  findDatesWithRecords(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.findDatesWithRecordsByResident(
+      residentId,
+      user.tenantId,
+      parseInt(year),
+      parseInt(month),
+    );
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar registro por ID' })
   @ApiResponse({ status: 200, description: 'Registro encontrado' })

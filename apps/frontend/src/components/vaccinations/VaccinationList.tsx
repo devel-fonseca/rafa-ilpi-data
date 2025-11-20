@@ -1,0 +1,200 @@
+import { useState } from 'react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Trash2, Edit2, Plus, ExternalLink, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { useVaccinationsByResident, useDeleteVaccination, Vaccination } from '@/hooks/useVaccinations'
+import { VaccinationForm } from './VaccinationForm'
+
+interface VaccinationListProps {
+  residentId: string
+}
+
+export function VaccinationList({ residentId }: VaccinationListProps) {
+  const [formOpen, setFormOpen] = useState(false)
+  const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
+
+  const { data: vaccinations = [], isLoading, error } = useVaccinationsByResident(residentId)
+  const deleteMutation = useDeleteVaccination()
+
+  const handleEdit = (vaccination: Vaccination) => {
+    setSelectedVaccination(vaccination)
+    setFormOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja remover este registro de vacinação?')) return
+
+    try {
+      await deleteMutation.mutateAsync(id)
+      toast.success('Vacinação removida com sucesso')
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao remover vacinação')
+    }
+  }
+
+  const handleFormClose = () => {
+    setFormOpen(false)
+    setSelectedVaccination(undefined)
+  }
+
+  const handleFormSuccess = () => {
+    handleFormClose()
+  }
+
+  // Sort by date descending (most recent first)
+  const sortedVaccinations = [...vaccinations].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  )
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+        Erro ao carregar vacinações
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Histórico de Vacinações</h3>
+        <Button
+          size="sm"
+          onClick={() => {
+            setSelectedVaccination(undefined)
+            setFormOpen(true)
+          }}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Registrar Vacinação
+        </Button>
+      </div>
+
+      {sortedVaccinations.length === 0 ? (
+        <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
+          <p className="text-sm text-gray-500">Nenhuma vacinação registrada</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sortedVaccinations.map((vaccination) => (
+            <div
+              key={vaccination.id}
+              className="rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+            >
+              {/* Header com Vacina e Data */}
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm text-gray-900">{vaccination.vaccine}</h4>
+                  <p className="text-xs text-gray-500">
+                    {format(new Date(vaccination.date), "dd 'de' MMMM 'de' yyyy", {
+                      locale: ptBR,
+                    })}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit(vaccination)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(vaccination.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Informações principais em grid */}
+              <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                <div>
+                  <p className="font-medium text-gray-600">Dose</p>
+                  <p className="text-gray-900">{vaccination.dose}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600">Lote</p>
+                  <p className="text-gray-900">{vaccination.batch}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600">Fabricante</p>
+                  <p className="text-gray-900">{vaccination.manufacturer}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600">CNES</p>
+                  <p className="text-gray-900">{vaccination.cnes}</p>
+                </div>
+              </div>
+
+              {/* Estabelecimento e Localização */}
+              <div className="mb-3 pb-3 border-t border-gray-100 pt-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="font-medium text-gray-600">Estabelecimento</p>
+                    <p className="text-gray-900">{vaccination.healthUnit}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-600">Município / UF</p>
+                    <p className="text-gray-900">
+                      {vaccination.municipality}, {vaccination.state}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comprovante e Observações */}
+              {(vaccination.certificateUrl || vaccination.notes) && (
+                <div className="space-y-2 border-t border-gray-100 pt-3 text-xs">
+                  {vaccination.certificateUrl && (
+                    <div>
+                      <p className="font-medium text-gray-600 mb-1">Comprovante</p>
+                      <a
+                        href={vaccination.certificateUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Visualizar arquivo
+                      </a>
+                    </div>
+                  )}
+                  {vaccination.notes && (
+                    <div>
+                      <p className="font-medium text-gray-600 mb-1">Observações</p>
+                      <p className="text-gray-700 italic">{vaccination.notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <VaccinationForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        residentId={residentId}
+        vaccination={selectedVaccination}
+        onSuccess={handleFormSuccess}
+      />
+    </div>
+  )
+}

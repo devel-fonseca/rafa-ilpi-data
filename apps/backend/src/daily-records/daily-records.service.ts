@@ -333,4 +333,58 @@ export class DailyRecordsService {
     // Retornar resultado diretamente (já está no formato correto)
     return latestRecords;
   }
+
+  /**
+   * Busca todas as datas que possuem registros para um residente em um período (mês)
+   * Usado para indicadores no calendário
+   */
+  async findDatesWithRecordsByResident(
+    residentId: string,
+    tenantId: string,
+    year: number,
+    month: number,
+  ) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Calcular primeiro e último dia do mês
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0, 23, 59, 59);
+
+    // Buscar datas únicas que têm registros
+    const datesWithRecords = await this.prisma.dailyRecord.findMany({
+      where: {
+        residentId,
+        tenantId,
+        date: {
+          gte: firstDay,
+          lte: lastDay,
+        },
+        deletedAt: null,
+      },
+      distinct: ['date'],
+      select: {
+        date: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Retornar apenas as datas em formato YYYY-MM-DD
+    return datesWithRecords.map((record) => {
+      const date = new Date(record.date);
+      return date.toISOString().split('T')[0];
+    });
+  }
 }

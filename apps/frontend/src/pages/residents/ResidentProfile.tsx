@@ -10,12 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,6 +37,8 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
+import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 
 export default function ResidentProfile() {
   const { id } = useParams()
@@ -206,6 +202,31 @@ export default function ResidentProfile() {
     }
   }
 
+  // Helper para mostrar badge de status de preenchimento
+  const getFieldCompletionBadge = (value: any) => {
+    if (!value || value === 'Não informado' || value === '-') {
+      return <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Não preenchido</Badge>
+    }
+    return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Completo</Badge>
+  }
+
+  // Helper para calcular percentual de preenchimento
+  const getCompletionPercentage = (fields: any[]) => {
+    const filledCount = fields.filter(f => f && f !== 'Não informado' && f !== '-').length
+    return Math.round((filledCount / fields.length) * 100)
+  }
+
+  // Helper para mostrar badge de status geral da seção
+  const getSectionCompletionBadge = (completionPercent: number) => {
+    if (completionPercent === 100) {
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">100% Completo</Badge>
+    } else if (completionPercent >= 50) {
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{completionPercent}% Preenchido</Badge>
+    } else {
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">{completionPercent}% Incompleto</Badge>
+    }
+  }
+
   // Confirmar exclusão
   const handleDelete = async () => {
     if (!id) return
@@ -331,125 +352,276 @@ export default function ResidentProfile() {
       <Tabs defaultValue="personal" className="space-y-4">
         <TabsList>
           <TabsTrigger value="personal">Dados do Residente</TabsTrigger>
+          <TabsTrigger value="vaccinations">Vacinação</TabsTrigger>
           <TabsTrigger value="prescriptions">
             Prescrições ({activePrescriptions.length})
           </TabsTrigger>
           <TabsTrigger value="daily-records">Registros Diários</TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: Dados do Residente com Accordions */}
-        <TabsContent value="personal">
-          <Accordion type="multiple" defaultValue={['photo-basic', 'addresses']} className="space-y-4">
-            {/* Accordion 1: Foto e Dados Básicos */}
-            <AccordionItem value="photo-basic">
-              <AccordionTrigger className="text-lg font-semibold">
-                Foto e Dados Básicos
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Foto 3x4 */}
-                  <div className="flex flex-col items-center">
-                    {photoUrl ? (
-                      <img
-                        src={photoUrl}
-                        alt={resident.fullName}
-                        className="w-32 h-40 object-cover rounded-lg shadow-md border-2 border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-32 h-40 bg-gray-100 rounded-lg shadow-md border-2 border-gray-200 flex items-center justify-center">
-                        <User className="h-16 w-16 text-gray-400" />
+        {/* TAB 1: Dados do Residente */}
+        <TabsContent value="personal" className="space-y-6">
+          {/* Seção: Dados Essenciais */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900">Dados Essenciais</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card: Identificação */}
+              <Card className="lg:col-span-2">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Identificação</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      {photoUrl ? (
+                        <img
+                          src={photoUrl}
+                          alt={resident.fullName}
+                          className="w-20 h-24 object-cover rounded-lg shadow-md border border-gray-200"
+                        />
+                      ) : (
+                        <div className="w-20 h-24 bg-gray-100 rounded-lg shadow-md border border-gray-200 flex items-center justify-center">
+                          <User className="h-10 w-10 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-500">Nome Completo</div>
+                        <div className="font-semibold text-lg text-gray-900">{resident.fullName}</div>
+                        {resident.socialName && (
+                          <>
+                            <div className="text-sm text-gray-500 mt-2">Nome Social</div>
+                            <div className="font-medium text-gray-700">{resident.socialName}</div>
+                          </>
+                        )}
                       </div>
-                    )}
-                    <span className="text-xs text-gray-500 mt-2">Foto 3x4</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Data de Nascimento</div>
+                        <div className="font-medium text-gray-900">
+                          {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Idade</div>
+                        <div className="font-medium text-gray-900">{calculateAge(resident.birthDate)} anos</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Gênero</div>
+                        <div className="font-medium text-gray-900">{translateGender(resident.gender)}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">CPF</div>
+                        <div className="font-medium text-gray-900">{resident.cpf || '-'}</div>
+                      </div>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {/* Dados Básicos */}
-                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-gray-500">Nome Completo</div>
-                      <div className="font-medium">{resident.fullName}</div>
+              {/* Card: Saúde Crítica */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Saúde Crítica</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
+                    <div className="font-semibold text-lg text-red-600">{translateBloodType(resident.bloodType)}</div>
+                  </div>
+                  {resident.allergies && (
+                    <div className="border-t pt-4">
+                      <div className="text-sm text-gray-500 mb-1">Alergias</div>
+                      <div className="text-sm bg-red-50 border border-red-200 rounded p-2 text-red-700">
+                        {resident.allergies}
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Nome Social</div>
-                      <div className="font-medium">{resident.socialName || 'Não informado'}</div>
+                  )}
+                  {resident.chronicConditions && (
+                    <div className="border-t pt-4">
+                      <div className="text-sm text-gray-500 mb-1">Condições Crônicas</div>
+                      <div className="text-sm text-gray-700">{resident.chronicConditions}</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-gray-500">CPF</div>
-                      <div className="font-medium">{resident.cpf || 'Não informado'}</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Card: Contato de Emergência */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Emergência</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {resident.emergencyContacts && resident.emergencyContacts.length > 0 ? (
+                    <div className="space-y-3">
+                      {resident.emergencyContacts.slice(0, 1).map((contact, idx) => (
+                        <div key={idx}>
+                          <div className="text-sm text-gray-500">Nome</div>
+                          <div className="font-medium text-gray-900">{contact.name}</div>
+                          <div className="text-sm text-gray-500 mt-2">Telefone</div>
+                          <div className="font-medium text-gray-900">{contact.phone}</div>
+                          <div className="text-sm text-gray-500 mt-2">Parentesco</div>
+                          <div className="font-medium text-gray-900">{contact.relationship}</div>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-4">Não informado</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Card: Acomodação */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Acomodação</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Quarto</div>
+                    <div className="font-semibold text-lg text-gray-900">{resident.roomId || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Leito</div>
+                    <div className="font-semibold text-lg text-gray-900">{resident.bedId || '-'}</div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Card: Status e Responsável */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Status</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">Tempo na Instituição</div>
+                    <div className="font-semibold text-lg text-gray-900">
+                      {resident.admissionDate
+                        ? `${Math.floor(
+                            (new Date().getTime() - new Date(resident.admissionDate).getTime()) /
+                              (1000 * 60 * 60 * 24 * 30)
+                          )} meses`
+                        : '-'}
+                    </div>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="text-sm text-gray-500 mb-1">Responsável</div>
+                    <div className="font-medium text-gray-900">{resident.legalGuardianName || '-'}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Seção: Informações Detalhadas */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900">Informações Detalhadas</h2>
+
+            {/* Card: Informações Pessoais */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Informações Pessoais</CardTitle>
+                  {getSectionCompletionBadge(getCompletionPercentage([
+                    resident.rg,
+                    resident.rgIssuer,
+                    resident.cns,
+                    resident.civilStatus,
+                    resident.religion,
+                    resident.education,
+                    resident.profession,
+                    resident.nationality,
+                    resident.motherName,
+                    resident.fatherName,
+                  ]))}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Sub-seção: Identificação */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Identificação</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <div className="text-sm text-gray-500">RG</div>
-                      <div className="font-medium">{resident.rg || 'Não informado'}</div>
+                      <div className="font-medium text-gray-900">{resident.rg || '-'}</div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">Órgão Emissor</div>
-                      <div className="font-medium">{resident.rgIssuer || 'Não informado'}</div>
+                      <div className="font-medium text-gray-900">{resident.rgIssuer || '-'}</div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-500">CNS</div>
-                      <div className="font-medium">{resident.cns || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Data de Nascimento</div>
-                      <div className="font-medium">
-                        {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Idade</div>
-                      <div className="font-medium">{calculateAge(resident.birthDate)} anos</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Gênero</div>
-                      <div className="font-medium">{translateGender(resident.gender)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Estado Civil</div>
-                      <div className="font-medium">
-                        {translateMaritalStatus(resident.civilStatus)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Religião</div>
-                      <div className="font-medium">{resident.religion || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Escolaridade</div>
-                      <div className="font-medium">{resident.education || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Profissão</div>
-                      <div className="font-medium">{resident.profession || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Nacionalidade</div>
-                      <div className="font-medium">{resident.nationality || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Naturalidade</div>
-                      <div className="font-medium">
-                        {resident.birthCity && resident.birthState
-                          ? `${resident.birthCity}/${resident.birthState}`
-                          : 'Não informado'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Nome da Mãe</div>
-                      <div className="font-medium">{resident.motherName || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-500">Nome do Pai</div>
-                      <div className="font-medium">{resident.fatherName || 'Não informado'}</div>
+                      <div className="font-medium text-gray-900">{resident.cns || '-'}</div>
                     </div>
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
 
-            {/* Accordion 2: Endereços */}
-            <AccordionItem value="addresses">
-              <AccordionTrigger className="text-lg font-semibold">Endereços</AccordionTrigger>
-              <AccordionContent>
+                {/* Sub-seção: Dados Demográficos */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Demográficos</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500">Estado Civil</div>
+                      <div className="font-medium text-gray-900">{translateMaritalStatus(resident.civilStatus)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Religião</div>
+                      <div className="font-medium text-gray-900">{resident.religion || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Escolaridade</div>
+                      <div className="font-medium text-gray-900">{resident.education || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Profissão</div>
+                      <div className="font-medium text-gray-900">{resident.profession || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nacionalidade</div>
+                      <div className="font-medium text-gray-900">{resident.nationality || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Naturalidade</div>
+                      <div className="font-medium text-gray-900">
+                        {resident.birthCity && resident.birthState
+                          ? `${resident.birthCity}/${resident.birthState}`
+                          : '-'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-seção: Filiação */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Filiação</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500">Nome da Mãe</div>
+                      <div className="font-medium text-gray-900">{resident.motherName || '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">Nome do Pai</div>
+                      <div className="font-medium text-gray-900">{resident.fatherName || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card: Endereços */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Endereços</CardTitle>
+                  {getSectionCompletionBadge(getCompletionPercentage([
+                    resident.currentStreet,
+                    resident.currentCity,
+                    resident.currentPhone,
+                  ]))}
+                </div>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-6">
                   {/* Endereço Atual */}
                   <div>
@@ -533,15 +705,21 @@ export default function ResidentProfile() {
                     </div>
                   )}
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 3: Contatos de Emergência */}
-            <AccordionItem value="emergency-contacts">
-              <AccordionTrigger className="text-lg font-semibold">
-                Contatos de Emergência
-              </AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Contatos de Emergência */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Contatos de Emergência</CardTitle>
+                  {resident.emergencyContacts && resident.emergencyContacts.length > 0
+                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                  }
+                </div>
+              </CardHeader>
+              <CardContent>
                 {resident.emergencyContacts && resident.emergencyContacts.length > 0 ? (
                   <div className="space-y-4">
                     {resident.emergencyContacts.map((contact, index) => (
@@ -568,15 +746,22 @@ export default function ResidentProfile() {
                     Nenhum contato de emergência cadastrado
                   </div>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 4: Responsável Legal */}
-            <AccordionItem value="legal-guardian">
-              <AccordionTrigger className="text-lg font-semibold">
-                Responsável Legal
-              </AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Responsável Legal */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Responsável Legal</CardTitle>
+                  {getSectionCompletionBadge(getCompletionPercentage([
+                    resident.legalGuardianName,
+                    resident.legalGuardianCpf,
+                    resident.legalGuardianPhone,
+                  ]))}
+                </div>
+              </CardHeader>
+              <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <div className="text-sm text-gray-500">Nome</div>
@@ -629,13 +814,22 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 5: Admissão */}
-            <AccordionItem value="admission">
-              <AccordionTrigger className="text-lg font-semibold">Admissão</AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Admissão */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Admissão</CardTitle>
+                  {getSectionCompletionBadge(getCompletionPercentage([
+                    resident.admissionDate,
+                    resident.admissionType,
+                    resident.admissionReason,
+                  ]))}
+                </div>
+              </CardHeader>
+              <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <div className="text-sm text-gray-500">Data de Admissão</div>
@@ -689,19 +883,29 @@ export default function ResidentProfile() {
                     </>
                   )}
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 6: Saúde e Condições Médicas */}
-            <AccordionItem value="health">
-              <AccordionTrigger className="text-lg font-semibold">
-                Saúde e Condições Médicas
-              </AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Saúde e Condições Médicas */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Saúde e Condições Médicas</CardTitle>
+                  {getSectionCompletionBadge(getCompletionPercentage([
+                    resident.bloodType,
+                    resident.height,
+                    resident.weight,
+                    resident.healthStatus,
+                    resident.allergies,
+                    resident.chronicConditions,
+                  ]))}
+                </div>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-6">
-                  {/* Dados Gerais */}
+                  {/* Sub-seção: Dados Gerais */}
                   <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Dados Gerais</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Gerais</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
@@ -793,15 +997,21 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 7: Convênios e Planos de Saúde */}
-            <AccordionItem value="health-plans">
-              <AccordionTrigger className="text-lg font-semibold">
-                Convênios e Planos de Saúde
-              </AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Convênios e Planos de Saúde */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Convênios e Planos de Saúde</CardTitle>
+                  {resident.healthPlans && resident.healthPlans.length > 0
+                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                  }
+                </div>
+              </CardHeader>
+              <CardContent>
                 {resident.healthPlans && resident.healthPlans.length > 0 ? (
                   <div className="space-y-4">
                     {resident.healthPlans.map((plan, index) => (
@@ -824,13 +1034,21 @@ export default function ResidentProfile() {
                     Nenhum convênio cadastrado
                   </div>
                 )}
-              </AccordionContent>
-            </AccordionItem>
+              </CardContent>
+            </Card>
 
-            {/* Accordion 8: Pertences */}
-            <AccordionItem value="belongings">
-              <AccordionTrigger className="text-lg font-semibold">Pertences</AccordionTrigger>
-              <AccordionContent>
+            {/* Card: Pertences */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Pertences</CardTitle>
+                  {resident.belongings && resident.belongings.length > 0
+                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
+                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                  }
+                </div>
+              </CardHeader>
+              <CardContent>
                 {resident.belongings && resident.belongings.length > 0 ? (
                   <ul className="list-disc list-inside space-y-1">
                     {resident.belongings.map((item, index) => (
@@ -842,29 +1060,27 @@ export default function ResidentProfile() {
                 ) : (
                   <div className="text-center text-gray-500 py-4">Nenhum pertence cadastrado</div>
                 )}
-              </AccordionContent>
-            </AccordionItem>
-
-            {/* Accordion 9: Acomodação */}
-            <AccordionItem value="accommodation">
-              <AccordionTrigger className="text-lg font-semibold">Acomodação</AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-500">Número do Quarto</div>
-                    <div className="font-medium">{resident.roomId || 'Não informado'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Número do Leito</div>
-                    <div className="font-medium">{resident.bedId || 'Não informado'}</div>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        {/* TAB 2: Prescrições */}
+        {/* TAB 2: Vacinação */}
+        <TabsContent value="vaccinations">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vacinação</CardTitle>
+              <CardDescription>
+                Histórico de imunizações registradas para {resident.fullName}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VaccinationList residentId={id || ''} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 3: Prescrições */}
         <TabsContent value="prescriptions">
           <Card>
             <CardHeader>
@@ -948,7 +1164,7 @@ export default function ResidentProfile() {
           </Card>
         </TabsContent>
 
-        {/* TAB 3: Registros Diários */}
+        {/* TAB 4: Registros Diários */}
         <TabsContent value="daily-records">
           <Card>
             <CardHeader>
@@ -961,7 +1177,7 @@ export default function ResidentProfile() {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/dashboard/registros-diarios')}
+                  onClick={() => navigate(`/dashboard/residentes/${id}/registros-calendario`)}
                 >
                   Ver Todos os Registros
                 </Button>
@@ -1003,22 +1219,33 @@ export default function ResidentProfile() {
             </CardHeader>
             <CardContent>
               {dailyRecords.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {dailyRecords.map((record: any) => (
                     <div
                       key={record.id}
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                      className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <Clock className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold">{record.type}</span>
-                            <Badge variant="outline">{record.shift}</Badge>
-                            <span className="text-sm text-gray-500">{record.time}</span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-lg">{record.time}</span>
+                            <Badge
+                              variant="outline"
+                              className={RECORD_TYPE_LABELS[record.type]?.color}
+                            >
+                              {RECORD_TYPE_LABELS[record.type]?.label}
+                            </Badge>
                           </div>
-                          {record.description && (
-                            <p className="text-sm text-gray-600">{record.description}</p>
+                          <div className="text-sm text-gray-800 mb-1">
+                            {renderRecordSummary(record)}
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            Registrado por: {record.recordedBy}
+                          </p>
+                          {record.notes && (
+                            <p className="text-sm text-gray-600 mt-2 italic border-l-2 border-gray-300 pl-2">
+                              {record.notes}
+                            </p>
                           )}
                         </div>
                       </div>
