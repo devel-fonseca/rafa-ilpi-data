@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "Encerrando processos de desenvolvimento..."
+pkill -f "npm"
+pkill -f "node"
+pkill -f "vite"
+pkill -f "nest"
+pkill -f "concurrently"
+pkill -f "esbuild"
+pkill -f "fork-ts-checker"
+echo "Finalizado."

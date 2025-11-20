@@ -229,6 +229,10 @@ model Tenant {
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
   auditLogs                 AuditLog[]
+  buildings                 Building[]
+  floors                    Floor[]
+  rooms                     Room[]
+  beds                      Bed[]
 
   @@map("tenants")
 }
@@ -767,4 +771,100 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@map("audit_logs")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  GESTÃO DE LEITOS (MAPA DE OCUPAÇÃO)
+//  Estrutura: Building → Floor → Room → Bed
+// ──────────────────────────────────────────────────────────────────────────────
+
+// NÍVEL 1: PRÉDIOS / BLOCOS / CASAS
+model Building {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  name        String    // "Casa Principal", "Bloco A"
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floors Floor[]
+
+  @@index([tenantId, isActive])
+  @@map("buildings")
+}
+
+// NÍVEL 2: ANDARES / SETORES / ALAS / PAVILHÕES
+model Floor {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  buildingId  String    @db.Uuid
+  name        String    // "Térreo", "1º Andar", "Ala Feminina"
+  orderIndex  Int       @default(0) // Ordenação visual (crescente)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  rooms    Room[]
+
+  @@index([tenantId, buildingId])
+  @@index([buildingId, orderIndex])
+  @@index([deletedAt])
+  @@map("floors")
+}
+
+// NÍVEL 3: QUARTOS / ENFERMARIAS / SUÍTES
+model Room {
+  id                String    @id @default(uuid()) @db.Uuid
+  tenantId          String    @db.Uuid
+  floorId           String    @db.Uuid
+  name              String    // "101", "Quarto 3"
+  capacity          Int       @default(1) // Número total de leitos (calculado automaticamente)
+  roomType          String?   // "Coletivo", "Suíte", "Enfermaria"
+  genderRestriction String?   // null, "M", "F"
+  hasBathroom       Boolean   @default(false) // ← NOVO CAMPO: Se o quarto tem banheiro
+  notes             String?   @db.Text
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime? @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  beds   Bed[]
+
+  @@index([tenantId, floorId])
+  @@index([floorId, isActive])
+  @@index([deletedAt])
+  @@map("rooms")
+}
+
+// NÍVEL 4: LEITOS (conecta com Residents)
+model Bed {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  roomId    String    @db.Uuid
+  code      String    // "101-A", "101-B", "Leito 1"
+  status    String    @default("Disponível") // "Disponível", "Ocupado", "Manutenção" (calculado dinamicamente)
+  notes     String?   @db.Text
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code]) // Código do leito único por tenant
+  @@index([tenantId, roomId])
+  @@index([roomId, status])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("beds")
 }

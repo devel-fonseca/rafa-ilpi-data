@@ -16,6 +16,10 @@ import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { winstonConfig } from './common/config/winston.config';
+import { BuildingsModule } from './buildings/buildings.module';
+import { FloorsModule } from './floors/floors.module';
+import { RoomsModule } from './rooms/rooms.module';
+import { BedsModule } from './beds/beds.module';
 
 @Module({
   imports: [
@@ -53,6 +57,10 @@ import { winstonConfig } from './common/config/winston.config';
     VaccinationsModule,
     AuditModule,
     HealthModule,
+    BuildingsModule,
+    FloorsModule,
+    RoomsModule,
+    BedsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
