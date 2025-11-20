@@ -387,4 +387,48 @@ export class DailyRecordsService {
       return date.toISOString().split('T')[0];
     });
   }
+
+  /**
+   * Busca o último registro de Monitoramento Vital de um residente
+   * Otimizado para não carregar todos os registros (apenas o mais recente)
+   */
+  async findLastVitalSign(residentId: string, tenantId: string) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    const record = await this.prisma.dailyRecord.findFirst({
+      where: {
+        residentId,
+        tenantId,
+        type: 'MONITORAMENTO',
+        deletedAt: null,
+      },
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+            fotoUrl: true,
+          },
+        },
+      },
+    });
+
+    return record || null;
+  }
 }

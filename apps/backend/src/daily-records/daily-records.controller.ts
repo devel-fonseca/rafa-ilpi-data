@@ -65,30 +65,6 @@ export class DailyRecordsController {
     return this.dailyRecordsService.findAll(query, user.tenantId);
   }
 
-  @Get('resident/:residentId/date/:date')
-  @ApiOperation({
-    summary: 'Buscar todos os registros de um residente em uma data específica',
-  })
-  @ApiResponse({ status: 200, description: 'Lista de registros do dia' })
-  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
-  @ApiParam({
-    name: 'date',
-    description: 'Data no formato YYYY-MM-DD',
-    example: '2025-11-15',
-  })
-  findByResidentAndDate(
-    @Param('residentId', ParseUUIDPipe) residentId: string,
-    @Param('date') date: string,
-    @CurrentUser() user: any,
-  ) {
-    return this.dailyRecordsService.findByResidentAndDate(
-      residentId,
-      date,
-      user.tenantId,
-    );
-  }
-
   @Get('latest/by-residents')
   @ApiOperation({
     summary: 'Buscar último registro de cada residente',
@@ -114,6 +90,45 @@ export class DailyRecordsController {
   })
   findLatestByResidents(@CurrentUser() user: any) {
     return this.dailyRecordsService.findLatestByResidents(user.tenantId);
+  }
+
+  @Get('resident/:residentId/last-vital-sign')
+  @ApiOperation({
+    summary: 'Buscar o último Monitoramento Vital de um residente',
+    description: 'Retorna apenas o registro mais recente de Monitoramento Vital, otimizado para não sobrecarregar o tráfego.',
+  })
+  @ApiResponse({ status: 200, description: 'Último Monitoramento Vital encontrado' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado ou sem registros' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  findLastVitalSign(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
+  }
+
+  @Get('resident/:residentId/date/:date')
+  @ApiOperation({
+    summary: 'Buscar todos os registros de um residente em uma data específica',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de registros do dia' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  @ApiParam({
+    name: 'date',
+    description: 'Data no formato YYYY-MM-DD',
+    example: '2025-11-15',
+  })
+  findByResidentAndDate(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Param('date') date: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.findByResidentAndDate(
+      residentId,
+      date,
+      user.tenantId,
+    );
   }
 
   @Get('resident/:residentId/dates')

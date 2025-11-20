@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useResident, useDeleteResident } from '@/hooks/useResidents'
@@ -47,6 +47,7 @@ export default function ResidentProfile() {
   const [deleteModal, setDeleteModal] = useState(false)
   const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const healthConditionsCardRef = useRef<HTMLDivElement>(null)
 
   const { data: resident, isLoading, error } = useResident(id || '')
 
@@ -111,6 +112,21 @@ export default function ResidentProfile() {
   })
 
   const viewDateRecords = Array.isArray(viewDateRecordsData) ? viewDateRecordsData : []
+
+  // Buscar último monitoramento vital (otimizado)
+  const { data: lastVitalSignData } = useQuery({
+    queryKey: ['daily-records', 'resident-profile', id, 'last-vital'],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/daily-records/resident/${id}/last-vital-sign`)
+        return response.data || null
+      } catch {
+        return null
+      }
+    },
+    enabled: !!id && id !== 'new',
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
 
   // Determinar quais registros mostrar
   const dailyRecords = viewDateRecords
@@ -224,6 +240,20 @@ export default function ResidentProfile() {
       return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{completionPercent}% Preenchido</Badge>
     } else {
       return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">{completionPercent}% Incompleto</Badge>
+    }
+  }
+
+  // Helper para truncar texto
+  const truncateText = (text: string | undefined | null, maxLength: number = 100) => {
+    if (!text) return { text: '', isTruncated: false }
+    if (text.length <= maxLength) return { text, isTruncated: false }
+    return { text: text.substring(0, maxLength) + '...', isTruncated: true }
+  }
+
+  // Scroll para o card de Saúde e Condições Médicas
+  const scrollToHealthConditions = () => {
+    if (healthConditionsCardRef.current) {
+      healthConditionsCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
@@ -353,9 +383,7 @@ export default function ResidentProfile() {
         <TabsList>
           <TabsTrigger value="personal">Dados do Residente</TabsTrigger>
           <TabsTrigger value="vaccinations">Vacinação</TabsTrigger>
-          <TabsTrigger value="prescriptions">
-            Prescrições ({activePrescriptions.length})
-          </TabsTrigger>
+          <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>
           <TabsTrigger value="daily-records">Registros Diários</TabsTrigger>
         </TabsList>
 
@@ -363,7 +391,6 @@ export default function ResidentProfile() {
         <TabsContent value="personal" className="space-y-6">
           {/* Seção: Dados Essenciais */}
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">Dados Essenciais</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Card: Identificação */}
               <Card className="lg:col-span-2">
@@ -419,30 +446,94 @@ export default function ResidentProfile() {
                 </CardContent>
               </Card>
 
-              {/* Card: Saúde Crítica */}
+              {/* Card: Saúde */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Saúde Crítica</CardTitle>
+                  <CardTitle className="text-lg">Saúde</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
                     <div className="font-semibold text-lg text-red-600">{translateBloodType(resident.bloodType)}</div>
                   </div>
-                  {resident.allergies && (
-                    <div className="border-t pt-4">
-                      <div className="text-sm text-gray-500 mb-1">Alergias</div>
-                      <div className="text-sm bg-red-50 border border-red-200 rounded p-2 text-red-700">
-                        {resident.allergies}
+
+                  {/* Sinais Vitais */}
+                  {(() => {
+                    if (lastVitalSignData) {
+                      const vitalData = lastVitalSignData.data || {}
+                      return (
+                        <div className="border-t pt-4">
+                          <div className="text-sm text-gray-500 mb-2">
+                            Sinais Vitais em {format(new Date(lastVitalSignData.date), 'dd/MM/yyyy', { locale: ptBR })} às {lastVitalSignData.time}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {vitalData.pressaoArterial && (
+                              <Badge variant="outline" className="text-xs">PA: {vitalData.pressaoArterial}</Badge>
+                            )}
+                            {vitalData.temperatura && (
+                              <Badge variant="outline" className="text-xs">Temp: {vitalData.temperatura}°C</Badge>
+                            )}
+                            {vitalData.frequenciaCardiaca && (
+                              <Badge variant="outline" className="text-xs">FC: {vitalData.frequenciaCardiaca} bpm</Badge>
+                            )}
+                            {vitalData.saturacaoO2 && (
+                              <Badge variant="outline" className="text-xs">SpO₂: {vitalData.saturacaoO2}%</Badge>
+                            )}
+                            {vitalData.glicemia && (
+                              <Badge variant="outline" className="text-xs">Glicemia: {vitalData.glicemia} mg/dL</Badge>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div className="border-t pt-4">
+                        <div className="text-sm text-gray-500">Sinais Vitais</div>
+                        <div className="text-sm text-gray-400 italic">Nenhum registro de monitoramento</div>
                       </div>
-                    </div>
-                  )}
-                  {resident.chronicConditions && (
-                    <div className="border-t pt-4">
-                      <div className="text-sm text-gray-500 mb-1">Condições Crônicas</div>
-                      <div className="text-sm text-gray-700">{resident.chronicConditions}</div>
-                    </div>
-                  )}
+                    )
+                  })()}
+
+                  {resident.allergies && (() => {
+                    const { text: truncatedAllergies, isTruncated: allergiesTruncated } = truncateText(resident.allergies)
+                    return (
+                      <div className="border-t pt-4">
+                        <div className="text-sm text-gray-500 mb-1">Alergias</div>
+                        <div className="text-sm bg-red-50 border border-red-200 rounded p-2 text-red-700">
+                          {truncatedAllergies}
+                        </div>
+                        {allergiesTruncated && (
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="text-xs p-0 mt-2 h-auto"
+                            onClick={scrollToHealthConditions}
+                          >
+                            Ver mais →
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })()}
+                  {resident.chronicConditions && (() => {
+                    const { text: truncatedConditions, isTruncated: conditionsTruncated } = truncateText(resident.chronicConditions)
+                    return (
+                      <div className="border-t pt-4">
+                        <div className="text-sm text-gray-500 mb-1">Condições Crônicas</div>
+                        <div className="text-sm text-gray-700">{truncatedConditions}</div>
+                        {conditionsTruncated && (
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="text-xs p-0 mt-2 h-auto"
+                            onClick={scrollToHealthConditions}
+                          >
+                            Ver mais →
+                          </Button>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </CardContent>
               </Card>
 
@@ -488,7 +579,7 @@ export default function ResidentProfile() {
                 </CardContent>
               </Card>
 
-              {/* Card: Status e Responsável */}
+              {/* Card: Status */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg">Status</CardTitle>
@@ -506,8 +597,8 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                   <div className="border-t pt-4">
-                    <div className="text-sm text-gray-500 mb-1">Responsável</div>
-                    <div className="font-medium text-gray-900">{resident.legalGuardianName || '-'}</div>
+                    <div className="text-sm text-gray-500 mb-1">Grau de Dependência</div>
+                    <div className="font-medium text-gray-900">{resident.dependencyLevel || '-'}</div>
                   </div>
                 </CardContent>
               </Card>
@@ -516,8 +607,6 @@ export default function ResidentProfile() {
 
           {/* Seção: Informações Detalhadas */}
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">Informações Detalhadas</h2>
-
             {/* Card: Informações Pessoais */}
             <Card>
               <CardHeader>
@@ -887,7 +976,7 @@ export default function ResidentProfile() {
             </Card>
 
             {/* Card: Saúde e Condições Médicas */}
-            <Card>
+            <Card ref={healthConditionsCardRef}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Saúde e Condições Médicas</CardTitle>
@@ -1067,17 +1156,7 @@ export default function ResidentProfile() {
 
         {/* TAB 2: Vacinação */}
         <TabsContent value="vaccinations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vacinação</CardTitle>
-              <CardDescription>
-                Histórico de imunizações registradas para {resident.fullName}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VaccinationList residentId={id || ''} />
-            </CardContent>
-          </Card>
+          <VaccinationList residentId={id || ''} />
         </TabsContent>
 
         {/* TAB 3: Prescrições */}
