@@ -25,6 +25,8 @@ import { cn } from '@/lib/utils'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { uploadFile, getSignedFileUrl } from '@/services/upload'
+import { useRooms } from '@/hooks/useRooms'
+import { useBeds } from '@/hooks/useBeds'
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -198,6 +200,9 @@ export function ResidentForm() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
 
+  // Estados para Acomodação (Beds)
+  const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>(undefined)
+
   const {
     register,
     handleSubmit,
@@ -240,6 +245,10 @@ export function ResidentForm() {
     name: 'condicoesCronicas'
   })
 
+  // Hooks de Beds (Acomodação)
+  const { data: rooms, isLoading: isLoadingRooms } = useRooms()
+  const { data: beds, isLoading: isLoadingBeds } = useBeds({ roomId: selectedRoomId })
+
   // Refs para inputs de badges
   const medicamentosInputRef = useRef<HTMLInputElement>(null)
   const alergiasInputRef = useRef<HTMLInputElement>(null)
@@ -248,6 +257,7 @@ export function ResidentForm() {
   const watchEndProcedenciaDiferente = watch('endProcedenciaDiferente')
   const watchCpf = watch('cpf')
   const watchCns = watch('cns')
+  const watchQuartoNumero = watch('quartoNumero')
 
   // ========== FUNÇÕES DE CONVERSÃO DE DATA ==========
   /**
@@ -313,6 +323,15 @@ export function ResidentForm() {
       setCnsValidation(getMensagemValidacaoCNS(watchCns))
     }
   }, [watchCns])
+
+  // Sincronizar selectedRoomId com o valor do form
+  React.useEffect(() => {
+    if (watchQuartoNumero) {
+      setSelectedRoomId(watchQuartoNumero)
+    } else {
+      setSelectedRoomId(undefined)
+    }
+  }, [watchQuartoNumero])
 
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
   useEffect(() => {
@@ -2140,12 +2159,72 @@ export function ResidentForm() {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Número do Quarto</Label>
-                      <Input {...register('quartoNumero')} className="mt-2" />
+                      <Label>Quarto</Label>
+                      <Controller
+                        name="quartoNumero"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            value={field.value || ''}
+                            onValueChange={(value) => {
+                              field.onChange(value)
+                              setSelectedRoomId(value)
+                              // Limpar leito quando mudar de quarto
+                              setValue('leitoNumero', '')
+                            }}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Selecione um quarto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {isLoadingRooms ? (
+                                <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                              ) : rooms && rooms.length > 0 ? (
+                                rooms.map((room) => (
+                                  <SelectItem key={room.id} value={room.id}>
+                                    {room.name} - {room.floor?.name || 'Sem andar'}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="empty" disabled>Nenhum quarto disponível</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                     </div>
                     <div>
-                      <Label>Número do Leito</Label>
-                      <Input {...register('leitoNumero')} className="mt-2" />
+                      <Label>Leito</Label>
+                      <Controller
+                        name="leitoNumero"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            value={field.value || ''}
+                            onValueChange={field.onChange}
+                            disabled={!selectedRoomId}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder={selectedRoomId ? "Selecione um leito" : "Primeiro selecione um quarto"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {isLoadingBeds ? (
+                                <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                              ) : beds && beds.length > 0 ? (
+                                beds
+                                  .filter(bed => bed.status === 'DISPONIVEL' || bed.id === field.value)
+                                  .map((bed) => (
+                                    <SelectItem key={bed.id} value={bed.id}>
+                                      {bed.code} - {bed.status === 'DISPONIVEL' ? 'Disponível' : bed.status}
+                                    </SelectItem>
+                                  ))
+                              ) : (
+                                <SelectItem value="empty" disabled>Nenhum leito disponível</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                     </div>
                   </div>
                 </CardContent>

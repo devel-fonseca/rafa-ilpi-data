@@ -1,0 +1,162 @@
+import { Bed } from '@/api/beds.api'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Bed as BedIcon, MoreVertical, Pencil, Trash2, UserPlus, UserMinus } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+
+interface BedCardProps {
+  bed: Bed
+  onEdit?: (bed: Bed) => void
+  onDelete?: (bed: Bed) => void
+  onAssign?: (bed: Bed) => void
+  onUnassign?: (bed: Bed) => void
+  onClick?: (bed: Bed) => void
+}
+
+const BED_STATUS_LABELS: Record<string, string> = {
+  DISPONIVEL: 'Disponível',
+  OCUPADO: 'Ocupado',
+  MANUTENCAO: 'Manutenção',
+  RESERVADO: 'Reservado',
+}
+
+const BED_STATUS_COLORS: Record<string, string> = {
+  DISPONIVEL: 'bg-green-100 text-green-800',
+  OCUPADO: 'bg-red-100 text-red-800',
+  MANUTENCAO: 'bg-yellow-100 text-yellow-800',
+  RESERVADO: 'bg-blue-100 text-blue-800',
+}
+
+export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }: BedCardProps) {
+  const isOccupied = bed.status === 'OCUPADO' && bed.resident
+
+  return (
+    <Card
+      className="hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={() => onClick?.(bed)}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2">
+          <BedIcon className="h-5 w-5 text-indigo-600" />
+          <CardTitle className="text-lg font-bold">Leito {bed.bedNumber}</CardTitle>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="sm">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {bed.status === 'DISPONIVEL' && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAssign?.(bed)
+                }}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Atribuir Residente
+              </DropdownMenuItem>
+            )}
+            {bed.status === 'OCUPADO' && bed.residentId && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnassign?.(bed)
+                }}
+              >
+                <UserMinus className="mr-2 h-4 w-4" />
+                Desocupar Leito
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                onEdit?.(bed)
+              }}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete?.(bed)
+              }}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Código:</span>
+            <Badge variant="outline">{bed.code}</Badge>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Status:</span>
+            <Badge className={BED_STATUS_COLORS[bed.status]}>
+              {BED_STATUS_LABELS[bed.status]}
+            </Badge>
+          </div>
+
+          {bed.room && (
+            <div className="text-xs text-muted-foreground">
+              Quarto {bed.room.roomNumber} - {bed.room.floor?.name}
+            </div>
+          )}
+
+          {/* Informações do Residente (se ocupado) */}
+          {isOccupied && bed.resident && (
+            <div className="border-t pt-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={bed.resident.fotoUrl} />
+                  <AvatarFallback>
+                    {bed.resident.fullName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{bed.resident.fullName}</p>
+                  {bed.occupiedSince && (
+                    <p className="text-xs text-muted-foreground">
+                      Desde{' '}
+                      {format(new Date(bed.occupiedSince), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {bed.observations && (
+            <div className="border-t pt-2">
+              <p className="text-xs text-muted-foreground">{bed.observations}</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

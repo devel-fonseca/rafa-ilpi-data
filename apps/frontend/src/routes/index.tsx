@@ -25,6 +25,9 @@ import PrescriptionsPage from '@/pages/prescriptions/PrescriptionsPage'
 import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
 import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
 
+// Beds Pages
+import { BedsStructurePage, BedsMapPage } from '@/pages/beds'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
 const UsersPage = () => <div>Usuários</div>
@@ -101,6 +104,14 @@ export const router = createBrowserRouter([
       {
         path: 'prescricoes/:id/edit',
         element: <PrescriptionForm />,
+      },
+      {
+        path: 'beds/structure',
+        element: <BedsStructurePage />,
+      },
+      {
+        path: 'beds/map',
+        element: <BedsMapPage />,
       },
       {
         path: 'settings',
