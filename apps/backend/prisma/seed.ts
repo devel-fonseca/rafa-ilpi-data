@@ -186,10 +186,147 @@ async function seedDemoTenant() {
     console.error('❌ Erro ao criar schema do tenant:', error);
   }
 
+  // Seed Gestão de Leitos
+  await seedBedsManagement(tenant.id);
+
   console.log('✅ Tenant de exemplo criado!');
   console.log('   Nome: Casa de Repouso São Rafael');
   console.log('   Email: admin@teste.com.br');
   console.log('   Senha: senha123');
+}
+
+async function seedBedsManagement(tenantId: string) {
+  console.log('🌱 Criando estrutura de gestão de leitos...');
+
+  // Verificar se já existe um prédio
+  const existingBuilding = await prisma.building.findFirst({
+    where: { tenantId }
+  });
+
+  if (existingBuilding) {
+    console.log('✓ Estrutura de leitos já existe');
+    return;
+  }
+
+  // Criar Prédio Principal
+  const building = await prisma.building.create({
+    data: {
+      tenantId,
+      name: 'Prédio Principal',
+      description: 'Prédio principal da Casa de Repouso São Rafael',
+      isActive: true,
+    }
+  });
+  console.log(`✓ Prédio criado: ${building.name}`);
+
+  // Criar Andares
+  const floor1 = await prisma.floor.create({
+    data: {
+      tenantId,
+      buildingId: building.id,
+      name: 'Térreo',
+      description: 'Andar Térreo',
+      orderIndex: 1,
+      isActive: true,
+    }
+  });
+  console.log(`✓ Andar Térreo criado`);
+
+  const floor2 = await prisma.floor.create({
+    data: {
+      tenantId,
+      buildingId: building.id,
+      name: '1º Andar',
+      description: 'Primeiro Andar',
+      orderIndex: 2,
+      isActive: true,
+    }
+  });
+  console.log(`✓ Andar 1º Andar criado`);
+
+  // Criar Quartos no Andar 1
+  const roomData1 = [
+    { name: '101', roomType: 'Individual', hasBathroom: true, beds: 1 },
+    { name: '102', roomType: 'Duplo', hasBathroom: false, beds: 2 },
+    { name: '103', roomType: 'Triplo', hasBathroom: true, beds: 3 },
+    { name: '104', roomType: 'Coletivo', hasBathroom: true, beds: 4 },
+  ];
+
+  for (const roomInfo of roomData1) {
+    const room = await prisma.room.create({
+      data: {
+        tenantId,
+        floorId: floor1.id,
+        name: roomInfo.name,
+        capacity: roomInfo.beds,
+        roomType: roomInfo.roomType,
+        hasBathroom: roomInfo.hasBathroom,
+        isActive: true,
+      }
+    });
+    console.log(`✓ Quarto ${room.name} (${roomInfo.roomType}) criado`);
+
+    // Criar Leitos para o quarto
+    for (let i = 1; i <= roomInfo.beds; i++) {
+      const bed = await prisma.bed.create({
+        data: {
+          tenantId,
+          roomId: room.id,
+          code: `${room.name}.${i}`,
+          status: i === 1 ? 'Ocupado' : 'Disponível', // Primeira cama ocupada
+          isActive: true,
+        }
+      });
+      console.log(`  ✓ Leito ${bed.code} criado (${bed.status})`);
+    }
+  }
+
+  // Criar Quartos no Andar 2
+  const roomData2 = [
+    { name: '201', roomType: 'Individual', hasBathroom: true, beds: 1 },
+    { name: '202', roomType: 'Individual', hasBathroom: false, beds: 1 },
+    { name: '203', roomType: 'Duplo', hasBathroom: true, beds: 2 },
+    { name: '204', roomType: 'Duplo', hasBathroom: true, beds: 2 },
+    { name: '205', roomType: 'Triplo', hasBathroom: true, beds: 3 },
+  ];
+
+  for (const roomInfo of roomData2) {
+    const room = await prisma.room.create({
+      data: {
+        tenantId,
+        floorId: floor2.id,
+        name: roomInfo.name,
+        capacity: roomInfo.beds,
+        roomType: roomInfo.roomType,
+        hasBathroom: roomInfo.hasBathroom,
+        isActive: true,
+      }
+    });
+    console.log(`✓ Quarto ${room.name} (${roomInfo.roomType}) criado`);
+
+    // Criar Leitos para o quarto
+    for (let i = 1; i <= roomInfo.beds; i++) {
+      const statuses = ['Disponível', 'Ocupado', 'Manutenção'];
+      const statusIndex = (i - 1) % statuses.length;
+
+      const bed = await prisma.bed.create({
+        data: {
+          tenantId,
+          roomId: room.id,
+          code: `${room.name}.${i}`,
+          status: statuses[statusIndex],
+          isActive: true,
+        }
+      });
+      console.log(`  ✓ Leito ${bed.code} criado (${bed.status})`);
+    }
+  }
+
+  console.log('✅ Estrutura de gestão de leitos criada!');
+  console.log(`   Prédios: 1`);
+  console.log(`   Andares: 2`);
+  console.log(`   Quartos: 9`);
+  console.log(`   Leitos: 23`);
 }
 
 main()
