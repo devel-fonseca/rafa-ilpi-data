@@ -213,6 +213,7 @@ async function seedBedsManagement(tenantId: string) {
     data: {
       tenantId,
       name: 'Prédio Principal',
+      code: 'PRED-001',
       description: 'Prédio principal da Casa de Repouso São Rafael',
       isActive: true,
     }
@@ -225,6 +226,7 @@ async function seedBedsManagement(tenantId: string) {
       tenantId,
       buildingId: building.id,
       name: 'Térreo',
+      code: 'PISO-0',
       description: 'Andar Térreo',
       orderIndex: 1,
       isActive: true,
@@ -237,6 +239,7 @@ async function seedBedsManagement(tenantId: string) {
       tenantId,
       buildingId: building.id,
       name: '1º Andar',
+      code: 'PISO-1',
       description: 'Primeiro Andar',
       orderIndex: 2,
       isActive: true,
@@ -246,10 +249,10 @@ async function seedBedsManagement(tenantId: string) {
 
   // Criar Quartos no Andar 1
   const roomData1 = [
-    { name: '101', roomType: 'Individual', hasBathroom: true, beds: 1 },
-    { name: '102', roomType: 'Duplo', hasBathroom: false, beds: 2 },
-    { name: '103', roomType: 'Triplo', hasBathroom: true, beds: 3 },
-    { name: '104', roomType: 'Coletivo', hasBathroom: true, beds: 4 },
+    { name: '101', code: 'Q-101', roomType: 'Individual', hasBathroom: true, beds: 1 },
+    { name: '102', code: 'Q-102', roomType: 'Duplo', hasBathroom: false, beds: 2 },
+    { name: '103', code: 'Q-103', roomType: 'Triplo', hasBathroom: true, beds: 3 },
+    { name: '104', code: 'Q-104', roomType: 'Coletivo', hasBathroom: true, beds: 4 },
   ];
 
   for (const roomInfo of roomData1) {
@@ -258,6 +261,8 @@ async function seedBedsManagement(tenantId: string) {
         tenantId,
         floorId: floor1.id,
         name: roomInfo.name,
+        code: roomInfo.code,
+        roomNumber: roomInfo.name,
         capacity: roomInfo.beds,
         roomType: roomInfo.roomType,
         hasBathroom: roomInfo.hasBathroom,
@@ -273,7 +278,7 @@ async function seedBedsManagement(tenantId: string) {
           tenantId,
           roomId: room.id,
           code: `${room.name}.${i}`,
-          status: i === 1 ? 'Ocupado' : 'Disponível', // Primeira cama ocupada
+          status: 'Disponível', // Todos disponíveis por enquanto
           isActive: true,
         }
       });
@@ -283,11 +288,11 @@ async function seedBedsManagement(tenantId: string) {
 
   // Criar Quartos no Andar 2
   const roomData2 = [
-    { name: '201', roomType: 'Individual', hasBathroom: true, beds: 1 },
-    { name: '202', roomType: 'Individual', hasBathroom: false, beds: 1 },
-    { name: '203', roomType: 'Duplo', hasBathroom: true, beds: 2 },
-    { name: '204', roomType: 'Duplo', hasBathroom: true, beds: 2 },
-    { name: '205', roomType: 'Triplo', hasBathroom: true, beds: 3 },
+    { name: '201', code: 'Q-201', roomType: 'Individual', hasBathroom: true, beds: 1 },
+    { name: '202', code: 'Q-202', roomType: 'Individual', hasBathroom: false, beds: 1 },
+    { name: '203', code: 'Q-203', roomType: 'Duplo', hasBathroom: true, beds: 2 },
+    { name: '204', code: 'Q-204', roomType: 'Duplo', hasBathroom: true, beds: 2 },
+    { name: '205', code: 'Q-205', roomType: 'Triplo', hasBathroom: true, beds: 3 },
   ];
 
   for (const roomInfo of roomData2) {
@@ -296,6 +301,8 @@ async function seedBedsManagement(tenantId: string) {
         tenantId,
         floorId: floor2.id,
         name: roomInfo.name,
+        code: roomInfo.code,
+        roomNumber: roomInfo.name,
         capacity: roomInfo.beds,
         roomType: roomInfo.roomType,
         hasBathroom: roomInfo.hasBathroom,
@@ -306,15 +313,12 @@ async function seedBedsManagement(tenantId: string) {
 
     // Criar Leitos para o quarto
     for (let i = 1; i <= roomInfo.beds; i++) {
-      const statuses = ['Disponível', 'Ocupado', 'Manutenção'];
-      const statusIndex = (i - 1) % statuses.length;
-
       const bed = await prisma.bed.create({
         data: {
           tenantId,
           roomId: room.id,
           code: `${room.name}.${i}`,
-          status: statuses[statusIndex],
+          status: 'Disponível', // Todos disponíveis por enquanto
           isActive: true,
         }
       });
@@ -322,11 +326,104 @@ async function seedBedsManagement(tenantId: string) {
     }
   }
 
+  // ==================== CRIAR RESIDENTES ====================
+  console.log('🌱 Criando residentes...');
+
+  const residentes = [
+    {
+      fullName: 'Enzo Carlos Eduardo da Cruz',
+      cpf: '77564832860',
+      rg: '281560985',
+      birthDate: new Date('1953-01-20'),
+      gender: 'MASCULINO' as const,
+      bloodType: 'B_NEGATIVO' as const,
+      currentPhone: '11993706080',
+      height: '1.87',
+      weight: '110',
+      emergencyContacts: [
+        { name: 'Luzia Mirella Alana Bernardes', phone: '11986682521', relationship: 'Filha' },
+        { name: 'Benedita Teresinha Heloisa Assunção', phone: '11983919157', relationship: 'Sobrina' }
+      ]
+    },
+    {
+      fullName: 'Pietro Guilherme Márcio da Mota',
+      cpf: '31912830809',
+      rg: '254920391',
+      birthDate: new Date('1953-05-11'),
+      gender: 'MASCULINO' as const,
+      bloodType: 'O_NEGATIVO' as const,
+      currentPhone: '15986506547',
+      height: '1.78',
+      weight: '69',
+      emergencyContacts: [
+        { name: 'Juan Alexandre Mateus Figueiredo', phone: '19985928215', relationship: 'Filho' },
+        { name: 'Severino Bento da Cunha', phone: '16988961403', relationship: 'Amigo' }
+      ]
+    },
+    {
+      fullName: 'Benedita Teresinha Heloisa Assunção',
+      cpf: '23230328876',
+      rg: '157852957',
+      birthDate: new Date('1953-04-06'),
+      gender: 'FEMININO' as const,
+      bloodType: 'B_NEGATIVO' as const,
+      currentPhone: '11983919157',
+      height: '1.83',
+      weight: '79',
+      emergencyContacts: [
+        { name: 'Enzo Carlos Eduardo da Cruz', phone: '11993706080', relationship: 'Tio' },
+        { name: 'Luzia Mirella Alana Bernardes', phone: '11986682521', relationship: 'Amiga' }
+      ]
+    }
+  ];
+
+  // Buscar os 3 primeiros beds para ocupação
+  const allBeds = await prisma.bed.findMany({
+    where: { tenantId, deletedAt: null },
+    take: 3,
+  });
+
+  // Criar residentes e associar aos beds
+  for (let i = 0; i < residentes.length; i++) {
+    const residentData = residentes[i];
+    const bed = allBeds[i];
+
+    const resident = await prisma.resident.create({
+      data: {
+        tenantId,
+        fullName: residentData.fullName,
+        cpf: residentData.cpf,
+        rg: residentData.rg,
+        birthDate: residentData.birthDate,
+        gender: residentData.gender,
+        bloodType: residentData.bloodType,
+        currentPhone: residentData.currentPhone,
+        height: residentData.height,
+        weight: residentData.weight,
+        status: 'Ativo',
+        bedId: bed?.id,
+        emergencyContacts: residentData.emergencyContacts as any,
+        admissionDate: new Date(),
+      }
+    });
+
+    // Marcar o bed como ocupado
+    if (bed) {
+      await prisma.bed.update({
+        where: { id: bed.id },
+        data: { status: 'Ocupado' }
+      });
+    }
+
+    console.log(`✓ Residente ${resident.fullName} criado (Leito: ${bed?.code || 'N/A'})`);
+  }
+
   console.log('✅ Estrutura de gestão de leitos criada!');
   console.log(`   Prédios: 1`);
   console.log(`   Andares: 2`);
   console.log(`   Quartos: 9`);
-  console.log(`   Leitos: 23`);
+  console.log(`   Leitos: 19`);
+  console.log(`   Residentes: 3 (ocupando 3 leitos)`);
 }
 
 main()

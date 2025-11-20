@@ -16,13 +16,20 @@ export class RoomsService {
       throw new NotFoundException(`Andar com ID ${createRoomDto.floorId} não encontrado`)
     }
 
-    // Criar com capacity padrão se não informado
-    const capacity = createRoomDto.capacity ?? 1
-
     return this.prisma.room.create({
       data: {
-        ...createRoomDto,
-        capacity,
+        name: createRoomDto.name,
+        code: createRoomDto.code,
+        roomNumber: createRoomDto.roomNumber,
+        capacity: createRoomDto.capacity,
+        roomType: createRoomDto.roomType,
+        hasPrivateBathroom: createRoomDto.hasPrivateBathroom,
+        accessible: createRoomDto.accessible,
+        observations: createRoomDto.observations,
+        genderRestriction: createRoomDto.genderRestriction,
+        hasBathroom: createRoomDto.hasBathroom,
+        notes: createRoomDto.notes,
+        floorId: createRoomDto.floorId,
         tenantId,
       },
     })
@@ -57,7 +64,7 @@ export class RoomsService {
       this.prisma.room.count({ where }),
     ])
 
-    // Enriquecer com contagem de leitos ocupados
+    // Enriquecer com contagem de leitos ocupados e disponíveis
     const enriched = await Promise.all(
       data.map(async (room: any) => {
         const occupiedBeds = await this.prisma.bed.count({
@@ -69,10 +76,13 @@ export class RoomsService {
           },
         })
 
+        const availableBeds = room._count.beds - occupiedBeds
+
         return {
           ...room,
-          bedsCount: room._count.beds,
-          occupiedBedsCount: occupiedBeds,
+          totalBeds: room._count.beds,
+          occupiedBeds,
+          availableBeds,
           _count: undefined,
         }
       })
@@ -117,9 +127,23 @@ export class RoomsService {
       }
     }
 
+    // Mapear campos do DTO para o formato esperado pelo Prisma
+    const dataToUpdate: any = {}
+    if (updateRoomDto.name !== undefined) dataToUpdate.name = updateRoomDto.name
+    if (updateRoomDto.code !== undefined) dataToUpdate.code = updateRoomDto.code
+    if (updateRoomDto.roomNumber !== undefined) dataToUpdate.roomNumber = updateRoomDto.roomNumber
+    if (updateRoomDto.capacity !== undefined) dataToUpdate.capacity = updateRoomDto.capacity
+    if (updateRoomDto.roomType !== undefined) dataToUpdate.roomType = updateRoomDto.roomType
+    if (updateRoomDto.hasPrivateBathroom !== undefined) dataToUpdate.hasPrivateBathroom = updateRoomDto.hasPrivateBathroom
+    if (updateRoomDto.accessible !== undefined) dataToUpdate.accessible = updateRoomDto.accessible
+    if (updateRoomDto.observations !== undefined) dataToUpdate.observations = updateRoomDto.observations
+    if (updateRoomDto.genderRestriction !== undefined) dataToUpdate.genderRestriction = updateRoomDto.genderRestriction
+    if (updateRoomDto.hasBathroom !== undefined) dataToUpdate.hasBathroom = updateRoomDto.hasBathroom
+    if (updateRoomDto.notes !== undefined) dataToUpdate.notes = updateRoomDto.notes
+
     return this.prisma.room.update({
       where: { id },
-      data: updateRoomDto,
+      data: dataToUpdate,
     })
   }
 

@@ -8,15 +8,20 @@ import {
   Delete,
   Query,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common'
 import { BedsService } from './beds.service'
 import { CreateBedDto, UpdateBedDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { AuditInterceptor } from '../audit/audit.interceptor'
-import { AuditAction } from '../audit/audit.decorator'
+import { AuditAction, AuditEntity } from '../audit/audit.decorator'
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RolesGuard } from '../auth/guards/roles.guard'
 
 @Controller('beds')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@AuditEntity('Bed')
 @UseInterceptors(AuditInterceptor)
 export class BedsController {
   constructor(private readonly bedsService: BedsService) {}

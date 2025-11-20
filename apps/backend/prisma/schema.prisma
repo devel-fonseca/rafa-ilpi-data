@@ -783,6 +783,7 @@ model Building {
   id          String    @id @default(uuid()) @db.Uuid
   tenantId    String    @db.Uuid
   name        String    // "Casa Principal", "Bloco A"
+  code        String    // "PRED-001", "BLOCO-A"
   description String?   @db.Text
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -802,6 +803,7 @@ model Floor {
   tenantId    String    @db.Uuid
   buildingId  String    @db.Uuid
   name        String    // "Térreo", "1º Andar", "Ala Feminina"
+  code        String    // "PISO-0", "PISO-1"
   orderIndex  Int       @default(0) // Ordenação visual (crescente)
   description String?   @db.Text
   isActive    Boolean   @default(true)
@@ -821,19 +823,24 @@ model Floor {
 
 // NÍVEL 3: QUARTOS / ENFERMARIAS / SUÍTES
 model Room {
-  id                String    @id @default(uuid()) @db.Uuid
-  tenantId          String    @db.Uuid
-  floorId           String    @db.Uuid
-  name              String    // "101", "Quarto 3"
-  capacity          Int       @default(1) // Número total de leitos (calculado automaticamente)
-  roomType          String?   // "Coletivo", "Suíte", "Enfermaria"
-  genderRestriction String?   // null, "M", "F"
-  hasBathroom       Boolean   @default(false) // ← NOVO CAMPO: Se o quarto tem banheiro
-  notes             String?   @db.Text
-  isActive          Boolean   @default(true)
-  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime  @updatedAt @db.Timestamptz(3)
-  deletedAt         DateTime? @db.Timestamptz(3)
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String    @db.Uuid
+  floorId               String    @db.Uuid
+  name                  String    // "101", "Quarto 3"
+  code                  String    // "Q-101", "Q-102"
+  roomNumber            String    // "101", "102"
+  capacity              Int       @default(1) // Número total de leitos (calculado automaticamente)
+  roomType              String?   // "Coletivo", "Suíte", "Enfermaria", "Individual", "Duplo", "Triplo"
+  genderRestriction     String?   // null, "M", "F"
+  hasBathroom           Boolean   @default(false) // Se o quarto tem banheiro
+  hasPrivateBathroom    Boolean   @default(false) // Se tem banheiro privativo
+  accessible            Boolean   @default(false) // Se é acessível para PCD
+  observations          String?   @db.Text // Observações adicionais
+  notes                 String?   @db.Text
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt             DateTime? @db.Timestamptz(3)
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)

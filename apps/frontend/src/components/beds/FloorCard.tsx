@@ -19,8 +19,8 @@ interface FloorCardProps {
 
 export function FloorCard({ floor, onEdit, onDelete, onClick }: FloorCardProps) {
   const occupancyRate =
-    floor.totalBeds && floor.totalBeds > 0
-      ? Math.round(((floor.occupiedBeds || 0) / floor.totalBeds) * 100)
+    floor.bedsCount && floor.bedsCount > 0
+      ? Math.round(((floor.occupiedBeds || 0) / floor.bedsCount) * 100)
       : 0
 
   const getOccupancyColor = (rate: number) => {
@@ -94,13 +94,13 @@ export function FloorCard({ floor, onEdit, onDelete, onClick }: FloorCardProps) 
           <div className="grid grid-cols-2 gap-2 text-center">
             <div className="bg-slate-100 rounded-lg p-2">
               <div className="text-2xl font-bold text-slate-700">
-                {floor.totalRooms || 0}
+                {floor.roomsCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">Quartos</div>
             </div>
             <div className="bg-slate-100 rounded-lg p-2">
               <div className="text-2xl font-bold text-slate-700">
-                {floor.totalBeds || 0}
+                {floor.bedsCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">Leitos</div>
             </div>

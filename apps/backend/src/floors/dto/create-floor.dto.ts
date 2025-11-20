@@ -4,8 +4,11 @@ export class CreateFloorDto {
   @IsString()
   name: string
 
+  @IsString()
+  code: string
+
   @IsInt()
-  orderIndex: number
+  floorNumber: number
 
   @IsUUID()
   buildingId: string

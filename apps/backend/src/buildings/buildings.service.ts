@@ -39,7 +39,10 @@ export class BuildingsService {
         const rooms = await this.prisma.room.count({
           where: {
             tenantId,
-            floor: { buildingId: building.id, deletedAt: null },
+            floor: {
+              buildingId: building.id,
+              deletedAt: null
+            },
             deletedAt: null,
           },
         })
@@ -48,7 +51,25 @@ export class BuildingsService {
           where: {
             tenantId,
             room: {
-              floor: { buildingId: building.id, deletedAt: null },
+              floor: {
+                buildingId: building.id,
+                deletedAt: null
+              },
+              deletedAt: null,
+            },
+            deletedAt: null,
+          },
+        })
+
+        const occupiedBeds = await this.prisma.bed.count({
+          where: {
+            tenantId,
+            status: 'Ocupado',
+            room: {
+              floor: {
+                buildingId: building.id,
+                deletedAt: null
+              },
               deletedAt: null,
             },
             deletedAt: null,
@@ -57,9 +78,11 @@ export class BuildingsService {
 
         return {
           ...building,
-          floorsCount: building._count.floors,
-          roomsCount: rooms,
-          bedsCount: beds,
+          totalFloors: building._count.floors,
+          totalRooms: rooms,
+          totalBeds: beds,
+          occupiedBeds,
+          availableBeds: beds - occupiedBeds,
           _count: undefined,
         }
       })

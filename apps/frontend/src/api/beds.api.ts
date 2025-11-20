@@ -24,8 +24,8 @@ export interface Floor {
   code: string
   floorNumber: number
   description?: string
-  totalRooms?: number
-  totalBeds?: number
+  roomsCount?: number
+  bedsCount?: number
   occupiedBeds?: number
   availableBeds?: number
   createdAt: string
@@ -175,7 +175,7 @@ class BedsAPI {
   // BUILDINGS
   async getAllBuildings(): Promise<Building[]> {
     const response = await api.get('/buildings')
-    return response.data
+    return response.data.data
   }
 
   async getBuildingById(id: string): Promise<Building> {
@@ -201,7 +201,7 @@ class BedsAPI {
   async getAllFloors(buildingId?: string): Promise<Floor[]> {
     const params = buildingId ? `?buildingId=${buildingId}` : ''
     const response = await api.get(`/floors${params}`)
-    return response.data
+    return response.data.data
   }
 
   async getFloorById(id: string): Promise<Floor> {
@@ -227,7 +227,7 @@ class BedsAPI {
   async getAllRooms(floorId?: string): Promise<Room[]> {
     const params = floorId ? `?floorId=${floorId}` : ''
     const response = await api.get(`/rooms${params}`)
-    return response.data
+    return response.data.data
   }
 
   async getRoomById(id: string): Promise<Room> {
@@ -253,7 +253,7 @@ class BedsAPI {
   async getAllBeds(roomId?: string): Promise<Bed[]> {
     const params = roomId ? `?roomId=${roomId}` : ''
     const response = await api.get(`/beds${params}`)
-    return response.data
+    return response.data.data
   }
 
   async getBedById(id: string): Promise<Bed> {

@@ -23,6 +23,10 @@ interface BedCardProps {
 }
 
 const BED_STATUS_LABELS: Record<string, string> = {
+  'Disponível': 'Disponível',
+  'Ocupado': 'Ocupado',
+  'Manutenção': 'Manutenção',
+  'Reservado': 'Reservado',
   DISPONIVEL: 'Disponível',
   OCUPADO: 'Ocupado',
   MANUTENCAO: 'Manutenção',
@@ -30,6 +34,10 @@ const BED_STATUS_LABELS: Record<string, string> = {
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
+  'Disponível': 'bg-green-100 text-green-800',
+  'Ocupado': 'bg-red-100 text-red-800',
+  'Manutenção': 'bg-yellow-100 text-yellow-800',
+  'Reservado': 'bg-blue-100 text-blue-800',
   DISPONIVEL: 'bg-green-100 text-green-800',
   OCUPADO: 'bg-red-100 text-red-800',
   MANUTENCAO: 'bg-yellow-100 text-yellow-800',
@@ -37,7 +45,7 @@ const BED_STATUS_COLORS: Record<string, string> = {
 }
 
 export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }: BedCardProps) {
-  const isOccupied = bed.status === 'OCUPADO' && bed.resident
+  const isOccupied = (bed.status === 'Ocupado' || bed.status === 'OCUPADO') && bed.resident
 
   return (
     <Card
@@ -56,7 +64,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {bed.status === 'DISPONIVEL' && (
+            {(bed.status === 'Disponível' || bed.status === 'DISPONIVEL') && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -67,7 +75,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
                 Atribuir Residente
               </DropdownMenuItem>
             )}
-            {bed.status === 'OCUPADO' && bed.residentId && (
+            {(bed.status === 'Ocupado' || bed.status === 'OCUPADO') && bed.residentId && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()

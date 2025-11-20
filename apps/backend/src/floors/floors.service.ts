@@ -20,7 +20,12 @@ export class FloorsService {
 
     return this.prisma.floor.create({
       data: {
-        ...createFloorDto,
+        name: createFloorDto.name,
+        code: createFloorDto.code,
+        orderIndex: createFloorDto.floorNumber,
+        buildingId: createFloorDto.buildingId,
+        description: createFloorDto.description,
+        isActive: createFloorDto.isActive,
         tenantId,
       },
     })
@@ -44,8 +49,9 @@ export class FloorsService {
           building: {
             select: { id: true, name: true },
           },
-          _count: {
-            select: { rooms: true },
+          rooms: {
+            where: { deletedAt: null },
+            select: { id: true },
           },
         },
         skip,
@@ -61,16 +67,34 @@ export class FloorsService {
         const beds = await this.prisma.bed.count({
           where: {
             tenantId,
-            room: { floorId: floor.id, deletedAt: null },
+            room: {
+              floorId: floor.id,
+              deletedAt: null
+            },
+            deletedAt: null,
+          },
+        })
+
+        const occupiedBeds = await this.prisma.bed.count({
+          where: {
+            tenantId,
+            status: 'Ocupado',
+            room: {
+              floorId: floor.id,
+              deletedAt: null
+            },
             deletedAt: null,
           },
         })
 
         return {
           ...floor,
-          roomsCount: floor._count.rooms,
+          floorNumber: floor.orderIndex,
+          roomsCount: floor.rooms.length,
           bedsCount: beds,
-          _count: undefined,
+          occupiedBeds,
+          availableBeds: beds - occupiedBeds,
+          rooms: undefined,
         }
       })
     )
@@ -116,9 +140,16 @@ export class FloorsService {
       }
     }
 
+    // Mapear floorNumber para orderIndex se fornecido
+    const dataToUpdate: any = { ...updateFloorDto }
+    if (updateFloorDto.floorNumber !== undefined) {
+      dataToUpdate.orderIndex = updateFloorDto.floorNumber
+      delete dataToUpdate.floorNumber
+    }
+
     return this.prisma.floor.update({
       where: { id },
-      data: updateFloorDto,
+      data: dataToUpdate,
     })
   }
 

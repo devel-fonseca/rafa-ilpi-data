@@ -4,16 +4,32 @@ export class CreateRoomDto {
   @IsString()
   name: string
 
+  @IsString()
+  code: string
+
+  @IsString()
+  roomNumber: string
+
   @IsUUID()
   floorId: string
 
-  @IsOptional()
   @IsInt()
-  capacity?: number
+  capacity: number
+
+  @IsString()
+  roomType: string
+
+  @IsOptional()
+  @IsBoolean()
+  hasPrivateBathroom?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  accessible?: boolean
 
   @IsOptional()
   @IsString()
-  roomType?: string
+  observations?: string
 
   @IsOptional()
   @IsString()

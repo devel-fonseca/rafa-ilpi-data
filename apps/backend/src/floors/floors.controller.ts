@@ -8,15 +8,20 @@ import {
   Delete,
   Query,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common'
 import { FloorsService } from './floors.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { AuditInterceptor } from '../audit/audit.interceptor'
-import { AuditAction } from '../audit/audit.decorator'
+import { AuditAction, AuditEntity } from '../audit/audit.decorator'
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { RolesGuard } from '../auth/guards/roles.guard'
 
 @Controller('floors')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@AuditEntity('Floor')
 @UseInterceptors(AuditInterceptor)
 export class FloorsController {
   constructor(private readonly floorsService: FloorsService) {}

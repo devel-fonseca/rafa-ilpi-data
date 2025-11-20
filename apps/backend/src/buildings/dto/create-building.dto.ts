@@ -4,6 +4,9 @@ export class CreateBuildingDto {
   @IsString()
   name: string
 
+  @IsString()
+  code: string
+
   @IsOptional()
   @IsString()
   description?: string
