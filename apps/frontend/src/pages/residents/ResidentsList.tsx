@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
   Table,
   TableBody,
@@ -303,19 +304,29 @@ export default function ResidentsList() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12"></TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Idade</TableHead>
                     <TableHead>Gênero</TableHead>
                     <TableHead>Admissão</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Responsável</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {residents.map((resident: Resident) => (
                     <TableRow key={resident.id}>
+                      <TableCell className="w-12">
+                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                          <PhotoViewer
+                            photoUrl={resident.fotoUrl}
+                            altText={resident.fullName}
+                            size="small"
+                            className="!w-10 !h-10 rounded-full"
+                          />
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{resident.fullName}</TableCell>
                       <TableCell>{resident.cpf || '-'}</TableCell>
                       <TableCell>{calculateAge(resident.birthDate)} anos</TableCell>
@@ -338,7 +349,6 @@ export default function ResidentsList() {
                           {resident.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{resident.legalGuardianName || '-'}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

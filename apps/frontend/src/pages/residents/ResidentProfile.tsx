@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useResident, useDeleteResident } from '@/hooks/useResidents'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { api } from '@/services/api'
-import { getSignedFileUrl } from '@/services/upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,28 +46,9 @@ export default function ResidentProfile() {
   const { toast } = useToast()
   const [deleteModal, setDeleteModal] = useState(false)
   const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const healthConditionsCardRef = useRef<HTMLDivElement>(null)
 
   const { data: resident, isLoading, error } = useResident(id || '')
-
-  // Carregar URL assinada da foto quando o residente for carregado
-  useEffect(() => {
-    const loadPhotoUrl = async () => {
-      if (resident?.fotoUrl) {
-        try {
-          const signedUrl = await getSignedFileUrl(resident.fotoUrl)
-          setPhotoUrl(signedUrl)
-        } catch (error) {
-          console.error('Erro ao carregar foto do residente:', error)
-          setPhotoUrl(null)
-        }
-      } else {
-        setPhotoUrl(null)
-      }
-    }
-    loadPhotoUrl()
-  }, [resident?.fotoUrl])
   const deleteMutation = useDeleteResident()
 
   // Funções de navegação entre datas
@@ -400,17 +381,11 @@ export default function ResidentProfile() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
-                      {photoUrl ? (
-                        <img
-                          src={photoUrl}
-                          alt={resident.fullName}
-                          className="w-20 h-24 object-cover rounded-lg shadow-md border border-gray-200"
-                        />
-                      ) : (
-                        <div className="w-20 h-24 bg-gray-100 rounded-lg shadow-md border border-gray-200 flex items-center justify-center">
-                          <User className="h-10 w-10 text-gray-400" />
-                        </div>
-                      )}
+                      <PhotoViewer
+                        photoUrl={resident.fotoUrl}
+                        altText={resident.fullName}
+                        size="small"
+                      />
                       <div className="flex-1">
                         <div className="text-sm text-gray-500">Nome Completo</div>
                         <div className="font-semibold text-lg text-gray-900">{resident.fullName}</div>

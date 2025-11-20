@@ -21,6 +21,7 @@ interface MultiFileUploadProps {
   onFilesChange: (files: File[]) => void
   existingFiles?: ExistingFile[]
   onRemoveExisting?: (url: string) => void
+  onViewFile?: (url: string) => void
   accept?: string
   maxSize?: number // em MB
   maxFiles?: number
@@ -33,6 +34,7 @@ export function MultiFileUpload({
   onFilesChange,
   existingFiles = [],
   onRemoveExisting,
+  onViewFile,
   accept = 'image/*,application/pdf',
   maxSize = 10,
   maxFiles,
@@ -215,7 +217,11 @@ export function MultiFileUpload({
           {existingFiles.map((file, index) => (
             <div
               key={`existing-${file.id || file.url}`}
-              className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg"
+              className={cn(
+                "flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg transition-all",
+                onViewFile && "cursor-pointer hover:border-primary hover:bg-primary/5"
+              )}
+              onClick={() => onViewFile?.(file.url)}
             >
               {/* Miniatura */}
               <div className="flex-shrink-0">

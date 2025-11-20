@@ -369,7 +369,9 @@ export class ResidentsService {
         healthFields: {
           healthStatus: updateResidentDto.healthStatus,
           specialNeeds: updateResidentDto.specialNeeds,
+          medicationsOnAdmission: updateResidentDto.medicationsOnAdmission,
           allergies: updateResidentDto.allergies,
+          chronicConditions: updateResidentDto.chronicConditions,
         },
       });
 
@@ -504,6 +506,16 @@ export class ResidentsService {
           return plan;
         })
       );
+    }
+
+    // Processar fotoUrl se existir
+    if (resident.fotoUrl) {
+      try {
+        resident.fotoUrl = await this.filesService.getFileUrl(resident.fotoUrl);
+      } catch (error) {
+        this.logger.warn('Erro ao gerar URL assinada para foto do residente:', error);
+        // Mantém URL original se falhar
+      }
     }
 
     return resident;

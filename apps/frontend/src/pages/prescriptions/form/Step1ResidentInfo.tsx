@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { User, Calendar, MapPin, AlertCircle, Loader2, Search, X } from 'lucide-react'
@@ -7,11 +7,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { api } from '@/services/api'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculateAge } from '@/lib/utils'
-import { getSignedFileUrl } from '@/services/upload'
 
 interface Resident {
   id: string
@@ -31,7 +31,6 @@ export function Step1ResidentInfo() {
   const residentId = watch('residentId')
   const [searchQuery, setSearchQuery] = useState('')
   const [showSearch, setShowSearch] = useState(!residentId)
-  const [photoUrls, setPhotoUrls] = useState<Map<string, string>>(new Map())
 
   // Buscar lista de residentes para pesquisa
   const { data: residents = [], isLoading: isLoadingList } = useQuery({
@@ -65,63 +64,7 @@ export function Step1ResidentInfo() {
     )
   })
 
-  // Buscar URLs assinadas para as fotos dos residentes filtrados
-  useEffect(() => {
-    const fetchPhotoUrls = async () => {
-      const residentsWithPhotos = filteredResidents.filter((r) => r.fotoUrl)
-      if (residentsWithPhotos.length === 0) return
 
-      // Fazer todas as requisições em paralelo
-      const photoPromises = residentsWithPhotos.map(async (resident) => {
-        try {
-          const signedUrl = await getSignedFileUrl(resident.fotoUrl!)
-          return { id: resident.id, url: signedUrl }
-        } catch (error) {
-          console.error(`Erro ao obter URL da foto de ${resident.fullName}:`, error)
-          return null
-        }
-      })
-
-      const results = await Promise.all(photoPromises)
-
-      // Atualizar URLs carregadas com sucesso
-      setPhotoUrls((prevUrls) => {
-        const newUrls = new Map(prevUrls)
-        results.forEach((result) => {
-          if (result) {
-            newUrls.set(result.id, result.url)
-          }
-        })
-        return newUrls
-      })
-    }
-
-    if (filteredResidents.length > 0) {
-      fetchPhotoUrls()
-    }
-  }, [filteredResidents])
-
-  // Buscar URL assinada para a foto do residente selecionado
-  useEffect(() => {
-    const fetchSelectedResidentPhoto = async () => {
-      if (!resident?.fotoUrl) return
-
-      try {
-        const signedUrl = await getSignedFileUrl(resident.fotoUrl)
-        setPhotoUrls((prevUrls) => {
-          const newUrls = new Map(prevUrls)
-          newUrls.set(resident.id, signedUrl)
-          return newUrls
-        })
-      } catch (error) {
-        console.error(`Erro ao obter URL da foto de ${resident.fullName}:`, error)
-      }
-    }
-
-    if (resident) {
-      fetchSelectedResidentPhoto()
-    }
-  }, [resident])
 
   const handleSelectResident = (residentId: string) => {
     setValue('residentId', residentId)
@@ -184,8 +127,6 @@ export function Step1ResidentInfo() {
         ) : (
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {filteredResidents.map((r) => {
-              const photoUrl = photoUrls.get(r.id)
-
               return (
                 <Card
                   key={r.id}
@@ -194,23 +135,14 @@ export function Step1ResidentInfo() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
-                      {photoUrl ? (
-                        <img
-                          src={photoUrl}
-                          alt={r.fullName}
-                          className="h-12 w-12 rounded-full object-cover border-2 border-gray-200"
-                          onError={(e) => {
-                            console.error('Erro ao carregar imagem:', photoUrl)
-                            e.currentTarget.style.display = 'none'
-                          }}
+                      <div className="w-12 h-12 rounded-full overflow-hidden">
+                        <PhotoViewer
+                          photoUrl={r.fotoUrl}
+                          altText={r.fullName}
+                          size="small"
+                          className="!w-12 !h-12 rounded-full"
                         />
-                      ) : r.fotoUrl ? (
-                        <div className="h-12 w-12 rounded-full bg-gray-200 border-2 border-gray-200 flex items-center justify-center">
-                          <span className="text-xs font-bold text-gray-500">
-                            {r.fullName.substring(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                      ) : null}
+                      </div>
                       <div className="flex-1">
                       <p className="font-semibold text-gray-900">{r.fullName}</p>
                       <div className="flex items-center gap-4 mt-1">
@@ -269,7 +201,6 @@ export function Step1ResidentInfo() {
   }
 
   const age = calculateAge(resident.birthDate)
-  const selectedResidentPhotoUrl = photoUrls.get(resident.id)
 
   return (
     <div className="space-y-6">
@@ -294,27 +225,14 @@ export function Step1ResidentInfo() {
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
             {/* Foto */}
-            {selectedResidentPhotoUrl ? (
-              <div className="flex-shrink-0">
-                <img
-                  src={selectedResidentPhotoUrl}
-                  alt={resident.fullName}
-                  className="h-24 w-24 rounded-lg object-cover border-2 border-gray-200"
-                  onError={(e) => {
-                    console.error('Erro ao carregar imagem:', selectedResidentPhotoUrl)
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              </div>
-            ) : resident.fotoUrl ? (
-              <div className="flex-shrink-0">
-                <div className="h-24 w-24 rounded-lg bg-gray-200 border-2 border-gray-200 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-500">
-                    {resident.fullName.substring(0, 2).toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            ) : null}
+            <div className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-200">
+              <PhotoViewer
+                photoUrl={resident.fotoUrl}
+                altText={resident.fullName}
+                size="large"
+                className="!w-24 !h-24"
+              />
+            </div>
 
             {/* Informações principais */}
             <div className="flex-1 space-y-4">

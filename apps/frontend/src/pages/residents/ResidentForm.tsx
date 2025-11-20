@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller, useFieldArray } from 'react-hook-form'
@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
-import { PhotoUpload } from '@/components/form/PhotoUpload'
+import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import { FileUpload } from '@/components/form/FileUpload'
 import { SingleFileUpload } from '@/components/form/SingleFileUpload'
@@ -151,9 +152,9 @@ const residentSchema = z.object({
   altura: z.string().optional(),
   peso: z.string().optional(),
   grauDependencia: z.string().optional(),
-  medicamentosUso: z.string().optional(),
-  alergias: z.string().optional(),
-  condicoesCronicas: z.string().optional(),
+  medicamentos: z.array(z.object({ nome: z.string().optional() })).optional(),
+  alergias: z.array(z.object({ nome: z.string().optional() })).optional(),
+  condicoesCronicas: z.array(z.object({ nome: z.string().optional() })).optional(),
   observacoesSaude: z.string().optional(),
   laudoMedico: z.any().optional(), // Arquivo
   laudoMedicoUrl: z.string().optional(), // URL retornada do backend
@@ -224,6 +225,26 @@ export function ResidentForm() {
     name: 'convenios'
   })
 
+  const { fields: medicamentosFields, append: appendMedicamento, remove: removeMedicamento } = useFieldArray({
+    control,
+    name: 'medicamentos'
+  })
+
+  const { fields: alergiasFields, append: appendAlergia, remove: removeAlergia } = useFieldArray({
+    control,
+    name: 'alergias'
+  })
+
+  const { fields: condicoesCronicasFields, append: appendCondicaoCronica, remove: removeCondicaoCronica } = useFieldArray({
+    control,
+    name: 'condicoesCronicas'
+  })
+
+  // Refs para inputs de badges
+  const medicamentosInputRef = useRef<HTMLInputElement>(null)
+  const alergiasInputRef = useRef<HTMLInputElement>(null)
+  const condicoesCronicasInputRef = useRef<HTMLInputElement>(null)
+
   const watchEndProcedenciaDiferente = watch('endProcedenciaDiferente')
   const watchCpf = watch('cpf')
   const watchCns = watch('cns')
@@ -261,6 +282,24 @@ export function ResidentForm() {
     return mapping[estadoCivil] || ''
   }, [])
 
+  /**
+   * Mapeia tipo sanguíneo do backend para o formato do frontend
+   */
+  const mapTipoSanguineoFromBackend = useCallback((value: string | undefined): string => {
+    if (!value || value === 'NAO_INFORMADO') return ''
+    const map: Record<string, string> = {
+      'A_POSITIVO': 'A+',
+      'A_NEGATIVO': 'A-',
+      'B_POSITIVO': 'B+',
+      'B_NEGATIVO': 'B-',
+      'AB_POSITIVO': 'AB+',
+      'AB_NEGATIVO': 'AB-',
+      'O_POSITIVO': 'O+',
+      'O_NEGATIVO': 'O-'
+    }
+    return map[value] || ''
+  }, [])
+
   // Validação de CPF em tempo real
   React.useEffect(() => {
     if (watchCpf) {
@@ -277,36 +316,42 @@ export function ResidentForm() {
 
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
   useEffect(() => {
+    // Flag para verificar se componente ainda está montado
+    let isMounted = true
+    // AbortController para cancelar requisições pendentes
+    const controller = new AbortController()
+
     const loadResident = async () => {
       if (!id) {
         setIsEditMode(false)
         return
       }
 
+      if (!isMounted) return
+
       setIsEditMode(true)
       setIsLoading(true)
 
       try {
-        const response = await api.get(`/residents/${id}`)
+        const response = await api.get(`/residents/${id}`, {
+          signal: controller.signal,
+        })
+
+        // Verifica se o componente ainda está montado
+        if (!isMounted) return
+
         const resident = response.data
 
         console.log('🔍 DEBUG - Dados do residente carregados:', resident)
 
         // ===== FOTO =====
-        if (resident.fotoUrl) {
-          console.log('📷 DEBUG - fotoUrl do backend:', resident.fotoUrl)
-          // Obter URL assinada (presigned URL) do backend para segurança LGPD
-          try {
-            const signedUrl = await getSignedFileUrl(resident.fotoUrl)
-            console.log('📷 DEBUG - URL assinada obtida')
-            setCurrentPhotoUrl(signedUrl)
-          } catch (error) {
-            console.error('❌ Erro ao obter URL da foto:', error)
-            setCurrentPhotoUrl(undefined)
-          }
-        } else {
-          console.log('⚠️ DEBUG - resident.fotoUrl é null/undefined')
+        // O PhotoViewer cuida de assinar a URL automaticamente
+        if (isMounted) {
+          setCurrentPhotoUrl(resident.fotoUrl || undefined)
         }
+
+        // Verifica novamente se está montado antes de começar a atualizar formulário
+        if (!isMounted) return
 
         // ===== DADOS PESSOAIS =====
         if (resident.fullName) setValue('nome', resident.fullName)
@@ -379,9 +424,9 @@ export function ResidentForm() {
         if (resident.bloodType) setValue('tipoSanguineo', mapTipoSanguineoFromBackend(resident.bloodType))
         if (resident.height) setValue('altura', resident.height.toString())
         if (resident.weight) setValue('peso', resident.weight.toString())
-        if (resident.allergies) setValue('alergias', resident.allergies)
-        if (resident.medicationsOnAdmission) setValue('medicamentosUso', resident.medicationsOnAdmission)
-        if (resident.chronicConditions) setValue('condicoesCronicas', resident.chronicConditions)
+        if (resident.allergies) setValue('alergias', resident.allergies.split(',').map(nome => ({ nome: nome.trim() })))
+        if (resident.medicationsOnAdmission) setValue('medicamentos', resident.medicationsOnAdmission.split(',').map(nome => ({ nome: nome.trim() })))
+        if (resident.chronicConditions) setValue('condicoesCronicas', resident.chronicConditions.split(',').map(nome => ({ nome: nome.trim() })))
         if (resident.healthStatus) setValue('situacaoSaude', resident.healthStatus)
         if (resident.specialNeeds) setValue('necessidadesEspeciais', resident.specialNeeds)
         if (resident.functionalAspects) setValue('aspectosFuncionais', resident.functionalAspects)
@@ -420,18 +465,36 @@ export function ResidentForm() {
         if (resident.roomId) setValue('quartoNumero', resident.roomId)
         if (resident.bedId) setValue('leitoNumero', resident.bedId)
 
-        console.log('✅ Residente carregado com sucesso para edição:', resident.fullName)
+        if (isMounted) {
+          console.log('✅ Residente carregado com sucesso para edição:', resident.fullName)
+        }
       } catch (error: any) {
-        console.error('❌ Erro ao carregar residente:', error)
-        alert(`Erro ao carregar residente: ${error.response?.data?.message || error.message}`)
-        navigate('/dashboard/residentes')
+        // Ignora erros de abortamento
+        if (error.name === 'AbortError') {
+          console.log('Requisição cancelada')
+          return
+        }
+
+        if (isMounted) {
+          console.error('❌ Erro ao carregar residente:', error)
+          alert(`Erro ao carregar residente: ${error.response?.data?.message || error.message}`)
+          navigate('/dashboard/residentes')
+        }
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
     loadResident()
-  }, [id, setValue, navigate, convertISOToDisplayDate, mapEstadoCivilFromBackend])
+
+    // Cleanup function
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [id, navigate, setValue, convertISOToDisplayDate, mapEstadoCivilFromBackend, mapTipoSanguineoFromBackend])
 
   // Buscar CEP - Endereço Atual
   const handleBuscarCepAtual = useCallback(async (cep: string) => {
@@ -523,25 +586,12 @@ export function ResidentForm() {
     return map[value] || 'NAO_INFORMADO'
   }
 
-  // Mapeamento inverso: Backend → Formulário
-  const mapTipoSanguineoFromBackend = (value: string | undefined): string => {
-    if (!value || value === 'NAO_INFORMADO') return ''
-    const map: Record<string, string> = {
-      'A_POSITIVO': 'A+',
-      'A_NEGATIVO': 'A-',
-      'B_POSITIVO': 'B+',
-      'B_NEGATIVO': 'B-',
-      'AB_POSITIVO': 'AB+',
-      'AB_NEGATIVO': 'AB-',
-      'O_POSITIVO': 'O+',
-      'O_NEGATIVO': 'O-'
-    }
-    return map[value] || ''
-  }
-
   const onSubmit = async (data: ResidentFormData) => {
     try {
       console.log('Dados do formulário:', data)
+      console.log('DEBUG - medicamentos:', data.medicamentos)
+      console.log('DEBUG - alergias:', data.alergias)
+      console.log('DEBUG - condicoesCronicas:', data.condicoesCronicas)
 
       setIsUploading(true)
 
@@ -756,9 +806,18 @@ export function ResidentForm() {
         mobilityAid: data.necessitaAuxilioMobilidade || false,
         specialNeeds: data.necessidadesEspeciais || null,
         functionalAspects: data.aspectosFuncionais || null,
-        medicationsOnAdmission: data.medicamentosUso || null,
-        allergies: data.alergias || null,
-        chronicConditions: data.condicoesCronicas || null,
+        medicationsOnAdmission: (data.medicamentos || [])
+          .filter(m => m.nome && m.nome.trim())
+          .map(m => m.nome.trim())
+          .join(', ') || null,
+        allergies: (data.alergias || [])
+          .filter(a => a.nome && a.nome.trim())
+          .map(a => a.nome.trim())
+          .join(', ') || null,
+        chronicConditions: (data.condicoesCronicas || [])
+          .filter(c => c.nome && c.nome.trim())
+          .map(c => c.nome.trim())
+          .join(', ') || null,
         dietaryRestrictions: data.restricoesAlimentares || null,
         medicalReport: laudoMedicoUrl && data.dataLaudoMedico
           ? [{
@@ -949,15 +1008,26 @@ export function ResidentForm() {
                 <CardContent className="p-6">
                   <Collapsible title="Informações Básicas" defaultOpen={true}>
                     <div className="grid grid-cols-12 gap-4">
-                      {/* Foto */}
+                      {/* Foto - Componente moderno */}
                       <div className="col-span-12 md:col-span-3">
-                        <Label>Foto 3x4</Label>
-                        <div className="mt-2">
-                          <PhotoUpload
-                            onPhotoSelected={(file) => setValue('foto', file)}
-                            currentPhoto={currentPhotoUrl}
-                          />
-                        </div>
+                        <PhotoUploadNew
+                          onPhotoSelect={(file) => {
+                            setValue('foto', file);
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                setCurrentPhotoUrl(event.target?.result as string);
+                              };
+                              reader.readAsDataURL(file);
+                            } else {
+                              setCurrentPhotoUrl(undefined);
+                            }
+                          }}
+                          currentPhotoUrl={currentPhotoUrl}
+                          label="Foto 3x4"
+                          description="Clique ou arraste a foto do residente"
+                          maxSize={5}
+                        />
                       </div>
 
                       {/* Campos à direita da foto */}
@@ -1705,156 +1775,289 @@ export function ResidentForm() {
             <TabsContent value="tab6">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
-                  <Collapsible title="Necessidades Especiais" defaultOpen={true}>
-                    <Textarea
-                      {...register('necessidadesEspeciais')}
-                      rows={3}
-                      placeholder="Ex: Cadeirante, uso de sonda, colostomia, dependência total para AVDs..."
-                    />
-                    {errors.necessidadesEspeciais && (
-                      <p className="text-sm text-red-500 mt-1">{errors.necessidadesEspeciais.message}</p>
-                    )}
-                  </Collapsible>
-
-                  <Collapsible title="Restrições Alimentares" defaultOpen={true}>
-                    <Textarea
-                      {...register('restricoesAlimentares')}
-                      rows={3}
-                      placeholder="Ex: Sem lactose, hipossódico, diabético..."
-                    />
-                    {errors.restricoesAlimentares && (
-                      <p className="text-sm text-red-500 mt-1">{errors.restricoesAlimentares.message}</p>
-                    )}
-                  </Collapsible>
-
-                  <Collapsible title="Aspectos Funcionais" defaultOpen={true}>
-                    <Textarea
-                      {...register('aspectosFuncionais')}
-                      rows={3}
-                      placeholder="Ex: Independente para AVDs, necessita auxílio para banho e vestuário..."
-                    />
-                    {errors.aspectosFuncionais && (
-                      <p className="text-sm text-red-500 mt-1">{errors.aspectosFuncionais.message}</p>
-                    )}
-                    <div className="flex items-center gap-2 mt-3">
-                      <Controller
-                        name="necessitaAuxilioMobilidade"
-                        control={control}
-                        render={({ field }) => (
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            id="necessitaAuxilioMobilidade"
+                  <Collapsible title="Informações de Saúde" defaultOpen={true}>
+                    {/* Seção 1: Dados Antropométricos */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Dados Antropométricos</h3>
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-12 md:col-span-3">
+                          <Label>Tipo Sanguíneo</Label>
+                          <Controller
+                            name="tipoSanguineo"
+                            control={control}
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue placeholder="..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="A+">A+</SelectItem>
+                                  <SelectItem value="A-">A-</SelectItem>
+                                  <SelectItem value="B+">B+</SelectItem>
+                                  <SelectItem value="B-">B-</SelectItem>
+                                  <SelectItem value="AB+">AB+</SelectItem>
+                                  <SelectItem value="AB-">AB-</SelectItem>
+                                  <SelectItem value="O+">O+</SelectItem>
+                                  <SelectItem value="O-">O-</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                           />
-                        )}
-                      />
-                      <Label htmlFor="necessitaAuxilioMobilidade" className="font-normal cursor-pointer">
-                        Necessita auxílio para mobilidade
-                      </Label>
+                        </div>
+
+                        <div className="col-span-12 md:col-span-3">
+                          <Label>Altura (m)</Label>
+                          <Input {...register('altura')} placeholder="1,75" className="mt-2" />
+                        </div>
+
+                        <div className="col-span-12 md:col-span-3">
+                          <Label>Peso (kg)</Label>
+                          <Input {...register('peso')} placeholder="70,5" className="mt-2" />
+                        </div>
+
+                        <div className="col-span-12 md:col-span-3">
+                          <Label>Grau de Dependência</Label>
+                          <Controller
+                            name="grauDependencia"
+                            control={control}
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue placeholder="..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Grau I - Independente">Grau I - Independente</SelectItem>
+                                  <SelectItem value="Grau II - Parcialmente dependente">Grau II - Parcialmente dependente</SelectItem>
+                                  <SelectItem value="Grau III - Totalmente dependente">Grau III - Totalmente dependente</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </Collapsible>
 
-                  <Collapsible title="Outros" defaultOpen={false}>
-                    <div className="grid grid-cols-12 gap-4">
-                      <div className="col-span-12">
-                        <Label>Situação de Saúde</Label>
-                        <Textarea {...register('situacaoSaude')} rows={2} className="mt-2" />
-                      </div>
+                    {/* Seção 2: Situação de Saúde */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Situação de Saúde</h3>
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-12">
+                          <Label>Situação Clínica</Label>
+                          <Textarea {...register('situacaoSaude')} rows={2} className="mt-2" />
+                        </div>
 
-                      <div className="col-span-12 md:col-span-2">
-                        <Label>Tipo Sanguíneo</Label>
-                        <Controller
-                          name="tipoSanguineo"
-                          control={control}
-                          render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="mt-2">
-                                <SelectValue placeholder="..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="A+">A+</SelectItem>
-                                <SelectItem value="A-">A-</SelectItem>
-                                <SelectItem value="B+">B+</SelectItem>
-                                <SelectItem value="B-">B-</SelectItem>
-                                <SelectItem value="AB+">AB+</SelectItem>
-                                <SelectItem value="AB-">AB-</SelectItem>
-                                <SelectItem value="O+">O+</SelectItem>
-                                <SelectItem value="O-">O-</SelectItem>
-                              </SelectContent>
-                            </Select>
+                        {/* Medicamentos com Badges */}
+                        <div className="col-span-12 md:col-span-4">
+                          <Label className="text-sm font-semibold mb-2 block">Medicamentos</Label>
+                          {medicamentosFields.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-blue-50 border border-blue-200 rounded min-h-[40px]">
+                              {medicamentosFields.map((field, index) => {
+                                const nome = watch(`medicamentos.${index}.nome`)
+                                return nome && nome.trim() ? (
+                                  <div key={field.id} className="flex items-center gap-1 bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                    <span>{nome}</span>
+                                    <button type="button" onClick={() => removeMedicamento(index)} className="hover:opacity-80">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : null
+                              })}
+                            </div>
                           )}
-                        />
-                      </div>
-
-                      <div className="col-span-12 md:col-span-2">
-                        <Label>Altura (m)</Label>
-                        <Input {...register('altura')} placeholder="1,75" className="mt-2" />
-                      </div>
-
-                      <div className="col-span-12 md:col-span-2">
-                        <Label>Peso (kg)</Label>
-                        <Input {...register('peso')} placeholder="70,5" className="mt-2" />
-                      </div>
-
-                      <div className="col-span-12 md:col-span-3">
-                        <Label>Grau de Dependência</Label>
-                        <Controller
-                          name="grauDependencia"
-                          control={control}
-                          render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger className="mt-2">
-                                <SelectValue placeholder="..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Grau I - Independente">Grau I - Independente</SelectItem>
-                                <SelectItem value="Grau II - Parcialmente dependente">Grau II - Parcialmente dependente</SelectItem>
-                                <SelectItem value="Grau III - Totalmente dependente">Grau III - Totalmente dependente</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </div>
-
-                      <div className="col-span-12">
-                        <Label>Medicamentos</Label>
-                        <Textarea {...register('medicamentosUso')} rows={2} className="mt-2" />
-                      </div>
-
-                      <div className="col-span-12">
-                        <Label>Alergias</Label>
-                        <Textarea {...register('alergias')} rows={2} className="mt-2" />
-                      </div>
-
-                      <div className="col-span-12">
-                        <Label>Condições Crônicas</Label>
-                        <Textarea {...register('condicoesCronicas')} rows={2} className="mt-2" />
-                      </div>
-
-                      <div className="col-span-12 md:col-span-8">
-                        <SingleFileUpload
-                          label="Laudo Médico"
-                          accept="image/*,application/pdf"
-                          onFileSelect={(file) => setValue('laudoMedico', file)}
-                          showPreview={true}
-                        />
-                      </div>
-
-                      <div className="col-span-12 md:col-span-4">
-                        <Label>Data do Laudo</Label>
-                        <Controller
-                          name="dataLaudoMedico"
-                          control={control}
-                          render={({ field }) => (
-                            <MaskedInput
-                              mask="99/99/9999"
-                              value={field.value}
-                              onChange={field.onChange}
-                              placeholder="DD/MM/AAAA"
-                              className="mt-2"
+                          <div className="flex gap-1">
+                            <Input
+                              ref={medicamentosInputRef}
+                              placeholder="Adicionar..."
+                              className="text-xs h-8"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                  e.preventDefault()
+                                  appendMedicamento({ nome: e.currentTarget.value })
+                                  e.currentTarget.value = ''
+                                }
+                              }}
                             />
+                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
+                              if (medicamentosInputRef.current?.value.trim()) {
+                                appendMedicamento({ nome: medicamentosInputRef.current.value })
+                                medicamentosInputRef.current.value = ''
+                              }
+                            }}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Alergias com Badges */}
+                        <div className="col-span-12 md:col-span-4">
+                          <Label className="text-sm font-semibold mb-2 block">Alergias</Label>
+                          {alergiasFields.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded min-h-[40px]">
+                              {alergiasFields.map((field, index) => {
+                                const nome = watch(`alergias.${index}.nome`)
+                                return nome && nome.trim() ? (
+                                  <div key={field.id} className="flex items-center gap-1 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                    <span>{nome}</span>
+                                    <button type="button" onClick={() => removeAlergia(index)} className="hover:opacity-80">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : null
+                              })}
+                            </div>
                           )}
-                        />
+                          <div className="flex gap-1">
+                            <Input
+                              ref={alergiasInputRef}
+                              placeholder="Adicionar..."
+                              className="text-xs h-8"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                  e.preventDefault()
+                                  appendAlergia({ nome: e.currentTarget.value })
+                                  e.currentTarget.value = ''
+                                }
+                              }}
+                            />
+                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
+                              if (alergiasInputRef.current?.value.trim()) {
+                                appendAlergia({ nome: alergiasInputRef.current.value })
+                                alergiasInputRef.current.value = ''
+                              }
+                            }}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Condições Crônicas com Badges */}
+                        <div className="col-span-12 md:col-span-4">
+                          <Label className="text-sm font-semibold mb-2 block">Condições Crônicas</Label>
+                          {condicoesCronicasFields.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-red-50 border border-red-200 rounded min-h-[40px]">
+                              {condicoesCronicasFields.map((field, index) => {
+                                const nome = watch(`condicoesCronicas.${index}.nome`)
+                                return nome && nome.trim() ? (
+                                  <div key={field.id} className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                    <span>{nome}</span>
+                                    <button type="button" onClick={() => removeCondicaoCronica(index)} className="hover:opacity-80">
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : null
+                              })}
+                            </div>
+                          )}
+                          <div className="flex gap-1">
+                            <Input
+                              ref={condicoesCronicasInputRef}
+                              placeholder="Adicionar..."
+                              className="text-xs h-8"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                  e.preventDefault()
+                                  appendCondicaoCronica({ nome: e.currentTarget.value })
+                                  e.currentTarget.value = ''
+                                }
+                              }}
+                            />
+                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
+                              if (condicoesCronicasInputRef.current?.value.trim()) {
+                                appendCondicaoCronica({ nome: condicoesCronicasInputRef.current.value })
+                                condicoesCronicasInputRef.current.value = ''
+                              }
+                            }}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Seção 3: Restrições e Funcionalidade */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Restrições e Funcionalidade</h3>
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-12">
+                          <Label>Restrições Alimentares</Label>
+                          <Textarea
+                            {...register('restricoesAlimentares')}
+                            rows={2}
+                            placeholder="Ex: Sem lactose, hipossódico, diabético..."
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div className="col-span-12">
+                          <Label>Aspectos Funcionais</Label>
+                          <Textarea
+                            {...register('aspectosFuncionais')}
+                            rows={2}
+                            placeholder="Ex: Independente para AVDs, necessita auxílio para banho e vestuário..."
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div className="col-span-12">
+                          <Label>Necessidades Especiais</Label>
+                          <Textarea
+                            {...register('necessidadesEspeciais')}
+                            rows={2}
+                            placeholder="Ex: Cadeirante, uso de sonda, colostomia, dependência total para AVDs..."
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <div className="col-span-12">
+                          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <Controller
+                              name="necessitaAuxilioMobilidade"
+                              control={control}
+                              render={({ field }) => (
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  id="necessitaAuxilioMobilidade"
+                                />
+                              )}
+                            />
+                            <Label htmlFor="necessitaAuxilioMobilidade" className="font-semibold cursor-pointer text-sm">
+                              Necessita auxílio para mobilidade
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Seção 4: Documentação Médica */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Documentação Médica</h3>
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-12 md:col-span-8">
+                          <SingleFileUpload
+                            label="Laudo Médico"
+                            accept="image/*,application/pdf"
+                            onFileSelect={(file) => setValue('laudoMedico', file)}
+                            showPreview={true}
+                          />
+                        </div>
+
+                        <div className="col-span-12 md:col-span-4">
+                          <Label>Data do Laudo</Label>
+                          <Controller
+                            name="dataLaudoMedico"
+                            control={control}
+                            render={({ field }) => (
+                              <MaskedInput
+                                mask="99/99/9999"
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="DD/MM/AAAA"
+                                className="mt-2"
+                              />
+                            )}
+                          />
+                        </div>
                       </div>
                     </div>
                   </Collapsible>

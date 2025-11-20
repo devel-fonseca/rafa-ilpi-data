@@ -10,8 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
-import { getSignedFileUrl } from '@/services/upload'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -43,7 +43,6 @@ export function ResidentSelectionGrid({
 }: ResidentSelectionGridProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [photoUrls, setPhotoUrls] = useState<Map<string, string>>(new Map())
   const [currentPage, setCurrentPage] = useState(1)
 
   // Criar mapa de últimos registros por residente
@@ -96,44 +95,6 @@ export function ResidentSelectionGrid({
     const endIndex = startIndex + ITEMS_PER_PAGE
     return filteredResidents.slice(startIndex, endIndex)
   }, [filteredResidents, currentPage])
-
-  // Buscar URLs assinadas para as fotos dos residentes APENAS da página atual
-  useEffect(() => {
-    const fetchPhotoUrls = async () => {
-      // Buscar apenas URLs dos residentes da página atual (lazy loading)
-      const residentsWithPhotos = paginatedResidents.filter(r => r.fotoUrl)
-
-      if (residentsWithPhotos.length === 0) return
-
-      // Fazer todas as requisições em PARALELO (muito mais rápido!)
-      const photoPromises = residentsWithPhotos.map(async (resident) => {
-        try {
-          const signedUrl = await getSignedFileUrl(resident.fotoUrl!)
-          return { id: resident.id, url: signedUrl }
-        } catch (error) {
-          console.error(`Erro ao obter URL da foto de ${resident.fullName}:`, error)
-          return null
-        }
-      })
-
-      const results = await Promise.all(photoPromises)
-
-      // Atualizar apenas as URLs que foram carregadas com sucesso
-      setPhotoUrls(prevUrls => {
-        const newUrls = new Map(prevUrls)
-        results.forEach(result => {
-          if (result) {
-            newUrls.set(result.id, result.url)
-          }
-        })
-        return newUrls
-      })
-    }
-
-    if (paginatedResidents.length > 0) {
-      fetchPhotoUrls()
-    }
-  }, [paginatedResidents])
 
   // Tradução dos tipos de registro
   const getRecordTypeLabel = (type: string): string => {
@@ -242,7 +203,6 @@ export function ResidentSelectionGrid({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedResidents.map((resident) => {
             const lastRecord = latestRecordsMap.get(resident.id)
-            const photoUrl = photoUrls.get(resident.id)
 
             return (
               <Card
@@ -266,23 +226,14 @@ export function ResidentSelectionGrid({
 
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                   {/* Foto */}
-                  <div className="relative">
-                    <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform duration-200">
-                      {photoUrl ? (
-                        <img
-                          src={photoUrl}
-                          alt={resident.fullName}
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            console.error('Erro ao carregar imagem:', photoUrl)
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
-                      ) : (
-                        <span className="text-2xl font-bold text-white">
-                          {resident.fullName.substring(0, 2).toUpperCase()}
-                        </span>
-                      )}
+                  <div className="relative group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-20 h-20 rounded-full overflow-hidden">
+                      <PhotoViewer
+                        photoUrl={resident.fotoUrl}
+                        altText={resident.fullName}
+                        size="small"
+                        className="!w-20 !h-20 rounded-full"
+                      />
                     </div>
                   </div>
 

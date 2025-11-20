@@ -424,16 +424,19 @@ export class CreateResidentDto {
   functionalAspects?: string;
 
   @ApiProperty({ example: 'Losartana 50mg', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsString()
   medicationsOnAdmission?: string;
 
   @ApiProperty({ example: 'Lactose', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsString()
   allergies?: string;
 
   @ApiProperty({ example: 'Hipertensão, Diabetes', required: false })
+  @EmptyToUndefined()
   @IsOptional()
   @IsString()
   chronicConditions?: string;

@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react'
-import { User } from 'lucide-react'
 import type { Resident } from '@/api/residents.api'
 import {
   formatCPF,
@@ -13,7 +11,7 @@ import {
   translateEnum,
   valueOrDash
 } from '@/utils/formatters'
-import { getSignedFileUrl } from '@/services/upload'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
 
 // Usar a interface Resident do backend com alguns campos opcionais adicionais
 interface ResidentData extends Resident {
@@ -61,23 +59,6 @@ interface ResidentDocumentProps {
 }
 
 export function ResidentDocument({ resident, tenant, isPrinting = false }: ResidentDocumentProps) {
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-
-  // Carregar URL assinada da foto (conformidade LGPD)
-  useEffect(() => {
-    const loadPhotoUrl = async () => {
-      if (resident.fotoUrl) {
-        try {
-          const signedUrl = await getSignedFileUrl(resident.fotoUrl)
-          setPhotoUrl(signedUrl)
-        } catch (error) {
-          console.error('Erro ao carregar foto:', error)
-          setPhotoUrl(null)
-        }
-      }
-    }
-    loadPhotoUrl()
-  }, [resident.fotoUrl])
 
   // Traduzir tipo sanguíneo
   const translateBloodType = (bloodType?: string) => {
@@ -146,16 +127,13 @@ export function ResidentDocument({ resident, tenant, isPrinting = false }: Resid
       <div className="flex gap-6 mb-8 border-b pb-6">
         {/* Foto */}
         <div className="flex-shrink-0">
-          <div className="w-[140px] h-[180px] border-2 border-gray-300 rounded overflow-hidden bg-gray-50 flex items-center justify-center">
-            {photoUrl ? (
-              <img
-                src={photoUrl}
-                alt={resident.fullName}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-16 h-16 text-gray-400" />
-            )}
+          <div className="w-[140px] h-[180px]">
+            <PhotoViewer
+              photoUrl={resident.fotoUrl}
+              altText={resident.fullName}
+              size="large"
+              className="w-[140px] h-[180px]"
+            />
           </div>
         </div>
 
