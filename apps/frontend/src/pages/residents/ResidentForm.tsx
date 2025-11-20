@@ -16,6 +16,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { PhotoUpload } from '@/components/form/PhotoUpload'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import { FileUpload } from '@/components/form/FileUpload'
+import { SingleFileUpload } from '@/components/form/SingleFileUpload'
+import { MultiFileUpload } from '@/components/form/MultiFileUpload'
 import { validarCPF, getMensagemValidacaoCPF, getMensagemValidacaoCNS } from '@/utils/validators'
 import { buscarCEP } from '@/services/viacep'
 import { cn } from '@/lib/utils'
@@ -1159,24 +1161,21 @@ export function ResidentForm() {
                   </Collapsible>
 
                   <Collapsible title="Documentos" defaultOpen={false}>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div>
-                        <Label>Documentos Pessoais (RG, CPF)</Label>
-                        <FileUpload
-                          onFilesSelected={(files) => setValue('documentosPessoaisUrls', files)}
-                          title="Clique ou arraste documentos"
-                          description="RG, CPF, comprovante..."
+                        <MultiFileUpload
+                          title="Documentos Pessoais"
+                          description="RG, CPF, comprovantes..."
+                          accept="image/*,application/pdf"
+                          onFilesChange={(files) => setValue('documentosPessoaisUrls', files)}
                         />
                       </div>
                       <div>
-                        <Label>Cartão CNS</Label>
-                        <Input
-                          type="file"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) setValue('cnsCard', file)
-                          }}
-                          className="mt-2"
+                        <SingleFileUpload
+                          label="Cartão CNS"
+                          accept="image/*,application/pdf"
+                          onFileSelect={(file) => setValue('cnsCard', file)}
+                          showPreview={true}
                         />
                       </div>
                     </div>
@@ -1369,10 +1368,11 @@ export function ResidentForm() {
                   </div>
 
                   <Collapsible title="Documentos" defaultOpen={false}>
-                    <FileUpload
-                      onFilesSelected={(files) => setValue('documentosEnderecoUrls', files)}
-                      title="Comprovante de residência"
+                    <MultiFileUpload
+                      title="Comprovante de Residência"
                       description="PDF, imagens, etc."
+                      accept="image/*,application/pdf"
+                      onFilesChange={(files) => setValue('documentosEnderecoUrls', files)}
                     />
                   </Collapsible>
                 </CardContent>
@@ -1576,10 +1576,11 @@ export function ResidentForm() {
                     </div>
                   </div>
 
-                  <FileUpload
-                    onFilesSelected={(files) => setValue('responsavelLegalDocumentosUrls', files)}
+                  <MultiFileUpload
                     title="Documentos do Responsável"
                     description="PDF, imagens, etc."
+                    accept="image/*,application/pdf"
+                    onFilesChange={(files) => setValue('responsavelLegalDocumentosUrls', files)}
                   />
                 </CardContent>
               </Card>
@@ -1670,38 +1671,29 @@ export function ResidentForm() {
                     </div>
 
                     <div className="col-span-12 md:col-span-4">
-                      <Label>Termo de Admissão</Label>
-                      <Input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setValue('termoAdmissao', file)
-                        }}
-                        className="mt-2"
+                      <SingleFileUpload
+                        label="Termo de Admissão"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('termoAdmissao', file)}
+                        showPreview={true}
                       />
                     </div>
 
                     <div className="col-span-12 md:col-span-4">
-                      <Label>Consentimento LGPD</Label>
-                      <Input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setValue('consentimentoLgpd', file)
-                        }}
-                        className="mt-2"
+                      <SingleFileUpload
+                        label="Consentimento LGPD"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('consentimentoLgpd', file)}
+                        showPreview={true}
                       />
                     </div>
 
                     <div className="col-span-12 md:col-span-4">
-                      <Label>Consentimento de Imagem</Label>
-                      <Input
-                        type="file"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) setValue('consentimentoImagem', file)
-                        }}
-                        className="mt-2"
+                      <SingleFileUpload
+                        label="Consentimento de Imagem"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('consentimentoImagem', file)}
+                        showPreview={true}
                       />
                     </div>
                   </div>
@@ -1840,16 +1832,11 @@ export function ResidentForm() {
                       </div>
 
                       <div className="col-span-12 md:col-span-8">
-                        <Label>Laudo Médico (arquivo)</Label>
-                        <Input
-                          type="file"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              setValue('laudoMedicoUrl', file.name)
-                            }
-                          }}
-                          className="mt-2"
+                        <SingleFileUpload
+                          label="Laudo Médico"
+                          accept="image/*,application/pdf"
+                          onFileSelect={(file) => setValue('laudoMedico', file)}
+                          showPreview={true}
                         />
                       </div>
 
@@ -1903,16 +1890,15 @@ export function ResidentForm() {
                             </Button>
                           </div>
                           <div className="col-span-12">
-                            <Label className="text-xs">Upload do cartão</Label>
-                            <Input
-                              type="file"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
+                            <SingleFileUpload
+                              label="Cartão do Convênio"
+                              accept="image/*,application/pdf"
+                              onFileSelect={(file) => {
                                 if (file) {
                                   setValue(`convenios.${index}.arquivo`, file)
                                 }
                               }}
-                              className="mt-1"
+                              showPreview={true}
                             />
                           </div>
                         </div>

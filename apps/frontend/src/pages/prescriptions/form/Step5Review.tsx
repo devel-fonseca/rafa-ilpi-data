@@ -6,10 +6,9 @@ import { CheckCircle2, AlertCircle, User, FileText, Pill, Upload, ImageIcon } fr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { api } from '@/services/api'
 import { calculateAge } from '@/lib/utils'
+import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
 
 interface Resident {
@@ -214,42 +213,18 @@ export function Step5Review() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              {formData.prescriptionType === 'CONTROLADO'
+          <SingleFileUpload
+            label="Arquivo da Prescrição"
+            description={
+              formData.prescriptionType === 'CONTROLADO'
                 ? 'Para medicamentos controlados, é obrigatório anexar a imagem da prescrição médica.'
-                : 'Anexe a imagem da prescrição médica (opcional).'}
-            </p>
-            <div>
-              <Label htmlFor="prescriptionImage">
-                Arquivo da Prescrição {formData.prescriptionType === 'CONTROLADO' && '*'}
-              </Label>
-              <Input
-                id="prescriptionImage"
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) setValue('prescriptionImage', file)
-                }}
-                className="mt-2"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Formatos aceitos: JPG, PNG ou PDF (máx. 10MB)
-              </p>
-            </div>
-            {formData.prescriptionImage && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                <ImageIcon className="h-4 w-4 text-green-600" />
-                <span className="text-sm text-green-800">
-                  Arquivo selecionado:{' '}
-                  {formData.prescriptionImage instanceof File
-                    ? formData.prescriptionImage.name
-                    : 'arquivo-prescrição'}
-                </span>
-              </div>
-            )}
-          </div>
+                : 'Anexe a imagem da prescrição médica (opcional). Formatos: JPG, PNG ou PDF (máx. 10MB)'
+            }
+            accept="image/*,application/pdf"
+            required={formData.prescriptionType === 'CONTROLADO'}
+            onFileSelect={(file) => setValue('prescriptionImage', file)}
+            showPreview={true}
+          />
         </CardContent>
       </Card>
 
