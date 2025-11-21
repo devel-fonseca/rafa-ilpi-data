@@ -21,6 +21,14 @@ import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import { MultiFileUpload } from '@/components/form/MultiFileUpload'
 import { validarCPF, getMensagemValidacaoCPF, getMensagemValidacaoCNS } from '@/utils/validators'
 import { buscarCEP } from '@/services/viacep'
+import {
+  convertISOToDisplayDate,
+  convertToISODate,
+  mapEstadoCivilFromBackend,
+  mapEstadoCivilToBackend,
+  mapTipoSanguineoFromBackend,
+  mapTipoSanguineoToBackend
+} from '@/utils/formMappers'
 import { cn } from '@/lib/utils'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
@@ -85,7 +93,6 @@ const residentSchema = z.object({
   nomeMae: z.string().optional(),
   nomePai: z.string().optional(),
   documentosPessoaisUrls: z.array(z.any()).optional(),
-  cnsCard: z.any().optional(),
 
   // Endereço Atual
   cepAtual: z.string().optional(),
@@ -203,6 +210,9 @@ export function ResidentForm() {
   // Estados para Acomodação (Beds)
   const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>(undefined)
 
+  // Ref para armazenar dados do residente carregado (para sincronizar Select depois)
+  const residentDataRef = useRef<any>(null)
+
   const {
     register,
     handleSubmit,
@@ -212,7 +222,10 @@ export function ResidentForm() {
     formState: { errors }
   } = useForm<ResidentFormData>({
     resolver: zodResolver(residentSchema),
+    mode: 'onChange',
     defaultValues: {
+      quartoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
+      leitoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
       contatosEmergencia: [{ nome: '', telefone: '', parentesco: '' }],
       convenios: [{ nome: '', numero: '' }],
       endProcedenciaDiferente: false,
@@ -247,7 +260,7 @@ export function ResidentForm() {
 
   // Hooks de Beds (Acomodação)
   const { data: rooms, isLoading: isLoadingRooms } = useRooms()
-  const { data: beds, isLoading: isLoadingBeds } = useBeds({ roomId: selectedRoomId })
+  const { data: beds, isLoading: isLoadingBeds } = useBeds(selectedRoomId)
 
   // Refs para inputs de badges
   const medicamentosInputRef = useRef<HTMLInputElement>(null)
@@ -258,57 +271,7 @@ export function ResidentForm() {
   const watchCpf = watch('cpf')
   const watchCns = watch('cns')
   const watchQuartoNumero = watch('quartoNumero')
-
-  // ========== FUNÇÕES DE CONVERSÃO DE DATA ==========
-  /**
-   * Converte data ISO (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ) para formato brasileiro DD/MM/YYYY
-   * Usado para preencher campos de input quando carrega dados do backend
-   */
-  const convertISOToDisplayDate = useCallback((isoDate: string | null | undefined): string => {
-    if (!isoDate) return ''
-    try {
-      // Extrai apenas a parte da data (YYYY-MM-DD)
-      const datePart = isoDate.split('T')[0]
-      const [year, month, day] = datePart.split('-')
-      return `${day}/${month}/${year}`
-    } catch (error) {
-      console.error('Erro ao converter data ISO para display:', isoDate, error)
-      return ''
-    }
-  }, [])
-
-  /**
-   * Mapeia estado civil do backend para o formato do frontend
-   */
-  const mapEstadoCivilFromBackend = useCallback((estadoCivil: string | null | undefined): string => {
-    if (!estadoCivil) return ''
-    const mapping: Record<string, string> = {
-      'SOLTEIRO': 'Solteiro(a)',
-      'CASADO': 'Casado(a)',
-      'DIVORCIADO': 'Divorciado(a)',
-      'VIUVO': 'Viúvo(a)',
-      'UNIAO_ESTAVEL': 'União Estável'
-    }
-    return mapping[estadoCivil] || ''
-  }, [])
-
-  /**
-   * Mapeia tipo sanguíneo do backend para o formato do frontend
-   */
-  const mapTipoSanguineoFromBackend = useCallback((value: string | undefined): string => {
-    if (!value || value === 'NAO_INFORMADO') return ''
-    const map: Record<string, string> = {
-      'A_POSITIVO': 'A+',
-      'A_NEGATIVO': 'A-',
-      'B_POSITIVO': 'B+',
-      'B_NEGATIVO': 'B-',
-      'AB_POSITIVO': 'AB+',
-      'AB_NEGATIVO': 'AB-',
-      'O_POSITIVO': 'O+',
-      'O_NEGATIVO': 'O-'
-    }
-    return map[value] || ''
-  }, [])
+  const watchLeitoNumero = watch('leitoNumero')
 
   // Validação de CPF em tempo real
   React.useEffect(() => {
@@ -332,6 +295,24 @@ export function ResidentForm() {
       setSelectedRoomId(undefined)
     }
   }, [watchQuartoNumero])
+
+  // ========== SINCRONIZAR DADOS DO SELECT (após carregamento completo) ==========
+  // Esse useEffect é executado DEPOIS que o componente está pronto
+  // Isso evita o aviso de controlled/uncontrolled
+  React.useEffect(() => {
+    if (isEditMode && !isLoading && residentDataRef.current && rooms) {
+      const { roomId, bedId } = residentDataRef.current
+      if (roomId && !watchQuartoNumero) {
+        console.log('Sincronizando quartoNumero:', roomId)
+        setValue('quartoNumero', roomId)
+      }
+      if (bedId && !watchLeitoNumero) {
+        console.log('Sincronizando leitoNumero:', bedId)
+        setValue('leitoNumero', bedId)
+      }
+    }
+  }, [isEditMode, isLoading, rooms, setValue])
+
 
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
   useEffect(() => {
@@ -481,8 +462,14 @@ export function ResidentForm() {
         if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
 
         // ===== ACOMODAÇÃO =====
-        if (resident.roomId) setValue('quartoNumero', resident.roomId)
-        if (resident.bedId) setValue('leitoNumero', resident.bedId)
+        // Armazenar dados na ref para sincronização posterior
+        residentDataRef.current = {
+          roomId: resident.roomId,
+          bedId: resident.bedId
+        }
+        if (resident.roomId) {
+          setSelectedRoomId(resident.roomId)
+        }
 
         if (isMounted) {
           console.log('✅ Residente carregado com sucesso para edição:', resident.fullName)
@@ -513,105 +500,54 @@ export function ResidentForm() {
       isMounted = false
       controller.abort()
     }
-  }, [id, navigate, setValue, convertISOToDisplayDate, mapEstadoCivilFromBackend, mapTipoSanguineoFromBackend])
+  }, [id, navigate, setValue])
 
-  // Buscar CEP - Endereço Atual
-  const handleBuscarCepAtual = useCallback(async (cep: string) => {
+  // Função genérica para buscar CEP (consolidada das 3 anteriores)
+  const handleBuscarCep = useCallback(async (cep: string, prefix: 'atual' | 'procedencia' | 'responsavelLegal') => {
     const cepLimpo = cep.replace(/\D/g, '')
     if (cepLimpo.length === 8) {
       const endereco = await buscarCEP(cepLimpo)
       if (endereco) {
-        setValue('estadoAtual', endereco.estado)
-        setValue('cidadeAtual', endereco.cidade)
-        setValue('logradouroAtual', endereco.logradouro)
-        setValue('bairroAtual', endereco.bairro)
+        const fieldMapping = {
+          atual: {
+            estado: 'estadoAtual',
+            cidade: 'cidadeAtual',
+            logradouro: 'logradouroAtual',
+            bairro: 'bairroAtual',
+            complemento: 'complementoAtual'
+          },
+          procedencia: {
+            estado: 'estadoProcedencia',
+            cidade: 'cidadeProcedencia',
+            logradouro: 'logradouroProcedencia',
+            bairro: 'bairroProcedencia',
+            complemento: 'complementoProcedencia'
+          },
+          responsavelLegal: {
+            estado: 'responsavelLegalUf',
+            cidade: 'responsavelLegalCidade',
+            logradouro: 'responsavelLegalLogradouro',
+            bairro: 'responsavelLegalBairro',
+            complemento: 'responsavelLegalComplemento'
+          }
+        }
+        const fields = fieldMapping[prefix]
+        setValue(fields.estado as keyof ResidentFormData, endereco.estado)
+        setValue(fields.cidade as keyof ResidentFormData, endereco.cidade)
+        setValue(fields.logradouro as keyof ResidentFormData, endereco.logradouro)
+        setValue(fields.bairro as keyof ResidentFormData, endereco.bairro)
         if (endereco.complemento) {
-          setValue('complementoAtual', endereco.complemento)
+          setValue(fields.complemento as keyof ResidentFormData, endereco.complemento)
         }
       }
     }
   }, [setValue])
-
-  // Buscar CEP - Endereço de Procedência
-  const handleBuscarCepProcedencia = useCallback(async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length === 8) {
-      const endereco = await buscarCEP(cepLimpo)
-      if (endereco) {
-        setValue('estadoProcedencia', endereco.estado)
-        setValue('cidadeProcedencia', endereco.cidade)
-        setValue('logradouroProcedencia', endereco.logradouro)
-        setValue('bairroProcedencia', endereco.bairro)
-        if (endereco.complemento) {
-          setValue('complementoProcedencia', endereco.complemento)
-        }
-      }
-    }
-  }, [setValue])
-
-  // Buscar CEP - Responsável
-  const handleBuscarCepResponsavel = useCallback(async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length === 8) {
-      const endereco = await buscarCEP(cepLimpo)
-      if (endereco) {
-        setValue('responsavelLegalUf', endereco.estado)
-        setValue('responsavelLegalCidade', endereco.cidade)
-        setValue('responsavelLegalLogradouro', endereco.logradouro)
-        setValue('responsavelLegalBairro', endereco.bairro)
-        if (endereco.complemento) {
-          setValue('responsavelLegalComplemento', endereco.complemento)
-        }
-      }
-    }
-  }, [setValue])
-
-  // Função para converter DD/MM/YYYY para YYYY-MM-DD (ISO 8601)
-  const convertToISODate = (dateStr: string | undefined): string | null => {
-    if (!dateStr) return null
-    const parts = dateStr.split('/')
-    if (parts.length !== 3) return null
-    const [day, month, year] = parts
-    // Retornar formato ISO-8601 completo com hora (UTC)
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`
-  }
-
-  // Função para mapear estado civil para o formato do backend
-  const mapEstadoCivil = (value: string | undefined): string | null => {
-    if (!value) return null
-    const map: Record<string, string> = {
-      'Solteiro(a)': 'SOLTEIRO',
-      'Casado(a)': 'CASADO',
-      'Divorciado(a)': 'DIVORCIADO',
-      'Viúvo(a)': 'VIUVO',
-      'União Estável': 'UNIAO_ESTAVEL'
-    }
-    return map[value] || null
-  }
-
-  // Mapeamento de tipo sanguíneo: Formulário (A+, A-, etc.) → Backend (A_POSITIVO, A_NEGATIVO, etc.)
-  const mapTipoSanguineo = (value: string | undefined): string => {
-    if (!value) return 'NAO_INFORMADO'
-    const map: Record<string, string> = {
-      'A+': 'A_POSITIVO',
-      'A-': 'A_NEGATIVO',
-      'B+': 'B_POSITIVO',
-      'B-': 'B_NEGATIVO',
-      'AB+': 'AB_POSITIVO',
-      'AB-': 'AB_NEGATIVO',
-      'O+': 'O_POSITIVO',
-      'O-': 'O_NEGATIVO'
-    }
-    return map[value] || 'NAO_INFORMADO'
-  }
 
   const onSubmit = async (data: ResidentFormData) => {
+    console.log('🚀 onSubmit chamado. isEditMode:', isEditMode, 'id:', id)
+    console.log('📋 Dados do formulário:', data)
     try {
-      console.log('Dados do formulário:', data)
-      console.log('DEBUG - medicamentos:', data.medicamentos)
-      console.log('DEBUG - alergias:', data.alergias)
-      console.log('DEBUG - condicoesCronicas:', data.condicoesCronicas)
-
+      console.log('✓ Entrando no try block')
       setIsUploading(true)
 
       // ========================================
@@ -623,7 +559,6 @@ export function ResidentForm() {
       let documentosResponsavelUrls: string[] = []
       let laudoMedicoUrl = null
       let convenioArquivoUrl = null
-      let cnsCardUrl = null
       let termoAdmissaoUrl = null
       let consentimentosUrls: string[] = []
 
@@ -685,13 +620,6 @@ export function ResidentForm() {
           console.log('Arquivo do convênio enviado:', convenioArquivoUrl)
         }
 
-        // Upload de CNS Card
-        if (data.cnsCard && data.cnsCard instanceof File) {
-          setUploadProgress('Enviando cartão CNS...')
-          cnsCardUrl = await uploadFile(data.cnsCard, 'documents')
-          console.log('CNS Card enviado:', cnsCardUrl)
-        }
-
         // Upload de termo de admissão
         if (data.termoAdmissao && data.termoAdmissao instanceof File) {
           setUploadProgress('Enviando termo de admissão...')
@@ -748,7 +676,7 @@ export function ResidentForm() {
         profession: data.profissao || null,
         cns: data.cns?.replace(/\s/g, '') || null,
         gender: data.genero || 'NAO_INFORMADO',
-        civilStatus: mapEstadoCivil(data.estadoCivil),
+        civilStatus: mapEstadoCivilToBackend(data.estadoCivil),
         religion: data.religiao || null,
         birthDate: convertToISODate(data.dataNascimento),
         nationality: data.nacionalidade || 'Brasileira',
@@ -818,7 +746,7 @@ export function ResidentForm() {
 
         // 6. Saúde - NOMES EM INGLÊS
         healthStatus: data.situacaoSaude || null,
-        bloodType: mapTipoSanguineo(data.tipoSanguineo),
+        bloodType: mapTipoSanguineoToBackend(data.tipoSanguineo),
         height: data.altura ? parseFloat(data.altura.replace(',', '.')) : null,
         weight: data.peso ? parseFloat(data.peso.replace(',', '.')) : null,
         dependencyLevel: data.grauDependencia || null,
@@ -877,7 +805,7 @@ export function ResidentForm() {
         payload.status = data.status
       }
 
-      console.log('Payload para API:', payload)
+      console.log('✅ Payload para API:', payload)
 
       // ========================================
       // FASE 3: Enviar para backend (POST ou PATCH)
@@ -886,14 +814,16 @@ export function ResidentForm() {
 
       if (isEditMode) {
         // MODO EDIÇÃO: PATCH /residents/:id
+        console.log(`🌐 Enviando PATCH para /residents/${id}`)
         setUploadProgress('Atualizando residente...')
         response = await api.patch(`/residents/${id}`, payload)
-        console.log('Residente atualizado:', response.data)
+        console.log('✅ Residente atualizado:', response.data)
       } else {
         // MODO CRIAÇÃO: POST /residents
+        console.log('🌐 Enviando POST para /residents')
         setUploadProgress('Criando residente...')
         response = await api.post('/residents', payload)
-        console.log('Residente criado:', response.data)
+        console.log('✅ Residente criado:', response.data)
       }
 
       setIsUploading(false)
@@ -908,9 +838,26 @@ export function ResidentForm() {
       navigate('/dashboard/residentes')
 
     } catch (error: any) {
-      console.error('Erro ao salvar residente:', error)
-      const mensagem = error.response?.data?.message || error.message || 'Erro desconhecido'
-      alert(`❌ Erro ao salvar residente: ${mensagem}`)
+      console.error('❌ Erro ao salvar residente:', error)
+
+      // Extrair mensagem de erro do backend ou fallback
+      let mensagem = 'Erro desconhecido'
+      if (error.response?.data?.message) {
+        mensagem = error.response.data.message
+      } else if (error.response?.data?.error) {
+        mensagem = error.response.data.error
+      } else if (error.message) {
+        mensagem = error.message
+      }
+
+      // Log detalhado para debug
+      console.log('Erro completo:', {
+        statusCode: error.response?.status,
+        message: mensagem,
+        data: error.response?.data,
+      })
+
+      alert(`❌ Erro ao salvar residente:\n\n${mensagem}`)
       setIsUploading(false)
       setUploadProgress('')
     }
@@ -1022,7 +969,7 @@ export function ResidentForm() {
             </TabsList>
 
             {/* Aba 1 - Dados Pessoais */}
-            <TabsContent value="tab1">
+            <TabsContent value="tab1" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Informações Básicas" defaultOpen={true}>
@@ -1259,14 +1206,6 @@ export function ResidentForm() {
                           onFilesChange={(files) => setValue('documentosPessoaisUrls', files)}
                         />
                       </div>
-                      <div>
-                        <SingleFileUpload
-                          label="Cartão CNS"
-                          accept="image/*,application/pdf"
-                          onFileSelect={(file) => setValue('cnsCard', file)}
-                          showPreview={true}
-                        />
-                      </div>
                     </div>
                   </Collapsible>
                 </CardContent>
@@ -1274,7 +1213,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 2 - Endereços */}
-            <TabsContent value="tab2">
+            <TabsContent value="tab2" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Endereço Atual" defaultOpen={true}>
@@ -1469,7 +1408,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 3 - Contatos */}
-            <TabsContent value="tab3">
+            <TabsContent value="tab3" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="space-y-3 mb-4">
@@ -1525,7 +1464,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 4 - Responsável */}
-            <TabsContent value="tab4">
+            <TabsContent value="tab4" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-12 gap-4 mb-6">
@@ -1676,7 +1615,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 5 - Admissão */}
-            <TabsContent value="tab5">
+            <TabsContent value="tab5" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-12 gap-4">
@@ -1791,7 +1730,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 6 - Saúde */}
-            <TabsContent value="tab6">
+            <TabsContent value="tab6" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Informações de Saúde" defaultOpen={true}>
@@ -2085,7 +2024,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 7 - Convênios */}
-            <TabsContent value="tab7">
+            <TabsContent value="tab7" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="space-y-3 mb-4">
@@ -2141,7 +2080,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 8 - Pertences */}
-            <TabsContent value="tab8">
+            <TabsContent value="tab8" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Textarea
@@ -2154,7 +2093,7 @@ export function ResidentForm() {
             </TabsContent>
 
             {/* Aba 9 - Acomodação */}
-            <TabsContent value="tab9">
+            <TabsContent value="tab9" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 gap-4">
@@ -2163,34 +2102,39 @@ export function ResidentForm() {
                       <Controller
                         name="quartoNumero"
                         control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value || ''}
-                            onValueChange={(value) => {
-                              field.onChange(value)
-                              setSelectedRoomId(value)
-                              // Limpar leito quando mudar de quarto
-                              setValue('leitoNumero', '')
-                            }}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Selecione um quarto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {isLoadingRooms ? (
-                                <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                              ) : rooms && rooms.length > 0 ? (
-                                rooms.map((room) => (
-                                  <SelectItem key={room.id} value={room.id}>
-                                    {room.name} - {room.floor?.name || 'Sem andar'}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="empty" disabled>Nenhum quarto disponível</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        )}
+                        render={({ field }) => {
+                          // Usar field.value se existir, senão string vazia
+                          // Isso mantém o Select sempre controlado
+                          const selectValue = field.value ? String(field.value) : ''
+                          return (
+                            <Select
+                              value={selectValue}
+                              onValueChange={(value) => {
+                                field.onChange(value)
+                                setSelectedRoomId(value)
+                                // Limpar leito quando mudar de quarto
+                                setValue('leitoNumero', '')
+                              }}
+                            >
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Selecione um quarto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {isLoadingRooms ? (
+                                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                                ) : rooms && rooms.length > 0 ? (
+                                  rooms.map((room) => (
+                                    <SelectItem key={room.id} value={room.id}>
+                                      {room.name} - {room.floor?.name || 'Sem andar'}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="empty" disabled>Nenhum quarto disponível</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )
+                        }}
                       />
                     </div>
                     <div>
@@ -2198,32 +2142,37 @@ export function ResidentForm() {
                       <Controller
                         name="leitoNumero"
                         control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value || ''}
-                            onValueChange={field.onChange}
-                            disabled={!selectedRoomId}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder={selectedRoomId ? "Selecione um leito" : "Primeiro selecione um quarto"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {isLoadingBeds ? (
-                                <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                              ) : beds && beds.length > 0 ? (
-                                beds
-                                  .filter(bed => bed.status === 'DISPONIVEL' || bed.id === field.value)
-                                  .map((bed) => (
-                                    <SelectItem key={bed.id} value={bed.id}>
-                                      {bed.code} - {bed.status === 'DISPONIVEL' ? 'Disponível' : bed.status}
-                                    </SelectItem>
-                                  ))
-                              ) : (
-                                <SelectItem value="empty" disabled>Nenhum leito disponível</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                        )}
+                        render={({ field }) => {
+                          // Usar field.value se existir, senão string vazia
+                          // Isso mantém o Select sempre controlado
+                          const selectValue = field.value ? String(field.value) : ''
+                          return (
+                            <Select
+                              value={selectValue}
+                              onValueChange={field.onChange}
+                              disabled={!selectedRoomId}
+                            >
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder={selectedRoomId ? "Selecione um leito" : "Primeiro selecione um quarto"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {isLoadingBeds ? (
+                                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                                ) : beds && beds.length > 0 ? (
+                                  beds
+                                    .filter(bed => (bed.status === 'Disponível' || bed.status === 'DISPONIVEL') || bed.id === field.value)
+                                    .map((bed) => (
+                                      <SelectItem key={bed.id} value={bed.id}>
+                                        {bed.code} - {(bed.status === 'Disponível' || bed.status === 'DISPONIVEL') ? 'Disponível' : bed.status}
+                                      </SelectItem>
+                                    ))
+                                ) : (
+                                  <SelectItem value="empty" disabled>Nenhum leito disponível</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )
+                        }}
                       />
                     </div>
                   </div>

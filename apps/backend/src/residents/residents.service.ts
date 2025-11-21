@@ -22,6 +22,100 @@ export class ResidentsService {
   ) {}
 
   /**
+   * Valida e processa a acomodação (roomId e bedId)
+   * Verifica: existência, disponibilidade, e conflitos de ocupação
+   */
+  private async validateAndProcessAccommodation(
+    roomId: string | undefined,
+    bedId: string | undefined,
+    tenantId: string,
+    currentResidentId?: string, // Para saber qual residente está sendo atualizado
+  ) {
+    // Se não há acomodação a definir, retorna undefined
+    if (!roomId && !bedId) {
+      return { roomId: undefined, bedId: undefined };
+    }
+
+    // Se há bedId, validar
+    if (bedId) {
+      // Verificar se o leito existe
+      const bed = await this.prisma.bed.findFirst({
+        where: {
+          id: bedId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
+
+      if (!bed) {
+        throw new BadRequestException(`Leito com ID ${bedId} não encontrado`);
+      }
+
+      // Verificar se o leito está disponível
+      if (bed.status === 'Ocupado') {
+        // Permitir se é o mesmo residente que já estava nesse leito
+        const existingResident = await this.prisma.resident.findFirst({
+          where: {
+            bedId,
+            tenantId,
+            deletedAt: null,
+          },
+        });
+
+        if (existingResident && existingResident.id !== currentResidentId) {
+          throw new BadRequestException(
+            `Leito ${bed.code} já está ocupado por outro residente`,
+          );
+        }
+      }
+
+      // Se roomId não foi fornecido, extrair do leito
+      if (!roomId) {
+        roomId = bed.roomId;
+      }
+    }
+
+    // Se há roomId, validar
+    if (roomId) {
+      const room = await this.prisma.room.findFirst({
+        where: {
+          id: roomId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
+
+      if (!room) {
+        throw new BadRequestException(`Quarto com ID ${roomId} não encontrado`);
+      }
+    }
+
+    return { roomId, bedId };
+  }
+
+  /**
+   * Atualiza o status do leito quando um residente é associado/dissociado
+   */
+  private async updateBedStatus(
+    bedId: string | undefined,
+    newStatus: 'Ocupado' | 'Disponível',
+    tenantId: string,
+  ) {
+    if (!bedId) return;
+
+    await this.prisma.bed.update({
+      where: { id: bedId },
+      data: { status: newStatus },
+    });
+
+    this.logger.info(`Bed status atualizado`, {
+      bedId,
+      newStatus,
+      tenantId,
+    });
+  }
+
+  /**
    * Cria um novo residente usando o Prisma Client
    */
   async create(createResidentDto: CreateResidentDto, tenantId: string, userId: string) {
@@ -75,6 +169,13 @@ export class ResidentsService {
           throw new BadRequestException('CPF já cadastrado');
         }
       }
+
+      // Validar acomodação (roomId e bedId)
+      const accommodation = await this.validateAndProcessAccommodation(
+        createResidentDto.roomId,
+        createResidentDto.bedId,
+        tenantId,
+      );
 
       // Criar o residente
       const resident = await this.prisma.resident.create({
@@ -174,15 +275,21 @@ export class ResidentsService {
           belongings: createResidentDto.belongings || [],
 
           // 9. Acomodação
-          roomId: createResidentDto.roomId,
-          bedId: createResidentDto.bedId,
+          roomId: accommodation.roomId,
+          bedId: accommodation.bedId,
         },
       });
+
+      // Atualizar status do leito para "Ocupado" se foi atribuído
+      if (accommodation.bedId) {
+        await this.updateBedStatus(accommodation.bedId, 'Ocupado', tenantId);
+      }
 
       this.logger.info('Residente criado', {
         residentId: resident.id,
         tenantId,
         userId,
+        bedId: accommodation.bedId,
       });
 
       return resident;
@@ -340,6 +447,38 @@ export class ResidentsService {
         }
       }
 
+      // Validar acomodação (roomId e bedId) se estiverem sendo atualizados
+      let accommodationToUpdate: { roomId?: string; bedId?: string } | null = null;
+      let oldBedId = existingResident.bedId;
+      let newBedId: string | undefined;
+
+      if (updateResidentDto.roomId !== undefined || updateResidentDto.bedId !== undefined) {
+        accommodationToUpdate = await this.validateAndProcessAccommodation(
+          updateResidentDto.roomId,
+          updateResidentDto.bedId,
+          tenantId,
+          id, // currentResidentId
+        );
+
+        newBedId = accommodationToUpdate.bedId;
+
+        // Se está mudando de leito, liberar o antigo
+        if (oldBedId && newBedId && oldBedId !== newBedId) {
+          await this.updateBedStatus(oldBedId, 'Disponível', tenantId);
+          this.logger.info('Leito antigo liberado', {
+            residentId: id,
+            oldBedId,
+            newBedId,
+            tenantId,
+          });
+        }
+
+        // Se está sendo removido de leito
+        if (oldBedId && !newBedId) {
+          await this.updateBedStatus(oldBedId, 'Disponível', tenantId);
+        }
+      }
+
       // Atualizar o residente
       // Extrair campos JSON para tratamento explícito (conversão de tipo necessária para Prisma)
       const {
@@ -350,6 +489,8 @@ export class ResidentsService {
         medicalReport,
         healthPlans,
         belongings,
+        roomId,
+        bedId,
         ...restDto
       } = updateResidentDto;
 
@@ -384,15 +525,28 @@ export class ResidentsService {
       if (healthPlans !== undefined) dataToUpdate.healthPlans = healthPlans;
       if (belongings !== undefined) dataToUpdate.belongings = belongings;
 
+      // Adicionar acomodação validada se foi processada
+      if (accommodationToUpdate) {
+        if (accommodationToUpdate.roomId !== undefined) dataToUpdate.roomId = accommodationToUpdate.roomId;
+        if (accommodationToUpdate.bedId !== undefined) dataToUpdate.bedId = accommodationToUpdate.bedId;
+      }
+
       const updated = await this.prisma.resident.update({
         where: { id },
         data: dataToUpdate,
       });
 
+      // Atualizar status do novo leito para "Ocupado" se foi atribuído
+      if (newBedId && newBedId !== oldBedId) {
+        await this.updateBedStatus(newBedId, 'Ocupado', tenantId);
+      }
+
       this.logger.info('Residente atualizado', {
         residentId: id,
         tenantId,
         userId,
+        oldBedId,
+        newBedId,
       });
 
       return updated;

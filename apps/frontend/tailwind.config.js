@@ -5,6 +5,9 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'data-[state=inactive]:hidden',
+  ],
   theme: {
   	container: {
   		center: true,

@@ -1,173 +1,326 @@
-# Correção de Erro HTTP 500 - Endpoint /api/floors
+# Correção: Formulário de Edição de Residente - Botão Não Responde
 
 **Data:** 2025-11-20
 **Responsável:** Dr. E. (Emanuel)
-**Projeto:** RAFA ILPI Data - Correção de erro em endpoint de andares
+**Projeto:** RAFA ILPI Data - Correção do formulário de edição de residentes
 
 ---
 
 ## Problema Identificado
 
-### Sintoma
-- Requisição GET para `http://localhost:3000/api/floors` retorna HTTP 500 Internal Server Error
-- Seed executado com sucesso (1 prédio, 2 andares, 9 quartos, 23 leitos)
-- Módulos registrados corretamente no AppModule
+### Sintoma Primário
+- Ao clicar no botão "Atualizar Residente" (modo edição), nada acontece
+- Nenhuma mensagem de erro no console
+- Nenhuma requisição HTTP enviada
+- O botão não responde como se não tivesse onclick
 
-### Causa Raiz
-**FloorsController usa AuditInterceptor, mas não possui o decorador @AuditEntity**
+### Sintoma Secundário
+- Aviso React: "Select is changing from uncontrolled to controlled"
+- Dificuldade ao carregar quarto/leito quando editando residente
+- Mensagem no console durante debug: "Total de campos: apenas 2 (quartoNumero e leitoNumero)"
 
-**Análise:**
-1. ✅ FloorsModule está registrado no AppModule
-2. ✅ PrismaModule está disponível globalmente
-3. ✅ FloorsService tem injeção de PrismaService correta
-4. ❌ **FloorsController usa @UseInterceptors(AuditInterceptor)** (linha 20)
-5. ❌ **FloorsController NÃO possui decorador @AuditEntity('Floor')**
-6. ❌ AuditInterceptor espera metadados de `auditEntity` (linha 33-35 do audit.interceptor.ts)
-7. ❌ Quando `auditEntity` é undefined, pode causar erro ao tentar registrar no audit log
+### Causa Raiz Descoberta
 
-**Código problemático em `/apps/backend/src/floors/floors.controller.ts`:**
+**Os campos do formulário (9 abas) NÃO estavam sendo renderizados no DOM**
+
+#### Análise Detalhada:
+1. O formulário tem 9 abas com campos distribuídos em abas 1-8
+2. Radix UI Tabs, **por padrão, desmonta** o conteúdo das abas quando ficam inativas
+3. React Hook Form valida apenas campos que existem fisicamente no DOM
+4. Quando apenas 2 campos estavam visíveis (aba 9), validação falhava para campos obrigatórios
+5. `handleSubmit(onSubmit)` nunca era executado porque validação falhou silenciosamente
+
+#### Problema Específico:
+- TabsContent sem `forceMount` → Radix desmontava conteúdo inativo
+- Tentativa de correção com `className="data-[state=inactive]:hidden"` falhou
+- Razão: Tailwind CSS não estava configurado para suportar arbitrary data attributes
+
+---
+
+## Solução Implementada
+
+### Passo 1: Adicionar `forceMount` ✅
+**Arquivo:** `apps/frontend/src/pages/residents/ResidentForm.tsx`
+
+Mudança em todas as 9 abas (linhas 1047, 1291, 1486, 1542, 1693, 1808, 2102, 2158, 2171):
+
 ```typescript
-@Controller('floors')
-@UseInterceptors(AuditInterceptor)  // ❌ Usa interceptor
-export class FloorsController {
-  // ❌ Falta @AuditEntity('Floor')
+// ANTES
+<TabsContent value="tab1">
+
+// DEPOIS
+<TabsContent value="tab1" forceMount>
 ```
 
-**Comparação com outros controllers:**
-- BuildingsController, RoomsController e BedsController provavelmente têm o mesmo problema
-- ResidentsController e TenantsController devem ter implementação correta
+**Efeito:** Força Radix UI a manter todos os campos no DOM simultaneamente, mesmo nas abas inativas.
 
----
+### Passo 2: Remover Classe CSS Ineficaz ✅
+Removido `className="data-[state=inactive]:hidden"` que não funcionava
 
-## Plano de Correção
+### Passo 3: Adicionar CSS Puro para Ocultar Abas Inativas ✅
+**Arquivo:** `apps/frontend/src/index.css` (linhas 61-64)
 
-### Tarefa 1: Adicionar @AuditEntity no FloorsController
-- [ ] Importar `AuditEntity` de `../audit/audit.decorator`
-- [ ] Adicionar decorador `@AuditEntity('Floor')` no controller
-- [ ] Verificar que o decorador está ANTES de `@UseInterceptors`
-
-### Tarefa 2: Verificar BuildingsController
-- [ ] Verificar se tem `@UseInterceptors(AuditInterceptor)`
-- [ ] Verificar se tem `@AuditEntity('Building')`
-- [ ] Adicionar se necessário
-
-### Tarefa 3: Verificar RoomsController
-- [ ] Verificar se tem `@UseInterceptors(AuditInterceptor)`
-- [ ] Verificar se tem `@AuditEntity('Room')`
-- [ ] Adicionar se necessário
-
-### Tarefa 4: Verificar BedsController
-- [ ] Verificar se tem `@UseInterceptors(AuditInterceptor)`
-- [ ] Verificar se tem `@AuditEntity('Bed')`
-- [ ] Adicionar se necessário
-
-### Tarefa 5: Testar endpoint corrigido
-- [ ] Reiniciar servidor backend
-- [ ] Fazer GET para `/api/floors`
-- [ ] Verificar resposta HTTP 200
-- [ ] Verificar estrutura JSON retornada
-
-### Tarefa 6: Commit das correções
-- [ ] Adicionar arquivos modificados
-- [ ] Criar commit descritivo
-- [ ] Verificar git status
-
----
-
-## Arquivos que Precisam Ser Corrigidos
-
-1. `/apps/backend/src/floors/floors.controller.ts`
-2. `/apps/backend/src/buildings/buildings.controller.ts` (verificar)
-3. `/apps/backend/src/rooms/rooms.controller.ts` (verificar)
-4. `/apps/backend/src/beds/beds.controller.ts` (verificar)
-
----
-
-## Código de Correção
-
-### FloorsController - Adicionar estas linhas:
-
-```typescript
-import { AuditEntity } from '../audit/audit.decorator'  // ← ADICIONAR IMPORT
-
-@Controller('floors')
-@AuditEntity('Floor')  // ← ADICIONAR DECORADOR
-@UseInterceptors(AuditInterceptor)
-export class FloorsController {
-  // ... resto do código
+```css
+/* Ocultar TabsContent inativos ao usar forceMount */
+[role="tabpanel"][data-state="inactive"] {
+  display: none;
 }
 ```
 
-### Padrão para os outros controllers:
+**Efeito:** CSS puro funciona independente de Tailwind, ocultando visualmente abas inativas enquanto mantém os campos no DOM para validação.
 
-```typescript
-import { AuditEntity } from '../audit/audit.decorator'
+---
 
-@Controller('buildings')
-@AuditEntity('Building')
-@UseInterceptors(AuditInterceptor)
-export class BuildingsController { ... }
+## Arquivos Modificados
 
-@Controller('rooms')
-@AuditEntity('Room')
-@UseInterceptors(AuditInterceptor)
-export class RoomsController { ... }
+| Arquivo | Mudança | Status |
+|---------|---------|--------|
+| `apps/frontend/src/pages/residents/ResidentForm.tsx` | Adicionado `forceMount` em 9 TabsContent | ✅ Completo |
+| `apps/frontend/src/index.css` | Adicionada regra CSS para ocultar abas inativas | ✅ Completo |
+| `apps/frontend/src/pages/residents/ResidentForm.tsx` (anterior) | Removido cnsCard field | ✅ Anterior |
+| `apps/frontend/src/hooks/useBeds.ts` | Verificado (sem mudanças necessárias) | ✅ OK |
 
-@Controller('beds')
-@AuditEntity('Bed')
-@UseInterceptors(AuditInterceptor)
-export class BedsController { ... }
+---
+
+## Validação e Build
+
+### Build Frontend ✅
+```
+✓ 3287 modules transformed
+✓ built in 8.07s
+```
+
+Todos os assets gerados com sucesso. Nenhum erro de compilação.
+
+---
+
+## Próximas Ações para Dr. E. Validar
+
+### 1. Testar Edição de Residente
+- [ ] Navegar para a página de edição de um residente existente
+- [ ] Preencher campos em diferentes abas (dados pessoais, endereço, etc)
+- [ ] Verificar que os valores são mantidos ao trocar de aba
+- [ ] Clicar no botão "Atualizar Residente"
+- [ ] Confirmar que a requisição é enviada (verificar Network do DevTools)
+
+### 2. Validar Resposta do Servidor
+- [ ] Confirmar que residente foi atualizado com sucesso
+- [ ] Verificar que navegação ocorre após salvamento
+- [ ] Checar que não há erros no console
+
+### 3. Testar em Diferentes Abas
+- [ ] Editar residente começando pela aba 1 (Dados)
+- [ ] Editar começando pela aba 5 (Admissão)
+- [ ] Editar começando pela aba 9 (Acomodação)
+- [ ] Confirmar que funciona independente de qual aba inicia
+
+### 4. Verificar Aviso do React Select
+- [ ] Se o aviso "Select is changing from uncontrolled to controlled" persistir, isso é secundário
+- [ ] Funcionalidade está preservada, apenas aviso em desenvolvimento
+
+---
+
+## Resumo Técnico
+
+### O Que Causava o Problema
+```javascript
+// Radix UI Tabs padrão: desmonta conteúdo inativo
+<Tabs defaultValue="tab1">
+  <TabsContent value="tab1">Renderizado</TabsContent>
+  <TabsContent value="tab2">NÃO renderizado (desmontado)</TabsContent>
+  {/* ... */}
+</Tabs>
+
+// React Hook Form vê schema com 20 campos mas DOM tem apenas 2
+// Validação falha silenciosamente
+// handleSubmit nunca executa onSubmit
+```
+
+### Como a Solução Funciona
+```javascript
+// Com forceMount: todos os campos no DOM
+<Tabs defaultValue="tab1">
+  <TabsContent value="tab1" forceMount>Renderizado</TabsContent>
+  <TabsContent value="tab2" forceMount>Renderizado (mas oculto via CSS)</TabsContent>
+  {/* ... */}
+</Tabs>
+
+// CSS puro oculta visualmente, mas deixa no DOM
+[role="tabpanel"][data-state="inactive"] {
+  display: none; /* Oculta visualmente */
+}
+
+// React Hook Form consegue validar TODOS os 20 campos
+// handleSubmit executa onSubmit normalmente
 ```
 
 ---
 
-## Próximos Passos Após Correção
-
-1. Testar endpoint GET `/api/floors`
-2. Testar endpoint GET `/api/buildings`
-3. Testar endpoint GET `/api/rooms`
-4. Testar endpoint GET `/api/beds`
-5. Testar página de mapa de quartos no frontend
-6. Verificar logs de auditoria no banco de dados
+## Status Final - Fase Anterior
+- ✅ **CORREÇÃO IMPLEMENTADA E COMPILADA**
+- ⏳ **AGUARDANDO VALIDAÇÃO DO DR. E.**
 
 ---
 
-## Causa Raiz Identificada (Update)
+# Refatoração: Simplificação e Melhoria do ResidentForm.tsx
 
-**O problema NÃO é apenas o @AuditEntity. É a falta de GUARDS!**
+**Data:** 2025-11-20
+**Responsável:** Dr. E. (Emanuel)
+**Projeto:** RAFA ILPI Data - Refatoração de ResidentForm.tsx para simplificação e eliminação de redundâncias
 
-Comparação:
-- **ResidentsController** (FUNCIONA): Tem `@UseGuards(JwtAuthGuard, RolesGuard)` na classe
-- **FloorsController** (ERRO 500): NÃO tem guards na classe
+---
 
-Quando não há guards, `request.user` é `undefined`. Quando o AuditInterceptor tenta acessar `user.tenant` (linha 44 do audit.interceptor.ts), gera erro HTTP 500.
+## Análise Completa Realizada ✅
 
-## Plano Corrigido
+Um agente Explore realizou análise profunda do arquivo ResidentForm.tsx (2311 linhas) e identificou:
 
-### Tarefa 1: Adicionar Guards ao FloorsController ✅
-- [ ] Adicionar import de JwtAuthGuard e RolesGuard
-- [ ] Adicionar `@UseGuards(JwtAuthGuard, RolesGuard)` na classe
+- **~400 linhas de código duplicado** (endereços, badges, uploads)
+- **Funções redundantes** (3x busca CEP idêntica, múltiplos conversores de data)
+- **Componente monolítico** (todas as 9 abas no mesmo arquivo)
+- **Funções gigantes** (onSubmit com 318 linhas, useEffect com 185 linhas)
 
-### Tarefa 2: Adicionar Guards ao BuildingsController
-- [ ] Adicionar imports
-- [ ] Adicionar `@UseGuards(JwtAuthGuard, RolesGuard)`
+**Potencial de Redução:** De 2311 linhas → ~600-800 linhas (-65%)
 
-### Tarefa 3: Adicionar Guards ao RoomsController
-- [ ] Adicionar imports
-- [ ] Adicionar `@UseGuards(JwtAuthGuard, RolesGuard)`
+---
 
-### Tarefa 4: Adicionar Guards ao BedsController
-- [ ] Adicionar imports
-- [ ] Adicionar `@UseGuards(JwtAuthGuard, RolesGuard)`
+## Plano de Refatoração - Mudanças CRÍTICAS
 
-### Tarefa 5: Testar endpoints
-- [ ] GET `/api/buildings` → 200
-- [ ] GET `/api/floors` → 200
-- [ ] GET `/api/rooms` → 200
-- [ ] GET `/api/beds` → 200
+### 1. Extrair Componentes de Abas 🔴 CRÍTICO
+**Status:** Pending
+**Objetivo:** Dividir as 9 abas em componentes separados
+**Arquivos a Criar:**
+- `apps/frontend/src/pages/residents/tabs/DadosPessoaisTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/EnderecosTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/ContatosTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/ResponsavelTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/AdmissaoTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/SaudeTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/ConveniosTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/PertencesTab.tsx`
+- `apps/frontend/src/pages/residents/tabs/AcomodacaoTab.tsx`
 
-### Tarefa 6: Commit das correções
-- [ ] Commit com mensagem descritiva
+**Resultado:** Arquivo principal reduzido de 2311 → ~600-700 linhas
 
-## Status
-- ⏳ **EM PROGRESSO** - Implementando a solução corrigida
+### 2. Criar Componente AddressFields 🔴 CRÍTICO
+**Status:** Pending
+**Objetivo:** Eliminar 3 blocos duplicados de endereço
+**Arquivo:** `apps/frontend/src/components/residents/AddressFields.tsx`
+**Redução:** ~220 linhas eliminadas
+**Nota:** Endereço Atual (linhas 1312-1385), Procedência (1412-1485), Responsável (1640-1696)
+
+### 3. Função Genérica de Busca CEP 🔴 CRÍTICO
+**Status:** Pending
+**Objetivo:** Consolidar 3 funções idênticas em 1
+**Arquivo:** `apps/frontend/src/pages/residents/ResidentForm.tsx` (linhas 548-596)
+**Redução:** ~51 linhas consolidadas em ~40 linhas
+
+### 4. Separar Funções de Conversão 🔴 CRÍTICO
+**Status:** Pending
+**Objetivo:** Extrair conversores de data, civil status, blood type
+**Arquivo:** `apps/frontend/src/utils/formMappers.ts`
+**Redução:** 6 funções espalhadas → 1 arquivo importado
+
+---
+
+## Plano de Refatoração - Mudanças IMPORTANTES
+
+### 5. Componente BadgeInput 🟡 IMPORTANTE
+**Status:** Pending
+**Objetivo:** Unificar renderização de medicamentos, alergias e condições crônicas
+**Arquivo:** `apps/frontend/src/components/residents/BadgeInput.tsx`
+**Redução:** ~120 linhas eliminadas
+**Nota:** Linhas 1900-2022 (medicamentos, alergias, condições)
+
+### 6. Refatorar Função onSubmit 🟡 IMPORTANTE
+**Status:** Pending
+**Objetivo:** Dividir onSubmit de 318 linhas em 3 funções menores
+**Onde:** `apps/frontend/src/pages/residents/ResidentForm.tsx`
+**Funções:**
+- `uploadAllFiles()` - Lógica de upload (linhas 657-745)
+- `buildPayload()` - Transformação de dados (linhas 758-891)
+- `submitResident()` - Envio para API (linhas 905-930)
+
+### 7. Consolidar useEffects 🟡 IMPORTANTE
+**Status:** Pending
+**Onde:** `apps/frontend/src/pages/residents/ResidentForm.tsx` (linhas 319-357)
+**Objetivo:** Unificar validações em tempo real de CPF e CNS
+
+### 8. Helper de Upload Genérico 🟡 IMPORTANTE
+**Status:** Pending
+**Arquivo:** `apps/frontend/src/pages/residents/ResidentForm.tsx` (linhas 657-745)
+**Objetivo:** Criar funções `uploadFileIfExists()` e `uploadFilesIfExists()`
+**Redução:** ~80 linhas, código mais limpo
+
+---
+
+## Plano de Refatoração - Nice-to-Have
+
+### 9. Componente UppercaseInput 🟢 NICE-TO-HAVE
+**Status:** Pending
+**Arquivo:** `apps/frontend/src/components/residents/UppercaseInput.tsx`
+**Redução:** ~16 linhas
+
+### 10. Constantes para Opções 🟢 NICE-TO-HAVE
+**Status:** Pending
+**Objetivo:** GENDER_OPTIONS, CIVIL_STATUS_OPTIONS, etc. em constantes
+**Benefício:** Performance (evita recreação a cada render)
+
+### 11. useCallback para Handlers 🟢 NICE-TO-HAVE
+**Status:** Pending
+**Objetivo:** Memoizar handlers de foto, etc.
+**Benefício:** Performance
+
+### 12. Melhorar Validação Zod 🟢 NICE-TO-HAVE
+**Status:** Pending
+**Onde:** `apps/frontend/src/pages/residents/ResidentForm.tsx` (linhas 61-178)
+**Objetivo:** Adicionar validações mais específicas (CPF, CNS, CEP, etc.)
+
+### 13. Substituir Refs por State 🟢 NICE-TO-HAVE
+**Status:** Pending
+**Onde:** `apps/frontend/src/pages/residents/ResidentForm.tsx` (linhas 257-259)
+**Objetivo:** Usar controlled inputs em vez de refs para badges
+
+---
+
+## Estimativa de Esforço
+
+| Grupo | Tarefas | Tempo Estimado | Impacto |
+|-------|---------|----------------|--------|
+| **CRÍTICAS** | 1-4 | 8-12h | ⭐⭐⭐⭐⭐ |
+| **IMPORTANTES** | 5-8 | 4-6h | ⭐⭐⭐⭐ |
+| **NICE-TO-HAVE** | 9-13 | 2-3h | ⭐⭐⭐ |
+| **TOTAL** | 13 | 14-21h | - |
+
+---
+
+## Próximas Etapas
+
+### Passo 1: Validação do Plano ⏳
+- [ ] Dr. E. revisar este plano
+- [ ] Aprovar priorização das tarefas
+- [ ] Confirmar autorização para começar
+
+### Passo 2: Implementação das Mudanças CRÍTICAS
+- [ ] Tarefa 1: Extrair Componentes de Abas
+- [ ] Tarefa 2: Criar Componente AddressFields
+- [ ] Tarefa 3: Função Genérica de Busca CEP
+- [ ] Tarefa 4: Separar Funções de Conversão
+
+### Passo 3: Implementação das Mudanças IMPORTANTES
+- [ ] Tarefa 5: Componente BadgeInput
+- [ ] Tarefa 6: Refatorar onSubmit
+- [ ] Tarefa 7: Consolidar useEffects
+- [ ] Tarefa 8: Helper de Upload
+
+### Passo 4: Validação e Testes
+- [ ] Build frontend sem erros
+- [ ] Testar criação de novo residente
+- [ ] Testar edição de residente existente
+- [ ] Testar todos os uploads (foto, documentos, etc)
+- [ ] Verificar tabs funcionando corretamente
+- [ ] Verificar que button "Atualizar Residente" funciona
+
+### Passo 5: Commit e Conclusão
+- [ ] Commit das mudanças com mensagem descritiva
+- [ ] Revisão final do código
+- [ ] Documentação de mudanças
