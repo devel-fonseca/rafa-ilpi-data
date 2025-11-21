@@ -339,6 +339,51 @@ server {
 
 ---
 
+## 📝 Changelog - Ultimas Correções (2025-11-21)
+
+### Versão com Correção de Schema - Build `44d5f1a`
+
+#### ✅ Problemas Resolvidos
+
+1. **HTTP 500 em GET /api/rooms**
+   - **Causa**: Campos faltantes no schema da tabela `rooms`
+   - **Solução**: Adicionadas migrations para criar os campos:
+     - `code` - Código único do quarto
+     - `roomNumber` - Número do quarto
+     - `hasPrivateBathroom` - Indicador de banheiro privativo
+     - `accessible` - Indicador de acessibilidade
+     - `observations` - Observações sobre o quarto
+
+2. **HTTP 400 em POST /api/buildings/structure (Wizard)**
+   - **Causa**: Mismatch entre schema Prisma (camelCase) e colunas do PostgreSQL (lowercase)
+   - **Solução**: Migration corretiva para renomear colunas para camelCase:
+     - `roomnumber` → `roomNumber`
+     - `hasprivatebathroom` → `hasPrivateBathroom`
+
+#### 🔧 Migrations Aplicadas
+
+```sql
+-- Migration: 20251121120000_add_missing_rooms_fields
+ALTER TABLE "rooms" ADD COLUMN "code" TEXT;
+ALTER TABLE "rooms" ADD COLUMN "roomNumber" TEXT;
+ALTER TABLE "rooms" ADD COLUMN "hasPrivateBathroom" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "rooms" ADD COLUMN "accessible" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "rooms" ADD COLUMN "observations" TEXT;
+
+-- Migration: 20251121120100_fix_rooms_columns_casing
+ALTER TABLE "rooms" RENAME COLUMN "roomnumber" TO "roomNumber";
+ALTER TABLE "rooms" RENAME COLUMN "hasprivatebathroom" TO "hasPrivateBathroom";
+```
+
+#### ✨ Funcionalidades Testadas e Operacionais
+
+- ✅ GET /api/rooms - Listando quartos com sucesso
+- ✅ POST /api/buildings/structure - Wizard de criação de estrutura funcionando
+- ✅ Criação de prédios, andares, quartos e leitos completa
+- ✅ Exibição de prédio nos cards de leitos
+
+---
+
 ## 📞 Suporte
 
 Para suporte técnico:
