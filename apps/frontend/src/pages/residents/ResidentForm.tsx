@@ -938,33 +938,18 @@ export function ResidentForm() {
       {/* Tabs/Abas */}
       <form onSubmit={handleSubmit(onSubmit)}>
         <Tabs defaultValue="tab1" className="mb-8">
-            <TabsList className="grid grid-cols-9 gap-2 h-auto p-2 bg-white rounded-lg shadow-md mb-6">
+            <TabsList className="grid grid-cols-4 gap-2 h-auto p-2 bg-white rounded-lg shadow-md mb-6">
               <TabsTrigger value="tab1" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                1. Dados
+                1. Dados & Contatos
               </TabsTrigger>
               <TabsTrigger value="tab2" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                2. Endereços
+                2. Endereços & Responsável
               </TabsTrigger>
               <TabsTrigger value="tab3" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                3. Contatos
+                3. Saúde & Convênios
               </TabsTrigger>
               <TabsTrigger value="tab4" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                4. Responsável
-              </TabsTrigger>
-              <TabsTrigger value="tab5" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                5. Admissão
-              </TabsTrigger>
-              <TabsTrigger value="tab6" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                6. Saúde
-              </TabsTrigger>
-              <TabsTrigger value="tab7" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                7. Convênios
-              </TabsTrigger>
-              <TabsTrigger value="tab8" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                8. Pertences
-              </TabsTrigger>
-              <TabsTrigger value="tab9" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
-                9. Acomodação
+                4. Admissão & Acomodação
               </TabsTrigger>
             </TabsList>
 
@@ -1208,6 +1193,57 @@ export function ResidentForm() {
                       </div>
                     </div>
                   </Collapsible>
+
+                  <Collapsible title="Contatos de Emergência" defaultOpen={false}>
+                    <div className="space-y-3 mb-4">
+                      {contatosFields.map((field, index) => (
+                        <div key={field.id} className="flex gap-3 items-end p-4 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <Label className="text-xs">Nome completo</Label>
+                            <Input {...register(`contatosEmergencia.${index}.nome`)} className="mt-1" />
+                          </div>
+                          <div style={{ width: '180px' }}>
+                            <Label className="text-xs">Telefone</Label>
+                            <Controller
+                              name={`contatosEmergencia.${index}.telefone`}
+                              control={control}
+                              render={({ field }) => (
+                                <MaskedInput
+                                  mask="(99) 99999-9999"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="(99) 99999-9999"
+                                  className="mt-1"
+                                />
+                              )}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label className="text-xs">Parentesco</Label>
+                            <Input {...register(`contatosEmergencia.${index}.parentesco`)} className="mt-1" />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeContato(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendContato({ nome: '', telefone: '', parentesco: '' })}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Contato
+                    </Button>
+                  </Collapsible>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1403,337 +1439,160 @@ export function ResidentForm() {
                       onFilesChange={(files) => setValue('documentosEnderecoUrls', files)}
                     />
                   </Collapsible>
+
+                  <Collapsible title="Responsável Legal" defaultOpen={true}>
+                    <div className="grid grid-cols-12 gap-4 mb-6">
+                      <div className="col-span-12 md:col-span-6">
+                        <Label>Nome Completo</Label>
+                        <Input {...register('responsavelLegalNome')} className="mt-2" />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-3">
+                        <Label>CPF</Label>
+                        <Controller
+                          name="responsavelLegalCpf"
+                          control={control}
+                          render={({ field }) => (
+                            <MaskedInput
+                              mask="999.999.999-99"
+                              value={field.value}
+                              onChange={field.onChange}
+                              className="mt-2"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-3">
+                        <Label>RG</Label>
+                        <Controller
+                          name="responsavelLegalRg"
+                          control={control}
+                          render={({ field }) => (
+                            <MaskedInput
+                              mask="99.999.999-9"
+                              value={field.value}
+                              onChange={field.onChange}
+                              className="mt-2"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-3">
+                        <Label>Telefone</Label>
+                        <Controller
+                          name="responsavelLegalTelefone"
+                          control={control}
+                          render={({ field }) => (
+                            <MaskedInput
+                              mask="(99) 99999-9999"
+                              value={field.value}
+                              onChange={field.onChange}
+                              className="mt-2"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-9">
+                        <Label>Tipo de Responsabilidade</Label>
+                        <Controller
+                          name="responsavelLegalTipo"
+                          control={control}
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Curador">Curador</SelectItem>
+                                <SelectItem value="Procurador">Procurador</SelectItem>
+                                <SelectItem value="Responsável Familiar (Convencional)">Responsável Familiar (Convencional)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <h3 className="text-lg font-semibold mb-4 mt-6">Endereço do Responsável</h3>
+
+                    <div className="grid grid-cols-12 gap-4 mb-6">
+                      <div className="col-span-12 md:col-span-3">
+                        <Label>CEP</Label>
+                        <Controller
+                          name="responsavelLegalCep"
+                          control={control}
+                          render={({ field }) => (
+                            <MaskedInput
+                              mask="99999-999"
+                              value={field.value}
+                              onChange={(e) => {
+                                field.onChange(e)
+                                handleBuscarCep(e.target.value, 'responsavelLegal')
+                              }}
+                              className="mt-2"
+                            />
+                          )}
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-2">
+                        <Label>UF</Label>
+                        <Input
+                          {...register('responsavelLegalUf')}
+                          maxLength={2}
+                          className="mt-2 uppercase"
+                          onChange={(e) => {
+                            e.target.value = e.target.value.toUpperCase()
+                            register('responsavelLegalUf').onChange(e)
+                          }}
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-7">
+                        <Label>Cidade</Label>
+                        <Input {...register('responsavelLegalCidade')} className="mt-2" />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-6">
+                        <Label>Logradouro</Label>
+                        <Input {...register('responsavelLegalLogradouro')} className="mt-2" />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-2">
+                        <Label>Número</Label>
+                        <Input {...register('responsavelLegalNumero')} className="mt-2" />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-4">
+                        <Label>Complemento</Label>
+                        <Input {...register('responsavelLegalComplemento')} className="mt-2" />
+                      </div>
+
+                      <div className="col-span-12">
+                        <Label>Bairro</Label>
+                        <Input {...register('responsavelLegalBairro')} className="mt-2" />
+                      </div>
+                    </div>
+
+                    <MultiFileUpload
+                      title="Documentos do Responsável"
+                      description="PDF, imagens, etc."
+                      accept="image/*,application/pdf"
+                      onFilesChange={(files) => setValue('responsavelLegalDocumentosUrls', files)}
+                    />
+                  </Collapsible>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Aba 3 - Contatos */}
+            {/* Aba 3 - Saúde + Convênios */}
             <TabsContent value="tab3" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
-                  <div className="space-y-3 mb-4">
-                    {contatosFields.map((field, index) => (
-                      <div key={field.id} className="flex gap-3 items-end p-4 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <Label className="text-xs">Nome completo</Label>
-                          <Input {...register(`contatosEmergencia.${index}.nome`)} className="mt-1" />
-                        </div>
-                        <div style={{ width: '180px' }}>
-                          <Label className="text-xs">Telefone</Label>
-                          <Controller
-                            name={`contatosEmergencia.${index}.telefone`}
-                            control={control}
-                            render={({ field }) => (
-                              <MaskedInput
-                                mask="(99) 99999-9999"
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="(99) 99999-9999"
-                                className="mt-1"
-                              />
-                            )}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <Label className="text-xs">Parentesco</Label>
-                          <Input {...register(`contatosEmergencia.${index}.parentesco`)} className="mt-1" />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeContato(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendContato({ nome: '', telefone: '', parentesco: '' })}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Contato
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Aba 4 - Responsável */}
-            <TabsContent value="tab4" forceMount className="data-[state=inactive]:hidden">
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-12 gap-4 mb-6">
-                    <div className="col-span-12 md:col-span-6">
-                      <Label>Nome Completo</Label>
-                      <Input {...register('responsavelLegalNome')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-3">
-                      <Label>CPF</Label>
-                      <Controller
-                        name="responsavelLegalCpf"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="999.999.999-99"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-3">
-                      <Label>RG</Label>
-                      <Controller
-                        name="responsavelLegalRg"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="99.999.999-9"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-3">
-                      <Label>Telefone</Label>
-                      <Controller
-                        name="responsavelLegalTelefone"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="(99) 99999-9999"
-                            value={field.value}
-                            onChange={field.onChange}
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-9">
-                      <Label>Tipo de Responsabilidade</Label>
-                      <Controller
-                        name="responsavelLegalTipo"
-                        control={control}
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Curador">Curador</SelectItem>
-                              <SelectItem value="Procurador">Procurador</SelectItem>
-                              <SelectItem value="Responsável Familiar (Convencional)">Responsável Familiar (Convencional)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  <hr className="my-6" />
-                  <h3 className="text-lg font-semibold mb-4">Endereço do Responsável</h3>
-
-                  <div className="grid grid-cols-12 gap-4 mb-6">
-                    <div className="col-span-12 md:col-span-3">
-                      <Label>CEP</Label>
-                      <Controller
-                        name="responsavelLegalCep"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="99999-999"
-                            value={field.value}
-                            onChange={(e) => {
-                              field.onChange(e)
-                              handleBuscarCep(e.target.value, 'responsavelLegal')
-                            }}
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-2">
-                      <Label>UF</Label>
-                      <Input
-                        {...register('responsavelLegalUf')}
-                        maxLength={2}
-                        className="mt-2 uppercase"
-                        onChange={(e) => {
-                          e.target.value = e.target.value.toUpperCase()
-                          register('responsavelLegalUf').onChange(e)
-                        }}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-7">
-                      <Label>Cidade</Label>
-                      <Input {...register('responsavelLegalCidade')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-6">
-                      <Label>Logradouro</Label>
-                      <Input {...register('responsavelLegalLogradouro')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-2">
-                      <Label>Número</Label>
-                      <Input {...register('responsavelLegalNumero')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <Label>Complemento</Label>
-                      <Input {...register('responsavelLegalComplemento')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12">
-                      <Label>Bairro</Label>
-                      <Input {...register('responsavelLegalBairro')} className="mt-2" />
-                    </div>
-                  </div>
-
-                  <MultiFileUpload
-                    title="Documentos do Responsável"
-                    description="PDF, imagens, etc."
-                    accept="image/*,application/pdf"
-                    onFilesChange={(files) => setValue('responsavelLegalDocumentosUrls', files)}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Aba 5 - Admissão */}
-            <TabsContent value="tab5" forceMount className="data-[state=inactive]:hidden">
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-12 md:col-span-3">
-                      <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
-                        Data de Admissão
-                      </Label>
-                      <Controller
-                        name="dataAdmissao"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="99/99/9999"
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="DD/MM/AAAA"
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                      {errors.dataAdmissao && (
-                        <p className="text-sm text-red-500 mt-1">{errors.dataAdmissao.message}</p>
-                      )}
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <Label>Tipo de Admissão</Label>
-                      <Controller
-                        name="tipoAdmissao"
-                        control={control}
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Voluntária">Voluntária</SelectItem>
-                              <SelectItem value="Involuntária">Involuntária</SelectItem>
-                              <SelectItem value="Judicial">Judicial</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-5">
-                      <Label>Motivo da Admissão</Label>
-                      <Input {...register('motivoAdmissao')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12">
-                      <Label>Condições de Admissão</Label>
-                      <Textarea {...register('condicoesAdmissao')} rows={2} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-3">
-                      <Label>Data de Desligamento</Label>
-                      <Controller
-                        name="dataDesligamento"
-                        control={control}
-                        render={({ field }) => (
-                          <MaskedInput
-                            mask="99/99/9999"
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="DD/MM/AAAA"
-                            className="mt-2"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-9">
-                      <Label>Motivo do Desligamento</Label>
-                      <Input {...register('motivoDesligamento')} className="mt-2" />
-                    </div>
-
-                    <div className="col-span-12">
-                      <hr className="my-4" />
-                      <h4 className="font-semibold text-gray-700 mb-4">Documentos de Admissão</h4>
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Termo de Admissão"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('termoAdmissao', file)}
-                        showPreview={true}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Consentimento LGPD"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('consentimentoLgpd', file)}
-                        showPreview={true}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Consentimento de Imagem"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('consentimentoImagem', file)}
-                        showPreview={true}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Aba 6 - Saúde */}
-            <TabsContent value="tab6" forceMount className="data-[state=inactive]:hidden">
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <Collapsible title="Informações de Saúde" defaultOpen={true}>
+                  <Collapsible title="Dados de Saúde" defaultOpen={true}>
                     {/* Seção 1: Dados Antropométricos */}
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
                       <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Dados Antropométricos</h3>
@@ -2019,83 +1878,182 @@ export function ResidentForm() {
                       </div>
                     </div>
                   </Collapsible>
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            {/* Aba 7 - Convênios */}
-            <TabsContent value="tab7" forceMount className="data-[state=inactive]:hidden">
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
-                  <div className="space-y-3 mb-4">
-                    {conveniosFields.map((field, index) => (
-                      <div key={field.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="grid grid-cols-12 gap-3 items-center">
-                          <div className="col-span-12 md:col-span-5">
-                            <Label className="text-xs">Nome do Convênio</Label>
-                            <Input {...register(`convenios.${index}.nome`)} className="mt-1" />
-                          </div>
-                          <div className="col-span-12 md:col-span-5">
-                            <Label className="text-xs">Número da Carteirinha</Label>
-                            <Input {...register(`convenios.${index}.numero`)} className="mt-1" />
-                          </div>
-                          <div className="col-span-12 md:col-span-1 flex items-end">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeConvenio(index)}
-                              className="text-red-600 hover:text-red-700 w-full md:w-auto"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <div className="col-span-12">
-                            <SingleFileUpload
-                              label="Cartão do Convênio"
-                              accept="image/*,application/pdf"
-                              onFileSelect={(file) => {
-                                if (file) {
-                                  setValue(`convenios.${index}.arquivo`, file)
-                                }
-                              }}
-                              showPreview={true}
-                            />
+                  <Collapsible title="Convênios" defaultOpen={false}>
+                    <div className="space-y-3 mb-4">
+                      {conveniosFields.map((field, index) => (
+                        <div key={field.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="grid grid-cols-12 gap-3 items-center">
+                            <div className="col-span-12 md:col-span-5">
+                              <Label className="text-xs">Nome do Convênio</Label>
+                              <Input {...register(`convenios.${index}.nome`)} className="mt-1" />
+                            </div>
+                            <div className="col-span-12 md:col-span-5">
+                              <Label className="text-xs">Número da Carteirinha</Label>
+                              <Input {...register(`convenios.${index}.numero`)} className="mt-1" />
+                            </div>
+                            <div className="col-span-12 md:col-span-1 flex items-end">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeConvenio(index)}
+                                className="text-red-600 hover:text-red-700 w-full md:w-auto"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <div className="col-span-12">
+                              <SingleFileUpload
+                                label="Cartão do Convênio"
+                                accept="image/*,application/pdf"
+                                onFileSelect={(file) => {
+                                  if (file) {
+                                    setValue(`convenios.${index}.arquivo`, file)
+                                  }
+                                }}
+                                showPreview={true}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => appendConvenio({ nome: '', numero: '' })}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Convênio
-                  </Button>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => appendConvenio({ nome: '', numero: '' })}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Convênio
+                    </Button>
+                  </Collapsible>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Aba 8 - Pertences */}
-            <TabsContent value="tab8" forceMount className="data-[state=inactive]:hidden">
+            {/* Aba 4 - Admissão + Pertences + Acomodação */}
+            <TabsContent value="tab4" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-12 md:col-span-3">
+                      <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                        Data de Admissão
+                      </Label>
+                      <Controller
+                        name="dataAdmissao"
+                        control={control}
+                        render={({ field }) => (
+                          <MaskedInput
+                            mask="99/99/9999"
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="DD/MM/AAAA"
+                            className="mt-2"
+                          />
+                        )}
+                      />
+                      {errors.dataAdmissao && (
+                        <p className="text-sm text-red-500 mt-1">{errors.dataAdmissao.message}</p>
+                      )}
+                    </div>
+
+                    <div className="col-span-12 md:col-span-4">
+                      <Label>Tipo de Admissão</Label>
+                      <Controller
+                        name="tipoAdmissao"
+                        control={control}
+                        render={({ field }) => (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Voluntária">Voluntária</SelectItem>
+                              <SelectItem value="Involuntária">Involuntária</SelectItem>
+                              <SelectItem value="Judicial">Judicial</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+
+                    <div className="col-span-12 md:col-span-5">
+                      <Label>Motivo da Admissão</Label>
+                      <Input {...register('motivoAdmissao')} className="mt-2" />
+                    </div>
+
+                    <div className="col-span-12">
+                      <Label>Condições de Admissão</Label>
+                      <Textarea {...register('condicoesAdmissao')} rows={2} className="mt-2" />
+                    </div>
+
+                    <div className="col-span-12 md:col-span-3">
+                      <Label>Data de Desligamento</Label>
+                      <Controller
+                        name="dataDesligamento"
+                        control={control}
+                        render={({ field }) => (
+                          <MaskedInput
+                            mask="99/99/9999"
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="DD/MM/AAAA"
+                            className="mt-2"
+                          />
+                        )}
+                      />
+                    </div>
+
+                    <div className="col-span-12 md:col-span-9">
+                      <Label>Motivo do Desligamento</Label>
+                      <Input {...register('motivoDesligamento')} className="mt-2" />
+                    </div>
+
+                    <div className="col-span-12">
+                      <hr className="my-4" />
+                      <h4 className="font-semibold text-gray-700 mb-4">Documentos de Admissão</h4>
+                    </div>
+
+                    <div className="col-span-12 md:col-span-4">
+                      <SingleFileUpload
+                        label="Termo de Admissão"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('termoAdmissao', file)}
+                        showPreview={true}
+                      />
+                    </div>
+
+                    <div className="col-span-12 md:col-span-4">
+                      <SingleFileUpload
+                        label="Consentimento LGPD"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('consentimentoLgpd', file)}
+                        showPreview={true}
+                      />
+                    </div>
+
+                    <div className="col-span-12 md:col-span-4">
+                      <SingleFileUpload
+                        label="Consentimento de Imagem"
+                        accept="image/*,application/pdf"
+                        onFileSelect={(file) => setValue('consentimentoImagem', file)}
+                        showPreview={true}
+                      />
+                    </div>
+                  </div>
+
+                  <h3 className="text-lg font-semibold mb-4 mt-8">Pertences do Residente</h3>
                   <Textarea
                     {...register('pertencesLista')}
                     rows={6}
                     placeholder="Liste os pertences do residente, um por linha..."
+                    className="mb-6"
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            {/* Aba 9 - Acomodação */}
-            <TabsContent value="tab9" forceMount className="data-[state=inactive]:hidden">
-              <Card className="shadow-lg">
-                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Acomodação</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label>Quarto</Label>
@@ -2103,8 +2061,6 @@ export function ResidentForm() {
                         name="quartoNumero"
                         control={control}
                         render={({ field }) => {
-                          // Usar field.value se existir, senão string vazia
-                          // Isso mantém o Select sempre controlado
                           const selectValue = field.value ? String(field.value) : ''
                           return (
                             <Select
@@ -2112,7 +2068,6 @@ export function ResidentForm() {
                               onValueChange={(value) => {
                                 field.onChange(value)
                                 setSelectedRoomId(value)
-                                // Limpar leito quando mudar de quarto
                                 setValue('leitoNumero', '')
                               }}
                             >
@@ -2143,8 +2098,6 @@ export function ResidentForm() {
                         name="leitoNumero"
                         control={control}
                         render={({ field }) => {
-                          // Usar field.value se existir, senão string vazia
-                          // Isso mantém o Select sempre controlado
                           const selectValue = field.value ? String(field.value) : ''
                           return (
                             <Select
@@ -2179,9 +2132,8 @@ export function ResidentForm() {
                 </CardContent>
               </Card>
             </TabsContent>
-        </Tabs>
 
-        {/* Indicador de progresso de upload */}
+        </Tabs>
         {isUploading && (
           <div className="text-center mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-blue-700 font-semibold">{uploadProgress}</p>
