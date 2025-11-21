@@ -221,6 +221,44 @@ export class BedsService {
       orderBy: { name: 'asc' },
     })
 
-    return { buildings }
+    // Calcular estatísticas
+    const totalBuildings = buildings.length
+    const totalFloors = buildings.reduce((sum, b) => sum + (b.floors?.length || 0), 0)
+    const totalRooms = buildings.reduce((sum, b) =>
+      sum + (b.floors?.reduce((floorSum, f) => floorSum + (f.rooms?.length || 0), 0) || 0),
+      0
+    )
+    const totalBeds = buildings.reduce((sum, b) =>
+      sum +
+        (b.floors?.reduce((floorSum, f) =>
+          floorSum + (f.rooms?.reduce((roomSum, r) => roomSum + (r.beds?.length || 0), 0) || 0),
+          0
+        ) || 0),
+      0
+    )
+
+    // Contar leitos por status
+    const bedStatuses = await this.prisma.bed.findMany({
+      where: { tenantId, deletedAt: null },
+      select: { status: true },
+    })
+
+    const occupiedBeds = bedStatuses.filter((b) => b.status === 'Ocupado').length
+    const availableBeds = bedStatuses.filter((b) => b.status === 'Disponível').length
+    const maintenanceBeds = bedStatuses.filter((b) => b.status === 'Manutenção').length
+    const reservedBeds = bedStatuses.filter((b) => b.status === 'Reservado').length
+
+    const stats = {
+      totalBuildings,
+      totalFloors,
+      totalRooms,
+      totalBeds,
+      occupiedBeds,
+      availableBeds,
+      maintenanceBeds,
+      reservedBeds,
+    }
+
+    return { buildings, stats }
   }
 }

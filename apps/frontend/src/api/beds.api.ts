@@ -287,7 +287,7 @@ class BedsAPI {
 
   // HIERARCHY MAP
   async getBedsHierarchy(): Promise<BedsHierarchy> {
-    const response = await api.get('/beds/map/hierarchy')
+    const response = await api.get('/beds/map/full')
     return response.data
   }
 }
