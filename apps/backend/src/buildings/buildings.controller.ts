@@ -81,4 +81,14 @@ export class BuildingsController {
   ) {
     return this.buildingsService.remove(tenantId, id)
   }
+
+  @Post('structure')
+  @Roles('admin', 'user')
+  @AuditAction('CREATE')
+  createStructure(
+    @CurrentUser('tenantId') tenantId: string,
+    @Body() data: any
+  ) {
+    return this.buildingsService.createBuildingStructure(tenantId, data)
+  }
 }

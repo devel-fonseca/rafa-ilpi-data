@@ -7,9 +7,13 @@ export class BuildingsService {
   constructor(private prisma: PrismaService) {}
 
   async create(tenantId: string, createBuildingDto: CreateBuildingDto) {
+    // Gerar código automaticamente se não fornecido
+    const code = createBuildingDto.code || `PRED-${Date.now().toString().slice(-6)}`
+
     return this.prisma.building.create({
       data: {
         ...createBuildingDto,
+        code,
         tenantId,
       },
     })
@@ -178,6 +182,79 @@ export class BuildingsService {
       availableBeds,
       maintenanceBeds,
       occupancyRate: beds > 0 ? ((occupiedBeds / beds) * 100).toFixed(2) : '0.00',
+    }
+  }
+
+  async createBuildingStructure(tenantId: string, data: any) {
+    // Criar prédio
+    const building = await this.prisma.building.create({
+      data: {
+        name: data.buildingName,
+        code: `PRED-${Date.now().toString().slice(-6)}`,
+        tenantId,
+      },
+    })
+
+    // Armazenar arrays de criação
+    const floorsCreated = []
+    const roomsCreated = []
+    const bedsCreated = []
+
+    // Criar andares, quartos e leitos
+    for (const floorConfig of data.floors) {
+      const floor = await this.prisma.floor.create({
+        data: {
+          buildingId: building.id,
+          tenantId,
+          name: `Andar ${floorConfig.floorNumber}`,
+          code: `PISO-${floorConfig.floorNumber}`,
+          orderIndex: floorConfig.floorNumber,
+        },
+      })
+
+      floorsCreated.push(floor)
+
+      // Contador para gerar IDs sequenciais de quartos por andar
+      let roomIndexPerFloor = 0
+
+      for (const roomConfig of floorConfig.rooms) {
+        roomIndexPerFloor++
+        const room = await this.prisma.room.create({
+          data: {
+            floorId: floor.id,
+            tenantId,
+            name: roomConfig.roomName,
+            code: `${floorConfig.floorNumber.toString().padStart(2, '0')}-${roomIndexPerFloor.toString().padStart(3, '0')}`,
+            roomNumber: roomConfig.roomName,
+            capacity: roomConfig.bedCount,
+            roomType: roomConfig.bedCount === 1 ? 'Individual' : roomConfig.bedCount === 2 ? 'Duplo' : 'Coletivo',
+            hasPrivateBathroom: roomConfig.hasPrivateBathroom,
+            accessible: roomConfig.isAccessible,
+          },
+        })
+
+        roomsCreated.push(room)
+
+        for (const bedConfig of roomConfig.beds) {
+          const bed = await this.prisma.bed.create({
+            data: {
+              roomId: room.id,
+              tenantId,
+              code: bedConfig.code,
+              status: 'Disponível',
+            },
+          })
+
+          bedsCreated.push(bed)
+        }
+      }
+    }
+
+    return {
+      building,
+      floors: floorsCreated,
+      rooms: roomsCreated,
+      beds: bedsCreated,
     }
   }
 }

@@ -290,6 +290,17 @@ class BedsAPI {
     const response = await api.get('/beds/map/full')
     return response.data
   }
+
+  // BUILDING STRUCTURE GENERATOR
+  async createBuildingStructure(data: any): Promise<{
+    building: Building
+    floors: Floor[]
+    rooms: Room[]
+    beds: Bed[]
+  }> {
+    const response = await api.post('/buildings/structure', data)
+    return response.data
+  }
 }
 
 export const bedsAPI = new BedsAPI()

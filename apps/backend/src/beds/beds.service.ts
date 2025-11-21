@@ -61,7 +61,14 @@ export class BedsService {
               name: true,
               floorId: true,
               floor: {
-                select: { id: true, name: true, buildingId: true },
+                select: {
+                  id: true,
+                  name: true,
+                  buildingId: true,
+                  building: {
+                    select: { id: true, name: true },
+                  },
+                },
               },
             },
           },
@@ -86,7 +93,14 @@ export class BedsService {
             name: true,
             floorId: true,
             floor: {
-              select: { id: true, name: true, buildingId: true },
+              select: {
+                id: true,
+                name: true,
+                buildingId: true,
+                building: {
+                  select: { id: true, name: true },
+                },
+              },
             },
           },
         },

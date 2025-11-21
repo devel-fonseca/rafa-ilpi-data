@@ -15,9 +15,12 @@ interface BuildingCardProps {
   onEdit?: (building: Building) => void
   onDelete?: (building: Building) => void
   onClick?: (building: Building) => void
+  onNavigateFloors?: (building: Building) => void
+  onNavigateRooms?: (building: Building) => void
+  onNavigateBeds?: (building: Building) => void
 }
 
-export function BuildingCard({ building, onEdit, onDelete, onClick }: BuildingCardProps) {
+export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFloors, onNavigateRooms, onNavigateBeds }: BuildingCardProps) {
   const occupancyRate =
     building.totalBeds && building.totalBeds > 0
       ? Math.round(((building.occupiedBeds || 0) / building.totalBeds) * 100)
@@ -80,24 +83,42 @@ export function BuildingCard({ building, onEdit, onDelete, onClick }: BuildingCa
           )}
 
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-slate-100 rounded-lg p-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onNavigateFloors?.(building)
+              }}
+              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+            >
               <div className="text-2xl font-bold text-slate-700">
                 {building.totalFloors || 0}
               </div>
               <div className="text-xs text-muted-foreground">Andares</div>
-            </div>
-            <div className="bg-slate-100 rounded-lg p-2">
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onNavigateRooms?.(building)
+              }}
+              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+            >
               <div className="text-2xl font-bold text-slate-700">
                 {building.totalRooms || 0}
               </div>
               <div className="text-xs text-muted-foreground">Quartos</div>
-            </div>
-            <div className="bg-slate-100 rounded-lg p-2">
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onNavigateBeds?.(building)
+              }}
+              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+            >
               <div className="text-2xl font-bold text-slate-700">
                 {building.totalBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Leitos</div>
-            </div>
+            </button>
           </div>
 
           {/* Barra de ocupação */}

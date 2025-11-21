@@ -649,3 +649,152 @@ Build: ✓ Sucesso (8.18s)
 - ✅ Build passa sem warnings de tipo
 - ✅ Git history limpo e bem documentado
 - ✅ Code review possível em cada commit (granularidade apropriada)
+
+---
+
+## Melhoria: Exibir Prédio no BedCard para Fácil Localização
+
+**Data:** 2025-11-21
+**Responsável:** Dr. E. (Emanuel)
+**Projeto:** RAFA ILPI Data - Melhoria na localização de leitos mostrando nome do prédio
+
+### Problema
+
+Ao visualizar muitos leitos na aba "Leitos" da Estrutura de Leitos, era difícil encontrar um leito específico porque o card só exibia:
+
+- Número do leito
+- Código do leito
+- Status
+- Quarto e Andar (mas sem o prédio)
+
+Solicitação do Dr. E.: "O card poderia indicar de qual prédio é aquele leito"
+
+### Solução
+
+#### Backend: Inclusão do Nome do Prédio na Query
+
+Arquivo: `apps/backend/src/beds/beds.service.ts`
+
+Método `findAll()` (linhas 54-81) - Adicionado select para incluir o objeto `building` ao buscar floors:
+
+```typescript
+floor: {
+  select: {
+    id: true,
+    name: true,
+    buildingId: true,
+    building: {
+      select: { id: true, name: true },
+    },
+  },
+},
+```
+
+Método `findOne()` (linhas 86-108) - Mesma mudança para consistência:
+
+```typescript
+floor: {
+  select: {
+    id: true,
+    name: true,
+    buildingId: true,
+    building: {
+      select: { id: true, name: true },
+    },
+  },
+},
+```
+
+Impacto: Agora o bed object contém `bed.room.floor.building.name` para exibição
+
+#### Frontend: Exibição do Prédio no BedCard
+
+Arquivo: `apps/frontend/src/components/beds/BedCard.tsx` (linhas 125-130)
+
+Antes:
+
+```typescript
+{bed.room && (
+  <div className="text-xs text-muted-foreground">
+    Quarto {bed.room.roomNumber} - {bed.room.floor?.name}
+  </div>
+)}
+```
+
+Depois:
+
+```typescript
+{bed.room && (
+  <div className="space-y-1 text-xs text-muted-foreground">
+    <div>{bed.room.floor?.building?.name && `Prédio: ${bed.room.floor.building.name}`}</div>
+    <div>Quarto {bed.room.roomNumber} - {bed.room.floor?.name}</div>
+  </div>
+)}
+```
+
+Melhorias:
+
+- Adicionada linha com nome do prédio (condicional - só exibe se disponível)
+- Organização em duas linhas com espaçamento (`space-y-1`)
+- Mantém a informação de quarto e andar na segunda linha
+- Ordem lógica: Prédio → Andar/Quarto
+
+### Validação e Build
+
+Build Frontend:
+
+```text
+✓ 3289 modules transformed
+✓ built in 8.95s
+✓ Sem erros TypeScript
+✓ Sem erros ESLint
+```
+
+Estrutura de Dados Verificada:
+
+- ✅ Backend retorna `bed.room.floor.building.name`
+- ✅ Frontend acessa corretamente a hierarquia aninhada
+- ✅ Renderização condicional evita erros se building não existir
+
+### Arquivos Modificados
+
+| Arquivo | Mudanças | Status |
+|---------|----------|--------|
+| `apps/backend/src/beds/beds.service.ts` | Adição de `building` select em `findAll()` e `findOne()` | ✅ Completo |
+| `apps/frontend/src/components/beds/BedCard.tsx` | Exibição do nome do prédio acima do quarto/andar | ✅ Completo |
+
+### Resultado Visual
+
+Antes:
+
+```text
+[Leito 001]
+Código: 00-001-01
+Status: Disponível
+Quarto 1 - Andar 0
+```
+
+Depois:
+
+```text
+[Leito 001]
+Código: 00-001-01
+Status: Disponível
+Prédio: Casa Principal
+Quarto 1 - Andar 0
+```
+
+### Impacto
+
+- Usabilidade: Identificação imediata do prédio ao visualizar cards na aba Leitos
+- Performance: Sem impacto (query já retornava buildingId, apenas incluído o nome)
+- Compatibilidade: Totalmente retro-compatível (renderização condicional)
+
+### Status Final
+
+✅ IMPLEMENTAÇÃO CONCLUÍDA E COMPILADA COM SUCESSO
+
+- Backend: Modificado para incluir building.name na hierarquia
+- Frontend: BedCard atualizado para exibir prédio
+- Build: Passou sem erros
+- Próxima ação: Deploy via docker-build-and-export.sh

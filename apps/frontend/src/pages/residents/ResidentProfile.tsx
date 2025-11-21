@@ -545,11 +545,15 @@ export default function ResidentProfile() {
                 <CardContent className="space-y-4">
                   <div>
                     <div className="text-sm text-gray-500">Quarto</div>
-                    <div className="font-semibold text-lg text-gray-900">{resident.roomId || '-'}</div>
+                    <div className="font-semibold text-lg text-gray-900">
+                      {resident.room ? `${resident.room.name} (${resident.room.code})` : '-'}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-500">Leito</div>
-                    <div className="font-semibold text-lg text-gray-900">{resident.bedId || '-'}</div>
+                    <div className="font-semibold text-lg text-gray-900">
+                      {resident.bed ? resident.bed.code : '-'}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -497,9 +497,9 @@ export function ResidentDocument({ resident, tenant, isPrinting = false }: Resid
             Acomodação
           </h3>
           <div className="text-sm text-gray-700">
-            {resident.roomId && `Quarto: ${resident.roomId}`}
-            {resident.roomId && resident.bedId && ' | '}
-            {resident.bedId && `Leito: ${resident.bedId}`}
+            {resident.room && `Quarto: ${resident.room.name} (${resident.room.code})`}
+            {resident.room && resident.bed && ' | '}
+            {resident.bed && `Leito: ${resident.bed.code}`}
           </div>
         </section>
       )}

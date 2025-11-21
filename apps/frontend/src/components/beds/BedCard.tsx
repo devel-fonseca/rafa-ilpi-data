@@ -123,8 +123,9 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
           </div>
 
           {bed.room && (
-            <div className="text-xs text-muted-foreground">
-              Quarto {bed.room.roomNumber} - {bed.room.floor?.name}
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div>{bed.room.floor?.building?.name && `Prédio: ${bed.room.floor.building.name}`}</div>
+              <div>Quarto {bed.room.roomNumber} - {bed.room.floor?.name}</div>
             </div>
           )}
 

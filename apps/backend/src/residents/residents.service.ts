@@ -399,10 +399,33 @@ export class ResidentsService {
         throw new NotFoundException('Residente não encontrado');
       }
 
+      // Buscar dados de quarto e leito se os IDs existirem
+      let room = null;
+      let bed = null;
+
+      if (resident.roomId) {
+        room = await this.prisma.room.findFirst({
+          where: { id: resident.roomId, deletedAt: null },
+          select: { id: true, name: true, code: true },
+        });
+      }
+
+      if (resident.bedId) {
+        bed = await this.prisma.bed.findFirst({
+          where: { id: resident.bedId, deletedAt: null },
+          select: { id: true, code: true, status: true },
+        });
+      }
+
       // Gerar URLs assinadas para documentos
       const residentWithUrls = await this.generateSignedUrls(resident);
 
-      return residentWithUrls;
+      // Adicionar room e bed aos dados do residente
+      return {
+        ...residentWithUrls,
+        room,
+        bed,
+      };
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {
         error: error.message,

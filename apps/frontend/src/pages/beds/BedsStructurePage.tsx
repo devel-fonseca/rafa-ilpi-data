@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus } from 'lucide-react'
+import { Plus, Zap } from 'lucide-react'
 
 // Hooks
 import { useBuildings, useDeleteBuilding } from '@/hooks/useBuildings'
@@ -30,17 +30,20 @@ import { BuildingForm } from '@/components/beds/BuildingForm'
 import { FloorForm } from '@/components/beds/FloorForm'
 import { RoomForm } from '@/components/beds/RoomForm'
 import { BedForm } from '@/components/beds/BedForm'
+import { BuildingStructureGenerator } from '@/components/beds/BuildingStructureGenerator'
 
 import { Building, Floor, Room, Bed } from '@/api/beds.api'
 
 export function BedsStructurePage() {
   const { toast } = useToast()
+  const [activeTab, setActiveTab] = useState('buildings')
 
   // State para dialogs
   const [buildingFormOpen, setBuildingFormOpen] = useState(false)
   const [floorFormOpen, setFloorFormOpen] = useState(false)
   const [roomFormOpen, setRoomFormOpen] = useState(false)
   const [bedFormOpen, setBedFormOpen] = useState(false)
+  const [generatorOpen, setGeneratorOpen] = useState(false)
 
   const [selectedBuilding, setSelectedBuilding] = useState<Building | undefined>()
   const [selectedFloor, setSelectedFloor] = useState<Floor | undefined>()
@@ -133,6 +136,22 @@ export function BedsStructurePage() {
     }
   }
 
+  // Handlers de navegação dos cards
+  const handleNavigateFloors = (building: Building) => {
+    setSelectedBuilding(building)
+    setActiveTab('floors')
+  }
+
+  const handleNavigateRooms = (building: Building) => {
+    setSelectedBuilding(building)
+    setActiveTab('rooms')
+  }
+
+  const handleNavigateBeds = (building: Building) => {
+    setSelectedBuilding(building)
+    setActiveTab('beds')
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
@@ -144,7 +163,7 @@ export function BedsStructurePage() {
         </div>
       </div>
 
-      <Tabs defaultValue="buildings" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="buildings">Prédios</TabsTrigger>
           <TabsTrigger value="floors">Andares</TabsTrigger>
@@ -154,7 +173,14 @@ export function BedsStructurePage() {
 
         {/* TAB: PRÉDIOS */}
         <TabsContent value="buildings" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={() => setGeneratorOpen(true)}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Gerador Automático de Estrutura
+            </Button>
             <Button
               onClick={() => {
                 setSelectedBuilding(undefined)
@@ -176,6 +202,9 @@ export function BedsStructurePage() {
                   building={building}
                   onEdit={handleEditBuilding}
                   onDelete={handleDeleteBuilding}
+                  onNavigateFloors={handleNavigateFloors}
+                  onNavigateRooms={handleNavigateRooms}
+                  onNavigateBeds={handleNavigateBeds}
                 />
               ))}
             </div>
@@ -341,6 +370,9 @@ export function BedsStructurePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* BUILDING STRUCTURE GENERATOR */}
+      <BuildingStructureGenerator open={generatorOpen} onOpenChange={setGeneratorOpen} />
     </div>
   )
 }
