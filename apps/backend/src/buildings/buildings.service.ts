@@ -269,13 +269,6 @@ export class BuildingsService {
         beds: bedsCreated,
       }
     } catch (error: any) {
-      // Log do erro completo para debug
-      console.error('Error in createBuildingStructure:', {
-        message: error.message,
-        code: error.code,
-        details: error.meta,
-      })
-
       // Re-lançar erro com mensagem amigável
       if (error instanceof BadRequestException) {
         throw error

@@ -115,9 +115,10 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
   const handleRoomConfigSubmit = () => {
     if (!currentRoom || !currentFloor) return
 
-    // Gerar codes dos leitos
+    // Gerar codes dos leitos com timestamp para garantir unicidade
+    const timestamp = Date.now().toString().slice(-5)
     const bedsForRoom: BedConfig[] = Array.from({ length: currentRoom.bedCount }, (_, i) => ({
-      code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`,
+      code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}-${timestamp}`,
     }))
 
     const updatedRoom = { ...currentRoom, beds: bedsForRoom }
@@ -171,10 +172,12 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
     try {
       setIsLoading(true)
 
-      const response = await bedsAPI.createBuildingStructure({
+      const payload = {
         buildingName: state.buildingName,
         floors: state.floors,
-      })
+      }
+
+      const response = await bedsAPI.createBuildingStructure(payload)
 
       toast({
         description: `Estrutura criada com sucesso! Prédio: ${response.building.name}, ${response.floors.length} andares, ${response.rooms.length} quartos, ${response.beds.length} leitos`,
@@ -198,8 +201,9 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
       })
       setStep('building')
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao criar estrutura'
       toast({
-        description: error.message || 'Erro ao criar estrutura',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
