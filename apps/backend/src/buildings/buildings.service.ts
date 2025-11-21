@@ -186,75 +186,104 @@ export class BuildingsService {
   }
 
   async createBuildingStructure(tenantId: string, data: any) {
-    // Criar prédio
-    const building = await this.prisma.building.create({
-      data: {
-        name: data.buildingName,
-        code: `PRED-${Date.now().toString().slice(-6)}`,
-        tenantId,
-      },
-    })
+    try {
+      // Validação de dados de entrada
+      if (!data.buildingName || !data.floors || data.floors.length === 0) {
+        throw new BadRequestException(
+          'buildingName e floors são obrigatórios'
+        )
+      }
 
-    // Armazenar arrays de criação
-    const floorsCreated = []
-    const roomsCreated = []
-    const bedsCreated = []
-
-    // Criar andares, quartos e leitos
-    for (const floorConfig of data.floors) {
-      const floor = await this.prisma.floor.create({
+      // Criar prédio
+      const building = await this.prisma.building.create({
         data: {
-          buildingId: building.id,
+          name: data.buildingName,
+          code: `PRED-${Date.now().toString().slice(-6)}`,
           tenantId,
-          name: `Andar ${floorConfig.floorNumber}`,
-          code: `PISO-${floorConfig.floorNumber}`,
-          orderIndex: floorConfig.floorNumber,
         },
       })
 
-      floorsCreated.push(floor)
+      // Armazenar arrays de criação
+      const floorsCreated = []
+      const roomsCreated = []
+      const bedsCreated = []
 
-      // Contador para gerar IDs sequenciais de quartos por andar
-      let roomIndexPerFloor = 0
+      // Criar andares, quartos e leitos
+      for (const floorConfig of data.floors) {
+        if (!floorConfig.floorNumber && floorConfig.floorNumber !== 0) {
+          throw new BadRequestException('floorNumber é obrigatório para cada andar')
+        }
 
-      for (const roomConfig of floorConfig.rooms) {
-        roomIndexPerFloor++
-        const room = await this.prisma.room.create({
+        const floor = await this.prisma.floor.create({
           data: {
-            floorId: floor.id,
+            buildingId: building.id,
             tenantId,
-            name: roomConfig.roomName,
-            code: `${floorConfig.floorNumber.toString().padStart(2, '0')}-${roomIndexPerFloor.toString().padStart(3, '0')}`,
-            roomNumber: roomConfig.roomName,
-            capacity: roomConfig.bedCount,
-            roomType: roomConfig.bedCount === 1 ? 'Individual' : roomConfig.bedCount === 2 ? 'Duplo' : 'Coletivo',
-            hasPrivateBathroom: roomConfig.hasPrivateBathroom,
-            accessible: roomConfig.isAccessible,
+            name: `Andar ${floorConfig.floorNumber}`,
+            code: `PISO-${building.id.substring(0, 8)}-${floorConfig.floorNumber.toString().padStart(2, '0')}`,
+            orderIndex: floorConfig.floorNumber,
           },
         })
 
-        roomsCreated.push(room)
+        floorsCreated.push(floor)
 
-        for (const bedConfig of roomConfig.beds) {
-          const bed = await this.prisma.bed.create({
+        // Contador para gerar IDs sequenciais de quartos por andar
+        let roomIndexPerFloor = 0
+
+        for (const roomConfig of floorConfig.rooms || []) {
+          roomIndexPerFloor++
+          const room = await this.prisma.room.create({
             data: {
-              roomId: room.id,
+              floorId: floor.id,
               tenantId,
-              code: bedConfig.code,
-              status: 'Disponível',
+              name: roomConfig.roomName,
+              code: `${building.id.substring(0, 8)}-${floorConfig.floorNumber.toString().padStart(2, '0')}-${roomIndexPerFloor.toString().padStart(3, '0')}`,
+              roomNumber: roomConfig.roomName,
+              capacity: roomConfig.bedCount,
+              roomType: roomConfig.bedCount === 1 ? 'Individual' : roomConfig.bedCount === 2 ? 'Duplo' : 'Coletivo',
+              hasPrivateBathroom: roomConfig.hasPrivateBathroom || false,
+              accessible: roomConfig.isAccessible || false,
             },
           })
 
-          bedsCreated.push(bed)
+          roomsCreated.push(room)
+
+          for (const bedConfig of roomConfig.beds || []) {
+            const bed = await this.prisma.bed.create({
+              data: {
+                roomId: room.id,
+                tenantId,
+                code: bedConfig.code,
+                status: 'Disponível',
+              },
+            })
+
+            bedsCreated.push(bed)
+          }
         }
       }
-    }
 
-    return {
-      building,
-      floors: floorsCreated,
-      rooms: roomsCreated,
-      beds: bedsCreated,
+      return {
+        building,
+        floors: floorsCreated,
+        rooms: roomsCreated,
+        beds: bedsCreated,
+      }
+    } catch (error: any) {
+      // Log do erro completo para debug
+      console.error('Error in createBuildingStructure:', {
+        message: error.message,
+        code: error.code,
+        details: error.meta,
+      })
+
+      // Re-lançar erro com mensagem amigável
+      if (error instanceof BadRequestException) {
+        throw error
+      }
+
+      throw new BadRequestException(
+        `Erro ao criar estrutura: ${error.message || 'erro desconhecido'}`
+      )
     }
   }
 }
