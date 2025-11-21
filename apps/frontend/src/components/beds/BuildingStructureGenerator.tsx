@@ -113,55 +113,55 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
 
   // STEP 3: Configurar quartos do andar
   const handleRoomConfigSubmit = () => {
-    if (!currentRoom) return
+    if (!currentRoom || !currentFloor) return
 
     // Gerar codes dos leitos
     const bedsForRoom: BedConfig[] = Array.from({ length: currentRoom.bedCount }, (_, i) => ({
-      code: `${currentFloor?.floorNumber.toString().padStart(2, '0')}-${currentRoomIndex.toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`,
+      code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`,
     }))
 
     const updatedRoom = { ...currentRoom, beds: bedsForRoom }
+    const updatedRooms = [...currentFloor.rooms]
+    updatedRooms[currentRoomIndex] = updatedRoom
+    const updatedFloor = { ...currentFloor, rooms: updatedRooms }
 
-    if (currentFloor) {
-      const updatedRooms = [...currentFloor.rooms]
-      updatedRooms[currentRoomIndex] = updatedRoom
-      const updatedFloor = { ...currentFloor, rooms: updatedRooms }
+    // Atualizar state global imediatamente
+    const updatedFloors = [...state.floors]
+    updatedFloors[state.currentFloorIndex] = updatedFloor
 
-      // Verificar se tem mais quartos
-      if (currentRoomIndex < updatedFloor.roomsCount - 1) {
-        // Próximo quarto
-        setCurrentRoomIndex(currentRoomIndex + 1)
-        setCurrentRoom(updatedRooms[currentRoomIndex + 1])
+    setState(prev => ({
+      ...prev,
+      floors: updatedFloors,
+    }))
+
+    // Verificar se tem mais quartos
+    if (currentRoomIndex < updatedFloor.roomsCount - 1) {
+      // Próximo quarto
+      setCurrentRoomIndex(currentRoomIndex + 1)
+      setCurrentFloor(updatedFloor)
+      setCurrentRoom(updatedRooms[currentRoomIndex + 1])
+    } else {
+      // Finalizar este andar
+      setCurrentFloor(updatedFloor)
+
+      if (state.currentFloorIndex < state.totalFloors - 1) {
+        // Tem próximo andar - voltar para step 'floors'
+        const nextFloorIndex = state.currentFloorIndex + 1
+        const nextFloor = updatedFloors[nextFloorIndex]
+
+        setState(prev => ({
+          ...prev,
+          currentFloorIndex: nextFloorIndex,
+          floors: updatedFloors,
+        }))
+
+        setCurrentFloor(nextFloor)
+        setCurrentRoom(null)
+        setCurrentRoomIndex(0)
+        setStep('floors')
       } else {
-        // Próximo andar
-        setCurrentFloor(updatedFloor)
-
-        if (state.currentFloorIndex < state.totalFloors - 1) {
-          const nextFloorIndex = state.currentFloorIndex + 1
-          const updatedFloors = [...state.floors]
-          updatedFloors[state.currentFloorIndex] = updatedFloor
-          updatedFloors[nextFloorIndex] = { ...updatedFloors[nextFloorIndex] }
-
-          setState(prev => ({
-            ...prev,
-            currentFloorIndex: nextFloorIndex,
-            floors: updatedFloors,
-          }))
-
-          setCurrentFloor(updatedFloors[nextFloorIndex])
-          setCurrentRoom(null)
-          setCurrentRoomIndex(0)
-          setStep('floors')
-        } else {
-          // Finalizar - ir para review
-          const finalFloors = [...state.floors]
-          finalFloors[state.currentFloorIndex] = updatedFloor
-          setState(prev => ({
-            ...prev,
-            floors: finalFloors,
-          }))
-          setStep('review')
-        }
+        // Último andar - ir para review
+        setStep('review')
       }
     }
   }

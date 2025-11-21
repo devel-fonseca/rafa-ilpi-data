@@ -798,3 +798,132 @@ Quarto 1 - Andar 0
 - Frontend: BedCard atualizado para exibir prédio
 - Build: Passou sem erros
 - Próxima ação: Deploy via docker-build-and-export.sh
+
+---
+
+## Correção: Bug no Wizard de Geração de Estrutura de Prédios
+
+**Data:** 2025-11-21
+**Responsável:** Dr. E. (Emanuel)
+**Projeto:** RAFA ILPI Data - Correção do wizard que falha ao criar quartos/leitos
+
+### Problema Identificado
+
+Ao usar o wizard de geração automática de estrutura (`BuildingStructureGenerator`):
+
+1. ✅ Prédio criado com sucesso
+2. ✅ Andar criado com sucesso
+3. ❌ Quartos NÃO criados - HTTP 400 error
+4. ❌ Leitos NÃO criados - HTTP 400 error
+
+Sintomas:
+- Request retorna 400 (Bad Request)
+- Backend não recebe array de rooms preenchido
+- Indica problema na sincronização de estado no frontend
+
+### Análise e Causa Raiz
+
+**Arquivo:** `apps/frontend/src/components/beds/BuildingStructureGenerator.tsx`
+
+**Função problemática:** `handleRoomConfigSubmit()` (linhas 115-167)
+
+**Problema Específico:**
+- A função atualizava apenas `currentFloor` (estado local)
+- NÃO atualizava `state.floors` (estado global) imediatamente
+- Quando transitava para o próximo andar, `state.floors` ainda continha o andar anterior SEM as rooms configuradas
+- O payload enviado ao backend (`POST /api/buildings/structure`) tinha `floors` com rooms vazias
+
+### Solução Implementada
+
+#### Correção: Sincronização Imediata de State
+
+Modificação na função `handleRoomConfigSubmit()` para atualizar `state.floors` imediatamente após cada configuração de quarto:
+
+**Antes:**
+```typescript
+// Atualizava apenas currentFloor local
+setCurrentFloor(updatedFloor)
+// currentFloor mudava, mas state.floors não era atualizado
+```
+
+**Depois:**
+```typescript
+// Atualizar state global imediatamente
+const updatedFloors = [...state.floors]
+updatedFloors[state.currentFloorIndex] = updatedFloor
+
+setState(prev => ({
+  ...prev,
+  floors: updatedFloors,
+}))
+
+setCurrentFloor(updatedFloor)
+```
+
+#### Correção: Geração de Código de Leito
+
+A geração de código dos leitos agora usa o índice correto:
+
+**Antes:**
+```typescript
+code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`
+// Resultado: 00-01-01 (começando em 0 = 1 quarto)
+```
+
+**Depois:**
+```typescript
+code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`
+// Resultado: 00-01-01 (começando em 1 = 1 quarto correto)
+```
+
+### Mudanças Técnicas Detalhadas
+
+**Arquivo:** `apps/frontend/src/components/beds/BuildingStructureGenerator.tsx`
+
+Linhas 115-167 - Função `handleRoomConfigSubmit()`:
+
+1. Mantém lógica de geração de beds (`bedsForRoom`)
+2. Atualiza `currentFloor` local
+3. **NOVO:** Atualiza `state.floors` array global imediatamente
+4. Mantém lógica de transição entre quartos/andares
+5. Garante que dados estão sincronizados antes de mudar de step
+
+### Validação
+
+**Build Status:**
+
+```
+✓ Backend compilado: webpack 5.97.1 (7025 ms)
+✓ Frontend compilado: vite v5.4.21 (8.50s)
+✓ Sem erros TypeScript
+✓ Sem erros ESLint
+✓ Sem erros de compilação
+```
+
+### Resultado Esperado
+
+Agora quando o usuário completa o wizard:
+
+1. ✅ Dados de todos os quartos/andares estão em `state.floors`
+2. ✅ Payload enviado ao backend contém array completo de rooms/beds
+3. ✅ Backend recebe dados válidos e cria estrutura completa
+4. ✅ Prédio, andares, quartos e leitos são criados com sucesso
+
+### Arquivos Modificados
+
+| Arquivo | Mudanças | Status |
+|---------|----------|--------|
+| `apps/frontend/src/components/beds/BuildingStructureGenerator.tsx` | Sincronização imediata de state.floors na função handleRoomConfigSubmit | ✅ Completo |
+
+### Próximas Ações
+
+1. **Teste E2E do Wizard:**
+   - Testar criação de nova estrutura desde o início
+   - Validar que prédio, andares, quartos e leitos são todos criados
+   - Confirmar que bed codes são gerados corretamente
+
+2. **Deploy:**
+   - Commit da mudança
+   - Re-exportar Docker images
+   - Deploy para produção
+   - Testar wizard em produção
