@@ -1229,7 +1229,7 @@ export function ResidentForm() {
                               value={field.value}
                               onChange={(e) => {
                                 field.onChange(e)
-                                handleBuscarCepAtual(e.target.value)
+                                handleBuscarCep(e.target.value, 'atual')
                               }}
                               className="mt-2"
                             />
@@ -1329,7 +1329,7 @@ export function ResidentForm() {
                                   value={field.value}
                                   onChange={(e) => {
                                     field.onChange(e)
-                                    handleBuscarCepProcedencia(e.target.value)
+                                    handleBuscarCep(e.target.value, 'procedencia')
                                   }}
                                   className="mt-2"
                                 />
@@ -1557,7 +1557,7 @@ export function ResidentForm() {
                             value={field.value}
                             onChange={(e) => {
                               field.onChange(e)
-                              handleBuscarCepResponsavel(e.target.value)
+                              handleBuscarCep(e.target.value, 'responsavelLegal')
                             }}
                             className="mt-2"
                           />
