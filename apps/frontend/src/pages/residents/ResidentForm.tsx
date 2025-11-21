@@ -937,7 +937,9 @@ export function ResidentForm() {
 
       {/* Tabs/Abas */}
       <form onSubmit={handleSubmit(onSubmit)}>
+        {/* ========== FORMULÁRIO TABULAR (4 ABAS) ========== */}
         <Tabs defaultValue="tab1" className="mb-8">
+            {/* ========== NAVEGAÇÃO DE ABAS ========== */}
             <TabsList className="grid grid-cols-4 gap-2 h-auto p-2 bg-white rounded-lg shadow-md mb-6">
               <TabsTrigger value="tab1" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
                 1. Dados & Contatos
@@ -953,6 +955,7 @@ export function ResidentForm() {
               </TabsTrigger>
             </TabsList>
 
+            {/* ========== ABA 1: DADOS PESSOAIS + CONTATOS ========== */}
             {/* Aba 1 - Dados Pessoais */}
             <TabsContent value="tab1" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
@@ -1248,7 +1251,7 @@ export function ResidentForm() {
               </Card>
             </TabsContent>
 
-            {/* Aba 2 - Endereços */}
+            {/* ========== ABA 2: ENDEREÇOS + RESPONSÁVEL ========== */}
             <TabsContent value="tab2" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
@@ -1588,7 +1591,7 @@ export function ResidentForm() {
               </Card>
             </TabsContent>
 
-            {/* Aba 3 - Saúde + Convênios */}
+            {/* ========== ABA 3: SAÚDE + CONVÊNIOS ========== */}
             <TabsContent value="tab3" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
@@ -1933,7 +1936,7 @@ export function ResidentForm() {
               </Card>
             </TabsContent>
 
-            {/* Aba 4 - Admissão + Pertences + Acomodação */}
+            {/* ========== ABA 4: ADMISSÃO + PERTENCES + ACOMODAÇÃO ========== */}
             <TabsContent value="tab4" forceMount className="data-[state=inactive]:hidden">
               <Card className="shadow-lg">
                 <CardContent className="p-6">
@@ -2045,6 +2048,7 @@ export function ResidentForm() {
                     </div>
                   </div>
 
+                  {/* Seção: Pertences do Residente */}
                   <h3 className="text-lg font-semibold mb-4 mt-8">Pertences do Residente</h3>
                   <Textarea
                     {...register('pertencesLista')}
@@ -2053,6 +2057,7 @@ export function ResidentForm() {
                     className="mb-6"
                   />
 
+                  {/* Seção: Acomodação (Quarto e Leito) */}
                   <h3 className="text-lg font-semibold mb-4">Acomodação</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -2134,13 +2139,15 @@ export function ResidentForm() {
             </TabsContent>
 
         </Tabs>
+
+        {/* ========== FEEDBACK DE UPLOAD ========== */}
         {isUploading && (
           <div className="text-center mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-blue-700 font-semibold">{uploadProgress}</p>
           </div>
         )}
 
-        {/* Botões Finais */}
+        {/* ========== BOTÕES DE AÇÃO ========== */}
         <div className="text-center space-x-4">
           <Button
             type="submit"
