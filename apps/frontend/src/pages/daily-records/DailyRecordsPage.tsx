@@ -175,16 +175,18 @@ export function DailyRecordsPage() {
   // Se não houver residente selecionado, mostrar grid de seleção
   if (!residentId) {
     return (
-      <div className="space-y-6 p-6">
-        <DailyRecordsOverviewStats
-          residents={residentsData?.data || []}
-          latestRecords={latestRecords}
-        />
+      <div className="space-y-6">
         <ResidentSelectionGrid
           residents={residentsData?.data || []}
           latestRecords={latestRecords}
           onSelectResident={handleResidentSelect}
           isLoading={isLoadingResidents || isLoadingLatest}
+          statsComponent={
+            <DailyRecordsOverviewStats
+              residents={residentsData?.data || []}
+              latestRecords={latestRecords}
+            />
+          }
         />
       </div>
     )

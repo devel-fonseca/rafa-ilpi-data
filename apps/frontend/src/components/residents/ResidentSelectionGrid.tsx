@@ -33,6 +33,7 @@ interface ResidentSelectionGridProps {
   latestRecords: LatestRecord[]
   onSelectResident: (residentId: string) => void
   isLoading?: boolean
+  statsComponent?: React.ReactNode
 }
 
 export function ResidentSelectionGrid({
@@ -40,6 +41,7 @@ export function ResidentSelectionGrid({
   latestRecords,
   onSelectResident,
   isLoading = false,
+  statsComponent,
 }: ResidentSelectionGridProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -133,10 +135,10 @@ export function ResidentSelectionGrid({
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Registros Diários</h1>
-        <p className="text-muted-foreground mt-1">
-          Selecione um residente para visualizar os registros
-        </p>
       </div>
+
+      {/* Stats Component */}
+      {statsComponent}
 
       {/* Busca e Filtros */}
       <div className="flex gap-3">
