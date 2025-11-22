@@ -197,28 +197,26 @@ export default function PrescriptionsList() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Prescrições</h1>
+          <p className="text-gray-600 mt-1">Gerencie as prescrições da ILPI</p>
+        </div>
+        <div className="flex gap-3">
           <Button
             onClick={() => navigate('/dashboard/prescricoes')}
             variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Prescrições</h1>
-            <p className="text-gray-600 mt-1">Gerencie as prescrições da ILPI</p>
-          </div>
+          <Button
+            onClick={() => navigate('/dashboard/prescricoes/new')}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Prescrição
+          </Button>
         </div>
-        <Button
-          onClick={() => navigate('/dashboard/prescricoes/new')}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Nova Prescrição
-        </Button>
       </div>
 
       {/* Stats Cards */}
