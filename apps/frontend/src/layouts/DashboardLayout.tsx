@@ -4,8 +4,10 @@ import { useAuthStore } from '@/stores/auth.store'
 import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { useScrollToTop } from '@/hooks/useScrollToTop'
 
 export function DashboardLayout() {
+  useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()

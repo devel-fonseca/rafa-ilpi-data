@@ -162,28 +162,8 @@ export function BedsStructurePage() {
             Gerencie prédios, andares, quartos e leitos
           </p>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <BedsStatsCards
-        buildingsCount={buildings?.length || 0}
-        floorsCount={floors?.length || 0}
-        roomsCount={rooms?.length || 0}
-        bedsCount={beds?.length || 0}
-        onTabChange={setActiveTab}
-      />
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="buildings">Prédios</TabsTrigger>
-          <TabsTrigger value="floors">Andares</TabsTrigger>
-          <TabsTrigger value="rooms">Quartos</TabsTrigger>
-          <TabsTrigger value="beds">Leitos</TabsTrigger>
-        </TabsList>
-
-        {/* TAB: PRÉDIOS */}
-        <TabsContent value="buildings" className="space-y-4">
-          <div className="flex justify-end gap-2">
+        {activeTab === 'buildings' && (
+          <div className="flex gap-2">
             <Button
               onClick={() => setGeneratorOpen(true)}
               className="bg-amber-600 hover:bg-amber-700"
@@ -201,7 +181,61 @@ export function BedsStructurePage() {
               Novo Prédio
             </Button>
           </div>
+        )}
+        {activeTab === 'floors' && (
+          <Button
+            onClick={() => {
+              setSelectedFloor(undefined)
+              setFloorFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Andar
+          </Button>
+        )}
+        {activeTab === 'rooms' && (
+          <Button
+            onClick={() => {
+              setSelectedRoom(undefined)
+              setRoomFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Quarto
+          </Button>
+        )}
+        {activeTab === 'beds' && (
+          <Button
+            onClick={() => {
+              setSelectedBed(undefined)
+              setBedFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Leito
+          </Button>
+        )}
+      </div>
 
+      {/* Stats Cards */}
+      <BedsStatsCards
+        buildingsCount={buildings?.length || 0}
+        floorsCount={floors?.length || 0}
+        roomsCount={rooms?.length || 0}
+        bedsCount={beds?.length || 0}
+        onTabChange={setActiveTab}
+      />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="hidden">
+          <TabsTrigger value="buildings">Prédios</TabsTrigger>
+          <TabsTrigger value="floors">Andares</TabsTrigger>
+          <TabsTrigger value="rooms">Quartos</TabsTrigger>
+          <TabsTrigger value="beds">Leitos</TabsTrigger>
+        </TabsList>
+
+        {/* TAB: PRÉDIOS */}
+        <TabsContent value="buildings" className="space-y-4">
           {loadingBuildings ? (
             <div className="text-center py-8">Carregando...</div>
           ) : buildings && buildings.length > 0 ? (
@@ -227,18 +261,6 @@ export function BedsStructurePage() {
 
         {/* TAB: ANDARES */}
         <TabsContent value="floors" className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                setSelectedFloor(undefined)
-                setFloorFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Andar
-            </Button>
-          </div>
-
           {loadingFloors ? (
             <div className="text-center py-8">Carregando...</div>
           ) : floors && floors.length > 0 ? (
@@ -261,18 +283,6 @@ export function BedsStructurePage() {
 
         {/* TAB: QUARTOS */}
         <TabsContent value="rooms" className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                setSelectedRoom(undefined)
-                setRoomFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Quarto
-            </Button>
-          </div>
-
           {loadingRooms ? (
             <div className="text-center py-8">Carregando...</div>
           ) : rooms && rooms.length > 0 ? (
@@ -295,18 +305,6 @@ export function BedsStructurePage() {
 
         {/* TAB: LEITOS */}
         <TabsContent value="beds" className="space-y-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={() => {
-                setSelectedBed(undefined)
-                setBedFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Leito
-            </Button>
-          </div>
-
           {loadingBeds ? (
             <div className="text-center py-8">Carregando...</div>
           ) : beds && beds.length > 0 ? (
