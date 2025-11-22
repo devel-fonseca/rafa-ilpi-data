@@ -9,41 +9,36 @@ export function BedsMapPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="p-6 text-center text-red-600">
-            Erro ao carregar o mapa de leitos. Tente novamente mais tarde.
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="p-6 text-center text-red-600">
+          Erro ao carregar o mapa de leitos. Tente novamente mais tarde.
+        </CardContent>
+      </Card>
     )
   }
 
   if (!data) {
     return (
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            Nenhum dado disponível.
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="p-6 text-center text-muted-foreground">
+          Nenhum dado disponível.
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
         <h1 className="text-3xl font-bold">Mapa de Leitos</h1>
         <p className="text-muted-foreground">
           Visualização hierárquica completa da estrutura de leitos
