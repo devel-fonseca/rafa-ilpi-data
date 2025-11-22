@@ -22,6 +22,7 @@ import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
 
 // Prescriptions Pages
 import PrescriptionsPage from '@/pages/prescriptions/PrescriptionsPage'
+import PrescriptionsList from '@/pages/prescriptions/PrescriptionsList'
 import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
 import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
 
@@ -92,6 +93,10 @@ export const router = createBrowserRouter([
       {
         path: 'prescricoes',
         element: <PrescriptionsPage />,
+      },
+      {
+        path: 'prescricoes/list',
+        element: <PrescriptionsList />,
       },
       {
         path: 'prescricoes/new',
