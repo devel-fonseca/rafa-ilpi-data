@@ -40,6 +40,7 @@ interface BuildingStructureState {
   startFloorNumber: number // 0 para térreo ou 1 para primeiro andar
   currentFloorIndex: number
   floors: FloorConfig[]
+  buildingSequence: string // PP - número sequencial do prédio (ex: "01", "02", "03")
 }
 
 export function BuildingStructureGenerator({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -54,6 +55,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
     startFloorNumber: 0,
     currentFloorIndex: 0,
     floors: [],
+    buildingSequence: Date.now().toString().slice(-2), // PP - 2 dígitos últimos de timestamp
   })
 
   const [currentFloor, setCurrentFloor] = useState<FloorConfig | null>(null)
@@ -115,10 +117,13 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
   const handleRoomConfigSubmit = () => {
     if (!currentRoom || !currentFloor) return
 
-    // Gerar codes dos leitos com timestamp para garantir unicidade
-    const timestamp = Date.now().toString().slice(-5)
+    // Gerar codes dos leitos no padrão PP-AA-QQ-LL
+    // PP = número do prédio (baseado em timestamp)
+    // AA = número do andar
+    // QQ = número do quarto
+    // LL = número do leito
     const bedsForRoom: BedConfig[] = Array.from({ length: currentRoom.bedCount }, (_, i) => ({
-      code: `${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}-${timestamp}`,
+      code: `${state.buildingSequence}-${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`,
     }))
 
     const updatedRoom = { ...currentRoom, beds: bedsForRoom }
@@ -198,6 +203,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
         startFloorNumber: 0,
         currentFloorIndex: 0,
         floors: [],
+        buildingSequence: Date.now().toString().slice(-2), // Novo timestamp para próximo prédio
       })
       setStep('building')
     } catch (error: any) {
