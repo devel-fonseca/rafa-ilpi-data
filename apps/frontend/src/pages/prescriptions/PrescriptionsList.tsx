@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
 import type { Prescription } from '@/api/prescriptions.api'
@@ -62,6 +62,7 @@ import { useToast } from '@/components/ui/use-toast'
 export default function PrescriptionsList() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: any | null }>({
@@ -69,10 +70,26 @@ export default function PrescriptionsList() {
     prescription: null,
   })
 
+  // Aplicar query params ao carregar a página
+  useEffect(() => {
+    const status = searchParams.get('status')
+    const type = searchParams.get('type')
+
+    if (status === 'VENCENDO') {
+      setStatusFilter('VENCENDO')
+    } else if (status === 'ATIVA') {
+      setStatusFilter('ATIVA')
+    } else if (type === 'ANTIBIOTICO') {
+      setStatusFilter('ANTIBIOTICO')
+    } else if (type === 'CONTROLADO') {
+      setStatusFilter('CONTROLADO')
+    }
+  }, [searchParams])
+
   const { prescriptions, meta, query, setQuery, isLoading, error } = usePrescriptions({
     page: 1,
     limit: 10,
-    isActive: statusFilter === 'ATIVA' ? 'true' : 'false',
+    isActive: statusFilter === 'ATIVA' ? 'true' : statusFilter === 'VENCENDO' ? 'true' : 'false',
   })
 
   const { stats } = usePrescriptionsDashboard()
@@ -81,7 +98,6 @@ export default function PrescriptionsList() {
   const handleSearch = () => {
     setQuery({
       ...query,
-      search: searchTerm,
       page: 1,
     })
   }
@@ -90,10 +106,10 @@ export default function PrescriptionsList() {
   const handleClearFilters = () => {
     setSearchTerm('')
     setStatusFilter('ATIVA')
+    navigate('/dashboard/prescricoes/list')
     setQuery({
       page: 1,
       limit: 10,
-      isActive: 'true',
     })
   }
 
@@ -144,10 +160,18 @@ export default function PrescriptionsList() {
 
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status)
+    if (status === 'VENCENDO') {
+      navigate('/dashboard/prescricoes/list?status=VENCENDO')
+    } else if (status === 'ATIVA') {
+      navigate('/dashboard/prescricoes/list?status=ATIVA')
+    } else if (status === 'ANTIBIOTICO') {
+      navigate('/dashboard/prescricoes/list?type=ANTIBIOTICO')
+    } else if (status === 'CONTROLADO') {
+      navigate('/dashboard/prescricoes/list?type=CONTROLADO')
+    }
     setQuery({
       page: 1,
       limit: 10,
-      isActive: status === 'ATIVA' ? 'true' : 'false',
     })
   }
 
@@ -262,14 +286,16 @@ export default function PrescriptionsList() {
 
             {/* Status Filter */}
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">Filtro</Label>
               <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ATIVA">Ativas</SelectItem>
-                  <SelectItem value="INATIVA">Inativas</SelectItem>
+                  <SelectItem value="ATIVA">Prescrições Ativas</SelectItem>
+                  <SelectItem value="VENCENDO">Vencendo em 5 dias</SelectItem>
+                  <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
+                  <SelectItem value="CONTROLADO">Controlados</SelectItem>
                 </SelectContent>
               </Select>
             </div>

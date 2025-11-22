@@ -22,7 +22,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600',
       valueColor: 'text-blue-600',
-      onClick: () => navigate('/dashboard/prescricoes/list'),
+      onClick: () => navigate('/dashboard/prescricoes/list?status=ATIVA'),
     },
     {
       title: 'Vencendo em 5 dias',
@@ -31,7 +31,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600',
       valueColor: 'text-orange-600',
-      onClick: () => navigate('/dashboard/prescricoes/list'),
+      onClick: () => navigate('/dashboard/prescricoes/list?status=VENCENDO'),
     },
     {
       title: 'Antibióticos Ativos',
@@ -40,7 +40,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-green-100',
       iconColor: 'text-green-600',
       valueColor: 'text-green-600',
-      onClick: () => navigate('/dashboard/prescricoes/list'),
+      onClick: () => navigate('/dashboard/prescricoes/list?type=ANTIBIOTICO'),
     },
     {
       title: 'Controlados Ativos',
@@ -49,7 +49,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600',
       valueColor: 'text-purple-600',
-      onClick: () => navigate('/dashboard/prescricoes/list'),
+      onClick: () => navigate('/dashboard/prescricoes/list?type=CONTROLADO'),
     },
   ]
 
