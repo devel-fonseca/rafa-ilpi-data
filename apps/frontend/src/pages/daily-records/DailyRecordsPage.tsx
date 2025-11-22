@@ -32,6 +32,7 @@ import { OutrosModal } from './modals/OutrosModal'
 import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
 
 export function DailyRecordsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -175,6 +176,10 @@ export function DailyRecordsPage() {
   if (!residentId) {
     return (
       <div className="space-y-6 p-6">
+        <DailyRecordsOverviewStats
+          residents={residentsData?.data || []}
+          latestRecords={latestRecords}
+        />
         <ResidentSelectionGrid
           residents={residentsData?.data || []}
           latestRecords={latestRecords}
