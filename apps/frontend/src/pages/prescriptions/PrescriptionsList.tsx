@@ -54,6 +54,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -79,6 +80,10 @@ export default function PrescriptionsList() {
       setStatusFilter('VENCENDO')
     } else if (status === 'ATIVA') {
       setStatusFilter('ATIVA')
+    } else if (status === 'VENCIDAS') {
+      setStatusFilter('VENCIDAS')
+    } else if (status === 'INATIVAS') {
+      setStatusFilter('INATIVAS')
     } else if (type === 'ANTIBIOTICO') {
       setStatusFilter('ANTIBIOTICO')
     } else if (type === 'CONTROLADO') {
@@ -164,6 +169,10 @@ export default function PrescriptionsList() {
       navigate('/dashboard/prescricoes/list?status=VENCENDO')
     } else if (status === 'ATIVA') {
       navigate('/dashboard/prescricoes/list?status=ATIVA')
+    } else if (status === 'VENCIDAS') {
+      navigate('/dashboard/prescricoes/list?status=VENCIDAS')
+    } else if (status === 'INATIVAS') {
+      navigate('/dashboard/prescricoes/list?status=INATIVAS')
     } else if (status === 'ANTIBIOTICO') {
       navigate('/dashboard/prescricoes/list?type=ANTIBIOTICO')
     } else if (status === 'CONTROLADO') {
@@ -188,9 +197,20 @@ export default function PrescriptionsList() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Prescrições</h1>
-          <p className="text-gray-600 mt-1">Gerencie as prescrições da ILPI</p>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => navigate('/dashboard/prescricoes')}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Prescrições</h1>
+            <p className="text-gray-600 mt-1">Gerencie as prescrições da ILPI</p>
+          </div>
         </div>
         <Button
           onClick={() => navigate('/dashboard/prescricoes/new')}
@@ -294,6 +314,8 @@ export default function PrescriptionsList() {
                 <SelectContent>
                   <SelectItem value="ATIVA">Prescrições Ativas</SelectItem>
                   <SelectItem value="VENCENDO">Vencendo em 5 dias</SelectItem>
+                  <SelectItem value="VENCIDAS">Prescrições Vencidas</SelectItem>
+                  <SelectItem value="INATIVAS">Prescrições Inativas</SelectItem>
                   <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
                   <SelectItem value="CONTROLADO">Controlados</SelectItem>
                 </SelectContent>
