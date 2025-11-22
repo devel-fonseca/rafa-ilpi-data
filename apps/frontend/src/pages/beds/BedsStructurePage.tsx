@@ -31,6 +31,7 @@ import { FloorForm } from '@/components/beds/FloorForm'
 import { RoomForm } from '@/components/beds/RoomForm'
 import { BedForm } from '@/components/beds/BedForm'
 import { BuildingStructureGenerator } from '@/components/beds/BuildingStructureGenerator'
+import { BedsStatsCards } from '@/components/beds/BedsStatsCards'
 
 import { Building, Floor, Room, Bed } from '@/api/beds.api'
 
@@ -162,6 +163,15 @@ export function BedsStructurePage() {
           </p>
         </div>
       </div>
+
+      {/* Stats Cards */}
+      <BedsStatsCards
+        buildingsCount={buildings?.length || 0}
+        floorsCount={floors?.length || 0}
+        roomsCount={rooms?.length || 0}
+        bedsCount={beds?.length || 0}
+        onTabChange={setActiveTab}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
