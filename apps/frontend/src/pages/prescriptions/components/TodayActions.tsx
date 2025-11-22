@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { format } from 'date-fns'
-import { Clock, CheckCircle2, XCircle, Circle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CheckCircle2, XCircle, Circle } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 
@@ -151,14 +151,8 @@ export function TodayActions() {
   if (totalActions === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Ações do Dia - {format(new Date(), 'dd/MM/yyyy')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 text-center py-4">
+        <CardContent className="py-8">
+          <p className="text-sm text-gray-600 text-center">
             Nenhuma medicação programada para hoje
           </p>
         </CardContent>
@@ -168,14 +162,7 @@ export function TodayActions() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Ações do Dia - {format(new Date(), 'dd/MM/yyyy')} ({totalActions}{' '}
-          medicações)
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {(['morning', 'afternoon', 'night'] as ShiftType[]).map((shift) => {
             const config = SHIFT_CONFIG[shift]

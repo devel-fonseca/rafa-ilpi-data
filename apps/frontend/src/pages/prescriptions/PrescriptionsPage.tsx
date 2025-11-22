@@ -60,22 +60,30 @@ export function PrescriptionsPage() {
       {/* Alertas Críticos */}
       {alerts && alerts.length > 0 && (
         <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertas Críticos</h3>
           <CriticalAlerts alerts={alerts} />
         </div>
       )}
 
       {/* Ações do Dia (por turno) */}
       <div className="mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações do Dia</h3>
         <TodayActions />
       </div>
 
       {/* Grid com Listas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Prescrições Próximas do Vencimento */}
-        <ExpiringList prescriptions={expiring || []} />
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Prescrições Vencendo em 5 Dias</h3>
+          <ExpiringList prescriptions={expiring || []} />
+        </div>
 
         {/* Residentes com Medicamentos Controlados */}
-        <ControlledResidents residents={controlled || []} />
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Residentes com Medicamentos Controlados</h3>
+          <ControlledResidents residents={controlled || []} />
+        </div>
       </div>
     </div>
   )

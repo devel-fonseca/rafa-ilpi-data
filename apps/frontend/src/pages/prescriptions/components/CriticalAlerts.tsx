@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { AlertCircle, ExternalLink } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { CriticalAlert } from '@/api/prescriptions.api'
@@ -47,12 +47,6 @@ export function CriticalAlerts({ alerts }: CriticalAlertsProps) {
 
   return (
     <Card className="border-2 border-red-200">
-      <CardHeader className="bg-red-50">
-        <CardTitle className="flex items-center gap-2 text-red-800">
-          <AlertCircle className="h-5 w-5" />
-          Alertas Críticos ({alerts.length})
-        </CardTitle>
-      </CardHeader>
       <CardContent className="p-6">
         <div className="space-y-3">
           {alerts.map((alert) => {

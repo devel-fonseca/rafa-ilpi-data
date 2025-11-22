@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Shield, ExternalLink } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { ResidentWithControlled } from '@/api/prescriptions.api'
@@ -35,14 +35,8 @@ export function ControlledResidents({ residents }: ControlledResidentsProps) {
   if (!residents || residents.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Residentes com Medicamentos Controlados
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 text-center py-4">
+        <CardContent className="py-8">
+          <p className="text-sm text-gray-600 text-center">
             Nenhum residente com medicamentos controlados ativos
           </p>
         </CardContent>
@@ -52,16 +46,7 @@ export function ControlledResidents({ residents }: ControlledResidentsProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          Medicamentos Controlados
-          <Badge variant="outline" className="ml-auto">
-            {residents.length} {residents.length === 1 ? 'residente' : 'residentes'}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <div className="space-y-3">
           {residents.map((resident) => (
             <div

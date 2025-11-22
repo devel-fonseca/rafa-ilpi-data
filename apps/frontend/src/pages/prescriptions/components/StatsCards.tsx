@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { FileText, AlertTriangle, Pill, Shield } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { DashboardStats } from '@/api/prescriptions.api'
@@ -7,6 +8,8 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
+  const navigate = useNavigate()
+
   if (!stats) {
     return null
   }
@@ -19,6 +22,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-blue-100',
       iconColor: 'text-blue-600',
       valueColor: 'text-blue-600',
+      onClick: () => navigate('/dashboard/prescricoes/list'),
     },
     {
       title: 'Vencendo em 5 dias',
@@ -27,6 +31,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-orange-100',
       iconColor: 'text-orange-600',
       valueColor: 'text-orange-600',
+      onClick: () => navigate('/dashboard/prescricoes/list'),
     },
     {
       title: 'Antibióticos Ativos',
@@ -35,6 +40,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-green-100',
       iconColor: 'text-green-600',
       valueColor: 'text-green-600',
+      onClick: () => navigate('/dashboard/prescricoes/list'),
     },
     {
       title: 'Controlados Ativos',
@@ -43,13 +49,18 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-purple-100',
       iconColor: 'text-purple-600',
       valueColor: 'text-purple-600',
+      onClick: () => navigate('/dashboard/prescricoes/list'),
     },
   ]
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {cards.map((card) => (
-        <Card key={card.title}>
+        <Card
+          key={card.title}
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={card.onClick}
+        >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div

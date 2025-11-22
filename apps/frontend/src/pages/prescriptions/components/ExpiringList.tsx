@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Calendar, ExternalLink, AlertTriangle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ExternalLink, AlertTriangle } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Prescription } from '@/api/prescriptions.api'
@@ -21,14 +21,8 @@ export function ExpiringList({ prescriptions }: ExpiringListProps) {
   if (!prescriptions || prescriptions.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Prescrições Vencendo em 5 Dias
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600 text-center py-4">
+        <CardContent className="py-8">
+          <p className="text-sm text-gray-600 text-center">
             Nenhuma prescrição próxima do vencimento
           </p>
         </CardContent>
@@ -38,16 +32,7 @@ export function ExpiringList({ prescriptions }: ExpiringListProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Prescrições Vencendo em 5 Dias
-          <Badge variant="outline" className="ml-auto">
-            {prescriptions.length}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <div className="space-y-3">
           {prescriptions.map((prescription) => {
             const validUntil = prescription.validUntil
