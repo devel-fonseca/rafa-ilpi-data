@@ -66,9 +66,11 @@ export function ResidentPrintView() {
       })
 
       // Dimensões A4 em mm
-      const imgWidth = 210
+      const pageWidth = 210
       const pageHeight = 297
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      // Calcular altura da imagem mantendo proporção (margens já incluídas na borda transparente)
+      const imgHeight = (canvas.height * pageWidth) / canvas.width
 
       const pdf = new jsPDF('p', 'mm', 'a4')
 
@@ -82,7 +84,7 @@ export function ResidentPrintView() {
         'PNG',
         0,
         position,
-        imgWidth,
+        pageWidth,
         imgHeight
       )
       heightLeft -= pageHeight
@@ -96,7 +98,7 @@ export function ResidentPrintView() {
           'PNG',
           0,
           position,
-          imgWidth,
+          pageWidth,
           imgHeight
         )
         heightLeft -= pageHeight

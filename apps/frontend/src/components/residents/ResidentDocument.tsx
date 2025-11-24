@@ -81,7 +81,12 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
   }
 
   return (
-    <div className="print-container text-gray-900 leading-relaxed">
+    <div className="print-container text-gray-900 leading-relaxed" style={{
+      border: '10mm solid transparent',
+      borderLeft: '15mm solid transparent',
+      borderRight: '15mm solid transparent',
+      boxSizing: 'border-box'
+    }}>
 
       {/* ============================================================
           CABEÇALHO PREMIUM COM LOGO – OPÇÃO A
