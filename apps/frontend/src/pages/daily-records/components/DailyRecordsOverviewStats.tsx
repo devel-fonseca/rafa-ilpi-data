@@ -43,14 +43,14 @@ export function DailyRecordsOverviewStats({
       {/* Card 1: Residentes com Registros */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
-            </div>
+          <div className="flex justify-between items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-600">Com Registros Hoje</h3>
-              <p className="text-2xl font-bold text-green-600">{residentsWithRecords.length}</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{residentsWithRecords.length}</p>
               <p className="text-xs text-gray-500 mt-1">de {activeResidents.length} residentes</p>
+            </div>
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
+              <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </CardContent>
@@ -59,14 +59,14 @@ export function DailyRecordsOverviewStats({
       {/* Card 2: Residentes sem Registros */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
-              <XCircle className="h-6 w-6 text-orange-600" />
-            </div>
+          <div className="flex justify-between items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-600">Sem Registros Hoje</h3>
-              <p className="text-2xl font-bold text-orange-600">{residentsWithoutRecords.length}</p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">{residentsWithoutRecords.length}</p>
               <p className="text-xs text-gray-500 mt-1">pendentes de registro</p>
+            </div>
+            <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+              <XCircle className="h-6 w-6 text-orange-600" />
             </div>
           </div>
         </CardContent>
@@ -75,14 +75,14 @@ export function DailyRecordsOverviewStats({
       {/* Card 3: Total de Registros */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-              <FileText className="h-6 w-6 text-blue-600" />
-            </div>
+          <div className="flex justify-between items-start">
             <div>
               <h3 className="text-sm font-medium text-gray-600">Total de Registros</h3>
-              <p className="text-2xl font-bold text-blue-600">{totalRecordsToday}</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{totalRecordsToday}</p>
               <p className="text-xs text-gray-500 mt-1">efetuados hoje</p>
+            </div>
+            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
+              <FileText className="h-6 w-6 text-blue-600" />
             </div>
           </div>
         </CardContent>
