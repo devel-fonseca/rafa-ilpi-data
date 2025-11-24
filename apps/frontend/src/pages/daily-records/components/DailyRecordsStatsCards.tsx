@@ -46,12 +46,12 @@ export function DailyRecordsStatsCards({ records }: DailyRecordsStatsCardsProps)
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-              <Activity className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
+              <Activity className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Total de Registros</h3>
-              <p className="text-2xl font-bold text-blue-600">{totalRecords}</p>
+              <h3 className="text-sm font-medium text-muted-foreground">Total de Registros</h3>
+              <p className="text-2xl font-bold text-primary">{totalRecords}</p>
             </div>
           </div>
         </CardContent>
@@ -62,16 +62,16 @@ export function DailyRecordsStatsCards({ records }: DailyRecordsStatsCardsProps)
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <div className={`flex items-center justify-center w-12 h-12 ${
-              alertsCount > 0 ? 'bg-red-100' : 'bg-green-100'
+              alertsCount > 0 ? 'bg-danger/10' : 'bg-success/10'
             } rounded-lg`}>
               <AlertCircle className={`h-6 w-6 ${
-                alertsCount > 0 ? 'text-red-600' : 'text-green-600'
+                alertsCount > 0 ? 'text-danger' : 'text-success'
               }`} />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Alertas e Intercorrências</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Alertas e Intercorrências</h3>
               <p className={`text-2xl font-bold ${
-                alertsCount > 0 ? 'text-red-600' : 'text-green-600'
+                alertsCount > 0 ? 'text-danger' : 'text-success'
               }`}>
                 {alertsCount}
               </p>
@@ -84,12 +84,12 @@ export function DailyRecordsStatsCards({ records }: DailyRecordsStatsCardsProps)
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
+            <div className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Atividades Registradas</h3>
-              <p className="text-2xl font-bold text-purple-600">{activitiesCount}</p>
+              <h3 className="text-sm font-medium text-muted-foreground">Atividades Registradas</h3>
+              <p className="text-2xl font-bold text-accent">{activitiesCount}</p>
             </div>
           </div>
         </CardContent>
@@ -99,12 +99,12 @@ export function DailyRecordsStatsCards({ records }: DailyRecordsStatsCardsProps)
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-amber-100 rounded-lg">
-              <Smile className="h-6 w-6 text-amber-600" />
+            <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg">
+              <Smile className="h-6 w-6 text-warning" />
             </div>
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Notas de Comportamento</h3>
-              <p className="text-2xl font-bold text-amber-600">{behaviorCount}</p>
+              <h3 className="text-sm font-medium text-muted-foreground">Notas de Comportamento</h3>
+              <p className="text-2xl font-bold text-warning">{behaviorCount}</p>
             </div>
           </div>
         </CardContent>

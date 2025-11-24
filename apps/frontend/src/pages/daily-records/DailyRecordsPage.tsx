@@ -237,12 +237,12 @@ export function DailyRecordsPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-                    <Droplets className="h-6 w-6 text-blue-600" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-info/10 rounded-lg">
+                    <Droplets className="h-6 w-6 text-info" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Total de Líquidos Ingeridos</h3>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <h3 className="text-sm font-medium text-muted-foreground">Total de Líquidos Ingeridos</h3>
+                    <p className="text-2xl font-bold text-info">
                       {totalGeral} ml
                     </p>
                     <div className="flex gap-3 mt-1 text-xs text-gray-500">
@@ -286,11 +286,11 @@ export function DailyRecordsPage() {
           )
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
 
-          // Define cor baseada no percentual total
+          // Define cor baseada no percentual total usando Design System
           const getColor = (percentual: number) => {
-            if (percentual >= 75) return { bg: 'bg-green-100', text: 'text-green-600' }
-            if (percentual >= 50) return { bg: 'bg-yellow-100', text: 'text-yellow-600' }
-            return { bg: 'bg-red-100', text: 'text-red-600' }
+            if (percentual >= 75) return { bg: 'bg-success/10', text: 'text-success' }
+            if (percentual >= 50) return { bg: 'bg-warning/10', text: 'text-warning' }
+            return { bg: 'bg-danger/10', text: 'text-danger' }
           }
           const color = getColor(percentualTotal)
 
@@ -302,11 +302,11 @@ export function DailyRecordsPage() {
                     <Utensils className={`h-6 w-6 ${color.text}`} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-medium text-gray-600">Aceitação Alimentar Total</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">Aceitação Alimentar Total</h3>
                     <p className={`text-2xl font-bold ${color.text}`}>
                       {percentualTotal}%
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {registrosAlimentacao.length} de {refeicoesEsperadas.length} refeições registradas
                     </p>
                   </div>
