@@ -48,6 +48,7 @@ import {
   Edit,
   Trash2,
   MoreHorizontal,
+  FileText,
   Users,
   UserCheck,
   UserX,
@@ -371,10 +372,16 @@ export default function ResidentsList() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem
-                              onClick={() => navigate(`/dashboard/residentes/${resident.id}`)}
+                              onClick={() => navigate(`/dashboard/residentes/${resident.id}/view`)}
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               Visualizar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/dashboard/residentes/${resident.id}`)}
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Prontuário
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}

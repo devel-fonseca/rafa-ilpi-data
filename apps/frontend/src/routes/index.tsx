@@ -13,6 +13,7 @@ import Dashboard from '@/pages/Dashboard'
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
 import ResidentForm from '@/pages/residents/ResidentForm'
+import ResidentView from '@/pages/residents/ResidentView'
 import ResidentProfile from '@/pages/residents/ResidentProfile'
 import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecordsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
@@ -69,6 +70,10 @@ export const router = createBrowserRouter([
       {
         path: 'residentes/new',
         element: <ResidentForm />,
+      },
+      {
+        path: 'residentes/:id/view',
+        element: <ResidentView />,
       },
       {
         path: 'residentes/:id',

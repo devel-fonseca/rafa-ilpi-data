@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ChevronDown, Plus, X, ArrowLeft } from 'lucide-react'
+import { ChevronDown, Plus, X, ArrowLeft, FileText, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -188,7 +188,11 @@ const residentSchema = z.object({
 
 type ResidentFormData = z.infer<typeof residentSchema>
 
-export function ResidentForm() {
+interface ResidentFormProps {
+  readOnly?: boolean
+}
+
+export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Estados para modo edição
   const { id } = useParams()
   const navigate = useNavigate()
@@ -865,7 +869,13 @@ export function ResidentForm() {
   }
 
   const handleReset = () => {
-    window.location.reload()
+    if (isEditMode) {
+      // Modo edição: cancela e volta para a lista
+      navigate('/dashboard/residentes')
+    } else {
+      // Modo criação: recarrega a página para limpar o formulário
+      window.location.reload()
+    }
   }
 
   const handleVoltar = () => {
@@ -878,23 +888,47 @@ export function ResidentForm() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isEditMode ? 'Editar Residente' : 'Novo Residente'}
+            {readOnly ? 'Visualizar Residente' : isEditMode ? 'Editar Residente' : 'Novo Residente'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isEditMode
+            {readOnly
+              ? 'Visualização dos dados cadastrais do residente'
+              : isEditMode
               ? 'Atualize as informações do residente'
               : 'Cadastre um novo residente na ILPI'
             }
           </p>
         </div>
-        <Button
-          onClick={handleVoltar}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleVoltar}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          {readOnly && (
+            <>
+              <Button
+                onClick={() => navigate(`/dashboard/residentes/${id}`)}
+                variant="default"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Prontuário
+              </Button>
+              <Button
+                onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
+                variant="default"
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Editar
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Loading State durante carregamento de dados */}
@@ -904,8 +938,8 @@ export function ResidentForm() {
         </div>
       )}
 
-      {/* Status (apenas em modo edição) */}
-      {isEditMode && (
+      {/* Status (apenas em modo edição, não em visualização) */}
+      {isEditMode && !readOnly && (
         <Card className="mb-6 shadow-lg">
           <CardContent className="p-6">
             <div>
@@ -968,6 +1002,8 @@ export function ResidentForm() {
                 4. Admissão & Acomodação
               </TabsTrigger>
             </TabsList>
+
+            <fieldset disabled={readOnly}>
 
             {/* ========== ABA 1: DADOS PESSOAIS + CONTATOS ========== */}
             {/* Aba 1 - Dados Pessoais */}
@@ -2152,6 +2188,7 @@ export function ResidentForm() {
               </Card>
             </TabsContent>
 
+            </fieldset>
         </Tabs>
 
         {/* ========== FEEDBACK DE UPLOAD ========== */}
@@ -2161,29 +2198,50 @@ export function ResidentForm() {
           </div>
         )}
 
+        {/* ========== CARD INFORMATIVO ========== */}
+        {!readOnly ? (
+          <Card className="bg-info/10 border-info/30 mb-6">
+            <CardContent className="p-4">
+              <p className="text-sm text-info">
+                O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-info/10 border-info/30 mb-6">
+            <CardContent className="p-4">
+              <p className="text-sm text-info">
+                A instituição deve manter <strong>ficha individual completa e atualizada</strong>, incluindo identificação, histórico de saúde, contatos e responsável legal.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ========== BOTÕES DE AÇÃO ========== */}
-        <div className="text-center space-x-4">
-          <Button
-            type="submit"
-            disabled={isUploading || isLoading}
-            variant="default"
-            className="hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUploading
-              ? (isEditMode ? 'Atualizando...' : 'Salvando...')
-              : (isEditMode ? 'Atualizar Residente' : 'Salvar Residente')
-            }
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            disabled={isUploading}
+        {!readOnly && (
+          <div className="text-center space-x-4">
+            <Button
+              type="submit"
+              disabled={isUploading || isLoading}
+              variant="default"
+              className="hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading
+                ? (isEditMode ? 'Atualizando...' : 'Salvando...')
+                : (isEditMode ? 'Atualizar Residente' : 'Salvar Residente')
+              }
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isUploading}
             className="px-8 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Limpar
+            {isEditMode ? 'Cancelar' : 'Limpar'}
           </Button>
-        </div>
+          </div>
+        )}
       </form>
     </div>
   )
