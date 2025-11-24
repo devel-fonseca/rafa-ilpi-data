@@ -1,0 +1,161 @@
+/**
+ * 🌙 Design System RAFA ILPI - Tema Dark
+ *
+ * Variáveis CSS em HSL para dark mode
+ *
+ * Cores ajustadas para fundo escuro mantendo contraste WCAG AA
+ *
+ * @author Dr. E. (Emanuel) + Claude Code
+ * @date 24 de novembro de 2025
+ */
+
+.dark {
+  /* ========== CORE COLORS (ajustados para dark) ========== */
+
+  /** Primária: Azul mais claro para contraste em fundo escuro */
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+
+  /** Secundária: Verde ajustado */
+  --secondary: 142 70% 45%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
+  /** Acento: Roxo ajustado */
+  --accent: 258 85% 70%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+
+  /* ========== FEEDBACK COLORS (ajustados) ========== */
+
+  /** Sucesso - verde mais claro */
+  --success: 142 70% 45%;
+  --success-foreground: 222.2 47.4% 11.2%;
+
+  /** Aviso - amarelo mais claro */
+  --warning: 43 96% 56%;
+  --warning-foreground: 222.2 47.4% 11.2%;
+
+  /** Erro - vermelho ajustado */
+  --danger: 0 72% 60%;
+  --danger-foreground: 210 40% 98%;
+
+  /** Informação - azul mais claro */
+  --info: 217.2 91.2% 59.8%;
+  --info-foreground: 222.2 47.4% 11.2%;
+
+  /* ========== BED STATUS (herdam dos feedback ajustados) ========== */
+
+  --bed-available: var(--success);
+  --bed-available-foreground: var(--success-foreground);
+
+  --bed-occupied: var(--danger);
+  --bed-occupied-foreground: var(--danger-foreground);
+
+  --bed-maintenance: var(--warning);
+  --bed-maintenance-foreground: var(--warning-foreground);
+
+  --bed-reserved: var(--info);
+  --bed-reserved-foreground: var(--info-foreground);
+
+  /* ========== RECORD TYPES (ajustados para dark) ========== */
+
+  /** Higiene - azul mais claro */
+  --record-higiene: 217.2 91.2% 59.8%;
+  --record-higiene-foreground: 222.2 47.4% 11.2%;
+
+  /** Alimentação */
+  --record-alimentacao: var(--success);
+  --record-alimentacao-foreground: var(--success-foreground);
+
+  /** Hidratação - cyan ajustado */
+  --record-hidratacao: 189 94% 50%;
+  --record-hidratacao-foreground: 222.2 47.4% 11.2%;
+
+  /** Monitoramento */
+  --record-monitoramento: var(--warning);
+  --record-monitoramento-foreground: var(--warning-foreground);
+
+  /** Eliminação - cinza mais claro */
+  --record-eliminacao: 220 9% 55%;
+  --record-eliminacao-foreground: 210 40% 98%;
+
+  /** Comportamento - roxo ajustado */
+  --record-comportamento: 271 81% 70%;
+  --record-comportamento-foreground: 222.2 47.4% 11.2%;
+
+  /** Intercorrência */
+  --record-intercorrencia: var(--danger);
+  --record-intercorrencia-foreground: var(--danger-foreground);
+
+  /** Atividades - índigo ajustado */
+  --record-atividades: 239 75% 70%;
+  --record-atividades-foreground: 222.2 47.4% 11.2%;
+
+  /** Visita - rosa ajustado */
+  --record-visita: 330 75% 65%;
+  --record-visita-foreground: 222.2 47.4% 11.2%;
+
+  /** Outros - slate ajustado */
+  --record-outros: 215 20% 70%;
+  --record-outros-foreground: 222.2 47.4% 11.2%;
+
+  /* ========== SEVERITY (ajustados) ========== */
+
+  --severity-critical: var(--danger);
+  --severity-critical-foreground: var(--danger-foreground);
+
+  /** Laranja ajustado */
+  --severity-warning: 25 95% 58%;
+  --severity-warning-foreground: 222.2 47.4% 11.2%;
+
+  --severity-info: var(--info);
+  --severity-info-foreground: var(--info-foreground);
+
+  /* ========== MEDICATIONS (ajustados) ========== */
+
+  --medication-controlled: var(--accent);
+  --medication-controlled-foreground: var(--accent-foreground);
+
+  --medication-sos: var(--severity-warning);
+  --medication-sos-foreground: var(--severity-warning-foreground);
+
+  --medication-high-risk: var(--danger);
+  --medication-high-risk-foreground: var(--danger-foreground);
+
+  /* ========== NEUTRAL COLORS (invertidos) ========== */
+
+  /** Background escuro */
+  --background: 222.2 84% 4.9%;
+
+  /** Text claro */
+  --foreground: 210 40% 98%;
+
+  /** Card com fundo ligeiramente mais claro que o background */
+  --card: 222.2 84% 11%;
+  --card-foreground: 210 40% 98%;
+
+  /** Popover */
+  --popover: 222.2 84% 11%;
+  --popover-foreground: 210 40% 98%;
+
+  /** Muted */
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+
+  /** Border */
+  --border: 217.2 32.6% 17.5%;
+
+  /** Input */
+  --input: 217.2 32.6% 17.5%;
+
+  /** Ring (focus) */
+  --ring: 217.2 91.2% 59.8%;
+
+  /** Destructive */
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
+
+  /* ========== TOKENS ========== */
+
+  /** Border radius permanece o mesmo */
+  --radius: 1rem;
+}

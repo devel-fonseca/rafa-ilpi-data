@@ -15,6 +15,11 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        // Design System RAFA ILPI - Variantes semânticas
+        success: "border-success/30 bg-success/10 text-success",
+        warning: "border-warning/30 bg-warning/10 text-warning",
+        danger: "border-danger/30 bg-danger/10 text-danger",
+        info: "border-info/30 bg-info/10 text-info",
       },
     },
     defaultVariants: {
