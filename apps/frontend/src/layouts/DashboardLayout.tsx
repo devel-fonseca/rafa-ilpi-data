@@ -23,7 +23,8 @@ export function DashboardLayout() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
+            {/* Mobile: Menu + Logo + Name */}
+            <div className="flex items-center gap-3 md:flex-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -34,14 +35,21 @@ export function DashboardLayout() {
                 <Menu className="h-5 w-5" />
               </Button>
               <Building2 className="h-8 w-8 text-blue-600" />
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-semibold text-gray-900">
                   {user?.tenant?.name || 'Rafa ILPI'}
                 </h1>
                 <p className="text-xs text-gray-500">Sistema de Gestão</p>
               </div>
+              <div className="sm:hidden">
+                <h1 className="text-sm font-semibold text-gray-900 truncate max-w-[120px]">
+                  {user?.tenant?.name || 'Rafa ILPI'}
+                </h1>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+
+            {/* Desktop: User Info + Logout */}
+            <div className="hidden md:flex items-center gap-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                 <p className="text-xs text-gray-500">
@@ -58,6 +66,17 @@ export function DashboardLayout() {
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Mobile: Logout only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="md:hidden text-red-600 hover:text-red-700 hover:bg-red-50"
+              aria-label="Sair"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
