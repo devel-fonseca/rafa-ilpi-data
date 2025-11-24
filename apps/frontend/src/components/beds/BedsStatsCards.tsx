@@ -64,19 +64,19 @@ export function BedsStatsCards({
           onClick={() => onTabChange(card.tabValue)}
         >
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className={`flex items-center justify-center w-12 h-12 ${card.bgColor} rounded-lg`}
-              >
-                <card.icon className={`h-6 w-6 ${card.iconColor}`} />
-              </div>
+            <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-sm font-medium text-gray-600">
                   {card.title}
                 </h3>
-                <p className={`text-2xl font-bold ${card.valueColor}`}>
+                <p className={`text-2xl font-bold ${card.valueColor} mt-1`}>
                   {card.value}
                 </p>
+              </div>
+              <div
+                className={`flex items-center justify-center w-12 h-12 ${card.bgColor} rounded-lg`}
+              >
+                <card.icon className={`h-6 w-6 ${card.iconColor}`} />
               </div>
             </div>
           </CardContent>
