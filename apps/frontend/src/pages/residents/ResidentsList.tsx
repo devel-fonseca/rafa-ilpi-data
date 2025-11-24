@@ -134,17 +134,17 @@ export default function ResidentsList() {
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'ATIVO':
-        return 'bg-green-100 text-green-800'
+        return 'bg-success/10 text-success border-success/30'
       case 'INATIVO':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-warning/10 text-warning border-warning/30'
       case 'ALTA':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-info/10 text-info border-info/30'
       case 'OBITO':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground border-border'
       case 'TRANSFERIDO':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-accent/10 text-accent border-accent/30'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground border-border'
     }
   }
 
@@ -154,7 +154,7 @@ export default function ResidentsList() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Residentes</h1>
-          <p className="text-gray-600 mt-1">Gerencie os residentes da ILPI</p>
+          <p className="text-muted-foreground mt-1">Gerencie os residentes da ILPI</p>
         </div>
         <Button
           onClick={() => navigate('/dashboard/residentes/new')}
@@ -175,8 +175,8 @@ export default function ResidentsList() {
                   <CardDescription className="text-xs">Total</CardDescription>
                   <CardTitle className="text-2xl font-bold">{stats.total}</CardTitle>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-lg">
-                  <Users className="h-6 w-6 text-gray-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-muted rounded-lg">
+                  <Users className="h-6 w-6 text-muted-foreground" />
                 </div>
               </div>
             </CardHeader>
@@ -187,12 +187,12 @@ export default function ResidentsList() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardDescription className="text-xs">Ativos</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-green-600">
+                  <CardTitle className="text-2xl font-bold text-success">
                     {stats.ativos}
                   </CardTitle>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-green-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
+                  <UserCheck className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardHeader>
@@ -203,12 +203,12 @@ export default function ResidentsList() {
               <div className="flex justify-between items-start">
                 <div>
                   <CardDescription className="text-xs">Inativos</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-yellow-600">
+                  <CardTitle className="text-2xl font-bold text-warning">
                     {stats.inativos}
                   </CardTitle>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg">
-                  <UserX className="h-6 w-6 text-yellow-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg">
+                  <UserX className="h-6 w-6 text-warning" />
                 </div>
               </div>
             </CardHeader>
@@ -225,7 +225,7 @@ export default function ResidentsList() {
               <div className="flex justify-between items-center gap-6">
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau I</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-blue-600">{stats.grauI}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-info">{stats.grauI}</CardTitle>
                 </div>
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau II</CardDescription>
@@ -233,7 +233,7 @@ export default function ResidentsList() {
                 </div>
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau III</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-red-600">{stats.grauIII}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-danger">{stats.grauIII}</CardTitle>
                 </div>
               </div>
             </CardHeader>
@@ -294,16 +294,16 @@ export default function ResidentsList() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="text-gray-500">Carregando...</div>
+              <div className="text-muted-foreground">Carregando...</div>
             </div>
           ) : error ? (
             <div className="flex justify-center items-center h-64">
-              <div className="text-red-500">Erro ao carregar residentes</div>
+              <div className="text-danger">Erro ao carregar residentes</div>
             </div>
           ) : residents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 space-y-3">
               <Users className="h-12 w-12 text-gray-300" />
-              <div className="text-gray-500">Nenhum residente encontrado</div>
+              <div className="text-muted-foreground">Nenhum residente encontrado</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -390,7 +390,7 @@ export default function ResidentsList() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-danger"
                               onClick={() => setDeleteModal({ open: true, resident })}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -407,7 +407,7 @@ export default function ResidentsList() {
               {/* Pagination */}
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between px-6 py-4 border-t">
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">
                     Mostrando {(meta.page - 1) * meta.limit + 1} até{' '}
                     {Math.min(meta.page * meta.limit, meta.total)} de {meta.total} residentes
                   </div>
@@ -452,7 +452,7 @@ export default function ResidentsList() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              variant="danger"
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Removendo...' : 'Remover'}
