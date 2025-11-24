@@ -82,10 +82,7 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
 
   return (
     <div className="print-container text-gray-900 leading-relaxed" style={{
-      border: '10mm solid transparent',
-      borderLeft: '15mm solid transparent',
-      borderRight: '15mm solid transparent',
-      boxSizing: 'border-box'
+      padding: '10mm 15mm 10mm 15mm'
     }}>
 
       {/* ============================================================

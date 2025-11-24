@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
 import { useTenant } from '@/hooks/useTenant'
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
+import html2pdf from 'html2pdf.js'
 
 export function ResidentPrintView() {
   const { id } = useParams<{ id: string }>()
@@ -51,62 +50,24 @@ export function ResidentPrintView() {
     if (!documentRef.current || !residentData) return
 
     setIsExporting(true)
-    setIsPrinting(true) // Ativar modo de impressão para remover links
 
     try {
-      // Aguardar um pouco para o React renderizar sem os links
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Criar um elemento clone para exportação (sem elementos de UI)
+      const element = documentRef.current.querySelector('.print-container') as HTMLElement
+      if (!element) return
 
-      // Capturar o HTML como imagem
-      const canvas = await html2canvas(documentRef.current, {
-        scale: 2, // Qualidade da imagem
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      })
+      const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
 
-      // Dimensões A4 em mm
-      const pageWidth = 210
-      const pageHeight = 297
-
-      // Calcular altura da imagem mantendo proporção (margens já incluídas na borda transparente)
-      const imgHeight = (canvas.height * pageWidth) / canvas.width
-
-      const pdf = new jsPDF('p', 'mm', 'a4')
-
-      // Se a imagem é maior que uma página, adicionar múltiplas páginas
-      let heightLeft = imgHeight
-      let position = 0
-
-      // Adicionar primeira página
-      pdf.addImage(
-        canvas.toDataURL('image/png'),
-        'PNG',
-        0,
-        position,
-        pageWidth,
-        imgHeight
-      )
-      heightLeft -= pageHeight
-
-      // Adicionar páginas adicionais se necessário
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(
-          canvas.toDataURL('image/png'),
-          'PNG',
-          0,
-          position,
-          pageWidth,
-          imgHeight
-        )
-        heightLeft -= pageHeight
+      const opt = {
+        margin: [10, 15, 10, 15] as [number, number, number, number], // top, left, bottom, right em mm
+        filename: fileName,
+        image: { type: 'png' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+        jsPDF: { orientation: 'p', unit: 'mm', format: 'a4' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       }
 
-      // Fazer download do PDF
-      const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
-      pdf.save(fileName)
+      await html2pdf().set(opt).from(element).save()
 
       console.log('✅ PDF gerado com sucesso:', fileName)
     } catch (error) {
@@ -114,7 +75,6 @@ export function ResidentPrintView() {
       alert('Erro ao gerar PDF. Por favor, tente novamente.')
     } finally {
       setIsExporting(false)
-      setIsPrinting(false)
     }
   }
 
