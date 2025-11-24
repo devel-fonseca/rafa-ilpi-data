@@ -83,7 +83,7 @@ export function ResidentPrintView() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-gray-600">Carregando dados...</p>
+          <p className="text-muted-foreground">Carregando dados...</p>
         </div>
       </div>
     )
@@ -93,7 +93,7 @@ export function ResidentPrintView() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {residentError ? 'Erro ao carregar dados do residente' :
              tenantError ? 'Erro ao carregar dados da ILPI' :
              'Dados não encontrados'}
@@ -107,14 +107,14 @@ export function ResidentPrintView() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 print:bg-white">
+    <div className="min-h-screen bg-muted print:bg-white">
       {/* Cabeçalho da Página - Ocultar na impressão */}
       <div className="bg-white border-b print:hidden sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{residentData.fullName}</h1>
-              <p className="text-sm text-gray-600 mt-1">Visualizando as informações do residente</p>
+              <p className="text-sm text-muted-foreground mt-1">Visualizando as informações do residente</p>
             </div>
 
             <div className="flex gap-3">
@@ -139,7 +139,7 @@ export function ResidentPrintView() {
               <Button
                 onClick={handleExportPDF}
                 disabled={isExporting}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                variant="danger"
               >
                 {isExporting ? (
                   <>
