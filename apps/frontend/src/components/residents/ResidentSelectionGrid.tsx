@@ -44,7 +44,7 @@ export function ResidentSelectionGrid({
   statsComponent,
 }: ResidentSelectionGridProps) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('active')
   const [currentPage, setCurrentPage] = useState(1)
 
   // Criar mapa de últimos registros por residente
