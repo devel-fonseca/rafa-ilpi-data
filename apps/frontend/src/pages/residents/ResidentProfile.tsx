@@ -137,17 +137,17 @@ export default function ResidentProfile() {
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'ATIVO':
-        return 'bg-green-100 text-green-800'
+        return 'bg-success/10 text-success border-success/30'
       case 'INATIVO':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-warning/10 text-warning border-warning/30'
       case 'ALTA':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-info/10 text-info border-info/30'
       case 'OBITO':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground border-border'
       case 'TRANSFERIDO':
-        return 'bg-purple-100 text-purple-800'
+        return 'bg-accent/10 text-accent border-accent/30'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-muted-foreground border-border'
     }
   }
 
@@ -202,9 +202,9 @@ export default function ResidentProfile() {
   // Helper para mostrar badge de status de preenchimento
   const getFieldCompletionBadge = (value: any) => {
     if (!value || value === 'Não informado' || value === '-') {
-      return <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Não preenchido</Badge>
+      return <Badge variant="warning" className="text-xs">Não preenchido</Badge>
     }
-    return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Completo</Badge>
+    return <Badge variant="success" className="text-xs">Completo</Badge>
   }
 
   // Helper para calcular percentual de preenchimento
@@ -216,11 +216,11 @@ export default function ResidentProfile() {
   // Helper para mostrar badge de status geral da seção
   const getSectionCompletionBadge = (completionPercent: number) => {
     if (completionPercent === 100) {
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">100% Completo</Badge>
+      return <Badge variant="success">100% Completo</Badge>
     } else if (completionPercent >= 50) {
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{completionPercent}% Preenchido</Badge>
+      return <Badge variant="info">{completionPercent}% Preenchido</Badge>
     } else {
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">{completionPercent}% Incompleto</Badge>
+      return <Badge variant="warning">{completionPercent}% Incompleto</Badge>
     }
   }
 
@@ -261,7 +261,7 @@ export default function ResidentProfile() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -269,8 +269,8 @@ export default function ResidentProfile() {
   if (error || !resident) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <AlertCircle className="h-12 w-12 text-red-500" />
-        <div className="text-gray-600">Residente não encontrado</div>
+        <AlertCircle className="h-12 w-12 text-danger" />
+        <div className="text-muted-foreground">Residente não encontrado</div>
         <Button variant="outline" onClick={() => navigate('/dashboard/residentes')}>
           Voltar para a lista
         </Button>
@@ -292,8 +292,8 @@ export default function ResidentProfile() {
             <h1 className="text-3xl font-bold text-gray-900">{resident.fullName}</h1>
             <div className="flex items-center gap-3 mt-2">
               <Badge className={getStatusBadgeColor(resident.status)}>{resident.status}</Badge>
-              <span className="text-gray-600">{calculateAge(resident.birthDate)} anos</span>
-              {resident.cpf && <span className="text-gray-600">CPF: {resident.cpf}</span>}
+              <span className="text-muted-foreground">{calculateAge(resident.birthDate)} anos</span>
+              {resident.cpf && <span className="text-muted-foreground">CPF: {resident.cpf}</span>}
             </div>
           </div>
         </div>
@@ -387,33 +387,33 @@ export default function ResidentProfile() {
                         size="md"
                       />
                       <div className="flex-1">
-                        <div className="text-sm text-gray-500">Nome Completo</div>
+                        <div className="text-sm text-muted-foreground">Nome Completo</div>
                         <div className="font-semibold text-lg text-gray-900">{resident.fullName}</div>
                         {resident.socialName && (
                           <>
-                            <div className="text-sm text-gray-500 mt-2">Nome Social</div>
-                            <div className="font-medium text-gray-700">{resident.socialName}</div>
+                            <div className="text-sm text-muted-foreground mt-2">Nome Social</div>
+                            <div className="font-medium text-foreground">{resident.socialName}</div>
                           </>
                         )}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 border-t pt-4">
                       <div>
-                        <div className="text-sm text-gray-500">Data de Nascimento</div>
+                        <div className="text-sm text-muted-foreground">Data de Nascimento</div>
                         <div className="font-medium text-gray-900">
                           {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Idade</div>
+                        <div className="text-sm text-muted-foreground">Idade</div>
                         <div className="font-medium text-gray-900">{calculateAge(resident.birthDate)} anos</div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Gênero</div>
+                        <div className="text-sm text-muted-foreground">Gênero</div>
                         <div className="font-medium text-gray-900">{translateGender(resident.gender)}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">CPF</div>
+                        <div className="text-sm text-muted-foreground">CPF</div>
                         <div className="font-medium text-gray-900">{resident.cpf || '-'}</div>
                       </div>
                     </div>
@@ -428,8 +428,8 @@ export default function ResidentProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
-                    <div className="font-semibold text-lg text-red-600">{translateBloodType(resident.bloodType)}</div>
+                    <div className="text-sm text-muted-foreground">Tipo Sanguíneo</div>
+                    <div className="font-semibold text-lg text-danger">{translateBloodType(resident.bloodType)}</div>
                   </div>
 
                   {/* Sinais Vitais */}
@@ -438,7 +438,7 @@ export default function ResidentProfile() {
                       const vitalData = lastVitalSignData.data || {}
                       return (
                         <div className="border-t pt-4">
-                          <div className="text-sm text-gray-500 mb-2">
+                          <div className="text-sm text-muted-foreground mb-2">
                             Sinais Vitais em {format(new Date(lastVitalSignData.date), 'dd/MM/yyyy', { locale: ptBR })} às {lastVitalSignData.time}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -463,7 +463,7 @@ export default function ResidentProfile() {
                     }
                     return (
                       <div className="border-t pt-4">
-                        <div className="text-sm text-gray-500">Sinais Vitais</div>
+                        <div className="text-sm text-muted-foreground">Sinais Vitais</div>
                         <div className="text-sm text-gray-400 italic">Nenhum registro de monitoramento</div>
                       </div>
                     )
@@ -473,8 +473,8 @@ export default function ResidentProfile() {
                     const { text: truncatedAllergies, isTruncated: allergiesTruncated } = truncateText(resident.allergies)
                     return (
                       <div className="border-t pt-4">
-                        <div className="text-sm text-gray-500 mb-1">Alergias</div>
-                        <div className="text-sm bg-red-50 border border-red-200 rounded p-2 text-red-700">
+                        <div className="text-sm text-muted-foreground mb-1">Alergias</div>
+                        <div className="text-sm bg-danger/10 border border-danger/30 rounded p-2 text-danger">
                           {truncatedAllergies}
                         </div>
                         {allergiesTruncated && (
@@ -494,8 +494,8 @@ export default function ResidentProfile() {
                     const { text: truncatedConditions, isTruncated: conditionsTruncated } = truncateText(resident.chronicConditions)
                     return (
                       <div className="border-t pt-4">
-                        <div className="text-sm text-gray-500 mb-1">Condições Crônicas</div>
-                        <div className="text-sm text-gray-700">{truncatedConditions}</div>
+                        <div className="text-sm text-muted-foreground mb-1">Condições Crônicas</div>
+                        <div className="text-sm text-foreground">{truncatedConditions}</div>
                         {conditionsTruncated && (
                           <Button
                             type="button"
@@ -522,17 +522,17 @@ export default function ResidentProfile() {
                     <div className="space-y-3">
                       {resident.emergencyContacts.slice(0, 1).map((contact, idx) => (
                         <div key={idx}>
-                          <div className="text-sm text-gray-500">Nome</div>
+                          <div className="text-sm text-muted-foreground">Nome</div>
                           <div className="font-medium text-gray-900">{contact.name}</div>
-                          <div className="text-sm text-gray-500 mt-2">Telefone</div>
+                          <div className="text-sm text-muted-foreground mt-2">Telefone</div>
                           <div className="font-medium text-gray-900">{contact.phone}</div>
-                          <div className="text-sm text-gray-500 mt-2">Parentesco</div>
+                          <div className="text-sm text-muted-foreground mt-2">Parentesco</div>
                           <div className="font-medium text-gray-900">{contact.relationship}</div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center text-gray-500 py-4">Não informado</div>
+                    <div className="text-center text-muted-foreground py-4">Não informado</div>
                   )}
                 </CardContent>
               </Card>
@@ -544,13 +544,13 @@ export default function ResidentProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <div className="text-sm text-gray-500">Quarto</div>
+                    <div className="text-sm text-muted-foreground">Quarto</div>
                     <div className="font-semibold text-lg text-gray-900">
                       {resident.room ? `${resident.room.name} (${resident.room.code})` : '-'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Leito</div>
+                    <div className="text-sm text-muted-foreground">Leito</div>
                     <div className="font-semibold text-lg text-gray-900">
                       {resident.bed ? resident.bed.code : '-'}
                     </div>
@@ -565,7 +565,7 @@ export default function ResidentProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <div className="text-sm text-gray-500 mb-1">Tempo na Instituição</div>
+                    <div className="text-sm text-muted-foreground mb-1">Tempo na Instituição</div>
                     <div className="font-semibold text-lg text-gray-900">
                       {resident.admissionDate
                         ? `${Math.floor(
@@ -576,7 +576,7 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                   <div className="border-t pt-4">
-                    <div className="text-sm text-gray-500 mb-1">Grau de Dependência</div>
+                    <div className="text-sm text-muted-foreground mb-1">Grau de Dependência</div>
                     <div className="font-medium text-gray-900">{resident.dependencyLevel || '-'}</div>
                   </div>
                 </CardContent>
@@ -611,15 +611,15 @@ export default function ResidentProfile() {
                   <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Identificação</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <div className="text-sm text-gray-500">RG</div>
+                      <div className="text-sm text-muted-foreground">RG</div>
                       <div className="font-medium text-gray-900">{resident.rg || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Órgão Emissor</div>
+                      <div className="text-sm text-muted-foreground">Órgão Emissor</div>
                       <div className="font-medium text-gray-900">{resident.rgIssuer || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">CNS</div>
+                      <div className="text-sm text-muted-foreground">CNS</div>
                       <div className="font-medium text-gray-900">{resident.cns || '-'}</div>
                     </div>
                   </div>
@@ -630,27 +630,27 @@ export default function ResidentProfile() {
                   <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Demográficos</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
-                      <div className="text-sm text-gray-500">Estado Civil</div>
+                      <div className="text-sm text-muted-foreground">Estado Civil</div>
                       <div className="font-medium text-gray-900">{translateMaritalStatus(resident.civilStatus)}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Religião</div>
+                      <div className="text-sm text-muted-foreground">Religião</div>
                       <div className="font-medium text-gray-900">{resident.religion || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Escolaridade</div>
+                      <div className="text-sm text-muted-foreground">Escolaridade</div>
                       <div className="font-medium text-gray-900">{resident.education || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Profissão</div>
+                      <div className="text-sm text-muted-foreground">Profissão</div>
                       <div className="font-medium text-gray-900">{resident.profession || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Nacionalidade</div>
+                      <div className="text-sm text-muted-foreground">Nacionalidade</div>
                       <div className="font-medium text-gray-900">{resident.nationality || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Naturalidade</div>
+                      <div className="text-sm text-muted-foreground">Naturalidade</div>
                       <div className="font-medium text-gray-900">
                         {resident.birthCity && resident.birthState
                           ? `${resident.birthCity}/${resident.birthState}`
@@ -665,11 +665,11 @@ export default function ResidentProfile() {
                   <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Filiação</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm text-gray-500">Nome da Mãe</div>
+                      <div className="text-sm text-muted-foreground">Nome da Mãe</div>
                       <div className="font-medium text-gray-900">{resident.motherName || '-'}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-gray-500">Nome do Pai</div>
+                      <div className="text-sm text-muted-foreground">Nome do Pai</div>
                       <div className="font-medium text-gray-900">{resident.fatherName || '-'}</div>
                     </div>
                   </div>
@@ -699,7 +699,7 @@ export default function ResidentProfile() {
                         <div className="flex items-start gap-3">
                           <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
                           <div>
-                            <div className="text-sm text-gray-500">Endereço</div>
+                            <div className="text-sm text-muted-foreground">Endereço</div>
                             <div className="font-medium">
                               {resident.currentStreet
                                 ? `${resident.currentStreet}${
@@ -722,7 +722,7 @@ export default function ResidentProfile() {
                         <div className="flex items-start gap-3">
                           <Phone className="h-5 w-5 text-gray-400" />
                           <div>
-                            <div className="text-sm text-gray-500">Telefone</div>
+                            <div className="text-sm text-muted-foreground">Telefone</div>
                             <div className="font-medium">
                               {resident.currentPhone || 'Não informado'}
                             </div>
@@ -743,7 +743,7 @@ export default function ResidentProfile() {
                           <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
                             <div>
-                              <div className="text-sm text-gray-500">Endereço</div>
+                              <div className="text-sm text-muted-foreground">Endereço</div>
                               <div className="font-medium">
                                 {`${resident.originStreet}${
                                   resident.originNumber ? `, ${resident.originNumber}` : ''
@@ -763,7 +763,7 @@ export default function ResidentProfile() {
                             <div className="flex items-start gap-3">
                               <Phone className="h-5 w-5 text-gray-400" />
                               <div>
-                                <div className="text-sm text-gray-500">Telefone</div>
+                                <div className="text-sm text-muted-foreground">Telefone</div>
                                 <div className="font-medium">{resident.originPhone}</div>
                               </div>
                             </div>
@@ -782,8 +782,8 @@ export default function ResidentProfile() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Contatos de Emergência</CardTitle>
                   {resident.emergencyContacts && resident.emergencyContacts.length > 0
-                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
-                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                    ? <Badge variant="success">Preenchido</Badge>
+                    : <Badge variant="warning">Não preenchido</Badge>
                   }
                 </div>
               </CardHeader>
@@ -794,15 +794,15 @@ export default function ResidentProfile() {
                       <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <div className="text-sm text-gray-500">Nome</div>
+                            <div className="text-sm text-muted-foreground">Nome</div>
                             <div className="font-medium">{contact.name}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500">Telefone</div>
+                            <div className="text-sm text-muted-foreground">Telefone</div>
                             <div className="font-medium">{contact.phone}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500">Parentesco</div>
+                            <div className="text-sm text-muted-foreground">Parentesco</div>
                             <div className="font-medium">{contact.relationship}</div>
                           </div>
                         </div>
@@ -810,7 +810,7 @@ export default function ResidentProfile() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 py-4">
+                  <div className="text-center text-muted-foreground py-4">
                     Nenhum contato de emergência cadastrado
                   </div>
                 )}
@@ -832,35 +832,35 @@ export default function ResidentProfile() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-gray-500">Nome</div>
+                    <div className="text-sm text-muted-foreground">Nome</div>
                     <div className="font-medium">
                       {resident.legalGuardianName || 'Não informado'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">CPF</div>
+                    <div className="text-sm text-muted-foreground">CPF</div>
                     <div className="font-medium">
                       {resident.legalGuardianCpf || 'Não informado'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">RG</div>
+                    <div className="text-sm text-muted-foreground">RG</div>
                     <div className="font-medium">{resident.legalGuardianRg || 'Não informado'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Tipo de Responsabilidade</div>
+                    <div className="text-sm text-muted-foreground">Tipo de Responsabilidade</div>
                     <div className="font-medium">
                       {resident.legalGuardianType || 'Não informado'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Telefone</div>
+                    <div className="text-sm text-muted-foreground">Telefone</div>
                     <div className="font-medium">
                       {resident.legalGuardianPhone || 'Não informado'}
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <div className="text-sm text-gray-500">Endereço</div>
+                    <div className="text-sm text-muted-foreground">Endereço</div>
                     <div className="font-medium">
                       {resident.legalGuardianStreet
                         ? `${resident.legalGuardianStreet}${
@@ -900,7 +900,7 @@ export default function ResidentProfile() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-gray-500">Data de Admissão</div>
+                    <div className="text-sm text-muted-foreground">Data de Admissão</div>
                     <div className="font-medium">
                       {resident.admissionDate
                         ? format(new Date(resident.admissionDate), 'dd/MM/yyyy', { locale: ptBR })
@@ -908,11 +908,11 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Tipo de Admissão</div>
+                    <div className="text-sm text-muted-foreground">Tipo de Admissão</div>
                     <div className="font-medium">{resident.admissionType || 'Não informado'}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Tempo na Instituição</div>
+                    <div className="text-sm text-muted-foreground">Tempo na Instituição</div>
                     <div className="font-medium">
                       {resident.admissionDate
                         ? `${Math.floor(
@@ -923,11 +923,11 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <div className="text-sm text-gray-500">Motivo da Admissão</div>
+                    <div className="text-sm text-muted-foreground">Motivo da Admissão</div>
                     <div className="font-medium">{resident.admissionReason || 'Não informado'}</div>
                   </div>
                   <div className="md:col-span-2">
-                    <div className="text-sm text-gray-500">Condições de Admissão</div>
+                    <div className="text-sm text-muted-foreground">Condições de Admissão</div>
                     <div className="font-medium">
                       {resident.admissionConditions || 'Não informado'}
                     </div>
@@ -935,7 +935,7 @@ export default function ResidentProfile() {
                   {resident.dischargeDate && (
                     <>
                       <div>
-                        <div className="text-sm text-gray-500">Data de Desligamento</div>
+                        <div className="text-sm text-muted-foreground">Data de Desligamento</div>
                         <div className="font-medium">
                           {format(new Date(resident.dischargeDate), 'dd/MM/yyyy', {
                             locale: ptBR,
@@ -943,7 +943,7 @@ export default function ResidentProfile() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Motivo do Desligamento</div>
+                        <div className="text-sm text-muted-foreground">Motivo do Desligamento</div>
                         <div className="font-medium">
                           {resident.dischargeReason || 'Não informado'}
                         </div>
@@ -976,35 +976,35 @@ export default function ResidentProfile() {
                     <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Gerais</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <div className="text-sm text-gray-500">Tipo Sanguíneo</div>
+                        <div className="text-sm text-muted-foreground">Tipo Sanguíneo</div>
                         <div className="font-medium">{translateBloodType(resident.bloodType)}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Altura</div>
+                        <div className="text-sm text-muted-foreground">Altura</div>
                         <div className="font-medium">
                           {resident.height ? `${resident.height} m` : 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Peso</div>
+                        <div className="text-sm text-muted-foreground">Peso</div>
                         <div className="font-medium">
                           {resident.weight ? `${resident.weight} kg` : 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">IMC</div>
+                        <div className="text-sm text-muted-foreground">IMC</div>
                         <div className="font-medium">
                           {calculateBMI(resident.weight, resident.height) || 'Não calculado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Grau de Dependência</div>
+                        <div className="text-sm text-muted-foreground">Grau de Dependência</div>
                         <div className="font-medium">
                           {resident.dependencyLevel || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Auxílio de Mobilidade</div>
+                        <div className="text-sm text-muted-foreground">Auxílio de Mobilidade</div>
                         <div className="font-medium">
                           {resident.mobilityAid !== undefined
                             ? resident.mobilityAid
@@ -1023,41 +1023,41 @@ export default function ResidentProfile() {
                     </h4>
                     <div className="grid grid-cols-1 gap-4">
                       <div>
-                        <div className="text-sm text-gray-500">Estado de Saúde</div>
+                        <div className="text-sm text-muted-foreground">Estado de Saúde</div>
                         <div className="font-medium">
                           {resident.healthStatus || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Necessidades Especiais</div>
+                        <div className="text-sm text-muted-foreground">Necessidades Especiais</div>
                         <div className="font-medium">
                           {resident.specialNeeds || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Aspectos Funcionais</div>
+                        <div className="text-sm text-muted-foreground">Aspectos Funcionais</div>
                         <div className="font-medium">
                           {resident.functionalAspects || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Restrições Alimentares</div>
+                        <div className="text-sm text-muted-foreground">Restrições Alimentares</div>
                         <div className="font-medium">
                           {resident.dietaryRestrictions || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Alergias</div>
+                        <div className="text-sm text-muted-foreground">Alergias</div>
                         <div className="font-medium">{resident.allergies || 'Não informado'}</div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Condições Crônicas</div>
+                        <div className="text-sm text-muted-foreground">Condições Crônicas</div>
                         <div className="font-medium">
                           {resident.chronicConditions || 'Não informado'}
                         </div>
                       </div>
                       <div>
-                        <div className="text-sm text-gray-500">Medicamentos na Admissão</div>
+                        <div className="text-sm text-muted-foreground">Medicamentos na Admissão</div>
                         <div className="font-medium">
                           {resident.medicationsOnAdmission || 'Não informado'}
                         </div>
@@ -1074,8 +1074,8 @@ export default function ResidentProfile() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Convênios e Planos de Saúde</CardTitle>
                   {resident.healthPlans && resident.healthPlans.length > 0
-                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
-                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                    ? <Badge variant="success">Preenchido</Badge>
+                    : <Badge variant="warning">Não preenchido</Badge>
                   }
                 </div>
               </CardHeader>
@@ -1086,11 +1086,11 @@ export default function ResidentProfile() {
                       <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <div className="text-sm text-gray-500">Nome do Plano</div>
+                            <div className="text-sm text-muted-foreground">Nome do Plano</div>
                             <div className="font-medium">{plan.name}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500">Número da Carteirinha</div>
+                            <div className="text-sm text-muted-foreground">Número da Carteirinha</div>
                             <div className="font-medium">{plan.cardNumber}</div>
                           </div>
                         </div>
@@ -1098,7 +1098,7 @@ export default function ResidentProfile() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 py-4">
+                  <div className="text-center text-muted-foreground py-4">
                     Nenhum convênio cadastrado
                   </div>
                 )}
@@ -1111,8 +1111,8 @@ export default function ResidentProfile() {
                 <div className="flex items-center justify-between">
                   <CardTitle>Pertences</CardTitle>
                   {resident.belongings && resident.belongings.length > 0
-                    ? <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Preenchido</Badge>
-                    : <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Não preenchido</Badge>
+                    ? <Badge variant="success">Preenchido</Badge>
+                    : <Badge variant="warning">Não preenchido</Badge>
                   }
                 </div>
               </CardHeader>
@@ -1126,7 +1126,7 @@ export default function ResidentProfile() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="text-center text-gray-500 py-4">Nenhum pertence cadastrado</div>
+                  <div className="text-center text-muted-foreground py-4">Nenhum pertence cadastrado</div>
                 )}
               </CardContent>
             </Card>
@@ -1159,7 +1159,7 @@ export default function ResidentProfile() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Pill className="h-4 w-4 text-blue-600" />
+                            <Pill className="h-4 w-4 text-info" />
                             <h4 className="font-semibold">
                               Prescrição de{' '}
                               {format(new Date(prescription.prescriptionDate), 'dd/MM/yyyy', {
@@ -1175,7 +1175,7 @@ export default function ResidentProfile() {
                               <Badge variant="destructive">Controlado</Badge>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                             <div>
                               <span className="font-medium">Médico:</span>{' '}
                               {prescription.doctorName}
@@ -1208,7 +1208,7 @@ export default function ResidentProfile() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-3">
                   <Pill className="h-12 w-12 text-gray-300" />
-                  <div className="text-gray-500">Nenhuma prescrição cadastrada</div>
+                  <div className="text-muted-foreground">Nenhuma prescrição cadastrada</div>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1281,7 +1281,7 @@ export default function ResidentProfile() {
                   {dailyRecords.map((record: any) => (
                     <div
                       key={record.id}
-                      className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                      className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -1294,14 +1294,14 @@ export default function ResidentProfile() {
                               {RECORD_TYPE_LABELS[record.type]?.label}
                             </Badge>
                           </div>
-                          <div className="text-sm text-gray-800 mb-1">
+                          <div className="text-sm text-foreground mb-1">
                             {renderRecordSummary(record)}
                           </div>
-                          <p className="text-xs text-gray-600">
+                          <p className="text-xs text-muted-foreground">
                             Registrado por: {record.recordedBy}
                           </p>
                           {record.notes && (
-                            <p className="text-sm text-gray-600 mt-2 italic border-l-2 border-gray-300 pl-2">
+                            <p className="text-sm text-muted-foreground mt-2 italic border-l-2 border-border pl-2">
                               {record.notes}
                             </p>
                           )}
@@ -1313,7 +1313,7 @@ export default function ResidentProfile() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-3">
                   <Calendar className="h-12 w-12 text-gray-300" />
-                  <div className="text-gray-500 font-medium">Nenhum registro encontrado</div>
+                  <div className="text-muted-foreground font-medium">Nenhum registro encontrado</div>
                   {isToday && (
                     <p className="text-sm text-gray-400 text-center max-w-md">
                       Use o botão "Dia anterior" acima para navegar até o último registro realizado
@@ -1347,7 +1347,7 @@ export default function ResidentProfile() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              variant="danger"
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Removendo...' : 'Remover'}
