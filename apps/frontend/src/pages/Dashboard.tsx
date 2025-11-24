@@ -1,11 +1,13 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Calendar, Activity, FileText, Settings, UserPlus, Pill } from 'lucide-react'
+import { Users, Calendar, Activity, Settings, UserPlus, Pill } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useResidentStats } from '@/hooks/useResidents'
+import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
+import { format } from 'date-fns'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -22,8 +24,13 @@ export default function Dashboard() {
     },
   })
 
+  // Buscar registros de hoje
+  const today = format(new Date(), 'yyyy-MM-dd')
+  const { data: recordsToday = [] } = useDailyRecordsByDate(today)
+
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
+  const totalRecordsToday = recordsToday.length
 
   // Cards de estatísticas
   const stats = [
@@ -45,7 +52,7 @@ export default function Dashboard() {
     },
     {
       title: 'Registros Hoje',
-      value: '0',
+      value: String(totalRecordsToday),
       description: 'Atividades registradas',
       icon: Activity,
       color: 'text-purple-600',

@@ -82,6 +82,7 @@ export function DailyRecordsPage() {
       return await api.post('/daily-records', data)
     },
     onSuccess: () => {
+      // Invalidar todas as queries relacionadas a daily-records
       queryClient.invalidateQueries({ queryKey: ['daily-records'] })
       setActiveModal(null)
       toast.success('Registro adicionado com sucesso!')

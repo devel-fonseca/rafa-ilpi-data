@@ -32,8 +32,9 @@ export function useLatestRecordsByResidents() {
       const response = await api.get('/daily-records/latest/by-residents')
       return response.data
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 0, // Sempre considerar como stale para refetch imediato
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -67,5 +68,25 @@ export function useDailyRecordsByResident(residentId: string | undefined, date?:
     enabled,
     staleTime: 1000 * 60 * 2, // 2 minutos
     refetchOnWindowFocus: true,
+  })
+}
+
+/**
+ * Hook para buscar todos os registros diários de hoje
+ * Usado para contar o total de atividades do dia (não apenas últimos registros)
+ */
+export function useDailyRecordsByDate(date: string) {
+  return useQuery<DailyRecord[]>({
+    queryKey: ['daily-records', 'by-date', date],
+    queryFn: async () => {
+      const response = await api.get('/daily-records', {
+        params: { date }
+      })
+      // O endpoint retorna { data: [...], meta: {...} } por isso acessamos response.data.data
+      return Array.isArray(response.data) ? response.data : (response.data.data || [])
+    },
+    staleTime: 0, // Sempre considerar como stale para refetch imediato
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }

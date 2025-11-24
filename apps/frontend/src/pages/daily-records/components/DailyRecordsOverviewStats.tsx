@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
 
 interface Resident {
   id: string
@@ -24,19 +25,34 @@ export function DailyRecordsOverviewStats({
   // Filtrar apenas residentes ativos
   const activeResidents = residents.filter((r) => r.status === 'Ativo')
 
-  // Criar mapa de registros de hoje por residente
+  // Buscar todos os registros de hoje para contar total correto de atividades
   const today = new Date().toISOString().split('T')[0]
-  const recordsMap = new Map<string, LatestRecord>()
+  const { data: allRecordsToday } = useDailyRecordsByDate(today)
+
+  // Se houver erro ou dados indefinidos, usar array vazio
+  const safeAllRecordsToday = Array.isArray(allRecordsToday) ? allRecordsToday : []
+
+  // Criar Set de residentes que tiveram algum registro de hoje
+  // Usar latestRecords para contar residentes únicos com registros
+  const residentsWithRecordsSet = new Set<string>()
+
   latestRecords.forEach((record) => {
-    if (record.date === today) {
-      recordsMap.set(record.residentId, record)
+    // Verificar se o registro é de hoje comparando a data
+    const recordDate = record.date ? String(record.date).split('T')[0] : ''
+    if (recordDate === today) {
+      residentsWithRecordsSet.add(record.residentId)
     }
   })
 
   // Calcular estatísticas
-  const residentsWithRecords = activeResidents.filter((r) => recordsMap.has(r.id))
-  const residentsWithoutRecords = activeResidents.filter((r) => !recordsMap.has(r.id))
-  const totalRecordsToday = latestRecords.filter((r) => r.date === today).length
+  const residentsWithRecords = activeResidents.filter((r) =>
+    residentsWithRecordsSet.has(r.id)
+  )
+  const residentsWithoutRecords = activeResidents.filter(
+    (r) => !residentsWithRecordsSet.has(r.id)
+  )
+  // Total de registros é a contagem de TODOS os registros do dia
+  const totalRecordsToday = safeAllRecordsToday.length
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
