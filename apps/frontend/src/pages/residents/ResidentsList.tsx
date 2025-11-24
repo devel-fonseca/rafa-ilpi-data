@@ -54,6 +54,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Printer,
+  Accessibility,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -174,7 +175,9 @@ export default function ResidentsList() {
                   <CardDescription className="text-xs">Total</CardDescription>
                   <CardTitle className="text-2xl font-bold">{stats.total}</CardTitle>
                 </div>
-                <Users className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-lg">
+                  <Users className="h-6 w-6 text-gray-600" />
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -188,7 +191,9 @@ export default function ResidentsList() {
                     {stats.ativos}
                   </CardTitle>
                 </div>
-                <UserCheck className="h-5 w-5 text-green-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
+                  <UserCheck className="h-6 w-6 text-green-600" />
+                </div>
               </div>
             </CardHeader>
           </Card>
@@ -202,13 +207,21 @@ export default function ResidentsList() {
                     {stats.inativos}
                   </CardTitle>
                 </div>
-                <UserX className="h-5 w-5 text-yellow-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg">
+                  <UserX className="h-6 w-6 text-yellow-600" />
+                </div>
               </div>
             </CardHeader>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
+              <div className="flex justify-between items-start mb-3">
+                <CardDescription className="text-xs">Grau de Dependência</CardDescription>
+                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
+                  <Accessibility className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
               <div className="flex justify-between items-center gap-6">
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau I</CardDescription>
