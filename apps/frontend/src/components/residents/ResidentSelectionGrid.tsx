@@ -119,10 +119,10 @@ export function ResidentSelectionGrid({
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-gray-200 rounded w-full"></div>
+          <div className="h-10 bg-muted rounded w-full"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 rounded-lg"></div>
+              <div key={i} className="h-64 bg-muted rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -218,7 +218,7 @@ export function ResidentSelectionGrid({
                     variant={resident.status === 'Ativo' ? 'default' : 'secondary'}
                     className={
                       resident.status === 'Ativo'
-                        ? 'bg-green-500 hover:bg-green-600'
+                        ? 'bg-success hover:bg-success/90'
                         : ''
                     }
                   >

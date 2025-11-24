@@ -74,7 +74,7 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
     if (!url) return null
     if (isPrinting) return <p className="text-sm">{label}</p>
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="text-info underline text-sm">
         {label}
       </a>
     )
@@ -103,9 +103,9 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
           ) : (
             <div
               className="
-                h-24 w-24 bg-gray-300 rounded-md
+                h-24 w-24 bg-muted rounded-md
                 flex items-center justify-center
-                text-gray-600 text-xs
+                text-muted-foreground text-xs
                 border border-gray-400
                 print:shadow-none
               "
@@ -138,7 +138,7 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
             <div
               className="
                 w-[160px] h-[160px]
-                border border-gray-300 rounded-md bg-gray-100
+                border border-border rounded-md bg-muted
                 overflow-hidden shadow-md
                 print:shadow-none
               "
@@ -154,9 +154,9 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
             <div
               className="
                 w-[160px] h-[160px]
-                bg-gray-200 border border-gray-300 rounded-md
+                bg-muted border border-border rounded-md
                 flex items-center justify-center
-                text-gray-500 text-xs
+                text-muted-foreground text-xs
                 print:shadow-none
               "
             >
@@ -171,7 +171,7 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
             <p>
               <strong>Data de nascimento:</strong> {formatDate(resident.birthDate)}
               {resident.birthDate && (
-                <span className="ml-2 text-sm text-gray-700">
+                <span className="ml-2 text-sm text-foreground">
                   ({calculateAge(resident.birthDate)})
                 </span>
               )}
