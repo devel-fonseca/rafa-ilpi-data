@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
-import { CloudUpload, X } from 'lucide-react'
+import { CloudUpload, X, Loader2, Scan } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { PhotoViewer } from './PhotoViewer'
+import { processImageWithFaceDetection } from '@/services/faceDetection'
 
 interface PhotoUploadNewProps {
   onPhotoSelect: (file: File | null) => void
@@ -42,6 +43,8 @@ export function PhotoUploadNew({
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [faceDetected, setFaceDetected] = useState<boolean | null>(null)
 
   // Sincronizar preview com currentPhotoUrl quando muda (ex: residente carregado)
   useEffect(() => {
@@ -114,10 +117,11 @@ export function PhotoUploadNew({
     )
   }, [])
 
-  // Processar arquivo selecionado
+  // Processar arquivo selecionado com detecção facial
   const validateAndProcessFile = useCallback(
     async (file: File) => {
       setError(null)
+      setFaceDetected(null)
 
       // Validar tipo
       if (!file.type.startsWith('image/')) {
@@ -131,42 +135,43 @@ export function PhotoUploadNew({
         return
       }
 
-      // Ler arquivo como DataURL
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        try {
-          const result = e.target?.result as string
-          setSelectedImage(result)
+      try {
+        setIsProcessing(true)
 
-          // Carregar imagem para processar
-          const img = new Image()
-          img.onload = async () => {
-            imageRef.current = img
+        // Processar imagem com detecção facial
+        const result = await processImageWithFaceDetection(file)
 
-            // Desenhar no canvas
-            if (canvasRef.current) {
-              drawCroppedImage()
-
-              // Converter para WebP e enviar
-              const webpFile = await canvasToWebP(canvasRef.current)
-              onPhotoSelect(webpFile)
-            }
-          }
-          img.onerror = () => {
-            setError('Erro ao processar imagem')
-          }
-          img.src = result
-        } catch (err) {
-          setError('Erro ao processar imagem')
-          console.error(err)
+        // Converter blob para DataURL para preview
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          setSelectedImage(e.target?.result as string)
         }
+        reader.readAsDataURL(result.blob)
+
+        // Criar File a partir do blob
+        const webpFile = new File([result.blob], 'photo.webp', {
+          type: 'image/webp',
+        })
+
+        // Atualizar estado de detecção
+        setFaceDetected(result.hasFace)
+
+        // Enviar para o componente pai
+        onPhotoSelect(webpFile)
+
+        console.log(
+          `✅ Foto processada - Rosto detectado: ${result.hasFace ? 'Sim' : 'Não'}${
+            result.confidence ? ` (${(result.confidence * 100).toFixed(0)}%)` : ''
+          }`,
+        )
+      } catch (err) {
+        setError('Erro ao processar imagem')
+        console.error('Erro no processamento:', err)
+      } finally {
+        setIsProcessing(false)
       }
-      reader.onerror = () => {
-        setError('Erro ao ler arquivo')
-      }
-      reader.readAsDataURL(file)
     },
-    [maxSize, drawCroppedImage, canvasToWebP, onPhotoSelect]
+    [maxSize, onPhotoSelect]
   )
 
   const handleFileChange = useCallback(
@@ -210,6 +215,7 @@ export function PhotoUploadNew({
   const handleRemove = () => {
     setSelectedImage(null)
     setError(null)
+    setFaceDetected(null)
     onPhotoSelect(null)
     if (inputRef.current) {
       inputRef.current.value = ''
@@ -243,7 +249,7 @@ export function PhotoUploadNew({
               <PhotoViewer
                 photoUrl={selectedImage}
                 altText={label}
-                size="large"
+                size="lg"
                 isSignedUrl={true}
               />
             </div>
@@ -258,12 +264,26 @@ export function PhotoUploadNew({
             >
               <X className="w-4 h-4" />
             </button>
+
+            {/* Badge de detecção facial */}
+            {faceDetected !== null && (
+              <div
+                className={`absolute bottom-2 left-2 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-md ${
+                  faceDetected
+                    ? 'bg-green-500 text-white'
+                    : 'bg-yellow-500 text-white'
+                }`}
+              >
+                <Scan className="w-3 h-3" />
+                {faceDetected ? 'Rosto detectado' : 'Crop centralizado'}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Área de upload (mostrar apenas quando não há foto selecionada) */}
-      {!selectedImage && (
+      {!selectedImage && !isProcessing && (
         <div
           onDragEnter={handleDragEnter}
           onDragOver={handleDragOver}
@@ -289,6 +309,22 @@ export function PhotoUploadNew({
           <p className="text-sm font-medium text-gray-700">{description}</p>
           <p className="text-xs text-gray-500 mt-2">
             Máximo {maxSize}MB • PNG, JPG, WebP
+          </p>
+          <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+            <Scan className="w-3 h-3" />
+            Detecção facial automática
+          </p>
+        </div>
+      )}
+
+      {/* Indicador de processamento */}
+      {isProcessing && (
+        <div className="border-2 border-dashed border-primary rounded-lg p-8 text-center bg-primary/5">
+          <Loader2 className="w-10 h-10 mx-auto mb-3 text-primary animate-spin" />
+          <p className="text-sm font-medium text-gray-700">Processando imagem...</p>
+          <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
+            <Scan className="w-3 h-3" />
+            Detectando rosto e aplicando enquadramento
           </p>
         </div>
       )}

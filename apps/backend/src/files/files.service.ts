@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 
 @Injectable()
 export class FilesService {
@@ -59,6 +60,48 @@ export class FilesService {
   }
 
   /**
+   * Processa foto e gera thumbnails (small, medium, original)
+   * Usa convenção de nomenclatura: base.webp, base_small.webp, base_medium.webp
+   * NÃO altera schema do banco - apenas gera múltiplos arquivos no MinIO
+   */
+  private async processPhotoWithThumbnails(
+    fileBuffer: Buffer,
+    basePath: string, // Ex: "tenants/123/photos/456/uuid.webp"
+  ): Promise<void> {
+    const variants = [
+      { suffix: '', size: 300, quality: 95 }, // Original: uuid.webp
+      { suffix: '_small', size: 64, quality: 90 }, // Small: uuid_small.webp
+      { suffix: '_medium', size: 150, quality: 90 }, // Medium: uuid_medium.webp
+    ];
+
+    for (const variant of variants) {
+      // Processar imagem
+      const processed = await sharp(fileBuffer)
+        .resize(variant.size, variant.size, {
+          fit: 'cover',
+          position: 'center',
+        })
+        .webp({ quality: variant.quality })
+        .toBuffer();
+
+      // Gerar path com sufixo
+      const variantPath = basePath.replace('.webp', `${variant.suffix}.webp`);
+
+      // Upload para MinIO
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: variantPath,
+          Body: processed,
+          ContentType: 'image/webp',
+        }),
+      );
+
+      this.logger.log(`Uploaded thumbnail: ${variantPath}`);
+    }
+  }
+
+  /**
    * Upload de arquivo para MinIO
    * Path: tenants/{tenantId}/{category}/{filename}
    */
@@ -102,7 +145,25 @@ export class FilesService {
     filePath += `/${fileName}`;
 
     try {
-      // Upload para MinIO
+      // Se for foto, gerar thumbnails (3 arquivos no MinIO)
+      if (category === 'photos') {
+        await this.processPhotoWithThumbnails(file.buffer, filePath);
+
+        this.logger.log(
+          `Photo uploaded successfully with thumbnails: ${filePath}`,
+        );
+
+        // Retorna apenas path base (compatível com banco atual)
+        return {
+          fileId,
+          fileName: file.originalname,
+          fileUrl: filePath,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+        };
+      }
+
+      // Outros tipos de arquivo (comportamento atual sem mudanças)
       await this.s3Client.send(
         new PutObjectCommand({
           Bucket: this.bucket,

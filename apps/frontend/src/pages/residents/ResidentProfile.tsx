@@ -384,7 +384,7 @@ export default function ResidentProfile() {
                       <PhotoViewer
                         photoUrl={resident.fotoUrl}
                         altText={resident.fullName}
-                        size="small"
+                        size="md"
                       />
                       <div className="flex-1">
                         <div className="text-sm text-gray-500">Nome Completo</div>

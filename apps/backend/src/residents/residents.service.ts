@@ -685,10 +685,30 @@ export class ResidentsService {
       );
     }
 
-    // Processar fotoUrl se existir
+    // Processar fotoUrl se existir (gera original + thumbnails)
     if (resident.fotoUrl) {
       try {
-        resident.fotoUrl = await this.filesService.getFileUrl(resident.fotoUrl);
+        const basePath = resident.fotoUrl; // Path no MinIO antes de assinar
+
+        // Derivar paths dos thumbnails usando convenção de nomenclatura
+        const smallPath = basePath.replace('.webp', '_small.webp');
+        const mediumPath = basePath.replace('.webp', '_medium.webp');
+
+        // Gerar URLs assinadas para todas as variantes
+        const [originalUrl, smallUrl, mediumUrl] = await Promise.allSettled([
+          this.filesService.getFileUrl(basePath),
+          this.filesService.getFileUrl(smallPath),
+          this.filesService.getFileUrl(mediumPath),
+        ]);
+
+        // Atribuir URL original (sempre existe)
+        resident.fotoUrl = originalUrl.status === 'fulfilled' ? originalUrl.value : basePath;
+
+        // Atribuir URLs de thumbnails (fallback para original se não existirem)
+        resident.fotoUrlSmall =
+          smallUrl.status === 'fulfilled' ? smallUrl.value : resident.fotoUrl;
+        resident.fotoUrlMedium =
+          mediumUrl.status === 'fulfilled' ? mediumUrl.value : resident.fotoUrl;
       } catch (error) {
         this.logger.warn('Erro ao gerar URL assinada para foto do residente:', error);
         // Mantém URL original se falhar

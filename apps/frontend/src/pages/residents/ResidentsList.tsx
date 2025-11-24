@@ -331,14 +331,12 @@ export default function ResidentsList() {
                   {residents.map((resident: Resident) => (
                     <TableRow key={resident.id}>
                       <TableCell className="w-12">
-                        <div className="w-10 h-10 rounded-full overflow-hidden">
-                          <PhotoViewer
-                            photoUrl={resident.fotoUrl}
-                            altText={resident.fullName}
-                            size="small"
-                            className="!w-10 !h-10 rounded-full"
-                          />
-                        </div>
+                        <PhotoViewer
+                          photoUrl={resident.fotoUrl}
+                          altText={resident.fullName}
+                          size="sm"
+                          rounded={true}
+                        />
                       </TableCell>
                       <TableCell className="font-medium">{resident.fullName}</TableCell>
                       <TableCell>{resident.cpf || '-'}</TableCell>

@@ -133,11 +133,11 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
       <section className="mb-10 print-avoid-break">
         <div className="flex gap-6">
 
-          {/* FOTO (melhorada) */}
+          {/* FOTO (formato moderno 1:1) */}
           {resident.fotoUrl ? (
             <div
               className="
-                w-[140px] h-[180px]
+                w-[160px] h-[160px]
                 border border-gray-300 rounded-md bg-gray-100
                 overflow-hidden shadow-md
                 print:shadow-none
@@ -146,14 +146,14 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
-                size="large"
+                size="lg"
                 className="w-full h-full object-cover"
               />
             </div>
           ) : (
             <div
               className="
-                w-[140px] h-[180px]
+                w-[160px] h-[160px]
                 bg-gray-200 border border-gray-300 rounded-md
                 flex items-center justify-center
                 text-gray-500 text-xs

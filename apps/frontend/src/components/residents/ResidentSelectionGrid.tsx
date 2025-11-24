@@ -229,14 +229,12 @@ export function ResidentSelectionGrid({
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                   {/* Foto */}
                   <div className="relative group-hover:scale-110 transition-transform duration-200">
-                    <div className="w-20 h-20 rounded-full overflow-hidden">
-                      <PhotoViewer
-                        photoUrl={resident.fotoUrl}
-                        altText={resident.fullName}
-                        size="small"
-                        className="!w-20 !h-20 rounded-full"
-                      />
-                    </div>
+                    <PhotoViewer
+                      photoUrl={resident.fotoUrl}
+                      altText={resident.fullName}
+                      size="sm"
+                      rounded={true}
+                    />
                   </div>
 
                   {/* Nome */}

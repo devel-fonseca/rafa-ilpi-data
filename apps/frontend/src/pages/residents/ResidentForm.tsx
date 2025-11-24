@@ -995,7 +995,7 @@ export function ResidentForm() {
                             }
                           }}
                           currentPhotoUrl={currentPhotoUrl}
-                          label="Foto 3x4"
+                          label="Foto do Residente"
                           description="Clique ou arraste a foto do residente"
                           maxSize={5}
                         />

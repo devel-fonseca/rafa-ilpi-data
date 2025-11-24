@@ -86,7 +86,7 @@ export function PhotoUpload({ onPhotoSelected, currentPhoto }: PhotoUploadProps)
             <User className="w-12 h-12 text-gray-400 mb-2" />
             <p className="text-xs text-gray-500 text-center px-2">
               Clique para upload<br/>
-              <span className="text-xs">Foto 3x4</span>
+              <span className="text-xs">Foto do Residente</span>
             </p>
           </>
         )}
