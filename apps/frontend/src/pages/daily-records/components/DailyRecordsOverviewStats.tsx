@@ -45,9 +45,9 @@ export function DailyRecordsOverviewStats({
         <CardContent className="p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Com Registros Hoje</h3>
+              <h3 className="text-sm font-medium text-gray-600">Residentes com registros</h3>
               <p className="text-2xl font-bold text-green-600 mt-1">{residentsWithRecords.length}</p>
-              <p className="text-xs text-gray-500 mt-1">de {activeResidents.length} residentes</p>
+              <p className="text-xs text-gray-500 mt-1">de {activeResidents.length} residentes ativos</p>
             </div>
             <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
               <CheckCircle2 className="h-6 w-6 text-green-600" />
@@ -61,9 +61,9 @@ export function DailyRecordsOverviewStats({
         <CardContent className="p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Sem Registros Hoje</h3>
+              <h3 className="text-sm font-medium text-gray-600">Residentes sem registros</h3>
               <p className="text-2xl font-bold text-orange-600 mt-1">{residentsWithoutRecords.length}</p>
-              <p className="text-xs text-gray-500 mt-1">pendentes de registro</p>
+              <p className="text-xs text-gray-500 mt-1">pendentes de registros hoje</p>
             </div>
             <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
               <XCircle className="h-6 w-6 text-orange-600" />
@@ -77,9 +77,9 @@ export function DailyRecordsOverviewStats({
         <CardContent className="p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-sm font-medium text-gray-600">Total de Registros</h3>
+              <h3 className="text-sm font-medium text-gray-600">Total de registros</h3>
               <p className="text-2xl font-bold text-blue-600 mt-1">{totalRecordsToday}</p>
-              <p className="text-xs text-gray-500 mt-1">efetuados hoje</p>
+              <p className="text-xs text-gray-500 mt-1">lançados hoje</p>
             </div>
             <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
               <FileText className="h-6 w-6 text-blue-600" />
