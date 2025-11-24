@@ -441,32 +441,52 @@ export class PrescriptionsService {
   }
 
   /**
-   * Obtém alertas críticos
+   * Obtém alertas críticos com detalhes completos de cada prescrição
    */
   async getCriticalAlerts(tenantId: string) {
     const alerts = [];
+    const now = new Date();
 
     // Prescrições vencidas
-    const expired = await this.prisma.prescription.count({
+    const expiredPrescriptions = await this.prisma.prescription.findMany({
       where: {
         tenantId,
         isActive: true,
-        validUntil: { lt: new Date() },
+        validUntil: { lt: now },
         deletedAt: null,
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+      orderBy: {
+        validUntil: 'asc',
       },
     });
 
-    if (expired > 0) {
+    for (const prescription of expiredPrescriptions) {
+      const daysExpired = Math.floor(
+        (now.getTime() - new Date(prescription.validUntil).getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
       alerts.push({
-        type: 'expired',
-        message: `Residentes com prescrição vencida (${expired})`,
-        count: expired,
-        severity: 'high',
+        prescriptionId: prescription.id,
+        residentName: prescription.resident.fullName,
+        doctorName: prescription.doctorName,
+        message: `Prescrição vencida há ${daysExpired} dia${daysExpired !== 1 ? 's' : ''}`,
+        type: 'EXPIRED',
+        severity: 'CRITICAL',
+        daysUntilExpiry: -daysExpired,
       });
     }
 
-    // Controlados sem receita
-    const noReceipt = await this.prisma.prescription.count({
+    // Controlados sem receita anexada
+    const controlledWithoutReceipt = await this.prisma.prescription.findMany({
       where: {
         tenantId,
         isActive: true,
@@ -474,36 +494,68 @@ export class PrescriptionsService {
         prescriptionImageUrl: null,
         deletedAt: null,
       },
-    });
-
-    if (noReceipt > 0) {
-      alerts.push({
-        type: 'no_receipt',
-        message: `Medicamentos controlados sem receita anexada (${noReceipt})`,
-        count: noReceipt,
-        severity: 'high',
-      });
-    }
-
-    // Antibióticos sem validade
-    const noValidity = await this.prisma.prescription.count({
-      where: {
-        tenantId,
-        isActive: true,
-        prescriptionType: 'ANTIBIOTICO',
-        validUntil: null,
-        deletedAt: null,
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+      orderBy: {
+        prescriptionDate: 'desc',
       },
     });
 
-    if (noValidity > 0) {
+    for (const prescription of controlledWithoutReceipt) {
       alerts.push({
-        type: 'no_validity',
-        message: `Antibióticos sem validade registrada (${noValidity})`,
-        count: noValidity,
-        severity: 'medium',
+        prescriptionId: prescription.id,
+        residentName: prescription.resident.fullName,
+        doctorName: prescription.doctorName,
+        message: 'Medicamento controlado sem receita anexada',
+        type: 'MISSING_RECEIPT',
+        severity: 'CRITICAL',
       });
     }
+
+    // Antibióticos sem validade registrada
+    const antibioticsWithoutValidity = await this.prisma.prescription.findMany(
+      {
+        where: {
+          tenantId,
+          isActive: true,
+          prescriptionType: 'ANTIBIOTICO',
+          validUntil: null,
+          deletedAt: null,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+        orderBy: {
+          prescriptionDate: 'desc',
+        },
+      },
+    );
+
+    for (const prescription of antibioticsWithoutValidity) {
+      alerts.push({
+        prescriptionId: prescription.id,
+        residentName: prescription.resident.fullName,
+        doctorName: prescription.doctorName,
+        message: 'Antibiótico sem validade registrada',
+        type: 'MISSING_VALIDITY',
+        severity: 'WARNING',
+      });
+    }
+
+    // Ordenar por severidade (CRITICAL > WARNING)
+    const severityOrder = { CRITICAL: 0, WARNING: 1 };
+    alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
     return alerts;
   }

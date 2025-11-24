@@ -160,10 +160,13 @@ export interface DashboardStats {
 }
 
 export interface CriticalAlert {
-  type: string
+  prescriptionId: string
+  residentName: string
+  doctorName: string
   message: string
-  count: number
-  severity: 'high' | 'medium' | 'low'
+  type: string
+  severity: 'CRITICAL' | 'WARNING' | 'INFO'
+  daysUntilExpiry?: number
 }
 
 export interface ExpiringPrescription {
