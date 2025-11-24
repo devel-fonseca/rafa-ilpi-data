@@ -469,6 +469,7 @@ export class PrescriptionsService {
     });
 
     for (const prescription of expiredPrescriptions) {
+      if (!prescription.validUntil) continue;
       const daysExpired = Math.floor(
         (now.getTime() - new Date(prescription.validUntil).getTime()) /
           (1000 * 60 * 60 * 24),
@@ -554,8 +555,8 @@ export class PrescriptionsService {
     }
 
     // Ordenar por severidade (CRITICAL > WARNING)
-    const severityOrder = { CRITICAL: 0, WARNING: 1 };
-    alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+    const severityOrder: Record<string, number> = { CRITICAL: 0, WARNING: 1 };
+    alerts.sort((a, b) => (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2));
 
     return alerts;
   }

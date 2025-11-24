@@ -48,14 +48,14 @@ function Collapsible({ title, children, defaultOpen = true, required = false }: 
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
-    <div className="border border-gray-200 rounded-lg mb-4 overflow-hidden">
+    <div className="border border-border rounded-lg mb-4 overflow-hidden">
       <div
-        className="bg-gray-50 px-5 py-4 font-semibold cursor-pointer flex justify-between items-center hover:bg-gray-100 transition-colors"
+        className="bg-muted px-5 py-4 font-semibold cursor-pointer flex justify-between items-center hover:bg-muted/80 transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
         <span>
           {title}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </span>
         <ChevronDown
           className={cn('w-5 h-5 transition-transform', isOpen ? '' : '-rotate-90')}
@@ -880,7 +880,7 @@ export function ResidentForm() {
           <h1 className="text-3xl font-bold text-gray-900">
             {isEditMode ? 'Editar Residente' : 'Novo Residente'}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             {isEditMode
               ? 'Atualize as informações do residente'
               : 'Cadastre um novo residente na ILPI'
@@ -899,8 +899,8 @@ export function ResidentForm() {
 
       {/* Loading State durante carregamento de dados */}
       {isLoading && (
-        <div className="text-center p-8 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-blue-700 font-semibold">Carregando dados do residente...</p>
+        <div className="text-center p-8 bg-info/10 rounded-lg border border-info/30">
+          <p className="text-info font-semibold">Carregando dados do residente...</p>
         </div>
       )}
 
@@ -909,7 +909,7 @@ export function ResidentForm() {
         <Card className="mb-6 shadow-lg">
           <CardContent className="p-6">
             <div>
-              <Label className="after:content-['*'] after:ml-0.5 after:text-red-500 block mb-3">
+              <Label className="after:content-['*'] after:ml-0.5 after:text-danger block mb-3">
                 Status
               </Label>
               <Controller
@@ -919,25 +919,22 @@ export function ResidentForm() {
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      variant={field.value === 'Ativo' ? 'default' : 'outline'}
+                      variant={field.value === 'Ativo' ? 'success' : 'outline'}
                       onClick={() => field.onChange('Ativo')}
-                      className={field.value === 'Ativo' ? 'bg-green-600 hover:bg-green-700' : ''}
                     >
                       Ativo
                     </Button>
                     <Button
                       type="button"
-                      variant={field.value === 'Inativo' ? 'default' : 'outline'}
+                      variant={field.value === 'Inativo' ? 'warning' : 'outline'}
                       onClick={() => field.onChange('Inativo')}
-                      className={field.value === 'Inativo' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
                     >
                       Inativo
                     </Button>
                     <Button
                       type="button"
-                      variant={field.value === 'Falecido' ? 'default' : 'outline'}
+                      variant={field.value === 'Falecido' ? 'danger' : 'outline'}
                       onClick={() => field.onChange('Falecido')}
-                      className={field.value === 'Falecido' ? 'bg-red-600 hover:bg-red-700' : ''}
                     >
                       Falecido
                     </Button>
@@ -945,7 +942,7 @@ export function ResidentForm() {
                 )}
               />
               {errors.status && (
-                <p className="text-sm text-red-500 mt-2">{errors.status.message}</p>
+                <p className="text-sm text-danger mt-2">{errors.status.message}</p>
               )}
             </div>
           </CardContent>
@@ -958,16 +955,16 @@ export function ResidentForm() {
         <Tabs defaultValue="tab1" className="mb-8">
             {/* ========== NAVEGAÇÃO DE ABAS ========== */}
             <TabsList className="grid grid-cols-4 gap-2 h-auto p-2 bg-white rounded-lg shadow-md mb-6">
-              <TabsTrigger value="tab1" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
+              <TabsTrigger value="tab1" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 1. Dados & Contatos
               </TabsTrigger>
-              <TabsTrigger value="tab2" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
+              <TabsTrigger value="tab2" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 2. Endereços & Responsável
               </TabsTrigger>
-              <TabsTrigger value="tab3" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
+              <TabsTrigger value="tab3" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 3. Saúde & Convênios
               </TabsTrigger>
-              <TabsTrigger value="tab4" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#4361ee] data-[state=active]:to-[#3f37c9] data-[state=active]:text-white">
+              <TabsTrigger value="tab4" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 4. Admissão & Acomodação
               </TabsTrigger>
             </TabsList>
@@ -1005,12 +1002,12 @@ export function ResidentForm() {
                       <div className="col-span-12 md:col-span-9">
                         <div className="grid gap-4">
                           <div>
-                            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                               Nome completo
                             </Label>
                             <Input {...register('nome')} className="mt-2" />
                             {errors.nome && (
-                              <p className="text-sm text-red-500 mt-1">{errors.nome.message}</p>
+                              <p className="text-sm text-danger mt-1">{errors.nome.message}</p>
                             )}
                           </div>
                           <div>
@@ -1040,7 +1037,7 @@ export function ResidentForm() {
 
                       {/* Outros campos */}
                       <div className="col-span-12 md:col-span-4">
-                        <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                        <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                           CPF
                         </Label>
                         <Controller
@@ -1057,7 +1054,7 @@ export function ResidentForm() {
                           )}
                         />
                         {errors.cpf && (
-                          <p className="text-sm text-red-500 mt-1">{errors.cpf.message}</p>
+                          <p className="text-sm text-danger mt-1">{errors.cpf.message}</p>
                         )}
                       </div>
 
@@ -1093,7 +1090,7 @@ export function ResidentForm() {
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
-                        <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                        <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                           Gênero
                         </Label>
                         <Controller
@@ -1113,7 +1110,7 @@ export function ResidentForm() {
                           )}
                         />
                         {errors.genero && (
-                          <p className="text-sm text-red-500 mt-1">{errors.genero.message}</p>
+                          <p className="text-sm text-danger mt-1">{errors.genero.message}</p>
                         )}
                       </div>
 
@@ -1145,7 +1142,7 @@ export function ResidentForm() {
                       </div>
 
                       <div className="col-span-12 md:col-span-4">
-                        <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                        <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                           Data de Nascimento
                         </Label>
                         <Controller
@@ -1162,7 +1159,7 @@ export function ResidentForm() {
                           )}
                         />
                         {errors.dataNascimento && (
-                          <p className="text-sm text-red-500 mt-1">{errors.dataNascimento.message}</p>
+                          <p className="text-sm text-danger mt-1">{errors.dataNascimento.message}</p>
                         )}
                       </div>
 
@@ -1217,7 +1214,7 @@ export function ResidentForm() {
                   <Collapsible title="Contatos de Emergência" defaultOpen={false}>
                     <div className="space-y-3 mb-4">
                       {contatosFields.map((field, index) => (
-                        <div key={field.id} className="flex gap-3 items-end p-4 bg-gray-50 rounded-lg">
+                        <div key={field.id} className="flex gap-3 items-end p-4 bg-muted rounded-lg">
                           <div className="flex-1">
                             <Label className="text-xs">Nome completo</Label>
                             <Input {...register(`contatosEmergencia.${index}.nome`)} className="mt-1" />
@@ -1247,7 +1244,7 @@ export function ResidentForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => removeContato(index)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-danger hover:text-danger/80"
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -1349,8 +1346,8 @@ export function ResidentForm() {
                     </div>
                   </Collapsible>
 
-                  <div className="border border-gray-200 rounded-lg mb-4 overflow-hidden">
-                    <div className="bg-gray-50 px-5 py-4 font-semibold flex justify-between items-center">
+                  <div className="border border-border rounded-lg mb-4 overflow-hidden">
+                    <div className="bg-muted px-5 py-4 font-semibold flex justify-between items-center">
                       <div className="flex items-center gap-4">
                         <span>Endereço de Procedência</span>
                         <div className="flex items-center gap-2">
@@ -1614,8 +1611,8 @@ export function ResidentForm() {
                 <CardContent className="p-6">
                   <Collapsible title="Dados de Saúde" defaultOpen={true}>
                     {/* Seção 1: Dados Antropométricos */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Dados Antropométricos</h3>
+                    <div className="bg-muted border border-border rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Dados Antropométricos</h3>
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12 md:col-span-3">
                           <Label>Tipo Sanguíneo</Label>
@@ -1675,8 +1672,8 @@ export function ResidentForm() {
                     </div>
 
                     {/* Seção 2: Situação de Saúde */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Situação de Saúde</h3>
+                    <div className="bg-muted border border-border rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Situação de Saúde</h3>
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12">
                           <Label>Situação Clínica</Label>
@@ -1687,11 +1684,11 @@ export function ResidentForm() {
                         <div className="col-span-12 md:col-span-4">
                           <Label className="text-sm font-semibold mb-2 block">Medicamentos</Label>
                           {medicamentosFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-blue-50 border border-blue-200 rounded min-h-[40px]">
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-info/10 border border-info/30 rounded min-h-[40px]">
                               {medicamentosFields.map((field, index) => {
                                 const nome = watch(`medicamentos.${index}.nome`)
                                 return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                  <div key={field.id} className="flex items-center gap-1 bg-info text-info-foreground px-2 py-0.5 rounded-full text-xs font-medium">
                                     <span>{nome}</span>
                                     <button type="button" onClick={() => removeMedicamento(index)} className="hover:opacity-80">
                                       <X className="w-3 h-3" />
@@ -1729,11 +1726,11 @@ export function ResidentForm() {
                         <div className="col-span-12 md:col-span-4">
                           <Label className="text-sm font-semibold mb-2 block">Alergias</Label>
                           {alergiasFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded min-h-[40px]">
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-warning/10 border border-warning/30 rounded min-h-[40px]">
                               {alergiasFields.map((field, index) => {
                                 const nome = watch(`alergias.${index}.nome`)
                                 return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                  <div key={field.id} className="flex items-center gap-1 bg-warning text-warning-foreground px-2 py-0.5 rounded-full text-xs font-medium">
                                     <span>{nome}</span>
                                     <button type="button" onClick={() => removeAlergia(index)} className="hover:opacity-80">
                                       <X className="w-3 h-3" />
@@ -1771,11 +1768,11 @@ export function ResidentForm() {
                         <div className="col-span-12 md:col-span-4">
                           <Label className="text-sm font-semibold mb-2 block">Condições Crônicas</Label>
                           {condicoesCronicasFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-red-50 border border-red-200 rounded min-h-[40px]">
+                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-danger/10 border border-danger/30 rounded min-h-[40px]">
                               {condicoesCronicasFields.map((field, index) => {
                                 const nome = watch(`condicoesCronicas.${index}.nome`)
                                 return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                  <div key={field.id} className="flex items-center gap-1 bg-danger text-danger-foreground px-2 py-0.5 rounded-full text-xs font-medium">
                                     <span>{nome}</span>
                                     <button type="button" onClick={() => removeCondicaoCronica(index)} className="hover:opacity-80">
                                       <X className="w-3 h-3" />
@@ -1812,8 +1809,8 @@ export function ResidentForm() {
                     </div>
 
                     {/* Seção 3: Restrições e Funcionalidade */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Restrições e Funcionalidade</h3>
+                    <div className="bg-muted border border-border rounded-lg p-4 mb-4">
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Restrições e Funcionalidade</h3>
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12">
                           <Label>Restrições Alimentares</Label>
@@ -1846,7 +1843,7 @@ export function ResidentForm() {
                         </div>
 
                         <div className="col-span-12">
-                          <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center gap-2 p-3 bg-info/10 border border-info/30 rounded-lg">
                             <Controller
                               name="necessitaAuxilioMobilidade"
                               control={control}
@@ -1867,8 +1864,8 @@ export function ResidentForm() {
                     </div>
 
                     {/* Seção 4: Documentação Médica */}
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h3 className="text-sm font-bold text-gray-700 mb-4 pb-2 border-b border-gray-300">Documentação Médica</h3>
+                    <div className="bg-muted border border-border rounded-lg p-4">
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Documentação Médica</h3>
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12 md:col-span-8">
                           <SingleFileUpload
@@ -1902,7 +1899,7 @@ export function ResidentForm() {
                   <Collapsible title="Convênios" defaultOpen={false}>
                     <div className="space-y-3 mb-4">
                       {conveniosFields.map((field, index) => (
-                        <div key={field.id} className="border border-gray-200 rounded-lg p-4">
+                        <div key={field.id} className="border border-border rounded-lg p-4">
                           <div className="grid grid-cols-12 gap-3 items-center">
                             <div className="col-span-12 md:col-span-5">
                               <Label className="text-xs">Nome do Convênio</Label>
@@ -1918,7 +1915,7 @@ export function ResidentForm() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => removeConvenio(index)}
-                                className="text-red-600 hover:text-red-700 w-full md:w-auto"
+                                className="text-danger hover:text-danger/80 w-full md:w-auto"
                               >
                                 <X className="w-4 h-4" />
                               </Button>
@@ -1959,7 +1956,7 @@ export function ResidentForm() {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-12 md:col-span-3">
-                      <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                      <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                         Data de Admissão
                       </Label>
                       <Controller
@@ -1976,7 +1973,7 @@ export function ResidentForm() {
                         )}
                       />
                       {errors.dataAdmissao && (
-                        <p className="text-sm text-red-500 mt-1">{errors.dataAdmissao.message}</p>
+                        <p className="text-sm text-danger mt-1">{errors.dataAdmissao.message}</p>
                       )}
                     </div>
 
@@ -2034,7 +2031,7 @@ export function ResidentForm() {
 
                     <div className="col-span-12">
                       <hr className="my-4" />
-                      <h4 className="font-semibold text-gray-700 mb-4">Documentos de Admissão</h4>
+                      <h4 className="font-semibold text-foreground mb-4">Documentos de Admissão</h4>
                     </div>
 
                     <div className="col-span-12 md:col-span-4">
@@ -2159,8 +2156,8 @@ export function ResidentForm() {
 
         {/* ========== FEEDBACK DE UPLOAD ========== */}
         {isUploading && (
-          <div className="text-center mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-blue-700 font-semibold">{uploadProgress}</p>
+          <div className="text-center mb-6 p-4 bg-info/10 rounded-lg border border-info/30">
+            <p className="text-info font-semibold">{uploadProgress}</p>
           </div>
         )}
 
@@ -2169,7 +2166,8 @@ export function ResidentForm() {
           <Button
             type="submit"
             disabled={isUploading || isLoading}
-            className="bg-gradient-to-r from-[#4361ee] to-[#3f37c9] hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="default"
+            className="hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isUploading
               ? (isEditMode ? 'Atualizando...' : 'Salvando...')
