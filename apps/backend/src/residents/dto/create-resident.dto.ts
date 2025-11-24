@@ -402,11 +402,11 @@ export class CreateResidentDto {
   @Max(300)
   weight?: number;
 
-  @ApiProperty({ example: 'Grau II - Parcialmente dependente', enum: ['Grau I - Independente', 'Grau II - Parcialmente dependente', 'Grau III - Totalmente dependente'], required: false })
+  @ApiProperty({ example: 'Grau II - Parcialmente Dependente', enum: ['Grau I - Independente', 'Grau II - Parcialmente Dependente', 'Grau III - Totalmente Dependente'], required: false })
   @EmptyToUndefined()
   @IsOptional()
-  @IsEnum(['Grau I - Independente', 'Grau II - Parcialmente dependente', 'Grau III - Totalmente dependente'])
-  dependencyLevel?: 'Grau I - Independente' | 'Grau II - Parcialmente dependente' | 'Grau III - Totalmente dependente';
+  @IsEnum(['Grau I - Independente', 'Grau II - Parcialmente Dependente', 'Grau III - Totalmente Dependente'])
+  dependencyLevel?: 'Grau I - Independente' | 'Grau II - Parcialmente Dependente' | 'Grau III - Totalmente Dependente';
 
   @ApiProperty({ example: true, required: false })
   @IsOptional()

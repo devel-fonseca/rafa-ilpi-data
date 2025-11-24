@@ -310,8 +310,8 @@ export const ResidentCreateSchema = z.object({
   dependencyLevel: z
     .enum([
       'Grau I - Independente',
-      'Grau II - Semidependente',
-      'Grau III - Dependente',
+      'Grau II - Parcialmente Dependente',
+      'Grau III - Totalmente Dependente',
     ])
     .optional(),
   mobilityAid: z.boolean().optional(),

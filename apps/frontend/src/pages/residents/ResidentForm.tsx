@@ -224,6 +224,7 @@ export function ResidentForm() {
     resolver: zodResolver(residentSchema),
     mode: 'onChange',
     defaultValues: {
+      status: 'Ativo', // Valor padrão para novos residentes
       quartoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
       leitoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
       contatosEmergencia: [{ nome: '', telefone: '', parentesco: '' }],
@@ -907,28 +908,44 @@ export function ResidentForm() {
       {isEditMode && (
         <Card className="mb-6 shadow-lg">
           <CardContent className="p-6">
-            <div className="max-w-xs">
-              <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <div>
+              <Label className="after:content-['*'] after:ml-0.5 after:text-red-500 block mb-3">
                 Status
               </Label>
               <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Inativo">Inativo</SelectItem>
-                      <SelectItem value="Falecido">Falecido</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={field.value === 'Ativo' ? 'default' : 'outline'}
+                      onClick={() => field.onChange('Ativo')}
+                      className={field.value === 'Ativo' ? 'bg-green-600 hover:bg-green-700' : ''}
+                    >
+                      Ativo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={field.value === 'Inativo' ? 'default' : 'outline'}
+                      onClick={() => field.onChange('Inativo')}
+                      className={field.value === 'Inativo' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                    >
+                      Inativo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={field.value === 'Falecido' ? 'default' : 'outline'}
+                      onClick={() => field.onChange('Falecido')}
+                      className={field.value === 'Falecido' ? 'bg-red-600 hover:bg-red-700' : ''}
+                    >
+                      Falecido
+                    </Button>
+                  </div>
                 )}
               />
               {errors.status && (
-                <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
+                <p className="text-sm text-red-500 mt-2">{errors.status.message}</p>
               )}
             </div>
           </CardContent>
@@ -1647,8 +1664,8 @@ export function ResidentForm() {
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="Grau I - Independente">Grau I - Independente</SelectItem>
-                                  <SelectItem value="Grau II - Parcialmente dependente">Grau II - Parcialmente dependente</SelectItem>
-                                  <SelectItem value="Grau III - Totalmente dependente">Grau III - Totalmente dependente</SelectItem>
+                                  <SelectItem value="Grau II - Parcialmente Dependente">Grau II - Parcialmente Dependente</SelectItem>
+                                  <SelectItem value="Grau III - Totalmente Dependente">Grau III - Totalmente Dependente</SelectItem>
                                 </SelectContent>
                               </Select>
                             )}

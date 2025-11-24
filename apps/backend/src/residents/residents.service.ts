@@ -733,7 +733,7 @@ export class ResidentsService {
       where: {
         ...where,
         status: 'Ativo',
-        dependencyLevel: 'Grau II - Semidependente',
+        dependencyLevel: 'Grau II - Parcialmente Dependente',
       },
     });
 
@@ -741,7 +741,7 @@ export class ResidentsService {
       where: {
         ...where,
         status: 'Ativo',
-        dependencyLevel: 'Grau III - Dependente',
+        dependencyLevel: 'Grau III - Totalmente Dependente',
       },
     });
 
