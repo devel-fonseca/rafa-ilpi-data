@@ -59,7 +59,7 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
           </Alert>
 
           {/* 1. Consentimento LGPD (Obrigatório) */}
-          <div className="space-y-4 border rounded-lg p-6 bg-blue-50 dark:bg-blue-950">
+          <div className="space-y-4 border rounded-lg p-6 bg-info/10">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="lgpdConsent"
@@ -77,14 +77,14 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
                   </p>
                   <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                     <p className="text-xs font-semibold mb-2">Declaração Jurídica:</p>
-                    <p className="text-xs leading-relaxed italic text-gray-700 dark:text-gray-300">
+                    <p className="text-xs leading-relaxed italic text-muted-foreground">
                       Declaro que o residente ou seu responsável legal assinou o Termo de Consentimento
                       para Tratamento de Dados Pessoais, em conformidade com a Lei nº 13.709/2018 (LGPD),
                       autorizando a coleta e o tratamento dos dados necessários à assistência e à
                       administração da instituição.
                     </p>
                   </div>
-                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                  <p className="text-xs text-danger font-medium">
                     ⚠ Esta confirmação é obrigatória para prosseguir com o cadastro.
                   </p>
                 </div>
@@ -93,7 +93,7 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
           </div>
 
           {/* 2. Autorização de Uso de Imagem (Opcional) */}
-          <div className="space-y-4 border rounded-lg p-6 bg-gray-50 dark:bg-gray-900">
+          <div className="space-y-4 border rounded-lg p-6 bg-muted">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="imageAuthorization"
@@ -111,13 +111,13 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
                   </p>
                   <div className="bg-white dark:bg-gray-800 p-4 rounded border">
                     <p className="text-xs font-semibold mb-2">Declaração Jurídica:</p>
-                    <p className="text-xs leading-relaxed italic text-gray-700 dark:text-gray-300">
+                    <p className="text-xs leading-relaxed italic text-muted-foreground">
                       Declaro que o residente ou seu responsável legal autorizou, por escrito, a captação
                       e o uso de imagens (fotos e vídeos), exclusivamente para fins de prontuário,
                       documentação institucional interna ou divulgação institucional autorizada.
                     </p>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     ℹ Esta autorização é opcional e não impede o prosseguimento do cadastro.
                   </p>
                 </div>
@@ -126,9 +126,9 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
           </div>
 
           {/* Documentos para Download */}
-          <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+          <div className="border rounded-lg p-4 bg-muted">
             <div className="flex items-center gap-2 mb-3">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-info" />
               <h3 className="font-semibold">Modelos de Documentos</h3>
             </div>
             <div className="space-y-2">
@@ -144,7 +144,7 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
           </div>
 
           {/* Informações de Auditoria */}
-          <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 p-3 rounded">
+          <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
             <p className="font-semibold mb-1">Registro de Confirmação:</p>
             <p>
               Suas confirmações serão registradas em log com data, hora e identificação do usuário
@@ -161,7 +161,7 @@ export function PreRegistrationModal({ open, onConfirm, onCancel }: PreRegistrat
             type="button"
             onClick={handleConfirm}
             disabled={!lgpdConsent}
-            className="bg-blue-600 hover:bg-blue-700"
+            variant="default"
           >
             {!lgpdConsent ? 'Confirme o Consentimento LGPD' : 'Iniciar Cadastro'}
           </Button>

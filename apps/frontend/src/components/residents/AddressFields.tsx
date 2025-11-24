@@ -120,7 +120,7 @@ export function AddressFields({
             </Button>
           </div>
           {getErrorMessage('cep') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('cep')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('cep')}</span>
           )}
         </div>
 
@@ -137,7 +137,7 @@ export function AddressFields({
             }}
           />
           {getErrorMessage('estado') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('estado')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('estado')}</span>
           )}
         </div>
 
@@ -151,7 +151,7 @@ export function AddressFields({
             {...register(fields.cidade as keyof ResidentFormData)}
           />
           {getErrorMessage('cidade') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('cidade')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('cidade')}</span>
           )}
         </div>
       </div>
@@ -167,7 +167,7 @@ export function AddressFields({
             {...register(fields.logradouro as keyof ResidentFormData)}
           />
           {getErrorMessage('logradouro') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('logradouro')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('logradouro')}</span>
           )}
         </div>
 
@@ -180,7 +180,7 @@ export function AddressFields({
             {...register(fields.numero as keyof ResidentFormData)}
           />
           {getErrorMessage('numero') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('numero')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('numero')}</span>
           )}
         </div>
 
@@ -193,7 +193,7 @@ export function AddressFields({
             {...register(fields.complemento as keyof ResidentFormData)}
           />
           {getErrorMessage('complemento') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('complemento')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('complemento')}</span>
           )}
         </div>
       </div>
@@ -209,7 +209,7 @@ export function AddressFields({
             {...register(fields.bairro as keyof ResidentFormData)}
           />
           {getErrorMessage('bairro') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('bairro')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('bairro')}</span>
           )}
         </div>
 
@@ -222,7 +222,7 @@ export function AddressFields({
             {...register(fields.telefone as keyof ResidentFormData)}
           />
           {getErrorMessage('telefone') && (
-            <span className="text-xs text-red-500 mt-1">{getErrorMessage('telefone')}</span>
+            <span className="text-xs text-danger mt-1">{getErrorMessage('telefone')}</span>
           )}
         </div>
       </div>
