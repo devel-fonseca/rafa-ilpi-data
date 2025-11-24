@@ -1,0 +1,76 @@
+/* ====================================================================
+   ESTILO PREMIUM DE IMPRESSÃO – DOCUMENTOS RAFA ILPI
+   Layout baseado no PDF profissional (plano_terapeutico_diario.pdf)
+   ==================================================================== */
+
+@media print {
+  /* Remove sombras, bordas e elementos que causam cortes */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  body {
+    margin: 10mm !important; /* margem segura A4 */
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Contêiner principal deve ocupar a área útil da página */
+  .print-container {
+    width: auto !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: #fff !important;
+  }
+
+  /* Títulos nunca quebram no meio */
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Evita bordas verticais que quebram página */
+  .print-no-left-border {
+    border-left: none !important;
+  }
+
+  /* Remove bordas inferiores em títulos na impressão */
+  .print-no-bottom-border {
+    border-bottom: none !important;
+  }
+
+  /* Linhas horizontais discretas */
+  hr {
+    border: none;
+    border-top: 1px solid #bbb !important;
+    margin: 10px 0 !important;
+  }
+
+  /* Ajuste de tipografia premium */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #000 !important;
+  }
+
+  p,
+  li,
+  span,
+  div {
+    font-size: 12pt !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Força quebra de página quando aplicado manualmente */
+  .page-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+}
