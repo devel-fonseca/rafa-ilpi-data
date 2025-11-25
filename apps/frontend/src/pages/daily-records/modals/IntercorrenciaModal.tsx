@@ -82,7 +82,7 @@ export function IntercorrenciaModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Intercorrência - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">

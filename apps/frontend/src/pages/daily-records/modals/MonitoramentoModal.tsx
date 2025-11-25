@@ -1,7 +1,8 @@
 import React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import InputMask from 'react-input-mask'
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,7 @@ export function MonitoramentoModal({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<MonitoramentoFormData>({
@@ -91,10 +93,10 @@ export function MonitoramentoModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Monitoramento Vital - {residentName}</DialogTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Data: {new Date(date).toLocaleDateString('pt-BR')}
           </p>
         </DialogHeader>
@@ -102,21 +104,35 @@ export function MonitoramentoModal({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+              <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                 Horário
               </Label>
               <Input {...register('time')} type="time" className="mt-2" />
               {errors.time && (
-                <p className="text-sm text-red-500 mt-1">{errors.time.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.time.message}</p>
               )}
             </div>
 
             <div>
               <Label>PA (mmHg)</Label>
-              <Input
-                {...register('pressaoArterial')}
-                className="mt-2"
-                placeholder="120/80"
+              <Controller
+                name="pressaoArterial"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="999/99"
+                    value={field.value}
+                    onChange={field.onChange}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        className="mt-2"
+                        placeholder="120/80"
+                      />
+                    )}
+                  </InputMask>
+                )}
               />
             </div>
           </div>
@@ -124,22 +140,47 @@ export function MonitoramentoModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Temp (°C)</Label>
-              <Input
-                {...register('temperatura')}
-                type="number"
-                step="0.1"
-                className="mt-2"
-                placeholder="36.5"
+              <Controller
+                name="temperatura"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="99.9"
+                    value={field.value}
+                    onChange={field.onChange}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        className="mt-2"
+                        placeholder="36.5"
+                      />
+                    )}
+                  </InputMask>
+                )}
               />
             </div>
 
             <div>
               <Label>FC (bpm)</Label>
-              <Input
-                {...register('frequenciaCardiaca')}
-                type="number"
-                className="mt-2"
-                placeholder="70"
+              <Controller
+                name="frequenciaCardiaca"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="999"
+                    value={field.value}
+                    onChange={field.onChange}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        className="mt-2"
+                        placeholder="70"
+                      />
+                    )}
+                  </InputMask>
+                )}
               />
             </div>
           </div>
@@ -147,26 +188,52 @@ export function MonitoramentoModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>SpO2 (%)</Label>
-              <Input
-                {...register('saturacaoO2')}
-                type="number"
-                className="mt-2"
-                placeholder="96"
+              <Controller
+                name="saturacaoO2"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="999"
+                    value={field.value}
+                    onChange={field.onChange}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        className="mt-2"
+                        placeholder="96"
+                      />
+                    )}
+                  </InputMask>
+                )}
               />
             </div>
 
             <div>
               <Label>Glicemia (mg/dL)</Label>
-              <Input
-                {...register('glicemia')}
-                type="number"
-                className="mt-2"
-                placeholder="95"
+              <Controller
+                name="glicemia"
+                control={control}
+                render={({ field }) => (
+                  <InputMask
+                    mask="999"
+                    value={field.value}
+                    onChange={field.onChange}
+                  >
+                    {(inputProps: any) => (
+                      <Input
+                        {...inputProps}
+                        className="mt-2"
+                        placeholder="95"
+                      />
+                    )}
+                  </InputMask>
+                )}
               />
             </div>
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Responsável: <span className="font-medium">{currentUserName}</span>
           </div>
 
@@ -174,7 +241,7 @@ export function MonitoramentoModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit">Adicionar</Button>
+            <Button type="submit" variant="success">Adicionar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
