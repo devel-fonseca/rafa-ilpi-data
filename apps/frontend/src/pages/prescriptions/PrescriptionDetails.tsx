@@ -194,20 +194,20 @@ export default function PrescriptionDetails() {
           </CardContent>
         </Card>
 
-        {/* Validade */}
+        {/* Validade e Revisão */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              Validade
+              Validade e Revisão
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {prescriptionData.validUntil ? (
                 <>
                   <div>
-                    <p className="text-sm text-gray-600">Válida até</p>
+                    <p className="text-sm text-muted-foreground">Válida até</p>
                     <p className="font-semibold">
                       {format(parseISO(prescriptionData.validUntil), "dd 'de' MMMM 'de' yyyy", {
                         locale: ptBR,
@@ -215,9 +215,9 @@ export default function PrescriptionDetails() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Status</p>
+                    <p className="text-sm text-muted-foreground">Status</p>
                     {new Date(prescriptionData.validUntil) > new Date() ? (
-                      <Badge className="bg-green-100 text-green-700">
+                      <Badge variant="success">
                         Dentro da validade
                       </Badge>
                     ) : (
@@ -226,7 +226,30 @@ export default function PrescriptionDetails() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-600">Sem data de validade</p>
+                <p className="text-sm text-muted-foreground">Sem data de validade</p>
+              )}
+
+              {prescriptionData.reviewDate && (
+                <>
+                  <div className="border-t pt-3">
+                    <p className="text-sm text-muted-foreground">Revisão estimada para</p>
+                    <p className="font-semibold">
+                      {format(parseISO(prescriptionData.reviewDate), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status da revisão</p>
+                    {new Date(prescriptionData.reviewDate) > new Date() ? (
+                      <Badge variant="info">
+                        Dentro do prazo
+                      </Badge>
+                    ) : (
+                      <Badge variant="warning">Revisão pendente</Badge>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </CardContent>

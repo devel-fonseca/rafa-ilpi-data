@@ -73,7 +73,7 @@ export default function ActiveMedicationsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-gray-600">Carregando medicações...</span>
+          <span className="text-muted-foreground">Carregando medicações...</span>
         </div>
       </div>
     )
@@ -82,8 +82,8 @@ export default function ActiveMedicationsPage() {
   if (!residentData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-gray-400" />
-        <p className="text-gray-600">Residente não encontrado</p>
+        <AlertCircle className="h-12 w-12 text-muted-foreground" />
+        <p className="text-muted-foreground">Residente não encontrado</p>
         <Button onClick={() => navigate('/dashboard/residentes')}>
           Voltar para Residentes
         </Button>
@@ -94,10 +94,25 @@ export default function ActiveMedicationsPage() {
   // A resposta vem como { data: [...], meta: {...} }, não { data: { data: [...] } }
   const prescriptions: Prescription[] = prescriptionsResponse?.data || []
 
-  // Consolidar todas as medicações ativas de todas as prescrições
+  // Filtrar apenas prescrições não vencidas (validUntil >= hoje ou sem validUntil)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0) // Zerar horas para comparação apenas de data
+
+  const validPrescriptions = prescriptions.filter((prescription) => {
+    // Se não tem validUntil, considera válida
+    if (!prescription.validUntil) return true
+
+    // Se tem validUntil, verifica se ainda não venceu
+    const validUntilDate = new Date(prescription.validUntil)
+    validUntilDate.setHours(0, 0, 0, 0)
+
+    return validUntilDate >= today
+  })
+
+  // Consolidar todas as medicações ativas de todas as prescrições válidas
   const allMedications: MedicationWithTime[] = []
 
-  prescriptions.forEach((prescription) => {
+  validPrescriptions.forEach((prescription) => {
     prescription.medications?.forEach((medication) => {
       medication.scheduledTimes?.forEach((time) => {
         allMedications.push({
@@ -129,10 +144,10 @@ export default function ActiveMedicationsPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-semibold text-foreground">
             Ficha de Medicações Ativas
           </h1>
-          <p className="text-gray-600 mt-1">{residentData.fullName}</p>
+          <p className="text-muted-foreground mt-1">{residentData.fullName}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -157,7 +172,7 @@ export default function ActiveMedicationsPage() {
         {!hasMedications ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
-              <Pill className="h-12 w-12 text-gray-300" />
+              <Pill className="h-12 w-12 text-muted-foreground/40" />
               <div className="text-muted-foreground">
                 Nenhuma medicação ativa encontrada
               </div>
@@ -180,7 +195,7 @@ export default function ActiveMedicationsPage() {
                     LOGO
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold">CASA DE REPOUSO SÃO RAFAEL</h1>
+                    <h1 className="text-2xl font-semibold">CASA DE REPOUSO SÃO RAFAEL</h1>
                     <p className="text-sm">Rua Exemplo, 123 – Centro</p>
                     <p className="text-sm">São Paulo/SP – CEP 01234-567</p>
                     <p className="text-sm">CNPJ 12.345.678/0001-90 | Tel. (11) 98765-4321</p>
@@ -235,7 +250,7 @@ export default function ActiveMedicationsPage() {
               <Card key={time} className="mb-4 print-hide print-break-inside-avoid">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="bg-primary/10 text-primary px-3 py-1 rounded font-mono">
+                    <span className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-md font-mono font-semibold">
                       {time}
                     </span>
                     <span className="text-muted-foreground text-sm font-normal">

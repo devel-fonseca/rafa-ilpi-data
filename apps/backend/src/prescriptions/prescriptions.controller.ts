@@ -177,6 +177,28 @@ export class PrescriptionsController {
     return this.prescriptionsService.getResidentsWithControlled(user.tenantId);
   }
 
+  @Get('review-needed/list')
+  @ApiOperation({ summary: 'Listar prescrições que precisam de revisão' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de prescrições que precisam ser revisadas em N dias',
+  })
+  @ApiQuery({
+    name: 'days',
+    description: 'Número de dias',
+    required: false,
+    example: '30',
+  })
+  getReviewNeededPrescriptions(
+    @Query('days') days: string = '30',
+    @CurrentUser() user: any,
+  ) {
+    return this.prescriptionsService.getReviewNeededPrescriptions(
+      parseInt(days, 10),
+      user.tenantId,
+    );
+  }
+
   // ========== ADMINISTRAÇÃO DE MEDICAMENTOS ==========
 
   @Post('administer')

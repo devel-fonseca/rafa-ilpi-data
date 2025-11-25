@@ -16,6 +16,7 @@ import { useAdministerMedication } from '@/hooks/usePrescriptions'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerMedicationDto } from '@/api/prescriptions.api'
+import { getCurrentDateLocal, getCurrentTimeLocal } from '@/utils/timezone'
 
 interface AdministerMedicationModalProps {
   open: boolean
@@ -41,9 +42,9 @@ export function AdministerMedicationModal({
   } = useForm<AdministerMedicationDto>({
     defaultValues: {
       medicationId: medication.id,
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: getCurrentDateLocal(),
       scheduledTime: medication.scheduledTimes?.[0] || '08:00',
-      actualTime: format(new Date(), 'HH:mm'),
+      actualTime: getCurrentTimeLocal(),
       wasAdministered: true,
       administeredBy: user?.name || '',
       notes: '',
@@ -67,9 +68,9 @@ export function AdministerMedicationModal({
     if (open) {
       reset({
         medicationId: medication.id,
-        date: format(new Date(), 'yyyy-MM-dd'),
+        date: getCurrentDateLocal(),
         scheduledTime: medication.scheduledTimes?.[0] || '08:00',
-        actualTime: format(new Date(), 'HH:mm'),
+        actualTime: getCurrentTimeLocal(),
         wasAdministered: true,
         administeredBy: user?.name || '',
         notes: '',

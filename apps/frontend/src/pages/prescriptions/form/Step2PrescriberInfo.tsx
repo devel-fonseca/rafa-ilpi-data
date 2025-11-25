@@ -172,32 +172,53 @@ export function Step2PrescriberInfo() {
             </div>
           </div>
 
-          {requiresValidity && (
-            <div>
-              <Label htmlFor="validUntil">
-                Validade da Prescrição *
-                {isControlled && (
-                  <span className="text-xs text-gray-500 ml-2">
-                    (Obrigatório para medicamentos controlados)
-                  </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {requiresValidity && (
+              <div>
+                <Label htmlFor="validUntil">
+                  Validade da Prescrição *
+                  {isControlled && (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Obrigatório para medicamentos controlados)
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  {...register('validUntil', {
+                    required: requiresValidity
+                      ? 'Validade é obrigatória para este tipo de prescrição'
+                      : false,
+                  })}
+                />
+                {errors.validUntil && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.validUntil.message as string}
+                  </p>
                 )}
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="reviewDate">
+                Data Estimada de Revisão
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Recomendado para prescrições de rotina)
+                </span>
               </Label>
               <Input
-                id="validUntil"
+                id="reviewDate"
                 type="date"
-                {...register('validUntil', {
-                  required: requiresValidity
-                    ? 'Validade é obrigatória para este tipo de prescrição'
-                    : false,
-                })}
+                {...register('reviewDate')}
               />
-              {errors.validUntil && (
+              {errors.reviewDate && (
                 <p className="text-sm text-red-600 mt-1">
-                  {errors.validUntil.message as string}
+                  {errors.reviewDate.message as string}
                 </p>
               )}
             </div>
-          )}
+          </div>
 
           <div>
             <Label htmlFor="notes">Observações</Label>

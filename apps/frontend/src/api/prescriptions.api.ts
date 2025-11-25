@@ -57,6 +57,7 @@ export interface Prescription {
   prescriptionDate: string
   prescriptionType: PrescriptionType
   validUntil?: string
+  reviewDate?: string
   controlledClass?: ControlledClass
   notificationNumber?: string
   notificationType?: NotificationType
@@ -119,6 +120,7 @@ export interface CreatePrescriptionDto {
   prescriptionDate: string
   prescriptionType: PrescriptionType
   validUntil?: string
+  reviewDate?: string
   controlledClass?: ControlledClass
   notificationNumber?: string
   notificationType?: NotificationType

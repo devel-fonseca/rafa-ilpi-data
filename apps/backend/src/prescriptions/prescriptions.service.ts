@@ -74,6 +74,9 @@ export class PrescriptionsService {
           validUntil: createPrescriptionDto.validUntil
             ? new Date(createPrescriptionDto.validUntil)
             : null,
+          reviewDate: createPrescriptionDto.reviewDate
+            ? new Date(createPrescriptionDto.reviewDate)
+            : null,
           controlledClass: createPrescriptionDto.controlledClass as ControlledClass | null,
           notificationNumber: createPrescriptionDto.notificationNumber || null,
           notificationType: createPrescriptionDto.notificationType as NotificationType | null,
@@ -180,6 +183,18 @@ export class PrescriptionsService {
       futureDate.setDate(today.getDate() + days);
 
       where.validUntil = {
+        lte: futureDate,
+        gte: today,
+      };
+    }
+
+    if (query.reviewInDays) {
+      const days = parseInt(query.reviewInDays, 10);
+      const today = new Date();
+      const futureDate = new Date();
+      futureDate.setDate(today.getDate() + days);
+
+      where.reviewDate = {
         lte: futureDate,
         gte: today,
       };
@@ -338,6 +353,9 @@ export class PrescriptionsService {
         prescriptionType: updatePrescriptionDto.prescriptionType as PrescriptionType | undefined,
         validUntil: updatePrescriptionDto.validUntil
           ? new Date(updatePrescriptionDto.validUntil)
+          : undefined,
+        reviewDate: updatePrescriptionDto.reviewDate
+          ? new Date(updatePrescriptionDto.reviewDate)
           : undefined,
         controlledClass: updatePrescriptionDto.controlledClass as ControlledClass | undefined,
         notificationNumber: updatePrescriptionDto.notificationNumber,
@@ -562,9 +580,51 @@ export class PrescriptionsService {
       });
     }
 
-    // Ordenar por severidade (CRITICAL > WARNING)
-    const severityOrder: Record<string, number> = { CRITICAL: 0, WARNING: 1 };
-    alerts.sort((a, b) => (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2));
+    // Prescrições que precisam revisão em até 30 dias
+    const reviewNeeded = await this.prisma.prescription.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+        reviewDate: {
+          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          gte: new Date(),
+        },
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+      orderBy: {
+        reviewDate: 'asc',
+      },
+    });
+
+    for (const prescription of reviewNeeded) {
+      if (!prescription.reviewDate) continue;
+      const daysUntilReview = Math.ceil(
+        (new Date(prescription.reviewDate).getTime() - now.getTime()) /
+          (1000 * 60 * 60 * 24),
+      );
+
+      alerts.push({
+        prescriptionId: prescription.id,
+        residentName: prescription.resident.fullName,
+        doctorName: prescription.doctorName,
+        message: `Revisão estimada para daqui a ${daysUntilReview} dia${daysUntilReview !== 1 ? 's' : ''}`,
+        type: 'REVIEW_NEEDED',
+        severity: daysUntilReview <= 7 ? 'WARNING' : 'INFO',
+        daysUntilReview,
+      });
+    }
+
+    // Ordenar por severidade (CRITICAL > WARNING > INFO)
+    const severityOrder: Record<string, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+    alerts.sort((a, b) => (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3));
 
     return alerts;
   }
@@ -671,6 +731,64 @@ export class PrescriptionsService {
       notificationNumber: p.notificationNumber,
       notificationType: p.notificationType,
       medications: p.medications,
+    }));
+  }
+
+  /**
+   * Obtém prescrições que precisam de revisão
+   */
+  async getReviewNeededPrescriptions(days: number, tenantId: string) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+
+    const prescriptions = await this.prisma.prescription.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+        reviewDate: {
+          lte: futureDate,
+          gte: new Date(),
+        },
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        medications: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        reviewDate: 'asc',
+      },
+    });
+
+    return prescriptions.map((p) => ({
+      id: p.id,
+      residentId: p.residentId,
+      doctorName: p.doctorName,
+      doctorCrm: p.doctorCrm,
+      doctorCrmState: p.doctorCrmState,
+      prescriptionDate: p.prescriptionDate,
+      prescriptionType: p.prescriptionType,
+      reviewDate: p.reviewDate,
+      resident: p.resident,
+      medications: p.medications,
+      daysUntilReview: p.reviewDate
+        ? Math.ceil(
+            (p.reviewDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+          )
+        : 0,
     }));
   }
 

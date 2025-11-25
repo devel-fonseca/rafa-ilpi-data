@@ -15,6 +15,7 @@ import { useAdministerSOS } from '@/hooks/usePrescriptions'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerSOSDto } from '@/api/prescriptions.api'
+import { getCurrentDateLocal, getCurrentTimeLocal } from '@/utils/timezone'
 
 interface AdministerSOSModalProps {
   open: boolean
@@ -38,8 +39,8 @@ export function AdministerSOSModal({
   } = useForm<AdministerSOSDto>({
     defaultValues: {
       sosMedicationId: sosMedication.id,
-      date: format(new Date(), 'yyyy-MM-dd'),
-      time: format(new Date(), 'HH:mm'),
+      date: getCurrentDateLocal(),
+      time: getCurrentTimeLocal(),
       indication: '',
       administeredBy: user?.name || '',
       notes: '',
@@ -61,8 +62,8 @@ export function AdministerSOSModal({
     if (open) {
       reset({
         sosMedicationId: sosMedication.id,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        time: format(new Date(), 'HH:mm'),
+        date: getCurrentDateLocal(),
+        time: getCurrentTimeLocal(),
         indication: sosMedication.indicationDetails || '',
         administeredBy: user?.name || '',
         notes: '',

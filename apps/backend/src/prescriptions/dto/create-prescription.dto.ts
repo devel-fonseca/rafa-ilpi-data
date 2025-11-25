@@ -58,6 +58,15 @@ export class CreatePrescriptionDto {
   validUntil?: string;
 
   @ApiProperty({
+    description: 'Data estimada para revisão da prescrição (YYYY-MM-DD)',
+    example: '2025-12-17',
+    required: false,
+  })
+  @IsDateString()
+  @IsOptional()
+  reviewDate?: string;
+
+  @ApiProperty({
     enum: ['BZD', 'PSICOFARMACO', 'OPIOIDE', 'ANTICONVULSIVANTE', 'OUTRO'],
     description: 'Classe do medicamento controlado (apenas para CONTROLADO)',
     required: false,

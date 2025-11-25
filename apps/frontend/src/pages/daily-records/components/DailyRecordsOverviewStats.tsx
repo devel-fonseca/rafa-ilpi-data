@@ -1,6 +1,7 @@
 import { CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
+import { getCurrentDateLocal } from '@/utils/timezone'
 
 interface Resident {
   id: string
@@ -26,7 +27,8 @@ export function DailyRecordsOverviewStats({
   const activeResidents = residents.filter((r) => r.status === 'Ativo')
 
   // Buscar todos os registros de hoje para contar total correto de atividades
-  const today = new Date().toISOString().split('T')[0]
+  // Usar timezone local (America/Sao_Paulo) para garantir data correta
+  const today = getCurrentDateLocal()
   const { data: allRecordsToday } = useDailyRecordsByDate(today)
 
   // Se houver erro ou dados indefinidos, usar array vazio

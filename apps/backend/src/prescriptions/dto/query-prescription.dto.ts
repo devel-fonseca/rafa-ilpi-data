@@ -40,6 +40,15 @@ export class QueryPrescriptionDto {
   @IsString()
   expiringInDays?: string;
 
+  @ApiProperty({
+    description: 'Prescrições que precisam revisão em até N dias',
+    example: '30',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  reviewInDays?: string;
+
   @ApiProperty({ description: 'Possui controlados (true/false)', required: false })
   @IsOptional()
   @IsString()

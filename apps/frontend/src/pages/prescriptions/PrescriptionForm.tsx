@@ -9,6 +9,7 @@ import { useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescri
 import { uploadFile } from '@/services/upload'
 import { toast } from 'sonner'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
+import { getCurrentDateLocal } from '@/utils/timezone'
 
 // Importar os steps (serão criados a seguir)
 import { Step1ResidentInfo } from './form/Step1ResidentInfo'
@@ -41,7 +42,7 @@ export default function PrescriptionForm() {
       doctorName: '',
       doctorCrm: '',
       doctorCrmState: '',
-      prescriptionDate: new Date().toISOString().split('T')[0],
+      prescriptionDate: getCurrentDateLocal(),
       prescriptionType: 'ROTINA',
       medications: [],
       sosMedications: [],
@@ -67,6 +68,7 @@ export default function PrescriptionForm() {
         prescriptionImageUrl,
         prescriptionImage: undefined, // Remover o File do payload
         validUntil: data.validUntil || undefined,
+        reviewDate: data.reviewDate || undefined,
         medications: data.medications.map((med) => ({
           ...med,
           endDate: med.endDate || undefined,

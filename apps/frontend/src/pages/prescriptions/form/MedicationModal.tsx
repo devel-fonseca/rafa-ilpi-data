@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { CreateMedicationDto } from '@/api/prescriptions.api'
+import { getCurrentDateLocal } from '@/utils/timezone'
 
 interface MedicationModalProps {
   open: boolean
@@ -80,7 +81,7 @@ export function MedicationModal({
       route: 'VO',
       frequency: 'UMA_VEZ_DIA',
       scheduledTimes: ['08:00'],
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: getCurrentDateLocal(),
       isControlled: false,
       isHighRisk: false,
       requiresDoubleCheck: false,
@@ -114,7 +115,7 @@ export function MedicationModal({
         route: 'VO',
         frequency: 'UMA_VEZ_DIA',
         scheduledTimes: ['08:00'],
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: getCurrentDateLocal(),
         isControlled: false,
         isHighRisk: false,
         requiresDoubleCheck: false,

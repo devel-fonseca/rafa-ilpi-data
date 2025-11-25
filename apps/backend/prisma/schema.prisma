@@ -491,6 +491,7 @@ model Prescription {
   prescriptionDate DateTime @db.Date
   prescriptionType PrescriptionType
   validUntil       DateTime? @db.Date // Obrigatório para ANTIBIOTICO e CONTROLADO
+  reviewDate       DateTime? @db.Date // Data estimada para revisão da prescrição
 
   // Campos específicos para CONTROLADO
   controlledClass    ControlledClass?

@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { CreateSOSMedicationDto } from '@/api/prescriptions.api'
+import { getCurrentDateLocal } from '@/utils/timezone'
 
 interface SOSMedicationModalProps {
   open: boolean
@@ -81,7 +82,7 @@ export function SOSMedicationModal({
       indicationDetails: '',
       minInterval: '4h',
       maxDailyDoses: 3,
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: getCurrentDateLocal(),
       instructions: '',
     },
   })
@@ -100,7 +101,7 @@ export function SOSMedicationModal({
         indicationDetails: '',
         minInterval: '4h',
         maxDailyDoses: 3,
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: getCurrentDateLocal(),
         instructions: '',
       })
     }

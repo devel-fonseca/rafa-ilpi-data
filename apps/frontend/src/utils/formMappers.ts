@@ -3,17 +3,25 @@
  * Centraliza toda a lógica de transformação de dados para evitar duplicação
  */
 
+import { localToUtc, utcToLocal, DEFAULT_TIMEZONE } from './timezone'
+import { formatDateFns } from 'date-fns'
+
 // ========== CONVERSÃO DE DATAS ==========
 
 /**
- * Converte data ISO (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ) para formato brasileiro DD/MM/YYYY
+ * Converte data ISO UTC (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ) para formato brasileiro DD/MM/YYYY
  * Usado para preencher campos de input quando carrega dados do backend
+ *
+ * IMPORTANTE: Converte de UTC para timezone local (America/Sao_Paulo) antes de exibir
  */
 export const convertISOToDisplayDate = (isoDate: string | null | undefined): string => {
   if (!isoDate) return ''
   try {
-    const datePart = isoDate.split('T')[0]
-    const [year, month, day] = datePart.split('-')
+    // Converter UTC para timezone local
+    const localDate = utcToLocal(isoDate)
+    const day = String(localDate.getDate()).padStart(2, '0')
+    const month = String(localDate.getMonth() + 1).padStart(2, '0')
+    const year = localDate.getFullYear()
     return `${day}/${month}/${year}`
   } catch (error) {
     console.error('Erro ao converter data ISO para display:', isoDate, error)
@@ -22,15 +30,34 @@ export const convertISOToDisplayDate = (isoDate: string | null | undefined): str
 }
 
 /**
- * Converte DD/MM/YYYY para YYYY-MM-DDTHH:mm:ss.000Z (ISO 8601)
+ * Converte DD/MM/YYYY (timezone local) para YYYY-MM-DDTHH:mm:ss.000Z (ISO 8601 UTC)
  * Usado para enviar datas para o backend
+ *
+ * IMPORTANTE: Converte de timezone local (America/Sao_Paulo) para UTC antes de enviar
+ * Isso garante que 20/06/2025 no Brasil seja salvo como 20/06/2025 no banco, não 19/06/2025
  */
 export const convertToISODate = (dateStr: string | undefined): string | null => {
   if (!dateStr) return null
   const parts = dateStr.split('/')
   if (parts.length !== 3) return null
   const [day, month, year] = parts
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`
+
+  // Criar data no timezone local (America/Sao_Paulo) às 12:00 (meio-dia)
+  // Usamos 12:00 para evitar problemas de DST (horário de verão)
+  const localDate = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    12, // 12:00 para evitar edge cases de timezone
+    0,
+    0
+  )
+
+  // Converter para UTC
+  const utcDate = localToUtc(localDate)
+
+  // Retornar ISO string
+  return utcDate.toISOString()
 }
 
 // ========== MAPEAMENTO DE ESTADO CIVIL ==========
