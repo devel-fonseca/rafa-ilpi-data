@@ -83,24 +83,24 @@ export function ComportamentoModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Comportamento / Humor - {residentName}</DialogTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Data: {new Date(date).toLocaleDateString('pt-BR')}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
             </Label>
             <Input {...register('time')} type="time" className="mt-2" />
             {errors.time && (
-              <p className="text-sm text-red-500 mt-1">{errors.time.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.time.message}</p>
             )}
           </div>
 
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Descrição
             </Label>
             <Textarea
@@ -110,13 +110,13 @@ export function ComportamentoModal({
               placeholder="Ex: Calmo, sorridente, interagiu bem com outros residentes"
             />
             {errors.descricao && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.descricao.message}
               </p>
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Responsável: <span className="font-medium">{currentUserName}</span>
           </div>
 
@@ -124,7 +124,7 @@ export function ComportamentoModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit">Adicionar</Button>
+            <Button type="submit" variant="success">Adicionar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

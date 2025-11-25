@@ -85,24 +85,24 @@ export function IntercorrenciaModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Intercorrência - {residentName}</DialogTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Data: {new Date(date).toLocaleDateString('pt-BR')}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
             </Label>
             <Input {...register('time')} type="time" className="mt-2" />
             {errors.time && (
-              <p className="text-sm text-red-500 mt-1">{errors.time.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.time.message}</p>
             )}
           </div>
 
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Descrição
             </Label>
             <Textarea
@@ -112,14 +112,14 @@ export function IntercorrenciaModal({
               placeholder="Ex: Queixa de dor leve no joelho"
             />
             {errors.descricao && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.descricao.message}
               </p>
             )}
           </div>
 
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Ação Tomada
             </Label>
             <Textarea
@@ -129,13 +129,13 @@ export function IntercorrenciaModal({
               placeholder="Ex: Analgésico administrado (DIP 500mg)"
             />
             {errors.acaoTomada && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.acaoTomada.message}
               </p>
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Responsável: <span className="font-medium">{currentUserName}</span>
           </div>
 
@@ -143,7 +143,7 @@ export function IntercorrenciaModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="destructive">
+            <Button type="submit" variant="danger">
               Adicionar
             </Button>
           </DialogFooter>

@@ -58,6 +58,8 @@ export function HidratacaoModal({
         hour: '2-digit',
         minute: '2-digit',
       }),
+      volumeMl: 200,
+      tipo: 'Água',
     },
   })
 
@@ -87,24 +89,24 @@ export function HidratacaoModal({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Hidratação - {residentName}</DialogTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Data: {new Date(date).toLocaleDateString('pt-BR')}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
             </Label>
             <Input {...register('time')} type="time" className="mt-2" />
             {errors.time && (
-              <p className="text-sm text-red-500 mt-1">{errors.time.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.time.message}</p>
             )}
           </div>
 
           <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-red-500">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Volume (ml)
             </Label>
             <Input
@@ -114,7 +116,7 @@ export function HidratacaoModal({
               placeholder="200"
             />
             {errors.volumeMl && (
-              <p className="text-sm text-red-500 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.volumeMl.message}
               </p>
             )}
@@ -129,7 +131,7 @@ export function HidratacaoModal({
             />
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Responsável: <span className="font-medium">{currentUserName}</span>
           </div>
 
@@ -137,7 +139,7 @@ export function HidratacaoModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit">Adicionar</Button>
+            <Button type="submit" variant="success">Adicionar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
