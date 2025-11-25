@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
+import { getCurrentTimeLocal } from '@/utils/timezone'
 import {
   Dialog,
   DialogContent,
@@ -78,10 +79,7 @@ export function EliminacaoModal({
   } = useForm<EliminacaoFormData>({
     resolver: zodResolver(eliminacaoSchema),
     defaultValues: {
-      time: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: getCurrentTimeLocal(),
       tipo: 'Fezes',
       // Valores normais para Fezes
       consistencia: 'Formada',

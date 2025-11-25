@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatDateLong, getCurrentDateLocal } from '@/utils/timezone'
 import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -41,7 +42,7 @@ export function DailyRecordsPage() {
   const { user } = useAuthStore()
 
   const residentId = searchParams.get('residentId')
-  const selectedDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd')
+  const selectedDate = searchParams.get('date') || getCurrentDateLocal()
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
 
@@ -204,9 +205,7 @@ export function DailyRecordsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Registros Diários</h1>
           <p className="text-gray-600 mt-1">
             {resident?.fullName} |{' '}
-            {format(new Date(selectedDate + 'T00:00:00'), "dd 'de' MMMM 'de' yyyy", {
-              locale: ptBR,
-            })}
+            {formatDateLong(selectedDate + 'T00:00:00')}
           </p>
         </div>
         <div className="flex gap-2">

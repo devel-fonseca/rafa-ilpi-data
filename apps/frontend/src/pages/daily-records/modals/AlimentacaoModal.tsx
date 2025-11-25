@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { getCurrentTimeLocal } from '@/utils/timezone'
 import {
   Dialog,
   DialogContent,
@@ -107,10 +108,7 @@ export function AlimentacaoModal({
   } = useForm<AlimentacaoFormData>({
     resolver: zodResolver(alimentacaoSchema),
     defaultValues: {
-      time: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: getCurrentTimeLocal(),
       cardapio: 'Refeição institucional',
       consistencia: 'Geral',
       ingeriu: '100%',
