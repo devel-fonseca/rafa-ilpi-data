@@ -27,6 +27,9 @@ import PrescriptionsList from '@/pages/prescriptions/PrescriptionsList'
 import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
 import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
 
+// Medications Pages
+import ActiveMedicationsPage from '@/pages/medications/ActiveMedicationsPage'
+
 // Beds Pages
 import { BedsStructurePage, BedsMapPage } from '@/pages/beds'
 
@@ -114,6 +117,10 @@ export const router = createBrowserRouter([
       {
         path: 'prescricoes/:id/edit',
         element: <PrescriptionForm />,
+      },
+      {
+        path: 'medicacoes-ativas/:residentId',
+        element: <ActiveMedicationsPage />,
       },
       {
         path: 'beds/structure',

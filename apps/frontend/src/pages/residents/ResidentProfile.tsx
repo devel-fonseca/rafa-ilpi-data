@@ -33,6 +33,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -1142,10 +1143,21 @@ export default function ResidentProfile() {
         <TabsContent value="prescriptions">
           <Card>
             <CardHeader>
-              <CardTitle>Prescrições Médicas</CardTitle>
-              <CardDescription>
-                Prescrições registradas para {resident.fullName}
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Prescrições Médicas</CardTitle>
+                  <CardDescription>
+                    Prescrições registradas para {resident.fullName}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/dashboard/medicacoes-ativas/${id}`)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Ficha de Medicações
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {prescriptions.length > 0 ? (
@@ -1167,11 +1179,11 @@ export default function ResidentProfile() {
                               })}
                             </h4>
                             <Badge
-                              variant={prescription.status === 'ACTIVE' ? 'default' : 'secondary'}
+                              variant={prescription.isActive ? 'default' : 'secondary'}
                             >
-                              {prescription.status === 'ACTIVE' ? 'Ativa' : 'Inativa'}
+                              {prescription.isActive ? 'Ativa' : 'Inativa'}
                             </Badge>
-                            {prescription.hasControlled && (
+                            {prescription.medications?.some((med: any) => med.isControlled) && (
                               <Badge variant="destructive">Controlado</Badge>
                             )}
                           </div>
