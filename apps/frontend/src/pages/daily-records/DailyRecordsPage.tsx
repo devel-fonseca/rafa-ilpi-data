@@ -385,28 +385,40 @@ export function DailyRecordsPage() {
                   key={record.id}
                   className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-lg">{record.time}</span>
-                        <Badge
-                          variant="outline"
-                          className={RECORD_TYPE_LABELS[record.type]?.color}
-                        >
-                          {RECORD_TYPE_LABELS[record.type]?.label}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-800 mb-1">
-                        {renderRecordSummary(record)}
-                      </div>
-                      <p className="text-xs text-gray-600">
-                        Registrado por: {record.recordedBy}
+                  <div className="flex flex-col gap-2">
+                    {/* Linha 1: Horário e Badge */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-lg">{record.time}</span>
+                      <Badge
+                        variant="outline"
+                        className={RECORD_TYPE_LABELS[record.type]?.color}
+                      >
+                        {RECORD_TYPE_LABELS[record.type]?.label}
+                      </Badge>
+                    </div>
+
+                    {/* Linha 2: Resumo do registro */}
+                    <div className="text-sm text-gray-800">
+                      {renderRecordSummary(record)}
+                    </div>
+
+                    {/* Observações (se houver) */}
+                    {record.data?.observacoes && record.data.observacoes !== 'Sem observações' && (
+                      <p className="text-xs text-muted-foreground italic border-l-2 border-gray-300 pl-2">
+                        {record.data.observacoes}
                       </p>
-                      {record.notes && (
-                        <p className="text-sm text-gray-600 mt-2 italic border-l-2 border-gray-300 pl-2">
-                          {record.notes}
-                        </p>
-                      )}
+                    )}
+
+                    {/* Notes (campo antigo - manter compatibilidade) */}
+                    {record.notes && (
+                      <p className="text-xs text-muted-foreground italic border-l-2 border-gray-300 pl-2">
+                        {record.notes}
+                      </p>
+                    )}
+
+                    {/* Responsável - última linha, discreta */}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Por: <span className="italic">{record.recordedBy}</span>
                     </div>
                   </div>
                 </div>

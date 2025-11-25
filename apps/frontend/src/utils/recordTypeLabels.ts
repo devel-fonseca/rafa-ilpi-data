@@ -61,32 +61,84 @@ export const RECORD_TYPE_LABELS: Record<
 
 export function renderRecordSummary(record: any): string {
   switch (record.type) {
-    case 'HIGIENE':
-      return `Banho: ${record.data.tipoBanho} | Pele: ${record.data.condicaoPele}`
-    case 'ALIMENTACAO':
-      return `${record.data.refeicao}: ${record.data.ingeriu}`
+    case 'HIGIENE': {
+      const parts = []
+      // Só exibir banho se não for "Sem banho"
+      if (record.data.tipoBanho && record.data.tipoBanho !== 'Sem banho') {
+        parts.push(`Banho: ${record.data.tipoBanho}`)
+      }
+      if (record.data.condicaoPele) parts.push(`Pele: ${record.data.condicaoPele}`)
+      if (record.data.higieneBucal) parts.push('Higiene bucal ✓')
+      if (record.data.trocaFralda) parts.push('Troca de fralda/roupa ✓')
+      return parts.length > 0 ? parts.join(' | ') : 'Higiene realizada'
+    }
+    case 'ALIMENTACAO': {
+      const parts = [`${record.data.refeicao}`]
+      if (record.data.ingeriu) parts.push(record.data.ingeriu)
+      if (record.data.consistencia && record.data.consistencia !== 'Geral') {
+        parts.push(`(${record.data.consistencia})`)
+      }
+      // Líquidos durante a refeição
+      if (record.data.volumeMl && parseInt(record.data.volumeMl) > 0) {
+        parts.push(`${record.data.volumeMl} ml líquidos`)
+      }
+      if (record.data.intercorrencia && record.data.intercorrencia !== 'Nenhuma') {
+        parts.push(`⚠ ${record.data.intercorrencia}`)
+      }
+      return parts.join(' - ')
+    }
     case 'HIDRATACAO':
-      return `Hidratação: ${record.data.volumeMl} ml${record.data.tipo ? ` (${record.data.tipo})` : ''}`
-    case 'MONITORAMENTO':
+      return `${record.data.volumeMl} ml${record.data.tipo ? ` de ${record.data.tipo}` : ''}`
+    case 'MONITORAMENTO': {
       const vitals = []
       if (record.data.pressaoArterial) vitals.push(`PA: ${record.data.pressaoArterial}`)
       if (record.data.temperatura) vitals.push(`Temp: ${record.data.temperatura}°C`)
-      if (record.data.frequenciaCardiaca) vitals.push(`FC: ${record.data.frequenciaCardiaca}`)
+      if (record.data.frequenciaCardiaca) vitals.push(`FC: ${record.data.frequenciaCardiaca} bpm`)
       if (record.data.saturacaoO2) vitals.push(`SpO2: ${record.data.saturacaoO2}%`)
-      if (record.data.glicemia) vitals.push(`Glicemia: ${record.data.glicemia}`)
+      if (record.data.glicemia) vitals.push(`Glicemia: ${record.data.glicemia} mg/dL`)
       return vitals.join(' | ') || 'Monitoramento realizado'
-    case 'ELIMINACAO':
-      return `${record.data.tipo}${record.data.frequencia ? ` (${record.data.frequencia}x)` : ''}`
+    }
+    case 'ELIMINACAO': {
+      const parts = [record.data.tipo]
+
+      if (record.data.tipo === 'Fezes') {
+        if (record.data.consistencia) parts.push(record.data.consistencia)
+        if (record.data.cor) parts.push(record.data.cor)
+        if (record.data.volume) parts.push(record.data.volume)
+      } else if (record.data.tipo === 'Urina') {
+        if (record.data.cor) parts.push(record.data.cor)
+        if (record.data.odor && record.data.odor !== 'Normal') parts.push(`Odor: ${record.data.odor}`)
+        if (record.data.volume) parts.push(record.data.volume)
+      }
+
+      if (record.data.trocaFralda) parts.push('Troca de fralda ✓')
+
+      return parts.join(' - ')
+    }
     case 'COMPORTAMENTO':
-      return record.data.descricao.substring(0, 80) + (record.data.descricao.length > 80 ? '...' : '')
-    case 'INTERCORRENCIA':
-      return `${record.data.descricao} - ${record.data.acaoTomada}`.substring(0, 80) + '...'
-    case 'ATIVIDADES':
-      return record.data.atividade
-    case 'VISITA':
-      return `Visitante: ${record.data.visitante}`
+      return record.data.descricao.substring(0, 100) + (record.data.descricao.length > 100 ? '...' : '')
+    case 'INTERCORRENCIA': {
+      const descricao = record.data.descricao.substring(0, 60)
+      const acao = record.data.acaoTomada ? ` → ${record.data.acaoTomada.substring(0, 60)}` : ''
+      return `${descricao}${acao}`.substring(0, 120) + '...'
+    }
+    case 'ATIVIDADES': {
+      const parts = [record.data.atividade]
+      if (record.data.participacao) {
+        const participacao = record.data.participacao.substring(0, 50)
+        parts.push(participacao)
+      }
+      return parts.join(' - ')
+    }
+    case 'VISITA': {
+      const parts = [`Visitante: ${record.data.visitante}`]
+      if (record.data.observacoes && record.data.observacoes !== 'Sem observações') {
+        parts.push(record.data.observacoes.substring(0, 50))
+      }
+      return parts.join(' - ')
+    }
     case 'OUTROS':
-      return record.data.descricao.substring(0, 80) + (record.data.descricao.length > 80 ? '...' : '')
+      return record.data.descricao.substring(0, 100) + (record.data.descricao.length > 100 ? '...' : '')
     default:
       return 'Registro'
   }
