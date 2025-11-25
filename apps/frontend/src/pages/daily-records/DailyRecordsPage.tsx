@@ -442,6 +442,7 @@ export function DailyRecordsPage() {
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
+          existingRecords={records.filter((r) => r.type === 'ALIMENTACAO')}
         />
       )}
       {activeModal === 'HIDRATACAO' && (
