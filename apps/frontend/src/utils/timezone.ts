@@ -12,7 +12,7 @@
  */
 
 import { format as formatDateFns, parse, parseISO } from 'date-fns'
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz'
+import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 
 // Timezone padrão do Brasil
@@ -29,7 +29,7 @@ export function utcToLocal(
   timezone: string = DEFAULT_TIMEZONE
 ): Date {
   const date = typeof utcDate === 'string' ? parseISO(utcDate) : utcDate
-  return utcToZonedTime(date, timezone)
+  return toZonedTime(date, timezone)
 }
 
 /**
@@ -42,7 +42,7 @@ export function localToUtc(
   localDate: Date,
   timezone: string = DEFAULT_TIMEZONE
 ): Date {
-  return zonedTimeToUtc(localDate, timezone)
+  return fromZonedTime(localDate, timezone)
 }
 
 /**
@@ -73,7 +73,7 @@ export function getCurrentTimeLocal(
   timezone: string = DEFAULT_TIMEZONE
 ): string {
   const now = new Date()
-  const localNow = utcToZonedTime(now, timezone)
+  const localNow = toZonedTime(now, timezone)
   return formatDateFns(localNow, formatString)
 }
 
@@ -88,7 +88,7 @@ export function getCurrentDateLocal(
   timezone: string = DEFAULT_TIMEZONE
 ): string {
   const now = new Date()
-  const localNow = utcToZonedTime(now, timezone)
+  const localNow = toZonedTime(now, timezone)
   return formatDateFns(localNow, formatString)
 }
 
