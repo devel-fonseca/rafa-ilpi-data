@@ -84,6 +84,9 @@ export function DailyRecordsPage() {
     onSuccess: () => {
       // Invalidar todas as queries relacionadas a daily-records
       queryClient.invalidateQueries({ queryKey: ['daily-records'] })
+      // Invalidar queries específicas para atualizar os cards de estatísticas
+      queryClient.invalidateQueries({ queryKey: ['daily-records', 'latest-by-residents'] })
+      queryClient.invalidateQueries({ queryKey: ['daily-records', 'by-date'] })
       setActiveModal(null)
       toast.success('Registro adicionado com sucesso!')
     },
