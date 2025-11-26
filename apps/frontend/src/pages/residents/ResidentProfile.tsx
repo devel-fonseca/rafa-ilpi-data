@@ -35,6 +35,7 @@ import {
   ChevronRight,
   FileText,
   Eye,
+  Activity,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -53,6 +54,7 @@ import {
   ViewVisitaModal,
   ViewOutrosModal,
 } from '@/components/view-modals'
+import { VitalSignsModal } from '@/components/vital-signs/VitalSignsModal'
 
 export default function ResidentProfile() {
   const { id } = useParams()
@@ -65,6 +67,7 @@ export default function ResidentProfile() {
   // View modal states
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [viewingRecord, setViewingRecord] = useState<any>(null)
+  const [vitalSignsModalOpen, setVitalSignsModalOpen] = useState(false)
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const deleteMutation = useDeleteResident()
@@ -447,7 +450,17 @@ export default function ResidentProfile() {
               {/* Card: Saúde */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Saúde</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Saúde</CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVitalSignsModalOpen(true)}
+                    >
+                      <Activity className="h-4 w-4 mr-2" />
+                      Ver Sinais Vitais
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -1465,6 +1478,16 @@ export default function ResidentProfile() {
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
           record={viewingRecord}
+        />
+      )}
+
+      {/* Modal de Sinais Vitais */}
+      {resident && (
+        <VitalSignsModal
+          open={vitalSignsModalOpen}
+          onClose={() => setVitalSignsModalOpen(false)}
+          residentId={resident.id}
+          residentName={resident.fullName}
         />
       )}
     </div>

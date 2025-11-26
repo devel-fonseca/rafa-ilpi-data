@@ -121,23 +121,24 @@ async function seedDemoTenant() {
     }
   });
 
+  let tenant = existingTenant;
+
   if (existingTenant) {
     console.log('✓ Tenant de exemplo já existe');
-    return;
-  }
+  } else {
 
-  // Buscar o plano Free
-  const freePlan = await prisma.plan.findUnique({
-    where: { name: 'free' }
-  });
+    // Buscar o plano Free
+    const freePlan = await prisma.plan.findUnique({
+      where: { name: 'free' }
+    });
 
-  if (!freePlan) {
-    console.error('❌ Plano FREE não encontrado');
-    return;
-  }
+    if (!freePlan) {
+      console.error('❌ Plano FREE não encontrado');
+      return;
+    }
 
-  // Criar tenant de exemplo
-  const tenant = await prisma.tenant.create({
+    // Criar tenant de exemplo
+    tenant = await prisma.tenant.create({
     data: {
       name: 'Casa de Repouso São Rafael',
       slug: 'sao-rafael',
@@ -162,37 +163,38 @@ async function seedDemoTenant() {
         }
       }
     }
-  });
+    });
 
-  // Criar usuário admin (senha: senha123)
-  const hashedPassword = await bcrypt.hash('senha123', 10);
+    // Criar usuário admin (senha: senha123)
+    const hashedPassword = await bcrypt.hash('senha123', 10);
 
-  await prisma.user.create({
-    data: {
-      tenantId: tenant.id,
-      name: 'Administrador',
-      email: 'admin@teste.com.br',
-      password: hashedPassword,
-      role: 'admin',
-      isActive: true,
+    await prisma.user.create({
+      data: {
+        tenantId: tenant.id,
+        name: 'Administrador',
+        email: 'admin@teste.com.br',
+        password: hashedPassword,
+        role: 'admin',
+        isActive: true,
+      }
+    });
+
+    // Criar schema do tenant no PostgreSQL
+    try {
+      await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "tenant_sao_rafael"`);
+      console.log('✓ Schema do tenant criado');
+    } catch (error) {
+      console.error('❌ Erro ao criar schema do tenant:', error);
     }
-  });
 
-  // Criar schema do tenant no PostgreSQL
-  try {
-    await prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "tenant_sao_rafael"`);
-    console.log('✓ Schema do tenant criado');
-  } catch (error) {
-    console.error('❌ Erro ao criar schema do tenant:', error);
+    console.log('✅ Tenant de exemplo criado!');
+    console.log('   Nome: Casa de Repouso São Rafael');
+    console.log('   Email: admin@teste.com.br');
+    console.log('   Senha: senha123');
   }
 
   // Seed Gestão de Leitos
   await seedBedsManagement(tenant.id);
-
-  console.log('✅ Tenant de exemplo criado!');
-  console.log('   Nome: Casa de Repouso São Rafael');
-  console.log('   Email: admin@teste.com.br');
-  console.log('   Senha: senha123');
 }
 
 async function seedBedsManagement(tenantId: string) {
@@ -331,48 +333,127 @@ async function seedBedsManagement(tenantId: string) {
 
   const residentes = [
     {
-      fullName: 'Enzo Carlos Eduardo da Cruz',
-      cpf: '77564832860',
-      rg: '281560985',
-      birthDate: new Date('1953-01-20'),
-      gender: 'MASCULINO' as const,
-      bloodType: 'B_NEGATIVO' as const,
-      currentPhone: '11993706080',
-      height: '1.87',
-      weight: '110',
-      emergencyContacts: [
-        { name: 'Luzia Mirella Alana Bernardes', phone: '11986682521', relationship: 'Filha' },
-        { name: 'Benedita Teresinha Heloisa Assunção', phone: '11983919157', relationship: 'Sobrina' }
-      ]
-    },
-    {
-      fullName: 'Pietro Guilherme Márcio da Mota',
-      cpf: '31912830809',
-      rg: '254920391',
-      birthDate: new Date('1953-05-11'),
-      gender: 'MASCULINO' as const,
-      bloodType: 'O_NEGATIVO' as const,
-      currentPhone: '15986506547',
-      height: '1.78',
-      weight: '69',
-      emergencyContacts: [
-        { name: 'Juan Alexandre Mateus Figueiredo', phone: '19985928215', relationship: 'Filho' },
-        { name: 'Severino Bento da Cunha', phone: '16988961403', relationship: 'Amigo' }
-      ]
-    },
-    {
-      fullName: 'Benedita Teresinha Heloisa Assunção',
-      cpf: '23230328876',
-      rg: '157852957',
-      birthDate: new Date('1953-04-06'),
+      fullName: 'Adriana Ferreira',
+      cpf: '229.849.488-66',
+      rg: '34.946.542-3',
+      rgIssuer: 'SSP-SP',
+      birthDate: new Date('1949-02-17'),
       gender: 'FEMININO' as const,
-      bloodType: 'B_NEGATIVO' as const,
-      currentPhone: '11983919157',
-      height: '1.83',
-      weight: '79',
+      civilStatus: 'VIUVO' as const,
+      bloodType: 'O_NEGATIVO' as const,
+      currentPhone: '(19) 32321-122',
+      currentCep: '13054-020',
+      currentState: 'SP',
+      currentCity: 'Campinas',
+      currentStreet: 'Rua Alaor Corrêa Telles',
+      currentNumber: '491',
+      currentDistrict: 'Jardim Cristina',
+      motherName: 'Mariana Ferreira',
+      fatherName: 'José Arlindo Ferreira',
+      nationality: 'Brasileira',
+      birthCity: 'Campinas',
+      birthState: 'SP',
+      education: 'Superior',
+      profession: 'Aposentada',
+      religion: 'Católica',
+      cns: '234476256650003',
+      height: '1.55',
+      weight: '66',
+      dependencyLevel: 'Grau I - Independente',
+      healthStatus: 'Idosa de 76 anos, com HTA controlada, deambula com ritmo lento e sem apoio. Mantém boa orientação, mas requer rotina assistida e controle regular da PA.',
+      specialNeeds: 'Apoio leve no banho, controle regular da pressão e acompanhamento nutricional.',
+      functionalAspects: 'Independente na rotina, porém com lentificação e menor resistência física.',
+      medicationsOnAdmission: 'Losartana, Hidroclorotiazida, AAS, Vitamina D',
+      allergies: 'Dipirona, Amoxicilina, AINEs',
+      chronicConditions: 'HTA, Dislipidemia, Osteoartrite leve de joelhos',
+      dietaryRestrictions: 'Alimentação controlada para HTA, evitando industrializados e excesso de sal.',
+      admissionDate: new Date('2025-06-11'),
+      admissionType: 'Voluntária',
+      admissionReason: 'Necessidade de rotina supervisionada para monitoramento da hipertensão e apoio leve nas atividades de autocuidado.',
+      admissionConditions: 'Chega orientada e colaborativa, PA controlada, ambulando sem auxílio. Traz plano medicamentoso atual e contatos de referência.',
       emergencyContacts: [
-        { name: 'Enzo Carlos Eduardo da Cruz', phone: '11993706080', relationship: 'Tio' },
-        { name: 'Luzia Mirella Alana Bernardes', phone: '11986682521', relationship: 'Amiga' }
+        { name: 'Cris Ferreira', phone: '(19) 99911-2233', relationship: 'Filha' },
+        { name: 'Sandro A. Ferreira', phone: '(19) 99922-3344', relationship: 'Filho' }
+      ]
+    },
+    {
+      fullName: 'Camila dos Santos',
+      cpf: '469.124.921-42',
+      rg: '25.044.919-3',
+      rgIssuer: 'SSP-SP',
+      birthDate: new Date('1954-06-14'),
+      gender: 'FEMININO' as const,
+      civilStatus: 'VIUVO' as const,
+      bloodType: 'A_POSITIVO' as const,
+      currentPhone: '(19) 32367-788',
+      currentCep: '13081-110',
+      currentState: 'SP',
+      currentCity: 'Campinas',
+      currentStreet: 'Rua dos Iguás',
+      currentNumber: '122',
+      currentDistrict: 'Vila Costa e Silva',
+      motherName: 'Ana Maria Pinheiro',
+      fatherName: 'Marcos Ribeiro dos Santos',
+      nationality: 'Brasileira',
+      birthCity: 'São Vicente',
+      birthState: 'SP',
+      education: 'Superior',
+      profession: 'Aposentada',
+      religion: 'Sem religião',
+      height: '1.58',
+      weight: '64',
+      dependencyLevel: 'Grau I - Independente',
+      specialNeeds: 'Monitoramento diário de glicemia e organização medicamentosa.',
+      functionalAspects: 'Deambula com segurança; realiza ABVDs com supervisão leve.',
+      dietaryRestrictions: 'Dieta para DM2, controle de carboidratos e redução de açúcar e sódio.',
+      admissionDate: new Date('2025-06-20'),
+      admissionType: 'Voluntária',
+      admissionReason: 'Busca de rotina estruturada de cuidados, monitoramento glicêmico e suporte nas atividades diárias',
+      admissionConditions: 'Chega orientada, sem lesões cutâneas, com medicamentos e receitas atualizadas. Acompanha documentos médicos básicos e exames recentes.',
+      legalGuardianName: 'Fabiana Toledo dos Santos',
+      legalGuardianPhone: '(19) 99922-3344',
+      legalGuardianType: 'Responsável Familiar (Convencional)',
+      legalGuardianCep: '13081-110',
+      legalGuardianState: 'SP',
+      legalGuardianCity: 'Campinas',
+      legalGuardianStreet: 'Rua dos Iguás',
+      legalGuardianNumber: '122',
+      legalGuardianDistrict: 'Vila Costa e Silva',
+      emergencyContacts: [
+        { name: 'Fabiana Toledo', phone: '(19) 99922-3344', relationship: 'Sobrinha' }
+      ]
+    },
+    {
+      fullName: 'Tereza Heloisa Assunção',
+      cpf: '232.303.288-76',
+      rg: '15.785.295-7',
+      rgIssuer: 'SSP-SP',
+      birthDate: new Date('1953-04-04'),
+      gender: 'FEMININO' as const,
+      civilStatus: 'VIUVO' as const,
+      bloodType: 'A_POSITIVO' as const,
+      currentPhone: '(19) 99983-2460',
+      currentCep: '13059-605',
+      currentState: 'SP',
+      currentCity: 'Campinas',
+      currentStreet: 'Rua Professor Mário Scolari',
+      currentNumber: '18',
+      currentDistrict: 'Cidade Satélite Íris',
+      motherName: 'Fernanda Assunção',
+      fatherName: 'Não declarado',
+      nationality: 'Brasileira',
+      birthCity: 'Campinas',
+      birthState: 'SP',
+      education: 'Superior',
+      profession: 'Aposentada',
+      religion: 'Sem religião',
+      height: '1.72',
+      weight: '70',
+      dependencyLevel: 'Grau II - Parcialmente Dependente',
+      admissionDate: new Date('2025-06-19'),
+      admissionType: 'Voluntária',
+      emergencyContacts: [
+        { name: 'Barbara Santos', phone: '(19) 99944-3322', relationship: 'Irmã' }
       ]
     }
   ];

@@ -10,6 +10,7 @@ import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import * as vitalSignsService from '../services/vitalSigns.service';
 
 @Injectable()
 export class DailyRecordsService {
@@ -76,7 +77,82 @@ export class DailyRecordsService {
       userId,
     });
 
+    // Se for um registro de MONITORAMENTO, criar/atualizar sinais vitais
+    if (dto.type === 'MONITORAMENTO' && dto.data) {
+      try {
+        const vitalSignData = this.extractVitalSignsFromData(dto.data);
+        const timestamp = this.buildTimestamp(dto.date, dto.time);
+
+        await vitalSignsService.createVitalSign({
+          tenantId,
+          residentId: dto.residentId,
+          userId,
+          timestamp,
+          ...vitalSignData,
+        });
+
+        this.logger.info('Sinal vital criado automaticamente', {
+          recordId: record.id,
+          timestamp,
+        });
+      } catch (error) {
+        this.logger.error('Erro ao criar sinal vital', {
+          recordId: record.id,
+          error: error.message,
+        });
+        // Não falhar a criação do registro se houver erro nos sinais vitais
+      }
+    }
+
     return record;
+  }
+
+  /**
+   * Extrai dados de sinais vitais do objeto data do registro
+   */
+  private extractVitalSignsFromData(data: any) {
+    const extracted: any = {};
+
+    // Pressão Arterial (ex: "120/80")
+    if (data.pressaoArterial) {
+      const parts = data.pressaoArterial.split('/');
+      if (parts.length === 2) {
+        extracted.systolicBloodPressure = parseFloat(parts[0]);
+        extracted.diastolicBloodPressure = parseFloat(parts[1]);
+      }
+    }
+
+    // Temperatura
+    if (data.temperatura) {
+      extracted.temperature = parseFloat(data.temperatura);
+    }
+
+    // Frequência Cardíaca
+    if (data.frequenciaCardiaca) {
+      extracted.heartRate = parseInt(data.frequenciaCardiaca);
+    }
+
+    // Saturação O2
+    if (data.saturacaoO2) {
+      extracted.oxygenSaturation = parseFloat(data.saturacaoO2);
+    }
+
+    // Glicemia
+    if (data.glicemia) {
+      extracted.bloodGlucose = parseFloat(data.glicemia);
+    }
+
+    return extracted;
+  }
+
+  /**
+   * Constrói timestamp completo a partir de date e time
+   */
+  private buildTimestamp(dateStr: string, timeStr: string): Date {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const timestamp = new Date(dateStr);
+    timestamp.setHours(hours, minutes, 0, 0);
+    return timestamp;
   }
 
   async findAll(query: QueryDailyRecordDto, tenantId: string) {
@@ -329,6 +405,35 @@ export class DailyRecordsService {
       userId,
     });
 
+    // Se for um registro de MONITORAMENTO e houve mudança nos dados vitais, atualizar tabela de sinais vitais
+    if (result.type === 'MONITORAMENTO' && (dto.data || dto.date || dto.time)) {
+      try {
+        const vitalSignData = this.extractVitalSignsFromData(result.data);
+        const timestamp = this.buildTimestamp(
+          result.date.toISOString().split('T')[0],
+          result.time,
+        );
+
+        await vitalSignsService.updateVitalSignByTimestamp(
+          tenantId,
+          result.residentId,
+          timestamp,
+          vitalSignData,
+        );
+
+        this.logger.info('Sinal vital atualizado automaticamente', {
+          recordId: id,
+          timestamp,
+        });
+      } catch (error) {
+        this.logger.error('Erro ao atualizar sinal vital', {
+          recordId: id,
+          error: error.message,
+        });
+        // Não falhar a atualização do registro se houver erro nos sinais vitais
+      }
+    }
+
     return result;
   }
 
@@ -405,6 +510,33 @@ export class DailyRecordsService {
       tenantId,
       userId,
     });
+
+    // Se for um registro de MONITORAMENTO, deletar sinal vital correspondente
+    if (existing.type === 'MONITORAMENTO') {
+      try {
+        const timestamp = this.buildTimestamp(
+          existing.date.toISOString().split('T')[0],
+          existing.time,
+        );
+
+        await vitalSignsService.deleteVitalSignByTimestamp(
+          tenantId,
+          existing.residentId,
+          timestamp,
+        );
+
+        this.logger.info('Sinal vital deletado automaticamente', {
+          recordId: id,
+          timestamp,
+        });
+      } catch (error) {
+        this.logger.error('Erro ao deletar sinal vital', {
+          recordId: id,
+          error: error.message,
+        });
+        // Não falhar a deleção do registro se houver erro nos sinais vitais
+      }
+    }
 
     return { message: 'Registro removido com sucesso' };
   }

@@ -225,6 +225,7 @@ model Tenant {
   residents                 Resident[]
   dailyRecords              DailyRecord[]
   dailyRecordHistory        DailyRecordHistory[]
+  vitalSigns                VitalSign[]
   prescriptions             Prescription[]
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
@@ -285,6 +286,7 @@ model User {
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
+  vitalSigns                VitalSign[]
 
   @@unique([tenantId, email])
   @@map("users")
@@ -427,6 +429,7 @@ model Resident {
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
+  vitalSigns                VitalSign[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -516,6 +519,44 @@ model DailyRecordHistory {
   @@index([tenantId, changedAt(sort: Desc)])
   @@index([changedBy])
   @@map("daily_record_history")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  SINAIS VITAIS (Tabela dedicada para análises e consultas otimizadas)
+// ──────────────────────────────────────────────────────────────────────────────
+model VitalSign {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  residentId String   @db.Uuid
+  userId     String   @db.Uuid // ID do usuário que registrou
+
+  // Timestamp do registro (data + hora completa)
+  timestamp  DateTime @db.Timestamptz(3)
+
+  // Sinais Vitais (todos opcionais - registra apenas os que foram aferidos)
+  systolicBloodPressure   Float? // Pressão arterial sistólica (mmHg)
+  diastolicBloodPressure  Float? // Pressão arterial diastólica (mmHg)
+  temperature             Float? // Temperatura corporal (°C)
+  heartRate               Int?   // Frequência cardíaca (bpm)
+  oxygenSaturation        Float? // Saturação periférica de O₂ (%)
+  bloodGlucose            Float? // Glicemia (mg/dL)
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices para consultas otimizadas
+  @@index([tenantId, residentId, timestamp(sort: Desc)])
+  @@index([residentId, timestamp(sort: Desc)])
+  @@index([tenantId, timestamp(sort: Desc)])
+  @@index([deletedAt])
+  @@map("vital_signs")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
