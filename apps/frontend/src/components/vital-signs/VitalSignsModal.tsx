@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -34,6 +34,7 @@ import { useQuery } from '@tanstack/react-query'
 import { VitalSignsCharts } from './VitalSignsCharts'
 import { VitalSignsTable } from './VitalSignsTable'
 import { VitalSignsAlerts } from './VitalSignsAlerts'
+import { Sparkline } from './Sparkline'
 import { api } from '@/services/api'
 
 interface VitalSignsModalProps {
@@ -139,6 +140,35 @@ export function VitalSignsModal({
   }
 
   const stats = calculateStats()
+
+  // Preparar dados para os sparklines (últimos 7 dias)
+  const sparklineData = useMemo(() => {
+    if (!vitalSigns || vitalSigns.length === 0) {
+      return {
+        bloodPressure: [],
+        temperature: [],
+        glucose: [],
+      }
+    }
+
+    // Filtrar apenas últimos 7 dias e ordenar por data
+    const sevenDaysAgo = subDays(new Date(), 7)
+    const recentData = vitalSigns
+      .filter(v => new Date(v.timestamp) >= sevenDaysAgo)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+    return {
+      bloodPressure: recentData
+        .filter(v => v.systolicBloodPressure)
+        .map(v => ({ value: v.systolicBloodPressure! })),
+      temperature: recentData
+        .filter(v => v.temperature)
+        .map(v => ({ value: v.temperature! })),
+      glucose: recentData
+        .filter(v => v.bloodGlucose)
+        .map(v => ({ value: v.bloodGlucose! })),
+    }
+  }, [vitalSigns])
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -266,13 +296,15 @@ export function VitalSignsModal({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">PA - Últimos 7 dias</CardTitle>
+                    <CardTitle className="text-sm font-medium">PA Sistólica - Últimos 7 dias</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {/* Aqui virá o componente de sparkline */}
-                    <div className="h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                      Gráfico sparkline PA
-                    </div>
+                    <Sparkline
+                      data={sparklineData.bloodPressure}
+                      color="#ef4444"
+                      height={60}
+                      domain={[80, 180]}
+                    />
                   </CardContent>
                 </Card>
 
@@ -281,9 +313,12 @@ export function VitalSignsModal({
                     <CardTitle className="text-sm font-medium">Temperatura - Últimos 7 dias</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                      Gráfico sparkline Temp
-                    </div>
+                    <Sparkline
+                      data={sparklineData.temperature}
+                      color="#f59e0b"
+                      height={60}
+                      domain={[35, 40]}
+                    />
                   </CardContent>
                 </Card>
 
@@ -292,9 +327,12 @@ export function VitalSignsModal({
                     <CardTitle className="text-sm font-medium">Glicemia - Últimos 7 dias</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                      Gráfico sparkline Glicemia
-                    </div>
+                    <Sparkline
+                      data={sparklineData.glucose}
+                      color="#10b981"
+                      height={60}
+                      domain={[50, 250]}
+                    />
                   </CardContent>
                 </Card>
               </div>
