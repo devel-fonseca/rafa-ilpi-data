@@ -1,0 +1,11 @@
+// Export all edit modals
+export { EditAlimentacaoModal } from './EditAlimentacaoModal'
+export { EditMonitoramentoModal } from './EditMonitoramentoModal'
+export { EditHigieneModal } from './EditHigieneModal'
+export { EditHidratacaoModal } from './EditHidratacaoModal'
+export { EditEliminacaoModal } from './EditEliminacaoModal'
+export { EditComportamentoModal } from './EditComportamentoModal'
+export { EditIntercorrenciaModal } from './EditIntercorrenciaModal'
+export { EditAtividadesModal } from './EditAtividadesModal'
+export { EditVisitaModal } from './EditVisitaModal'
+export { EditOutrosModal } from './EditOutrosModal'

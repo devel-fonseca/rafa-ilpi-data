@@ -17,6 +17,7 @@ import { DailyRecordsService } from './daily-records.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { DeleteDailyRecordDto } from './dto/delete-daily-record.dto';
+import { RestoreVersionDailyRecordDto } from './dto/restore-version-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -180,6 +181,42 @@ export class DailyRecordsController {
     @CurrentUser() user: any,
   ) {
     return this.dailyRecordsService.getHistory(id, user.tenantId);
+  }
+
+  @Post(':id/restore')
+  @Roles('admin', 'user')
+  @AuditAction('UPDATE')
+  @ApiOperation({
+    summary: 'Restaurar registro para uma versão anterior',
+    description:
+      'Restaura o registro para o estado de uma versão anterior. Cria uma nova entrada no histórico registrando a restauração.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Registro restaurado com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Dados inválidos ou motivo ausente',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Registro ou versão não encontrada',
+  })
+  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
+  restoreVersion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() restoreDto: RestoreVersionDailyRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.restoreVersion(
+      id,
+      restoreDto.versionId,
+      restoreDto.restoreReason,
+      user.tenantId,
+      user.id,
+      user.name,
+    );
   }
 
   @Get(':id')

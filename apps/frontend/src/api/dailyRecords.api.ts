@@ -102,6 +102,21 @@ class DailyRecordsAPI {
     })
     return response.data
   }
+
+  /**
+   * Restaura um registro para uma versão anterior
+   */
+  async restoreVersion(
+    recordId: string,
+    versionId: string,
+    restoreReason: string
+  ): Promise<DailyRecord> {
+    const response = await api.post(`/daily-records/${recordId}/restore`, {
+      versionId,
+      restoreReason,
+    })
+    return response.data
+  }
 }
 
 export const dailyRecordsAPI = new DailyRecordsAPI()

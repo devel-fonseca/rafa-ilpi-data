@@ -449,6 +449,127 @@ export class DailyRecordsService {
   }
 
   /**
+   * Restaura um registro para uma versão anterior
+   * Cria uma nova versão no histórico indicando a restauração
+   *
+   * @param recordId - ID do registro que será restaurado
+   * @param versionId - ID da versão do histórico que será restaurada
+   * @param restoreReason - Motivo da restauração (compliance)
+   * @param tenantId - ID do tenant
+   * @param userId - ID do usuário que está restaurando
+   * @param userName - Nome do usuário que está restaurando
+   */
+  async restoreVersion(
+    recordId: string,
+    versionId: string,
+    restoreReason: string,
+    tenantId: string,
+    userId: string,
+    userName: string,
+  ) {
+    // Buscar registro atual
+    const record = await this.prisma.dailyRecord.findFirst({
+      where: { id: recordId, tenantId },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Registro não encontrado');
+    }
+
+    // Buscar versão do histórico que será restaurada
+    const versionToRestore = await this.prisma.dailyRecordHistory.findFirst({
+      where: {
+        id: versionId,
+        recordId,
+        tenantId,
+      },
+    });
+
+    if (!versionToRestore) {
+      throw new NotFoundException('Versão do histórico não encontrada');
+    }
+
+    // Calcular próximo número de versão
+    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+      where: { recordId },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+    const nextVersionNumber = (lastVersion?.versionNumber || 0) + 1;
+
+    // Snapshot dos dados atuais (antes da restauração)
+    const previousSnapshot = {
+      type: record.type,
+      date: record.date,
+      time: record.time,
+      data: record.data,
+      recordedBy: record.recordedBy,
+      notes: record.notes,
+      updatedAt: record.updatedAt,
+    };
+
+    // Dados da versão que será restaurada (previousData da versão selecionada)
+    const dataToRestore = versionToRestore.previousData as any;
+
+    // Identificar campos alterados
+    const changedFields: string[] = [];
+    Object.keys(dataToRestore).forEach((key) => {
+      if (
+        JSON.stringify((record as any)[key]) !==
+        JSON.stringify(dataToRestore[key])
+      ) {
+        changedFields.push(key);
+      }
+    });
+
+    // Usar transação para garantir consistência
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Criar registro no histórico indicando a restauração
+      await prisma.dailyRecordHistory.create({
+        data: {
+          recordId,
+          tenantId,
+          versionNumber: nextVersionNumber,
+          previousData: previousSnapshot,
+          newData: dataToRestore,
+          changedFields,
+          changeType: 'UPDATE',
+          changeReason: `[RESTAURAÇÃO v${versionToRestore.versionNumber}] ${restoreReason}`,
+          changedBy: userId,
+          changedByName: userName,
+        },
+      });
+
+      // Atualizar o registro com os dados restaurados
+      const restored = await prisma.dailyRecord.update({
+        where: { id: recordId },
+        data: {
+          type: dataToRestore.type,
+          date: dataToRestore.date,
+          time: dataToRestore.time,
+          data: dataToRestore.data,
+          recordedBy: dataToRestore.recordedBy,
+          notes: dataToRestore.notes,
+          updatedAt: new Date(),
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              fotoUrl: true,
+            },
+          },
+        },
+      });
+
+      return restored;
+    });
+
+    return result;
+  }
+
+  /**
    * Busca o último registro diário de cada residente do tenant
    * Query otimizada usando SQL RAW para melhor performance
    */

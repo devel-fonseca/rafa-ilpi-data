@@ -1,17 +1,42 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Loader2, History } from 'lucide-react'
+import { ArrowLeft, Calendar, Loader2, History, Edit, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { api } from '@/services/api'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentRecordDates } from '@/hooks/useResidentRecordDates'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { DailyRecordHistoryModal } from '@/components/DailyRecordHistoryModal'
+import { dailyRecordsAPI } from '@/api/dailyRecords.api'
+import { toast } from 'sonner'
+import {
+  EditAlimentacaoModal,
+  EditMonitoramentoModal,
+  EditHigieneModal,
+  EditHidratacaoModal,
+  EditEliminacaoModal,
+  EditComportamentoModal,
+  EditIntercorrenciaModal,
+  EditAtividadesModal,
+  EditVisitaModal,
+  EditOutrosModal,
+} from '@/components/edit-modals'
 
 export default function ResidentDailyRecordsCalendar() {
   const { id } = useParams()
@@ -20,9 +45,76 @@ export default function ResidentDailyRecordsCalendar() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
 
+  // Edit states
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<any>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  // Delete states
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deletingRecord, setDeletingRecord] = useState<any>(null)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const handleOpenHistory = (recordId: string) => {
     setSelectedRecordId(recordId)
     setHistoryModalOpen(true)
+  }
+
+  const handleOpenEdit = (record: any) => {
+    setEditingRecord(record)
+    setEditModalOpen(true)
+  }
+
+  const handleOpenDelete = (record: any) => {
+    setDeletingRecord(record)
+    setDeleteReason('')
+    setDeleteModalOpen(true)
+  }
+
+  const handleConfirmEdit = async (payload: any) => {
+    if (!editingRecord) {
+      toast.error('Nenhum registro selecionado para edição')
+      return
+    }
+
+    try {
+      setIsUpdating(true)
+      await dailyRecordsAPI.update(editingRecord.id, payload)
+
+      toast.success('Registro atualizado com sucesso')
+      setEditModalOpen(false)
+      setEditingRecord(null)
+      refetchRecords()
+    } catch (err: any) {
+      console.error('Erro ao atualizar registro:', err)
+      toast.error(err.response?.data?.message || 'Erro ao atualizar registro')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingRecord || deleteReason.length < 10) {
+      toast.error('O motivo da exclusão deve ter pelo menos 10 caracteres')
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      await dailyRecordsAPI.delete(deletingRecord.id, deleteReason)
+
+      toast.success('Registro excluído com sucesso')
+      setDeleteModalOpen(false)
+      setDeletingRecord(null)
+      setDeleteReason('')
+      refetchRecords()
+    } catch (err: any) {
+      console.error('Erro ao excluir registro:', err)
+      toast.error(err.response?.data?.message || 'Erro ao excluir registro')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   // Buscar dados do residente
@@ -43,7 +135,7 @@ export default function ResidentDailyRecordsCalendar() {
   )
 
   // Buscar registros do dia selecionado
-  const { data: records = [], isLoading: isLoadingRecords } = useQuery({
+  const { data: records = [], isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
     queryKey: ['daily-records', id, format(selectedDate, 'yyyy-MM-dd')],
     queryFn: async () => {
       const response = await api.get(
@@ -53,6 +145,11 @@ export default function ResidentDailyRecordsCalendar() {
     },
     enabled: !!id,
   })
+
+  const handleRecordUpdated = () => {
+    // Recarregar registros após restauração
+    refetchRecords()
+  }
 
   if (isLoadingResident) {
     return (
@@ -135,15 +232,35 @@ export default function ResidentDailyRecordsCalendar() {
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleOpenHistory(record.id)}
-                        className="h-8 w-8 p-0 shrink-0"
-                        title="Ver histórico de alterações"
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(record)}
+                          className="h-8 w-8 p-0"
+                          title="Editar registro"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenHistory(record.id)}
+                          className="h-8 w-8 p-0"
+                          title="Ver histórico de alterações"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenDelete(record)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          title="Excluir registro"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -167,8 +284,199 @@ export default function ResidentDailyRecordsCalendar() {
           recordId={selectedRecordId}
           open={historyModalOpen}
           onOpenChange={setHistoryModalOpen}
+          onRecordUpdated={handleRecordUpdated}
         />
       )}
+
+      {/* Modais de Edição Específicos por Tipo */}
+      {editingRecord?.type === 'ALIMENTACAO' && (
+        <EditAlimentacaoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'MONITORAMENTO' && (
+        <EditMonitoramentoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'HIGIENE' && (
+        <EditHigieneModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'HIDRATACAO' && (
+        <EditHidratacaoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'ELIMINACAO' && (
+        <EditEliminacaoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'COMPORTAMENTO' && (
+        <EditComportamentoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'INTERCORRENCIA' && (
+        <EditIntercorrenciaModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'ATIVIDADES' && (
+        <EditAtividadesModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'VISITA' && (
+        <EditVisitaModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'OUTROS' && (
+        <EditOutrosModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {/* Modal de Exclusão */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Excluir Registro
+            </DialogTitle>
+            <DialogDescription>
+              Esta ação não pode ser desfeita. O registro será marcado como excluído e salvo no histórico para fins de auditoria.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deletingRecord && (
+            <div className="space-y-4 py-4">
+              {/* Informações do registro */}
+              <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={RECORD_TYPE_LABELS[deletingRecord.type]?.color}
+                  >
+                    {RECORD_TYPE_LABELS[deletingRecord.type]?.label}
+                  </Badge>
+                  <span className="text-sm font-semibold">{deletingRecord.time}</span>
+                </div>
+                <p className="text-sm">
+                  {format(new Date(deletingRecord.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Registrado por: {deletingRecord.recordedBy}
+                </p>
+              </div>
+
+              {/* Campo Motivo da Exclusão */}
+              <div className="space-y-2">
+                <Label htmlFor="deleteReason" className="text-sm font-medium">
+                  Motivo da exclusão <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="deleteReason"
+                  placeholder="Descreva o motivo da exclusão (mínimo 10 caracteres)..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {deleteReason.length}/10 caracteres mínimos
+                </p>
+              </div>
+
+              {deleteReason.length > 0 && deleteReason.length < 10 && (
+                <p className="text-xs text-destructive">
+                  O motivo deve ter pelo menos 10 caracteres
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              disabled={isDeleting || deleteReason.length < 10}
+              variant="destructive"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Confirmar Exclusão
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
