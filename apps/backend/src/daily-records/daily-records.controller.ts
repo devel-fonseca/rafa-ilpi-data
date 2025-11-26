@@ -16,6 +16,7 @@ import {
 import { DailyRecordsService } from './daily-records.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
+import { DeleteDailyRecordDto } from './dto/delete-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -162,6 +163,25 @@ export class DailyRecordsController {
     );
   }
 
+  @Get(':id/history')
+  @ApiOperation({
+    summary: 'Buscar histórico de versões de um registro',
+    description:
+      'Retorna todas as versões anteriores do registro com detalhes de quem editou, quando e por quê',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Histórico de versões do registro',
+  })
+  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.getHistory(id, user.tenantId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Buscar registro por ID' })
   @ApiResponse({ status: 200, description: 'Registro encontrado' })
@@ -174,9 +194,9 @@ export class DailyRecordsController {
   @Patch(':id')
   @Roles('admin', 'user')
   @AuditAction('UPDATE')
-  @ApiOperation({ summary: 'Atualizar registro diário' })
+  @ApiOperation({ summary: 'Atualizar registro diário (com motivo obrigatório)' })
   @ApiResponse({ status: 200, description: 'Registro atualizado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos ou motivo ausente' })
   @ApiResponse({ status: 404, description: 'Registro não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
   update(
@@ -189,6 +209,7 @@ export class DailyRecordsController {
       updateDto,
       user.tenantId,
       user.id,
+      user.name,
     );
   }
 
@@ -196,11 +217,22 @@ export class DailyRecordsController {
   @HttpCode(HttpStatus.OK)
   @Roles('admin')
   @AuditAction('DELETE')
-  @ApiOperation({ summary: 'Remover registro (soft delete)' })
+  @ApiOperation({ summary: 'Remover registro (soft delete com motivo obrigatório)' })
   @ApiResponse({ status: 200, description: 'Registro removido com sucesso' })
+  @ApiResponse({ status: 400, description: 'Motivo da exclusão ausente' })
   @ApiResponse({ status: 404, description: 'Registro não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.dailyRecordsService.remove(id, user.tenantId, user.id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteDailyRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.remove(
+      id,
+      deleteDto,
+      user.tenantId,
+      user.id,
+      user.name,
+    );
   }
 }

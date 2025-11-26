@@ -224,6 +224,7 @@ model Tenant {
   users                     User[]
   residents                 Resident[]
   dailyRecords              DailyRecord[]
+  dailyRecordHistory        DailyRecordHistory[]
   prescriptions             Prescription[]
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
@@ -474,6 +475,47 @@ model DailyRecord {
   @@index([residentId, date(sort: Desc), time])
   @@index([deletedAt])
   @@map("daily_records")
+
+  // Relação com histórico de versões
+  history DailyRecordHistory[]
+}
+
+// Histórico de Versões de Registros Diários (para conformidade com prontuário eletrônico)
+model DailyRecordHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  recordId       String   @db.Uuid // FK para DailyRecord
+  tenantId       String   @db.Uuid
+  versionNumber  Int // Número sequencial da versão (1, 2, 3...)
+
+  // Dados da versão anterior (snapshot completo)
+  previousData   Json // Snapshot completo do estado anterior
+
+  // Dados da nova versão (para comparação)
+  newData        Json // Snapshot completo do novo estado
+
+  // Campos alterados (array de nomes de campos: ["time", "data.pressao"])
+  changedFields  Json @default("[]")
+
+  // Auditoria da mudança
+  changeType     String // "UPDATE" ou "DELETE"
+  changeReason   String @db.Text // Motivo obrigatório da mudança
+  changedBy      String @db.Uuid // ID do usuário que fez a mudança
+  changedByName  String // Nome do usuário que fez a mudança
+  changedAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  // IP e User Agent para auditoria adicional
+  ipAddress      String? @db.VarChar(45)
+  userAgent      String? @db.Text
+
+  // Relações
+  record DailyRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([recordId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("daily_record_history")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
