@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Loader2, History, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Loader2, History, Edit, Trash2, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -37,6 +37,18 @@ import {
   EditVisitaModal,
   EditOutrosModal,
 } from '@/components/edit-modals'
+import {
+  ViewHigieneModal,
+  ViewAlimentacaoModal,
+  ViewHidratacaoModal,
+  ViewMonitoramentoModal,
+  ViewEliminacaoModal,
+  ViewComportamentoModal,
+  ViewIntercorrenciaModal,
+  ViewAtividadesModal,
+  ViewVisitaModal,
+  ViewOutrosModal,
+} from '@/components/view-modals'
 
 export default function ResidentDailyRecordsCalendar() {
   const { id } = useParams()
@@ -56,6 +68,10 @@ export default function ResidentDailyRecordsCalendar() {
   const [deleteReason, setDeleteReason] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // View states
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [viewingRecord, setViewingRecord] = useState<any>(null)
+
   const handleOpenHistory = (recordId: string) => {
     setSelectedRecordId(recordId)
     setHistoryModalOpen(true)
@@ -70,6 +86,11 @@ export default function ResidentDailyRecordsCalendar() {
     setDeletingRecord(record)
     setDeleteReason('')
     setDeleteModalOpen(true)
+  }
+
+  const handleViewRecord = (record: any) => {
+    setViewingRecord(record)
+    setViewModalOpen(true)
   }
 
   const handleConfirmEdit = async (payload: any) => {
@@ -203,62 +224,75 @@ export default function ResidentDailyRecordsCalendar() {
                 <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
               </div>
             ) : records.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {records.map((record: any) => (
                   <div
                     key={record.id}
-                    className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                    className={`border-l-4 pl-4 py-2 rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold text-lg">{record.time}</span>
+                    <div className="flex items-start justify-between gap-2">
+                      {/* Conteúdo principal - clicável para visualizar */}
+                      <div
+                        className="flex flex-col gap-1 flex-1 cursor-pointer"
+                        onClick={() => handleViewRecord(record)}
+                      >
+                        {/* Linha 1: Horário, Badge e Ícone */}
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
                           <Badge
                             variant="outline"
-                            className={RECORD_TYPE_LABELS[record.type]?.color}
+                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
                           >
                             {RECORD_TYPE_LABELS[record.type]?.label}
                           </Badge>
+                          <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                         </div>
-                        <div className="text-sm text-gray-800 mb-1">
-                          {renderRecordSummary(record)}
+
+                        {/* Linha 2: Informações de quem e quando registrou */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>Registrado por {record.recordedBy}</span>
+                          <span>•</span>
+                          <span>{format(new Date(record.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                         </div>
-                        <p className="text-xs text-gray-600">
-                          Registrado por: {record.recordedBy}
-                        </p>
-                        {record.notes && (
-                          <p className="text-sm text-gray-600 mt-2 italic border-l-2 border-gray-300 pl-2">
-                            {record.notes}
-                          </p>
-                        )}
                       </div>
+
+                      {/* Botões de ação */}
                       <div className="flex gap-1 shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleOpenEdit(record)}
-                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenEdit(record)
+                          }}
+                          className="h-7 w-7 p-0"
                           title="Editar registro"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleOpenHistory(record.id)}
-                          className="h-8 w-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenHistory(record.id)
+                          }}
+                          className="h-7 w-7 p-0"
                           title="Ver histórico de alterações"
                         >
-                          <History className="h-4 w-4" />
+                          <History className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleOpenDelete(record)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenDelete(record)
+                          }}
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                           title="Excluir registro"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -477,6 +511,87 @@ export default function ResidentDailyRecordsCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modais de Visualização */}
+      {viewingRecord?.type === 'HIGIENE' && (
+        <ViewHigieneModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ALIMENTACAO' && (
+        <ViewAlimentacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'HIDRATACAO' && (
+        <ViewHidratacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'MONITORAMENTO' && (
+        <ViewMonitoramentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ELIMINACAO' && (
+        <ViewEliminacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'COMPORTAMENTO' && (
+        <ViewComportamentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'INTERCORRENCIA' && (
+        <ViewIntercorrenciaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ATIVIDADES' && (
+        <ViewAtividadesModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'VISITA' && (
+        <ViewVisitaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'OUTROS' && (
+        <ViewOutrosModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
     </div>
   )
 }

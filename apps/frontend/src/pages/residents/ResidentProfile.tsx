@@ -34,12 +34,25 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Eye,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
+import {
+  ViewHigieneModal,
+  ViewAlimentacaoModal,
+  ViewHidratacaoModal,
+  ViewMonitoramentoModal,
+  ViewEliminacaoModal,
+  ViewComportamentoModal,
+  ViewIntercorrenciaModal,
+  ViewAtividadesModal,
+  ViewVisitaModal,
+  ViewOutrosModal,
+} from '@/components/view-modals'
 
 export default function ResidentProfile() {
   const { id } = useParams()
@@ -48,6 +61,10 @@ export default function ResidentProfile() {
   const [deleteModal, setDeleteModal] = useState(false)
   const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const healthConditionsCardRef = useRef<HTMLDivElement>(null)
+
+  // View modal states
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [viewingRecord, setViewingRecord] = useState<any>(null)
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const deleteMutation = useDeleteResident()
@@ -67,6 +84,11 @@ export default function ResidentProfile() {
 
   const goToToday = () => {
     setViewDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
+  const handleViewRecord = (record: any) => {
+    setViewingRecord(record)
+    setViewModalOpen(true)
   }
 
   // Buscar prescrições do residente
@@ -1289,35 +1311,32 @@ export default function ResidentProfile() {
             </CardHeader>
             <CardContent>
               {dailyRecords.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {dailyRecords.map((record: any) => (
                     <div
                       key={record.id}
-                      className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
+                      onClick={() => handleViewRecord(record)}
+                      className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-semibold text-lg">{record.time}</span>
-                            <Badge
-                              variant="outline"
-                              className={RECORD_TYPE_LABELS[record.type]?.color}
-                            >
-                              {RECORD_TYPE_LABELS[record.type]?.label}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-foreground mb-1">
-                            {renderRecordSummary(record)}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Registrado por: {record.recordedBy}
-                          </p>
-                          {record.notes && (
-                            <p className="text-sm text-muted-foreground mt-2 italic border-l-2 border-border pl-2">
-                              {record.notes}
-                            </p>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-3">
+                        {/* Horário */}
+                        <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
+
+                        {/* Badge do Tipo */}
+                        <Badge
+                          variant="outline"
+                          className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
+                        >
+                          {RECORD_TYPE_LABELS[record.type]?.label}
+                        </Badge>
+
+                        {/* Responsável */}
+                        <span className="text-xs text-muted-foreground">
+                          {record.recordedBy}
+                        </span>
+
+                        {/* Ícone de visualização */}
+                        <Eye className="h-4 w-4 text-muted-foreground ml-auto mr-2" />
                       </div>
                     </div>
                   ))}
@@ -1367,6 +1386,87 @@ export default function ResidentProfile() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modais de Visualização */}
+      {viewingRecord?.type === 'HIGIENE' && (
+        <ViewHigieneModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ALIMENTACAO' && (
+        <ViewAlimentacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'HIDRATACAO' && (
+        <ViewHidratacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'MONITORAMENTO' && (
+        <ViewMonitoramentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ELIMINACAO' && (
+        <ViewEliminacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'COMPORTAMENTO' && (
+        <ViewComportamentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'INTERCORRENCIA' && (
+        <ViewIntercorrenciaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ATIVIDADES' && (
+        <ViewAtividadesModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'VISITA' && (
+        <ViewVisitaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'OUTROS' && (
+        <ViewOutrosModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
     </div>
   )
 }

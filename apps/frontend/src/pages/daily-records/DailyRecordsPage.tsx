@@ -4,7 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateLong, getCurrentDateLocal } from '@/utils/timezone'
-import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft } from 'lucide-react'
+import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,18 @@ import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionG
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
+import {
+  ViewHigieneModal,
+  ViewAlimentacaoModal,
+  ViewHidratacaoModal,
+  ViewMonitoramentoModal,
+  ViewEliminacaoModal,
+  ViewComportamentoModal,
+  ViewIntercorrenciaModal,
+  ViewAtividadesModal,
+  ViewVisitaModal,
+  ViewOutrosModal,
+} from '@/components/view-modals'
 
 export function DailyRecordsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -45,6 +57,8 @@ export function DailyRecordsPage() {
   const selectedDate = searchParams.get('date') || getCurrentDateLocal()
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
+  const [viewingRecord, setViewingRecord] = useState<any>(null)
+  const [viewModalOpen, setViewModalOpen] = useState(false)
 
   // Buscar lista de residentes (para o seletor)
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
@@ -98,6 +112,11 @@ export function DailyRecordsPage() {
 
   const handleCreateRecord = (data: any) => {
     createMutation.mutate(data)
+  }
+
+  const handleViewRecord = (record: any) => {
+    setViewingRecord(record)
+    setViewModalOpen(true)
   }
 
   const handleExportPDF = async () => {
@@ -381,47 +400,32 @@ export function DailyRecordsPage() {
               <span className="ml-2 text-gray-500">Carregando registros...</span>
             </div>
           ) : records && records.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {records.map((record: any) => (
                 <div
                   key={record.id}
-                  className={`border-l-4 pl-4 py-3 ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                  onClick={() => handleViewRecord(record)}
+                  className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
                 >
-                  <div className="flex flex-col gap-2">
-                    {/* Linha 1: Horário e Badge */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-lg">{record.time}</span>
-                      <Badge
-                        variant="outline"
-                        className={RECORD_TYPE_LABELS[record.type]?.color}
-                      >
-                        {RECORD_TYPE_LABELS[record.type]?.label}
-                      </Badge>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    {/* Horário */}
+                    <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
 
-                    {/* Linha 2: Resumo do registro */}
-                    <div className="text-sm text-gray-800">
-                      {renderRecordSummary(record)}
-                    </div>
+                    {/* Badge do Tipo */}
+                    <Badge
+                      variant="outline"
+                      className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
+                    >
+                      {RECORD_TYPE_LABELS[record.type]?.label}
+                    </Badge>
 
-                    {/* Observações (se houver) */}
-                    {record.data?.observacoes && record.data.observacoes !== 'Sem observações' && (
-                      <p className="text-xs text-muted-foreground italic border-l-2 border-gray-300 pl-2">
-                        {record.data.observacoes}
-                      </p>
-                    )}
+                    {/* Responsável */}
+                    <span className="text-xs text-muted-foreground">
+                      {record.recordedBy}
+                    </span>
 
-                    {/* Notes (campo antigo - manter compatibilidade) */}
-                    {record.notes && (
-                      <p className="text-xs text-muted-foreground italic border-l-2 border-gray-300 pl-2">
-                        {record.notes}
-                      </p>
-                    )}
-
-                    {/* Responsável - última linha, discreta */}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Por: <span className="italic">{record.recordedBy}</span>
-                    </div>
+                    {/* Ícone de visualização */}
+                    <Eye className="h-4 w-4 text-muted-foreground ml-auto mr-2" />
                   </div>
                 </div>
               ))}
@@ -545,6 +549,87 @@ export function DailyRecordsPage() {
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
+        />
+      )}
+
+      {/* Modais de Visualização */}
+      {viewingRecord?.type === 'HIGIENE' && (
+        <ViewHigieneModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ALIMENTACAO' && (
+        <ViewAlimentacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'HIDRATACAO' && (
+        <ViewHidratacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'MONITORAMENTO' && (
+        <ViewMonitoramentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ELIMINACAO' && (
+        <ViewEliminacaoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'COMPORTAMENTO' && (
+        <ViewComportamentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'INTERCORRENCIA' && (
+        <ViewIntercorrenciaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'ATIVIDADES' && (
+        <ViewAtividadesModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'VISITA' && (
+        <ViewVisitaModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'OUTROS' && (
+        <ViewOutrosModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
         />
       )}
     </div>

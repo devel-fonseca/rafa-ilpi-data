@@ -1,0 +1,11 @@
+// Export all view modals
+export { ViewHigieneModal } from './ViewHigieneModal'
+export { ViewAlimentacaoModal } from './ViewAlimentacaoModal'
+export { ViewHidratacaoModal } from './ViewHidratacaoModal'
+export { ViewMonitoramentoModal } from './ViewMonitoramentoModal'
+export { ViewEliminacaoModal } from './ViewEliminacaoModal'
+export { ViewComportamentoModal } from './ViewComportamentoModal'
+export { ViewIntercorrenciaModal } from './ViewIntercorrenciaModal'
+export { ViewAtividadesModal } from './ViewAtividadesModal'
+export { ViewVisitaModal } from './ViewVisitaModal'
+export { ViewOutrosModal } from './ViewOutrosModal'
