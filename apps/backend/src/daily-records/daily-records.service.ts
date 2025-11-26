@@ -218,6 +218,7 @@ export class DailyRecordsService {
     dto: UpdateDailyRecordDto,
     tenantId: string,
     userId: string,
+    userName: string,
   ) {
     // Verificar se registro existe e pertence ao tenant
     const existing = await this.prisma.dailyRecord.findFirst({
@@ -240,38 +241,104 @@ export class DailyRecordsService {
       }
     }
 
-    // Atualizar registro
-    const updated = await this.prisma.dailyRecord.update({
-      where: { id },
-      data: {
-        type: dto.type as any, // Cast para RecordType
-        date: dto.date ? new Date(dto.date) : undefined,
-        time: dto.time,
-        data: dto.data as any,
-        recordedBy: dto.recordedBy,
-        notes: dto.notes,
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-            fotoUrl: true,
-          },
-        },
-      },
+    // Calcular próximo número de versão
+    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+      where: { recordId: id },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+    const nextVersionNumber = (lastVersion?.versionNumber || 0) + 1;
+
+    // Preparar dados novos (apenas campos que foram enviados)
+    const newData: any = {};
+    if (dto.type !== undefined) newData.type = dto.type;
+    if (dto.date !== undefined) newData.date = dto.date;
+    if (dto.time !== undefined) newData.time = dto.time;
+    if (dto.data !== undefined) newData.data = dto.data;
+    if (dto.recordedBy !== undefined) newData.recordedBy = dto.recordedBy;
+    if (dto.notes !== undefined) newData.notes = dto.notes;
+
+    // Identificar campos alterados
+    const changedFields: string[] = [];
+    Object.keys(newData).forEach((key) => {
+      if (JSON.stringify((existing as any)[key]) !== JSON.stringify(newData[key])) {
+        changedFields.push(key);
+      }
     });
 
-    this.logger.info('Registro diário atualizado', {
+    // Criar snapshot do estado anterior
+    const previousSnapshot = {
+      type: existing.type,
+      date: existing.date,
+      time: existing.time,
+      data: existing.data,
+      recordedBy: existing.recordedBy,
+      notes: existing.notes,
+      updatedAt: existing.updatedAt,
+    };
+
+    // Usar transação para garantir consistência
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // 1. Salvar versão anterior no histórico
+      await prisma.dailyRecordHistory.create({
+        data: {
+          recordId: id,
+          tenantId,
+          versionNumber: nextVersionNumber,
+          previousData: previousSnapshot,
+          newData,
+          changedFields,
+          changeType: 'UPDATE',
+          changeReason: dto.editReason,
+          changedBy: userId,
+          changedByName: userName,
+        },
+      });
+
+      // 2. Atualizar registro
+      const updated = await prisma.dailyRecord.update({
+        where: { id },
+        data: {
+          type: dto.type as any,
+          date: dto.date ? new Date(dto.date) : undefined,
+          time: dto.time,
+          data: dto.data as any,
+          recordedBy: dto.recordedBy,
+          notes: dto.notes,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              fotoUrl: true,
+            },
+          },
+        },
+      });
+
+      return updated;
+    });
+
+    this.logger.info('Registro diário atualizado com versionamento', {
       recordId: id,
+      versionNumber: nextVersionNumber,
+      changedFields,
+      reason: dto.editReason,
       tenantId,
       userId,
     });
 
-    return updated;
+    return result;
   }
 
-  async remove(id: string, tenantId: string, userId: string) {
+  async remove(
+    id: string,
+    deleteDto: { deleteReason: string },
+    tenantId: string,
+    userId: string,
+    userName: string,
+  ) {
     // Verificar se registro existe e pertence ao tenant
     const existing = await this.prisma.dailyRecord.findFirst({
       where: {
@@ -285,21 +352,100 @@ export class DailyRecordsService {
       throw new NotFoundException('Registro não encontrado');
     }
 
-    // Soft delete
-    await this.prisma.dailyRecord.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
+    // Calcular próximo número de versão
+    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+      where: { recordId: id },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+    const nextVersionNumber = (lastVersion?.versionNumber || 0) + 1;
+
+    // Snapshot do estado final antes de deletar
+    const finalSnapshot = {
+      type: existing.type,
+      date: existing.date,
+      time: existing.time,
+      data: existing.data,
+      recordedBy: existing.recordedBy,
+      notes: existing.notes,
+      updatedAt: existing.updatedAt,
+    };
+
+    // Usar transação
+    await this.prisma.$transaction(async (prisma) => {
+      // 1. Salvar no histórico antes de deletar
+      await prisma.dailyRecordHistory.create({
+        data: {
+          recordId: id,
+          tenantId,
+          versionNumber: nextVersionNumber,
+          previousData: finalSnapshot,
+          newData: { deleted: true },
+          changedFields: ['deletedAt'],
+          changeType: 'DELETE',
+          changeReason: deleteDto.deleteReason,
+          changedBy: userId,
+          changedByName: userName,
+        },
+      });
+
+      // 2. Soft delete
+      await prisma.dailyRecord.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
     });
 
-    this.logger.info('Registro diário removido (soft delete)', {
+    this.logger.info('Registro diário removido (soft delete) com versionamento', {
       recordId: id,
+      versionNumber: nextVersionNumber,
+      reason: deleteDto.deleteReason,
       tenantId,
       userId,
     });
 
     return { message: 'Registro removido com sucesso' };
+  }
+
+  /**
+   * Busca o histórico de versões de um registro
+   */
+  async getHistory(id: string, tenantId: string) {
+    // Verificar se registro existe
+    const record = await this.prisma.dailyRecord.findFirst({
+      where: {
+        id,
+        tenantId,
+      },
+      select: {
+        id: true,
+        type: true,
+      },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Registro não encontrado');
+    }
+
+    // Buscar histórico ordenado por versão (mais recente primeiro)
+    const history = await this.prisma.dailyRecordHistory.findMany({
+      where: {
+        recordId: id,
+        tenantId,
+      },
+      orderBy: {
+        versionNumber: 'desc',
+      },
+    });
+
+    return {
+      recordId: id,
+      recordType: record.type,
+      totalVersions: history.length,
+      history,
+    };
   }
 
   /**
