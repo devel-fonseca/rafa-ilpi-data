@@ -346,16 +346,9 @@ export function getAcceptanceColor(percentage: number): { bg: string; text: stri
 
 /**
  * Exporta todos os tokens e helpers para uso no sistema
+ * Nota: Types não são incluídos pois são apenas para TypeScript
  */
 export default {
-  // Types
-  BedStatus,
-  RoomType,
-  RecordType,
-  Severity,
-  MedicationCategory,
-  ControlledClass,
-
   // Token Maps
   BED_STATUS_COLORS,
   ROOM_TYPE_COLORS,
