@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Loader2, History } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -11,11 +11,19 @@ import { api } from '@/services/api'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentRecordDates } from '@/hooks/useResidentRecordDates'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { DailyRecordHistoryModal } from '@/components/DailyRecordHistoryModal'
 
 export default function ResidentDailyRecordsCalendar() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [historyModalOpen, setHistoryModalOpen] = useState(false)
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+
+  const handleOpenHistory = (recordId: string) => {
+    setSelectedRecordId(recordId)
+    setHistoryModalOpen(true)
+  }
 
   // Buscar dados do residente
   const { data: resident, isLoading: isLoadingResident } = useQuery({
@@ -127,6 +135,15 @@ export default function ResidentDailyRecordsCalendar() {
                           </p>
                         )}
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenHistory(record.id)}
+                        className="h-8 w-8 p-0 shrink-0"
+                        title="Ver histórico de alterações"
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -143,6 +160,15 @@ export default function ResidentDailyRecordsCalendar() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Histórico */}
+      {selectedRecordId && (
+        <DailyRecordHistoryModal
+          recordId={selectedRecordId}
+          open={historyModalOpen}
+          onOpenChange={setHistoryModalOpen}
+        />
+      )}
     </div>
   )
 }

@@ -93,3 +93,11 @@ export async function getResidentInfo(residentId: string) {
   const response = await api.get(`/residents/${residentId}`)
   return response.data
 }
+
+/**
+ * Busca o histórico de versões de um registro diário
+ */
+export async function getDailyRecordHistory(recordId: string) {
+  const response = await api.get(`/daily-records/${recordId}/history`)
+  return response.data
+}
