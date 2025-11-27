@@ -235,6 +235,8 @@ model Tenant {
   floors                    Floor[]
   rooms                     Room[]
   beds                      Bed[]
+  profile                   TenantProfile?
+  documents                 TenantDocument[]
 
   @@map("tenants")
 }
@@ -958,4 +960,118 @@ model Bed {
   @@index([tenantId, status])
   @@index([deletedAt])
   @@map("beds")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERFIL INSTITUCIONAL
+//  Informações regulatórias, documentação e compliance da ILPI
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ENUM: Natureza Jurídica da Instituição
+enum LegalNature {
+  ASSOCIACAO      // Associação sem fins lucrativos
+  FUNDACAO        // Fundação privada
+  EMPRESA_PRIVADA // Empresa privada
+  MEI             // Microempreendedor Individual
+
+  @@map("LegalNature")
+}
+
+// PERFIL INSTITUCIONAL (1:1 com Tenant)
+model TenantProfile {
+  id                  String       @id @default(uuid()) @db.Uuid
+  tenantId            String       @unique @db.Uuid
+
+  // Logo e identidade visual
+  logoUrl             String?      // URL do logo no S3/MinIO
+  logoKey             String?      // Chave do arquivo no S3 para deleção
+
+  // Natureza jurídica e dados básicos
+  legalNature         LegalNature?
+  tradeName           String?      // Nome fantasia
+
+  // Dados regulatórios
+  cnesCode            String?      @db.VarChar(20)  // Código CNES (Cadastro Nacional de Estabelecimentos de Saúde)
+  capacityDeclared    Int?         // Capacidade declarada de residentes
+  capacityLicensed    Int?         // Capacidade licenciada pela vigilância sanitária
+
+  // Contatos institucionais
+  contactPhone        String?
+  contactEmail        String?
+  websiteUrl          String?
+
+  // Informações complementares
+  foundedAt           DateTime?    @db.Date         // Data de fundação
+  mission             String?      @db.Text         // Missão institucional
+  vision              String?      @db.Text         // Visão institucional
+  values              String?      @db.Text         // Valores institucionais
+
+  // Observações
+  notes               String?      @db.Text
+
+  // Auditoria
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?    @db.Timestamptz(3)
+
+  // Relações
+  tenant              Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId])
+  @@index([legalNature])
+  @@index([deletedAt])
+  @@map("tenant_profiles")
+}
+
+// ENUM: Status de compliance do documento
+enum DocumentStatus {
+  OK         // Documento OK (sem vencimento ou com vencimento > 30 dias)
+  PENDENTE   // Documento obrigatório não enviado
+  VENCENDO   // Vence em <= 30 dias
+  VENCIDO    // Vencimento ultrapassado
+
+  @@map("DocumentStatus")
+}
+
+// DOCUMENTOS INSTITUCIONAIS
+model TenantDocument {
+  id          String          @id @default(uuid()) @db.Uuid
+  tenantId    String          @db.Uuid
+
+  // Tipo de documento (baseado na natureza jurídica)
+  type        String          @db.VarChar(100) // ESTATUTO, CMI, CNPJ, ALVARA_USO, etc.
+
+  // Arquivo
+  fileUrl     String          // URL completa do arquivo no S3/MinIO
+  fileKey     String?         // Chave do arquivo no S3 para deleção
+  fileName    String          // Nome original do arquivo
+  fileSize    Int?            // Tamanho em bytes
+  mimeType    String?         @db.VarChar(100) // application/pdf, image/jpeg, etc.
+
+  // Metadados do documento
+  issuedAt    DateTime?       @db.Date         // Data de emissão
+  expiresAt   DateTime?       @db.Date         // Data de vencimento (se aplicável)
+  status      DocumentStatus  @default(PENDENTE) // Calculado automaticamente
+
+  // Observações
+  notes       String?         @db.Text
+
+  // Auditoria
+  uploadedBy  String          @db.Uuid         // ID do usuário que fez upload
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime?       @db.Timestamptz(3)
+
+  // Relações
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@index([tenantId, expiresAt])
+  @@index([expiresAt])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("tenant_documents")
 }

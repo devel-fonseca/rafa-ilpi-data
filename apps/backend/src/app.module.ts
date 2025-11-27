@@ -21,6 +21,7 @@ import { FloorsModule } from './floors/floors.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
+import { InstitutionalProfileModule } from './institutional-profile/institutional-profile.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { VitalSignsModule } from './vital-signs/vital-signs.module';
     RoomsModule,
     BedsModule,
     VitalSignsModule,
+    InstitutionalProfileModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
