@@ -18,9 +18,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { AuditEntity } from '../audit/decorators/audit-entity.decorator'
-import { AuditAction } from '../audit/decorators/audit-action.decorator'
-import { AuditInterceptor } from '../audit/interceptors/audit.interceptor'
 import { InstitutionalProfileService } from './institutional-profile.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto } from './dto'
 import { getRequiredDocuments, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
@@ -51,9 +48,6 @@ export class InstitutionalProfileController {
    */
   @Post()
   @Roles('admin')
-  @AuditEntity('TenantProfile')
-  @AuditAction('UPDATE')
-  @UseInterceptors(AuditInterceptor)
   async createOrUpdateProfile(
     @CurrentUser('tenantId') tenantId: string,
     @Body() dto: CreateTenantProfileDto | UpdateTenantProfileDto
@@ -67,12 +61,7 @@ export class InstitutionalProfileController {
    */
   @Post('logo')
   @Roles('admin')
-  @AuditEntity('TenantProfile')
-  @AuditAction('UPDATE')
-  @UseInterceptors(
-    AuditInterceptor,
-    FileInterceptor('file')
-  )
+  @UseInterceptors(FileInterceptor('file'))
   async uploadLogo(
     @CurrentUser('tenantId') tenantId: string,
     @UploadedFile(
@@ -126,12 +115,7 @@ export class InstitutionalProfileController {
    */
   @Post('documents')
   @Roles('admin')
-  @AuditEntity('TenantDocument')
-  @AuditAction('CREATE')
-  @UseInterceptors(
-    AuditInterceptor,
-    FileInterceptor('file')
-  )
+  @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('userId') userId: string,
@@ -153,9 +137,6 @@ export class InstitutionalProfileController {
    */
   @Patch('documents/:id')
   @Roles('admin')
-  @AuditEntity('TenantDocument')
-  @AuditAction('UPDATE')
-  @UseInterceptors(AuditInterceptor)
   async updateDocumentMetadata(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string,
@@ -170,12 +151,7 @@ export class InstitutionalProfileController {
    */
   @Post('documents/:id/file')
   @Roles('admin')
-  @AuditEntity('TenantDocument')
-  @AuditAction('UPDATE')
-  @UseInterceptors(
-    AuditInterceptor,
-    FileInterceptor('file')
-  )
+  @UseInterceptors(FileInterceptor('file'))
   async replaceDocumentFile(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string,
@@ -196,9 +172,6 @@ export class InstitutionalProfileController {
    */
   @Delete('documents/:id')
   @Roles('admin')
-  @AuditEntity('TenantDocument')
-  @AuditAction('DELETE')
-  @UseInterceptors(AuditInterceptor)
   async deleteDocument(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string

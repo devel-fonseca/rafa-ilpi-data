@@ -254,12 +254,15 @@ export function DocumentsTab() {
             {/* Filtro por tipo */}
             <div className="space-y-2">
               <Label htmlFor="type-filter">Tipo de documento</Label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select
+                value={typeFilter || undefined}
+                onValueChange={(value) => setTypeFilter(value === 'ALL' ? '' : value)}
+              >
                 <SelectTrigger id="type-filter">
                   <SelectValue placeholder="Todos os tipos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os tipos</SelectItem>
+                  <SelectItem value="ALL">Todos os tipos</SelectItem>
                   {requirements?.required.map((req) => (
                     <SelectItem key={req.type} value={req.type}>
                       {req.label}
@@ -273,14 +276,14 @@ export function DocumentsTab() {
             <div className="space-y-2">
               <Label htmlFor="status-filter">Status</Label>
               <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as DocumentStatus | '')}
+                value={statusFilter || undefined}
+                onValueChange={(value) => setStatusFilter(value === 'ALL' ? '' : (value as DocumentStatus))}
               >
                 <SelectTrigger id="status-filter">
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os status</SelectItem>
+                  <SelectItem value="ALL">Todos os status</SelectItem>
                   <SelectItem value="OK">OK</SelectItem>
                   <SelectItem value="VENCENDO">Vencendo</SelectItem>
                   <SelectItem value="VENCIDO">Vencido</SelectItem>

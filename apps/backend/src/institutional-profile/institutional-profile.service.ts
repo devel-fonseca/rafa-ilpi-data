@@ -77,15 +77,15 @@ export class InstitutionalProfileService {
 
     // Fazer upload do novo logo
     const uploadResult = await this.filesService.uploadFile(
+      tenantId,
       file,
-      'logos',
-      tenantId
+      'logos'
     )
 
     // Atualizar perfil com nova URL do logo
     return this.createOrUpdateProfile(tenantId, {
       logoUrl: uploadResult.fileUrl,
-      logoKey: uploadResult.fileKey,
+      logoFileId: uploadResult.fileId,
     })
   }
 
@@ -182,13 +182,13 @@ export class InstitutionalProfileService {
 
     // Upload do arquivo
     const uploadResult = await this.filesService.uploadFile(
+      tenantId,
       file,
-      'institutional-documents',
-      tenantId
+      'institutional-documents'
     )
 
     // Calcular status do documento
-    const status = this.calculateDocumentStatus(dto.expiresAt)
+    const status = this.calculateDocumentStatus(dto.expiresAt || null)
 
     // Criar registro do documento
     return this.prisma.tenantDocument.create({
@@ -197,7 +197,7 @@ export class InstitutionalProfileService {
         uploadedBy: userId,
         type: dto.type,
         fileUrl: uploadResult.fileUrl,
-        fileKey: uploadResult.fileKey,
+        fileId: uploadResult.fileId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -269,9 +269,9 @@ export class InstitutionalProfileService {
 
     // Upload novo arquivo
     const uploadResult = await this.filesService.uploadFile(
+      tenantId,
       file,
-      'institutional-documents',
-      tenantId
+      'institutional-documents'
     )
 
     // Atualizar documento
@@ -279,7 +279,7 @@ export class InstitutionalProfileService {
       where: { id: documentId },
       data: {
         fileUrl: uploadResult.fileUrl,
-        fileKey: uploadResult.fileKey,
+        fileId: uploadResult.fileId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
