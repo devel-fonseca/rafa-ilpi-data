@@ -25,9 +25,9 @@ export class VitalSignsController {
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   async getVitalSignsByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: User,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @CurrentUser() user?: User,
   ) {
     const start = startDate ? new Date(startDate) : undefined
     const end = endDate ? new Date(endDate) : undefined
@@ -85,7 +85,7 @@ export class VitalSignsController {
 
   @Get('resident/:residentId/statistics')
   @ApiOperation({ summary: 'Buscar estatísticas de sinais vitais' })
-  @ApiQuery({ name: 'days', required: false, type: Number, default: 30 })
+  @ApiQuery({ name: 'days', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Estatísticas calculadas' })
   async getVitalSignsStatistics(
     @Param('residentId', ParseUUIDPipe) residentId: string,
