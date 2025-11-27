@@ -371,10 +371,24 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
       <ResidentDocumentSection>
         <ResidentDocumentSectionTitle>Acomodação</ResidentDocumentSectionTitle>
 
-        <p>
-          {resident.room ? `Quarto: ${resident.room.name} (${resident.room.code})` : ''}
-          {resident.bed ? ` | Leito: ${resident.bed.code}` : ''}
-        </p>
+        {resident.bed ? (
+          <div>
+            {resident.building && (
+              <p><strong>Prédio:</strong> {resident.building.name} ({resident.building.code})</p>
+            )}
+            {resident.floor && (
+              <p><strong>Andar:</strong> {resident.floor.name} ({resident.floor.code})</p>
+            )}
+            {resident.room && (
+              <p><strong>Quarto:</strong> {resident.room.name} ({resident.room.code})</p>
+            )}
+            {resident.bed && (
+              <p><strong>Leito:</strong> {resident.bed.code}</p>
+            )}
+          </div>
+        ) : (
+          <p>Sem acomodação definida</p>
+        )}
       </ResidentDocumentSection>
 
       {/* ============================================================

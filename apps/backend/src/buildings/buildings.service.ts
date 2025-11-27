@@ -1,14 +1,27 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { CreateBuildingDto, UpdateBuildingDto } from './dto'
+import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
 
 @Injectable()
 export class BuildingsService {
   constructor(private prisma: PrismaService) {}
 
   async create(tenantId: string, createBuildingDto: CreateBuildingDto) {
-    // Gerar código automaticamente se não fornecido
-    const code = createBuildingDto.code || `PRED-${Date.now().toString().slice(-6)}`
+    // Se não foi fornecido código, gera automaticamente
+    let code = createBuildingDto.code
+
+    if (!code) {
+      // Busca códigos existentes para evitar duplicados
+      const existingBuildings = await this.prisma.building.findMany({
+        where: { tenantId },
+        select: { code: true }
+      })
+      const existingCodes = existingBuildings.map(b => b.code)
+
+      // Gera código baseado no nome
+      code = generateBuildingCode(createBuildingDto.name, existingCodes)
+    }
 
     return this.prisma.building.create({
       data: {
@@ -194,11 +207,19 @@ export class BuildingsService {
         )
       }
 
-      // Criar prédio
+      // Buscar códigos de prédios existentes
+      const existingBuildings = await this.prisma.building.findMany({
+        where: { tenantId },
+        select: { code: true }
+      })
+      const existingBuildingCodes = existingBuildings.map(b => b.code)
+
+      // Criar prédio com código gerado automaticamente
+      const buildingCode = generateBuildingCode(data.buildingName, existingBuildingCodes)
       const building = await this.prisma.building.create({
         data: {
           name: data.buildingName,
-          code: `PRED-${Date.now().toString().slice(-6)}`,
+          code: buildingCode,
           tenantId,
         },
       })
@@ -214,29 +235,41 @@ export class BuildingsService {
           throw new BadRequestException('floorNumber é obrigatório para cada andar')
         }
 
+        const floorName = floorConfig.floorNumber === 0
+          ? 'Térreo'
+          : `${floorConfig.floorNumber}º Andar`
+
+        const floorCode = generateFloorCode(floorName, floorConfig.floorNumber)
+
         const floor = await this.prisma.floor.create({
           data: {
             buildingId: building.id,
             tenantId,
-            name: `Andar ${floorConfig.floorNumber}`,
-            code: `PISO-${building.id.substring(0, 8)}-${floorConfig.floorNumber.toString().padStart(2, '0')}`,
+            name: floorName,
+            code: floorCode,
             orderIndex: floorConfig.floorNumber,
           },
         })
 
         floorsCreated.push(floor)
 
-        // Contador para gerar IDs sequenciais de quartos por andar
-        let roomIndexPerFloor = 0
+        // Coletar códigos de quartos existentes no andar
+        const existingRoomCodes: string[] = []
 
         for (const roomConfig of floorConfig.rooms || []) {
-          roomIndexPerFloor++
+          // Gerar código inteligente para o quarto
+          const roomCode = generateRoomCode(
+            roomConfig.roomName,
+            existingRoomCodes
+          )
+          existingRoomCodes.push(roomCode) // Adicionar para evitar duplicação no mesmo lote
+
           const room = await this.prisma.room.create({
             data: {
               floorId: floor.id,
               tenantId,
               name: roomConfig.roomName,
-              code: `${building.id.substring(0, 8)}-${floorConfig.floorNumber.toString().padStart(2, '0')}-${roomIndexPerFloor.toString().padStart(3, '0')}`,
+              code: roomCode,
               roomNumber: roomConfig.roomName,
               capacity: roomConfig.bedCount,
               roomType: roomConfig.bedCount === 1 ? 'Individual' : roomConfig.bedCount === 2 ? 'Duplo' : 'Coletivo',
@@ -247,12 +280,27 @@ export class BuildingsService {
 
           roomsCreated.push(room)
 
+          // Coletar códigos de leitos existentes no quarto
+          const existingBedCodes: string[] = []
+          let bedIndex = 0
+
           for (const bedConfig of roomConfig.beds || []) {
+            bedIndex++
+            // Gerar código inteligente para o leito (A, B, C... ou 01, 02, 03...)
+            const bedCode = generateBedCode(
+              `Leito ${bedIndex}`,
+              existingBedCodes,
+              bedIndex,
+              true // usar letras (A, B, C...)
+            )
+            existingBedCodes.push(bedCode)
+
             const bed = await this.prisma.bed.create({
               data: {
                 roomId: room.id,
                 tenantId,
-                code: bedConfig.code,
+                code: bedCode,
+                bedNumber: bedCode,
                 status: 'Disponível',
               },
             })

@@ -33,6 +33,9 @@ import ActiveMedicationsPage from '@/pages/medications/ActiveMedicationsPage'
 // Beds Pages
 import { BedsStructurePage, BedsMapPage } from '@/pages/beds'
 
+// Institutional Profile Pages
+import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalProfile'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
 const UsersPage = () => <div>Usuários</div>
@@ -129,6 +132,10 @@ export const router = createBrowserRouter([
       {
         path: 'beds/map',
         element: <BedsMapPage />,
+      },
+      {
+        path: 'perfil-institucional',
+        element: <InstitutionalProfile />,
       },
       {
         path: 'settings',

@@ -28,15 +28,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCreateBed, useUpdateBed } from '@/hooks/useBeds'
+import { useCreateBed, useUpdateBed, useBeds } from '@/hooks/useBeds'
 import { useRooms } from '@/hooks/useRooms'
 import { useToast } from '@/components/ui/use-toast'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { generateBedCode } from '@/utils/codeGenerator'
+import { Badge } from '@/components/ui/badge'
 
 const bedSchema = z.object({
   roomId: z.string().min(1, 'Quarto é obrigatório'),
-  code: z.string().min(1, 'Código é obrigatório'),
-  bedNumber: z.string().min(1, 'Número do leito é obrigatório'),
+  bedNumber: z.string().min(1, 'Identificação do leito é obrigatória'),
   status: z.enum(['DISPONIVEL', 'OCUPADO', 'MANUTENCAO', 'RESERVADO']).optional(),
   observations: z.string().optional(),
 })
@@ -56,46 +57,73 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
   const createMutation = useCreateBed()
   const updateMutation = useUpdateBed()
   const { data: rooms, isLoading: isLoadingRooms } = useRooms()
+  const { data: allBeds } = useBeds()
+  const [generatedCode, setGeneratedCode] = useState<string>('')
 
   const form = useForm<BedFormData>({
     resolver: zodResolver(bedSchema),
     defaultValues: {
       roomId: defaultRoomId || '',
-      code: '',
       bedNumber: '',
       status: 'DISPONIVEL',
       observations: '',
     },
   })
 
+  // Gera código automaticamente quando o número do leito muda
+  useEffect(() => {
+    const bedNumber = form.watch('bedNumber')
+    const roomId = form.watch('roomId')
+
+    if (bedNumber && roomId && !bed) {
+      // Só gera novo código se estiver criando (não editando)
+      // Filtra os códigos dos leitos do mesmo quarto
+      const existingCodes = allBeds
+        ?.filter(b => b.roomId === roomId)
+        ?.map(b => b.code) || []
+
+      // Determina se deve usar letras (A, B, C) ou números
+      const useLetters = !bedNumber.match(/^\d+$/) // Usa letras se não for apenas número
+      const bedNumberInt = bedNumber.match(/^\d+$/) ? parseInt(bedNumber) : undefined
+
+      const newCode = generateBedCode(bedNumber, existingCodes, bedNumberInt, useLetters)
+      setGeneratedCode(newCode)
+    }
+  }, [form.watch('bedNumber'), form.watch('roomId'), allBeds, bed])
+
   // Popula form quando editar
   useEffect(() => {
     if (bed) {
       form.reset({
         roomId: bed.roomId,
-        code: bed.code,
         bedNumber: bed.bedNumber,
         status: bed.status,
         observations: bed.observations || '',
       })
+      setGeneratedCode(bed.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         roomId: defaultRoomId || '',
-        code: '',
         bedNumber: '',
         status: 'DISPONIVEL',
         observations: '',
       })
+      setGeneratedCode('')
     }
   }, [bed, defaultRoomId, form])
 
   const onSubmit = async (data: BedFormData) => {
     try {
+      const submitData = {
+        ...data,
+        code: generatedCode, // Adiciona o código gerado
+      }
+
       if (bed) {
         await updateMutation.mutateAsync({
           id: bed.id,
           data: {
-            code: data.code,
+            code: generatedCode,
             bedNumber: data.bedNumber,
             status: data.status,
             observations: data.observations,
@@ -106,7 +134,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
           description: 'O leito foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(data as CreateBedDto)
+        await createMutation.mutateAsync(submitData as CreateBedDto)
         toast({
           title: 'Leito criado',
           description: 'O leito foi criado com sucesso.',
@@ -175,24 +203,10 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
 
             <FormField
               control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Código *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: L-101-A" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="bedNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Número do Leito *</FormLabel>
+                  <FormLabel>Identificação do Leito *</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex: A, B, 1, 2" {...field} />
                   </FormControl>
@@ -200,6 +214,14 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
                 </FormItem>
               )}
             />
+
+            {/* Código gerado automaticamente */}
+            {generatedCode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Código:</span>
+                <Badge variant="outline">{generatedCode}</Badge>
+              </div>
+            )}
 
             <FormField
               control={form.control}

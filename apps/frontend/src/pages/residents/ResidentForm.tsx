@@ -35,6 +35,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { uploadFile, getSignedFileUrl } from '@/services/upload'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
+import { BedSelector } from '@/components/beds/BedSelector'
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -181,8 +182,7 @@ const residentSchema = z.object({
   // Pertences
   pertencesLista: z.string().optional(),
 
-  // Acomodação
-  quartoNumero: z.string().optional(),
+  // Acomodação - Apenas o leito (o quarto é obtido através do leito)
   leitoNumero: z.string().optional()
 })
 
@@ -211,8 +211,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
 
-  // Estados para Acomodação (Beds)
-  const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>(undefined)
+  // Estado removido - BedSelector gerencia internamente a hierarquia
 
   // Ref para armazenar dados do residente carregado (para sincronizar Select depois)
   const residentDataRef = useRef<any>(null)
@@ -229,7 +228,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     mode: 'onChange',
     defaultValues: {
       status: 'Ativo', // Valor padrão para novos residentes
-      quartoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
       leitoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
       contatosEmergencia: [{ nome: '', telefone: '', parentesco: '' }],
       convenios: [{ nome: '', numero: '' }],
@@ -264,8 +262,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   })
 
   // Hooks de Beds (Acomodação)
-  const { data: rooms, isLoading: isLoadingRooms } = useRooms()
-  const { data: beds, isLoading: isLoadingBeds } = useBeds(selectedRoomId)
+  // Removidos - BedSelector busca os dados internamente
+  // const { data: rooms, isLoading: isLoadingRooms } = useRooms()
+  // const { data: beds, isLoading: isLoadingBeds } = useBeds()
 
   // Refs para inputs de badges
   const medicamentosInputRef = useRef<HTMLInputElement>(null)
@@ -275,8 +274,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const watchEndProcedenciaDiferente = watch('endProcedenciaDiferente')
   const watchCpf = watch('cpf')
   const watchCns = watch('cns')
-  const watchQuartoNumero = watch('quartoNumero')
-  const watchLeitoNumero = watch('leitoNumero')
+  // Removido - usando BedSelector agora
 
   // Validação de CPF em tempo real
   React.useEffect(() => {
@@ -292,31 +290,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     }
   }, [watchCns])
 
-  // Sincronizar selectedRoomId com o valor do form
-  React.useEffect(() => {
-    if (watchQuartoNumero) {
-      setSelectedRoomId(watchQuartoNumero)
-    } else {
-      setSelectedRoomId(undefined)
-    }
-  }, [watchQuartoNumero])
-
-  // ========== SINCRONIZAR DADOS DO SELECT (após carregamento completo) ==========
-  // Esse useEffect é executado DEPOIS que o componente está pronto
-  // Isso evita o aviso de controlled/uncontrolled
-  React.useEffect(() => {
-    if (isEditMode && !isLoading && residentDataRef.current && rooms) {
-      const { roomId, bedId } = residentDataRef.current
-      if (roomId && !watchQuartoNumero) {
-        console.log('Sincronizando quartoNumero:', roomId)
-        setValue('quartoNumero', roomId)
-      }
-      if (bedId && !watchLeitoNumero) {
-        console.log('Sincronizando leitoNumero:', bedId)
-        setValue('leitoNumero', bedId)
-      }
-    }
-  }, [isEditMode, isLoading, rooms, setValue])
+  // Removido código antigo de sincronização - agora usando BedSelector
 
 
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
@@ -792,14 +766,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           ? data.pertencesLista.split('\n').filter(p => p.trim())
           : [],
 
-        // 9. Acomodação - NOMES EM INGLÊS
-        // Só envia roomId/bedId se for um UUID válido (para evitar erros de validação)
-        roomId: data.quartoNumero && data.quartoNumero.trim() &&
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.quartoNumero.trim())
-          ? data.quartoNumero.trim() : undefined,
+        // 9. Acomodação - Apenas o bedId é necessário
+        // O backend pode obter o roomId através do bedId
         bedId: data.leitoNumero && data.leitoNumero.trim() &&
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.leitoNumero.trim())
           ? data.leitoNumero.trim() : undefined,
+        // roomId não é mais necessário pois pode ser obtido pelo bedId
 
       }
 
@@ -2107,83 +2079,26 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     className="mb-6"
                   />
 
-                  {/* Seção: Acomodação (Quarto e Leito) */}
+                  {/* Seção: Acomodação (Seleção hierárquica de leito) */}
                   <h3 className="text-lg font-semibold mb-4">Acomodação</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Quarto</Label>
-                      <Controller
-                        name="quartoNumero"
-                        control={control}
-                        render={({ field }) => {
-                          const selectValue = field.value ? String(field.value) : ''
-                          return (
-                            <Select
-                              value={selectValue}
-                              onValueChange={(value) => {
-                                field.onChange(value)
-                                setSelectedRoomId(value)
-                                setValue('leitoNumero', '')
-                              }}
-                            >
-                              <SelectTrigger className="mt-2">
-                                <SelectValue placeholder="Selecione um quarto" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {isLoadingRooms ? (
-                                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                                ) : rooms && rooms.length > 0 ? (
-                                  rooms.map((room) => (
-                                    <SelectItem key={room.id} value={room.id}>
-                                      {room.name} - {room.floor?.name || 'Sem andar'}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="empty" disabled>Nenhum quarto disponível</SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          )
+                  <Controller
+                    name="leitoNumero"
+                    control={control}
+                    render={({ field }) => (
+                      <BedSelector
+                        value={field.value}
+                        onChange={(bedId) => {
+                          field.onChange(bedId)
+                          // O BedSelector já gerencia toda a hierarquia internamente
+                          // Não precisamos mais do quartoNumero separado, pois o backend
+                          // pode obter o quarto através do bedId
                         }}
+                        disabled={readOnly}
+                        showOnlyAvailable={!isEditMode} // Em criação, mostra apenas disponíveis
+                        currentResidentBedId={isEditMode ? field.value : undefined} // Em edição, permite manter o leito atual
                       />
-                    </div>
-                    <div>
-                      <Label>Leito</Label>
-                      <Controller
-                        name="leitoNumero"
-                        control={control}
-                        render={({ field }) => {
-                          const selectValue = field.value ? String(field.value) : ''
-                          return (
-                            <Select
-                              value={selectValue}
-                              onValueChange={field.onChange}
-                              disabled={!selectedRoomId}
-                            >
-                              <SelectTrigger className="mt-2">
-                                <SelectValue placeholder={selectedRoomId ? "Selecione um leito" : "Primeiro selecione um quarto"} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {isLoadingBeds ? (
-                                  <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                                ) : beds && beds.length > 0 ? (
-                                  beds
-                                    .filter(bed => (bed.status === 'Disponível' || bed.status === 'DISPONIVEL') || bed.id === field.value)
-                                    .map((bed) => (
-                                      <SelectItem key={bed.id} value={bed.id}>
-                                        {bed.code} - {(bed.status === 'Disponível' || bed.status === 'DISPONIVEL') ? 'Disponível' : bed.status}
-                                      </SelectItem>
-                                    ))
-                                ) : (
-                                  <SelectItem value="empty" disabled>Nenhum leito disponível</SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          )
-                        }}
-                      />
-                    </div>
-                  </div>
+                    )}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

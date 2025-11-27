@@ -580,16 +580,35 @@ export default function ResidentProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Quarto</div>
-                    <div className="font-semibold text-lg text-gray-900">
-                      {resident.room ? `${resident.room.name} (${resident.room.code})` : '-'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Leito</div>
-                    <div className="font-semibold text-lg text-gray-900">
-                      {resident.bed ? resident.bed.code : '-'}
-                    </div>
+                    <div className="text-sm text-muted-foreground">Acomodação Completa</div>
+                    {resident.bed ? (
+                      <div className="space-y-2">
+                        {resident.building && (
+                          <div className="font-semibold text-gray-900">
+                            Prédio: {resident.building.name} ({resident.building.code})
+                          </div>
+                        )}
+                        {resident.floor && (
+                          <div className="font-semibold text-gray-900">
+                            Andar: {resident.floor.name} ({resident.floor.code})
+                          </div>
+                        )}
+                        {resident.room && (
+                          <div className="font-semibold text-gray-900">
+                            Quarto: {resident.room.name} ({resident.room.code})
+                          </div>
+                        )}
+                        {resident.bed && (
+                          <div className="font-semibold text-lg text-primary">
+                            Leito: {resident.bed.code}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="font-semibold text-lg text-gray-900">
+                        Sem acomodação definida
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

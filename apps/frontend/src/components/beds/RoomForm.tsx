@@ -30,15 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCreateRoom, useUpdateRoom } from '@/hooks/useRooms'
+import { useCreateRoom, useUpdateRoom, useRooms } from '@/hooks/useRooms'
 import { useFloors } from '@/hooks/useFloors'
 import { useToast } from '@/components/ui/use-toast'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { generateRoomCode } from '@/utils/codeGenerator'
+import { Badge } from '@/components/ui/badge'
 
 const roomSchema = z.object({
   floorId: z.string().min(1, 'Andar é obrigatório'),
   name: z.string().min(1, 'Nome é obrigatório'),
-  code: z.string().min(1, 'Código é obrigatório'),
   roomNumber: z.string().min(1, 'Número do quarto é obrigatório'),
   roomType: z.enum(['INDIVIDUAL', 'DUPLO', 'TRIPLO', 'COLETIVO']),
   capacity: z.coerce.number().min(1, 'Capacidade deve ser no mínimo 1'),
@@ -68,13 +69,14 @@ export function RoomForm({
   const createMutation = useCreateRoom()
   const updateMutation = useUpdateRoom()
   const { data: floors, isLoading: isLoadingFloors } = useFloors()
+  const { data: allRooms } = useRooms()
+  const [generatedCode, setGeneratedCode] = useState<string>('')
 
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
     defaultValues: {
       floorId: defaultFloorId || '',
       name: '',
-      code: '',
       roomNumber: '',
       roomType: 'INDIVIDUAL',
       capacity: 1,
@@ -84,13 +86,31 @@ export function RoomForm({
     },
   })
 
+  // Gera código automaticamente quando o nome ou número mudam
+  useEffect(() => {
+    const name = form.watch('name')
+    const roomNumber = form.watch('roomNumber')
+
+    if ((name || roomNumber) && !room) {
+      // Só gera novo código se estiver criando (não editando)
+      const floorId = form.watch('floorId')
+      // Filtra os códigos dos quartos do mesmo andar
+      const existingCodes = allRooms
+        ?.filter(r => r.floorId === floorId)
+        ?.map(r => r.code) || []
+
+      const roomNumberInt = roomNumber ? parseInt(roomNumber) : undefined
+      const newCode = generateRoomCode(name || roomNumber, existingCodes, roomNumberInt)
+      setGeneratedCode(newCode)
+    }
+  }, [form.watch('name'), form.watch('roomNumber'), form.watch('floorId'), allRooms, room])
+
   // Popula form quando editar
   useEffect(() => {
     if (room) {
       form.reset({
         floorId: room.floorId,
         name: room.name,
-        code: room.code,
         roomNumber: room.roomNumber,
         roomType: room.roomType,
         capacity: room.capacity,
@@ -98,11 +118,11 @@ export function RoomForm({
         accessible: room.accessible || false,
         observations: room.observations || '',
       })
+      setGeneratedCode(room.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         floorId: defaultFloorId || '',
         name: '',
-        code: '',
         roomNumber: '',
         roomType: 'INDIVIDUAL',
         capacity: 1,
@@ -110,17 +130,23 @@ export function RoomForm({
         accessible: false,
         observations: '',
       })
+      setGeneratedCode('')
     }
   }, [room, defaultFloorId, form])
 
   const onSubmit = async (data: RoomFormData) => {
     try {
+      const submitData = {
+        ...data,
+        code: generatedCode, // Adiciona o código gerado
+      }
+
       if (room) {
         await updateMutation.mutateAsync({
           id: room.id,
           data: {
             name: data.name,
-            code: data.code,
+            code: generatedCode,
             roomNumber: data.roomNumber,
             roomType: data.roomType,
             capacity: data.capacity,
@@ -134,7 +160,7 @@ export function RoomForm({
           description: 'O quarto foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(data as CreateRoomDto)
+        await createMutation.mutateAsync(submitData as CreateRoomDto)
         toast({
           title: 'Quarto criado',
           description: 'O quarto foi criado com sucesso.',
@@ -218,22 +244,6 @@ export function RoomForm({
 
               <FormField
                 control={form.control}
-                name="code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Código *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Q-101" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
                 name="roomNumber"
                 render={({ field }) => (
                   <FormItem>
@@ -245,6 +255,17 @@ export function RoomForm({
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Código gerado automaticamente */}
+            {generatedCode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Código:</span>
+                <Badge variant="outline">{generatedCode}</Badge>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
 
               <FormField
                 control={form.control}

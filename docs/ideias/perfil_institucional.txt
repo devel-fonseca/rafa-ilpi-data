@@ -1,0 +1,437 @@
+O objetivo deste módulo é permitir que cada ILPI (tenant) registre e mantenha informações institucionais, natureza jurídica, logo oficial e documentos institucionais exigidos por normas municipais, estaduais e federais, com controle automático de pendências e vencimentos.
+
+O sistema precisa gerar um Dashboard de Conformidade, ajudando a ILPI a se manter regularizada perante fiscalização (Vigilância Sanitária, Bombeiros, CMI, Prefeitura etc.).
+
+O módulo deve integrar-se ao fluxo já existente de criação de tenants, sem alterar o schema principal.
+
+Atualmente, o sistema registra apenas dados básicos da ILPI.
+Isso impede:
+
+  - controle documental regulatório
+  - acompanhamento de validade de AVCB, licenças
+  - armazenamento organizado de documentos oficiais
+  - exibição institucional (logo)
+  - classificação por tipo jurídico
+  - preparação da ILPI para auditorias e fiscalizações
+
+### Objetivos:
+
+#### Objetivos Funcionais
+
+  - Permitir cadastrar dados institucionais detalhados da ILPI.
+  - Armazenar e exibir o logo da instituição.
+  - Registrar natureza jurídica e, a partir dela, gerar lista de documentos obrigatórios.
+  - Fazer upload de documentos regulatórios no S3.
+  - Controlar validade e status de cada documento.
+  - Exibir um Dashboard de Conformidade com indicadores.
+  - Emitir alertas de pendências, vencimentos e documentos não enviados.
+
+#### Objetivos Não Funcionais
+
+  - Arquivos devem ser mantidos em S3.
+  - Upload deve aceitar PDF/JPG/PNG.
+  - O módulo deve ser rápido, intuitivo e seguro.
+  - Multi-tenant seguro: cada ILPI acessa somente seus próprios dados.
+
+### Escopo
+
+#### Incluído
+
+  - Nova tabela tenant_profiles
+  - Nova tabela tenant_documents
+  - Tela “Perfil Institucional da ILPI”
+  - Tela “Documentos Institucionais”
+  - Tela “Upload/Atualização de Documento”
+  - Dashboard de Conformidade
+  - Regras automáticas conforme tipo jurídico
+  - Validação de vencimentos e pendências
+
+#### Excluído
+
+  - Alterações na tabela de tenants
+  - Alterações no módulo de estrutura física (já existente)
+  - Relatórios avançados ou exportações em PDF
+  - Integração com órgãos públicos
+  - Controle de acesso granular por permissões (versão futura)
+
+### Requisitos Funcionais
+
+#### Tenant Profiles
+
+  - O sistema deve criar um registro na tabela tenant_profiles após criação do tenant.
+  - Campos obrigatórios: legalNature.
+  - Campos opcionais: tradeName, legalName, ownerName, legalRepresentative, institutionalEmail, institutionalPhone, website, socialLinks, cnesCode, capacityDeclared, capacityLicensed, financialResponsible, institutionalPolicy, notes.
+  - Deve permitir upload de logo (logoUrl, logoKey).
+  - Deve exibir prévia do logo.
+  - Deve permitir remover ou substituir o logo.
+
+#### Tenant Documents
+
+  - O usuário deve conseguir enviar documentos via upload para S3.
+  - Cada documento deve possuir: type, fileUrl, uploadedAt, issuedAt, expiresAt (opcional).
+  - Deve ser possível substituir o documento.
+  - Deve ser possível enviar vários documentos do mesmo tipo (ex.: RG/CPF de vários diretores).
+  - A lista de documentos obrigatórios deve depender do legalNature do tenant.
+  - Documentos devem ser classificados automaticamente:
+
+        OK (enviado e válido)
+
+        Pendente (não enviado)
+
+        Vencendo (expira em ≤ 30 dias)
+
+        Vencido (expira < hoje)
+
+#### Dashboard de Conformidade
+
+    O dashboard deve exibir o status geral da ILPI.
+
+    Deve mostrar:
+
+        documentos vencidos
+
+        documentos vencendo
+
+        documentos pendentes
+
+        documentos OK
+
+    Deve permitir acessar rapidamente a tela de documentos.
+
+    Ícones e cores devem indicar gravidade:
+
+        vermelho = vencido
+
+        amarelo = vencendo
+
+        cinza = pendente
+
+        verde = ok
+
+    Deve exibir porcentagem de conformidade (% OK / total obrigatório).
+
+
+#### Regras de Negócio
+
+##### Natureza Jurídica determina a lista de documentos
+
+    Associação → Estatuto, CMI, Ata, RG/CPF Diretoria
+
+    Fundação → Escritura + CMI + Representantes
+
+    Empresa Privada → Contrato Social + CMI + Administradores
+
+    MEI → CCMEI + CMI + Documentos do empreendedor
+
+##### Documentos regulatórios são comuns a todas
+
+    Licença Sanitária
+
+    Alvará de Uso
+
+    AVCB
+
+    RT + documentos pessoais
+
+##### Documentos podem ter validade
+
+    Se expiresAt != null: aplicar regras de vencimento
+
+##### Logo não é documento regulatório
+
+    Não entra em tenant_documents
+
+    Deve ficar no tenant_profiles
+
+
+
+### Modelos de Dados
+
+#### tenant_profiles
+
+model TenantProfile {
+  id                       String   @id @default(uuid())
+  tenantId                 String   @unique
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id])
+
+  legalNature              String?
+  tradeName                String?
+  legalName                String?
+  ownerName                String?
+  legalRepresentative      String?
+  institutionalEmail       String?
+  institutionalPhone       String?
+  website                  String?
+  socialLinks              Json?
+
+  logoUrl                  String?
+  logoKey                  String?
+
+  cnesCode                 String?
+  lastInspectionDate       DateTime?
+  complianceStatus         String?
+
+  capacityDeclared         Int?
+  capacityLicensed         Int?
+
+  financialResponsible     String?
+  institutionalPolicy      String?
+  notes                    String?
+
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+#### tenant_documents
+
+model TenantDocument {
+  id             String   @id @default(uuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+
+  type           String
+  title          String?
+  description    String?
+
+  fileUrl        String
+  fileKey        String?
+  uploadedAt     DateTime @default(now())
+
+  issuedAt       DateTime?
+  expiresAt      DateTime?
+
+  updatedAt      DateTime @updatedAt
+}
+
+### Documentos por Tipo Jurídico
+
+{
+  "ASSOCIACAO": {
+    "requiredDocuments": [
+      {
+        "type": "ESTATUTO",
+        "label": "Estatuto Social",
+        "description": "Documento constitutivo registrado em cartório.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "CMI",
+        "label": "Inscrição no Conselho Municipal do Idoso",
+        "description": "Comprovante de inscrição da entidade no CMI.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "ATA_DIRETORIA",
+        "label": "Ata de Eleição da Diretoria",
+        "description": "Ata da atual diretoria, registrada quando aplicável.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "DOC_REPRESENTANTE",
+        "label": "Documentos da Diretoria (RG/CPF)",
+        "description": "RG e CPF dos membros da diretoria inscritos no estatuto.",
+        "hasValidity": false,
+        "allowMultiple": true
+      }
+    ],
+    "commonDocuments": []
+  },
+
+  "FUNDACAO": {
+    "requiredDocuments": [
+      {
+        "type": "ESCRITURA",
+        "label": "Escritura de Fundação",
+        "description": "Escritura constitutiva registrada em cartório.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "CMI",
+        "label": "Inscrição no Conselho Municipal do Idoso",
+        "description": "Comprovante de inscrição no CMI.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "DOC_REPRESENTANTE",
+        "label": "Documentos dos Representantes Legais (RG/CPF)",
+        "description": "Documentos dos responsáveis indicados na escritura.",
+        "hasValidity": false,
+        "allowMultiple": true
+      }
+    ],
+    "commonDocuments": []
+  },
+
+  "EMPRESA_PRIVADA": {
+    "requiredDocuments": [
+      {
+        "type": "CONTRATO_SOCIAL",
+        "label": "Contrato Social",
+        "description": "Contrato social ou estatuto empresarial atualizado.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "CMI",
+        "label": "Inscrição no Conselho Municipal do Idoso",
+        "description": "Comprovante de inscrição no CMI.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "DOC_ADMINISTRADORES",
+        "label": "Documentos dos Administradores (RG/CPF)",
+        "description": "Documentos dos administradores listados no contrato social.",
+        "hasValidity": false,
+        "allowMultiple": true
+      }
+    ],
+    "commonDocuments": []
+  },
+
+  "MEI": {
+    "requiredDocuments": [
+      {
+        "type": "MEI_REGISTRO",
+        "label": "CCMEI — Certificado de Condição de MEI",
+        "description": "Documento oficial de registro do MEI.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "CMI",
+        "label": "Inscrição no Conselho Municipal do Idoso",
+        "description": "Comprovante de inscrição no CMI.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "DOC_MEI",
+        "label": "Documentos do Microempreendedor (RG/CPF)",
+        "description": "Documentos pessoais do responsável legal pelo MEI.",
+        "hasValidity": false,
+        "allowMultiple": true
+      }
+    ],
+    "commonDocuments": []
+  },
+
+  "COMMON_REGULATORY": {
+    "documents": [
+      {
+        "type": "CNPJ",
+        "label": "Comprovante de Inscrição no CNPJ",
+        "description": "Cartão de CNPJ emitido pela Receita Federal.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "RT_INDICACAO",
+        "label": "Indicação do Responsável Técnico",
+        "description": "Documento que comprova a nomeação do RT.",
+        "hasValidity": false,
+        "allowMultiple": false
+      },
+      {
+        "type": "RT_DOCUMENTOS",
+        "label": "Documentos do Responsável Técnico (RG/CPF/Registro Profissional)",
+        "description": "Documentos pessoais e comprovação de registro do RT.",
+        "hasValidity": false,
+        "allowMultiple": true
+      },
+      {
+        "type": "ALVARA_USO",
+        "label": "Alvará de Uso",
+        "description": "Alvará expedido pela Prefeitura/Planejamento Urbano.",
+        "hasValidity": true,
+        "allowMultiple": false
+      },
+      {
+        "type": "LIC_SANITARIA",
+        "label": "Licença Sanitária (DEVISA)",
+        "description": "Licenciamento emitido pela Vigilância Sanitária.",
+        "hasValidity": true,
+        "allowMultiple": false
+      },
+      {
+        "type": "AVCB",
+        "label": "Auto de Vistoria do Corpo de Bombeiros (AVCB)",
+        "description": "Certificação de segurança contra incêndio.",
+        "hasValidity": true,
+        "allowMultiple": false
+      }
+    ]
+  }
+}
+
+#### Como usar este JSON no sistema
+
+1. No back-end:
+
+    Carregar documentos específicos conforme legalNature.
+
+    Acrescentar sempre COMMON_REGULATORY.documents.
+
+    Validar pendências:
+    requiredDocuments + COMMON_REGULATORY.documents.
+
+2. No front-end:
+
+    Gerar lista dinâmica de documentos obrigatórios.
+
+    Renderizar botões de upload e status automático.
+
+    Exibir avisos para documentos vencidos ou pendentes.
+
+3. Na API:
+
+    Usar o campo type como chave segura para salvar em tenant_documents.
+
+
+### Critérios de Aceite
+
+  Usuário consegue preencher perfil institucional completo e salvar.
+
+  Logo pode ser enviado, visualizado e substituído.
+
+  Documentos carregam corretamente no S3 e aparecem na lista.
+
+  Documentos com validade expirada aparecem como Vencidos.
+
+  Dashboard exibe indicadores corretos:
+
+    quantidade de documentos pendentes
+
+    vencidos
+
+    vencendo
+
+    % de conformidade
+
+  Lista obrigatória muda automaticamente conforme o tipo jurídico.
+
+  Nenhuma ILPI pode visualizar documentos de outra.
+
+
+### Riscos e Observações
+
+    Uploads grandes devem ter limite (ex.: 10MB).
+
+    PDF é o padrão preferencial.
+
+    Documentos da diretoria e representantes podem gerar múltiplos uploads.
+
+    É importante validar datas antes de salvar.
+
+
+### Ver arquivo de telas perfil_institucional_telas.txt
+
+## Importante:
+
+As telas devem seguir o design system e padrões existentes no projeto
+Os nomes de campos devem seguir o padrão já estabelecido no projeto

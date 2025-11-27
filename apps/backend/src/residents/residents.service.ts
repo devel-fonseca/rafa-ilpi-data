@@ -333,7 +333,7 @@ export class ResidentsService {
         where.gender = query.gender;
       }
 
-      // Buscar residentes
+      // Buscar residentes (sem relações - hierarquia é buscada manualmente)
       const [residents, total] = await Promise.all([
         this.prisma.resident.findMany({
           where,
@@ -357,6 +357,7 @@ export class ResidentsService {
             fotoUrl: true,
             roomId: true,
             bedId: true,
+            cns: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -364,8 +365,116 @@ export class ResidentsService {
         this.prisma.resident.count({ where }),
       ]);
 
+      // Buscar dados de acomodação para todos os residentes que têm bedId
+      const residentsWithBedIds = residents.filter(r => r.bedId);
+      const bedIds = residentsWithBedIds.map(r => r.bedId);
+
+      let bedsMap = new Map();
+      if (bedIds.length > 0) {
+        const beds = await this.prisma.bed.findMany({
+          where: {
+            id: { in: bedIds },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            code: true,
+            status: true,
+            roomId: true,
+          },
+        });
+
+        const roomIds = beds.map(b => b.roomId);
+        const rooms = await this.prisma.room.findMany({
+          where: {
+            id: { in: roomIds },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            floorId: true,
+          },
+        });
+
+        const floorIds = rooms.map(r => r.floorId);
+        const floors = await this.prisma.floor.findMany({
+          where: {
+            id: { in: floorIds },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            buildingId: true,
+          },
+        });
+
+        const buildingIds = floors.map(f => f.buildingId);
+        const buildings = await this.prisma.building.findMany({
+          where: {
+            id: { in: buildingIds },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        });
+
+        // Criar mapas para lookup rápido
+        const roomsMap = new Map(rooms.map(r => [r.id, r]));
+        const floorsMap = new Map(floors.map(f => [f.id, f]));
+        const buildingsMap = new Map(buildings.map(b => [b.id, b]));
+
+        // Criar mapa de beds com hierarquia completa
+        beds.forEach(bed => {
+          const room = roomsMap.get(bed.roomId);
+          const floor = room ? floorsMap.get(room.floorId) : null;
+          const building = floor ? buildingsMap.get(floor.buildingId) : null;
+
+          bedsMap.set(bed.id, {
+            bed: {
+              id: bed.id,
+              code: bed.code,
+              status: bed.status,
+            },
+            room: room ? {
+              id: room.id,
+              name: room.name,
+              code: room.code,
+            } : null,
+            floor: floor ? {
+              id: floor.id,
+              name: floor.name,
+              code: floor.code,
+            } : null,
+            building: building ? {
+              id: building.id,
+              name: building.name,
+              code: building.code,
+            } : null,
+          });
+        });
+      }
+
+      // Adicionar dados de acomodação aos residentes
+      const processedResidents = residents.map(resident => {
+        if (resident.bedId && bedsMap.has(resident.bedId)) {
+          const accommodation = bedsMap.get(resident.bedId);
+          return {
+            ...resident,
+            ...accommodation,
+          };
+        }
+        return resident;
+      });
+
       return {
-        data: residents,
+        data: processedResidents,
         meta: {
           total,
           page,
@@ -399,32 +508,93 @@ export class ResidentsService {
         throw new NotFoundException('Residente não encontrado');
       }
 
-      // Buscar dados de quarto e leito se os IDs existirem
+      // Buscar dados completos de acomodação com hierarquia
       let room = null;
       let bed = null;
+      let floor = null;
+      let building = null;
 
-      if (resident.roomId) {
+      if (resident.bedId) {
+        // Buscar bed com toda a hierarquia
+        bed = await this.prisma.bed.findFirst({
+          where: { id: resident.bedId, deletedAt: null },
+          select: {
+            id: true,
+            code: true,
+            status: true,
+            room: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                floor: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    building: {
+                      select: {
+                        id: true,
+                        name: true,
+                        code: true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+        });
+
+        // Extrair dados da hierarquia
+        if (bed?.room) {
+          room = {
+            id: bed.room.id,
+            name: bed.room.name,
+            code: bed.room.code
+          };
+
+          if (bed.room.floor) {
+            floor = {
+              id: bed.room.floor.id,
+              name: bed.room.floor.name,
+              code: bed.room.floor.code
+            };
+
+            if (bed.room.floor.building) {
+              building = {
+                id: bed.room.floor.building.id,
+                name: bed.room.floor.building.name,
+                code: bed.room.floor.building.code
+              };
+            }
+          }
+
+          // Simplificar o objeto bed
+          bed = {
+            id: bed.id,
+            code: bed.code,
+            status: bed.status
+          };
+        }
+      } else if (resident.roomId) {
+        // Buscar apenas room se não tem bed (caso legado)
         room = await this.prisma.room.findFirst({
           where: { id: resident.roomId, deletedAt: null },
           select: { id: true, name: true, code: true },
         });
       }
 
-      if (resident.bedId) {
-        bed = await this.prisma.bed.findFirst({
-          where: { id: resident.bedId, deletedAt: null },
-          select: { id: true, code: true, status: true },
-        });
-      }
-
       // Gerar URLs assinadas para documentos
       const residentWithUrls = await this.generateSignedUrls(resident);
 
-      // Adicionar room e bed aos dados do residente
+      // Adicionar acomodação completa aos dados do residente
       return {
         ...residentWithUrls,
         room,
         bed,
+        floor,
+        building,
       };
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {

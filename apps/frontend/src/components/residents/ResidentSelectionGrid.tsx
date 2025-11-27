@@ -23,6 +23,26 @@ interface Resident {
   fotoUrl?: string
   roomId?: string
   bedId?: string
+  room?: {
+    id: string
+    name: string
+    code: string
+  }
+  bed?: {
+    id: string
+    code: string
+    status: string
+  }
+  floor?: {
+    id: string
+    name: string
+    code: string
+  }
+  building?: {
+    id: string
+    name: string
+    code: string
+  }
   status: string
   cpf?: string
   cns?: string
@@ -244,14 +264,15 @@ export function ResidentSelectionGrid({
                     </h3>
                   </div>
 
-                  {/* Quarto e Leito */}
-                  {(resident.roomId || resident.bedId) && (
+                  {/* Acomodação */}
+                  {resident.bed && (
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Bed className="h-4 w-4" />
                       <span>
-                        {resident.roomId && `Quarto: ${resident.roomId}`}
-                        {resident.roomId && resident.bedId && ' | '}
-                        {resident.bedId && `Leito: ${resident.bedId}`}
+                        {resident.building && `${resident.building.code}`}
+                        {resident.floor && `/${resident.floor.code}`}
+                        {resident.room && `/${resident.room.code}`}
+                        {resident.bed && `-${resident.bed.code}`}
                       </span>
                     </div>
                   )}

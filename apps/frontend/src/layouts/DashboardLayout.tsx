@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { useScrollToTop } from '@/hooks/useScrollToTop'
@@ -128,6 +128,13 @@ export function DashboardLayout() {
               <Building2 className="h-4 w-4" />
               Mapa de Leitos
             </Link>
+            <Link
+              to="/dashboard/perfil-institucional"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              Perfil Institucional
+            </Link>
           </nav>
         </aside>
 
@@ -182,6 +189,14 @@ export function DashboardLayout() {
               >
                 <Building2 className="h-4 w-4" />
                 Mapa de Leitos
+              </Link>
+              <Link
+                to="/dashboard/perfil-institucional"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FileText className="h-4 w-4" />
+                Perfil Institucional
               </Link>
             </nav>
           </SheetContent>

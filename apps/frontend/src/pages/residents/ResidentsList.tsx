@@ -322,7 +322,7 @@ export default function ResidentsList() {
                     <TableHead>Nome</TableHead>
                     <TableHead>CPF</TableHead>
                     <TableHead>Idade</TableHead>
-                    <TableHead>Gênero</TableHead>
+                    <TableHead>Acomodação</TableHead>
                     <TableHead>Admissão</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -343,11 +343,13 @@ export default function ResidentsList() {
                       <TableCell>{resident.cpf || '-'}</TableCell>
                       <TableCell>{calculateAge(resident.birthDate)} anos</TableCell>
                       <TableCell>
-                        {resident.gender === 'MASCULINO'
-                          ? 'M'
-                          : resident.gender === 'FEMININO'
-                          ? 'F'
-                          : '-'}
+                        {resident.bed ? (
+                          <span className="text-sm">
+                            {resident.building?.code}/{resident.floor?.code}/{resident.room?.code}-{resident.bed.code}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell>
                         {resident.admissionDate

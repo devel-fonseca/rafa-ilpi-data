@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,12 +32,19 @@ import { RoomForm } from '@/components/beds/RoomForm'
 import { BedForm } from '@/components/beds/BedForm'
 import { BuildingStructureGenerator } from '@/components/beds/BuildingStructureGenerator'
 import { BedsStatsCards } from '@/components/beds/BedsStatsCards'
+import { BedsFilters } from '@/components/beds/BedsFilters'
 
 import { Building, Floor, Room, Bed } from '@/api/beds.api'
 
 export function BedsStructurePage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('buildings')
+
+  // Estados para filtros
+  const [searchText, setSearchText] = useState('')
+  const [filterBuildingId, setFilterBuildingId] = useState('')
+  const [filterFloorId, setFilterFloorId] = useState('')
+  const [filterRoomId, setFilterRoomId] = useState('')
 
   // State para dialogs
   const [buildingFormOpen, setBuildingFormOpen] = useState(false)
@@ -66,6 +73,76 @@ export function BedsStructurePage() {
   const deleteFloorMutation = useDeleteFloor()
   const deleteRoomMutation = useDeleteRoom()
   const deleteBedMutation = useDeleteBed()
+
+  // Função helper para filtrar por busca de texto
+  const matchesSearch = (item: any, search: string) => {
+    if (!search) return true
+    const searchLower = search.toLowerCase()
+    return (
+      item.name?.toLowerCase().includes(searchLower) ||
+      item.code?.toLowerCase().includes(searchLower)
+    )
+  }
+
+  // Filtrar dados com base nos filtros ativos
+  const filteredBuildings = useMemo(() => {
+    if (!buildings) return []
+    return buildings.filter(building => matchesSearch(building, searchText))
+  }, [buildings, searchText])
+
+  const filteredFloors = useMemo(() => {
+    if (!floors) return []
+    return floors.filter(floor => {
+      if (!matchesSearch(floor, searchText)) return false
+      if (filterBuildingId && floor.buildingId !== filterBuildingId) return false
+      return true
+    })
+  }, [floors, searchText, filterBuildingId])
+
+  const filteredRooms = useMemo(() => {
+    if (!rooms) return []
+    return rooms.filter(room => {
+      if (!matchesSearch(room, searchText)) return false
+      if (filterFloorId && room.floorId !== filterFloorId) return false
+      if (filterBuildingId) {
+        // Filtrar também por prédio através do andar
+        const floor = floors?.find(f => f.id === room.floorId)
+        if (floor && floor.buildingId !== filterBuildingId) return false
+      }
+      return true
+    })
+  }, [rooms, searchText, filterFloorId, filterBuildingId, floors])
+
+  const filteredBeds = useMemo(() => {
+    if (!beds) return []
+    return beds.filter(bed => {
+      if (!matchesSearch(bed, searchText)) return false
+      if (filterRoomId && bed.roomId !== filterRoomId) return false
+      if (filterFloorId) {
+        // Filtrar também por andar através do quarto
+        const room = rooms?.find(r => r.id === bed.roomId)
+        if (room && room.floorId !== filterFloorId) return false
+      }
+      if (filterBuildingId) {
+        // Filtrar também por prédio através do andar e quarto
+        const room = rooms?.find(r => r.id === bed.roomId)
+        if (room) {
+          const floor = floors?.find(f => f.id === room.floorId)
+          if (floor && floor.buildingId !== filterBuildingId) return false
+        }
+      }
+      return true
+    })
+  }, [beds, searchText, filterRoomId, filterFloorId, filterBuildingId, rooms, floors])
+
+  // Limpar filtros ao mudar de aba
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    setSearchText('')
+    setFilterBuildingId('')
+    setFilterFloorId('')
+    setFilterRoomId('')
+  }
 
   // Handlers
   const handleEditBuilding = (building: Building) => {
@@ -227,7 +304,7 @@ export function BedsStructurePage() {
         onTabChange={setActiveTab}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList className="hidden">
           <TabsTrigger value="buildings">Prédios</TabsTrigger>
           <TabsTrigger value="floors">Andares</TabsTrigger>
@@ -237,11 +314,18 @@ export function BedsStructurePage() {
 
         {/* TAB: PRÉDIOS */}
         <TabsContent value="buildings" className="space-y-4">
+          {/* Filtros */}
+          <BedsFilters
+            searchPlaceholder="Buscar prédio por nome ou código..."
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+          />
+
           {loadingBuildings ? (
             <div className="text-center py-8">Carregando...</div>
-          ) : buildings && buildings.length > 0 ? (
+          ) : filteredBuildings && filteredBuildings.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {buildings.map((building) => (
+              {filteredBuildings.map((building) => (
                 <BuildingCard
                   key={building.id}
                   building={building}
@@ -255,18 +339,29 @@ export function BedsStructurePage() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum prédio cadastrado
+              {searchText ? 'Nenhum prédio encontrado com os filtros aplicados' : 'Nenhum prédio cadastrado'}
             </div>
           )}
         </TabsContent>
 
         {/* TAB: ANDARES */}
         <TabsContent value="floors" className="space-y-4">
+          {/* Filtros */}
+          <BedsFilters
+            searchPlaceholder="Buscar andar por nome ou código..."
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            showBuildingFilter
+            buildings={buildings}
+            selectedBuildingId={filterBuildingId}
+            onBuildingChange={setFilterBuildingId}
+          />
+
           {loadingFloors ? (
             <div className="text-center py-8">Carregando...</div>
-          ) : floors && floors.length > 0 ? (
+          ) : filteredFloors && filteredFloors.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {floors.map((floor) => (
+              {filteredFloors.map((floor) => (
                 <FloorCard
                   key={floor.id}
                   floor={floor}
@@ -277,18 +372,33 @@ export function BedsStructurePage() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum andar cadastrado
+              {searchText || filterBuildingId ? 'Nenhum andar encontrado com os filtros aplicados' : 'Nenhum andar cadastrado'}
             </div>
           )}
         </TabsContent>
 
         {/* TAB: QUARTOS */}
         <TabsContent value="rooms" className="space-y-4">
+          {/* Filtros */}
+          <BedsFilters
+            searchPlaceholder="Buscar quarto por nome ou código..."
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            showBuildingFilter
+            buildings={buildings}
+            selectedBuildingId={filterBuildingId}
+            onBuildingChange={setFilterBuildingId}
+            showFloorFilter
+            floors={floors}
+            selectedFloorId={filterFloorId}
+            onFloorChange={setFilterFloorId}
+          />
+
           {loadingRooms ? (
             <div className="text-center py-8">Carregando...</div>
-          ) : rooms && rooms.length > 0 ? (
+          ) : filteredRooms && filteredRooms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {rooms.map((room) => (
+              {filteredRooms.map((room) => (
                 <RoomCard
                   key={room.id}
                   room={room}
@@ -299,18 +409,37 @@ export function BedsStructurePage() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum quarto cadastrado
+              {searchText || filterBuildingId || filterFloorId ? 'Nenhum quarto encontrado com os filtros aplicados' : 'Nenhum quarto cadastrado'}
             </div>
           )}
         </TabsContent>
 
         {/* TAB: LEITOS */}
         <TabsContent value="beds" className="space-y-4">
+          {/* Filtros */}
+          <BedsFilters
+            searchPlaceholder="Buscar leito por nome ou código..."
+            searchValue={searchText}
+            onSearchChange={setSearchText}
+            showBuildingFilter
+            buildings={buildings}
+            selectedBuildingId={filterBuildingId}
+            onBuildingChange={setFilterBuildingId}
+            showFloorFilter
+            floors={floors}
+            selectedFloorId={filterFloorId}
+            onFloorChange={setFilterFloorId}
+            showRoomFilter
+            rooms={rooms}
+            selectedRoomId={filterRoomId}
+            onRoomChange={setFilterRoomId}
+          />
+
           {loadingBeds ? (
             <div className="text-center py-8">Carregando...</div>
-          ) : beds && beds.length > 0 ? (
+          ) : filteredBeds && filteredBeds.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {beds.map((bed) => (
+              {filteredBeds.map((bed) => (
                 <BedCard
                   key={bed.id}
                   bed={bed}
@@ -321,7 +450,7 @@ export function BedsStructurePage() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum leito cadastrado
+              {searchText || filterBuildingId || filterFloorId || filterRoomId ? 'Nenhum leito encontrado com os filtros aplicados' : 'Nenhum leito cadastrado'}
             </div>
           )}
         </TabsContent>

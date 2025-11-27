@@ -31,12 +31,15 @@ import {
 import { useCreateFloor, useUpdateFloor } from '@/hooks/useFloors'
 import { useBuildings } from '@/hooks/useBuildings'
 import { useToast } from '@/components/ui/use-toast'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { generateFloorCode } from '@/utils/codeGenerator'
+import { Badge } from '@/components/ui/badge'
+import { ContinueCreationDialog } from './ContinueCreationDialog'
+import { RoomForm } from './RoomForm'
 
 const floorSchema = z.object({
   buildingId: z.string().min(1, 'Prédio é obrigatório'),
   name: z.string().min(1, 'Nome é obrigatório'),
-  code: z.string().min(1, 'Código é obrigatório'),
   floorNumber: z.coerce.number().min(0, 'Número do andar deve ser positivo'),
   description: z.string().optional(),
 })
@@ -62,17 +65,32 @@ export function FloorForm({
   const createMutation = useCreateFloor()
   const updateMutation = useUpdateFloor()
   const { data: buildings, isLoading: isLoadingBuildings } = useBuildings()
+  const [generatedCode, setGeneratedCode] = useState<string>('')
+  const [showContinueDialog, setShowContinueDialog] = useState(false)
+  const [showRoomForm, setShowRoomForm] = useState(false)
+  const [newFloorId, setNewFloorId] = useState<string>('')
 
   const form = useForm<FloorFormData>({
     resolver: zodResolver(floorSchema),
     defaultValues: {
       buildingId: defaultBuildingId || '',
       name: '',
-      code: '',
       floorNumber: 0,
       description: '',
     },
   })
+
+  // Gera código automaticamente quando o nome ou número mudam
+  useEffect(() => {
+    const name = form.watch('name')
+    const floorNumber = form.watch('floorNumber')
+
+    if ((name || floorNumber !== undefined) && !floor) {
+      // Só gera novo código se estiver criando (não editando)
+      const newCode = generateFloorCode(name, floorNumber)
+      setGeneratedCode(newCode)
+    }
+  }, [form.watch('name'), form.watch('floorNumber'), floor])
 
   // Popula form quando editar
   useEffect(() => {
@@ -80,29 +98,34 @@ export function FloorForm({
       form.reset({
         buildingId: floor.buildingId,
         name: floor.name,
-        code: floor.code,
         floorNumber: floor.floorNumber,
         description: floor.description || '',
       })
+      setGeneratedCode(floor.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         buildingId: defaultBuildingId || '',
         name: '',
-        code: '',
         floorNumber: 0,
         description: '',
       })
+      setGeneratedCode('')
     }
   }, [floor, defaultBuildingId, form])
 
   const onSubmit = async (data: FloorFormData) => {
     try {
+      const submitData = {
+        ...data,
+        code: generatedCode, // Adiciona o código gerado
+      }
+
       if (floor) {
         await updateMutation.mutateAsync({
           id: floor.id,
           data: {
             name: data.name,
-            code: data.code,
+            code: generatedCode,
             floorNumber: data.floorNumber,
             description: data.description,
           } as UpdateFloorDto,
@@ -112,7 +135,7 @@ export function FloorForm({
           description: 'O andar foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(data as CreateFloorDto)
+        await createMutation.mutateAsync(submitData as CreateFloorDto)
         toast({
           title: 'Andar criado',
           description: 'O andar foi criado com sucesso.',
@@ -186,21 +209,7 @@ export function FloorForm({
                 <FormItem>
                   <FormLabel>Nome *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: 1º Andar" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Código *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: A-1" {...field} />
+                    <Input placeholder="Ex: Térreo, 1º Andar" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -214,12 +223,20 @@ export function FloorForm({
                 <FormItem>
                   <FormLabel>Número do Andar *</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ex: 1" {...field} />
+                    <Input type="number" placeholder="Ex: 0 para Térreo, 1 para 1º Andar" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Código gerado automaticamente */}
+            {generatedCode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Código:</span>
+                <Badge variant="outline">{generatedCode}</Badge>
+              </div>
+            )}
 
             <FormField
               control={form.control}
