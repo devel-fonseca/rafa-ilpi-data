@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { WinstonModule } from 'nest-winston';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -13,6 +13,7 @@ import { DailyRecordsModule } from './daily-records/daily-records.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { VaccinationsModule } from './vaccinations/vaccinations.module';
 import { AuditModule } from './audit/audit.module';
+import { AuditInterceptor } from './audit/audit.interceptor';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { winstonConfig } from './common/config/winston.config';
@@ -72,6 +73,11 @@ import { InstitutionalProfileModule } from './institutional-profile/institutiona
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Interceptor global de auditoria
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

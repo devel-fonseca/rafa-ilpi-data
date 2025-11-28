@@ -8,6 +8,7 @@ import { api } from '@/services/api'
 import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
 import { format } from 'date-fns'
+import { RecentActivity } from '@/components/dashboard/RecentActivity'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -168,17 +169,7 @@ export default function Dashboard() {
       {/* Recent Activity */}
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Atividade Recente</h3>
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-gray-500">
-              <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-sm">Nenhuma atividade registrada hoje</p>
-              <p className="text-xs mt-2">
-                As atividades aparecerão aqui conforme você usar o sistema
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <RecentActivity />
       </div>
 
       {/* Plan Info */}
