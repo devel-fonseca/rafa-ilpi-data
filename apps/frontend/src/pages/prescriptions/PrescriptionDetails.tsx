@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
+import { formatBedFromResident } from '@/utils/formatters'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 
@@ -150,13 +151,11 @@ export default function PrescriptionDetails() {
                   </p>
                 </div>
               )}
-              {prescriptionData.resident?.roomId && (
+              {prescriptionData.resident?.bed && (
                 <div>
                   <p className="text-sm text-gray-600">Localização</p>
-                  <p className="font-medium">
-                    Quarto {prescriptionData.resident.roomId}
-                    {prescriptionData.resident.bedId &&
-                      ` - Leito ${prescriptionData.resident.bedId}`}
+                  <p className="font-medium font-mono">
+                    {formatBedFromResident(prescriptionData.resident)}
                   </p>
                 </div>
               )}

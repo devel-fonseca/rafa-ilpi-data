@@ -12,6 +12,7 @@ import { api } from '@/services/api'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { calculateAge } from '@/lib/utils'
+import { formatBedFromResident } from '@/utils/formatters'
 
 interface Resident {
   id: string
@@ -163,10 +164,9 @@ export function Step1ResidentInfo() {
                         )}
                       </div>
                     </div>
-                    {r.roomId && (
-                      <Badge variant="outline">
-                        Quarto {r.roomId}
-                        {r.bedId && ` - Leito ${r.bedId}`}
+                    {r.bed && (
+                      <Badge variant="outline" className="font-mono">
+                        {formatBedFromResident(r)}
                       </Badge>
                     )}
                   </div>
@@ -273,7 +273,7 @@ export function Step1ResidentInfo() {
                   </div>
                 )}
 
-                {(resident.roomId || resident.bedId) && (
+                {resident.bed && (
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <MapPin className="h-4 w-4 text-gray-500" />
@@ -281,10 +281,8 @@ export function Step1ResidentInfo() {
                         Localização
                       </span>
                     </div>
-                    <p className="text-sm text-gray-900">
-                      {resident.roomId && `Quarto ${resident.roomId}`}
-                      {resident.roomId && resident.bedId && ' - '}
-                      {resident.bedId && `Leito ${resident.bedId}`}
+                    <p className="text-sm text-gray-900 font-mono">
+                      {formatBedFromResident(resident)}
                     </p>
                   </div>
                 )}
