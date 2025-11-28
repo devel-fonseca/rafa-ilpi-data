@@ -256,6 +256,18 @@ class BedsAPI {
     return response.data.data
   }
 
+  async findAll(params?: { skip?: number; take?: number; roomId?: string; status?: string }): Promise<{ data: Bed[]; total: number; skip: number; take: number }> {
+    const queryParams = new URLSearchParams()
+    if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString())
+    if (params?.take !== undefined) queryParams.append('take', params.take.toString())
+    if (params?.roomId) queryParams.append('roomId', params.roomId)
+    if (params?.status) queryParams.append('status', params.status)
+
+    const query = queryParams.toString()
+    const response = await api.get(`/beds${query ? `?${query}` : ''}`)
+    return response.data
+  }
+
   async getBedById(id: string): Promise<Bed> {
     const response = await api.get(`/beds/${id}`)
     return response.data

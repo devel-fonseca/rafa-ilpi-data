@@ -35,7 +35,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { uploadFile, getSignedFileUrl } from '@/services/upload'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
-import { BedSelector } from '@/components/beds/BedSelector'
+import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -441,13 +441,13 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
 
         // ===== ACOMODAÇÃO =====
+        if (resident.bedId) {
+          setValue('leitoNumero', resident.bedId)
+        }
         // Armazenar dados na ref para sincronização posterior
         residentDataRef.current = {
           roomId: resident.roomId,
           bedId: resident.bedId
-        }
-        if (resident.roomId) {
-          setSelectedRoomId(resident.roomId)
         }
 
         if (isMounted) {
@@ -2079,23 +2079,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     className="mb-6"
                   />
 
-                  {/* Seção: Acomodação (Seleção hierárquica de leito) */}
+                  {/* Seção: Acomodação (Busca rápida de leito) */}
                   <h3 className="text-lg font-semibold mb-4">Acomodação</h3>
                   <Controller
                     name="leitoNumero"
                     control={control}
                     render={({ field }) => (
-                      <BedSelector
+                      <BedSearchCombobox
                         value={field.value}
-                        onChange={(bedId) => {
+                        onValueChange={(bedId) => {
                           field.onChange(bedId)
-                          // O BedSelector já gerencia toda a hierarquia internamente
-                          // Não precisamos mais do quartoNumero separado, pois o backend
-                          // pode obter o quarto através do bedId
                         }}
                         disabled={readOnly}
-                        showOnlyAvailable={!isEditMode} // Em criação, mostra apenas disponíveis
-                        currentResidentBedId={isEditMode ? field.value : undefined} // Em edição, permite manter o leito atual
+                        placeholder="Digite o código do leito, prédio ou quarto..."
                       />
                     )}
                   />

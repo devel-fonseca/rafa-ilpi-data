@@ -12,6 +12,7 @@ import { useBuildings } from '@/hooks/useBuildings'
 import { useFloors } from '@/hooks/useFloors'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
+import { formatBedIdentification } from '@/utils/formatters'
 
 interface BedSelectorProps {
   value?: string // bedId
@@ -183,11 +184,13 @@ export function BedSelector({
     const building = buildings.find(b => b.id === floor.buildingId)
     if (!building) return null
 
+    const bedIdentification = formatBedIdentification(building.code, floor.code, room.code, bed.code)
+
     return {
       building: `${building.name} (${building.code})`,
       floor: `${floor.name} (${floor.code})`,
       room: `${room.name} (${room.code})`,
-      bed: `Leito ${bed.code}`,
+      bed: bedIdentification,
       hasPrivateBathroom: room.hasPrivateBathroom,
       isAccessible: room.accessible,
     }
@@ -358,8 +361,11 @@ export function BedSelector({
           <Info className="h-4 w-4" />
           <AlertDescription>
             <strong>Leito selecionado:</strong>
-            <div className="mt-1 text-sm">
-              {selectedInfo.building} → {selectedInfo.floor} → {selectedInfo.room} → {selectedInfo.bed}
+            <div className="mt-1 text-sm font-mono">
+              {selectedInfo.bed}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {selectedInfo.building} → {selectedInfo.floor} → {selectedInfo.room}
             </div>
             {(selectedInfo.hasPrivateBathroom || selectedInfo.isAccessible) && (
               <div className="mt-2 flex gap-3 text-xs">

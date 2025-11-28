@@ -12,6 +12,7 @@ import { Bed as BedIcon, MoreVertical, Pencil, Trash2, UserPlus, UserMinus } fro
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatBedFromObject } from '@/utils/formatters'
 
 interface BedCardProps {
   bed: Bed
@@ -55,7 +56,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <BedIcon className="h-5 w-5 text-indigo-600" />
-          <CardTitle className="text-lg font-bold">Leito {bed.bedNumber}</CardTitle>
+          <CardTitle className="text-lg font-bold">{formatBedFromObject(bed)}</CardTitle>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -112,7 +113,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Código:</span>
-            <Badge variant="outline">{bed.code}</Badge>
+            <Badge variant="outline">{formatBedFromObject(bed)}</Badge>
           </div>
 
           <div className="flex items-center justify-between">

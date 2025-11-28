@@ -13,15 +13,18 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { bedsAPI, Building, Floor, Room, Bed } from '@/api/beds.api'
 import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react'
+import { generateBuildingCodeSuggestions, formatBedIdentification } from '@/utils/formatters'
 
 interface FloorConfig {
   floorNumber: number
+  floorCode: string // Código do andar (ex: "T", "1", "2", "6")
   roomsCount: number
   rooms: RoomConfig[]
 }
 
 interface RoomConfig {
   roomName: string
+  roomCode: string // Código do quarto (ex: "101", "823", "305")
   bedCount: number
   hasPrivateBathroom: boolean
   isAccessible: boolean
@@ -36,11 +39,11 @@ type Step = 'building' | 'floors' | 'floor-detail' | 'review'
 
 interface BuildingStructureState {
   buildingName: string
+  buildingCode: string // Código do prédio (ex: "CLI", "PP", "ANEXO")
   totalFloors: number
   startFloorNumber: number // 0 para térreo ou 1 para primeiro andar
   currentFloorIndex: number
   floors: FloorConfig[]
-  buildingSequence: string // PP - número sequencial do prédio (ex: "01", "02", "03")
 }
 
 export function BuildingStructureGenerator({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -51,11 +54,11 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
 
   const [state, setState] = useState<BuildingStructureState>({
     buildingName: '',
+    buildingCode: '',
     totalFloors: 0,
     startFloorNumber: 0,
     currentFloorIndex: 0,
     floors: [],
-    buildingSequence: Date.now().toString().slice(-2), // PP - 2 dígitos últimos de timestamp
   })
 
   const [currentFloor, setCurrentFloor] = useState<FloorConfig | null>(null)
@@ -68,17 +71,28 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
       toast({ description: 'Por favor, informe o nome do prédio', variant: 'destructive' })
       return
     }
+    if (!state.buildingCode.trim()) {
+      toast({ description: 'Por favor, informe o código do prédio', variant: 'destructive' })
+      return
+    }
     if (state.totalFloors < 1) {
       toast({ description: 'Por favor, informe a quantidade de andares', variant: 'destructive' })
       return
     }
 
-    // Inicializar array de andares
-    const newFloors: FloorConfig[] = Array.from({ length: state.totalFloors }, (_, i) => ({
-      floorNumber: state.startFloorNumber + i,
-      roomsCount: 0,
-      rooms: [],
-    }))
+    // Inicializar array de andares com códigos alfanuméricos
+    const newFloors: FloorConfig[] = Array.from({ length: state.totalFloors }, (_, i) => {
+      const floorNum = state.startFloorNumber + i
+      // Gera código do andar: "T" para térreo (0), ou o número do andar
+      const floorCode = floorNum === 0 ? 'T' : floorNum.toString()
+
+      return {
+        floorNumber: floorNum,
+        floorCode: floorCode,
+        roomsCount: 0,
+        rooms: [],
+      }
+    })
 
     setState(prev => ({
       ...prev,
@@ -97,9 +111,10 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
       return
     }
 
-    // Inicializar quartos para este andar
+    // Inicializar quartos para este andar com códigos numéricos sequenciais
     const newRooms: RoomConfig[] = Array.from({ length: currentFloor.roomsCount }, (_, i) => ({
       roomName: `Quarto ${i + 1}`,
+      roomCode: (i + 1).toString().padStart(3, '0'), // Ex: "001", "002", "003"
       bedCount: 1,
       hasPrivateBathroom: false,
       isAccessible: false,
@@ -117,14 +132,19 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
   const handleRoomConfigSubmit = () => {
     if (!currentRoom || !currentFloor) return
 
-    // Gerar codes dos leitos no padrão PP-AA-QQ-LL
-    // PP = número do prédio (baseado em timestamp)
-    // AA = número do andar
-    // QQ = número do quarto
-    // LL = número do leito
-    const bedsForRoom: BedConfig[] = Array.from({ length: currentRoom.bedCount }, (_, i) => ({
-      code: `${state.buildingSequence}-${currentFloor.floorNumber.toString().padStart(2, '0')}-${(currentRoomIndex + 1).toString().padStart(2, '0')}-${(i + 1).toString().padStart(2, '0')}`,
-    }))
+    // Gerar codes dos leitos no padrão hospitalar brasileiro: CLI6-823-B
+    // Formato: {buildingCode}{floorCode}-{roomCode}-{bedCode}
+    // Exemplo: CLI6-823-B (Clínica 6º andar, quarto 823, leito B)
+    const bedsForRoom: BedConfig[] = Array.from({ length: currentRoom.bedCount }, (_, i) => {
+      // Gerar código do leito: A, B, C, D... ou 01, 02, 03 para muitos leitos
+      const bedCode = currentRoom.bedCount <= 26
+        ? String.fromCharCode(65 + i) // A=65, B=66, C=67...
+        : (i + 1).toString().padStart(2, '0')
+
+      return {
+        code: bedCode,
+      }
+    })
 
     const updatedRoom = { ...currentRoom, beds: bedsForRoom }
     const updatedRooms = [...currentFloor.rooms]
@@ -179,6 +199,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
 
       const payload = {
         buildingName: state.buildingName,
+        buildingCode: state.buildingCode,
         floors: state.floors,
       }
 
@@ -199,11 +220,11 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
       // Resetar estado
       setState({
         buildingName: '',
+        buildingCode: '',
         totalFloors: 0,
         startFloorNumber: 0,
         currentFloorIndex: 0,
         floors: [],
-        buildingSequence: Date.now().toString().slice(-2), // Novo timestamp para próximo prédio
       })
       setStep('building')
     } catch (error: any) {
@@ -253,8 +274,33 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                   id="building-name"
                   placeholder="Ex: Casa Principal, Bloco A, Ala Norte"
                   value={state.buildingName}
-                  onChange={e => setState(prev => ({ ...prev, buildingName: e.target.value }))}
+                  onChange={e => {
+                    const name = e.target.value
+                    setState(prev => ({ ...prev, buildingName: name }))
+
+                    // Gerar sugestões de código se ainda não foi definido manualmente
+                    if (!state.buildingCode && name.trim()) {
+                      const suggestions = generateBuildingCodeSuggestions(name)
+                      if (suggestions.length > 0) {
+                        setState(prev => ({ ...prev, buildingCode: suggestions[0] }))
+                      }
+                    }
+                  }}
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="building-code">Código do Prédio</Label>
+                <Input
+                  id="building-code"
+                  placeholder="Ex: CLI, PP, ANEXO"
+                  value={state.buildingCode}
+                  onChange={e => setState(prev => ({ ...prev, buildingCode: e.target.value.toUpperCase() }))}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Código alfanumérico curto (2-6 caracteres). Será usado na identificação dos leitos.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -408,6 +454,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                 <div>
                   <p className="text-sm font-semibold">Prédio: {state.buildingName}</p>
                   <p className="text-xs text-gray-600">
+                    Código: <span className="font-mono font-semibold">{state.buildingCode}</span> •{' '}
                     {state.totalFloors} andar{state.totalFloors > 1 ? 'es' : ''} (Começando no andar{' '}
                     {state.startFloorNumber === 0 ? ' térreo' : ` ${state.startFloorNumber}`})
                   </p>
@@ -415,13 +462,18 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
 
                 {state.floors.map((floor, floorIdx) => (
                   <div key={floorIdx} className="border-l-2 border-purple-300 pl-3 py-1">
-                    <p className="text-sm font-semibold">Andar {floor.floorNumber}</p>
+                    <p className="text-sm font-semibold">
+                      Andar {floor.floorNumber} <span className="font-mono text-xs">({floor.floorCode})</span>
+                    </p>
                     <p className="text-xs text-gray-600">{floor.rooms.length} quarto(s)</p>
 
                     {floor.rooms.map((room, roomIdx) => (
                       <div key={roomIdx} className="text-xs text-gray-700 ml-2 py-1">
                         <p>
-                          • {room.roomName}: {room.bedCount} leito{room.bedCount > 1 ? 's' : ''}
+                          • {room.roomName} <span className="font-mono">({room.roomCode})</span>: {room.bedCount} leito{room.bedCount > 1 ? 's' : ''}{' '}
+                          <span className="font-mono text-indigo-600">
+                            ({room.beds.map(bed => formatBedIdentification(state.buildingCode, floor.floorCode, room.roomCode, bed.code)).join(', ')})
+                          </span>
                           {room.hasPrivateBathroom && ', banheiro privativo'}
                           {room.isAccessible && ', acessível'}
                         </p>

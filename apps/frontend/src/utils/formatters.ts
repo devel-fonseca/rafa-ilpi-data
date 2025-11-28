@@ -265,3 +265,8 @@ export function valueOrDash(value: any): string {
   if (value === null || value === undefined || value === '') return '-'
   return String(value)
 }
+
+/**
+ * Funções de formatação de leitos
+ */
+export * from './bedFormatters'

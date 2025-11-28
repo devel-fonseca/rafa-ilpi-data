@@ -59,14 +59,17 @@ export class BedsService {
             select: {
               id: true,
               name: true,
+              code: true,
+              roomNumber: true,
               floorId: true,
               floor: {
                 select: {
                   id: true,
                   name: true,
+                  code: true,
                   buildingId: true,
                   building: {
-                    select: { id: true, name: true },
+                    select: { id: true, name: true, code: true },
                   },
                 },
               },
@@ -91,14 +94,17 @@ export class BedsService {
           select: {
             id: true,
             name: true,
+            code: true,
+            roomNumber: true,
             floorId: true,
             floor: {
               select: {
                 id: true,
                 name: true,
+                code: true,
                 buildingId: true,
                 building: {
-                  select: { id: true, name: true },
+                  select: { id: true, name: true, code: true },
                 },
               },
             },
@@ -235,21 +241,81 @@ export class BedsService {
       orderBy: { name: 'asc' },
     })
 
-    // Calcular estatísticas
-    const totalBuildings = buildings.length
-    const totalFloors = buildings.reduce((sum, b) => sum + (b.floors?.length || 0), 0)
-    const totalRooms = buildings.reduce((sum, b) =>
-      sum + (b.floors?.reduce((floorSum, f) => floorSum + (f.rooms?.length || 0), 0) || 0),
-      0
+    // Buscar todos os residentes que ocupam leitos
+    const residents = await this.prisma.resident.findMany({
+      where: {
+        tenantId,
+        bedId: { not: null },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        bedId: true,
+        fullName: true,
+        fotoUrl: true,
+      },
+    })
+
+    // Criar mapa de bedId -> resident para lookup rápido
+    const residentsByBedId = new Map(
+      residents.map((r) => [r.bedId, { id: r.id, fullName: r.fullName, fotoUrl: r.fotoUrl }])
     )
-    const totalBeds = buildings.reduce((sum, b) =>
-      sum +
-        (b.floors?.reduce((floorSum, f) =>
-          floorSum + (f.rooms?.reduce((roomSum, r) => roomSum + (r.beds?.length || 0), 0) || 0),
-          0
-        ) || 0),
-      0
-    )
+
+    // Adicionar contagens calculadas para cada nível da hierarquia
+    const buildingsWithStats = buildings.map((building) => {
+      const floorsWithStats = building.floors.map((floor) => {
+        const roomsWithStats = floor.rooms.map((room) => {
+          // Adicionar informação do residente a cada leito
+          const bedsWithResident = room.beds.map((bed) => ({
+            ...bed,
+            resident: residentsByBedId.get(bed.id) || null,
+          }))
+
+          const totalBeds = bedsWithResident.length
+          const occupiedBeds = bedsWithResident.filter((bed) => bed.status === 'Ocupado').length
+
+          return {
+            ...room,
+            beds: bedsWithResident,
+            totalBeds,
+            occupiedBeds,
+          }
+        })
+
+        const totalRooms = roomsWithStats.length
+        const totalBeds = roomsWithStats.reduce((sum, r) => sum + r.totalBeds, 0)
+        const occupiedBeds = roomsWithStats.reduce((sum, r) => sum + r.occupiedBeds, 0)
+
+        return {
+          ...floor,
+          rooms: roomsWithStats,
+          totalRooms,
+          totalBeds,
+          occupiedBeds,
+        }
+      })
+
+      const totalFloors = floorsWithStats.length
+      const totalRooms = floorsWithStats.reduce((sum, f) => sum + f.totalRooms, 0)
+      const totalBeds = floorsWithStats.reduce((sum, f) => sum + f.totalBeds, 0)
+      const occupiedBeds = floorsWithStats.reduce((sum, f) => sum + f.occupiedBeds, 0)
+
+      return {
+        ...building,
+        floors: floorsWithStats,
+        totalFloors,
+        totalRooms,
+        totalBeds,
+        occupiedBeds,
+      }
+    })
+
+    // Calcular estatísticas globais
+    const totalBuildings = buildingsWithStats.length
+    const totalFloors = buildingsWithStats.reduce((sum, b) => sum + b.totalFloors, 0)
+    const totalRooms = buildingsWithStats.reduce((sum, b) => sum + b.totalRooms, 0)
+    const totalBeds = buildingsWithStats.reduce((sum, b) => sum + b.totalBeds, 0)
+    const occupiedBeds = buildingsWithStats.reduce((sum, b) => sum + b.occupiedBeds, 0)
 
     // Contar leitos por status
     const bedStatuses = await this.prisma.bed.findMany({
@@ -257,7 +323,6 @@ export class BedsService {
       select: { status: true },
     })
 
-    const occupiedBeds = bedStatuses.filter((b) => b.status === 'Ocupado').length
     const availableBeds = bedStatuses.filter((b) => b.status === 'Disponível').length
     const maintenanceBeds = bedStatuses.filter((b) => b.status === 'Manutenção').length
     const reservedBeds = bedStatuses.filter((b) => b.status === 'Reservado').length
@@ -273,6 +338,6 @@ export class BedsService {
       reservedBeds,
     }
 
-    return { buildings, stats }
+    return { buildings: buildingsWithStats, stats }
   }
 }

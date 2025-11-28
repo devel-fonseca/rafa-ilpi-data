@@ -8,7 +8,8 @@ import {
   formatDate,
   formatDateTime,
   calculateAge,
-  translateEnum
+  translateEnum,
+  formatBedFromResident
 } from '@/utils/formatters'
 
 import ResidentDocumentSection from './ResidentDocumentSection'
@@ -372,20 +373,12 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
         <ResidentDocumentSectionTitle>Acomodação</ResidentDocumentSectionTitle>
 
         {resident.bed ? (
-          <div>
-            {resident.building && (
-              <p><strong>Prédio:</strong> {resident.building.name} ({resident.building.code})</p>
-            )}
-            {resident.floor && (
-              <p><strong>Andar:</strong> {resident.floor.name} ({resident.floor.code})</p>
-            )}
-            {resident.room && (
-              <p><strong>Quarto:</strong> {resident.room.name} ({resident.room.code})</p>
-            )}
-            {resident.bed && (
-              <p><strong>Leito:</strong> {resident.bed.code}</p>
-            )}
-          </div>
+          <p>
+            <strong>Leito:</strong> {formatBedFromResident(resident)}
+            {resident.building && <span> • <strong>Prédio:</strong> {resident.building.name}</span>}
+            {resident.floor && <span> • <strong>Andar:</strong> {resident.floor.name}</span>}
+            {resident.room && <span> • <strong>Quarto:</strong> {resident.room.name}</span>}
+          </p>
         ) : (
           <p>Sem acomodação definida</p>
         )}

@@ -416,8 +416,8 @@ model Resident {
   // ["Óculos", "Aparelho auditivo", ...]
 
   // 9 – Acomodação
-  roomId String?
-  bedId  String?
+  roomId String? @db.Uuid
+  bedId  String? @unique @db.Uuid
 
   // Auditoria
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
@@ -426,6 +426,7 @@ model Resident {
 
   // Relações
   tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bed                       Bed?                       @relation(fields: [bedId], references: [id])
   dailyRecords              DailyRecord[]
   prescriptions             Prescription[]
   medicationAdministrations MedicationAdministration[]
@@ -951,8 +952,9 @@ model Bed {
   updatedAt DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room     Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resident Resident?
 
   @@unique([tenantId, code]) // Código do leito único por tenant
   @@index([tenantId, roomId])

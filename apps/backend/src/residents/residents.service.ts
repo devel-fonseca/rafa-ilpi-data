@@ -51,22 +51,30 @@ export class ResidentsService {
         throw new BadRequestException(`Leito com ID ${bedId} não encontrado`);
       }
 
-      // Verificar se o leito está disponível
-      if (bed.status === 'Ocupado') {
-        // Permitir se é o mesmo residente que já estava nesse leito
-        const existingResident = await this.prisma.resident.findFirst({
-          where: {
-            bedId,
-            tenantId,
-            deletedAt: null,
-          },
-        });
+      // Verificar se já existe um residente ocupando este leito
+      const existingResident = await this.prisma.resident.findFirst({
+        where: {
+          bedId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
 
-        if (existingResident && existingResident.id !== currentResidentId) {
-          throw new BadRequestException(
-            `Leito ${bed.code} já está ocupado por outro residente`,
-          );
-        }
+      // Se existe outro residente no leito (não é o mesmo que está sendo atualizado)
+      if (existingResident && existingResident.id !== currentResidentId) {
+        throw new BadRequestException(
+          `Leito ${bed.code} já está ocupado por outro residente`,
+        );
+      }
+
+      // Verificar também o status do leito (dupla validação)
+      if (bed.status === 'Ocupado' && !existingResident) {
+        // Status está como ocupado mas não há residente - inconsistência de dados
+        this.logger.warn('Inconsistência detectada: leito marcado como ocupado sem residente associado', {
+          bedId: bed.id,
+          bedCode: bed.code,
+          tenantId,
+        });
       }
 
       // Se roomId não foi fornecido, extrair do leito
@@ -103,16 +111,43 @@ export class ResidentsService {
   ) {
     if (!bedId) return;
 
-    await this.prisma.bed.update({
-      where: { id: bedId },
-      data: { status: newStatus },
-    });
+    try {
+      // Verificar se o leito existe antes de atualizar
+      const bed = await this.prisma.bed.findFirst({
+        where: {
+          id: bedId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
 
-    this.logger.info(`Bed status atualizado`, {
-      bedId,
-      newStatus,
-      tenantId,
-    });
+      if (!bed) {
+        this.logger.warn(`Leito não encontrado para atualização de status`, {
+          bedId,
+          tenantId,
+        });
+        return;
+      }
+
+      await this.prisma.bed.update({
+        where: { id: bedId },
+        data: { status: newStatus },
+      });
+
+      this.logger.info(`Bed status atualizado`, {
+        bedId,
+        newStatus,
+        tenantId,
+      });
+    } catch (error) {
+      this.logger.warn(`Erro ao atualizar status do leito`, {
+        bedId,
+        newStatus,
+        tenantId,
+        error: error.message,
+      });
+      // Não propagar o erro para não bloquear a operação principal
+    }
   }
 
   /**
@@ -367,7 +402,7 @@ export class ResidentsService {
 
       // Buscar dados de acomodação para todos os residentes que têm bedId
       const residentsWithBedIds = residents.filter(r => r.bedId);
-      const bedIds = residentsWithBedIds.map(r => r.bedId);
+      const bedIds = residentsWithBedIds.map(r => r.bedId).filter((id): id is string => id !== null);
 
       let bedsMap = new Map();
       if (bedIds.length > 0) {

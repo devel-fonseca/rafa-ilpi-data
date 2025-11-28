@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
+import { formatBedFromResident } from '@/utils/formatters'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -268,11 +269,8 @@ export function ResidentSelectionGrid({
                   {resident.bed && (
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Bed className="h-4 w-4" />
-                      <span>
-                        {resident.building && `${resident.building.code}`}
-                        {resident.floor && `/${resident.floor.code}`}
-                        {resident.room && `/${resident.room.code}`}
-                        {resident.bed && `-${resident.bed.code}`}
+                      <span className="font-mono">
+                        {formatBedFromResident(resident)}
                       </span>
                     </div>
                   )}

@@ -207,15 +207,20 @@ export class BuildingsService {
         )
       }
 
-      // Buscar códigos de prédios existentes
-      const existingBuildings = await this.prisma.building.findMany({
-        where: { tenantId },
-        select: { code: true }
-      })
-      const existingBuildingCodes = existingBuildings.map(b => b.code)
+      // Usar buildingCode fornecido ou gerar automaticamente
+      let buildingCode = data.buildingCode
 
-      // Criar prédio com código gerado automaticamente
-      const buildingCode = generateBuildingCode(data.buildingName, existingBuildingCodes)
+      if (!buildingCode) {
+        // Buscar códigos de prédios existentes
+        const existingBuildings = await this.prisma.building.findMany({
+          where: { tenantId },
+          select: { code: true }
+        })
+        const existingBuildingCodes = existingBuildings.map(b => b.code)
+        buildingCode = generateBuildingCode(data.buildingName, existingBuildingCodes)
+      }
+
+      // Criar prédio
       const building = await this.prisma.building.create({
         data: {
           name: data.buildingName,
@@ -239,7 +244,8 @@ export class BuildingsService {
           ? 'Térreo'
           : `${floorConfig.floorNumber}º Andar`
 
-        const floorCode = generateFloorCode(floorName, floorConfig.floorNumber)
+        // Usar floorCode fornecido ou gerar automaticamente
+        const floorCode = floorConfig.floorCode || generateFloorCode(floorName, floorConfig.floorNumber)
 
         const floor = await this.prisma.floor.create({
           data: {
@@ -257,8 +263,8 @@ export class BuildingsService {
         const existingRoomCodes: string[] = []
 
         for (const roomConfig of floorConfig.rooms || []) {
-          // Gerar código inteligente para o quarto
-          const roomCode = generateRoomCode(
+          // Usar roomCode fornecido ou gerar automaticamente
+          const roomCode = roomConfig.roomCode || generateRoomCode(
             roomConfig.roomName,
             existingRoomCodes
           )
@@ -286,21 +292,24 @@ export class BuildingsService {
 
           for (const bedConfig of roomConfig.beds || []) {
             bedIndex++
-            // Gerar código inteligente para o leito (A, B, C... ou 01, 02, 03...)
-            const bedCode = generateBedCode(
+            // Usar código fornecido ou gerar automaticamente (A, B, C... ou 01, 02, 03...)
+            const bedCode = bedConfig.code || generateBedCode(
               `Leito ${bedIndex}`,
               existingBedCodes,
               bedIndex,
               true // usar letras (A, B, C...)
             )
-            existingBedCodes.push(bedCode)
+
+            // Gerar código completo único: {buildingCode}{floorCode}-{roomCode}-{bedCode}
+            // Exemplo: CT-001-A, CT-001-B, CT-002-A
+            const fullBedCode = `${buildingCode}${floorCode}-${roomCode}-${bedCode}`
+            existingBedCodes.push(fullBedCode)
 
             const bed = await this.prisma.bed.create({
               data: {
                 roomId: room.id,
                 tenantId,
-                code: bedCode,
-                bedNumber: bedCode,
+                code: fullBedCode,
                 status: 'Disponível',
               },
             })

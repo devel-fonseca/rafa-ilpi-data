@@ -41,6 +41,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { formatBedFromResident } from '@/utils/formatters'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import {
   ViewHigieneModal,
@@ -579,37 +580,36 @@ export default function ResidentProfile() {
                   <CardTitle className="text-lg">Acomodação</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Acomodação Completa</div>
-                    {resident.bed ? (
-                      <div className="space-y-2">
-                        {resident.building && (
-                          <div className="font-semibold text-gray-900">
-                            Prédio: {resident.building.name} ({resident.building.code})
-                          </div>
-                        )}
-                        {resident.floor && (
-                          <div className="font-semibold text-gray-900">
-                            Andar: {resident.floor.name} ({resident.floor.code})
-                          </div>
-                        )}
-                        {resident.room && (
-                          <div className="font-semibold text-gray-900">
-                            Quarto: {resident.room.name} ({resident.room.code})
-                          </div>
-                        )}
-                        {resident.bed && (
-                          <div className="font-semibold text-lg text-primary">
-                            Leito: {resident.bed.code}
-                          </div>
-                        )}
+                  {resident.bed ? (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">Leito:</span>
+                        <Badge className="font-mono">{formatBedFromResident(resident)}</Badge>
                       </div>
-                    ) : (
-                      <div className="font-semibold text-lg text-gray-900">
-                        Sem acomodação definida
-                      </div>
-                    )}
-                  </div>
+                      {resident.building && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Prédio:</span>
+                          <span>{resident.building.name}</span>
+                        </div>
+                      )}
+                      {resident.floor && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Andar:</span>
+                          <span>{resident.floor.name}</span>
+                        </div>
+                      )}
+                      {resident.room && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">Quarto:</span>
+                          <span>{resident.room.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="font-semibold text-lg text-gray-900">
+                      Sem acomodação definida
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

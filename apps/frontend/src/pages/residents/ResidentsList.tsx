@@ -60,6 +60,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
+import { formatBedFromResident } from '@/utils/formatters'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
@@ -344,8 +345,8 @@ export default function ResidentsList() {
                       <TableCell>{calculateAge(resident.birthDate)} anos</TableCell>
                       <TableCell>
                         {resident.bed ? (
-                          <span className="text-sm">
-                            {resident.building?.code}/{resident.floor?.code}/{resident.room?.code}-{resident.bed.code}
+                          <span className="text-sm font-mono">
+                            {formatBedFromResident(resident)}
                           </span>
                         ) : (
                           '-'
