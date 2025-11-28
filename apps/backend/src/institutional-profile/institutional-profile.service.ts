@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { FilesService } from '../files/files.service'
-import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto } from './dto'
+import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto, UpdateTenantDto } from './dto'
 import { DocumentStatus } from '@prisma/client'
 import { getRequiredDocuments, getDocumentLabel, isAllowedFileType, MAX_FILE_SIZE } from './config/document-requirements.config'
 
@@ -27,6 +27,41 @@ export class InstitutionalProfileService {
   }
 
   /**
+   * Busca dados combinados do tenant e perfil institucional
+   * Retorna dados completos para exibição no formulário
+   */
+  async getFullProfile(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        cnpj: true,
+        email: true,
+        phone: true,
+        addressStreet: true,
+        addressNumber: true,
+        addressComplement: true,
+        addressDistrict: true,
+        addressCity: true,
+        addressState: true,
+        addressZipCode: true,
+      },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado')
+    }
+
+    const profile = await this.getProfile(tenantId)
+
+    return {
+      tenant,
+      profile,
+    }
+  }
+
+  /**
    * Cria ou atualiza o perfil institucional
    * Usa upsert para garantir que sempre exista apenas um perfil por tenant
    */
@@ -44,6 +79,90 @@ export class InstitutionalProfileService {
         ...data,
       },
       update: data,
+    })
+  }
+
+  /**
+   * Atualiza perfil institucional e dados do tenant em uma transação atômica
+   * Sincroniza telefone e email entre tenant e tenant_profile
+   */
+  async updateFullProfile(tenantId: string, dto: UpdateInstitutionalProfileDto) {
+    console.log('🔍 updateFullProfile - tenantId:', tenantId)
+    console.log('🔍 updateFullProfile - dto:', JSON.stringify(dto, null, 2))
+
+    return this.prisma.$transaction(async (tx) => {
+      let updatedTenant = null
+      let updatedProfile = null
+
+      // 1. Atualizar dados do tenant se fornecidos
+      if (dto.tenant && Object.keys(dto.tenant).length > 0) {
+        const tenantData: any = { ...dto.tenant }
+        console.log('🔍 Atualizando tenant com:', JSON.stringify(tenantData, null, 2))
+
+        updatedTenant = await tx.tenant.update({
+          where: { id: tenantId },
+          data: tenantData,
+        })
+        console.log('✅ Tenant atualizado:', JSON.stringify(updatedTenant, null, 2))
+      }
+
+      // 2. Atualizar perfil institucional se fornecido
+      if (dto.profile && Object.keys(dto.profile).length > 0) {
+        const profileData: any = { ...dto.profile }
+
+        // Converter foundedAt se fornecido
+        if (profileData.foundedAt) {
+          profileData.foundedAt = new Date(profileData.foundedAt)
+        }
+
+        // Sincronizar telefone e email do tenant para o profile
+        if (dto.tenant?.phone) {
+          profileData.contactPhone = dto.tenant.phone
+        }
+        if (dto.tenant?.email) {
+          profileData.contactEmail = dto.tenant.email
+        }
+
+        console.log('🔍 Atualizando profile com:', JSON.stringify(profileData, null, 2))
+
+        updatedProfile = await tx.tenantProfile.upsert({
+          where: { tenantId },
+          create: {
+            tenantId,
+            ...profileData,
+          },
+          update: profileData,
+        })
+        console.log('✅ Profile atualizado:', JSON.stringify(updatedProfile, null, 2))
+      }
+
+      // 3. Buscar dados atualizados completos
+      const tenant = await tx.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          name: true,
+          cnpj: true,
+          email: true,
+          phone: true,
+          addressStreet: true,
+          addressNumber: true,
+          addressComplement: true,
+          addressDistrict: true,
+          addressCity: true,
+          addressState: true,
+          addressZipCode: true,
+        },
+      })
+
+      const profile = await tx.tenantProfile.findFirst({
+        where: { tenantId, deletedAt: null },
+      })
+
+      return {
+        tenant,
+        profile,
+      }
     })
   }
 
@@ -82,10 +201,18 @@ export class InstitutionalProfileService {
       'logos'
     )
 
-    // Atualizar perfil com nova URL do logo
-    return this.createOrUpdateProfile(tenantId, {
-      logoUrl: uploadResult.fileUrl,
-      logoFileId: uploadResult.fileId,
+    // Atualizar perfil diretamente no banco com nova URL do logo
+    return this.prisma.tenantProfile.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        logoUrl: uploadResult.fileUrl,
+        logoKey: uploadResult.fileId,
+      },
+      update: {
+        logoUrl: uploadResult.fileUrl,
+        logoKey: uploadResult.fileId,
+      },
     })
   }
 
@@ -197,7 +324,7 @@ export class InstitutionalProfileService {
         uploadedBy: userId,
         type: dto.type,
         fileUrl: uploadResult.fileUrl,
-        fileId: uploadResult.fileId,
+        fileKey: uploadResult.fileId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,
@@ -279,7 +406,7 @@ export class InstitutionalProfileService {
       where: { id: documentId },
       data: {
         fileUrl: uploadResult.fileUrl,
-        fileId: uploadResult.fileId,
+        fileKey: uploadResult.fileId,
         fileName: file.originalname,
         fileSize: file.size,
         mimeType: file.mimetype,

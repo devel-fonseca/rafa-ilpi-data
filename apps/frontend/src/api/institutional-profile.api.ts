@@ -103,6 +103,43 @@ export interface CreateTenantProfileDto {
 
 export interface UpdateTenantProfileDto extends Partial<CreateTenantProfileDto> {}
 
+export interface TenantData {
+  id: string
+  name: string
+  cnpj?: string
+  email: string
+  phone?: string
+  addressStreet?: string
+  addressNumber?: string
+  addressComplement?: string
+  addressDistrict?: string
+  addressCity?: string
+  addressState?: string
+  addressZipCode?: string
+}
+
+export interface FullProfile {
+  tenant: TenantData
+  profile: TenantProfile | null
+}
+
+export interface UpdateTenantDto {
+  phone?: string
+  email?: string
+  addressZipCode?: string
+  addressStreet?: string
+  addressNumber?: string
+  addressComplement?: string
+  addressDistrict?: string
+  addressCity?: string
+  addressState?: string
+}
+
+export interface UpdateInstitutionalProfileDto {
+  profile?: UpdateTenantProfileDto
+  tenant?: UpdateTenantDto
+}
+
 export interface CreateTenantDocumentDto {
   type: string
   issuedAt?: string
@@ -123,13 +160,13 @@ class InstitutionalProfileAPI {
   // PROFILE
   // ────────────────────────────────────────────────────────────────────────────
 
-  async getProfile(): Promise<TenantProfile | null> {
-    const response = await api.get<TenantProfile>(`${this.baseUrl}`)
+  async getProfile(): Promise<FullProfile> {
+    const response = await api.get<FullProfile>(`${this.baseUrl}`)
     return response.data
   }
 
-  async createOrUpdateProfile(data: CreateTenantProfileDto | UpdateTenantProfileDto): Promise<TenantProfile> {
-    const response = await api.post<TenantProfile>(`${this.baseUrl}`, data)
+  async createOrUpdateProfile(data: UpdateInstitutionalProfileDto): Promise<FullProfile> {
+    const response = await api.post<FullProfile>(`${this.baseUrl}`, data)
     return response.data
   }
 

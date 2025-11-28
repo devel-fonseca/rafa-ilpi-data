@@ -19,7 +19,7 @@ import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { InstitutionalProfileService } from './institutional-profile.service'
-import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto } from './dto'
+import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { getRequiredDocuments, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { LegalNature } from '@prisma/client'
 
@@ -34,25 +34,25 @@ export class InstitutionalProfileController {
 
   /**
    * GET /institutional-profile
-   * Retorna o perfil institucional do tenant
+   * Retorna o perfil institucional do tenant combinado com dados do tenant
    */
   @Get()
   @Roles('admin', 'user')
   async getProfile(@CurrentUser('tenantId') tenantId: string) {
-    return this.service.getProfile(tenantId)
+    return this.service.getFullProfile(tenantId)
   }
 
   /**
    * POST /institutional-profile
-   * Cria ou atualiza o perfil institucional
+   * Cria ou atualiza o perfil institucional e dados do tenant
    */
   @Post()
   @Roles('admin')
   async createOrUpdateProfile(
     @CurrentUser('tenantId') tenantId: string,
-    @Body() dto: CreateTenantProfileDto | UpdateTenantProfileDto
+    @Body() dto: UpdateInstitutionalProfileDto
   ) {
-    return this.service.createOrUpdateProfile(tenantId, dto)
+    return this.service.updateFullProfile(tenantId, dto)
   }
 
   /**
@@ -117,17 +117,32 @@ export class InstitutionalProfileController {
   @Roles('admin')
   @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentUser('userId') userId: string,
-    @Body() dto: CreateTenantDocumentDto,
+    @CurrentUser() user: any,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
         .addMaxSizeValidator({ maxSize: MAX_FILE_SIZE })
         .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY })
     )
-    file: Express.Multer.File
+    file: Express.Multer.File,
+    @Body() body: any
   ) {
+    console.log('🔍 DEBUG uploadDocument - user:', user)
+    console.log('🔍 DEBUG uploadDocument - body:', body)
+
+    const tenantId = user.tenantId
+    const userId = user.sub
+
+    // Extrair DTO dos campos do FormData
+    const dto: CreateTenantDocumentDto = {
+      type: body.type,
+      issuedAt: body.issuedAt,
+      expiresAt: body.expiresAt,
+      notes: body.notes,
+    }
+
+    console.log('🔍 DEBUG uploadDocument - tenantId:', tenantId, 'userId:', userId, 'dto:', dto)
+
     return this.service.uploadDocument(tenantId, userId, file, dto)
   }
 

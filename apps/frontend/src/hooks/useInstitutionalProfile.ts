@@ -10,6 +10,10 @@ import {
   type UpdateTenantDocumentDto,
   type LegalNature,
   type DocumentStatus,
+  type FullProfile,
+  type UpdateInstitutionalProfileDto,
+  type TenantData,
+  type UpdateTenantDto,
 } from '@/api/institutional-profile.api'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -37,18 +41,27 @@ export const institutionalProfileKeys = {
 export function useProfile() {
   return useQuery({
     queryKey: institutionalProfileKeys.profile(),
-    queryFn: () => institutionalProfileAPI.getProfile(),
+    queryFn: async () => {
+      console.log('🌐 [useProfile] Chamando API getProfile...')
+      const result = await institutionalProfileAPI.getProfile()
+      console.log('✅ [useProfile] API retornou:', {
+        legalNature: result.profile?.legalNature,
+        tenantName: result.tenant.name,
+        timestamp: new Date().toISOString()
+      })
+      return result
+    },
   })
 }
 
 /**
- * Hook para criar ou atualizar o perfil institucional
+ * Hook para criar ou atualizar o perfil institucional completo (tenant + profile)
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: CreateTenantProfileDto | UpdateTenantProfileDto) =>
+    mutationFn: (data: UpdateInstitutionalProfileDto) =>
       institutionalProfileAPI.createOrUpdateProfile(data),
     onSuccess: () => {
       // Invalidar queries relacionadas
