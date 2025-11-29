@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Calendar,
   Clock,
+  Bed,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
+import { getSignedFileUrl } from '@/services/upload'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 
@@ -151,12 +154,20 @@ export default function PrescriptionDetails() {
                   </p>
                 </div>
               )}
-              {prescriptionData.resident?.bed && (
+              {prescriptionData.resident?.chronicConditions && (
                 <div>
-                  <p className="text-sm text-gray-600">Localização</p>
-                  <p className="font-medium font-mono">
-                    {formatBedFromResident(prescriptionData.resident)}
+                  <p className="text-sm text-gray-600">Condições Crônicas</p>
+                  <p className="font-medium text-sm">
+                    {prescriptionData.resident.chronicConditions}
                   </p>
+                </div>
+              )}
+              {prescriptionData.resident?.bed && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Bed className="h-4 w-4" />
+                  <span className="font-mono">
+                    {formatBedFromResident(prescriptionData.resident)}
+                  </span>
                 </div>
               )}
             </div>
@@ -189,6 +200,33 @@ export default function PrescriptionDetails() {
                   {format(parseISO(prescriptionData.prescriptionDate), 'dd/MM/yyyy')}
                 </p>
               </div>
+              {prescriptionData.prescriptionImageUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    try {
+                      const fileUrl = prescriptionData.prescriptionImageUrl!
+
+                      // Se já é uma URL completa (http/https), abrir diretamente
+                      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+                        window.open(fileUrl, '_blank')
+                        return
+                      }
+
+                      // Caso contrário, obter URL assinada do MinIO
+                      const signedUrl = await getSignedFileUrl(fileUrl)
+                      window.open(signedUrl, '_blank')
+                    } catch (error) {
+                      console.error('Erro ao abrir prescrição:', error)
+                    }
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver prescrição
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

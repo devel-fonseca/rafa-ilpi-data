@@ -175,12 +175,6 @@ export class CreateResidentDto {
   @IsString()
   fotoUrl?: string;
 
-  @ApiProperty({ example: ['https://...'], type: [String] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  documents?: string[] = [];
-
   // 2. Endereços
   @ApiProperty({ example: '01234-567', required: false })
   @IsOptional()
@@ -262,12 +256,6 @@ export class CreateResidentDto {
   @IsString()
   originPhone?: string;
 
-  @ApiProperty({ example: ['https://...'], type: [String] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  addressDocuments?: string[] = [];
-
   // 3. Contatos de Emergência
   @ApiProperty({ type: [EmergencyContactDto] })
   @IsArray()
@@ -337,12 +325,6 @@ export class CreateResidentDto {
   @IsOptional()
   @IsString()
   legalGuardianDistrict?: string;
-
-  @ApiProperty({ example: ['https://...'], type: [String] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  legalGuardianDocuments?: string[] = [];
 
   // 5. Admissão
   @ApiProperty({ example: '2025-01-15T00:00:00.000Z' })
@@ -445,13 +427,6 @@ export class CreateResidentDto {
   @IsOptional()
   @IsString()
   dietaryRestrictions?: string;
-
-  @ApiProperty({ type: [MedicalReportDto] })
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => MedicalReportDto)
-  @IsOptional()
-  medicalReport?: MedicalReportDto[] = [];
 
   // 7. Convênios
   @ApiProperty({ type: [HealthPlanDto] })

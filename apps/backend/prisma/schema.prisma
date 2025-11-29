@@ -237,6 +237,7 @@ model Tenant {
   beds                      Bed[]
   profile                   TenantProfile?
   documents                 TenantDocument[]
+  residentDocuments         ResidentDocument[]
 
   @@map("tenants")
 }
@@ -339,7 +340,6 @@ model Resident {
   motherName  String?
   fatherName  String?
   fotoUrl     String? // URL da foto do residente no MinIO
-  documents   Json         @default("[]") // URLs de documentos pessoais
 
   // 2 – Endereços
   // Atual
@@ -362,8 +362,6 @@ model Resident {
   originDistrict   String?
   originPhone      String?
 
-  addressDocuments Json @default("[]") // comprovantes de endereço
-
   // 3 – Contatos de Emergência (array JSON)
   emergencyContacts Json @default("[]")
   // [{ "name": "...", "phone": "...", "relationship": "..." }]
@@ -381,7 +379,6 @@ model Resident {
   legalGuardianNumber     String?
   legalGuardianComplement String?
   legalGuardianDistrict   String?
-  legalGuardianDocuments  Json    @default("[]")
 
   // 5 – Admissão
   admissionDate       DateTime  @db.Date
@@ -404,8 +401,6 @@ model Resident {
   allergies              String?
   chronicConditions      String?
   dietaryRestrictions    String?
-  medicalReport          Json      @default("[]")
-  // [{ "url": "...", "date": "YYYY-MM-DD" }]
 
   // 7 – Convênios / Planos de Saúde
   healthPlans Json @default("[]")
@@ -433,6 +428,7 @@ model Resident {
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
   vitalSigns                VitalSign[]
+  residentDocuments         ResidentDocument[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -440,6 +436,54 @@ model Resident {
   @@index([tenantId, admissionDate(sort: Desc)])
   @@index([deletedAt])
   @@map("residents")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  DOCUMENTOS DE RESIDENTES
+// ──────────────────────────────────────────────────────────────────────────────
+model ResidentDocument {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  residentId  String    @db.Uuid
+
+  // Tipo de documento
+  type        String    @db.VarChar(100)
+  // Tipos possíveis:
+  // - CARTAO_CONVENIO
+  // - COMPROVANTE_RESIDENCIA_RESIDENTE
+  // - DOCUMENTOS_RESPONSAVEL_LEGAL
+  // - COMPROVANTE_RESIDENCIA_RESPONSAVEL
+  // - DOCUMENTOS_PESSOAIS
+  // - LAUDO_MEDICO
+  // - TERMO_ADMISSAO
+  // - TERMO_CONSENTIMENTO_IMAGEM
+  // - TERMO_CONSENTIMENTO_LGPD
+
+  // Arquivo
+  fileUrl     String    // URL completa do arquivo no S3/MinIO
+  fileKey     String?   // Chave do arquivo no S3 para deleção
+  fileName    String    // Nome original do arquivo
+  fileSize    Int?      // Tamanho em bytes
+  mimeType    String?   @db.VarChar(100) // application/pdf, image/jpeg, etc.
+
+  // Detalhes opcionais (ex: "Unimed", "Laudo de entrada", etc.)
+  details     String?   @db.Text
+
+  // Auditoria
+  uploadedBy  String    @db.Uuid // ID do usuário que fez upload
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident    Resident  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, type])
+  @@index([deletedAt])
+  @@map("resident_documents")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

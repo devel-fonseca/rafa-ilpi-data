@@ -239,7 +239,6 @@ export class ResidentsService {
           motherName: createResidentDto.motherName,
           fatherName: createResidentDto.fatherName,
           fotoUrl: createResidentDto.fotoUrl,
-          documents: createResidentDto.documents || [],
 
           // 2. Endereços
           currentCep: createResidentDto.currentCep,
@@ -260,8 +259,6 @@ export class ResidentsService {
           originDistrict: createResidentDto.originDistrict,
           originPhone: createResidentDto.originPhone,
 
-          addressDocuments: createResidentDto.addressDocuments || [],
-
           // 3. Contatos de Emergência
           emergencyContacts: (createResidentDto.emergencyContacts || []) as any,
 
@@ -278,7 +275,6 @@ export class ResidentsService {
           legalGuardianNumber: createResidentDto.legalGuardianNumber,
           legalGuardianComplement: createResidentDto.legalGuardianComplement,
           legalGuardianDistrict: createResidentDto.legalGuardianDistrict,
-          legalGuardianDocuments: createResidentDto.legalGuardianDocuments || [],
 
           // 5. Admissão
           admissionDate: createResidentDto.admissionDate,
@@ -301,7 +297,6 @@ export class ResidentsService {
           allergies: createResidentDto.allergies,
           chronicConditions: createResidentDto.chronicConditions,
           dietaryRestrictions: createResidentDto.dietaryRestrictions,
-          medicalReport: (createResidentDto.medicalReport || []) as any,
 
           // 7. Convênios
           healthPlans: (createResidentDto.healthPlans || []) as any,
@@ -620,12 +615,56 @@ export class ResidentsService {
         });
       }
 
-      // Gerar URLs assinadas para documentos
-      const residentWithUrls = await this.generateSignedUrls(resident);
+      // Processar foto com URLs assinadas se existir
+      let fotoData = {};
+      if (resident.fotoUrl) {
+        try {
+          const basePath = resident.fotoUrl;
+          const smallPath = basePath.replace('.webp', '_small.webp');
+          const mediumPath = basePath.replace('.webp', '_medium.webp');
 
-      // Adicionar acomodação completa aos dados do residente
+          const [originalUrl, smallUrl, mediumUrl] = await Promise.allSettled([
+            this.filesService.getFileUrl(basePath),
+            this.filesService.getFileUrl(smallPath),
+            this.filesService.getFileUrl(mediumPath),
+          ]);
+
+          fotoData = {
+            fotoUrl: originalUrl.status === 'fulfilled' ? originalUrl.value : basePath,
+            fotoUrlSmall: smallUrl.status === 'fulfilled' ? smallUrl.value : (originalUrl.status === 'fulfilled' ? originalUrl.value : basePath),
+            fotoUrlMedium: mediumUrl.status === 'fulfilled' ? mediumUrl.value : (originalUrl.status === 'fulfilled' ? originalUrl.value : basePath),
+          };
+        } catch (error) {
+          this.logger.warn('Erro ao gerar URL assinada para foto:', error);
+        }
+      }
+
+      // Processar healthPlans com URLs assinadas
+      let healthPlans = resident.healthPlans || [];
+      if (Array.isArray(healthPlans) && healthPlans.length > 0) {
+        healthPlans = await Promise.all(
+          healthPlans.map(async (plan: any) => {
+            if (plan.cardUrl) {
+              try {
+                return {
+                  ...plan,
+                  cardUrl: await this.filesService.getFileUrl(plan.cardUrl),
+                };
+              } catch (error) {
+                this.logger.warn('Erro ao gerar URL assinada para cartão do convênio:', error);
+                return plan;
+              }
+            }
+            return plan;
+          })
+        );
+      }
+
+      // Retornar dados do residente com URLs assinadas
       return {
-        ...residentWithUrls,
+        ...resident,
+        ...fotoData,
+        healthPlans,
         room,
         bed,
         floor,
@@ -719,8 +758,9 @@ export class ResidentsService {
         belongings,
         roomId,
         bedId,
+        tenantId: _tenantId, // Remove tenantId pois não pode ser atualizado
         ...restDto
-      } = updateResidentDto;
+      } = updateResidentDto as any;
 
       // Construir objeto de atualização com tipos corretos
       // Cast para 'any' necessário porque Prisma espera InputJsonValue para campos JSON
@@ -831,96 +871,6 @@ export class ResidentsService {
       });
       throw error;
     }
-  }
-
-  /**
-   * Gera URLs assinadas para todos os campos de arquivo
-   */
-  private async generateSignedUrls(resident: any): Promise<any> {
-    const urlFields = ['documents', 'addressDocuments', 'legalGuardianDocuments'];
-
-    for (const field of urlFields) {
-      if (resident[field] && Array.isArray(resident[field])) {
-        resident[field] = await Promise.all(
-          resident[field].map(async (url: string) => {
-            try {
-              return await this.filesService.getFileUrl(url);
-            } catch (error) {
-              this.logger.warn(`Erro ao gerar URL assinada para ${field}:`, error);
-              return url;
-            }
-          })
-        );
-      }
-    }
-
-    // Processar medicalReport e healthPlans se existirem
-    if (resident.medicalReport && Array.isArray(resident.medicalReport)) {
-      resident.medicalReport = await Promise.all(
-        resident.medicalReport.map(async (report: any) => {
-          try {
-            return {
-              ...report,
-              url: await this.filesService.getFileUrl(report.url),
-            };
-          } catch (error) {
-            this.logger.warn('Erro ao gerar URL assinada para laudo médico:', error);
-            return report;
-          }
-        })
-      );
-    }
-
-    if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
-      resident.healthPlans = await Promise.all(
-        resident.healthPlans.map(async (plan: any) => {
-          if (plan.cardUrl) {
-            try {
-              return {
-                ...plan,
-                cardUrl: await this.filesService.getFileUrl(plan.cardUrl),
-              };
-            } catch (error) {
-              this.logger.warn('Erro ao gerar URL assinada para cartão do convênio:', error);
-              return plan;
-            }
-          }
-          return plan;
-        })
-      );
-    }
-
-    // Processar fotoUrl se existir (gera original + thumbnails)
-    if (resident.fotoUrl) {
-      try {
-        const basePath = resident.fotoUrl; // Path no MinIO antes de assinar
-
-        // Derivar paths dos thumbnails usando convenção de nomenclatura
-        const smallPath = basePath.replace('.webp', '_small.webp');
-        const mediumPath = basePath.replace('.webp', '_medium.webp');
-
-        // Gerar URLs assinadas para todas as variantes
-        const [originalUrl, smallUrl, mediumUrl] = await Promise.allSettled([
-          this.filesService.getFileUrl(basePath),
-          this.filesService.getFileUrl(smallPath),
-          this.filesService.getFileUrl(mediumPath),
-        ]);
-
-        // Atribuir URL original (sempre existe)
-        resident.fotoUrl = originalUrl.status === 'fulfilled' ? originalUrl.value : basePath;
-
-        // Atribuir URLs de thumbnails (fallback para original se não existirem)
-        resident.fotoUrlSmall =
-          smallUrl.status === 'fulfilled' ? smallUrl.value : resident.fotoUrl;
-        resident.fotoUrlMedium =
-          mediumUrl.status === 'fulfilled' ? mediumUrl.value : resident.fotoUrl;
-      } catch (error) {
-        this.logger.warn('Erro ao gerar URL assinada para foto do residente:', error);
-        // Mantém URL original se falhar
-      }
-    }
-
-    return resident;
   }
 
   /**

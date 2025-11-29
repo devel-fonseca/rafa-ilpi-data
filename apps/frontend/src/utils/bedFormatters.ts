@@ -81,18 +81,33 @@ export function formatBedFromResident(resident: any): string {
     return resident.bed.code
   }
 
-  // Senão, construir a partir da hierarquia (fallback para dados antigos)
-  if (!resident?.building?.code || !resident?.floor?.code ||
-      !resident?.room?.code || !resident?.bed?.code) {
-    return '-'
+  // Tentar acessar a hierarquia aninhada através de bed.room.floor.building
+  const building = resident?.bed?.room?.floor?.building
+  const floor = resident?.bed?.room?.floor
+  const room = resident?.bed?.room
+  const bed = resident?.bed
+
+  if (building?.code && floor?.code && room?.code && bed?.code) {
+    return formatBedIdentification(
+      building.code,
+      floor.code,
+      room.code,
+      bed.code
+    )
   }
 
-  return formatBedIdentification(
-    resident.building.code,
-    resident.floor.code,
-    resident.room.code,
-    resident.bed.code
-  )
+  // Fallback para dados antigos que podem ter as relações diretas no resident
+  if (resident?.building?.code && resident?.floor?.code &&
+      resident?.room?.code && resident?.bed?.code) {
+    return formatBedIdentification(
+      resident.building.code,
+      resident.floor.code,
+      resident.room.code,
+      resident.bed.code
+    )
+  }
+
+  return '-'
 }
 
 /**

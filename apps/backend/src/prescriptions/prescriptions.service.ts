@@ -62,75 +62,98 @@ export class PrescriptionsService {
       }
 
       // 4. Criar prescrição com medicamentos e SOS em transação
-      const prescription = await this.prisma.prescription.create({
-        data: {
-          tenantId,
-          residentId: createPrescriptionDto.residentId,
-          doctorName: createPrescriptionDto.doctorName,
-          doctorCrm: createPrescriptionDto.doctorCrm,
-          doctorCrmState: createPrescriptionDto.doctorCrmState,
-          prescriptionDate: new Date(createPrescriptionDto.prescriptionDate),
-          prescriptionType: createPrescriptionDto.prescriptionType as PrescriptionType,
-          validUntil: createPrescriptionDto.validUntil
-            ? new Date(createPrescriptionDto.validUntil)
-            : null,
-          reviewDate: createPrescriptionDto.reviewDate
-            ? new Date(createPrescriptionDto.reviewDate)
-            : null,
-          controlledClass: createPrescriptionDto.controlledClass as ControlledClass | null,
-          notificationNumber: createPrescriptionDto.notificationNumber || null,
-          notificationType: createPrescriptionDto.notificationType as NotificationType | null,
-          prescriptionImageUrl:
-            createPrescriptionDto.prescriptionImageUrl || null,
-          notes: createPrescriptionDto.notes || null,
-          createdBy: userId,
-          medications: {
-            create: createPrescriptionDto.medications.map((med) => ({
-              name: med.name,
-              presentation: med.presentation as MedicationPresentation,
-              concentration: med.concentration,
-              dose: med.dose,
-              route: med.route as AdministrationRoute,
-              frequency: med.frequency as MedicationFrequency,
-              scheduledTimes: med.scheduledTimes,
-              startDate: new Date(med.startDate),
-              endDate: med.endDate ? new Date(med.endDate) : null,
-              isControlled: med.isControlled || false,
-              isHighRisk: med.isHighRisk || false,
-              requiresDoubleCheck: med.requiresDoubleCheck || false,
-              instructions: med.instructions || null,
-            })),
-          },
-          sosMedications: createPrescriptionDto.sosMedications
-            ? {
-                create: createPrescriptionDto.sosMedications.map((sos) => ({
-                  name: sos.name,
-                  presentation: sos.presentation as MedicationPresentation,
-                  concentration: sos.concentration,
-                  dose: sos.dose,
-                  route: sos.route as AdministrationRoute,
-                  indication: sos.indication as SOSIndicationType,
-                  indicationDetails: sos.indicationDetails || null,
-                  minInterval: sos.minInterval,
-                  maxDailyDoses: sos.maxDailyDoses,
-                  startDate: new Date(sos.startDate),
-                  endDate: sos.endDate ? new Date(sos.endDate) : null,
-                  instructions: sos.instructions || null,
-                })),
-              }
-            : undefined,
-        },
-        include: {
-          resident: {
-            select: {
-              id: true,
-              fullName: true,
-              fotoUrl: true,
+      const prescription = await this.prisma.$transaction(async (tx) => {
+        // 4.1 Criar a prescrição
+        const newPrescription = await tx.prescription.create({
+          data: {
+            tenantId,
+            residentId: createPrescriptionDto.residentId,
+            doctorName: createPrescriptionDto.doctorName,
+            doctorCrm: createPrescriptionDto.doctorCrm,
+            doctorCrmState: createPrescriptionDto.doctorCrmState,
+            prescriptionDate: new Date(createPrescriptionDto.prescriptionDate),
+            prescriptionType: createPrescriptionDto.prescriptionType as PrescriptionType,
+            validUntil: createPrescriptionDto.validUntil
+              ? new Date(createPrescriptionDto.validUntil)
+              : null,
+            reviewDate: createPrescriptionDto.reviewDate
+              ? new Date(createPrescriptionDto.reviewDate)
+              : null,
+            controlledClass: createPrescriptionDto.controlledClass as ControlledClass | null,
+            notificationNumber: createPrescriptionDto.notificationNumber || null,
+            notificationType: createPrescriptionDto.notificationType as NotificationType | null,
+            prescriptionImageUrl:
+              createPrescriptionDto.prescriptionImageUrl || null,
+            notes: createPrescriptionDto.notes || null,
+            createdBy: userId,
+            medications: {
+              create: createPrescriptionDto.medications.map((med) => ({
+                name: med.name,
+                presentation: med.presentation as MedicationPresentation,
+                concentration: med.concentration,
+                dose: med.dose,
+                route: med.route as AdministrationRoute,
+                frequency: med.frequency as MedicationFrequency,
+                scheduledTimes: med.scheduledTimes,
+                startDate: new Date(med.startDate),
+                endDate: med.endDate ? new Date(med.endDate) : null,
+                isControlled: med.isControlled || false,
+                isHighRisk: med.isHighRisk || false,
+                requiresDoubleCheck: med.requiresDoubleCheck || false,
+                instructions: med.instructions || null,
+              })),
             },
+            sosMedications: createPrescriptionDto.sosMedications
+              ? {
+                  create: createPrescriptionDto.sosMedications.map((sos) => ({
+                    name: sos.name,
+                    presentation: sos.presentation as MedicationPresentation,
+                    concentration: sos.concentration,
+                    dose: sos.dose,
+                    route: sos.route as AdministrationRoute,
+                    indication: sos.indication as SOSIndicationType,
+                    indicationDetails: sos.indicationDetails || null,
+                    minInterval: sos.minInterval,
+                    maxDailyDoses: sos.maxDailyDoses,
+                    startDate: new Date(sos.startDate),
+                    endDate: sos.endDate ? new Date(sos.endDate) : null,
+                    instructions: sos.instructions || null,
+                  })),
+                }
+              : undefined,
           },
-          medications: true,
-          sosMedications: true,
-        },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+                fotoUrl: true,
+              },
+            },
+            medications: true,
+            sosMedications: true,
+          },
+        });
+
+        // 4.2 Se houver imagem da prescrição, criar documento do residente
+        if (createPrescriptionDto.prescriptionImageUrl) {
+          const prescriptionDate = new Date(createPrescriptionDto.prescriptionDate);
+          const formattedDate = prescriptionDate.toLocaleDateString('pt-BR');
+
+          await tx.residentDocument.create({
+            data: {
+              tenantId,
+              residentId: createPrescriptionDto.residentId,
+              type: 'PRESCRICAO_MEDICA',
+              fileUrl: createPrescriptionDto.prescriptionImageUrl,
+              fileName: `Prescrição - Dr. ${createPrescriptionDto.doctorName} - ${formattedDate}`,
+              details: `Laudo Dr. ${createPrescriptionDto.doctorName} - ${formattedDate}`,
+              uploadedBy: userId,
+            },
+          });
+        }
+
+        return newPrescription;
       });
 
       this.logger.info('Prescrição criada', {
@@ -295,6 +318,35 @@ export class PrescriptionsService {
             bedId: true,
             allergies: true,
             chronicConditions: true,
+            birthDate: true,
+            bed: {
+              select: {
+                id: true,
+                code: true,
+                status: true,
+                room: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    floor: {
+                      select: {
+                        id: true,
+                        name: true,
+                        code: true,
+                        building: {
+                          select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         medications: {

@@ -2034,15 +2034,17 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
             {/* ========== ABA 5: DOCUMENTOS ========== */}
             <TabsContent value="tab5" forceMount className="data-[state=inactive]:hidden">
-              {id && <ResidentDocuments residentId={id} />}
-              {!id && (
-                <Card className="shadow-lg">
-                  <CardContent className="p-6 text-center text-gray-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>Salve o cadastro do residente primeiro para adicionar documentos.</p>
-                  </CardContent>
-                </Card>
-              )}
+              <div style={{ pointerEvents: 'auto' }}>
+                {id && <ResidentDocuments residentId={id} />}
+                {!id && (
+                  <Card className="shadow-lg">
+                    <CardContent className="p-6 text-center text-gray-500">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Salve o cadastro do residente primeiro para adicionar documentos.</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </TabsContent>
 
             </fieldset>

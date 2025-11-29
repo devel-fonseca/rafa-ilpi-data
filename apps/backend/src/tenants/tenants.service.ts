@@ -561,7 +561,6 @@ export class TenantsService {
         uf_nascimento TEXT,
         nome_mae TEXT,
         nome_pai TEXT,
-        documentos_pessoais_urls JSONB,
         cns_card_url TEXT,
 
         -- ========================================
@@ -586,7 +585,6 @@ export class TenantsService {
         complemento_procedencia TEXT,
         bairro_procedencia TEXT,
         telefone_procedencia TEXT,
-        documentos_endereco_urls JSONB,
 
         -- ========================================
         -- SEÇÃO 3: CONTATOS DE EMERGÊNCIA
@@ -608,7 +606,6 @@ export class TenantsService {
         responsavel_legal_numero TEXT,
         responsavel_legal_complemento TEXT,
         responsavel_legal_bairro TEXT,
-        responsavel_legal_documentos_urls JSONB,
 
         -- ========================================
         -- SEÇÃO 5: DADOS DE ADMISSÃO
@@ -619,9 +616,6 @@ export class TenantsService {
         condicoes_admissao TEXT,
         data_desligamento TIMESTAMP,
         motivo_desligamento TEXT,
-        termo_admissao_url TEXT,
-        consentimento_lgpd_url TEXT,
-        consentimento_imagem_url TEXT,
         data_saida TIMESTAMP,
         motivo_saida TEXT,
         status TEXT NOT NULL DEFAULT 'ATIVO',
@@ -642,8 +636,6 @@ export class TenantsService {
         alergias TEXT,
         condicoes_cronicas TEXT,
         observacoes_saude TEXT,
-        laudo_medico_url TEXT,
-        data_laudo_medico TIMESTAMP,
 
         -- ========================================
         -- SEÇÃO 7: PLANOS DE SAÚDE / CONVÊNIOS
