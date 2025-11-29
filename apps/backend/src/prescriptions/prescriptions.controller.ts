@@ -11,7 +11,6 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  UseInterceptors,
 } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -24,7 +23,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
-import { AuditInterceptor } from '../audit/audit.interceptor';
 import {
   ApiTags,
   ApiOperation,
@@ -38,7 +36,6 @@ import {
 @ApiBearerAuth()
 @Controller('prescriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseInterceptors(AuditInterceptor)
 @AuditEntity('PRESCRIPTION')
 export class PrescriptionsController {
   constructor(private readonly prescriptionsService: PrescriptionsService) {}

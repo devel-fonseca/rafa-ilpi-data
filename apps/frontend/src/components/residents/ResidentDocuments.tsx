@@ -187,7 +187,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                 Gerencie todos os documentos do cadastro do residente
               </CardDescription>
             </div>
-            <Button onClick={() => setIsUploadDialogOpen(true)}>
+            <Button type="button" onClick={() => setIsUploadDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Documento
             </Button>
@@ -292,6 +292,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
+                            type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => handleView(doc.fileUrl)}
@@ -301,6 +302,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                           </Button>
                           {doc.type !== 'PRESCRICAO_MEDICA' && (
                             <Button
+                              type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(doc.id, doc.fileName)}
@@ -379,6 +381,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                       </p>
                     </div>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => {
@@ -418,6 +421,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
 
           <DialogFooter>
             <Button
+              type="button"
               variant="outline"
               onClick={() => {
                 setIsUploadDialogOpen(false)
@@ -432,6 +436,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
               Cancelar
             </Button>
             <Button
+              type="button"
               onClick={handleUpload}
               disabled={!selectedFile || !uploadType || uploadMutation.isPending}
             >

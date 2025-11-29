@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  UseInterceptors,
   Query,
   ParseIntPipe,
   DefaultValuePipe,
@@ -28,7 +27,6 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { AuditInterceptor } from '../audit/audit.interceptor';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 interface JwtPayload {
@@ -40,7 +38,6 @@ interface JwtPayload {
 
 @ApiTags('tenants')
 @Controller('tenants')
-@UseInterceptors(AuditInterceptor)
 @AuditEntity('tenant')
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}

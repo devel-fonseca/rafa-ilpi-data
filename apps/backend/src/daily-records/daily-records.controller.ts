@@ -37,7 +37,6 @@ import {
 @ApiBearerAuth()
 @Controller('daily-records')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseInterceptors(AuditInterceptor)
 @AuditEntity('DAILY_RECORD')
 export class DailyRecordsController {
   constructor(private readonly dailyRecordsService: DailyRecordsService) {}

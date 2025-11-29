@@ -468,8 +468,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         if (isMounted) {
           console.error('❌ Erro ao carregar residente:', error)
-          alert(`Erro ao carregar residente: ${error.response?.data?.message || error.message}`)
-          navigate('/dashboard/residentes')
+          // Apenas mostra o erro, mas NÃO navega automaticamente
+          // (evita navegação indesejada quando o usuário volta de uma aba de visualização de documento)
+          toast.error(`Erro ao carregar dados do residente: ${error.response?.data?.message || error.message}`)
         }
       } finally {
         if (isMounted) {

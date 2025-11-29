@@ -37,7 +37,6 @@ import {
 @ApiBearerAuth()
 @Controller('residents')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseInterceptors(AuditInterceptor)
 @AuditEntity('RESIDENT')
 export class ResidentsController {
   constructor(private readonly residentsService: ResidentsService) {}

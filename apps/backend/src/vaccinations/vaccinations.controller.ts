@@ -10,7 +10,6 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UseInterceptors,
 } from '@nestjs/common'
 import {
   ApiTags,
@@ -26,13 +25,11 @@ import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
-import { AuditInterceptor } from '../audit/audit.interceptor'
 
 @ApiTags('Vaccinations')
 @ApiBearerAuth()
 @Controller('vaccinations')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseInterceptors(AuditInterceptor)
 @AuditEntity('VACCINATION')
 export class VaccinationsController {
   constructor(private readonly vaccinationsService: VaccinationsService) {}

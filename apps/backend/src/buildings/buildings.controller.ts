@@ -7,14 +7,12 @@ import {
   Param,
   Delete,
   Query,
-  UseInterceptors,
   UseGuards,
 } from '@nestjs/common'
 import { BuildingsService } from './buildings.service'
 import { CreateBuildingDto, UpdateBuildingDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { Roles } from '../auth/decorators/roles.decorator'
-import { AuditInterceptor } from '../audit/audit.interceptor'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
@@ -22,7 +20,6 @@ import { RolesGuard } from '../auth/guards/roles.guard'
 @Controller('buildings')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @AuditEntity('Building')
-@UseInterceptors(AuditInterceptor)
 export class BuildingsController {
   constructor(private readonly buildingsService: BuildingsService) {}
 

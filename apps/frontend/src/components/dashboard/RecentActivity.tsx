@@ -116,8 +116,8 @@ export function RecentActivity() {
     <Card>
       <CardContent className="py-4">
         <div className="space-y-4">
-          {activities.map((log) => (
-            <div key={log.id} className="flex items-start gap-3">
+          {activities.map((log, index) => (
+            <div key={log.id} className="flex items-start gap-3" data-activity-id={log.id} data-index={index}>
               <div
                 className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${getActivityColor(
                   log.action
