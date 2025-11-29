@@ -96,10 +96,12 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
 
           {/* LOGO ou placeholder cinza */}
           {tenant.logoUrl ? (
-            <img
-              src={tenant.logoUrl}
-              alt="Logo da ILPI"
-              className="h-24 w-auto object-contain print:shadow-none"
+            <PhotoViewer
+              photoUrl={tenant.logoUrl}
+              altText="Logo da ILPI"
+              size="xl"
+              rounded={false}
+              className="!h-24 !w-24 !rounded-md print:shadow-none"
             />
           ) : (
             <div

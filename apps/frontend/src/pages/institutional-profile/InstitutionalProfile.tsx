@@ -26,11 +26,13 @@ export default function InstitutionalProfile() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">Dados Básicos</TabsTrigger>
-          <TabsTrigger value="documents">Documentos</TabsTrigger>
-          <TabsTrigger value="compliance">Compliance</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-3 min-w-max">
+            <TabsTrigger value="profile" className="whitespace-nowrap">Dados Básicos</TabsTrigger>
+            <TabsTrigger value="documents" className="whitespace-nowrap">Documentos</TabsTrigger>
+            <TabsTrigger value="compliance" className="whitespace-nowrap">Compliance</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="profile" className="space-y-4">
           <ProfileForm />

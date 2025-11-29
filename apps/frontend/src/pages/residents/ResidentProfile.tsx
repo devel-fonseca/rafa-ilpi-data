@@ -388,12 +388,14 @@ export default function ResidentProfile() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="personal">Dados do Residente</TabsTrigger>
-          <TabsTrigger value="vaccinations">Vacinação</TabsTrigger>
-          <TabsTrigger value="prescriptions">Prescrições</TabsTrigger>
-          <TabsTrigger value="daily-records">Registros Diários</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
+            <TabsTrigger value="personal" className="whitespace-nowrap">Dados do Residente</TabsTrigger>
+            <TabsTrigger value="vaccinations" className="whitespace-nowrap">Vacinação</TabsTrigger>
+            <TabsTrigger value="prescriptions" className="whitespace-nowrap">Prescrições</TabsTrigger>
+            <TabsTrigger value="daily-records" className="whitespace-nowrap">Registros Diários</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB 1: Dados do Residente */}
         <TabsContent value="personal" className="space-y-6">

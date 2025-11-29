@@ -182,16 +182,18 @@ export function VitalSignsModal({
 
         <div className="flex-1 overflow-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList className="grid grid-cols-4 w-[400px]">
-                <TabsTrigger value="summary">Resumo</TabsTrigger>
-                <TabsTrigger value="charts">Gráficos</TabsTrigger>
-                <TabsTrigger value="table">Tabela</TabsTrigger>
-                <TabsTrigger value="alerts">Alertas</TabsTrigger>
-              </TabsList>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:justify-between mb-4">
+              <div className="overflow-x-auto w-full sm:w-auto">
+                <TabsList className="inline-flex sm:grid sm:grid-cols-4 min-w-max">
+                  <TabsTrigger value="summary" className="whitespace-nowrap">Resumo</TabsTrigger>
+                  <TabsTrigger value="charts" className="whitespace-nowrap">Gráficos</TabsTrigger>
+                  <TabsTrigger value="table" className="whitespace-nowrap">Tabela</TabsTrigger>
+                  <TabsTrigger value="alerts" className="whitespace-nowrap">Alertas</TabsTrigger>
+                </TabsList>
+              </div>
 
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent>

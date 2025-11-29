@@ -14,12 +14,19 @@ import * as tf from '@tensorflow/tfjs'
 
 let model: blazeface.BlazeFaceModel | null = null
 let isLoading = false
+let loadError = false
 
 /**
  * Carrega o modelo BlazeFace (lazy loading)
  * Modelo é pequeno (~1MB) e rápido de carregar
  */
-export async function loadFaceDetectionModel(): Promise<blazeface.BlazeFaceModel> {
+export async function loadFaceDetectionModel(): Promise<blazeface.BlazeFaceModel | null> {
+  // Se já teve erro antes, não tenta novamente
+  if (loadError) {
+    console.warn('⚠️ Detecção facial desabilitada devido a erro anterior')
+    return null
+  }
+
   if (model) return model
 
   if (isLoading) {
@@ -27,21 +34,34 @@ export async function loadFaceDetectionModel(): Promise<blazeface.BlazeFaceModel
     while (isLoading) {
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
-    return model!
+    return model
   }
 
   try {
     isLoading = true
     console.log('🔄 Carregando modelo BlazeFace...')
 
-    // Carregar modelo
-    model = await blazeface.load()
+    // Configurar backend do TensorFlow.js
+    await tf.ready()
+    console.log('🔄 TensorFlow.js backend:', tf.getBackend())
 
-    console.log('✅ Modelo BlazeFace carregado')
+    // Carregar modelo com timeout de 10 segundos
+    const loadPromise = blazeface.load()
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout ao carregar modelo')), 10000)
+    )
+
+    model = await Promise.race([loadPromise, timeoutPromise])
+
+    console.log('✅ Modelo BlazeFace carregado com sucesso')
     return model
   } catch (error) {
-    console.error('❌ Erro ao carregar BlazeFace:', error)
-    throw error
+    loadError = true
+    console.warn(
+      '⚠️ Não foi possível carregar o modelo de detecção facial. A aplicação continuará funcionando com crop centralizado.',
+      error
+    )
+    return null
   } finally {
     isLoading = false
   }
@@ -69,6 +89,12 @@ export async function detectFaceAndCrop(
   try {
     // Carregar modelo se necessário
     const faceModel = await loadFaceDetectionModel()
+
+    // Se modelo não carregou, usar fallback
+    if (!faceModel) {
+      console.log('⚠️ Modelo não disponível - usando crop centralizado')
+      return getFallbackCrop(imageElement)
+    }
 
     // Detectar rostos
     const predictions = await faceModel.estimateFaces(imageElement, false)

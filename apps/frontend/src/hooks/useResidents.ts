@@ -83,5 +83,7 @@ export function useResidentStats() {
   return useQuery({
     queryKey: ['resident-stats'],
     queryFn: () => residentsAPI.getStats(),
+    staleTime: 0, // Sempre revalidar
+    refetchOnMount: true, // Revalidar ao montar o componente
   })
 }

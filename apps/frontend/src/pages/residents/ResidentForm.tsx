@@ -17,8 +17,6 @@ import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import { FileUpload } from '@/components/form/FileUpload'
-import { SingleFileUpload } from '@/components/form/SingleFileUpload'
-import { MultiFileUpload } from '@/components/form/MultiFileUpload'
 import { validarCPF, getMensagemValidacaoCPF, getMensagemValidacaoCNS } from '@/utils/validators'
 import { buscarCEP } from '@/services/viacep'
 import {
@@ -36,6 +34,7 @@ import { uploadFile, getSignedFileUrl } from '@/services/upload'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
 import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
+import { ResidentDocuments } from '@/components/residents/ResidentDocuments'
 import { toast } from 'sonner'
 
 // Componente Collapsible customizado (inline)
@@ -424,19 +423,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           setValue('necessitaAuxilioMobilidade', resident.mobilityAid)
         }
 
-        // ===== CONVÊNIOS =====
-        if (resident.healthPlans && Array.isArray(resident.healthPlans) && resident.healthPlans.length > 0) {
-          // Mapear healthPlans (inglês) para convenios (português do form)
-          const convenios = resident.healthPlans.map((plan: any) => ({
-            nome: plan.name,
-            numero: plan.cardNumber
-          }))
-          setValue('convenios', convenios)
-        }
-
         // ===== PERTENCES =====
         if (resident.belongings && Array.isArray(resident.belongings) && resident.belongings.length > 0) {
           setValue('pertences', resident.belongings.map((item: string) => ({ nome: item })))
+        }
+
+        // ===== CONVÊNIOS =====
+        // Processar convênios
+        if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
+          const convenios = resident.healthPlans.map((plan: any) => ({
+            nome: plan.name,
+            numero: plan.cardNumber,
+          }))
+          setValue('convenios', convenios)
         }
 
         // ===== ADMISSÃO/DESLIGAMENTO =====
@@ -650,7 +649,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       }
 
       const payload: any = {
-        tenantId, // OBRIGATÓRIO
+        // tenantId: apenas necessário na criação, não na atualização
+        ...(!isEditMode && { tenantId }),
 
         // 1. Dados Pessoais - NOMES EM INGLÊS (camelCase)
         fullName: data.nome,
@@ -672,8 +672,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         fatherName: data.nomePai || null,
         // Só inclui fotoUrl se houver nova foto (evita sobrescrever foto existente)
         ...(fotoUrl ? { fotoUrl } : {}),
-        // Só inclui documents se houver novos documentos (evita sobrescrever documentos existentes)
-        ...(documentosPessoaisUrls.length > 0 ? { documents: documentosPessoaisUrls } : {}),
 
         // 2. Endereço Atual - NOMES EM INGLÊS
         currentCep: data.cepAtual || null,
@@ -694,8 +692,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         originComplement: data.complementoProcedencia || null,
         originDistrict: data.bairroProcedencia || null,
         originPhone: data.telefoneProcedencia || null,
-        // Só inclui addressDocuments se houver novos documentos
-        ...(documentosEnderecoUrls.length > 0 ? { addressDocuments: documentosEnderecoUrls } : {}),
 
         // 3. Contatos de Emergência - Array JSON
         emergencyContacts: (data.contatosEmergencia || [])
@@ -719,8 +715,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         legalGuardianNumber: data.responsavelLegalNumero || null,
         legalGuardianComplement: data.responsavelLegalComplemento || null,
         legalGuardianDistrict: data.responsavelLegalBairro || null,
-        // Só inclui legalGuardianDocuments se houver novos documentos
-        ...(documentosResponsavelUrls.length > 0 ? { legalGuardianDocuments: documentosResponsavelUrls } : {}),
 
         // 5. Admissão - NOMES EM INGLÊS
         admissionDate: convertToISODate(data.dataAdmissao),
@@ -752,12 +746,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           .map(c => c.nome.trim())
           .join(', ') || null,
         dietaryRestrictions: data.restricoesAlimentares || null,
-        medicalReport: laudoMedicoUrl && data.dataLaudoMedico
-          ? [{
-              url: laudoMedicoUrl,
-              date: convertToISODate(data.dataLaudoMedico)
-            }]
-          : [],
 
         // 7. Convênios/Planos de Saúde - Array JSON
         healthPlans: (data.convenios || [])
@@ -969,20 +957,25 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         {/* ========== FORMULÁRIO TABULAR (4 ABAS) ========== */}
         <Tabs defaultValue="tab1" className="mb-8">
             {/* ========== NAVEGAÇÃO DE ABAS ========== */}
-            <TabsList className="grid grid-cols-4 gap-2 h-auto p-2 bg-white rounded-lg shadow-md mb-6">
-              <TabsTrigger value="tab1" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                1. Dados & Contatos
-              </TabsTrigger>
-              <TabsTrigger value="tab2" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                2. Endereços & Responsável
-              </TabsTrigger>
-              <TabsTrigger value="tab3" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                3. Saúde & Convênios
-              </TabsTrigger>
-              <TabsTrigger value="tab4" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                4. Admissão & Acomodação
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto mb-6">
+              <TabsList className="inline-flex w-full md:grid md:grid-cols-5 gap-2 h-auto p-2 bg-white rounded-lg shadow-md min-w-max">
+                <TabsTrigger value="tab1" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  1. Dados & Contatos
+                </TabsTrigger>
+                <TabsTrigger value="tab2" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  2. Endereços & Responsável
+                </TabsTrigger>
+                <TabsTrigger value="tab3" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  3. Saúde & Convênios
+                </TabsTrigger>
+                <TabsTrigger value="tab4" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  4. Admissão & Acomodação
+                </TabsTrigger>
+                <TabsTrigger value="tab5" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                  5. Documentos
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <fieldset disabled={readOnly}>
 
@@ -1211,19 +1204,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <div className="col-span-12 md:col-span-6">
                         <Label>Nome do Pai</Label>
                         <Input {...register('nomePai')} className="mt-2" />
-                      </div>
-                    </div>
-                  </Collapsible>
-
-                  <Collapsible title="Documentos" defaultOpen={false}>
-                    <div className="space-y-6">
-                      <div>
-                        <MultiFileUpload
-                          title="Documentos Pessoais"
-                          description="RG, CPF, comprovantes..."
-                          accept="image/*,application/pdf"
-                          onFilesChange={(files) => setValue('documentosPessoaisUrls', files)}
-                        />
                       </div>
                     </div>
                   </Collapsible>
@@ -1465,15 +1445,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     )}
                   </div>
 
-                  <Collapsible title="Documentos" defaultOpen={false}>
-                    <MultiFileUpload
-                      title="Comprovante de Residência"
-                      description="PDF, imagens, etc."
-                      accept="image/*,application/pdf"
-                      onFilesChange={(files) => setValue('documentosEnderecoUrls', files)}
-                    />
-                  </Collapsible>
-
                   <Collapsible title="Responsável Legal" defaultOpen={true}>
                     <div className="grid grid-cols-12 gap-4 mb-6">
                       <div className="col-span-12 md:col-span-6">
@@ -1610,13 +1581,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         <Input {...register('responsavelLegalBairro')} className="mt-2" />
                       </div>
                     </div>
-
-                    <MultiFileUpload
-                      title="Documentos do Responsável"
-                      description="PDF, imagens, etc."
-                      accept="image/*,application/pdf"
-                      onFilesChange={(files) => setValue('responsavelLegalDocumentosUrls', files)}
-                    />
                   </Collapsible>
                 </CardContent>
               </Card>
@@ -1879,38 +1843,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         </div>
                       </div>
                     </div>
-
-                    {/* Seção 4: Documentação Médica */}
-                    <div className="bg-muted border border-border rounded-lg p-4">
-                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Documentação Médica</h3>
-                      <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-12 md:col-span-8">
-                          <SingleFileUpload
-                            label="Laudo Médico"
-                            accept="image/*,application/pdf"
-                            onFileSelect={(file) => setValue('laudoMedico', file)}
-                            showPreview={true}
-                          />
-                        </div>
-
-                        <div className="col-span-12 md:col-span-4">
-                          <Label>Data do Laudo</Label>
-                          <Controller
-                            name="dataLaudoMedico"
-                            control={control}
-                            render={({ field }) => (
-                              <MaskedInput
-                                mask="99/99/9999"
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="DD/MM/AAAA"
-                                className="mt-2"
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </div>
                   </Collapsible>
 
                   <Collapsible title="Convênios" defaultOpen={false}>
@@ -1936,18 +1868,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                               >
                                 <X className="w-4 h-4" />
                               </Button>
-                            </div>
-                            <div className="col-span-12">
-                              <SingleFileUpload
-                                label="Cartão do Convênio"
-                                accept="image/*,application/pdf"
-                                onFileSelect={(file) => {
-                                  if (file) {
-                                    setValue(`convenios.${index}.arquivo`, file)
-                                  }
-                                }}
-                                showPreview={true}
-                              />
                             </div>
                           </div>
                         </div>
@@ -2046,37 +1966,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <Input {...register('motivoDesligamento')} className="mt-2" />
                     </div>
 
-                    <div className="col-span-12">
-                      <hr className="my-4" />
-                      <h4 className="font-semibold text-foreground mb-4">Documentos de Admissão</h4>
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Termo de Admissão"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('termoAdmissao', file)}
-                        showPreview={true}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Consentimento LGPD"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('consentimentoLgpd', file)}
-                        showPreview={true}
-                      />
-                    </div>
-
-                    <div className="col-span-12 md:col-span-4">
-                      <SingleFileUpload
-                        label="Consentimento de Imagem"
-                        accept="image/*,application/pdf"
-                        onFileSelect={(file) => setValue('consentimentoImagem', file)}
-                        showPreview={true}
-                      />
-                    </div>
                   </div>
 
                   {/* Seção: Pertences do Residente */}
@@ -2141,6 +2030,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* ========== ABA 5: DOCUMENTOS ========== */}
+            <TabsContent value="tab5" forceMount className="data-[state=inactive]:hidden">
+              {id && <ResidentDocuments residentId={id} />}
+              {!id && (
+                <Card className="shadow-lg">
+                  <CardContent className="p-6 text-center text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>Salve o cadastro do residente primeiro para adicionar documentos.</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             </fieldset>

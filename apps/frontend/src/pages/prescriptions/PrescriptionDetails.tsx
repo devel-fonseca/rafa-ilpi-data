@@ -304,14 +304,16 @@ export default function PrescriptionDetails() {
 
       {/* Tabs - Medicamentos e Histórico */}
       <Tabs defaultValue="medications" className="w-full">
-        <TabsList>
-          <TabsTrigger value="medications">
-            Medicamentos Contínuos ({prescriptionData.medications?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="sos">
-            Medicações SOS ({prescriptionData.sosMedications?.length || 0})
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-2 min-w-max">
+            <TabsTrigger value="medications" className="whitespace-nowrap">
+              Medicamentos Contínuos ({prescriptionData.medications?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="sos" className="whitespace-nowrap">
+              Medicações SOS ({prescriptionData.sosMedications?.length || 0})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="medications" className="space-y-4 mt-6">
           {!prescriptionData.medications || prescriptionData.medications.length === 0 ? (

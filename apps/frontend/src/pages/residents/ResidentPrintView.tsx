@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
 import { useTenant } from '@/hooks/useTenant'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
 import html2pdf from 'html2pdf.js'
 
 export function ResidentPrintView() {
@@ -15,11 +16,12 @@ export function ResidentPrintView() {
   const [isPrinting, setIsPrinting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
-  // Buscar dados do residente e tenant usando React Query
+  // Buscar dados do residente, tenant e perfil institucional usando React Query
   const { data: residentData, isLoading: isLoadingResident, error: residentError } = useResident(id || '')
   const { data: tenantData, isLoading: isLoadingTenant, error: tenantError } = useTenant()
+  const { data: profileData, isLoading: isLoadingProfile } = useProfile()
 
-  const isLoading = isLoadingResident || isLoadingTenant
+  const isLoading = isLoadingResident || isLoadingTenant || isLoadingProfile
 
   // Transformar dados do tenant para o formato esperado pelo ResidentDocument
   const formattedTenantData = tenantData ? {
@@ -31,7 +33,8 @@ export function ResidentPrintView() {
     addressState: tenantData.addressState || '',
     addressZipCode: tenantData.addressZipCode || '',
     cnpj: tenantData.cnpj,
-    phone: tenantData.phone || ''
+    phone: tenantData.phone || '',
+    logoUrl: profileData?.logoUrl || null
   } : null
 
   // Função de impressão
