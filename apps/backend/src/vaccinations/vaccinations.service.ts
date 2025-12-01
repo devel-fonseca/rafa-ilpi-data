@@ -57,44 +57,66 @@ export class VaccinationsService {
       throw new BadRequestException('CNES deve conter 8 a 10 dígitos')
     }
 
-    // Criar registro
-    const vaccination = await this.prisma.vaccination.create({
-      data: {
-        vaccine: dto.vaccine,
-        dose: dto.dose,
-        date: vaccinationDate,
-        batch: dto.batch,
-        manufacturer: dto.manufacturer,
-        cnes: dto.cnes,
-        healthUnit: dto.healthUnit,
-        municipality: dto.municipality,
-        state: dto.state,
-        certificateUrl: dto.certificateUrl,
-        notes: dto.notes,
-        tenant: {
-          connect: { id: tenantId },
-        },
-        resident: {
-          connect: { id: dto.residentId },
-        },
-        user: {
-          connect: { id: userId },
-        },
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
+    // Criar registro com transação para incluir documento se houver comprovante
+    const vaccination = await this.prisma.$transaction(async (tx) => {
+      // 1. Criar registro de vacinação
+      const vaccinationRecord = await tx.vaccination.create({
+        data: {
+          vaccine: dto.vaccine,
+          dose: dto.dose,
+          date: vaccinationDate,
+          batch: dto.batch,
+          manufacturer: dto.manufacturer,
+          cnes: dto.cnes,
+          healthUnit: dto.healthUnit,
+          municipality: dto.municipality,
+          state: dto.state,
+          certificateUrl: dto.certificateUrl,
+          notes: dto.notes,
+          tenant: {
+            connect: { id: tenantId },
+          },
+          resident: {
+            connect: { id: dto.residentId },
+          },
+          user: {
+            connect: { id: userId },
           },
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
+      })
+
+      // 2. Se houver comprovante de vacinação, criar documento do residente
+      if (dto.certificateUrl) {
+        const formattedDate = vaccinationDate.toLocaleDateString('pt-BR')
+
+        await tx.residentDocument.create({
+          data: {
+            tenantId,
+            residentId: dto.residentId,
+            type: 'COMPROVANTE_VACINACAO',
+            fileUrl: dto.certificateUrl,
+            fileName: `Vacinação - ${dto.vaccine} - ${formattedDate}`,
+            details: `${dto.vaccine} - ${dto.dose} - ${formattedDate}`,
+            uploadedBy: userId,
+          },
+        })
+      }
+
+      return vaccinationRecord
     })
 
     this.logger.info('Vacinação registrada com sucesso', {

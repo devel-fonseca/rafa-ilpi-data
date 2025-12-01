@@ -30,6 +30,7 @@ export interface UpdateResidentDocumentDto {
 export const RESIDENT_DOCUMENT_TYPES = [
   { value: 'CARTAO_CONVENIO', label: 'Cartão do convênio' },
   { value: 'COMPROVANTE_RESIDENCIA_RESIDENTE', label: 'Comprovante de residência do residente' },
+  { value: 'COMPROVANTE_VACINACAO', label: 'Comprovante de vacinação' },
   { value: 'DOCUMENTOS_RESPONSAVEL_LEGAL', label: 'Documentos do responsável legal' },
   { value: 'COMPROVANTE_RESIDENCIA_RESPONSAVEL', label: 'Comprovante de residência do responsável legal' },
   { value: 'DOCUMENTOS_PESSOAIS', label: 'Documentos pessoais do residente' },

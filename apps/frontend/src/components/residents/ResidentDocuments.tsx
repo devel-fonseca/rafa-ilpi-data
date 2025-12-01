@@ -300,7 +300,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {doc.type !== 'PRESCRICAO_MEDICA' && (
+                          {doc.type !== 'PRESCRICAO_MEDICA' && doc.type !== 'COMPROVANTE_VACINACAO' && (
                             <Button
                               type="button"
                               variant="ghost"
