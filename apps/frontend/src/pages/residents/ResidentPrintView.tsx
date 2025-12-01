@@ -1,62 +1,39 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Printer, FileDown, Loader2 } from 'lucide-react'
+import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
-import { useTenant } from '@/hooks/useTenant'
-import { useProfile } from '@/hooks/useInstitutionalProfile'
 import html2pdf from 'html2pdf.js'
 
 export function ResidentPrintView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const documentRef = useRef<HTMLDivElement>(null)
+  const printRef = useRef<HTMLDivElement>(null)
 
-  const [isPrinting, setIsPrinting] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
-  // Buscar dados do residente, tenant e perfil institucional usando React Query
+  // Buscar dados do residente usando React Query
   const { data: residentData, isLoading: isLoadingResident, error: residentError } = useResident(id || '')
-  const { data: tenantData, isLoading: isLoadingTenant, error: tenantError } = useTenant()
-  const { data: profileData, isLoading: isLoadingProfile } = useProfile()
 
-  const isLoading = isLoadingResident || isLoadingTenant || isLoadingProfile
+  const isLoading = isLoadingResident
 
-  // Transformar dados do tenant para o formato esperado pelo ResidentDocument
-  const formattedTenantData = tenantData ? {
-    name: tenantData.name,
-    address: tenantData.addressStreet || '',
-    addressNumber: tenantData.addressNumber || '',
-    addressDistrict: tenantData.addressDistrict || '',
-    addressCity: tenantData.addressCity || '',
-    addressState: tenantData.addressState || '',
-    addressZipCode: tenantData.addressZipCode || '',
-    cnpj: tenantData.cnpj,
-    phone: tenantData.phone || '',
-    logoUrl: profileData?.logoUrl || null
-  } : null
-
-  // Função de impressão
-  const handlePrint = () => {
-    setIsPrinting(true)
-
-    // Usar setTimeout para garantir que o React renderizou com isPrinting=true
-    setTimeout(() => {
-      window.print()
-      setIsPrinting(false)
-    }, 100)
-  }
+  // Função de impressão usando react-to-print
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Registro_Residente_${residentData?.fullName.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}`,
+  })
 
   // Função de exportação para PDF
   const handleExportPDF = async () => {
-    if (!documentRef.current || !residentData) return
+    if (!printRef.current || !residentData) return
 
     setIsExporting(true)
 
     try {
       // Criar um elemento clone para exportação (sem elementos de UI)
-      const element = documentRef.current.querySelector('.print-container') as HTMLElement
+      const element = printRef.current.querySelector('.print-container') as HTMLElement
       if (!element) return
 
       const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
@@ -92,14 +69,12 @@ export function ResidentPrintView() {
     )
   }
 
-  if (residentError || tenantError || !residentData || !formattedTenantData) {
+  if (residentError || !residentData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">
-            {residentError ? 'Erro ao carregar dados do residente' :
-             tenantError ? 'Erro ao carregar dados da ILPI' :
-             'Dados não encontrados'}
+            {residentError ? 'Erro ao carregar dados do residente' : 'Dados não encontrados'}
           </p>
           <Button onClick={() => navigate('/dashboard/residentes')} className="mt-4">
             Voltar para lista
@@ -163,11 +138,10 @@ export function ResidentPrintView() {
 
       {/* Documento */}
       <div className="py-8 print:py-0">
-        <div ref={documentRef}>
+        <div ref={printRef}>
           <ResidentDocument
             resident={residentData as any}
-            tenant={formattedTenantData}
-            isPrinting={isPrinting}
+            isPrinting={false}
           />
         </div>
       </div>
@@ -178,6 +152,32 @@ export function ResidentPrintView() {
           body {
             margin: 0;
             padding: 0;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          .print-container {
+            max-width: 100% !important;
+            padding: 0 !important;
+          }
+
+          /* Esconder elementos que não devem aparecer na impressão */
+          .print-hide,
+          button,
+          nav,
+          header:not(.print-only) {
+            display: none !important;
+          }
+
+          /* Garantir que elementos de impressão apareçam */
+          .print-only {
+            display: block !important;
+          }
+
+          /* Estilos para quebras de página */
+          .print-avoid-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
 
           @page {

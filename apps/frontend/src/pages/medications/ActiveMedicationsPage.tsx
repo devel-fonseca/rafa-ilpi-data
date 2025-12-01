@@ -9,6 +9,8 @@ import { api } from '@/services/api'
 import type { Prescription, Medication } from '@/api/prescriptions.api'
 import { formatDateShort } from '@/utils/timezone'
 import { useReactToPrint } from 'react-to-print'
+import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
+import { SignatureFooter } from '@/components/print/SignatureFooter'
 
 // Mapeamento de vias de administração
 const ROUTE_LABELS: Record<string, string> = {
@@ -187,29 +189,15 @@ export default function ActiveMedicationsPage() {
           </Card>
         ) : (
           <>
-            {/* Cabeçalho para impressão */}
-            <div className="print-only mb-6 border-b-2 border-gray-800 pb-4">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                    LOGO
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-semibold">CASA DE REPOUSO SÃO RAFAEL</h1>
-                    <p className="text-sm">Rua Exemplo, 123 – Centro</p>
-                    <p className="text-sm">São Paulo/SP – CEP 01234-567</p>
-                    <p className="text-sm">CNPJ 12.345.678/0001-90 | Tel. (11) 98765-4321</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="print-only mb-4">
-              <h2 className="text-xl font-bold mb-2">FICHA DE PRESCRIÇÃO</h2>
-              <p className="text-sm">
-                <strong>Residente:</strong> {residentData.fullName}
-              </p>
-            </div>
+            {/* Cabeçalho Institucional */}
+            <InstitutionalHeader
+              documentTitle="FICHA DE PRESCRIÇÃO"
+              documentSubtitle={
+                <p className="text-sm">
+                  <strong>Residente:</strong> {residentData.fullName}
+                </p>
+              }
+            />
 
             {/* Tabela Compacta para Impressão */}
             <div className="print-only">
@@ -334,26 +322,10 @@ export default function ActiveMedicationsPage() {
             ))}
 
             {/* Rodapé para impressão */}
-            <div className="print-only mt-4 pt-4 border-t-2 border-gray-300">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-semibold">
-                    ASSINATURA DO RESPONSÁVEL TÉCNICO:
-                    <br />
-                    <br />
-                    _________________________________
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">
-                    DATA:
-                    <br />
-                    <br />
-                    _______________
-                  </p>
-                </div>
-              </div>
-            </div>
+            <SignatureFooter
+              signatureTitle="RESPONSÁVEL TÉCNICO"
+              includeDate={true}
+            />
           </>
         )}
       </div>

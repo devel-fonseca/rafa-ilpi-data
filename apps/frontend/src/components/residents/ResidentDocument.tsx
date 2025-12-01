@@ -15,6 +15,8 @@ import {
 import ResidentDocumentSection from './ResidentDocumentSection'
 import ResidentDocumentSectionTitle from './ResidentDocumentSectionTitle'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
+import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
+import { SignatureFooter } from '@/components/print/SignatureFooter'
 
 interface ResidentData extends Resident {
   photo?: { url: string; uploadedAt: string } | null
@@ -35,26 +37,12 @@ interface ResidentData extends Resident {
   belongings?: string[] | null
 }
 
-interface TenantData {
-  name: string
-  address: string
-  addressNumber: string
-  addressDistrict: string
-  addressCity: string
-  addressState: string
-  addressZipCode: string
-  cnpj: string
-  phone: string
-  logoUrl?: string | null // opcional
-}
-
 interface ResidentDocumentProps {
   resident: ResidentData
-  tenant: TenantData
   isPrinting?: boolean
 }
 
-export default function ResidentDocument({ resident, tenant, isPrinting = false }: ResidentDocumentProps) {
+export default function ResidentDocument({ resident, isPrinting = false }: ResidentDocumentProps) {
 
   const translateBloodType = (bloodType?: string) => {
     if (!bloodType || bloodType === 'NAO_INFORMADO') return ''
@@ -82,70 +70,37 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
   }
 
   return (
-    <div className="print-container text-gray-900 leading-relaxed" style={{
-      padding: '10mm 15mm 10mm 15mm'
-    }}>
-
-      {/* ============================================================
-          CABEÇALHO PREMIUM COM LOGO – OPÇÃO A
-      =============================================================== */}
-      <header className="mb-10">
-
-        {/* Linha 1: Logo + Nome da ILPI */}
-        <div className="flex items-start gap-6 mb-4">
-
-          {/* LOGO ou placeholder cinza */}
-          {tenant.logoUrl ? (
-            <PhotoViewer
-              photoUrl={tenant.logoUrl}
-              altText="Logo da ILPI"
-              size="xl"
-              rounded={false}
-              className="!h-24 !w-24 !rounded-md print:shadow-none"
-            />
-          ) : (
-            <div
-              className="
-                h-24 w-24 bg-muted rounded-md
-                flex items-center justify-center
-                text-muted-foreground text-xs
-                border border-gray-400
-                print:shadow-none
-              "
-            >
-              LOGO
-            </div>
-          )}
-
-          <div>
-            <h1 className="text-3xl font-bold uppercase">{tenant.name}</h1>
-            <p className="text-sm">{tenant.address}, {tenant.addressNumber} – {tenant.addressDistrict}</p>
-            <p className="text-sm">{tenant.addressCity}/{tenant.addressState} – CEP {formatCEP(tenant.addressZipCode)}</p>
-            <p className="text-sm">CNPJ {tenant.cnpj} | Tel. {formatPhone(tenant.phone)}</p>
+    <div className="print-container text-gray-900 leading-relaxed">
+      {/* Cabeçalho Institucional */}
+      <InstitutionalHeader
+        documentTitle="REGISTRO DE RESIDENTE"
+        documentSubtitle={
+          <div className="space-y-1">
+            <p className="text-sm">
+              <strong>Residente:</strong> {resident.fullName}
+            </p>
+            {resident.cpf && (
+              <p className="text-sm">
+                <strong>CPF:</strong> {formatCPF(resident.cpf)}
+              </p>
+            )}
+            {resident.birthDate && (
+              <p className="text-sm">
+                <strong>Data de Nascimento:</strong> {formatDate(resident.birthDate)} ({calculateAge(resident.birthDate)})
+              </p>
+            )}
           </div>
-        </div>
-
-        <hr className="mt-4" />
-
-        <h2 className="text-2xl font-semibold uppercase mt-6">Registro de Residente</h2>
-      </header>
+        }
+      />
 
       {/* ============================================================
-          FOTO PREMIUM + DADOS BÁSICOS
+          FOTO + DADOS DE IDENTIFICAÇÃO
       =============================================================== */}
-      <section className="mb-10 print-avoid-break">
-        <div className="flex gap-6">
-
+      <section className="mb-8 print-avoid-break">
+        <div className="flex gap-6 items-start">
           {/* FOTO (formato moderno 1:1) */}
           {resident.fotoUrl ? (
-            <div
-              className="
-                w-[160px] h-[160px]
-                border border-border rounded-md bg-muted
-                overflow-hidden shadow-md
-                print:shadow-none
-              "
-            >
+            <div className="w-[140px] h-[140px] border border-gray-300 rounded-md bg-muted overflow-hidden print:shadow-none flex-shrink-0">
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
@@ -154,36 +109,25 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
               />
             </div>
           ) : (
-            <div
-              className="
-                w-[160px] h-[160px]
-                bg-muted border border-border rounded-md
-                flex items-center justify-center
-                text-muted-foreground text-xs
-                print:shadow-none
-              "
-            >
-              FOTO
+            <div className="w-[140px] h-[140px] bg-muted border border-gray-300 rounded-md flex items-center justify-center text-muted-foreground text-xs print:shadow-none flex-shrink-0">
+              FOTO 3x4
             </div>
           )}
 
-          {/* Dados */}
-          <div className="flex-1">
-            <p><strong>Nome:</strong> {resident.fullName || ''}</p>
-            {resident.socialName && <p><strong>Nome social:</strong> {resident.socialName}</p>}
-            <p>
-              <strong>Data de nascimento:</strong> {formatDate(resident.birthDate)}
-              {resident.birthDate && (
-                <span className="ml-2 text-sm text-foreground">
-                  ({calculateAge(resident.birthDate)})
-                </span>
-              )}
-            </p>
-            <p><strong>CPF:</strong> {formatCPF(resident.cpf)}</p>
-            <p><strong>CNS:</strong> {formatCNS(resident.cns)}</p>
+          {/* Dados de Identificação */}
+          <div className="flex-1 text-sm">
+            {resident.socialName && (
+              <p className="mb-2"><strong>Nome Social:</strong> {resident.socialName}</p>
+            )}
+            <p className="mb-2"><strong>CNS:</strong> {formatCNS(resident.cns) || 'Não informado'}</p>
+            {resident.rg && (
+              <p className="mb-2"><strong>RG:</strong> {formatRG(resident.rg, resident.rgIssuer)}</p>
+            )}
+            {resident.currentPhone && (
+              <p className="mb-2"><strong>Telefone:</strong> {formatPhone(resident.currentPhone)}</p>
+            )}
           </div>
         </div>
-        <hr className="mt-6" />
       </section>
 
       {/* ============================================================
@@ -192,20 +136,18 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
       <ResidentDocumentSection>
         <ResidentDocumentSectionTitle>Dados Pessoais</ResidentDocumentSectionTitle>
 
-        <p><strong>RG:</strong> {resident.rg ? formatRG(resident.rg, resident.rgIssuer) : ''}</p>
-        <p><strong>Órgão Expedidor:</strong> {resident.rgIssuer || ''}</p>
-        <p><strong>Escolaridade:</strong> {translateEnum.escolaridade(resident.education) || ''}</p>
-        <p><strong>Profissão:</strong> {resident.profession || ''}</p>
-        <p><strong>Gênero:</strong> {translateEnum.gender(resident.gender) || ''}</p>
-        <p><strong>Estado civil:</strong> {translateEnum.estadoCivil(resident.civilStatus) || ''}</p>
-        <p><strong>Religião:</strong> {resident.religion || ''}</p>
-        <p><strong>Nacionalidade:</strong> {resident.nationality || ''}</p>
+        <p><strong>Escolaridade:</strong> {translateEnum.escolaridade(resident.education) || 'Não informado'}</p>
+        <p><strong>Profissão:</strong> {resident.profession || 'Não informado'}</p>
+        <p><strong>Gênero:</strong> {translateEnum.gender(resident.gender) || 'Não informado'}</p>
+        <p><strong>Estado civil:</strong> {translateEnum.estadoCivil(resident.civilStatus) || 'Não informado'}</p>
+        <p><strong>Religião:</strong> {resident.religion || 'Não informado'}</p>
+        <p><strong>Nacionalidade:</strong> {resident.nationality || 'Brasileira'}</p>
         <p>
-          <strong>Local de nascimento:</strong>
-          {resident.birthCity ? `${resident.birthCity}${resident.birthState ? `/${resident.birthState}` : ''}` : ''}
+          <strong>Local de nascimento:</strong>{' '}
+          {resident.birthCity ? `${resident.birthCity}${resident.birthState ? `/${resident.birthState}` : ''}` : 'Não informado'}
         </p>
-        <p><strong>Mãe:</strong> {resident.motherName || ''}</p>
-        <p><strong>Pai:</strong> {resident.fatherName || ''}</p>
+        <p><strong>Filiação Materna:</strong> {resident.motherName || 'Não informado'}</p>
+        <p><strong>Filiação Paterna:</strong> {resident.fatherName || 'Não informado'}</p>
       </ResidentDocumentSection>
 
       {/* ============================================================
@@ -414,15 +356,20 @@ export default function ResidentDocument({ resident, tenant, isPrinting = false 
       </ResidentDocumentSection>
 
       {/* ============================================================
-          RODAPÉ
+          OBSERVAÇÕES GERAIS (se necessário)
       =============================================================== */}
-      <footer className="text-center text-xs mt-10">
+      <div className="mt-8 text-xs text-gray-600">
+        <p><strong>Observação:</strong> Este documento contém informações confidenciais do residente e deve ser mantido em sigilo conforme a Lei Geral de Proteção de Dados (LGPD).</p>
         {resident.updatedAt && (
-          <p>Última alteração: {formatDateTime(resident.updatedAt)}</p>
+          <p className="mt-2">Última atualização do cadastro: {formatDateTime(resident.updatedAt)}</p>
         )}
-        <p>Gerado automaticamente pelo Sistema RAFA ILPI em {formatDateTime(new Date().toISOString())}</p>
-      </footer>
+      </div>
 
+      {/* Rodapé com Assinatura */}
+      <SignatureFooter
+        signatureTitle="RESPONSÁVEL TÉCNICO"
+        includeDate={true}
+      />
     </div>
   )
 }

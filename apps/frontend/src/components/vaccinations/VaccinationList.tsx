@@ -1,22 +1,32 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Trash2, Edit2, Plus, ExternalLink, Loader2 } from 'lucide-react'
+import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer } from 'lucide-react'
+import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { useVaccinationsByResident, useDeleteVaccination, Vaccination } from '@/hooks/useVaccinations'
 import { VaccinationForm } from './VaccinationForm'
+import { VaccinationPrintView } from './VaccinationPrintView'
 
 interface VaccinationListProps {
   residentId: string
 }
 
 export function VaccinationList({ residentId }: VaccinationListProps) {
+  const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
+  const printRef = useRef<HTMLDivElement>(null)
 
   const { data: vaccinations = [], isLoading, error } = useVaccinationsByResident(residentId)
   const deleteMutation = useDeleteVaccination()
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `Registro_Vacinacoes_${residentId}_${new Date().toISOString().split('T')[0]}`,
+  })
 
   const handleEdit = (vaccination: Vaccination) => {
     setSelectedVaccination(vaccination)
@@ -68,17 +78,29 @@ export function VaccinationList({ residentId }: VaccinationListProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Histórico de Vacinações</h3>
-        <Button
-          size="sm"
-          onClick={() => {
-            setSelectedVaccination(undefined)
-            setFormOpen(true)
-          }}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Registrar Vacinação
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handlePrint}
+            className="gap-2"
+            disabled={sortedVaccinations.length === 0}
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir Registro
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedVaccination(undefined)
+              setFormOpen(true)
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar Vacinação
+          </Button>
+        </div>
       </div>
 
       {sortedVaccinations.length === 0 ? (
@@ -195,6 +217,11 @@ export function VaccinationList({ residentId }: VaccinationListProps) {
         vaccination={selectedVaccination}
         onSuccess={handleFormSuccess}
       />
+
+      {/* Componente de impressão oculto (visível apenas na impressão) */}
+      <div ref={printRef}>
+        <VaccinationPrintView residentId={residentId} vaccinations={sortedVaccinations} />
+      </div>
     </div>
   )
 }
