@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { UserProfilesService } from './user-profiles.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
@@ -54,7 +55,7 @@ export class UserProfilesController {
       userId,
       user.tenantId,
       createUserProfileDto,
-      user.sub,
+      user.id,
     );
   }
 
@@ -63,8 +64,17 @@ export class UserProfilesController {
   @ApiResponse({ status: 200, description: 'Perfil do usuário autenticado' })
   @ApiResponse({ status: 404, description: 'Perfil não encontrado' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  findMyProfile(@CurrentUser() user: any) {
-    return this.userProfilesService.findMyProfile(user.sub, user.tenantId);
+  @HttpCode(HttpStatus.OK)
+  async findMyProfile(
+    @CurrentUser() user: any,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    // IMPORTANTE: Desabilitar cache HTTP para evitar retornar perfil errado
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    return await this.userProfilesService.findMyProfile(user.id, user.tenantId);
   }
 
   @Get()
@@ -106,8 +116,8 @@ export class UserProfilesController {
       userId,
       user.tenantId,
       updateUserProfileDto,
-      user.sub,
-      user.sub,
+      user.id,
+      user.id,
       user.role,
     );
   }

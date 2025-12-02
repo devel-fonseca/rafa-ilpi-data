@@ -131,7 +131,7 @@ export class InstitutionalProfileController {
     console.log('🔍 DEBUG uploadDocument - body:', body)
 
     const tenantId = user.tenantId
-    const userId = user.sub
+    const userId = user.id
 
     // Extrair DTO dos campos do FormData
     const dto: CreateTenantDocumentDto = {

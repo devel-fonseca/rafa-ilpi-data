@@ -27,6 +27,101 @@ enum PlanType {
   @@map("PlanType")
 }
 
+// ENUM: Tipos de Permissões do Sistema
+enum PermissionType {
+  // Residentes
+  VIEW_RESIDENTS
+  CREATE_RESIDENTS
+  UPDATE_RESIDENTS
+  DELETE_RESIDENTS
+
+  // Registros Diários
+  VIEW_DAILY_RECORDS
+  CREATE_DAILY_RECORDS
+  UPDATE_DAILY_RECORDS
+  DELETE_DAILY_RECORDS
+
+  // Prescrições
+  VIEW_PRESCRIPTIONS
+  CREATE_PRESCRIPTIONS
+  UPDATE_PRESCRIPTIONS
+  DELETE_PRESCRIPTIONS
+
+  // Administração de Medicamentos
+  VIEW_MEDICATIONS
+  ADMINISTER_MEDICATIONS
+  ADMINISTER_CONTROLLED_MEDICATIONS
+
+  // Sinais Vitais
+  VIEW_VITAL_SIGNS
+  RECORD_VITAL_SIGNS
+
+  // Vacinações
+  VIEW_VACCINATIONS
+  RECORD_VACCINATIONS
+
+  // Gestão de Leitos
+  VIEW_BEDS
+  MANAGE_BEDS
+
+  // Documentos
+  VIEW_DOCUMENTS
+  UPLOAD_DOCUMENTS
+  DELETE_DOCUMENTS
+
+  // Usuários e Permissões
+  VIEW_USERS
+  CREATE_USERS
+  UPDATE_USERS
+  DELETE_USERS
+  MANAGE_PERMISSIONS
+
+  // Relatórios e Auditoria
+  VIEW_REPORTS
+  EXPORT_DATA
+  VIEW_AUDIT_LOGS
+
+  // Configurações Institucionais
+  VIEW_INSTITUTIONAL_SETTINGS
+  UPDATE_INSTITUTIONAL_SETTINGS
+
+  @@map("PermissionType")
+}
+
+// ENUM: Cargos ILPI (baseado em funções reais de uma ILPI)
+enum PositionCode {
+  ADMINISTRATOR              // Administrador da ILPI
+  TECHNICAL_MANAGER          // Responsável Técnico (nível superior)
+  NURSING_COORDINATOR        // Coordenador de Enfermagem
+  NURSE                      // Enfermeiro
+  NURSING_TECHNICIAN         // Técnico de Enfermagem
+  DOCTOR                     // Médico
+  NUTRITIONIST               // Nutricionista
+  PHYSIOTHERAPIST            // Fisioterapeuta
+  PSYCHOLOGIST               // Psicólogo
+  SPEECH_THERAPIST           // Fonoaudiólogo
+  SOCIAL_WORKER              // Assistente Social
+  CAREGIVER                  // Cuidador de Idosos
+  ADMINISTRATIVE_ASSISTANT   // Assistente Administrativo
+  OTHER                      // Outros
+
+  @@map("PositionCode")
+}
+
+// ENUM: Tipo de Registro Profissional
+enum RegistrationType {
+  COREN  // Conselho Regional de Enfermagem
+  CRM    // Conselho Regional de Medicina
+  CRN    // Conselho Regional de Nutrição
+  CREFITO // Conselho Regional de Fisioterapia e Terapia Ocupacional
+  CRP    // Conselho Regional de Psicologia
+  CREFONO // Conselho Regional de Fonoaudiologia
+  CRESS  // Conselho Regional de Serviço Social
+  NONE   // Sem registro (para cargos que não exigem)
+
+  @@map("RegistrationType")
+}
+
 enum TenantStatus {
   ACTIVE
   SUSPENDED
@@ -324,10 +419,20 @@ model UserProfile {
   // Dados do Perfil
   profilePhoto String?   // URL ou path da foto de perfil
   phone        String?
-  position     String?   // Cargo do usuário
+  position     String?   // Cargo do usuário (texto livre - DEPRECATED, usar positionCode)
   department   String?   // Departamento
   birthDate    DateTime? @db.Date
   notes        String?   @db.Text
+
+  // Sistema de Permissões ILPI
+  positionCode       PositionCode?      // Cargo padronizado ILPI
+  registrationType   RegistrationType?  // Tipo de registro profissional (COREN, CRM, etc)
+  registrationNumber String?            // Número do registro no conselho
+  registrationState  String?            // UF do registro (ex: "SP", "RJ")
+
+  // Flags especiais
+  isTechnicalManager    Boolean @default(false) // Se é Responsável Técnico da ILPI
+  isNursingCoordinator  Boolean @default(false) // Se é Coordenador de Enfermagem
 
   // Auditoria
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
@@ -336,10 +441,42 @@ model UserProfile {
   updatedBy String?   @db.Uuid
 
   // Relações
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customPermissions UserPermission[] // Permissões customizadas/sobrepostas
 
   @@map("user_profiles")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERMISSÕES CUSTOMIZADAS DE USUÁRIO
+//  Permite conceder ou revogar permissões específicas para usuários individuais
+// ──────────────────────────────────────────────────────────────────────────────
+model UserPermission {
+  id             String         @id @default(uuid()) @db.Uuid
+  userProfileId  String         @db.Uuid
+  tenantId       String         @db.Uuid
+
+  // Permissão específica
+  permission     PermissionType
+
+  // Tipo de customização
+  isGranted      Boolean        @default(true) // true = concedida, false = revogada
+
+  // Auditoria
+  grantedBy      String         @db.Uuid // ID do usuário que concedeu/revogou
+  grantedAt      DateTime       @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  userProfile    UserProfile    @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@unique([userProfileId, permission]) // Evita duplicatas de permissão por usuário
+  @@index([tenantId, userProfileId])
+  @@index([permission])
+  @@map("user_permissions")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

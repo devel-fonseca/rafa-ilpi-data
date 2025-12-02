@@ -108,7 +108,10 @@ export async function getDailyRecordHistory(recordId: string) {
  * Busca o perfil do usuário autenticado
  */
 export async function getMyProfile() {
-  const response = await api.get('/user-profiles/me')
+  // IMPORTANTE: Adicionar timestamp para evitar cache HTTP 304
+  // Isso força o navegador a buscar dados frescos do servidor
+  const cacheBuster = `_t=${Date.now()}`
+  const response = await api.get(`/user-profiles/me?${cacheBuster}`)
   return response.data
 }
 
@@ -169,7 +172,20 @@ export async function deleteUserProfile(userId: string) {
 // ==================== USERS MANAGEMENT ====================
 
 /**
- * Lista usuários de um tenant
+ * Lista usuários do tenant do usuário logado
+ */
+export async function listUsers() {
+  // Busca o tenantId do estado de autenticação
+  const { user } = useAuthStore.getState()
+  if (!user?.tenantId) {
+    throw new Error('Usuário não autenticado ou sem tenant')
+  }
+  const response = await api.get(`/tenants/${user.tenantId}/users`)
+  return response.data
+}
+
+/**
+ * Lista usuários de um tenant específico
  */
 export async function getTenantUsers(tenantId: string) {
   const response = await api.get(`/tenants/${tenantId}/users`)

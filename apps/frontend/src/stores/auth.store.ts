@@ -8,10 +8,14 @@ interface User {
   email: string
   role: string
   tenantId: string
+  photoUrl?: string | null
   tenant?: {
     id: string
     name: string
     status: string
+  }
+  profile?: {
+    profilePhoto?: string | null
   }
 }
 
@@ -201,6 +205,23 @@ export const useAuthStore = create<AuthState>()(
             availableTenants: null,
           })
           delete api.defaults.headers.common['Authorization']
+
+          // IMPORTANTE: Limpar TODO o cache do React Query no logout
+          // Isso garante que dados do usuário anterior não apareçam
+          if (typeof window !== 'undefined') {
+            console.log('🧹 Auth Store - Limpando cache no logout...')
+            // Limpar cache do React Query
+            if ((window as any).queryClient) {
+              console.log('🧹 Limpando React Query cache...')
+              (window as any).queryClient.clear()
+            } else {
+              console.warn('⚠️ queryClient não encontrado no window!')
+            }
+            // Limpar localStorage manualmente (força limpeza do Zustand persist)
+            console.log('🧹 Removendo rafa-ilpi-auth do localStorage...')
+            localStorage.removeItem('rafa-ilpi-auth')
+            console.log('✅ Logout completo - cache limpo!')
+          }
         }
       },
 

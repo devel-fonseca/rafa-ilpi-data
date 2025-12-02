@@ -56,7 +56,7 @@ export class ResidentsController {
     return this.residentsService.create(
       createResidentDto,
       user.tenantId,
-      user.sub,
+      user.id,
     );
   }
 
@@ -108,7 +108,7 @@ export class ResidentsController {
       id,
       updateResidentDto,
       user.tenantId,
-      user.sub,
+      user.id,
     );
   }
 
@@ -126,7 +126,7 @@ export class ResidentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.residentsService.remove(id, user.tenantId, user.sub);
+    return this.residentsService.remove(id, user.tenantId, user.id);
   }
 
   @Get('stats/overview')

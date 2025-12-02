@@ -4,7 +4,10 @@ import {
   IsOptional,
   IsDateString,
   MaxLength,
+  IsEnum,
+  IsBoolean,
 } from 'class-validator';
+import { PositionCode, RegistrationType } from '@prisma/client';
 
 export class CreateUserProfileDto {
   @ApiProperty({
@@ -64,4 +67,66 @@ export class CreateUserProfileDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // ────────────────────────────────────────────────────────────────
+  // Campos de Permissões ILPI
+  // ────────────────────────────────────────────────────────────────
+
+  @ApiProperty({
+    description: 'Cargo padronizado ILPI do usuário',
+    enum: PositionCode,
+    example: PositionCode.NURSE,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PositionCode)
+  positionCode?: PositionCode;
+
+  @ApiProperty({
+    description: 'Tipo de registro profissional (COREN, CRM, etc)',
+    enum: RegistrationType,
+    example: RegistrationType.COREN,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(RegistrationType)
+  registrationType?: RegistrationType;
+
+  @ApiProperty({
+    description: 'Número do registro no conselho profissional',
+    example: '123456-SP',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  registrationNumber?: string;
+
+  @ApiProperty({
+    description: 'UF do registro profissional',
+    example: 'SP',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  registrationState?: string;
+
+  @ApiProperty({
+    description: 'Se o usuário é Responsável Técnico da ILPI',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isTechnicalManager?: boolean;
+
+  @ApiProperty({
+    description: 'Se o usuário é Coordenador de Enfermagem',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isNursingCoordinator?: boolean;
 }

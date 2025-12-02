@@ -408,6 +408,20 @@ export class TenantsService {
       },
     });
 
+    // Criar perfil vazio automaticamente para o usuário
+    try {
+      await this.prisma.userProfile.create({
+        data: {
+          userId: user.id,
+          tenantId,
+          createdBy: currentUserId, // Admin que criou o usuário
+        },
+      });
+    } catch (error) {
+      // Se falhar ao criar perfil, apenas loga mas não interrompe
+      console.error('Erro ao criar perfil de usuário:', error);
+    }
+
     // Enviar email de convite se solicitado
     if (addUserDto.sendInviteEmail && this.emailService) {
       try {

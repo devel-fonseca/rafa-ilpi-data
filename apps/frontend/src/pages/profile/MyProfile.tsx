@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
-import { getMyProfile, updateUserProfile } from '@/services/api'
+import { useMyProfile, useUpdateProfile } from '@/hooks/queries/useUserProfile'
 import { uploadFile } from '@/services/upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,34 +12,14 @@ import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 
-interface UserProfile {
-  id: string
-  userId: string
-  tenantId: string
-  profilePhoto: string | null
-  phone: string | null
-  position: string | null
-  department: string | null
-  birthDate: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-  user: {
-    id: string
-    name: string
-    email: string
-    role: string
-    isActive: boolean
-  }
-}
-
 export default function MyProfile() {
   const { user } = useAuthStore()
   const { toast } = useToast()
 
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  // React Query hooks
+  const { data: profile, isLoading, isError, error, refetch } = useMyProfile()
+  const updateProfileMutation = useUpdateProfile()
+
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
 
@@ -59,36 +39,37 @@ export default function MyProfile() {
     notes: '',
   })
 
-  // Carregar perfil ao montar
+  // Preencher formulário quando dados do perfil carregarem ou mudarem
   useEffect(() => {
-    loadProfile()
-  }, [])
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true)
-      const data = await getMyProfile()
-      setProfile(data)
-
-      // Preencher formulário
+    if (profile) {
+      console.log('📝 MyProfile - Atualizando formulário com dados do perfil:', {
+        userId: profile.user.id,
+        userName: profile.user.name,
+        userEmail: profile.user.email
+      })
       setFormData({
-        profilePhoto: data.profilePhoto || undefined,
-        phone: data.phone || '',
-        position: data.position || '',
-        department: data.department || '',
-        birthDate: data.birthDate ? format(new Date(data.birthDate), 'yyyy-MM-dd') : '',
-        notes: data.notes || '',
+        profilePhoto: profile.profilePhoto || undefined,
+        phone: profile.phone || '',
+        position: profile.position || '',
+        department: profile.department || '',
+        birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
+        notes: profile.notes || '',
       })
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao carregar perfil',
-        description: error.response?.data?.message || 'Não foi possível carregar seu perfil',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [profile])
+
+  // Recarregar perfil quando usuário mudar
+  useEffect(() => {
+    console.log('🔄 MyProfile - useEffect disparado. User:', {
+      userId: user?.id,
+      userName: user?.name,
+      userEmail: user?.email
+    })
+    if (user) {
+      console.log('🔄 MyProfile - Disparando refetch do perfil...')
+      refetch()
+    }
+  }, [user?.id, refetch])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,8 +77,6 @@ export default function MyProfile() {
     if (!user) return
 
     try {
-      setSaving(true)
-
       let photoUrl = formData.profilePhoto
 
       // Se há um novo arquivo de foto, fazer upload primeiro
@@ -111,14 +90,13 @@ export default function MyProfile() {
             description: uploadError.message || 'Não foi possível enviar a foto',
             variant: 'destructive',
           })
-          setSaving(false)
           setUploadingPhoto(false)
           return
         }
         setUploadingPhoto(false)
       }
 
-      await updateUserProfile(user.id, {
+      await updateProfileMutation.mutateAsync({
         profilePhoto: photoUrl || undefined,
         phone: formData.phone || undefined,
         position: formData.position || undefined,
@@ -134,18 +112,12 @@ export default function MyProfile() {
 
       // Limpar arquivo de foto após salvar
       setPhotoFile(null)
-
-      // Recarregar perfil
-      await loadProfile()
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar perfil',
         description: error.response?.data?.message || 'Não foi possível salvar as alterações',
         variant: 'destructive',
       })
-    } finally {
-      setSaving(false)
-      setUploadingPhoto(false)
     }
   }
 
@@ -153,10 +125,43 @@ export default function MyProfile() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  if (loading) {
+  const handleCancel = () => {
+    if (profile) {
+      setFormData({
+        profilePhoto: profile.profilePhoto || undefined,
+        phone: profile.phone || '',
+        position: profile.position || '',
+        department: profile.department || '',
+        birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
+        notes: profile.notes || '',
+      })
+      setPhotoFile(null)
+    }
+  }
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-destructive">
+              Erro ao carregar perfil: {error?.message || 'Erro desconhecido'}
+            </p>
+            <div className="flex justify-center mt-4">
+              <Button onClick={() => refetch()}>
+                Tentar Novamente
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -174,6 +179,8 @@ export default function MyProfile() {
       </div>
     )
   }
+
+  const isSaving = updateProfileMutation.isPending || uploadingPhoto
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
@@ -339,13 +346,13 @@ export default function MyProfile() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={loadProfile}
-                  disabled={saving || uploadingPhoto}
+                  onClick={handleCancel}
+                  disabled={isSaving}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={saving || uploadingPhoto}>
-                  {(saving || uploadingPhoto) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {uploadingPhoto ? 'Enviando foto...' : 'Salvar Alterações'}
                 </Button>
               </div>
