@@ -141,6 +141,13 @@ export async function updateUserProfile(userId: string, data: {
   department?: string
   birthDate?: string
   notes?: string
+  // ILPI Fields
+  positionCode?: string
+  registrationType?: string
+  registrationNumber?: string
+  registrationState?: string
+  isTechnicalManager?: boolean
+  isNursingCoordinator?: boolean
 }) {
   const response = await api.patch(`/user-profiles/${userId}`, data)
   return response.data
@@ -156,6 +163,13 @@ export async function createUserProfile(userId: string, data: {
   department?: string
   birthDate?: string
   notes?: string
+  // ILPI Fields
+  positionCode?: string
+  registrationType?: string
+  registrationNumber?: string
+  registrationState?: string
+  isTechnicalManager?: boolean
+  isNursingCoordinator?: boolean
 }) {
   const response = await api.post(`/user-profiles/${userId}`, data)
   return response.data
@@ -211,5 +225,50 @@ export async function addUserToTenant(tenantId: string, data: {
  */
 export async function removeUserFromTenant(tenantId: string, userId: string) {
   const response = await api.delete(`/tenants/${tenantId}/users/${userId}`)
+  return response.data
+}
+
+// ==================== PERMISSIONS ====================
+
+/**
+ * Busca todas as permissões de um usuário (herdadas + customizadas)
+ */
+export async function getUserPermissions(userId: string) {
+  const response = await api.get(`/permissions/user/${userId}`)
+  return response.data
+}
+
+/**
+ * Adiciona permissões customizadas a um usuário
+ */
+export async function addCustomPermissions(userId: string, permissions: string[]) {
+  const response = await api.post(`/permissions/user/${userId}/custom`, { permissions })
+  return response.data
+}
+
+/**
+ * Remove permissões customizadas de um usuário
+ */
+export async function removeCustomPermissions(userId: string, permissions: string[]) {
+  const response = await api.delete(`/permissions/user/${userId}/custom`, { data: { permissions } })
+  return response.data
+}
+
+/**
+ * Gerencia permissões customizadas (adiciona e/ou remove em uma única chamada)
+ */
+export async function manageCustomPermissions(
+  userId: string,
+  data: { add?: string[]; remove?: string[] }
+) {
+  const response = await api.patch(`/permissions/user/${userId}/custom`, data)
+  return response.data
+}
+
+/**
+ * Busca permissões padrão de um cargo (PositionCode)
+ */
+export async function getPositionPermissions(positionCode: string) {
+  const response = await api.get(`/permissions/position/${positionCode}`)
   return response.data
 }

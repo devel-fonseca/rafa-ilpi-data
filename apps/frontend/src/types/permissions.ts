@@ -1,0 +1,249 @@
+export enum PositionCode {
+  ADMINISTRATOR = 'ADMINISTRATOR',
+  TECHNICAL_MANAGER = 'TECHNICAL_MANAGER',
+  NURSING_COORDINATOR = 'NURSING_COORDINATOR',
+  NURSE = 'NURSE',
+  NURSING_TECHNICIAN = 'NURSING_TECHNICIAN',
+  NURSING_ASSISTANT = 'NURSING_ASSISTANT',
+  DOCTOR = 'DOCTOR',
+  PSYCHOLOGIST = 'PSYCHOLOGIST',
+  SOCIAL_WORKER = 'SOCIAL_WORKER',
+  PHYSIOTHERAPIST = 'PHYSIOTHERAPIST',
+  NUTRITIONIST = 'NUTRITIONIST',
+  CAREGIVER = 'CAREGIVER',
+  ADMINISTRATIVE = 'ADMINISTRATIVE',
+  OTHER = 'OTHER',
+}
+
+export enum RegistrationType {
+  COREN = 'COREN',
+  CRM = 'CRM',
+  CRP = 'CRP',
+  CRESS = 'CRESS',
+  CREFITO = 'CREFITO',
+  CRN = 'CRN',
+  NONE = 'NONE',
+}
+
+export enum PermissionType {
+  // Residents
+  VIEW_RESIDENTS = 'VIEW_RESIDENTS',
+  CREATE_RESIDENTS = 'CREATE_RESIDENTS',
+  UPDATE_RESIDENTS = 'UPDATE_RESIDENTS',
+  DELETE_RESIDENTS = 'DELETE_RESIDENTS',
+  EXPORT_RESIDENTS = 'EXPORT_RESIDENTS',
+
+  // Daily Records
+  VIEW_DAILY_RECORDS = 'VIEW_DAILY_RECORDS',
+  CREATE_DAILY_RECORDS = 'CREATE_DAILY_RECORDS',
+  UPDATE_DAILY_RECORDS = 'UPDATE_DAILY_RECORDS',
+  DELETE_DAILY_RECORDS = 'DELETE_DAILY_RECORDS',
+  EXPORT_DAILY_RECORDS = 'EXPORT_DAILY_RECORDS',
+
+  // Prescriptions
+  VIEW_PRESCRIPTIONS = 'VIEW_PRESCRIPTIONS',
+  CREATE_PRESCRIPTIONS = 'CREATE_PRESCRIPTIONS',
+  UPDATE_PRESCRIPTIONS = 'UPDATE_PRESCRIPTIONS',
+  DELETE_PRESCRIPTIONS = 'DELETE_PRESCRIPTIONS',
+  ADMINISTER_PRESCRIPTIONS = 'ADMINISTER_PRESCRIPTIONS',
+  ADMINISTER_SOS_PRESCRIPTIONS = 'ADMINISTER_SOS_PRESCRIPTIONS',
+
+  // Vaccinations
+  VIEW_VACCINATIONS = 'VIEW_VACCINATIONS',
+  CREATE_VACCINATIONS = 'CREATE_VACCINATIONS',
+  UPDATE_VACCINATIONS = 'UPDATE_VACCINATIONS',
+  DELETE_VACCINATIONS = 'DELETE_VACCINATIONS',
+
+  // Vital Signs
+  VIEW_VITAL_SIGNS = 'VIEW_VITAL_SIGNS',
+  CREATE_VITAL_SIGNS = 'CREATE_VITAL_SIGNS',
+
+  // Documents
+  VIEW_DOCUMENTS = 'VIEW_DOCUMENTS',
+  CREATE_DOCUMENTS = 'CREATE_DOCUMENTS',
+  UPDATE_DOCUMENTS = 'UPDATE_DOCUMENTS',
+  DELETE_DOCUMENTS = 'DELETE_DOCUMENTS',
+
+  // Infrastructure
+  MANAGE_BUILDINGS = 'MANAGE_BUILDINGS',
+  MANAGE_FLOORS = 'MANAGE_FLOORS',
+  MANAGE_ROOMS = 'MANAGE_ROOMS',
+  MANAGE_BEDS = 'MANAGE_BEDS',
+
+  // Users & Permissions
+  MANAGE_USERS = 'MANAGE_USERS',
+  MANAGE_PERMISSIONS = 'MANAGE_PERMISSIONS',
+
+  // Institutional Profile
+  VIEW_INSTITUTIONAL_PROFILE = 'VIEW_INSTITUTIONAL_PROFILE',
+  UPDATE_INSTITUTIONAL_PROFILE = 'UPDATE_INSTITUTIONAL_PROFILE',
+
+  // Audit
+  VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
+}
+
+export const POSITION_CODE_LABELS: Record<PositionCode, string> = {
+  [PositionCode.ADMINISTRATOR]: 'Administrador',
+  [PositionCode.TECHNICAL_MANAGER]: 'Responsável Técnico',
+  [PositionCode.NURSING_COORDINATOR]: 'Coordenador de Enfermagem',
+  [PositionCode.NURSE]: 'Enfermeiro(a)',
+  [PositionCode.NURSING_TECHNICIAN]: 'Técnico de Enfermagem',
+  [PositionCode.NURSING_ASSISTANT]: 'Auxiliar de Enfermagem',
+  [PositionCode.DOCTOR]: 'Médico(a)',
+  [PositionCode.PSYCHOLOGIST]: 'Psicólogo(a)',
+  [PositionCode.SOCIAL_WORKER]: 'Assistente Social',
+  [PositionCode.PHYSIOTHERAPIST]: 'Fisioterapeuta',
+  [PositionCode.NUTRITIONIST]: 'Nutricionista',
+  [PositionCode.CAREGIVER]: 'Cuidador(a)',
+  [PositionCode.ADMINISTRATIVE]: 'Administrativo',
+  [PositionCode.OTHER]: 'Outro',
+};
+
+export const POSITION_CODE_DESCRIPTIONS: Record<PositionCode, string> = {
+  [PositionCode.ADMINISTRATOR]: 'Acesso total ao sistema, gestão de usuários e configurações',
+  [PositionCode.TECHNICAL_MANAGER]: 'Responsável técnico da ILPI, supervisão geral das atividades',
+  [PositionCode.NURSING_COORDINATOR]: 'Coordenação da equipe de enfermagem e cuidados',
+  [PositionCode.NURSE]: 'Enfermeiro responsável por prescrições, procedimentos e supervisão',
+  [PositionCode.NURSING_TECHNICIAN]: 'Técnico de enfermagem com permissões para cuidados e medicações',
+  [PositionCode.NURSING_ASSISTANT]: 'Auxiliar de enfermagem com permissões básicas de cuidados',
+  [PositionCode.DOCTOR]: 'Médico com permissões para prescrições e diagnósticos',
+  [PositionCode.PSYCHOLOGIST]: 'Psicólogo com acesso a avaliações e acompanhamentos',
+  [PositionCode.SOCIAL_WORKER]: 'Assistente social com acesso a dados sociais e documentação',
+  [PositionCode.PHYSIOTHERAPIST]: 'Fisioterapeuta com acesso a planos de tratamento',
+  [PositionCode.NUTRITIONIST]: 'Nutricionista com acesso a planos alimentares e dietas',
+  [PositionCode.CAREGIVER]: 'Cuidador com permissões básicas de registro de atividades',
+  [PositionCode.ADMINISTRATIVE]: 'Administrativo com acesso a gestão e relatórios',
+  [PositionCode.OTHER]: 'Outro profissional com permissões customizadas',
+};
+
+export const REGISTRATION_TYPE_LABELS: Record<RegistrationType, string> = {
+  [RegistrationType.COREN]: 'COREN (Enfermagem)',
+  [RegistrationType.CRM]: 'CRM (Medicina)',
+  [RegistrationType.CRP]: 'CRP (Psicologia)',
+  [RegistrationType.CRESS]: 'CRESS (Serviço Social)',
+  [RegistrationType.CREFITO]: 'CREFITO (Fisioterapia)',
+  [RegistrationType.CRN]: 'CRN (Nutrição)',
+  [RegistrationType.NONE]: 'Sem Registro',
+};
+
+export const PERMISSION_LABELS: Record<PermissionType, string> = {
+  [PermissionType.VIEW_RESIDENTS]: 'Visualizar residentes',
+  [PermissionType.CREATE_RESIDENTS]: 'Cadastrar residentes',
+  [PermissionType.UPDATE_RESIDENTS]: 'Editar residentes',
+  [PermissionType.DELETE_RESIDENTS]: 'Remover residentes',
+  [PermissionType.EXPORT_RESIDENTS]: 'Exportar dados de residentes',
+
+  [PermissionType.VIEW_DAILY_RECORDS]: 'Visualizar registros diários',
+  [PermissionType.CREATE_DAILY_RECORDS]: 'Criar registros diários',
+  [PermissionType.UPDATE_DAILY_RECORDS]: 'Editar registros diários',
+  [PermissionType.DELETE_DAILY_RECORDS]: 'Excluir registros diários',
+  [PermissionType.EXPORT_DAILY_RECORDS]: 'Exportar registros diários',
+
+  [PermissionType.VIEW_PRESCRIPTIONS]: 'Visualizar prescrições',
+  [PermissionType.CREATE_PRESCRIPTIONS]: 'Criar prescrições',
+  [PermissionType.UPDATE_PRESCRIPTIONS]: 'Editar prescrições',
+  [PermissionType.DELETE_PRESCRIPTIONS]: 'Excluir prescrições',
+  [PermissionType.ADMINISTER_PRESCRIPTIONS]: 'Administrar medicações',
+  [PermissionType.ADMINISTER_SOS_PRESCRIPTIONS]: 'Administrar medicações SOS',
+
+  [PermissionType.VIEW_VACCINATIONS]: 'Visualizar vacinações',
+  [PermissionType.CREATE_VACCINATIONS]: 'Registrar vacinações',
+  [PermissionType.UPDATE_VACCINATIONS]: 'Editar vacinações',
+  [PermissionType.DELETE_VACCINATIONS]: 'Excluir vacinações',
+
+  [PermissionType.VIEW_VITAL_SIGNS]: 'Visualizar sinais vitais',
+  [PermissionType.CREATE_VITAL_SIGNS]: 'Registrar sinais vitais',
+
+  [PermissionType.VIEW_DOCUMENTS]: 'Visualizar documentos',
+  [PermissionType.CREATE_DOCUMENTS]: 'Upload de documentos',
+  [PermissionType.UPDATE_DOCUMENTS]: 'Editar documentos',
+  [PermissionType.DELETE_DOCUMENTS]: 'Excluir documentos',
+
+  [PermissionType.MANAGE_BUILDINGS]: 'Gerenciar prédios',
+  [PermissionType.MANAGE_FLOORS]: 'Gerenciar andares',
+  [PermissionType.MANAGE_ROOMS]: 'Gerenciar quartos',
+  [PermissionType.MANAGE_BEDS]: 'Gerenciar leitos',
+
+  [PermissionType.MANAGE_USERS]: 'Gerenciar usuários',
+  [PermissionType.MANAGE_PERMISSIONS]: 'Gerenciar permissões',
+
+  [PermissionType.VIEW_INSTITUTIONAL_PROFILE]: 'Visualizar perfil institucional',
+  [PermissionType.UPDATE_INSTITUTIONAL_PROFILE]: 'Editar perfil institucional',
+
+  [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
+};
+
+export const PERMISSION_GROUPS = {
+  residents: {
+    label: 'Residentes',
+    permissions: [
+      PermissionType.VIEW_RESIDENTS,
+      PermissionType.CREATE_RESIDENTS,
+      PermissionType.UPDATE_RESIDENTS,
+      PermissionType.DELETE_RESIDENTS,
+      PermissionType.EXPORT_RESIDENTS,
+    ],
+  },
+  dailyRecords: {
+    label: 'Registros Diários',
+    permissions: [
+      PermissionType.VIEW_DAILY_RECORDS,
+      PermissionType.CREATE_DAILY_RECORDS,
+      PermissionType.UPDATE_DAILY_RECORDS,
+      PermissionType.DELETE_DAILY_RECORDS,
+      PermissionType.EXPORT_DAILY_RECORDS,
+    ],
+  },
+  prescriptions: {
+    label: 'Prescrições',
+    permissions: [
+      PermissionType.VIEW_PRESCRIPTIONS,
+      PermissionType.CREATE_PRESCRIPTIONS,
+      PermissionType.UPDATE_PRESCRIPTIONS,
+      PermissionType.DELETE_PRESCRIPTIONS,
+      PermissionType.ADMINISTER_PRESCRIPTIONS,
+      PermissionType.ADMINISTER_SOS_PRESCRIPTIONS,
+    ],
+  },
+  vaccinations: {
+    label: 'Vacinações',
+    permissions: [
+      PermissionType.VIEW_VACCINATIONS,
+      PermissionType.CREATE_VACCINATIONS,
+      PermissionType.UPDATE_VACCINATIONS,
+      PermissionType.DELETE_VACCINATIONS,
+    ],
+  },
+  vitalSigns: {
+    label: 'Sinais Vitais',
+    permissions: [PermissionType.VIEW_VITAL_SIGNS, PermissionType.CREATE_VITAL_SIGNS],
+  },
+  documents: {
+    label: 'Documentos',
+    permissions: [
+      PermissionType.VIEW_DOCUMENTS,
+      PermissionType.CREATE_DOCUMENTS,
+      PermissionType.UPDATE_DOCUMENTS,
+      PermissionType.DELETE_DOCUMENTS,
+    ],
+  },
+  infrastructure: {
+    label: 'Infraestrutura',
+    permissions: [
+      PermissionType.MANAGE_BUILDINGS,
+      PermissionType.MANAGE_FLOORS,
+      PermissionType.MANAGE_ROOMS,
+      PermissionType.MANAGE_BEDS,
+    ],
+  },
+  administration: {
+    label: 'Administração',
+    permissions: [
+      PermissionType.MANAGE_USERS,
+      PermissionType.MANAGE_PERMISSIONS,
+      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
+      PermissionType.UPDATE_INSTITUTIONAL_PROFILE,
+      PermissionType.VIEW_AUDIT_LOGS,
+    ],
+  },
+};
