@@ -4,9 +4,10 @@ import { PrescriptionsController } from './prescriptions.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { FilesModule } from '../files/files.module';
+import { PermissionsModule } from '../permissions/permissions.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule, FilesModule],
+  imports: [PrismaModule, AuditModule, FilesModule, PermissionsModule],
   controllers: [PrescriptionsController],
   providers: [PrescriptionsService],
   exports: [PrescriptionsService],
