@@ -24,6 +24,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
 import {
   ApiTags,
   ApiOperation,
@@ -36,13 +39,13 @@ import {
 @ApiTags('Residents')
 @ApiBearerAuth()
 @Controller('residents')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard) // Ordem: Auth primeiro, depois Permissions
 @AuditEntity('RESIDENT')
 export class ResidentsController {
   constructor(private readonly residentsService: ResidentsService) {}
 
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.CREATE_RESIDENTS)
   @AuditAction('CREATE')
   @ApiOperation({ summary: 'Criar novo residente' })
   @ApiResponse({ status: 201, description: 'Residente criado com sucesso' })
@@ -61,6 +64,7 @@ export class ResidentsController {
   }
 
   @Get()
+  @RequirePermissions(PermissionType.VIEW_RESIDENTS)
   @ApiOperation({ summary: 'Listar residentes' })
   @ApiResponse({ status: 200, description: 'Lista de residentes' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
@@ -77,6 +81,7 @@ export class ResidentsController {
   }
 
   @Get(':id')
+  @RequirePermissions(PermissionType.VIEW_RESIDENTS)
   @ApiOperation({ summary: 'Buscar residente por ID' })
   @ApiResponse({ status: 200, description: 'Residente encontrado' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
@@ -90,7 +95,7 @@ export class ResidentsController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.UPDATE_RESIDENTS)
   @AuditAction('UPDATE')
   @ApiOperation({ summary: 'Atualizar residente' })
   @ApiResponse({ status: 200, description: 'Residente atualizado com sucesso' })
@@ -114,7 +119,7 @@ export class ResidentsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin')
+  @RequirePermissions(PermissionType.DELETE_RESIDENTS)
   @AuditAction('DELETE')
   @ApiOperation({ summary: 'Remover residente (soft delete)' })
   @ApiResponse({ status: 200, description: 'Residente removido com sucesso' })
@@ -130,6 +135,7 @@ export class ResidentsController {
   }
 
   @Get('stats/overview')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
   @ApiOperation({ summary: 'Estatísticas gerais dos residentes' })
   @ApiResponse({ status: 200, description: 'Estatísticas dos residentes' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })

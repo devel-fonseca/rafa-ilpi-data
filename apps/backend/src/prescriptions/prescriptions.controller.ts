@@ -23,6 +23,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
 import {
   ApiTags,
   ApiOperation,
@@ -35,7 +38,7 @@ import {
 @ApiTags('Prescriptions')
 @ApiBearerAuth()
 @Controller('prescriptions')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('PRESCRIPTION')
 export class PrescriptionsController {
   constructor(private readonly prescriptionsService: PrescriptionsService) {}

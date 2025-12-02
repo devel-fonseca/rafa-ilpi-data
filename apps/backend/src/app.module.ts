@@ -26,6 +26,7 @@ import { InstitutionalProfileModule } from './institutional-profile/institutiona
 import { ResidentDocumentsModule } from './resident-documents/resident-documents.module';
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
 import { EmailModule } from './email/email.module';
+import { PermissionsModule } from './permissions/permissions.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { EmailModule } from './email/email.module';
     ResidentDocumentsModule,
     UserProfilesModule,
     EmailModule,
+    PermissionsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

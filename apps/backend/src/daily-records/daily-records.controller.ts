@@ -25,6 +25,9 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
 import {
   ApiTags,
   ApiOperation,
@@ -36,13 +39,13 @@ import {
 @ApiTags('Daily Records')
 @ApiBearerAuth()
 @Controller('daily-records')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('DAILY_RECORD')
 export class DailyRecordsController {
   constructor(private readonly dailyRecordsService: DailyRecordsService) {}
 
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.CREATE_DAILY_RECORDS)
   @AuditAction('CREATE')
   @ApiOperation({ summary: 'Criar novo registro diário' })
   @ApiResponse({ status: 201, description: 'Registro criado com sucesso' })
