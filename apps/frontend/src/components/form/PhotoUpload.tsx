@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { User } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getSignedFileUrl } from '@/services/upload'
 
 interface PhotoUploadProps {
   onPhotoSelected: (file: File | null) => void
@@ -8,20 +9,40 @@ interface PhotoUploadProps {
 }
 
 export function PhotoUpload({ onPhotoSelected, currentPhoto }: PhotoUploadProps) {
-  const [preview, setPreview] = useState<string | null>(currentPhoto || null)
+  const [preview, setPreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  console.log('🖼️ PhotoUpload - currentPhoto recebido:', currentPhoto)
-  console.log('🖼️ PhotoUpload - preview state:', preview)
-
   // Atualizar preview quando currentPhoto mudar
   useEffect(() => {
-    if (currentPhoto) {
-      console.log('🔄 PhotoUpload - Atualizando preview com currentPhoto:', currentPhoto)
-      setIsLoading(true)
-      setPreview(currentPhoto)
+    const loadPhoto = async () => {
+      if (!currentPhoto) {
+        setPreview(null)
+        setIsLoading(false)
+        return
+      }
+
+      // Se é URL completa (http), usa direto
+      if (currentPhoto.startsWith('http')) {
+        setPreview(currentPhoto)
+        setIsLoading(false)
+        return
+      }
+
+      // Se é caminho do MinIO, precisa assinar a URL
+      try {
+        setIsLoading(true)
+        const signedUrl = await getSignedFileUrl(currentPhoto)
+        setPreview(signedUrl)
+      } catch (error) {
+        console.error('Erro ao carregar foto do perfil:', error)
+        setPreview(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    loadPhoto()
   }, [currentPhoto])
 
   const handleClick = () => {

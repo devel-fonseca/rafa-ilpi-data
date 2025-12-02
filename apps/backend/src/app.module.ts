@@ -24,6 +24,8 @@ import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
 import { InstitutionalProfileModule } from './institutional-profile/institutional-profile.module';
 import { ResidentDocumentsModule } from './resident-documents/resident-documents.module';
+import { UserProfilesModule } from './user-profiles/user-profiles.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { ResidentDocumentsModule } from './resident-documents/resident-documents
     VitalSignsModule,
     InstitutionalProfileModule,
     ResidentDocumentsModule,
+    UserProfilesModule,
+    EmailModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

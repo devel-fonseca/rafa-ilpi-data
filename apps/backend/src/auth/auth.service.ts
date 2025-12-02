@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserProfilesService } from '../user-profiles/user-profiles.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly userProfilesService: UserProfilesService,
   ) {}
 
   /**
@@ -85,6 +87,20 @@ export class AuthService {
         createdAt: true,
       },
     });
+
+    // Criar perfil vazio automaticamente para o usuário
+    try {
+      await this.prisma.userProfile.create({
+        data: {
+          userId: user.id,
+          tenantId: user.tenantId,
+          createdBy: user.id, // O próprio usuário é o criador do perfil
+        },
+      });
+    } catch (error) {
+      // Se falhar ao criar perfil, apenas loga mas não interrompe o registro
+      console.error('Erro ao criar perfil de usuário:', error);
+    }
 
     return {
       message: 'Usuário criado com sucesso',

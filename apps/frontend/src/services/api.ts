@@ -101,3 +101,99 @@ export async function getDailyRecordHistory(recordId: string) {
   const response = await api.get(`/daily-records/${recordId}/history`)
   return response.data
 }
+
+// ==================== USER PROFILES ====================
+
+/**
+ * Busca o perfil do usuário autenticado
+ */
+export async function getMyProfile() {
+  const response = await api.get('/user-profiles/me')
+  return response.data
+}
+
+/**
+ * Busca todos os perfis de usuários (para ADMINs)
+ */
+export async function getAllUserProfiles() {
+  const response = await api.get('/user-profiles')
+  return response.data
+}
+
+/**
+ * Busca perfil de um usuário específico
+ */
+export async function getUserProfile(userId: string) {
+  const response = await api.get(`/user-profiles/${userId}`)
+  return response.data
+}
+
+/**
+ * Atualiza perfil de usuário
+ */
+export async function updateUserProfile(userId: string, data: {
+  profilePhoto?: string
+  phone?: string
+  position?: string
+  department?: string
+  birthDate?: string
+  notes?: string
+}) {
+  const response = await api.patch(`/user-profiles/${userId}`, data)
+  return response.data
+}
+
+/**
+ * Cria perfil para um usuário (ADMIN only)
+ */
+export async function createUserProfile(userId: string, data: {
+  profilePhoto?: string
+  phone?: string
+  position?: string
+  department?: string
+  birthDate?: string
+  notes?: string
+}) {
+  const response = await api.post(`/user-profiles/${userId}`, data)
+  return response.data
+}
+
+/**
+ * Remove perfil de usuário (ADMIN only)
+ */
+export async function deleteUserProfile(userId: string) {
+  const response = await api.delete(`/user-profiles/${userId}`)
+  return response.data
+}
+
+// ==================== USERS MANAGEMENT ====================
+
+/**
+ * Lista usuários de um tenant
+ */
+export async function getTenantUsers(tenantId: string) {
+  const response = await api.get(`/tenants/${tenantId}/users`)
+  return response.data
+}
+
+/**
+ * Adiciona um novo usuário ao tenant (ADMIN only)
+ */
+export async function addUserToTenant(tenantId: string, data: {
+  name: string
+  email: string
+  role: 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
+  sendInviteEmail?: boolean
+  temporaryPassword?: string
+}) {
+  const response = await api.post(`/tenants/${tenantId}/users`, data)
+  return response.data
+}
+
+/**
+ * Remove usuário do tenant (ADMIN only)
+ */
+export async function removeUserFromTenant(tenantId: string, userId: string) {
+  const response = await api.delete(`/tenants/${tenantId}/users/${userId}`)
+  return response.data
+}

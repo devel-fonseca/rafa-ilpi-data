@@ -8,6 +8,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
@@ -19,7 +20,10 @@ import { TenantStatus } from '@prisma/client';
 export class TenantsService {
   private readonly logger = new Logger(TenantsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService?: EmailService,
+  ) {}
 
   /**
    * Cria um novo tenant (ILPI) e o primeiro usuário admin
@@ -404,10 +408,25 @@ export class TenantsService {
       },
     });
 
-    // TODO: Enviar email de convite se solicitado
-    if (addUserDto.sendInviteEmail) {
-      this.logger.log(`TODO: Enviar email de convite para ${user.email}`);
-      // await this.emailService.sendInviteEmail(user.email, temporaryPassword);
+    // Enviar email de convite se solicitado
+    if (addUserDto.sendInviteEmail && this.emailService) {
+      try {
+        const emailSent = await this.emailService.sendUserInvite(user.email, {
+          name: user.name,
+          email: user.email,
+          temporaryPassword,
+          tenantName: tenant.name,
+        });
+
+        if (emailSent) {
+          this.logger.log(`Email de convite enviado com sucesso para ${user.email}`);
+        } else {
+          this.logger.warn(`Falha ao enviar email de convite para ${user.email}`);
+        }
+      } catch (error) {
+        this.logger.error(`Erro ao enviar email de convite: ${error.message}`);
+        // Não bloqueia a criação do usuário se o email falhar
+      }
     }
 
     return {

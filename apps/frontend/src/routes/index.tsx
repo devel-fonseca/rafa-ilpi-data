@@ -36,9 +36,12 @@ import { BedsStructurePage, BedsMapPage } from '@/pages/beds'
 // Institutional Profile Pages
 import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalProfile'
 
+// User Profile & Management Pages
+import MyProfile from '@/pages/profile/MyProfile'
+import UsersList from '@/pages/users/UsersList'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
-const UsersPage = () => <div>Usuários</div>
 
 export const router = createBrowserRouter([
   {
@@ -138,16 +141,20 @@ export const router = createBrowserRouter([
         element: <InstitutionalProfile />,
       },
       {
-        path: 'settings',
-        element: <SettingsPage />,
+        path: 'meu-perfil',
+        element: <MyProfile />,
       },
       {
-        path: 'users',
+        path: 'usuarios',
         element: (
           <ProtectedRoute requiredRole="ADMIN">
-            <UsersPage />
+            <UsersList />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
     ],
   },

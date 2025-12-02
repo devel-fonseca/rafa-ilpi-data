@@ -5,20 +5,24 @@ import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const entityTypeLabels: Record<string, string> = {
-  RESIDENT: 'Residente',
-  DAILY_RECORD: 'Registro Diário',
-  PRESCRIPTION: 'Prescrição',
-  VACCINATION: 'Vacinação',
-  BUILDING: 'Prédio',
-  FLOOR: 'Andar',
-  ROOM: 'Quarto',
-  BED: 'Leito',
-  VITAL_SIGN: 'Sinal Vital',
-  INSTITUTIONAL_PROFILE: 'Perfil Institucional',
+  RESIDENT: 'residente',
+  DAILY_RECORD: 'registro diário',
+  PRESCRIPTION: 'prescrição',
+  VACCINATION: 'vacinação',
+  BUILDING: 'prédio',
+  FLOOR: 'andar',
+  ROOM: 'quarto',
+  BED: 'leito',
+  VITAL_SIGN: 'sinal vital',
+  INSTITUTIONAL_PROFILE: 'perfil institucional',
+  USER_PROFILE: 'perfil de usuário',
+  USER: 'usuário',
+  TENANT: 'organização',
 }
 
 const actionLabels: Record<string, string> = {
   CREATE: 'criou',
+  CREATE_USER: 'adicionou',
   UPDATE: 'atualizou',
   DELETE: 'excluiu',
   READ: 'visualizou',
@@ -60,15 +64,44 @@ function getActivityColor(action: string) {
 }
 
 function formatActivityMessage(log: AuditLog) {
-  const entityLabel = entityTypeLabels[log.entityType] || log.entityType
-  const actionLabel = actionLabels[log.action] || log.action
+  const entityLabel = entityTypeLabels[log.entityType] || log.entityType.toLowerCase().replace('_', ' ')
+  let actionLabel = actionLabels[log.action] || log.action.toLowerCase()
+
+  // Mensagens contextualizadas para combinações específicas
+  let customMessage: string | null = null
+
+  // Normalizar entity type para maiúsculo para comparação
+  const entityTypeUpper = log.entityType?.toUpperCase()
+
+  // CREATE + TENANT (no auto-registro) = "cadastrou a instituição"
+  if (log.action === 'CREATE' && entityTypeUpper === 'TENANT') {
+    customMessage = 'cadastrou a instituição'
+  }
+  // CREATE_USER + TENANT (adicionar usuário ao tenant) = "adicionou usuário"
+  else if (log.action === 'CREATE_USER' && entityTypeUpper === 'TENANT') {
+    customMessage = 'adicionou usuário'
+  }
+  // DELETE_USER + TENANT (remover usuário do tenant) = "removeu usuário"
+  else if (log.action === 'DELETE_USER' && entityTypeUpper === 'TENANT') {
+    customMessage = 'removeu usuário'
+  }
+  // UPDATE + USER_PROFILE = "atualizou seu perfil"
+  else if (log.action === 'UPDATE' && entityTypeUpper === 'USER_PROFILE') {
+    customMessage = 'atualizou seu perfil'
+  }
 
   return (
     <div className="flex-1">
       <p className="text-sm text-gray-900">
         <span className="font-medium">{log.userName}</span>{' '}
-        <span className="text-gray-600">{actionLabel}</span>{' '}
-        <span className="font-medium">{entityLabel.toLowerCase()}</span>
+        {customMessage ? (
+          <span className="text-gray-600">{customMessage}</span>
+        ) : (
+          <>
+            <span className="text-gray-600">{actionLabel}</span>{' '}
+            <span className="font-medium">{entityLabel}</span>
+          </>
+        )}
       </p>
       <p className="text-xs text-gray-500 mt-0.5">
         {formatDistanceToNow(new Date(log.createdAt), {

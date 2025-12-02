@@ -46,12 +46,15 @@ export function PhotoUploadNew({
   const [isProcessing, setIsProcessing] = useState(false)
   const [faceDetected, setFaceDetected] = useState<boolean | null>(null)
 
-  // Sincronizar preview com currentPhotoUrl quando muda (ex: residente carregado)
+  // Sincronizar preview com currentPhotoUrl quando muda (ex: residente carregado ou perfil atualizado)
   useEffect(() => {
-    if (currentPhotoUrl && !selectedImage) {
+    if (currentPhotoUrl) {
       setSelectedImage(currentPhotoUrl)
+      setFaceDetected(null) // Resetar badge de detecção facial ao carregar foto existente
+    } else {
+      setSelectedImage(null)
     }
-  }, [currentPhotoUrl, selectedImage])
+  }, [currentPhotoUrl])
 
   // Converter canvas para WebP e salvar como File
   const canvasToWebP = useCallback(async (canvas: HTMLCanvasElement): Promise<File> => {
@@ -250,7 +253,7 @@ export function PhotoUploadNew({
                 photoUrl={selectedImage}
                 altText={label}
                 size="lg"
-                isSignedUrl={true}
+                isSignedUrl={selectedImage?.startsWith('data:') || selectedImage?.startsWith('blob:')}
               />
             </div>
 
