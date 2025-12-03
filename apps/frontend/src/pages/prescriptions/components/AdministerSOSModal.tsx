@@ -73,12 +73,13 @@ export function AdministerSOSModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Administrar Medicação SOS</DialogTitle>
         </DialogHeader>
 
-        <div className="mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+        <div className="flex-1 overflow-y-auto px-1">
+          <div className="mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
           <h3 className="font-semibold text-orange-900 mb-1">{sosMedication.name}</h3>
           <p className="text-sm text-orange-700">
             {sosMedication.presentation} - {sosMedication.concentration}
@@ -182,6 +183,7 @@ export function AdministerSOSModal({
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

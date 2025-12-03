@@ -80,12 +80,13 @@ export function AdministerMedicationModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Administrar Medicamento</DialogTitle>
         </DialogHeader>
 
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="flex-1 overflow-y-auto px-1">
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="font-semibold text-blue-900 mb-1">{medication.name}</h3>
           <p className="text-sm text-blue-700">
             {medication.presentation} - {medication.concentration}
@@ -235,6 +236,7 @@ export function AdministerMedicationModal({
             </Button>
           </div>
         </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
