@@ -69,7 +69,8 @@ export function AdministerMedicationModal({
       reset({
         medicationId: medication.id,
         date: getCurrentDateLocal(),
-        scheduledTime: medication.scheduledTimes?.[0] || '08:00',
+        // Usar horário pré-selecionado se disponível, senão usar o primeiro da lista
+        scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
         actualTime: getCurrentTimeLocal(),
         wasAdministered: true,
         administeredBy: user?.name || '',

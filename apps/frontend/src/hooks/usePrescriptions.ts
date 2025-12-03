@@ -144,6 +144,8 @@ export function useAdministerMedication() {
       queryClient.invalidateQueries({ queryKey: ['medication-administrations'] })
       // Invalidar prescrições para atualizar status em tempo real
       queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
+      // Invalidar prescrição específica também
+      queryClient.invalidateQueries({ queryKey: ['prescription'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
   })

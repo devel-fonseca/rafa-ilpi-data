@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { AdministerMedicationModal } from './AdministerMedicationModal'
+import { getCurrentDateLocal } from '@/utils/timezone'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
@@ -66,7 +67,7 @@ const STATUS_CONFIG = {
 }
 
 export function TodayActions() {
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = getCurrentDateLocal()
   const [selectedMedication, setSelectedMedication] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
