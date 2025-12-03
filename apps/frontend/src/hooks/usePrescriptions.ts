@@ -142,6 +142,9 @@ export function useAdministerMedication() {
     onSuccess: () => {
       // Invalidar queries relacionadas a administração
       queryClient.invalidateQueries({ queryKey: ['medication-administrations'] })
+      // Invalidar prescrições para atualizar status em tempo real
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
   })
 }
@@ -156,6 +159,9 @@ export function useAdministerSOS() {
     onSuccess: () => {
       // Invalidar queries relacionadas a administração
       queryClient.invalidateQueries({ queryKey: ['sos-administrations'] })
+      // Invalidar prescrições para atualizar status em tempo real
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
   })
 }

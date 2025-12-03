@@ -114,7 +114,7 @@ export function TodayActions() {
           // Verificar se existe administração para este horário hoje
           const todayAdministration = medication.administrations?.find(
             (admin) =>
-              admin.date === today && admin.scheduledTime === time
+              format(new Date(admin.date), 'yyyy-MM-dd') === today && admin.scheduledTime === time
           )
 
           let status: 'administered' | 'pending' | 'missed' = 'pending'
