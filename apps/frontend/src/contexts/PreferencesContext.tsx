@@ -32,6 +32,13 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_USER_PREFERENCES);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Resetar preferências quando usuário desloga
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setPreferences(DEFAULT_USER_PREFERENCES);
+    }
+  }, [isAuthenticated]);
+
   // Sincronizar preferências do perfil com o estado local
   useEffect(() => {
     if (profile?.preferences) {
@@ -39,10 +46,11 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         ...DEFAULT_USER_PREFERENCES,
         ...profile.preferences,
       });
-    } else {
+    } else if (isAuthenticated) {
+      // Só resetar para default se estiver autenticado mas sem perfil ainda
       setPreferences(DEFAULT_USER_PREFERENCES);
     }
-  }, [profile?.preferences]);
+  }, [profile?.preferences, isAuthenticated]);
 
   // Aplicar tema ao document root
   useEffect(() => {
