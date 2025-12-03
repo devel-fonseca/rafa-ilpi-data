@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { CheckCircle2, XCircle, Circle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { AdministerMedicationModal } from './AdministerMedicationModal'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
@@ -67,7 +66,7 @@ const STATUS_CONFIG = {
 }
 
 export function TodayActions() {
-  const today = getCurrentDateLocal()
+  const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
   const [selectedMedication, setSelectedMedication] = useState<any>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -114,8 +113,11 @@ export function TodayActions() {
 
           // Verificar se existe administração para este horário hoje
           const todayAdministration = medication.administrations?.find(
-            (admin) =>
-              format(new Date(admin.date), 'yyyy-MM-dd') === today && admin.scheduledTime === time
+            (admin) => {
+              // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão segura
+              const adminDate = extractDateOnly(admin.date)
+              return adminDate === today && admin.scheduledTime === time
+            }
           )
 
           let status: 'administered' | 'pending' | 'missed' = 'pending'

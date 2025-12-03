@@ -1,11 +1,10 @@
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -79,9 +78,8 @@ export function ViewMedicationAdministrationModal({
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Data:</span>
               <span>
-                {format(new Date(administration.date), "dd 'de' MMMM 'de' yyyy", {
-                  locale: ptBR,
-                })}
+                {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
+                {formatDateLongSafe(administration.date)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
@@ -186,12 +184,8 @@ export function ViewMedicationAdministrationModal({
 
           {/* 6. Rodapé com timestamp */}
           <div className="pt-4 border-t text-xs text-muted-foreground">
-            Registrado em{' '}
-            {format(
-              new Date(administration.createdAt),
-              "dd/MM/yyyy 'às' HH:mm",
-              { locale: ptBR }
-            )}
+            {/* ✅ REFATORADO: Usar formatDateTimeSafe do dateHelpers */}
+            Registrado em {formatDateTimeSafe(administration.createdAt)}
           </div>
         </div>
 

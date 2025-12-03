@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   ArrowLeft,
@@ -27,10 +27,15 @@ import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
 import { getSignedFileUrl } from '@/services/upload'
-import { getCurrentDateLocal } from '@/utils/timezone'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 import { ViewMedicationAdministrationModal } from './components/ViewMedicationAdministrationModal'
+import {
+  getCurrentDate,
+  extractDateOnly,
+  isSameDay,
+  formatDateLongSafe,
+} from '@/utils/dateHelpers'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -71,9 +76,10 @@ export default function PrescriptionDetails() {
   const [selectedAdministration, setSelectedAdministration] = useState<any>(null)
 
   // Estados de navegação e filtros (NOVO)
-  const [viewDate, setViewDate] = useState(getCurrentDateLocal())
+  const [viewDate, setViewDate] = useState(getCurrentDate())
   const [sortMode, setSortMode] = useState<'medication' | 'time'>('medication')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'administered'>('all')
+
 
   // Handlers de navegação por data (NOVO)
   const goToPreviousDay = () => {
@@ -89,10 +95,10 @@ export default function PrescriptionDetails() {
   }
 
   const goToToday = () => {
-    setViewDate(getCurrentDateLocal())
+    setViewDate(getCurrentDate())
   }
 
-  const isViewingToday = viewDate === getCurrentDateLocal()
+  const isViewingToday = viewDate === getCurrentDate()
 
   // Handler para visualizar administração existente (NOVO)
   const handleViewAdministration = (administration: any, medication: any) => {
@@ -142,7 +148,8 @@ export default function PrescriptionDetails() {
         // Buscar administração para ESTE horário específico na data visualizada
         const administrationForTime = medication.administrations?.find(
           (admin: any) => {
-            const adminDate = format(new Date(admin.date), 'yyyy-MM-dd')
+            // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão segura
+            const adminDate = extractDateOnly(admin.date)
             return adminDate === viewDate && admin.scheduledTime === scheduledTime
           }
         )
@@ -204,9 +211,11 @@ export default function PrescriptionDetails() {
     const allCards = prescriptionData.medications.flatMap((medication: any) =>
       medication.scheduledTimes?.map((scheduledTime: string) => {
         const administrationForTime = medication.administrations?.find(
-          (admin: any) =>
-            format(new Date(admin.date), 'yyyy-MM-dd') === viewDate &&
-            admin.scheduledTime === scheduledTime
+          (admin: any) => {
+            // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão segura
+            const adminDate = extractDateOnly(admin.date)
+            return adminDate === viewDate && admin.scheduledTime === scheduledTime
+          }
         )
 
         let status: 'administered' | 'pending' | 'missed' = 'pending'
@@ -532,7 +541,8 @@ export default function PrescriptionDetails() {
               <div className="flex items-center gap-2 min-w-[200px] justify-center">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">
-                  {format(new Date(viewDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
+                  {formatDateLongSafe(viewDate + 'T12:00:00')}
                 </span>
               </div>
               <Button
@@ -634,9 +644,9 @@ export default function PrescriptionDetails() {
                   bgColor: 'bg-danger/10 border-danger/30',
                   borderLeft: 'border-l-danger',
                   label: 'Não Administrado',
-                  buttonLabel: 'Administrar',
-                  buttonVariant: 'default' as const,
-                  buttonIcon: Clock,
+                  buttonLabel: 'Ver Administração',
+                  buttonVariant: 'outline' as const,
+                  buttonIcon: Eye,
                 },
               }
 
