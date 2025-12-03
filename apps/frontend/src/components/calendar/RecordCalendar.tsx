@@ -9,6 +9,7 @@ interface RecordCalendarProps {
   datesWithRecords: string[] // Array de datas em formato YYYY-MM-DD
   selectedDate: Date
   onDateSelect: (date: Date) => void
+  onMonthChange?: (year: number, month: number) => void // Notificar mudança de mês
   isLoading?: boolean
 }
 
@@ -16,6 +17,7 @@ export function RecordCalendar({
   datesWithRecords,
   selectedDate,
   onDateSelect,
+  onMonthChange,
   isLoading = false,
 }: RecordCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -48,15 +50,21 @@ export function RecordCalendar({
   }
 
   const goToPreviousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    setCurrentMonth(newMonth)
+    onMonthChange?.(newMonth.getFullYear(), newMonth.getMonth() + 1)
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    setCurrentMonth(newMonth)
+    onMonthChange?.(newMonth.getFullYear(), newMonth.getMonth() + 1)
   }
 
   const goToToday = () => {
-    setCurrentMonth(new Date())
+    const today = new Date()
+    setCurrentMonth(today)
+    onMonthChange?.(today.getFullYear(), today.getMonth() + 1)
   }
 
   return (

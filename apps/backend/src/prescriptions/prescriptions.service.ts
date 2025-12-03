@@ -1068,6 +1068,114 @@ export class PrescriptionsService {
     }
   }
 
+  // ========== CALENDÁRIO DE ADMINISTRAÇÕES ==========
+
+  /**
+   * Buscar datas que possuem administrações de um residente (para calendário)
+   * Retorna array de strings no formato YYYY-MM-DD
+   */
+  async getMedicationAdministrationDates(
+    residentId: string,
+    year: number,
+    month: number,
+    tenantId: string,
+  ): Promise<string[]> {
+    // Validar residente existe e pertence ao tenant
+    await this.validateResidentExists(residentId, tenantId);
+
+    // Calcular primeiro e último dia do mês
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0); // Último dia do mês
+
+    // Buscar administrações do residente no período
+    const administrations = await this.prisma.medicationAdministration.findMany({
+      where: {
+        tenantId,
+        residentId,
+        date: {
+          gte: firstDay,
+          lte: lastDay,
+        },
+      },
+      select: {
+        date: true,
+      },
+      distinct: ['date'],
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Converter para array de strings YYYY-MM-DD
+    return administrations.map((admin) => {
+      // admin.date é um Date object do Prisma
+      // Converter para YYYY-MM-DD (date-only)
+      const date = new Date(admin.date);
+      const yearStr = date.getFullYear();
+      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(date.getDate()).padStart(2, '0');
+      return `${yearStr}-${monthStr}-${dayStr}`;
+    });
+  }
+
+  /**
+   * Buscar administrações de um residente em uma data específica
+   * Retorna lista completa com informações do medicamento
+   */
+  async getMedicationAdministrationsByDate(
+    residentId: string,
+    dateStr: string, // Formato: YYYY-MM-DD
+    tenantId: string,
+  ) {
+    // Validar residente existe e pertence ao tenant
+    await this.validateResidentExists(residentId, tenantId);
+
+    // Validar formato da data
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateStr)) {
+      throw new BadRequestException('Data inválida. Use o formato YYYY-MM-DD');
+    }
+
+    // Converter string para Date (date-only)
+    const [yearStr, monthStr, dayStr] = dateStr.split('-');
+    const targetDate = new Date(
+      parseInt(yearStr),
+      parseInt(monthStr) - 1,
+      parseInt(dayStr),
+    );
+
+    // Buscar administrações da data
+    const administrations = await this.prisma.medicationAdministration.findMany({
+      where: {
+        tenantId,
+        residentId,
+        date: targetDate,
+      },
+      include: {
+        medication: {
+          select: {
+            name: true,
+            presentation: true,
+            concentration: true,
+            dose: true,
+            route: true,
+            isControlled: true,
+            isHighRisk: true,
+            requiresDoubleCheck: true,
+          },
+        },
+      },
+      orderBy: [
+        { scheduledTime: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    return administrations;
+  }
+
+  // ========== VALIDAÇÕES PRIVADAS ==========
+
   /**
    * Valida formato de horários (HH:mm)
    */
@@ -1080,6 +1188,26 @@ export class PrescriptionsService {
           `Horário inválido: ${time}. Use o formato HH:mm`,
         );
       }
+    }
+  }
+
+  /**
+   * Valida se o residente existe e pertence ao tenant
+   */
+  private async validateResidentExists(
+    residentId: string,
+    tenantId: string,
+  ): Promise<void> {
+    const resident = await this.prisma.resident.findUnique({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
     }
   }
 }

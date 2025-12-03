@@ -241,4 +241,49 @@ export class PrescriptionsController {
       user.id,
     );
   }
+
+  // ========== CALENDÁRIO DE ADMINISTRAÇÕES ==========
+
+  @Get('medication-administrations/resident/:residentId/dates')
+  @ApiOperation({ summary: 'Buscar datas com administrações de um residente para o calendário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Array de datas (YYYY-MM-DD) que possuem administrações',
+  })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  @ApiQuery({ name: 'year', description: 'Ano (ex: 2025)', required: true })
+  @ApiQuery({ name: 'month', description: 'Mês (1-12)', required: true })
+  getMedicationAdministrationDates(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.prescriptionsService.getMedicationAdministrationDates(
+      residentId,
+      parseInt(year, 10),
+      parseInt(month, 10),
+      user.tenantId,
+    );
+  }
+
+  @Get('medication-administrations/resident/:residentId/date/:date')
+  @ApiOperation({ summary: 'Buscar administrações de um residente em uma data específica' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de administrações da data',
+  })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  @ApiParam({ name: 'date', description: 'Data no formato YYYY-MM-DD' })
+  getMedicationAdministrationsByDate(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Param('date') date: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.prescriptionsService.getMedicationAdministrationsByDate(
+      residentId,
+      date,
+      user.tenantId,
+    );
+  }
 }

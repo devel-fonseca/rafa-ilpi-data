@@ -1,7 +1,7 @@
 import { CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 
 interface Resident {
   id: string
@@ -27,8 +27,8 @@ export function DailyRecordsOverviewStats({
   const activeResidents = residents.filter((r) => r.status === 'Ativo')
 
   // Buscar todos os registros de hoje para contar total correto de atividades
-  // Usar timezone local (America/Sao_Paulo) para garantir data correta
-  const today = getCurrentDateLocal()
+  // Usar timezone-safe getCurrentDate() para garantir data correta
+  const today = getCurrentDate()
   const { data: allRecordsToday } = useDailyRecordsByDate(today)
 
   // Se houver erro ou dados indefinidos, usar array vazio
@@ -39,8 +39,8 @@ export function DailyRecordsOverviewStats({
   const residentsWithRecordsSet = new Set<string>()
 
   latestRecords.forEach((record) => {
-    // Verificar se o registro é de hoje comparando a data
-    const recordDate = record.date ? String(record.date).split('T')[0] : ''
+    // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão timezone-safe
+    const recordDate = record.date ? extractDateOnly(record.date) : ''
     if (recordDate === today) {
       residentsWithRecordsSet.add(record.residentId)
     }

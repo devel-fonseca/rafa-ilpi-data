@@ -13,8 +13,9 @@ import {
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { formatBedFromResident } from '@/utils/formatters'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { extractDateOnly, getCurrentDate, formatDateOnlySafe } from '@/utils/dateHelpers'
 
 const ITEMS_PER_PAGE = 12
 
@@ -284,9 +285,9 @@ export function ResidentSelectionGrid({
                           {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
                         </span>
                       </div>
-                      {lastRecord.date !== format(new Date(), 'yyyy-MM-dd') && (
+                      {extractDateOnly(lastRecord.date) !== getCurrentDate() && (
                         <span className="text-xs text-muted-foreground">
-                          em {format(parseISO(lastRecord.date), 'dd/MM/yyyy')}
+                          em {formatDateOnlySafe(lastRecord.date)}
                         </span>
                       )}
                     </div>

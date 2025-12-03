@@ -1,0 +1,212 @@
+import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, Calendar, Loader2, Eye, Pill } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { api } from '@/services/api'
+import { RecordCalendar } from '@/components/calendar/RecordCalendar'
+import { useResidentMedicationDates } from '@/hooks/useResidentMedicationDates'
+
+export default function ResidentMedicationsCalendar() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+
+  // Buscar dados do residente
+  const { data: resident, isLoading: isLoadingResident } = useQuery({
+    queryKey: ['resident', id],
+    queryFn: async () => {
+      const response = await api.get(`/residents/${id}`)
+      return response.data
+    },
+    enabled: !!id,
+  })
+
+  // Buscar datas com administrações para o mês atual visualizado no calendário
+  const { data: datesWithMedications = [], isLoading: isLoadingDates } = useResidentMedicationDates(
+    id,
+    currentYear,
+    currentMonth,
+  )
+
+  // Handler para quando o usuário navega entre meses no calendário
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year)
+    setCurrentMonth(month)
+  }
+
+  // Buscar administrações de medicamentos do dia selecionado
+  const { data: administrations = [], isLoading: isLoadingAdministrations } = useQuery({
+    queryKey: ['medication-administrations', id, format(selectedDate, 'yyyy-MM-dd')],
+    queryFn: async () => {
+      const response = await api.get(
+        `/prescriptions/medication-administrations/resident/${id}/date/${format(selectedDate, 'yyyy-MM-dd')}`,
+      )
+      return response.data
+    },
+    enabled: !!id,
+  })
+
+  if (isLoadingResident) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(`/dashboard/residentes/${id}`)}
+          className="h-10 w-10 p-0"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">{resident?.fullName || 'Residente'}</h1>
+          <p className="text-sm text-gray-600">Calendário de Medicações</p>
+        </div>
+      </div>
+
+      {/* Layout 2 colunas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Coluna 1: Calendário */}
+        <div>
+          <RecordCalendar
+            datesWithRecords={datesWithMedications}
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+            onMonthChange={handleMonthChange}
+            isLoading={isLoadingDates}
+          />
+        </div>
+
+        {/* Coluna 2: Administrações do Dia */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Pill className="h-5 w-5" />
+              {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingAdministrations ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              </div>
+            ) : administrations.length > 0 ? (
+              <div className="space-y-2">
+                {administrations.map((admin: any) => (
+                  <div
+                    key={admin.id}
+                    className={`border-l-4 pl-4 py-3 rounded-r-md ${
+                      admin.wasAdministered
+                        ? 'bg-green-50 border-green-500'
+                        : 'bg-red-50 border-red-500'
+                    }`}
+                  >
+                    {/* Linha 1: Horário e Status */}
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-base min-w-[50px]">
+                          {admin.scheduledTime}
+                        </span>
+                        <Badge
+                          variant={admin.wasAdministered ? 'default' : 'destructive'}
+                          className="text-xs"
+                        >
+                          {admin.wasAdministered ? 'Administrado' : 'Não Administrado'}
+                        </Badge>
+                      </div>
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    </div>
+
+                    {/* Linha 2: Nome do Medicamento */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Pill className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-sm">
+                        {admin.medication?.name || 'Medicamento não especificado'}
+                      </span>
+                    </div>
+
+                    {/* Linha 3: Dose e Via */}
+                    {admin.medication && (
+                      <div className="text-xs text-muted-foreground mb-2">
+                        <span>{admin.medication.dose}</span>
+                        {' • '}
+                        <span>{admin.medication.route}</span>
+                        {admin.medication.presentation && (
+                          <>
+                            {' • '}
+                            <span>{admin.medication.presentation}</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Linha 4: Informações de administração */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Registrado por {admin.administeredBy}</span>
+                      <span>•</span>
+                      <span>{formatDateTimeSafe(admin.createdAt)}</span>
+                    </div>
+
+                    {/* Horário real (se diferente do programado) */}
+                    {admin.actualTime && admin.actualTime !== admin.scheduledTime && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <span className="font-medium">Horário real:</span> {admin.actualTime}
+                      </div>
+                    )}
+
+                    {/* Motivo (se não foi administrado) */}
+                    {!admin.wasAdministered && admin.reason && (
+                      <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-xs">
+                        <span className="font-medium text-red-900">Motivo:</span>
+                        <p className="text-red-800 mt-1">{admin.reason}</p>
+                      </div>
+                    )}
+
+                    {/* Observações */}
+                    {admin.notes && (
+                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                        <span className="font-medium">Observações:</span>
+                        <p className="text-gray-700 mt-1">{admin.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Dupla checagem */}
+                    {admin.checkedBy && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <span className="font-medium">Checado por:</span> {admin.checkedBy}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                <Pill className="h-12 w-12 text-gray-300" />
+                <div className="text-gray-500 font-medium">Nenhuma administração encontrada</div>
+                <p className="text-sm text-gray-400 text-center max-w-sm">
+                  Selecione uma data com indicador verde para visualizar administrações de medicamentos
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

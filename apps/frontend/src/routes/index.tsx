@@ -16,6 +16,7 @@ import ResidentForm from '@/pages/residents/ResidentForm'
 import ResidentView from '@/pages/residents/ResidentView'
 import ResidentProfile from '@/pages/residents/ResidentProfile'
 import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecordsCalendar'
+import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 
 // Daily Records Pages
@@ -99,6 +100,10 @@ export const router = createBrowserRouter([
       {
         path: 'residentes/:id/registros-calendario',
         element: <ResidentDailyRecordsCalendar />,
+      },
+      {
+        path: 'residentes/:id/medicacoes-calendario',
+        element: <ResidentMedicationsCalendar />,
       },
       {
         path: 'registros-diarios',

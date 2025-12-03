@@ -61,6 +61,23 @@ export function normalizeUTCDate(utcDateString: string | Date): Date {
   }
 
   try {
+    // 🔧 FIX: Detectar se é apenas data (date-only field do Prisma @db.Date)
+    // Casos:
+    // 1. "2025-12-03" → date-only string (raro)
+    // 2. "2025-12-03T00:00:00.000Z" → Prisma @db.Date serializado (comum)
+    // Ambos devem ser tratados como date-only (sem conversão de timezone)
+
+    const isDateOnlyString = /^\d{4}-\d{2}-\d{2}$/.test(utcDateString.trim())
+    const isMidnightUTC = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(utcDateString.trim())
+
+    if (isDateOnlyString || isMidnightUTC) {
+      // Para date-only, extrair apenas a parte da data e interpretar como meia-noite LOCAL
+      const dateOnlyPart = utcDateString.split('T')[0]
+      const localMidnight = parseISO(`${dateOnlyPart}T00:00:00`)
+      return localMidnight
+    }
+
+    // Para timestamps completos com hora real, fazer conversão UTC → Local normal
     const utcDate = parseISO(utcDateString)
 
     if (!isValid(utcDate)) {

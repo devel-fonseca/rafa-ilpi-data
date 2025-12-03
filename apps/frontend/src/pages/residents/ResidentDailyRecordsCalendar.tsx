@@ -55,6 +55,8 @@ export default function ResidentDailyRecordsCalendar() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
 
@@ -149,12 +151,18 @@ export default function ResidentDailyRecordsCalendar() {
     enabled: !!id,
   })
 
-  // Buscar datas com registros para o mês selecionado
+  // Buscar datas com registros para o mês atual visualizado no calendário
   const { data: datesWithRecords = [], isLoading: isLoadingDates } = useResidentRecordDates(
     id,
-    selectedDate.getFullYear(),
-    selectedDate.getMonth() + 1,
+    currentYear,
+    currentMonth,
   )
+
+  // Handler para quando o usuário navega entre meses no calendário
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year)
+    setCurrentMonth(month)
+  }
 
   // Buscar registros do dia selecionado
   const { data: records = [], isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
@@ -207,6 +215,7 @@ export default function ResidentDailyRecordsCalendar() {
             datesWithRecords={datesWithRecords}
             selectedDate={selectedDate}
             onDateSelect={setSelectedDate}
+            onMonthChange={handleMonthChange}
             isLoading={isLoadingDates}
           />
         </div>

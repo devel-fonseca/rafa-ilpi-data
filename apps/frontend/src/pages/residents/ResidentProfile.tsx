@@ -1210,13 +1210,22 @@ export default function ResidentProfile() {
                     Prescrições registradas para {resident.fullName}
                   </CardDescription>
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/dashboard/medicacoes-ativas/${id}`)}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Ver Ficha de Medicações
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/residentes/${id}/medicacoes-calendario`)}
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Ver Administrações
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/medicacoes-ativas/${id}`)}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Ver Ficha de Medicações
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
