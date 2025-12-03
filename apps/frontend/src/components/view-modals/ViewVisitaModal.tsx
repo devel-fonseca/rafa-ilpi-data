@@ -1,7 +1,6 @@
 import React from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Eye, Clock, Calendar, User, Users } from 'lucide-react'
+import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -41,7 +40,7 @@ export function ViewVisitaModal({
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Data:</span>
-              <span>{format(new Date(date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
+              <span>{formatDateLongSafe(date)}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -84,7 +83,7 @@ export function ViewVisitaModal({
 
           {/* Rodapé com data de criação */}
           <div className="pt-4 border-t text-xs text-muted-foreground">
-            Registrado em {format(new Date(createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            Registrado em {formatDateTimeSafe(createdAt)}
           </div>
         </div>
 

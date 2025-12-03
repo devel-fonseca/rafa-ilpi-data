@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
 import { getCurrentTimeLocal } from '@/utils/timezone'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -152,7 +153,7 @@ export function EliminacaoModal({
         <DialogHeader>
           <DialogTitle>Eliminações - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Data: {new Date(date).toLocaleDateString('pt-BR')}
+            Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 

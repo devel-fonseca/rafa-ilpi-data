@@ -11,6 +11,7 @@ import { formatDateShort } from '@/utils/timezone'
 import { useReactToPrint } from 'react-to-print'
 import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
 import { SignatureFooter } from '@/components/print/SignatureFooter'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 // Mapeamento de vias de administração
 const ROUTE_LABELS: Record<string, string> = {
@@ -67,7 +68,7 @@ export default function ActiveMedicationsPage() {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Ficha_Medicacoes_${residentData?.fullName.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}`,
+    documentTitle: `Ficha_Medicacoes_${residentData?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
   })
 
   if (isLoadingResident || isLoadingPrescriptions) {

@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateLongSafe, extractDateOnly } from '@/utils/dateHelpers'
 import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
@@ -25,7 +24,7 @@ export function VaccinationList({ residentId }: VaccinationListProps) {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Registro_Vacinacoes_${residentId}_${new Date().toISOString().split('T')[0]}`,
+    documentTitle: `Registro_Vacinacoes_${residentId}_${extractDateOnly(new Date().toISOString())}`,
   })
 
   const handleEdit = (vaccination: Vaccination) => {
@@ -55,7 +54,7 @@ export function VaccinationList({ residentId }: VaccinationListProps) {
 
   // Sort by date descending (most recent first)
   const sortedVaccinations = [...vaccinations].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    (a, b) => b.date.localeCompare(a.date),
   )
 
   if (isLoading) {
@@ -119,9 +118,7 @@ export function VaccinationList({ residentId }: VaccinationListProps) {
                 <div className="flex-1">
                   <h4 className="font-semibold text-sm text-gray-900">{vaccination.vaccine}</h4>
                   <p className="text-xs text-gray-500">
-                    {format(new Date(vaccination.date), "dd 'de' MMMM 'de' yyyy", {
-                      locale: ptBR,
-                    })}
+                    {formatDateLongSafe(vaccination.date)}
                   </p>
                 </div>
                 <div className="flex gap-2">

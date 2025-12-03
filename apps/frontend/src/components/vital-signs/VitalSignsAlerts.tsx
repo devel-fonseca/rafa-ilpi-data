@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -272,7 +271,7 @@ export function VitalSignsAlerts({ data, residentId }: VitalSignsAlertsProps) {
       }
     })
 
-    return alertsList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    return alertsList.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
   }, [data])
 
   // Filtrar alertas
@@ -451,7 +450,7 @@ export function VitalSignsAlerts({ data, residentId }: VitalSignsAlertsProps) {
                   </AlertDescription>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(alert.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      {formatDateTimeSafe(alert.timestamp)}
                     </p>
                     <Button
                       variant="ghost"

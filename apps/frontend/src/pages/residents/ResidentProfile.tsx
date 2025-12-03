@@ -37,12 +37,12 @@ import {
   Eye,
   Activity,
 } from 'lucide-react'
-import { format, addDays, subDays, parseISO } from 'date-fns'
+import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { formatBedFromResident } from '@/utils/formatters'
-import { getCurrentDate, formatDateLongSafe } from '@/utils/dateHelpers'
+import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import {
   ViewHigieneModal,
@@ -348,7 +348,7 @@ export default function ResidentProfile() {
             <CardDescription className="text-xs">Data de Admissão</CardDescription>
             <CardTitle className="text-lg">
               {resident.admissionDate
-                ? format(new Date(resident.admissionDate), 'dd/MM/yyyy', { locale: ptBR })
+                ? formatDateOnlySafe(resident.admissionDate)
                 : '-'}
             </CardTitle>
           </CardHeader>
@@ -434,7 +434,7 @@ export default function ResidentProfile() {
                       <div>
                         <div className="text-sm text-muted-foreground">Data de Nascimento</div>
                         <div className="font-medium text-gray-900">
-                          {format(new Date(resident.birthDate), 'dd/MM/yyyy', { locale: ptBR })}
+                          {formatDateOnlySafe(resident.birthDate)}
                         </div>
                       </div>
                       <div>
@@ -482,7 +482,7 @@ export default function ResidentProfile() {
                       return (
                         <div className="border-t pt-4">
                           <div className="text-sm text-muted-foreground mb-2">
-                            Sinais Vitais em {format(new Date(lastVitalSignData.date), 'dd/MM/yyyy', { locale: ptBR })} às {lastVitalSignData.time}
+                            Sinais Vitais em {formatDateOnlySafe(lastVitalSignData.date)} às {lastVitalSignData.time}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {vitalData.pressaoArterial && (
@@ -964,7 +964,7 @@ export default function ResidentProfile() {
                     <div className="text-sm text-muted-foreground">Data de Admissão</div>
                     <div className="font-medium">
                       {resident.admissionDate
-                        ? format(new Date(resident.admissionDate), 'dd/MM/yyyy', { locale: ptBR })
+                        ? formatDateOnlySafe(resident.admissionDate)
                         : 'Não informado'}
                     </div>
                   </div>

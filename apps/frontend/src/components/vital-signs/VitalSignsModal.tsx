@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { format, subDays, startOfDay, endOfDay } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { subDays, startOfDay, endOfDay, parseISO } from 'date-fns'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -154,8 +154,8 @@ export function VitalSignsModal({
     // Filtrar apenas últimos 7 dias e ordenar por data
     const sevenDaysAgo = subDays(new Date(), 7)
     const recentData = vitalSigns
-      .filter(v => new Date(v.timestamp) >= sevenDaysAgo)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .filter(v => parseISO(v.timestamp) >= sevenDaysAgo)
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
 
     return {
       bloodPressure: recentData
@@ -268,7 +268,7 @@ export function VitalSignsModal({
                   <CardContent>
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-muted-foreground">
-                        {format(new Date(stats.lastRecord.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        {formatDateTimeSafe(stats.lastRecord.timestamp)}
                       </span>
                       <div className="flex gap-2">
                         {stats.lastRecord.systolicBloodPressure && (

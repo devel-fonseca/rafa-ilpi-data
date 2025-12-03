@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { getCurrentTimeLocal } from '@/utils/timezone'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -82,7 +83,7 @@ export function OutrosModal({
         <DialogHeader>
           <DialogTitle>Outros Registros - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Data: {new Date(date).toLocaleDateString('pt-BR')}
+            Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 

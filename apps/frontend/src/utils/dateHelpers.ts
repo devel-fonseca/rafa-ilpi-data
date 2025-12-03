@@ -254,6 +254,19 @@ export function formatTimeSafe(utcDateString: string | Date): string {
   return formatDateSafe(utcDateString, 'HH:mm')
 }
 
+/**
+ * ✅ USE para formatar data + hora curta (para gráficos)
+ *
+ * @example
+ * formatDateTimeShortSafe("2025-12-03T10:30:00.000Z") // "03/12 07:30"
+ *
+ * @param utcDateString - String UTC do backend
+ * @returns String formatada (dd/MM HH:mm)
+ */
+export function formatDateTimeShortSafe(utcDateString: string | Date): string {
+  return formatDateSafe(utcDateString, 'dd/MM HH:mm')
+}
+
 // =========================================================
 // 5. OBTER DATA/HORA ATUAL (LOCAL)
 // =========================================================

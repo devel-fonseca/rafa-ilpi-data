@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import InputMask from 'react-input-mask'
 import { Edit } from 'lucide-react'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,

@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -104,7 +105,7 @@ export function EditHidratacaoModal({
             </p>
             <p className="text-sm">
               <span className="font-medium">Data:</span>{' '}
-              {record && new Date(record.date).toLocaleDateString('pt-BR')}
+              {record && formatDateOnlySafe(record.date)}
             </p>
             <p className="text-sm">
               <span className="font-medium">Horário original:</span> {record?.time}

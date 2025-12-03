@@ -3,6 +3,7 @@ import { CloudUpload, FileText, X, File, Plus, Image as ImageIcon, Trash2 } from
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 
 interface ExistingFile {
   id?: string
@@ -255,7 +256,7 @@ export function MultiFileUpload({
                 </p>
                 {file.uploadedAt && (
                   <p className="text-xs text-gray-500">
-                    {new Date(file.uploadedAt).toLocaleDateString('pt-BR')}
+                    {formatDateOnlySafe(file.uploadedAt)}
                   </p>
                 )}
               </div>

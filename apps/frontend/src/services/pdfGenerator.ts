@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
-import { format, differenceInYears } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { differenceInYears, parseISO } from 'date-fns'
+import { formatDateLongSafe, formatDateOnlySafe, getCurrentDateTime, normalizeUTCDate } from '@/utils/dateHelpers'
 
 // ==================== TIPOS ====================
 
@@ -76,7 +76,7 @@ function groupRecordsByType(records: DailyRecord[]): Record<string, DailyRecord[
  */
 function calculateAge(birthDate: string): number {
   try {
-    return differenceInYears(new Date(), new Date(birthDate))
+    return differenceInYears(new Date(), parseISO(birthDate))
   } catch {
     return 0
   }
@@ -167,7 +167,7 @@ function drawHeader(doc: jsPDF, data: PDFData): number {
 
   doc.setFontSize(12)
   doc.text(
-    `Registro Diário - ${format(new Date(data.date + 'T00:00:00'), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`,
+    `Registro Diário - ${formatDateLongSafe(data.date)}`,
     PAGE_WIDTH - MARGIN,
     y + 5,
     { align: 'right' }
@@ -202,7 +202,7 @@ function drawHeader(doc: jsPDF, data: PDFData): number {
   if (data.resident.admissionDate) {
     try {
       // Aceita tanto ISO string completo quanto apenas YYYY-MM-DD
-      const admissionFormatted = format(new Date(data.resident.admissionDate), "dd/MM/yyyy")
+      const admissionFormatted = formatDateOnlySafe(data.resident.admissionDate)
       infoText += `Admissão: ${admissionFormatted}`
     } catch (error) {
       console.warn('Erro ao formatar data de admissão:', error)
@@ -580,15 +580,13 @@ function drawFooter(doc: jsPDF, records: DailyRecord[]): void {
   doc.text(`Data: ___/___/______`, PAGE_WIDTH - MARGIN - 40, y + 12)
 
   // Linha do sistema (centralizada, itálico, cinza)
-  const now = new Date()
-  const dataGeracao = format(now, "dd/MM/yyyy")
-  const horaGeracao = format(now, "HH:mm")
+  const dataHoraGeracao = getCurrentDateTime()
 
   doc.setFontSize(7)
   doc.setFont('helvetica', 'italic')
   doc.setTextColor(100, 100, 100)
   doc.text(
-    `Gerado pelo Sistema RAFA ILPI em ${dataGeracao} às ${horaGeracao}`,
+    `Gerado pelo Sistema RAFA ILPI em ${dataHoraGeracao}`,
     PAGE_WIDTH / 2,
     y + 19,
     { align: 'center' }
@@ -624,7 +622,8 @@ export async function generateDailyRecordsPDF(data: PDFData): Promise<void> {
     drawFooter(doc, data.records)
 
     // Salvar PDF
-    const fileName = `Registro_${data.resident.fullName.replace(/\s+/g, '_')}_${format(new Date(data.date), 'yyyy-MM-dd')}.pdf`
+    const dateForFilename = normalizeUTCDate(data.date)
+    const fileName = `Registro_${data.resident.fullName.replace(/\s+/g, '_')}_${dateForFilename.getFullYear()}-${String(dateForFilename.getMonth() + 1).padStart(2, '0')}-${String(dateForFilename.getDate()).padStart(2, '0')}.pdf`
     doc.save(fileName)
 
   } catch (error) {

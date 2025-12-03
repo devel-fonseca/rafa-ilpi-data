@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateTimeShortSafe } from '@/utils/dateHelpers'
 import {
   LineChart,
   Line,
@@ -35,10 +34,10 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
   // Preparar dados para os gráficos
   const chartData = useMemo(() => {
     return data
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
       .map((item) => ({
-        date: format(new Date(item.timestamp), 'dd/MM HH:mm', { locale: ptBR }),
-        timestamp: new Date(item.timestamp).getTime(),
+        date: formatDateTimeShortSafe(item.timestamp),
+        timestamp: item.timestamp,
         systolic: item.systolicBloodPressure,
         diastolic: item.diastolicBloodPressure,
         temperature: item.temperature,

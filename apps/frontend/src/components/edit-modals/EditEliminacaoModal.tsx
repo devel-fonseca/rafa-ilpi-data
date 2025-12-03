@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { cn } from '@/lib/utils'
 import {
   Dialog,

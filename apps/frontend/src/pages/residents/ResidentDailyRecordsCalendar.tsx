@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Calendar, Loader2, History, Edit, Trash2, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatDateTimeSafe, formatDateLongSafe } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -252,7 +253,7 @@ export default function ResidentDailyRecordsCalendar() {
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>Registrado por {record.recordedBy}</span>
                           <span>•</span>
-                          <span>{format(new Date(record.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                          <span>{formatDateTimeSafe(record.createdAt)}</span>
                         </div>
                       </div>
 
@@ -450,7 +451,7 @@ export default function ResidentDailyRecordsCalendar() {
                   <span className="text-sm font-semibold">{deletingRecord.time}</span>
                 </div>
                 <p className="text-sm">
-                  {format(new Date(deletingRecord.date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {formatDateLongSafe(deletingRecord.date)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Registrado por: {deletingRecord.recordedBy}

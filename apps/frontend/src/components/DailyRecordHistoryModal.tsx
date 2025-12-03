@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { History, Clock, User, FileText, Filter, X, RotateCcw, GitCompare, Download } from 'lucide-react'
 import html2pdf from 'html2pdf.js'
 import {
@@ -78,7 +77,7 @@ export function DailyRecordHistoryModal({
   }
 
   const formatDateTime = (dateString: string) => {
-    return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+    return formatDateTimeSafe(dateString)
   }
 
   const getChangeTypeLabel = (type: string) => {

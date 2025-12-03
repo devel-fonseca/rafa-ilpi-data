@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { getCurrentDate } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -367,7 +368,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                 id="issued-at"
                 type="date"
                 {...register('issuedAt')}
-                max={new Date().toISOString().split('T')[0]}
+                max={getCurrentDate()}
               />
               {errors.issuedAt && (
                 <p className="text-sm text-danger">{errors.issuedAt.message}</p>
@@ -381,7 +382,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                 id="expires-at"
                 type="date"
                 {...register('expiresAt')}
-                min={new Date().toISOString().split('T')[0]}
+                min={getCurrentDate()}
               />
               {errors.expiresAt && (
                 <p className="text-sm text-danger">{errors.expiresAt.message}</p>

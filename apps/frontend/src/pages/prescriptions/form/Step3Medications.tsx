@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MedicationModal } from './MedicationModal'
 import type { CreateMedicationDto } from '@/api/prescriptions.api'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 
 const ROUTE_LABELS: Record<string, string> = {
   VO: 'Via Oral',
@@ -165,11 +166,11 @@ export function Step3Medications() {
 
                     <div className="mt-3 flex gap-4 text-xs text-gray-600">
                       <span>
-                        Início: {new Date(medication.startDate).toLocaleDateString('pt-BR')}
+                        Início: {formatDateOnlySafe(medication.startDate)}
                       </span>
                       {medication.endDate && (
                         <span>
-                          Término: {new Date(medication.endDate).toLocaleDateString('pt-BR')}
+                          Término: {formatDateOnlySafe(medication.endDate)}
                         </span>
                       )}
                     </div>

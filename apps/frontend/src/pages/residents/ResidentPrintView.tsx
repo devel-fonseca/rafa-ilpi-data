@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
 import html2pdf from 'html2pdf.js'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 export function ResidentPrintView() {
   const { id } = useParams<{ id: string }>()
@@ -22,7 +23,7 @@ export function ResidentPrintView() {
   // Função de impressão usando react-to-print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Registro_Residente_${residentData?.fullName.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}`,
+    documentTitle: `Registro_Residente_${residentData?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
   })
 
   // Função de exportação para PDF
@@ -36,7 +37,7 @@ export function ResidentPrintView() {
       const element = printRef.current.querySelector('.print-container') as HTMLElement
       if (!element) return
 
-      const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+      const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${getCurrentDate()}.pdf`
 
       const opt = {
         margin: [10, 15, 10, 15] as [number, number, number, number], // top, left, bottom, right em mm

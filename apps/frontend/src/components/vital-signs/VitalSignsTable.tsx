@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDateTimeSafe, formatDateTimeShortSafe, formatDateOnlySafe, getCurrentDateTime } from '@/utils/dateHelpers'
 import {
   Table,
   TableBody,
@@ -69,7 +68,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
     if (!searchTerm) return true
     const search = searchTerm.toLowerCase()
     return (
-      format(new Date(item.timestamp), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+      formatDateTimeSafe(item.timestamp)
         .toLowerCase()
         .includes(search) ||
       item.recordedBy?.toLowerCase().includes(search) ||
@@ -84,8 +83,8 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
 
     switch (sortField) {
       case 'timestamp':
-        aValue = new Date(a.timestamp).getTime()
-        bValue = new Date(b.timestamp).getTime()
+        aValue = a.timestamp
+        bValue = b.timestamp
         break
       case 'systolic':
         aValue = a.systolicBloodPressure || 0
@@ -109,10 +108,11 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
         break
     }
 
-    if (sortOrder === 'asc') {
-      return aValue - bValue
+    // Timestamp comparison uses string localeCompare, numeric comparisons use subtraction
+    if (sortField === 'timestamp') {
+      return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
     } else {
-      return bValue - aValue
+      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue
     }
   })
 
@@ -150,7 +150,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
   // Exportar para CSV
   const exportToCSV = () => {
     const csvData = sortedData.map((item) => ({
-      'Data/Hora': format(new Date(item.timestamp), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      'Data/Hora': formatDateTimeSafe(item.timestamp),
       'PA Sistólica': item.systolicBloodPressure || '',
       'PA Diastólica': item.diastolicBloodPressure || '',
       'Temperatura': item.temperature || '',
@@ -164,7 +164,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
     const ws = XLSX.utils.json_to_sheet(csvData)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Sinais Vitais')
-    XLSX.writeFile(wb, `sinais_vitais_${residentName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`)
+    XLSX.writeFile(wb, `sinais_vitais_${residentName.replace(/\s+/g, '_')}_${formatDateOnlySafe(new Date().toISOString()).replace(/\//g, '')}.xlsx`)
   }
 
   // Exportar para PDF
@@ -175,11 +175,11 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
     pdf.setFontSize(16)
     pdf.text(`Sinais Vitais - ${residentName}`, 14, 20)
     pdf.setFontSize(10)
-    pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 14, 28)
+    pdf.text(`Gerado em: ${getCurrentDateTime()}`, 14, 28)
 
     // Dados da tabela
     const tableData = sortedData.map((item) => [
-      format(new Date(item.timestamp), 'dd/MM/yy HH:mm', { locale: ptBR }),
+      formatDateTimeShortSafe(item.timestamp),
       item.systolicBloodPressure && item.diastolicBloodPressure
         ? `${item.systolicBloodPressure}/${item.diastolicBloodPressure}`
         : '-',
@@ -197,7 +197,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
       headStyles: { fillColor: [66, 139, 202] },
     })
 
-    pdf.save(`sinais_vitais_${residentName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`)
+    pdf.save(`sinais_vitais_${residentName.replace(/\s+/g, '_')}_${formatDateOnlySafe(new Date().toISOString()).replace(/\//g, '')}.pdf`)
   }
 
   // Imprimir
@@ -222,7 +222,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
       </head>
       <body>
         <h1>Sinais Vitais - ${residentName}</h1>
-        <p>Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+        <p>Gerado em: ${getCurrentDateTime()}</p>
         <table>
           <thead>
             <tr>
@@ -240,7 +240,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
               .map(
                 (item) => `
               <tr>
-                <td>${format(new Date(item.timestamp), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
+                <td>${formatDateTimeSafe(item.timestamp)}</td>
                 <td class="${isCritical('systolic', item.systolicBloodPressure) ? 'critical' : ''}">
                   ${item.systolicBloodPressure && item.diastolicBloodPressure
                     ? `${item.systolicBloodPressure}/${item.diastolicBloodPressure}`
@@ -409,7 +409,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
             {sortedData.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">
-                  {format(new Date(item.timestamp), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                  {formatDateTimeSafe(item.timestamp)}
                 </TableCell>
                 <TableCell>
                   {item.systolicBloodPressure && item.diastolicBloodPressure ? (

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import InputMask from 'react-input-mask'
 import { getCurrentTimeLocal } from '@/utils/timezone'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -95,7 +96,7 @@ export function MonitoramentoModal({
         <DialogHeader>
           <DialogTitle>Monitoramento Vital - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Data: {new Date(date).toLocaleDateString('pt-BR')}
+            Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 

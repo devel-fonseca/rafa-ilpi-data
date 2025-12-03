@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { getCurrentTimeLocal } from '@/utils/timezone'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -137,7 +138,7 @@ export function HigieneModal({
         <DialogHeader>
           <DialogTitle>Higiene Corporal - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Data: {new Date(date).toLocaleDateString('pt-BR')}
+            Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 
