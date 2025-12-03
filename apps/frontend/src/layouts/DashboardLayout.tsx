@@ -62,7 +62,16 @@ export function DashboardLayout() {
       toast.success('Você saiu com sucesso. Até logo!')
       navigate('/login')
     } catch (error) {
-      toast.error('Erro ao fazer logout. Tente novamente.')
+      // Não mostrar erro se o store foi limpo com sucesso
+      // (o interceptor pode ter feito refresh automático)
+      const { isAuthenticated } = useAuthStore.getState()
+      if (isAuthenticated) {
+        toast.error('Erro ao fazer logout. Tente novamente.')
+      } else {
+        // Logout foi bem-sucedido pelo interceptor, apenas navegar
+        toast.success('Você saiu com sucesso. Até logo!')
+        navigate('/login')
+      }
     }
   }
 
