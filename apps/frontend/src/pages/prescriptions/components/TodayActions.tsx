@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { CheckCircle2, XCircle, Circle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
+import { AdministerMedicationModal } from './AdministerMedicationModal'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
@@ -13,6 +14,8 @@ interface MedicationAction {
   scheduledTime: string
   status: 'administered' | 'pending' | 'missed'
   prescriptionId: string
+  medicationId: string
+  medication: any // Objeto completo do medication
 }
 
 // Função para determinar o turno baseado no horário
@@ -64,6 +67,8 @@ const STATUS_CONFIG = {
 
 export function TodayActions() {
   const today = format(new Date(), 'yyyy-MM-dd')
+  const [selectedMedication, setSelectedMedication] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Buscar prescrições ativas
   const { prescriptions, isLoading } = usePrescriptions({
@@ -71,6 +76,16 @@ export function TodayActions() {
     limit: 100,
     isActive: true,
   })
+
+  const handleMedicationClick = (medication: any) => {
+    setSelectedMedication(medication)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedMedication(null)
+  }
 
   // Processar medicações do dia e agrupar por turno
   const actionsByShift = useMemo(() => {
@@ -121,6 +136,8 @@ export function TodayActions() {
             scheduledTime: time,
             status,
             prescriptionId: prescription.id,
+            medicationId: medication.id,
+            medication: medication,
           })
         })
       })
@@ -158,63 +175,82 @@ export function TodayActions() {
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {(['morning', 'afternoon', 'night'] as ShiftType[]).map((shift) => {
-            const config = SHIFT_CONFIG[shift]
-            const actions = actionsByShift[shift]
+    <>
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {(['morning', 'afternoon', 'night'] as ShiftType[]).map((shift) => {
+              const config = SHIFT_CONFIG[shift]
+              const actions = actionsByShift[shift]
 
-            if (actions.length === 0) return null
+              if (actions.length === 0) return null
 
-            return (
-              <div
-                key={shift}
-                className={`border rounded-lg p-4 ${config.bgColor} ${config.borderColor}`}
-              >
-                <h3 className={`text-sm font-medium mb-3 ${config.color}`}>
-                  {config.label}
-                  <Badge variant="outline" className="ml-2">
-                    {actions.length}
-                  </Badge>
-                </h3>
-                <div className="space-y-2">
-                  {actions.map((action, idx) => {
-                    const statusConfig = STATUS_CONFIG[action.status]
-                    const StatusIcon = statusConfig.icon
+              return (
+                <div
+                  key={shift}
+                  className={`border rounded-lg p-4 ${config.bgColor} ${config.borderColor}`}
+                >
+                  <h3 className={`text-sm font-medium mb-3 ${config.color}`}>
+                    {config.label}
+                    <Badge variant="outline" className="ml-2">
+                      {actions.length}
+                    </Badge>
+                  </h3>
+                  <div className="space-y-2">
+                    {actions.map((action, idx) => {
+                      const statusConfig = STATUS_CONFIG[action.status]
+                      const StatusIcon = statusConfig.icon
 
-                    return (
-                      <div
-                        key={`${action.prescriptionId}-${action.scheduledTime}-${idx}`}
-                        className="bg-card rounded p-3 text-sm border"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-foreground">
-                                {action.scheduledTime}
-                              </span>
-                              <StatusIcon
-                                className={`h-4 w-4 ${statusConfig.color}`}
-                              />
+                      return (
+                        <div
+                          key={`${action.prescriptionId}-${action.scheduledTime}-${idx}`}
+                          onClick={() => handleMedicationClick(action.medication)}
+                          className="bg-card rounded p-3 text-sm border cursor-pointer hover:bg-accent/5 hover:border-accent transition-colors"
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              handleMedicationClick(action.medication)
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-foreground">
+                                  {action.scheduledTime}
+                                </span>
+                                <StatusIcon
+                                  className={`h-4 w-4 ${statusConfig.color}`}
+                                />
+                              </div>
+                              <p className="font-medium text-foreground">
+                                {action.residentName}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {action.medicationName}
+                              </p>
                             </div>
-                            <p className="font-medium text-foreground">
-                              {action.residentName}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {action.medicationName}
-                            </p>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {selectedMedication && (
+        <AdministerMedicationModal
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          medication={selectedMedication}
+        />
+      )}
+    </>
   )
 }
