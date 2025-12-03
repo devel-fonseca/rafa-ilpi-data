@@ -116,6 +116,14 @@ export async function getMyProfile() {
 }
 
 /**
+ * Atualiza as preferências do usuário autenticado
+ */
+export async function updateMyPreferences(preferences: Record<string, unknown>) {
+  const response = await api.patch('/user-profiles/me/preferences', preferences)
+  return response.data
+}
+
+/**
  * Busca todos os perfis de usuários (para ADMINs)
  */
 export async function getAllUserProfiles() {

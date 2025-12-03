@@ -40,32 +40,32 @@ export default function Dashboard() {
       value: String(totalResidents),
       description: 'Total de residentes cadastrados',
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
       title: 'Funcionários',
       value: '1',
       description: 'Usuários ativos',
       icon: UserPlus,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
     },
     {
       title: 'Registros Hoje',
       value: String(totalRecordsToday),
       description: 'Atividades registradas',
       icon: Activity,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
     },
     {
       title: 'Prescrições',
       value: String(totalPrescriptions),
       description: 'Prescrições ativas',
       icon: Pill,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
     },
   ]
 
@@ -105,10 +105,10 @@ export default function Dashboard() {
     <div>
       {/* Welcome Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-foreground">
           Bem-vindo de volta, {user?.name?.split(' ')[0]}!
         </h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Aqui está um resumo das atividades de hoje
         </p>
       </div>
@@ -131,7 +131,7 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-gray-600">{stat.description}</p>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
             </CardContent>
           </Card>
         ))}
@@ -139,7 +139,7 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Rápidas</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Ações Rápidas</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <Button
@@ -150,12 +150,12 @@ export default function Dashboard() {
               disabled={action.disabled}
             >
               <div className="flex items-start gap-3 w-full">
-                <action.icon className="h-5 w-5 text-gray-500 mt-0.5" />
+                <action.icon className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div className="text-left">
-                  <p className="font-medium text-gray-900">{action.title}</p>
-                  <p className="text-xs text-gray-500 mt-1">{action.description}</p>
+                  <p className="font-medium text-foreground">{action.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
                   {action.disabled && (
-                    <span className="text-xs text-orange-600 mt-1 inline-block">
+                    <span className="text-xs text-warning mt-1 inline-block">
                       Em breve
                     </span>
                   )}
@@ -168,26 +168,26 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Atividade Recente</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Atividade Recente</h3>
         <RecentActivity />
       </div>
 
       {/* Plan Info */}
       {user?.tenant && (
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="mt-8 p-4 bg-info/10 rounded-lg border border-info/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-900">
+              <p className="text-sm font-medium text-foreground">
                 Plano Atual: <span className="font-bold">{'plan' in user.tenant ? (user.tenant as any).plan : 'Free'}</span>
               </p>
-              <p className="text-xs text-blue-700 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Status: <span className="font-medium">{user.tenant.status === 'ACTIVE' ? 'Ativo' : user.tenant.status}</span>
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
-              className="text-blue-700 border-blue-300 hover:bg-blue-100"
+              className="border-info/30 hover:bg-info/10"
               onClick={() => navigate('/dashboard/settings/billing')}
             >
               Gerenciar Plano

@@ -24,8 +24,11 @@ const actionLabels: Record<string, string> = {
   CREATE: 'criou',
   CREATE_USER: 'adicionou',
   UPDATE: 'atualizou',
+  UPDATE_USER: 'atualizou',
   DELETE: 'excluiu',
+  DELETE_USER: 'removeu',
   READ: 'visualizou',
+  ADMINISTER_MEDICATION: 'administrou medicação',
 }
 
 const entityIcons: Record<string, any> = {
@@ -55,12 +58,12 @@ function getActivityIcon(log: AuditLog) {
 
 function getActivityColor(action: string) {
   const colors: Record<string, string> = {
-    CREATE: 'text-green-600 bg-green-100',
-    UPDATE: 'text-blue-600 bg-blue-100',
-    DELETE: 'text-red-600 bg-red-100',
-    READ: 'text-gray-600 bg-gray-100',
+    CREATE: 'text-success bg-success/10',
+    UPDATE: 'text-primary bg-primary/10',
+    DELETE: 'text-danger bg-danger/10',
+    READ: 'text-muted-foreground bg-muted',
   }
-  return colors[action] || 'text-gray-600 bg-gray-100'
+  return colors[action] || 'text-muted-foreground bg-muted'
 }
 
 function formatActivityMessage(log: AuditLog) {
@@ -89,21 +92,25 @@ function formatActivityMessage(log: AuditLog) {
   else if (log.action === 'UPDATE' && entityTypeUpper === 'USER_PROFILE') {
     customMessage = 'atualizou seu perfil'
   }
+  // ADMINISTER_MEDICATION = "administrou medicação"
+  else if (log.action === 'ADMINISTER_MEDICATION') {
+    customMessage = 'administrou medicação'
+  }
 
   return (
     <div className="flex-1">
-      <p className="text-sm text-gray-900">
-        <span className="font-medium">{log.userName}</span>{' '}
+      <p className="text-sm">
+        <span className="font-medium text-foreground">{log.userName}</span>{' '}
         {customMessage ? (
-          <span className="text-gray-600">{customMessage}</span>
+          <span className="text-muted-foreground">{customMessage}</span>
         ) : (
           <>
-            <span className="text-gray-600">{actionLabel}</span>{' '}
-            <span className="font-medium">{entityLabel}</span>
+            <span className="text-muted-foreground">{actionLabel}</span>{' '}
+            <span className="font-medium text-foreground">{entityLabel}</span>
           </>
         )}
       </p>
-      <p className="text-xs text-gray-500 mt-0.5">
+      <p className="text-xs text-muted-foreground mt-0.5">
         {formatDistanceToNow(new Date(log.createdAt), {
           addSuffix: true,
           locale: ptBR,
@@ -120,8 +127,8 @@ export function RecentActivity() {
     return (
       <Card>
         <CardContent className="py-8">
-          <div className="text-center text-gray-500">
-            <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300 animate-pulse" />
+          <div className="text-center text-muted-foreground">
+            <Activity className="h-12 w-12 mx-auto mb-3 text-muted animate-pulse" />
             <p className="text-sm">Carregando atividades...</p>
           </div>
         </CardContent>
@@ -133,8 +140,8 @@ export function RecentActivity() {
     return (
       <Card>
         <CardContent className="py-8">
-          <div className="text-center text-gray-500">
-            <Activity className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+          <div className="text-center text-muted-foreground">
+            <Activity className="h-12 w-12 mx-auto mb-3 text-muted" />
             <p className="text-sm">Nenhuma atividade registrada hoje</p>
             <p className="text-xs mt-2">
               As atividades aparecerão aqui conforme você usar o sistema

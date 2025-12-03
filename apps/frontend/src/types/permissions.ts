@@ -10,8 +10,10 @@ export enum PositionCode {
   SOCIAL_WORKER = 'SOCIAL_WORKER',
   PHYSIOTHERAPIST = 'PHYSIOTHERAPIST',
   NUTRITIONIST = 'NUTRITIONIST',
+  SPEECH_THERAPIST = 'SPEECH_THERAPIST',
   CAREGIVER = 'CAREGIVER',
   ADMINISTRATIVE = 'ADMINISTRATIVE',
+  ADMINISTRATIVE_ASSISTANT = 'ADMINISTRATIVE_ASSISTANT',
   OTHER = 'OTHER',
 }
 
@@ -94,8 +96,10 @@ export const POSITION_CODE_LABELS: Record<PositionCode, string> = {
   [PositionCode.SOCIAL_WORKER]: 'Assistente Social',
   [PositionCode.PHYSIOTHERAPIST]: 'Fisioterapeuta',
   [PositionCode.NUTRITIONIST]: 'Nutricionista',
+  [PositionCode.SPEECH_THERAPIST]: 'Fonoaudiólogo(a)',
   [PositionCode.CAREGIVER]: 'Cuidador(a)',
   [PositionCode.ADMINISTRATIVE]: 'Administrativo',
+  [PositionCode.ADMINISTRATIVE_ASSISTANT]: 'Assistente Administrativo',
   [PositionCode.OTHER]: 'Outro',
 };
 
@@ -111,8 +115,10 @@ export const POSITION_CODE_DESCRIPTIONS: Record<PositionCode, string> = {
   [PositionCode.SOCIAL_WORKER]: 'Assistente social com acesso a dados sociais e documentação',
   [PositionCode.PHYSIOTHERAPIST]: 'Fisioterapeuta com acesso a planos de tratamento',
   [PositionCode.NUTRITIONIST]: 'Nutricionista com acesso a planos alimentares e dietas',
+  [PositionCode.SPEECH_THERAPIST]: 'Fonoaudiólogo com acesso a avaliações e terapias de fala',
   [PositionCode.CAREGIVER]: 'Cuidador com permissões básicas de registro de atividades',
   [PositionCode.ADMINISTRATIVE]: 'Administrativo com acesso a gestão e relatórios',
+  [PositionCode.ADMINISTRATIVE_ASSISTANT]: 'Assistente administrativo com acesso limitado a tarefas administrativas',
   [PositionCode.OTHER]: 'Outro profissional com permissões customizadas',
 };
 

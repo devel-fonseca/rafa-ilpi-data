@@ -10,6 +10,17 @@ export type ControlledClass = 'BZD' | 'PSICOFARMACO' | 'OPIOIDE' | 'ANTICONVULSI
 export type MedicationFrequency = 'UMA_VEZ_DIA' | 'DUAS_VEZES_DIA' | 'SEIS_SEIS_H' | 'OITO_OITO_H' | 'DOZE_DOZE_H' | 'PERSONALIZADO'
 export type SOSIndicationType = 'DOR' | 'FEBRE' | 'ANSIEDADE' | 'AGITACAO' | 'NAUSEA' | 'INSONIA' | 'OUTRO'
 
+export interface MedicationAdministration {
+  id: string
+  date: string
+  scheduledTime: string
+  actualTime?: string
+  wasAdministered: boolean
+  reason?: string
+  administeredBy: string
+  createdAt: string
+}
+
 export interface Medication {
   id: string
   name: string
@@ -25,6 +36,7 @@ export interface Medication {
   isHighRisk: boolean
   requiresDoubleCheck: boolean
   instructions?: string
+  administrations?: MedicationAdministration[] // Registros de administração
   createdAt: string
   updatedAt: string
 }

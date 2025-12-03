@@ -27,6 +27,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
+import { UserPreferences } from './types/user-preferences.type';
 
 @ApiTags('User Profiles')
 @ApiBearerAuth()
@@ -75,6 +76,47 @@ export class UserProfilesController {
     res.setHeader('Expires', '0');
 
     return await this.userProfilesService.findMyProfile(user.id, user.tenantId);
+  }
+
+  @Patch('me/preferences')
+  @ApiOperation({ summary: 'Atualizar minhas preferências' })
+  @ApiResponse({ status: 200, description: 'Preferências atualizadas com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 404, description: 'Perfil não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @HttpCode(HttpStatus.OK)
+  async updateMyPreferences(
+    @CurrentUser() user: any,
+    @Body() preferences: Partial<UserPreferences>,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    // Desabilitar cache HTTP
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Buscar perfil atual
+    const currentProfile = await this.userProfilesService.findMyProfile(
+      user.id,
+      user.tenantId,
+    );
+
+    // Mesclar preferências existentes com as novas (merge parcial)
+    const currentPreferences = (currentProfile.preferences as UserPreferences) || {};
+    const updatedPreferences = {
+      ...currentPreferences,
+      ...preferences,
+    };
+
+    // Atualizar apenas o campo preferences
+    return await this.userProfilesService.update(
+      user.id,
+      user.tenantId,
+      { preferences: updatedPreferences },
+      user.id,
+      user.id,
+      user.role,
+    );
   }
 
   @Get()

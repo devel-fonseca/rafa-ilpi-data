@@ -95,13 +95,15 @@ enum PositionCode {
   NURSING_COORDINATOR        // Coordenador de Enfermagem
   NURSE                      // Enfermeiro
   NURSING_TECHNICIAN         // Técnico de Enfermagem
+  NURSING_ASSISTANT          // Auxiliar de Enfermagem
   DOCTOR                     // Médico
-  NUTRITIONIST               // Nutricionista
-  PHYSIOTHERAPIST            // Fisioterapeuta
   PSYCHOLOGIST               // Psicólogo
-  SPEECH_THERAPIST           // Fonoaudiólogo
   SOCIAL_WORKER              // Assistente Social
+  PHYSIOTHERAPIST            // Fisioterapeuta
+  NUTRITIONIST               // Nutricionista
+  SPEECH_THERAPIST           // Fonoaudiólogo
   CAREGIVER                  // Cuidador de Idosos
+  ADMINISTRATIVE             // Administrativo
   ADMINISTRATIVE_ASSISTANT   // Assistente Administrativo
   OTHER                      // Outros
 
@@ -419,10 +421,10 @@ model UserProfile {
   // Dados do Perfil
   profilePhoto String?   // URL ou path da foto de perfil
   phone        String?
-  position     String?   // Cargo do usuário (texto livre - DEPRECATED, usar positionCode)
   department   String?   // Departamento
   birthDate    DateTime? @db.Date
   notes        String?   @db.Text
+  preferences  Json?     @default("{}")  // Preferências do usuário (tema, sidebar, etc)
 
   // Sistema de Permissões ILPI
   positionCode       PositionCode?      // Cargo padronizado ILPI

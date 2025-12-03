@@ -26,38 +26,38 @@ function getShift(time: string): ShiftType {
 const SHIFT_CONFIG = {
   morning: {
     label: 'Manhã (06h - 12h)',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
+    borderColor: 'border-warning/30',
   },
   afternoon: {
     label: 'Tarde (12h - 18h)',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    color: 'text-accent',
+    bgColor: 'bg-accent/10',
+    borderColor: 'border-accent/30',
   },
   night: {
     label: 'Noite (18h - 06h)',
-    color: 'text-indigo-700',
-    bgColor: 'bg-indigo-50',
-    borderColor: 'border-indigo-200',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    borderColor: 'border-primary/30',
   },
 }
 
 const STATUS_CONFIG = {
   administered: {
     icon: CheckCircle2,
-    color: 'text-green-600',
+    color: 'text-success',
     label: 'Administrado',
   },
   pending: {
     icon: Circle,
-    color: 'text-gray-400',
+    color: 'text-muted-foreground',
     label: 'Pendente',
   },
   missed: {
     icon: XCircle,
-    color: 'text-red-600',
+    color: 'text-danger',
     label: 'Não Administrado',
   },
 }
@@ -69,7 +69,7 @@ export function TodayActions() {
   const { prescriptions, isLoading } = usePrescriptions({
     page: 1,
     limit: 100,
-    status: 'ATIVA',
+    isActive: true,
   })
 
   // Processar medicações do dia e agrupar por turno
@@ -96,33 +96,30 @@ export function TodayActions() {
         medication.scheduledTimes?.forEach((time) => {
           const shift = getShift(time)
 
-          // Verificar se foi administrado hoje
-          const wasAdministered = medication.administrations?.some(
+          // Verificar se existe administração para este horário hoje
+          const todayAdministration = medication.administrations?.find(
             (admin) =>
-              admin.date === today &&
-              admin.scheduledTime === time &&
-              admin.wasAdministered === true
+              admin.date === today && admin.scheduledTime === time
           )
 
-          // Verificar se foi marcado como não administrado
-          const wasMissed = medication.administrations?.some(
-            (admin) =>
-              admin.date === today &&
-              admin.scheduledTime === time &&
-              admin.wasAdministered === false
-          )
+          let status: 'administered' | 'pending' | 'missed' = 'pending'
 
-          const status = wasAdministered
-            ? 'administered'
-            : wasMissed
-              ? 'missed'
-              : 'pending'
+          if (todayAdministration) {
+            status = todayAdministration.wasAdministered ? 'administered' : 'missed'
+          } else {
+            // Se passou do horário e não foi administrado, marcar como "missed"
+            const now = new Date()
+            const scheduledDateTime = new Date(`${today}T${time}`)
+            if (now > scheduledDateTime) {
+              status = 'missed'
+            }
+          }
 
           actions[shift].push({
             residentName: prescription.resident?.fullName || 'Residente',
             medicationName: medication.name,
             scheduledTime: time,
-            status: status as 'administered' | 'pending' | 'missed',
+            status,
             prescriptionId: prescription.id,
           })
         })
@@ -152,7 +149,7 @@ export function TodayActions() {
     return (
       <Card>
         <CardContent className="py-8">
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-sm text-muted-foreground text-center">
             Nenhuma medicação programada para hoje
           </p>
         </CardContent>
@@ -189,22 +186,22 @@ export function TodayActions() {
                     return (
                       <div
                         key={`${action.prescriptionId}-${action.scheduledTime}-${idx}`}
-                        className="bg-white rounded p-3 text-sm border border-gray-200"
+                        className="bg-card rounded p-3 text-sm border"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-gray-900">
+                              <span className="font-medium text-foreground">
                                 {action.scheduledTime}
                               </span>
                               <StatusIcon
                                 className={`h-4 w-4 ${statusConfig.color}`}
                               />
                             </div>
-                            <p className="font-medium text-gray-800">
+                            <p className="font-medium text-foreground">
                               {action.residentName}
                             </p>
-                            <p className="text-gray-600">
+                            <p className="text-muted-foreground">
                               {action.medicationName}
                             </p>
                           </div>

@@ -1,4 +1,5 @@
 import { PositionCode, RegistrationType, PermissionType } from './permissions';
+import { UserPreferences } from './preferences';
 
 export interface User {
   id: string;
@@ -17,10 +18,10 @@ export interface UserProfile {
   tenantId: string;
   profilePhoto?: string | null;
   phone?: string | null;
-  position?: string | null;
   department?: string | null;
   birthDate?: string | null;
   notes?: string | null;
+  preferences?: UserPreferences | null;
 
   // ILPI Permissions Fields
   positionCode?: PositionCode | null;
@@ -69,10 +70,10 @@ export interface CreateUserRequest {
 export interface CreateUserProfileRequest {
   profilePhoto?: string;
   phone?: string;
-  position?: string;
   department?: string;
   birthDate?: string;
   notes?: string;
+  preferences?: UserPreferences;
   positionCode?: PositionCode;
   registrationType?: RegistrationType;
   registrationNumber?: string;
@@ -82,6 +83,8 @@ export interface CreateUserProfileRequest {
 }
 
 export interface UpdateUserProfileRequest extends Partial<CreateUserProfileRequest> {}
+
+export interface UpdatePreferencesRequest extends Partial<UserPreferences> {}
 
 export interface ManageCustomPermissionsRequest {
   add?: PermissionType[];

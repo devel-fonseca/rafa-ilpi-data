@@ -60,12 +60,12 @@ export class UserProfilesService {
         tenantId,
         profilePhoto: createUserProfileDto.profilePhoto,
         phone: createUserProfileDto.phone,
-        position: createUserProfileDto.position,
         department: createUserProfileDto.department,
         birthDate: createUserProfileDto.birthDate
           ? new Date(createUserProfileDto.birthDate)
           : null,
         notes: createUserProfileDto.notes,
+        preferences: createUserProfileDto.preferences || {},
         createdBy,
       },
       include: {
@@ -204,12 +204,22 @@ export class UserProfilesService {
       data: {
         profilePhoto: updateUserProfileDto.profilePhoto,
         phone: updateUserProfileDto.phone,
-        position: updateUserProfileDto.position,
         department: updateUserProfileDto.department,
         birthDate: updateUserProfileDto.birthDate
           ? new Date(updateUserProfileDto.birthDate)
           : undefined,
         notes: updateUserProfileDto.notes,
+        // Campos de Permissões ILPI
+        positionCode: updateUserProfileDto.positionCode,
+        registrationType: updateUserProfileDto.registrationType,
+        registrationNumber: updateUserProfileDto.registrationNumber,
+        registrationState: updateUserProfileDto.registrationState,
+        isTechnicalManager: updateUserProfileDto.isTechnicalManager,
+        isNursingCoordinator: updateUserProfileDto.isNursingCoordinator,
+        // Preferências do Usuário
+        preferences: updateUserProfileDto.preferences !== undefined
+          ? updateUserProfileDto.preferences
+          : undefined,
         updatedBy,
       },
       include: {

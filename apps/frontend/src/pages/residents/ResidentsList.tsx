@@ -155,7 +155,7 @@ export default function ResidentsList() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Residentes</h1>
+          <h1 className="text-3xl font-bold text-foreground">Residentes</h1>
           <p className="text-muted-foreground mt-1">Gerencie os residentes da ILPI</p>
         </div>
         <Button
@@ -220,8 +220,8 @@ export default function ResidentsList() {
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start mb-3">
                 <CardDescription className="text-xs">Grau de Dependência</CardDescription>
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
-                  <Accessibility className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-lg">
+                  <Accessibility className="h-6 w-6 text-accent" />
                 </div>
               </div>
               <div className="flex justify-between items-center gap-6">
@@ -231,7 +231,7 @@ export default function ResidentsList() {
                 </div>
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau II</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-orange-600">{stats.grauII}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-warning">{stats.grauII}</CardTitle>
                 </div>
                 <div className="flex-1 text-center">
                   <CardDescription className="text-xs">Grau III</CardDescription>
@@ -250,7 +250,7 @@ export default function ResidentsList() {
             <div className="flex-1">
               <Label htmlFor="search">Buscar</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search"
                   type="text"
@@ -304,7 +304,7 @@ export default function ResidentsList() {
             </div>
           ) : residents.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <Users className="h-12 w-12 text-gray-300" />
+              <Users className="h-12 w-12 text-muted" />
               <div className="text-muted-foreground">Nenhum residente encontrado</div>
               <Button
                 variant="outline"

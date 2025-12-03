@@ -7,10 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText } from 'lucide-react'
+import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound } from 'lucide-react'
 import { format } from 'date-fns'
+import {
+  PositionCode,
+  RegistrationType,
+  POSITION_CODE_LABELS,
+  REGISTRATION_TYPE_LABELS
+} from '@/types/permissions'
 
 export default function MyProfile() {
   const { user } = useAuthStore()
@@ -26,15 +33,11 @@ export default function MyProfile() {
   const [formData, setFormData] = useState<{
     profilePhoto: string | undefined
     phone: string
-    position: string
-    department: string
     birthDate: string
     notes: string
   }>({
     profilePhoto: undefined,
     phone: '',
-    position: '',
-    department: '',
     birthDate: '',
     notes: '',
   })
@@ -50,8 +53,6 @@ export default function MyProfile() {
       setFormData({
         profilePhoto: profile.profilePhoto || undefined,
         phone: profile.phone || '',
-        position: profile.position || '',
-        department: profile.department || '',
         birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
         notes: profile.notes || '',
       })
@@ -99,8 +100,6 @@ export default function MyProfile() {
       await updateProfileMutation.mutateAsync({
         profilePhoto: photoUrl || undefined,
         phone: formData.phone || undefined,
-        position: formData.position || undefined,
-        department: formData.department || undefined,
         birthDate: formData.birthDate || undefined,
         notes: formData.notes || undefined,
       })
@@ -130,8 +129,6 @@ export default function MyProfile() {
       setFormData({
         profilePhoto: profile.profilePhoto || undefined,
         phone: profile.phone || '',
-        position: profile.position || '',
-        department: profile.department || '',
         birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
         notes: profile.notes || '',
       })
@@ -238,14 +235,6 @@ export default function MyProfile() {
                   <Input value={profile.user.email} disabled />
                 </div>
                 <div>
-                  <Label>Função</Label>
-                  <Input
-                    value={profile.user.role.toUpperCase()}
-                    disabled
-                    className="uppercase"
-                  />
-                </div>
-                <div>
                   <Label>Status</Label>
                   <Input
                     value={profile.user.isActive ? 'Ativo' : 'Inativo'}
@@ -256,6 +245,100 @@ export default function MyProfile() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Autorização ILPI (Somente Leitura) */}
+        {(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Autorização e Estrutura Corporativa ILPI
+              </CardTitle>
+              <CardDescription>
+                Informações de autorização gerenciadas pelo Administrador, RT ou Administrativo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cargo ILPI */}
+                {profile.positionCode && (
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Cargo ILPI
+                    </Label>
+                    <div className="mt-2">
+                      <Badge variant="default" className="text-sm py-1 px-3">
+                        {POSITION_CODE_LABELS[profile.positionCode as PositionCode]}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Departamento */}
+                {profile.department && (
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Departamento
+                    </Label>
+                    <div className="mt-2">
+                      <div className="text-sm font-medium">
+                        {profile.department}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Registro Profissional */}
+                {profile.registrationType && profile.registrationNumber && (
+                  <div>
+                    <Label>Registro Profissional</Label>
+                    <div className="mt-2 space-y-1">
+                      <div className="font-medium text-sm">
+                        {REGISTRATION_TYPE_LABELS[profile.registrationType as RegistrationType]}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {profile.registrationNumber}
+                        {profile.registrationState && ` - ${profile.registrationState}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Badges especiais */}
+              {(profile.isTechnicalManager || profile.isNursingCoordinator) && (
+                <div className="pt-2">
+                  <Label className="mb-2 block">Responsabilidades Especiais</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {profile.isTechnicalManager && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                        <Award className="h-3 w-3 mr-1" />
+                        Responsável Técnico (RT)
+                      </Badge>
+                    )}
+                    {profile.isNursingCoordinator && (
+                      <Badge variant="outline" className="text-blue-600 border-blue-300">
+                        <Briefcase className="h-3 w-3 mr-1" />
+                        Coordenador de Enfermagem
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso de permissões */}
+              <div className="mt-4 p-3 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <Shield className="h-4 w-4 inline mr-1" />
+                  Estas informações só podem ser alteradas por usuários com permissão administrativa.
+                  Entre em contato com o Administrador, RT ou setor Administrativo para solicitar alterações.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Dados Pessoais (Editáveis) */}
         <form onSubmit={handleSubmit}>
@@ -283,36 +366,6 @@ export default function MyProfile() {
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cargo */}
-                <div>
-                  <Label htmlFor="position" className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    Cargo
-                  </Label>
-                  <Input
-                    id="position"
-                    placeholder="Ex: Enfermeiro(a)"
-                    value={formData.position}
-                    onChange={(e) => handleInputChange('position', e.target.value)}
-                  />
-                </div>
-
-                {/* Departamento */}
-                <div>
-                  <Label htmlFor="department" className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Departamento
-                  </Label>
-                  <Input
-                    id="department"
-                    placeholder="Ex: Enfermagem"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                  />
-                </div>
               </div>
 
               {/* Data de Nascimento */}

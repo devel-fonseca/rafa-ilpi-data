@@ -355,4 +355,26 @@ export class PermissionsService {
       `Cargo do usuário ${userId} atualizado para ${positionCode}`,
     );
   }
+
+  /**
+   * Alias para getUserEffectivePermissions (mantido para compatibilidade)
+   */
+  async getUserAllPermissions(
+    userId: string,
+    tenantId: string,
+  ): Promise<PermissionType[]> {
+    return this.getUserEffectivePermissions(userId, tenantId);
+  }
+
+  /**
+   * Alias para grantPermission (mantido para compatibilidade)
+   */
+  async grantCustomPermission(
+    userId: string,
+    tenantId: string,
+    permission: PermissionType,
+    grantedBy: string,
+  ): Promise<void> {
+    return this.grantPermission(userId, tenantId, permission, grantedBy);
+  }
 }

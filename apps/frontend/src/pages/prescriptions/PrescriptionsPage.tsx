@@ -22,7 +22,7 @@ export function PrescriptionsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-gray-600">Carregando dashboard...</span>
+          <span className="text-muted-foreground">Carregando dashboard...</span>
         </div>
       </div>
     )
@@ -33,10 +33,10 @@ export function PrescriptionsPage() {
       {/* Header */}
       <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Gerenciamento de Prescrições
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Dashboard completo de medicamentos e prescrições médicas
           </p>
         </div>
@@ -60,14 +60,14 @@ export function PrescriptionsPage() {
       {/* Alertas Críticos */}
       {alerts && alerts.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertas Críticos</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Alertas Críticos</h3>
           <CriticalAlerts alerts={alerts} />
         </div>
       )}
 
       {/* Ações do Dia (por turno) */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações do Dia</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Ações do Dia</h3>
         <TodayActions />
       </div>
 
@@ -75,13 +75,13 @@ export function PrescriptionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Prescrições Próximas do Vencimento */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Prescrições Vencendo em 5 Dias</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Prescrições Vencendo em 5 Dias</h3>
           <ExpiringList prescriptions={expiring || []} />
         </div>
 
         {/* Residentes com Medicamentos Controlados */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Residentes com Medicamentos Controlados</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Residentes com Medicamentos Controlados</h3>
           <ControlledResidents residents={controlled || []} />
         </div>
       </div>

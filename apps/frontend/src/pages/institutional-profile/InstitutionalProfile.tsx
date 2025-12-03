@@ -14,7 +14,7 @@ export default function InstitutionalProfile() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Building2 className="h-8 w-8" />
             Perfil Institucional
           </h1>

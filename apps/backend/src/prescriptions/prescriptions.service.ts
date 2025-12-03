@@ -269,6 +269,21 @@ export class PrescriptionsService {
               isHighRisk: true,
               requiresDoubleCheck: true,
               instructions: true,
+              administrations: {
+                select: {
+                  id: true,
+                  date: true,
+                  scheduledTime: true,
+                  actualTime: true,
+                  wasAdministered: true,
+                  reason: true,
+                  administeredBy: true,
+                  createdAt: true,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
             },
           },
           sosMedications: {
@@ -351,6 +366,23 @@ export class PrescriptionsService {
         },
         medications: {
           where: { deletedAt: null },
+          include: {
+            administrations: {
+              select: {
+                id: true,
+                date: true,
+                scheduledTime: true,
+                actualTime: true,
+                wasAdministered: true,
+                reason: true,
+                administeredBy: true,
+                createdAt: true,
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            },
+          },
         },
         sosMedications: {
           where: { deletedAt: null },

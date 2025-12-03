@@ -208,6 +208,19 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     ],
   },
 
+  [PositionCode.NURSING_ASSISTANT]: {
+    positionCode: PositionCode.NURSING_ASSISTANT,
+    displayName: 'Auxiliar de Enfermagem',
+    description: 'Auxiliar de enfermagem com permissões básicas de cuidados',
+    requiredRegistration: 'COREN',
+    defaultRole: 'staff',
+    permissions: [
+      ...BASE_PERMISSIONS.STAFF,
+      PermissionType.ADMINISTER_MEDICATIONS,
+      PermissionType.RECORD_VACCINATIONS,
+    ],
+  },
+
   // ─────────────────────────────────────────────────────────────────────────
   // EQUIPE MÉDICA
   // ─────────────────────────────────────────────────────────────────────────
@@ -318,6 +331,19 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_VITAL_SIGNS,
       PermissionType.RECORD_VITAL_SIGNS, // Podem aferir sinais vitais
       PermissionType.VIEW_BEDS,
+    ],
+  },
+
+  [PositionCode.ADMINISTRATIVE]: {
+    positionCode: PositionCode.ADMINISTRATIVE,
+    displayName: 'Administrativo',
+    description: 'Profissional administrativo com acesso a gestão e relatórios',
+    defaultRole: 'staff',
+    permissions: [
+      ...BASE_PERMISSIONS.STAFF,
+      PermissionType.MANAGE_BEDS,
+      PermissionType.VIEW_AUDIT_LOGS,
+      PermissionType.EXPORT_DATA,
     ],
   },
 

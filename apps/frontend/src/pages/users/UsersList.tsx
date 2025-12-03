@@ -403,7 +403,6 @@ export default function UsersList() {
                 <TableHead>Email</TableHead>
                 <TableHead>Cargo ILPI</TableHead>
                 <TableHead>Registro</TableHead>
-                <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -459,11 +458,6 @@ export default function UsersList() {
                       ) : (
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {getRoleLabel(user.role)}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.isActive ? 'default' : 'secondary'}>
@@ -602,6 +596,17 @@ export default function UsersList() {
                   value={addFormData.positionCode}
                   onValueChange={(value) => setAddFormData({ ...addFormData, positionCode: value })}
                 />
+
+                {/* Departamento */}
+                <div>
+                  <Label htmlFor="add-department">Departamento</Label>
+                  <Input
+                    id="add-department"
+                    placeholder="Ex: Enfermagem, Administrativo, etc."
+                    value={addFormData.department}
+                    onChange={(e) => setAddFormData({ ...addFormData, department: e.target.value })}
+                  />
+                </div>
 
                 {addFormData.positionCode && (
                   <>
@@ -808,15 +813,6 @@ export default function UsersList() {
                           registrationState: e.target.value.toUpperCase(),
                         })
                       }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="edit-phone">Telefone</Label>
-                    <Input
-                      id="edit-phone"
-                      value={editFormData.phone}
-                      onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
                     />
                   </div>
                 </div>
