@@ -37,11 +37,12 @@ import {
   Eye,
   Activity,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, addDays, subDays, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { formatBedFromResident } from '@/utils/formatters'
+import { getCurrentDate, formatDateLongSafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import {
   ViewHigieneModal,
@@ -62,7 +63,7 @@ export default function ResidentProfile() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [deleteModal, setDeleteModal] = useState(false)
-  const [viewDate, setViewDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [viewDate, setViewDate] = useState<string>(getCurrentDate()) // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
   const healthConditionsCardRef = useRef<HTMLDivElement>(null)
 
   // View modal states
@@ -75,19 +76,22 @@ export default function ResidentProfile() {
 
   // Funções de navegação entre datas
   const goToPreviousDay = () => {
-    const currentDate = new Date(viewDate)
-    currentDate.setDate(currentDate.getDate() - 1)
-    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+    // ✅ REFATORADO: Usar parseISO + subDays do date-fns para evitar timezone issues
+    const currentDate = parseISO(viewDate + 'T12:00:00') // Force noon local
+    const previousDay = subDays(currentDate, 1)
+    setViewDate(format(previousDay, 'yyyy-MM-dd'))
   }
 
   const goToNextDay = () => {
-    const currentDate = new Date(viewDate)
-    currentDate.setDate(currentDate.getDate() + 1)
-    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+    // ✅ REFATORADO: Usar parseISO + addDays do date-fns para evitar timezone issues
+    const currentDate = parseISO(viewDate + 'T12:00:00') // Force noon local
+    const nextDay = addDays(currentDate, 1)
+    setViewDate(format(nextDay, 'yyyy-MM-dd'))
   }
 
   const goToToday = () => {
-    setViewDate(format(new Date(), 'yyyy-MM-dd'))
+    // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
+    setViewDate(getCurrentDate())
   }
 
   const handleViewRecord = (record: any) => {
@@ -1298,7 +1302,8 @@ export default function ResidentProfile() {
                 <div>
                   <CardTitle>Registros Diários</CardTitle>
                   <CardDescription>
-                    {format(new Date(displayDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
+                    {formatDateLongSafe(displayDate + 'T12:00:00')}
                   </CardDescription>
                 </div>
                 <Button

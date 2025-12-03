@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
+import { format, addDays, subDays, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   ArrowLeft,
@@ -33,8 +33,8 @@ import { ViewMedicationAdministrationModal } from './components/ViewMedicationAd
 import {
   getCurrentDate,
   extractDateOnly,
-  isSameDay,
   formatDateLongSafe,
+  formatDateOnlySafe,
 } from '@/utils/dateHelpers'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
@@ -83,15 +83,17 @@ export default function PrescriptionDetails() {
 
   // Handlers de navegação por data (NOVO)
   const goToPreviousDay = () => {
-    const currentDate = new Date(viewDate)
-    currentDate.setDate(currentDate.getDate() - 1)
-    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+    // ✅ REFATORADO: Usar parseISO + addDays do date-fns para evitar timezone issues
+    const currentDate = parseISO(viewDate + 'T12:00:00') // Force noon local
+    const previousDay = subDays(currentDate, 1)
+    setViewDate(format(previousDay, 'yyyy-MM-dd'))
   }
 
   const goToNextDay = () => {
-    const currentDate = new Date(viewDate)
-    currentDate.setDate(currentDate.getDate() + 1)
-    setViewDate(format(currentDate, 'yyyy-MM-dd'))
+    // ✅ REFATORADO: Usar parseISO + addDays do date-fns para evitar timezone issues
+    const currentDate = parseISO(viewDate + 'T12:00:00') // Force noon local
+    const nextDay = addDays(currentDate, 1)
+    setViewDate(format(nextDay, 'yyyy-MM-dd'))
   }
 
   const goToToday = () => {
@@ -370,7 +372,8 @@ export default function PrescriptionDetails() {
               <div>
                 <p className="text-sm text-gray-600">Data da Prescrição</p>
                 <p className="font-medium">
-                  {format(parseISO(prescriptionData.prescriptionDate), 'dd/MM/yyyy')}
+                  {/* ✅ REFATORADO: Usar formatDateOnlySafe do dateHelpers */}
+                  {formatDateOnlySafe(prescriptionData.prescriptionDate)}
                 </p>
               </div>
               {prescriptionData.prescriptionImageUrl && (
@@ -419,9 +422,8 @@ export default function PrescriptionDetails() {
                   <div>
                     <p className="text-sm text-muted-foreground">Válida até</p>
                     <p className="font-semibold">
-                      {format(parseISO(prescriptionData.validUntil), "dd 'de' MMMM 'de' yyyy", {
-                        locale: ptBR,
-                      })}
+                      {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
+                      {formatDateLongSafe(prescriptionData.validUntil)}
                     </p>
                   </div>
                   <div>
@@ -444,9 +446,8 @@ export default function PrescriptionDetails() {
                   <div className="border-t pt-3">
                     <p className="text-sm text-muted-foreground">Revisão estimada para</p>
                     <p className="font-semibold">
-                      {format(parseISO(prescriptionData.reviewDate), "dd 'de' MMMM 'de' yyyy", {
-                        locale: ptBR,
-                      })}
+                      {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
+                      {formatDateLongSafe(prescriptionData.reviewDate)}
                     </p>
                   </div>
                   <div>
