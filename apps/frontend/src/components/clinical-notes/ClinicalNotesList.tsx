@@ -78,7 +78,10 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
 
   // Filter and sort notes
   const filteredNotes = useMemo(() => {
-    return notes
+    // Garantir que notes é sempre um array
+    const safeNotes = Array.isArray(notes) ? notes : []
+
+    return safeNotes
       .filter((note) => {
         // Filter by profession
         if (professionFilter !== 'all' && note.profession !== professionFilter) {

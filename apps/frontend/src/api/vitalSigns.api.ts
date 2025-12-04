@@ -1,4 +1,4 @@
-import api from './axiosConfig'
+import { api } from '@/services/api'
 
 /**
  * Tipos de dados de sinais vitais

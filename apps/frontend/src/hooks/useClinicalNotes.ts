@@ -49,7 +49,7 @@ export function useClinicalNotesByResident(
       return listClinicalNotesByResident(residentId, query)
     },
     enabled,
-    initialData: [],
+    placeholderData: [],
     staleTime: 1000 * 60 * 2, // 2 minutos
     refetchOnWindowFocus: true,
   })

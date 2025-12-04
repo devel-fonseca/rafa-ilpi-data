@@ -164,7 +164,8 @@ export async function listClinicalNotesByResident(
     : `/clinical-notes/resident/${residentId}`
 
   const response = await api.get(url)
-  return response.data
+  // Backend retorna { data: ClinicalNote[], total: number }
+  return response.data.data || []
 }
 
 /**
