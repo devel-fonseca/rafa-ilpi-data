@@ -60,6 +60,12 @@ enum PermissionType {
   VIEW_VACCINATIONS
   RECORD_VACCINATIONS
 
+  // Evoluções Clínicas (SOAP)
+  VIEW_CLINICAL_NOTES
+  CREATE_CLINICAL_NOTES
+  UPDATE_CLINICAL_NOTES
+  DELETE_CLINICAL_NOTES
+
   // Gestão de Leitos
   VIEW_BEDS
   MANAGE_BEDS
@@ -268,6 +274,20 @@ enum SOSIndicationType {
   @@map("SOSIndicationType")
 }
 
+// ENUM: Profissões para Evoluções Clínicas (SOAP)
+enum ClinicalProfession {
+  MEDICINE             // Médico
+  NURSING              // Enfermagem
+  NUTRITION            // Nutrição
+  PHYSIOTHERAPY        // Fisioterapia
+  PSYCHOLOGY           // Psicologia
+  SOCIAL_WORK          // Serviço Social
+  SPEECH_THERAPY       // Fonoaudiologia
+  OCCUPATIONAL_THERAPY // Terapia Ocupacional
+
+  @@map("ClinicalProfession")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -328,6 +348,8 @@ model Tenant {
   medicationAdministrations MedicationAdministration[]
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistory       ClinicalNoteHistory[]
   auditLogs                 AuditLog[]
   buildings                 Building[]
   floors                    Floor[]
@@ -389,6 +411,9 @@ model User {
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
   vitalSigns                VitalSign[]
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistoryAuthor ClinicalNoteHistory[]      @relation("ClinicalNoteHistoryProfessional")
+  clinicalNoteHistoryChanges ClinicalNoteHistory[]     @relation("ClinicalNoteHistoryChangedBy")
 
   @@unique([tenantId, email])
   @@map("users")
@@ -598,6 +623,8 @@ model Resident {
   sosAdministrations        SOSAdministration[]
   vaccinations              Vaccination[]
   vitalSigns                VitalSign[]
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistory       ClinicalNoteHistory[]
   residentDocuments         ResidentDocument[]
 
   // Índices
@@ -1044,6 +1071,97 @@ model Vaccination {
   @@index([tenantId, date(sort: Desc)])
   @@index([deletedAt])
   @@map("vaccinations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  EVOLUÇÕES CLÍNICAS MULTIPROFISSIONAIS (SOAP)
+//  RDC 502/2021 - Art. 39 (Prontuário Eletrônico)
+// ──────────────────────────────────────────────────────────────────────────────
+model ClinicalNote {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @db.Uuid
+  residentId     String             @db.Uuid
+  professionalId String             @db.Uuid
+
+  // Profissão do autor
+  profession     ClinicalProfession
+
+  // Data/hora da evolução
+  noteDate       DateTime           @default(now()) @db.Timestamptz(3)
+
+  // Método SOAP
+  subjective     String?            @db.Text  // S - Subjetivo
+  objective      String?            @db.Text  // O - Objetivo
+  assessment     String?            @db.Text  // A - Avaliação
+  plan           String?            @db.Text  // P - Plano
+
+  // Tags para filtros e dashboards
+  tags           String[]           @default([])
+
+  // Auditoria
+  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @db.Timestamptz(3)
+  createdBy      String             @db.Uuid
+  updatedBy      String?            @db.Uuid
+
+  // Versionamento
+  version        Int                @default(1)
+  isAmended      Boolean            @default(false)  // Marcado como obsoleto
+
+  // Janela de edição (12 horas)
+  editableUntil  DateTime           @db.Timestamptz(3)  // noteDate + 12h
+
+  // Relações
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  professional   User               @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  history        ClinicalNoteHistory[]
+
+  // Índices
+  @@index([tenantId, residentId, noteDate(sort: Desc)])
+  @@index([tenantId, professionalId])
+  @@index([profession])
+  @@index([noteDate])
+  @@index([tags])
+  @@index([isAmended])
+  @@map("clinical_notes")
+}
+
+// Histórico de Versões de Evoluções Clínicas (audit trail completo)
+model ClinicalNoteHistory {
+  id             String             @id @default(uuid()) @db.Uuid
+  noteId         String             @db.Uuid
+  version        Int
+
+  // Snapshot completo
+  tenantId       String             @db.Uuid
+  residentId     String             @db.Uuid
+  professionalId String             @db.Uuid
+  profession     ClinicalProfession
+  noteDate       DateTime           @db.Timestamptz(3)
+  subjective     String?            @db.Text
+  objective      String?            @db.Text
+  assessment     String?            @db.Text
+  plan           String?            @db.Text
+  tags           String[]           @default([])
+
+  // Auditoria de alteração
+  changeReason   String             @db.Text  // Motivo obrigatório (minLength 10)
+  changedAt      DateTime           @default(now()) @db.Timestamptz(3)
+  changedBy      String             @db.Uuid
+
+  // Relações
+  note           ClinicalNote       @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  professional   User               @relation("ClinicalNoteHistoryProfessional", fields: [professionalId], references: [id], onDelete: Restrict)
+  changedByUser  User               @relation("ClinicalNoteHistoryChangedBy", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([noteId, version])
+  @@index([tenantId, residentId])
+  @@index([changedAt])
+  @@map("clinical_notes_history")
 }
 
 // ==========================================

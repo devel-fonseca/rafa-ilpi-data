@@ -44,6 +44,9 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.RECORD_VITAL_SIGNS,
     PermissionType.VIEW_VACCINATIONS,
+    PermissionType.VIEW_CLINICAL_NOTES,
+    PermissionType.CREATE_CLINICAL_NOTES,
+    PermissionType.UPDATE_CLINICAL_NOTES,
     PermissionType.VIEW_DOCUMENTS,
     PermissionType.VIEW_BEDS,
   ] as PermissionType[],
@@ -67,6 +70,9 @@ const BASE_PERMISSIONS = {
     PermissionType.RECORD_VITAL_SIGNS,
     PermissionType.VIEW_VACCINATIONS,
     PermissionType.RECORD_VACCINATIONS,
+    PermissionType.VIEW_CLINICAL_NOTES,
+    PermissionType.CREATE_CLINICAL_NOTES,
+    PermissionType.UPDATE_CLINICAL_NOTES,
     PermissionType.VIEW_BEDS,
     PermissionType.MANAGE_BEDS,
     PermissionType.VIEW_DOCUMENTS,
@@ -103,6 +109,11 @@ const BASE_PERMISSIONS = {
     // Vacinações
     PermissionType.VIEW_VACCINATIONS,
     PermissionType.RECORD_VACCINATIONS,
+    // Evoluções Clínicas
+    PermissionType.VIEW_CLINICAL_NOTES,
+    PermissionType.CREATE_CLINICAL_NOTES,
+    PermissionType.UPDATE_CLINICAL_NOTES,
+    PermissionType.DELETE_CLINICAL_NOTES,
     // Leitos
     PermissionType.VIEW_BEDS,
     PermissionType.MANAGE_BEDS,

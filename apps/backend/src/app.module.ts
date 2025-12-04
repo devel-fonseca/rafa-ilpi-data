@@ -12,6 +12,7 @@ import { ResidentsModule } from './residents/residents.module';
 import { DailyRecordsModule } from './daily-records/daily-records.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { VaccinationsModule } from './vaccinations/vaccinations.module';
+import { ClinicalNotesModule } from './clinical-notes/clinical-notes.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
 import { HealthModule } from './health/health.module';
@@ -62,6 +63,7 @@ import { PermissionsModule } from './permissions/permissions.module';
     DailyRecordsModule,
     PrescriptionsModule,
     VaccinationsModule,
+    ClinicalNotesModule,
     AuditModule,
     HealthModule,
     BuildingsModule,
