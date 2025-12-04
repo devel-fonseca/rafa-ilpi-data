@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ClinicalNotesService } from './clinical-notes.service'
 import { ClinicalNotesController } from './clinical-notes.controller'
 import { PrismaModule } from '../prisma/prisma.module'
+import { PermissionsModule } from '../permissions/permissions.module'
 
 /**
  * Módulo de Evoluções Clínicas Multiprofissionais (SOAP)
@@ -21,7 +22,7 @@ import { PrismaModule } from '../prisma/prisma.module'
  * - DELETE_CLINICAL_NOTES - Excluir evoluções (soft delete)
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, PermissionsModule],
   controllers: [ClinicalNotesController],
   providers: [ClinicalNotesService],
   exports: [ClinicalNotesService],
