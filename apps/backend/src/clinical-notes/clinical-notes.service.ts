@@ -10,6 +10,11 @@ import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
 import { QueryClinicalNoteDto } from './dto/query-clinical-note.dto'
 import { DeleteClinicalNoteDto } from './dto/delete-clinical-note.dto'
 import { ClinicalNote, ClinicalNoteHistory } from '@prisma/client'
+import {
+  ClinicalProfession,
+  isAuthorizedForProfession,
+  getUnauthorizedMessage,
+} from './professional-authorization.config'
 
 /**
  * Service para gerenciamento de Evoluções Clínicas Multiprofissionais (SOAP)
@@ -48,6 +53,25 @@ export class ClinicalNotesService {
     ) {
       throw new BadRequestException(
         'Ao menos um campo SOAP (S, O, A ou P) deve ser preenchido',
+      )
+    }
+
+    // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL
+    // Buscar positionCode do usuário
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { positionCode: true },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado')
+    }
+
+    // Verificar se o cargo está habilitado para registrar a profissão
+    const profession = createDto.profession as ClinicalProfession
+    if (!isAuthorizedForProfession(user.positionCode, profession)) {
+      throw new ForbiddenException(
+        getUnauthorizedMessage(user.positionCode, profession),
       )
     }
 
@@ -286,6 +310,25 @@ export class ClinicalNotesService {
     // Validar autoria (apenas o autor pode editar)
     if (note.createdBy !== userId) {
       throw new ForbiddenException('Apenas o autor pode editar esta evolução clínica')
+    }
+
+    // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL (mesmo na edição)
+    // Buscar positionCode do usuário
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { positionCode: true },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado')
+    }
+
+    // Verificar se o cargo está habilitado para a profissão da evolução
+    const profession = note.profession as unknown as ClinicalProfession
+    if (!isAuthorizedForProfession(user.positionCode, profession)) {
+      throw new ForbiddenException(
+        getUnauthorizedMessage(user.positionCode, profession),
+      )
     }
 
     // Validar janela de edição (12 horas)

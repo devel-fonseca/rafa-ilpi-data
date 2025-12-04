@@ -33,6 +33,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
 import { PermissionType } from '@prisma/client'
+import { PrismaService } from '../prisma/prisma.service'
+import { getAuthorizedProfessions } from './professional-authorization.config'
 
 /**
  * Controller para gerenciamento de Evoluções Clínicas Multiprofissionais (SOAP)
@@ -53,7 +55,10 @@ import { PermissionType } from '@prisma/client'
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('CLINICAL_NOTE')
 export class ClinicalNotesController {
-  constructor(private readonly clinicalNotesService: ClinicalNotesService) {}
+  constructor(
+    private readonly clinicalNotesService: ClinicalNotesService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Criar nova evolução clínica
@@ -124,6 +129,40 @@ export class ClinicalNotesController {
     @CurrentUser() user: any,
   ) {
     return this.clinicalNotesService.findByResident(residentId, user.tenantId, queryDto)
+  }
+
+  /**
+   * Buscar profissões autorizadas para o usuário logado
+   */
+  @Get('authorized-professions')
+  @RequirePermissions(PermissionType.VIEW_CLINICAL_NOTES)
+  @ApiOperation({
+    summary: 'Buscar profissões que o usuário pode registrar',
+    description:
+      'Retorna lista de profissões clínicas que o usuário logado está habilitado a registrar, ' +
+      'baseado no seu cargo (positionCode) e nas competências legais dos conselhos profissionais.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de profissões autorizadas',
+    schema: {
+      example: ['MEDICINE', 'NURSING'],
+    },
+  })
+  @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
+  async getAuthorizedProfessionsForUser(@CurrentUser() user: any) {
+    // Buscar positionCode do usuário
+    const userProfile = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { positionCode: true },
+    })
+
+    if (!userProfile) {
+      return []
+    }
+
+    // Retornar profissões autorizadas baseadas no cargo
+    return getAuthorizedProfessions(userProfile.positionCode)
   }
 
   /**

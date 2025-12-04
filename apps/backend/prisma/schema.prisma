@@ -108,6 +108,7 @@ enum PositionCode {
   PHYSIOTHERAPIST            // Fisioterapeuta
   NUTRITIONIST               // Nutricionista
   SPEECH_THERAPIST           // Fonoaudiólogo
+  OCCUPATIONAL_THERAPIST     // Terapeuta Ocupacional
   CAREGIVER                  // Cuidador de Idosos
   ADMINISTRATIVE             // Administrativo
   ADMINISTRATIVE_ASSISTANT   // Assistente Administrativo
