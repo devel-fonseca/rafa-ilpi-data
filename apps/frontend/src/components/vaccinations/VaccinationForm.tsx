@@ -156,7 +156,7 @@ export function VaccinationForm({
                 {...register('vaccine')}
               />
               {errors.vaccine && (
-                <p className="text-sm text-red-500 mt-1">{errors.vaccine.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.vaccine.message}</p>
               )}
             </div>
 
@@ -169,7 +169,7 @@ export function VaccinationForm({
                 {...register('date')}
               />
               {errors.date && (
-                <p className="text-sm text-red-500 mt-1">{errors.date.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.date.message}</p>
               )}
             </div>
           </div>
@@ -184,7 +184,7 @@ export function VaccinationForm({
                 {...register('dose')}
               />
               {errors.dose && (
-                <p className="text-sm text-red-500 mt-1">{errors.dose.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.dose.message}</p>
               )}
             </div>
 
@@ -197,7 +197,7 @@ export function VaccinationForm({
                 {...register('batch')}
               />
               {errors.batch && (
-                <p className="text-sm text-red-500 mt-1">{errors.batch.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.batch.message}</p>
               )}
             </div>
           </div>
@@ -211,7 +211,7 @@ export function VaccinationForm({
               {...register('manufacturer')}
             />
             {errors.manufacturer && (
-              <p className="text-sm text-red-500 mt-1">{errors.manufacturer.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.manufacturer.message}</p>
             )}
           </div>
 
@@ -225,7 +225,7 @@ export function VaccinationForm({
                 {...register('cnes')}
               />
               {errors.cnes && (
-                <p className="text-sm text-red-500 mt-1">{errors.cnes.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.cnes.message}</p>
               )}
             </div>
 
@@ -237,7 +237,7 @@ export function VaccinationForm({
                 {...register('healthUnit')}
               />
               {errors.healthUnit && (
-                <p className="text-sm text-red-500 mt-1">{errors.healthUnit.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.healthUnit.message}</p>
               )}
             </div>
           </div>
@@ -252,7 +252,7 @@ export function VaccinationForm({
                 {...register('municipality')}
               />
               {errors.municipality && (
-                <p className="text-sm text-red-500 mt-1">{errors.municipality.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.municipality.message}</p>
               )}
             </div>
 
@@ -265,7 +265,7 @@ export function VaccinationForm({
                 {...register('state')}
               />
               {errors.state && (
-                <p className="text-sm text-red-500 mt-1">{errors.state.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.state.message}</p>
               )}
             </div>
           </div>
@@ -276,12 +276,12 @@ export function VaccinationForm({
             <div className="border-2 border-dashed rounded-lg p-4 text-center">
               {certificateUrl ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-green-600 font-medium">✓ Comprovante carregado</p>
+                  <p className="text-sm text-success font-medium">✓ Comprovante carregado</p>
                   <a
                     href={certificateUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-500 hover:underline"
+                    className="text-sm text-primary hover:text-primary/80 hover:underline"
                   >
                     Visualizar arquivo
                   </a>
@@ -299,8 +299,8 @@ export function VaccinationForm({
                 </div>
               ) : (
                 <label className="cursor-pointer space-y-2">
-                  <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                  <p className="text-sm text-gray-600">
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
                     Clique para selecionar arquivo (PDF, PNG, JPG)
                   </p>
                   <input
@@ -331,7 +331,7 @@ export function VaccinationForm({
               rows={3}
             />
             {errors.notes && (
-              <p className="text-sm text-red-500 mt-1">{errors.notes.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.notes.message}</p>
             )}
           </div>
 

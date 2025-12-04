@@ -57,10 +57,9 @@ import {
   Printer,
   Accessibility,
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
@@ -354,9 +353,7 @@ export default function ResidentsList() {
                       </TableCell>
                       <TableCell>
                         {resident.admissionDate
-                          ? format(new Date(resident.admissionDate), 'dd/MM/yyyy', {
-                              locale: ptBR,
-                            })
+                          ? formatDateOnlySafe(resident.admissionDate)
                           : '-'}
                       </TableCell>
                       <TableCell>

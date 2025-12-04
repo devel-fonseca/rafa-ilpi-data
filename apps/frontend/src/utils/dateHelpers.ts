@@ -334,6 +334,22 @@ export function getCurrentDateTime(): string {
   return formatDateFns(localNow, 'dd/MM/yyyy HH:mm', { locale: ptBR })
 }
 
+/**
+ * ✅ USE para obter data + hora atual no formato HTML5 datetime-local
+ *
+ * Formato compatível com <input type="datetime-local">
+ *
+ * @example
+ * getCurrentDateTimeLocal() // "2025-12-03T14:30"
+ *
+ * @returns String formatada (yyyy-MM-ddTHH:mm)
+ */
+export function getCurrentDateTimeLocal(): string {
+  const now = new Date()
+  const localNow = toZonedTime(now, SYSTEM_TIMEZONE)
+  return formatDateFns(localNow, "yyyy-MM-dd'T'HH:mm")
+}
+
 // =========================================================
 // 6. CONVERSÃO LOCAL → UTC (para enviar ao backend)
 // =========================================================

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
-import type { Prescription } from '@/api/prescriptions.api'
+import type { Prescription, QueryPrescriptionParams } from '@/api/prescriptions.api'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,8 +57,7 @@ import {
   ChevronRight,
   ArrowLeft,
 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { parseISO } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function PrescriptionsList() {
@@ -94,10 +94,38 @@ export default function PrescriptionsList() {
   const { prescriptions, meta, query, setQuery, isLoading, error } = usePrescriptions({
     page: 1,
     limit: 10,
-    isActive: statusFilter === 'ATIVA' ? 'true' : statusFilter === 'VENCENDO' ? 'true' : 'false',
   })
 
   const { stats } = usePrescriptionsDashboard()
+
+  // Sincronizar filtros com a query sempre que statusFilter mudar
+  useEffect(() => {
+    const newQuery: QueryPrescriptionParams = {
+      page: 1,
+      limit: 10,
+    }
+
+    // Aplicar filtro de status (isActive)
+    if (statusFilter === 'INATIVAS') {
+      newQuery.isActive = false
+    } else if (statusFilter === 'ATIVA' || statusFilter === 'VENCENDO') {
+      newQuery.isActive = true
+    }
+
+    // Aplicar filtro de tipo (prescriptionType)
+    if (statusFilter === 'ANTIBIOTICO') {
+      newQuery.prescriptionType = 'ANTIBIOTICO'
+    } else if (statusFilter === 'CONTROLADO') {
+      newQuery.prescriptionType = 'CONTROLADO'
+    }
+
+    // Aplicar filtro de vencimento
+    if (statusFilter === 'VENCENDO') {
+      newQuery.expiringInDays = 5
+    }
+
+    setQuery(newQuery)
+  }, [statusFilter, setQuery])
 
   // Aplicar busca
   const handleSearch = () => {
@@ -112,10 +140,6 @@ export default function PrescriptionsList() {
     setSearchTerm('')
     setStatusFilter('ATIVA')
     navigate('/dashboard/prescricoes/list')
-    setQuery({
-      page: 1,
-      limit: 10,
-    })
   }
 
   // Confirmar exclusão
@@ -382,16 +406,12 @@ export default function PrescriptionsList() {
                         <TableCell>{prescription.doctorName || 'N/A'}</TableCell>
                         <TableCell>
                           {prescription.prescriptionDate
-                            ? format(parseISO(prescription.prescriptionDate), 'dd/MM/yyyy', {
-                                locale: ptBR,
-                              })
+                            ? formatDateOnlySafe(prescription.prescriptionDate)
                             : 'N/A'}
                         </TableCell>
                         <TableCell>
                           {prescription.validUntil
-                            ? format(parseISO(prescription.validUntil), 'dd/MM/yyyy', {
-                                locale: ptBR,
-                              })
+                            ? formatDateOnlySafe(prescription.validUntil)
                             : 'N/A'}
                         </TableCell>
                         <TableCell>

@@ -142,7 +142,9 @@ export interface CreatePrescriptionDto {
   sosMedications?: CreateSOSMedicationDto[]
 }
 
-export interface UpdatePrescriptionDto extends Partial<CreatePrescriptionDto> {}
+export interface UpdatePrescriptionDto extends Partial<CreatePrescriptionDto> {
+  isActive?: boolean
+}
 
 export interface QueryPrescriptionParams {
   page?: number

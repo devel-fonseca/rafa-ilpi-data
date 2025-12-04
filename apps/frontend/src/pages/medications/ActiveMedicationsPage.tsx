@@ -169,74 +169,28 @@ export default function ActiveMedicationsPage() {
         </div>
       </div>
 
-      {/* Área de Impressão */}
-      <div ref={printRef}>
-        {/* Visualização na Tela */}
-        {!hasMedications ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
-              <Pill className="h-12 w-12 text-muted-foreground/40" />
-              <div className="text-muted-foreground">
-                Nenhuma medicação ativa encontrada
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/dashboard/prescricoes/new')}
-              >
-                Criar prescrição
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Cabeçalho Institucional */}
-            <InstitutionalHeader
-              documentTitle="FICHA DE PRESCRIÇÃO"
-              documentSubtitle={
-                <p className="text-sm">
-                  <strong>Residente:</strong> {residentData.fullName}
-                </p>
-              }
-            />
-
-            {/* Tabela Compacta para Impressão */}
-            <div className="print-only">
-              <table className="print-table">
-                <thead>
-                  <tr>
-                    <th>Medicamento</th>
-                    <th>Dose</th>
-                    <th>Via</th>
-                    <th>Horário</th>
-                    <th>Observações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allMedications
-                    .sort((a, b) => a.time.localeCompare(b.time))
-                    .map((item, index) => (
-                      <tr key={index}>
-                        <td>
-                          {item.medication.name}{' '}
-                          {item.medication.concentration}
-                        </td>
-                        <td>{item.medication.dose}</td>
-                        <td>
-                          {ROUTE_LABELS[item.medication.route] ||
-                            item.medication.route}
-                        </td>
-                        <td>{item.time}</td>
-                        <td>{item.medication.instructions || ''}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+      {/* Visualização na Tela */}
+      {!hasMedications ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
+            <Pill className="h-12 w-12 text-muted-foreground/40" />
+            <div className="text-muted-foreground">
+              Nenhuma medicação ativa encontrada
             </div>
-
-            {/* Tabela de Medicações - Agrupadas por Horário (apenas tela) */}
-            {sortedTimes.map((time) => (
-              <Card key={time} className="mb-4 print-hide print-break-inside-avoid">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/dashboard/prescricoes/new')}
+            >
+              Criar prescrição
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Tabela de Medicações - Agrupadas por Horário */}
+          {sortedTimes.map((time) => (
+            <Card key={time} className="mb-4">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <span className="inline-flex items-center bg-primary/10 text-primary px-3 py-1 rounded-md font-mono font-semibold">
@@ -259,7 +213,7 @@ export default function ActiveMedicationsPage() {
                           <th className="text-left p-2 font-semibold">Medicamento</th>
                           <th className="text-left p-2 font-semibold">Dose</th>
                           <th className="text-left p-2 font-semibold">Via</th>
-                          <th className="text-left p-2 font-semibold print-hide">Prescrição</th>
+                          <th className="text-left p-2 font-semibold">Prescrição</th>
                           <th className="text-left p-2 font-semibold">Observações</th>
                         </tr>
                       </thead>
@@ -279,7 +233,7 @@ export default function ActiveMedicationsPage() {
                               {ROUTE_LABELS[item.medication.route] ||
                                 item.medication.route}
                             </td>
-                            <td className="p-2 print-hide">
+                            <td className="p-2">
                               <div className="text-xs">
                                 <div>{formatDateShort(item.prescriptionDate)}</div>
                                 <div className="text-muted-foreground">
@@ -321,15 +275,57 @@ export default function ActiveMedicationsPage() {
                 </CardContent>
               </Card>
             ))}
+        </>
+      )}
 
-            {/* Rodapé para impressão */}
-            <SignatureFooter
-              signatureTitle="RESPONSÁVEL TÉCNICO"
-              includeDate={true}
-            />
-          </>
-        )}
-      </div>
+      {/* Área de Impressão (oculta na tela, visível apenas ao imprimir) */}
+      {hasMedications && (
+        <div ref={printRef} className="hidden print:block">
+          <InstitutionalHeader
+            documentTitle="FICHA DE PRESCRIÇÃO"
+            documentSubtitle={
+              <p className="text-sm">
+                <strong>Residente:</strong> {residentData.fullName}
+              </p>
+            }
+          />
+
+          {/* Tabela Compacta para Impressão */}
+          <table className="print-table">
+            <thead>
+              <tr>
+                <th>Medicamento</th>
+                <th>Dose</th>
+                <th>Via</th>
+                <th>Horário</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {allMedications
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((item, index) => (
+                  <tr key={index}>
+                    <td>
+                      {item.medication.name} {item.medication.concentration}
+                    </td>
+                    <td>{item.medication.dose}</td>
+                    <td>
+                      {ROUTE_LABELS[item.medication.route] || item.medication.route}
+                    </td>
+                    <td>{item.time}</td>
+                    <td>{item.medication.instructions || ''}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+
+          <SignatureFooter
+            signatureTitle="RESPONSÁVEL TÉCNICO"
+            includeDate={true}
+          />
+        </div>
+      )}
 
       {/* Estilos de impressão */}
       <style>{`
@@ -337,19 +333,6 @@ export default function ActiveMedicationsPage() {
           body {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
-          }
-
-          .print-hide {
-            display: none !important;
-          }
-
-          .print-only {
-            display: block !important;
-          }
-
-          .print-break-inside-avoid {
-            break-inside: avoid;
-            page-break-inside: avoid;
           }
 
           /* Estilos da tabela impressa */
@@ -378,20 +361,9 @@ export default function ActiveMedicationsPage() {
             background-color: #fafafa;
           }
 
-          /* Linhas de assinatura na impressão */
-          .border-b {
-            border-bottom: 1px solid #9ca3af !important;
-          }
-
           @page {
             margin: 2cm;
             size: A4;
-          }
-        }
-
-        @media screen {
-          .print-only {
-            display: none;
           }
         }
       `}</style>

@@ -3,8 +3,7 @@
  * Centraliza toda a lógica de transformação de dados para evitar duplicação
  */
 
-import { localToUtc, utcToLocal, DEFAULT_TIMEZONE } from './timezone'
-import { formatDateFns } from 'date-fns'
+import { localToUtc, utcToLocal } from './timezone'
 
 // ========== CONVERSÃO DE DATAS ==========
 
@@ -12,12 +11,20 @@ import { formatDateFns } from 'date-fns'
  * Converte data ISO UTC (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ) para formato brasileiro DD/MM/YYYY
  * Usado para preencher campos de input quando carrega dados do backend
  *
- * IMPORTANTE: Converte de UTC para timezone local (America/Sao_Paulo) antes de exibir
+ * IMPORTANTE: Para datas sem hora (YYYY-MM-DD), NÃO faz conversão de timezone
+ * Para datas com hora completa, converte de UTC para timezone local
  */
 export const convertISOToDisplayDate = (isoDate: string | null | undefined): string => {
   if (!isoDate) return ''
   try {
-    // Converter UTC para timezone local
+    // Se a data está no formato YYYY-MM-DD (apenas data, sem hora)
+    // NÃO fazemos conversão de timezone para evitar mudança de dia
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+      const [year, month, day] = isoDate.split('-')
+      return `${day}/${month}/${year}`
+    }
+
+    // Se tem hora completa, converter UTC para timezone local
     const localDate = utcToLocal(isoDate)
     const day = String(localDate.getDate()).padStart(2, '0')
     const month = String(localDate.getMonth() + 1).padStart(2, '0')

@@ -1,6 +1,6 @@
 /**
  * Utilitários para renderização e formatação de registros diários
- * Usado em DailyRecordsPage e ResidentProfile para manter consistência visual
+ * Usado em DailyRecordsPage e ResidentMedicalRecord para manter consistência visual
  */
 
 export const RECORD_TYPE_LABELS: Record<

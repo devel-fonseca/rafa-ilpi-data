@@ -22,6 +22,34 @@ export class ResidentsService {
   ) {}
 
   /**
+   * Converte campos DateTime que são @db.Date do Prisma para string YYYY-MM-DD
+   * Isso evita problemas de timezone causados pela serialização JSON do JavaScript
+   *
+   * Campos afetados: birthDate, admissionDate, dischargeDate
+   */
+  private formatDateOnlyFields(resident: any): any {
+    if (!resident) return resident;
+
+    const formatDate = (date: Date | null | undefined): string | null => {
+      if (!date) return null;
+      // Garantir que é um objeto Date
+      const d = date instanceof Date ? date : new Date(date);
+      // Formatar como YYYY-MM-DD usando UTC para evitar timezone shift
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return {
+      ...resident,
+      birthDate: formatDate(resident.birthDate),
+      admissionDate: formatDate(resident.admissionDate),
+      dischargeDate: formatDate(resident.dischargeDate),
+    };
+  }
+
+  /**
    * Valida e processa a acomodação (roomId e bedId)
    * Verifica: existência, disponibilidade, e conflitos de ocupação
    */
@@ -322,7 +350,7 @@ export class ResidentsService {
         bedId: accommodation.bedId,
       });
 
-      return resident;
+      return this.formatDateOnlyFields(resident);
     } catch (error) {
       this.logger.error('Erro ao criar residente', {
         error: error.message,
@@ -491,16 +519,16 @@ export class ResidentsService {
         });
       }
 
-      // Adicionar dados de acomodação aos residentes
+      // Adicionar dados de acomodação aos residentes e formatar datas
       const processedResidents = residents.map(resident => {
-        if (resident.bedId && bedsMap.has(resident.bedId)) {
-          const accommodation = bedsMap.get(resident.bedId);
-          return {
-            ...resident,
-            ...accommodation,
-          };
-        }
-        return resident;
+        const residentWithAccommodation = resident.bedId && bedsMap.has(resident.bedId)
+          ? {
+              ...resident,
+              ...bedsMap.get(resident.bedId),
+            }
+          : resident;
+
+        return this.formatDateOnlyFields(residentWithAccommodation);
       });
 
       return {
@@ -660,8 +688,8 @@ export class ResidentsService {
         );
       }
 
-      // Retornar dados do residente com URLs assinadas
-      return {
+      // Retornar dados do residente com URLs assinadas e datas formatadas
+      return this.formatDateOnlyFields({
         ...resident,
         ...fotoData,
         healthPlans,
@@ -669,7 +697,7 @@ export class ResidentsService {
         bed,
         floor,
         building,
-      };
+      });
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {
         error: error.message,
@@ -817,7 +845,7 @@ export class ResidentsService {
         newBedId,
       });
 
-      return updated;
+      return this.formatDateOnlyFields(updated);
     } catch (error) {
       this.logger.error('Erro ao atualizar residente', {
         error: error.message,

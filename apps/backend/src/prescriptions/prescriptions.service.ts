@@ -32,6 +32,34 @@ export class PrescriptionsService {
   ) {}
 
   /**
+   * Converte campos DateTime que são @db.Date do Prisma para string YYYY-MM-DD
+   * Isso evita problemas de timezone causados pela serialização JSON do JavaScript
+   *
+   * Campos afetados: prescriptionDate, validUntil, reviewDate
+   */
+  private formatDateOnlyFields(prescription: any): any {
+    if (!prescription) return prescription;
+
+    const formatDate = (date: Date | null | undefined): string | null => {
+      if (!date) return null;
+      // Garantir que é um objeto Date
+      const d = date instanceof Date ? date : new Date(date);
+      // Formatar como YYYY-MM-DD usando UTC para evitar timezone shift
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    return {
+      ...prescription,
+      prescriptionDate: formatDate(prescription.prescriptionDate),
+      validUntil: formatDate(prescription.validUntil),
+      reviewDate: formatDate(prescription.reviewDate),
+    };
+  }
+
+  /**
    * Cria uma nova prescrição
    */
   async create(
@@ -162,7 +190,7 @@ export class PrescriptionsService {
         userId,
       });
 
-      return prescription;
+      return this.formatDateOnlyFields(prescription);
     } catch (error) {
       this.logger.error('Erro ao criar prescrição', {
         error: error.message,
@@ -303,7 +331,7 @@ export class PrescriptionsService {
     ]);
 
     return {
-      data: prescriptions,
+      data: prescriptions.map(p => this.formatDateOnlyFields(p)),
       meta: {
         total,
         page,
@@ -394,7 +422,7 @@ export class PrescriptionsService {
       throw new NotFoundException('Prescrição não encontrada');
     }
 
-    return prescription;
+    return this.formatDateOnlyFields(prescription);
   }
 
   /**
@@ -446,6 +474,7 @@ export class PrescriptionsService {
         notificationType: updatePrescriptionDto.notificationType as NotificationType | undefined,
         prescriptionImageUrl: updatePrescriptionDto.prescriptionImageUrl,
         notes: updatePrescriptionDto.notes,
+        isActive: updatePrescriptionDto.isActive,
       },
       include: {
         resident: {
@@ -465,7 +494,7 @@ export class PrescriptionsService {
       userId,
     });
 
-    return updated;
+    return this.formatDateOnlyFields(updated);
   }
 
   /**
