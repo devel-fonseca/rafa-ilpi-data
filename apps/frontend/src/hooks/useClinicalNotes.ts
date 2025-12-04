@@ -9,12 +9,14 @@ import {
   updateClinicalNote,
   deleteClinicalNote,
   getClinicalNoteTags,
+  getAuthorizedProfessions,
   type ClinicalNote,
   type ClinicalNoteHistoryResponse,
   type CreateClinicalNoteDto,
   type UpdateClinicalNoteDto,
   type QueryClinicalNoteDto,
   type DeleteClinicalNoteDto,
+  type ClinicalProfession,
 } from '@/api/clinicalNotes.api'
 
 // ==================== QUERY HOOKS ====================
@@ -101,6 +103,19 @@ export function useClinicalNoteTags() {
     queryKey: ['clinical-notes', 'tags'],
     queryFn: getClinicalNoteTags,
     staleTime: 1000 * 60 * 10, // 10 minutos (tags mudam pouco)
+  })
+}
+
+/**
+ * Hook para buscar profissões que o usuário logado pode registrar
+ * Baseado no cargo do usuário e competências legais dos conselhos profissionais
+ */
+export function useAuthorizedProfessions() {
+  return useQuery<ClinicalProfession[]>({
+    queryKey: ['authorized-professions'],
+    queryFn: getAuthorizedProfessions,
+    staleTime: 1000 * 60 * 60, // 1 hora (profissões autorizadas mudam apenas se mudar cargo)
+    refetchOnWindowFocus: false,
   })
 }
 

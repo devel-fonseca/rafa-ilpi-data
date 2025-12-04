@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { useClinicalNotesByResident } from '@/hooks/useClinicalNotes'
+import { useClinicalNotesByResident, useAuthorizedProfessions } from '@/hooks/useClinicalNotes'
 import { useAuthStore } from '@/stores/auth.store'
 import type { ClinicalNote, ClinicalProfession } from '@/api/clinicalNotes.api'
 import { ClinicalNoteCard } from './ClinicalNoteCard'
@@ -49,6 +49,7 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
 
   // Fetch data
   const { data: notes = [], isLoading, error } = useClinicalNotesByResident(residentId)
+  const { data: authorizedProfessions = [] } = useAuthorizedProfessions()
 
   // Print handlers
   const handlePrint = useReactToPrint({
@@ -201,7 +202,13 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
                 Imprimir Lista
               </Button>
 
-              <Button size="sm" onClick={handleCreate} className="gap-2">
+              <Button
+                size="sm"
+                onClick={handleCreate}
+                className="gap-2"
+                disabled={authorizedProfessions.length === 0}
+                title={authorizedProfessions.length === 0 ? 'Você não tem autorização para registrar evoluções clínicas' : 'Criar nova evolução clínica'}
+              >
                 <Plus className="h-4 w-4" />
                 Nova Evolução
               </Button>

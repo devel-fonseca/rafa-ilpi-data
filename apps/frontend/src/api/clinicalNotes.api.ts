@@ -203,6 +203,15 @@ export async function deleteClinicalNote(id: string, data: DeleteClinicalNoteDto
 }
 
 /**
+ * Busca profissões clínicas que o usuário logado pode registrar
+ * Baseado no cargo (positionCode) e competências legais dos conselhos profissionais
+ */
+export async function getAuthorizedProfessions(): Promise<ClinicalProfession[]> {
+  const response = await api.get<ClinicalProfession[]>('/clinical-notes/authorized-professions')
+  return response.data
+}
+
+/**
  * Busca sugestões de tags (para autocomplete)
  */
 export async function getClinicalNoteTags(): Promise<string[]> {

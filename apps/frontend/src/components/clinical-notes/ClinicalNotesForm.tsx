@@ -28,6 +28,7 @@ import {
   useCreateClinicalNote,
   useUpdateClinicalNote,
   useClinicalNoteTags,
+  useAuthorizedProfessions,
 } from '@/hooks/useClinicalNotes'
 import { useLastVitalSign } from '@/hooks/useVitalSigns'
 import type { ClinicalNote, ClinicalProfession } from '@/api/clinicalNotes.api'
@@ -94,6 +95,7 @@ export function ClinicalNotesForm({
   const updateMutation = useUpdateClinicalNote()
   const { data: suggestedTags = [] } = useClinicalNoteTags()
   const { data: lastVitalSign, isLoading: vitalSignsLoading } = useLastVitalSign(residentId)
+  const { data: authorizedProfessions = [], isLoading: authorizationLoading } = useAuthorizedProfessions()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
 
@@ -143,6 +145,13 @@ export function ClinicalNotesForm({
       setCustomTagInput('')
     }
   }, [open, reset])
+
+  // Auto-selecionar primeira profissão autorizada ao abrir (apenas em criação)
+  useEffect(() => {
+    if (open && !isEditing && authorizedProfessions.length > 0) {
+      setValue('profession', authorizedProfessions[0])
+    }
+  }, [open, isEditing, authorizedProfessions, setValue])
 
   // Populate form with note values when editing
   useEffect(() => {
@@ -266,20 +275,32 @@ export function ClinicalNotesForm({
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={isEditing} // Não pode mudar profissão ao editar
+                    disabled={isEditing || authorizationLoading} // Não pode mudar profissão ao editar
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(PROFESSION_CONFIG).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          <span className="flex items-center gap-2">
-                            <span>{config.icon}</span>
-                            <span>{config.label}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {authorizationLoading ? (
+                        <div className="flex items-center justify-center p-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      ) : authorizedProfessions.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          Nenhuma profissão autorizada
+                        </div>
+                      ) : (
+                        Object.entries(PROFESSION_CONFIG)
+                          .filter(([key]) => authorizedProfessions.includes(key as ClinicalProfession))
+                          .map(([key, config]) => (
+                            <SelectItem key={key} value={key}>
+                              <span className="flex items-center gap-2">
+                                <span>{config.icon}</span>
+                                <span>{config.label}</span>
+                              </span>
+                            </SelectItem>
+                          ))
+                      )}
                     </SelectContent>
                   </Select>
                 )}
