@@ -45,6 +45,7 @@ import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabel
 import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
+import { ClinicalNotesList } from '@/components/clinical-notes'
 import {
   ViewHigieneModal,
   ViewAlimentacaoModal,
@@ -354,9 +355,10 @@ export default function ResidentProfile() {
       {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
         <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
             <TabsTrigger value="personal" className="whitespace-nowrap">Dados do Residente</TabsTrigger>
             <TabsTrigger value="vaccinations" className="whitespace-nowrap">Vacinação</TabsTrigger>
+            <TabsTrigger value="clinical-notes" className="whitespace-nowrap">Evoluções Clínicas</TabsTrigger>
             <TabsTrigger value="prescriptions" className="whitespace-nowrap">Prescrições</TabsTrigger>
             <TabsTrigger value="daily-records" className="whitespace-nowrap">Registros Diários</TabsTrigger>
           </TabsList>
@@ -970,7 +972,12 @@ export default function ResidentProfile() {
           <VaccinationList residentId={id || ''} residentName={resident.fullName} />
         </TabsContent>
 
-        {/* TAB 3: Prescrições */}
+        {/* TAB 3: Evoluções Clínicas (SOAP) */}
+        <TabsContent value="clinical-notes">
+          <ClinicalNotesList residentId={id || ''} residentName={resident.fullName} />
+        </TabsContent>
+
+        {/* TAB 4: Prescrições */}
         <TabsContent value="prescriptions">
           <Card>
             <CardHeader>
