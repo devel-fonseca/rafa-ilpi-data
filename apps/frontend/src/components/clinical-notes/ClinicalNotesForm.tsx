@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, X, Activity, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,12 +23,13 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { getCurrentDateTimeLocal } from '@/utils/dateHelpers'
+import { getCurrentDateTimeLocal, formatDateTimeSafe } from '@/utils/dateHelpers'
 import {
   useCreateClinicalNote,
   useUpdateClinicalNote,
   useClinicalNoteTags,
 } from '@/hooks/useClinicalNotes'
+import { useLastVitalSign } from '@/hooks/useVitalSigns'
 import type { ClinicalNote, ClinicalProfession } from '@/api/clinicalNotes.api'
 import { SOAPTemplateFields } from './SOAPTemplateFields'
 import {
@@ -36,6 +37,7 @@ import {
   DEFAULT_CLINICAL_TAGS,
   PROFESSION_CONFIG,
 } from '@/utils/clinicalNotesConstants'
+import { formatVitalSignsToText, checkCriticalVitalSigns } from '@/utils/vitalSignsFormatter'
 
 // Validação com Zod
 const clinicalNoteSchema = z
@@ -91,6 +93,7 @@ export function ClinicalNotesForm({
   const createMutation = useCreateClinicalNote()
   const updateMutation = useUpdateClinicalNote()
   const { data: suggestedTags = [] } = useClinicalNoteTags()
+  const { data: lastVitalSign, isLoading: vitalSignsLoading } = useLastVitalSign(residentId)
 
   const isLoading = createMutation.isPending || updateMutation.isPending
 
@@ -165,6 +168,16 @@ export function ClinicalNotesForm({
       'tags',
       selectedTags.filter((t) => t !== tagValue)
     )
+  }
+
+  const insertVitalSignsIntoObjective = () => {
+    const vitalSignsText = formatVitalSignsToText(lastVitalSign)
+    const currentObjective = objective || ''
+    const newObjective = currentObjective
+      ? `${currentObjective}\n\n${vitalSignsText}`
+      : vitalSignsText
+    setValue('objective', newObjective)
+    toast.success('Sinais vitais inseridos no campo Objetivo')
   }
 
   const onSubmit = async (data: ClinicalNoteFormData) => {
@@ -298,6 +311,99 @@ export function ClinicalNotesForm({
               onPlanChange={(value) => setValue('plan', value)}
               disabled={isLoading}
             />
+          </div>
+
+          {/* Sinais Vitais */}
+          <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-blue-900 flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Últimos Sinais Vitais
+              </h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={insertVitalSignsIntoObjective}
+                disabled={isLoading || vitalSignsLoading || !lastVitalSign}
+                className="gap-2"
+              >
+                Inserir no Objetivo
+              </Button>
+            </div>
+
+            {vitalSignsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando sinais vitais...
+              </div>
+            ) : lastVitalSign ? (
+              <div className="space-y-3">
+                {/* Dados dos sinais vitais */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                  {lastVitalSign.systolicBloodPressure && lastVitalSign.diastolicBloodPressure && (
+                    <div className="bg-white rounded p-2">
+                      <div className="text-xs text-muted-foreground">Pressão Arterial</div>
+                      <div className="font-semibold">
+                        {lastVitalSign.systolicBloodPressure}/{lastVitalSign.diastolicBloodPressure} mmHg
+                      </div>
+                    </div>
+                  )}
+                  {lastVitalSign.heartRate && (
+                    <div className="bg-white rounded p-2">
+                      <div className="text-xs text-muted-foreground">Frequência Cardíaca</div>
+                      <div className="font-semibold">{lastVitalSign.heartRate} bpm</div>
+                    </div>
+                  )}
+                  {lastVitalSign.temperature && (
+                    <div className="bg-white rounded p-2">
+                      <div className="text-xs text-muted-foreground">Temperatura</div>
+                      <div className="font-semibold">{lastVitalSign.temperature.toFixed(1)}°C</div>
+                    </div>
+                  )}
+                  {lastVitalSign.oxygenSaturation && (
+                    <div className="bg-white rounded p-2">
+                      <div className="text-xs text-muted-foreground">SpO2</div>
+                      <div className="font-semibold">{lastVitalSign.oxygenSaturation}%</div>
+                    </div>
+                  )}
+                  {lastVitalSign.bloodGlucose && (
+                    <div className="bg-white rounded p-2">
+                      <div className="text-xs text-muted-foreground">Glicemia</div>
+                      <div className="font-semibold">{lastVitalSign.bloodGlucose} mg/dL</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alertas críticos */}
+                {(() => {
+                  const alerts = checkCriticalVitalSigns(lastVitalSign)
+                  return alerts.length > 0 ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                      <div className="flex items-center gap-2 text-yellow-800 font-semibold text-sm mb-2">
+                        <AlertCircle className="h-4 w-4" />
+                        Alertas Críticos
+                      </div>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        {alerts.map((alert, index) => (
+                          <li key={index}>{alert}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null
+                })()}
+
+                {/* Timestamp */}
+                <div className="text-xs text-muted-foreground">
+                  Registrado em: {formatDateTimeSafe(lastVitalSign.timestamp)}
+                  {lastVitalSign.recordedBy && ` por ${lastVitalSign.recordedBy}`}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Nenhum sinal vital registrado recentemente.
+              </div>
+            )}
           </div>
 
           {/* Tags */}
