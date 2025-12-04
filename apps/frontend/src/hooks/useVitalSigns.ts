@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  getLastVitalSign,
-  getVitalSignsByResident,
-  getVitalSignsStatistics,
-  type VitalSign,
-  type VitalSignsStatistics,
-} from '@/api/vitalSigns.api'
+import { api } from '@/services/api'
+import type { VitalSign } from '@/api/vitalSigns.api'
+
+// Usar endpoint de Daily Records para obter sinais vitais
+async function getLastVitalSignFromDailyRecords(residentId: string): Promise<VitalSign | null> {
+  const response = await api.get<VitalSign | null>(
+    `/daily-records/resident/${residentId}/last-vital-sign`
+  )
+  return response.data
+}
 
 /**
  * Hook para buscar o último sinal vital de um residente
@@ -22,7 +25,7 @@ export function useLastVitalSign(residentId: string | undefined) {
       if (!residentId) {
         throw new Error('residentId is required')
       }
-      return getLastVitalSign(residentId)
+      return getLastVitalSignFromDailyRecords(residentId)
     },
     enabled,
     staleTime: 1000 * 60, // 1 minuto (sinais vitais mudam com frequência)

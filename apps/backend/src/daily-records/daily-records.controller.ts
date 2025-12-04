@@ -104,11 +104,39 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, description: 'Último Monitoramento Vital encontrado' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado ou sem registros' })
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
-  findLastVitalSign(
+  async findLastVitalSign(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    return this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
+    const record = await this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
+
+    if (!record) {
+      return null;
+    }
+
+    // Combinar date + time para criar timestamp ISO 8601
+    // IMPORTANTE: record.date é @db.Date (date-only), vem como "2025-12-03T00:00:00.000Z"
+    // Extrair apenas a parte da data (YYYY-MM-DD) e combinar com time
+    const dateStr = record.date.toISOString().split('T')[0]; // "2025-12-03"
+    const timestampStr = `${dateStr}T${record.time}:00`; // "2025-12-03T06:50:00"
+
+    // Criar Date interpretando como horário local (não UTC)
+    // Isso garante que "2025-12-03 06:50" seja interpretado como tal, não convertido
+    const timestamp = new Date(timestampStr);
+
+    // Transformar DailyRecord em formato VitalSign para compatibilidade com frontend
+    return {
+      id: record.id,
+      timestamp: timestamp.toISOString(),
+      systolicBloodPressure: (record.data as any)?.pressaoSistolica || null,
+      diastolicBloodPressure: (record.data as any)?.pressaoDiastolica || null,
+      temperature: (record.data as any)?.temperatura || null,
+      heartRate: (record.data as any)?.frequenciaCardiaca || null,
+      oxygenSaturation: (record.data as any)?.saturacaoOxigenio || null,
+      bloodGlucose: (record.data as any)?.glicemia || null,
+      recordedBy: record.recordedBy,
+      notes: record.notes || '',
+    };
   }
 
   @Get('resident/:residentId/date/:date')

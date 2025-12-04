@@ -144,6 +144,22 @@ export function ClinicalNotesForm({
     }
   }, [open, reset])
 
+  // Populate form with note values when editing
+  useEffect(() => {
+    if (open && note) {
+      reset({
+        profession: note.profession,
+        noteDate: note.noteDate,
+        subjective: note.subjective || '',
+        objective: note.objective || '',
+        assessment: note.assessment || '',
+        plan: note.plan || '',
+        tags: note.tags || [],
+        editReason: '',
+      })
+    }
+  }, [open, note, reset])
+
   // Combinar tags pré-definidas + tags sugeridas do backend (sem duplicatas)
   const allAvailableTags = Array.from(
     new Set([

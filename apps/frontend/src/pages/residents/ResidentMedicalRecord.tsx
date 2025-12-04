@@ -488,7 +488,7 @@ export default function ResidentProfile() {
                       return (
                         <div className="border-t pt-4">
                           <div className="text-sm text-muted-foreground mb-2">
-                            Sinais Vitais em {formatDateOnlySafe(lastVitalSignData.date)} às {lastVitalSignData.time}
+                            Sinais Vitais{lastVitalSignData.date && ` em ${formatDateOnlySafe(lastVitalSignData.date)}`}{lastVitalSignData.time && ` às ${lastVitalSignData.time}`}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {vitalData.pressaoArterial && (

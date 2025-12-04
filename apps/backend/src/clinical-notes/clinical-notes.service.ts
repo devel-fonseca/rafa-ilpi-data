@@ -243,6 +243,13 @@ export class ClinicalNotesService {
               email: true,
             },
           },
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              cpf: true,
+            },
+          },
         },
       }),
       this.prisma.clinicalNote.count({ where }),

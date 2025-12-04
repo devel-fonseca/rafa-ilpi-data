@@ -18,6 +18,7 @@ import { ClinicalNoteCard } from './ClinicalNoteCard'
 import { ClinicalNotesForm } from './ClinicalNotesForm'
 import { ViewClinicalNoteModal } from './ViewClinicalNoteModal'
 import { ClinicalNoteHistoryModal } from './ClinicalNoteHistoryModal'
+import { ClinicalNotePrintView } from './ClinicalNotePrintView'
 import { PROFESSION_CONFIG } from '@/utils/clinicalNotesConstants'
 import { extractDateOnly } from '@/utils/dateHelpers'
 
@@ -31,6 +32,7 @@ type PeriodFilter = 'today' | '7days' | '30days' | 'year' | 'all'
 export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesListProps) {
   const { user } = useAuthStore()
   const printRef = useRef<HTMLDivElement>(null)
+  const notePrintRef = useRef<HTMLDivElement>(null)
 
   // Modal states
   const [formOpen, setFormOpen] = useState(false)
@@ -39,6 +41,7 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
   const [viewedNote, setViewedNote] = useState<ClinicalNote | null>(null)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [historyNoteId, setHistoryNoteId] = useState<string | null>(null)
+  const [printNote, setPrintNote] = useState<ClinicalNote | null>(null)
 
   // Filter states
   const [professionFilter, setProfessionFilter] = useState<ClinicalProfession | 'all'>('all')
@@ -47,10 +50,15 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
   // Fetch data
   const { data: notes = [], isLoading, error } = useClinicalNotesByResident(residentId)
 
-  // Print handler
+  // Print handlers
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Evolucoes_Clinicas_${residentId}_${extractDateOnly(new Date().toISOString())}`,
+  })
+
+  const handlePrintSingleNote = useReactToPrint({
+    contentRef: notePrintRef,
+    documentTitle: `Evolucao_Clinica_${printNote?.id}_${extractDateOnly(new Date().toISOString())}`,
   })
 
   // Filter notes by period
@@ -131,8 +139,11 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
   }
 
   const handlePrintNote = (note: ClinicalNote) => {
-    // TODO: Implementar impressão individual de nota (FASE 7)
-    console.log('Print note:', note.id)
+    setPrintNote(note)
+    // useReactToPrint will trigger automatically when printNote is set
+    setTimeout(() => {
+      handlePrintSingleNote()
+    }, 100)
   }
 
   const handleFormClose = () => {
@@ -287,7 +298,7 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
         </CardContent>
       </Card>
 
-      {/* Print View (hidden) */}
+      {/* Print View for List (hidden) */}
       <div className="hidden">
         <div ref={printRef} className="p-8">
           <h1 className="text-2xl font-bold mb-4">Evoluções Clínicas</h1>
@@ -300,6 +311,15 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
           ))}
         </div>
       </div>
+
+      {/* Print View for Individual Note (hidden) */}
+      {printNote && (
+        <ClinicalNotePrintView
+          ref={notePrintRef}
+          note={printNote}
+          residentName={residentName || 'Residente'}
+        />
+      )}
 
       {/* Modals */}
       <ClinicalNotesForm
