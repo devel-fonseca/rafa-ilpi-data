@@ -47,14 +47,14 @@ export function ClinicalNoteHistoryModal({
 
   // Extract unique users for filter
   const uniqueUsers = useMemo(() => {
-    if (!historyData) return []
+    if (!historyData?.history) return []
     const users = new Set(historyData.history.map((v) => v.changedByUser.name))
     return Array.from(users).sort()
   }, [historyData])
 
   // Filter history based on selected user
   const filteredHistory = useMemo(() => {
-    if (!historyData) return []
+    if (!historyData?.history) return []
 
     if (filterUser === 'all') {
       return historyData.history

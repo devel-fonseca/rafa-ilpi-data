@@ -424,7 +424,7 @@ export class ClinicalNotesService {
   async getHistory(
     noteId: string,
     tenantId: string,
-  ): Promise<ClinicalNoteHistory[]> {
+  ) {
     const note = await this.prisma.clinicalNote.findFirst({
       where: { id: noteId, tenantId },
     })
@@ -433,7 +433,7 @@ export class ClinicalNotesService {
       throw new NotFoundException('Evolução clínica não encontrada')
     }
 
-    return this.prisma.clinicalNoteHistory.findMany({
+    const history = await this.prisma.clinicalNoteHistory.findMany({
       where: { noteId },
       orderBy: { version: 'asc' },
       include: {
@@ -453,6 +453,12 @@ export class ClinicalNotesService {
         },
       },
     })
+
+    return {
+      currentVersion: note.version,
+      isAmended: note.isAmended,
+      history,
+    }
   }
 
   /**
