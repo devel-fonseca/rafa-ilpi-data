@@ -645,15 +645,30 @@ export default function PrescriptionDetails() {
                   bgColor: 'bg-danger/10 border-danger/30',
                   borderLeft: 'border-l-danger',
                   label: 'Não Administrado',
-                  buttonLabel: 'Ver Administração',
-                  buttonVariant: 'outline' as const,
-                  buttonIcon: Eye,
+                  buttonLabel: 'Administrar',
+                  buttonVariant: 'default' as const,
+                  buttonIcon: Clock,
                 },
               }
 
               const config = statusConfig[status]
               const StatusIcon = config.icon
-              const ButtonIcon = config.buttonIcon
+
+              // Override da configuração do botão para status 'missed'
+              // Se existe registro de não administração (recusa, contraindicação, etc.)
+              // → mostrar "Ver Administração" (outline)
+              // Se não existe registro (apenas passou do horário)
+              // → mostrar "Administrar" (default)
+              let buttonLabel = config.buttonLabel
+              let buttonVariant = config.buttonVariant
+              let ButtonIcon = config.buttonIcon
+
+              if (status === 'missed' && administration) {
+                // Tem registro de não administração → Ver Administração
+                buttonLabel = 'Ver Administração'
+                buttonVariant = 'outline' as const
+                ButtonIcon = Eye
+              }
 
               return (
                 <Card
@@ -765,10 +780,10 @@ export default function PrescriptionDetails() {
                           }
                         }}
                         size="sm"
-                        variant={config.buttonVariant}
+                        variant={buttonVariant}
                       >
                         <ButtonIcon className="h-4 w-4 mr-2" />
-                        {config.buttonLabel}
+                        {buttonLabel}
                       </Button>
                     </div>
                   </CardContent>

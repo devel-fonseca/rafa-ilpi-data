@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { AdministerMedicationModal } from './AdministerMedicationModal'
+import { ViewMedicationAdministrationModal } from './ViewMedicationAdministrationModal'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
@@ -16,6 +17,7 @@ interface MedicationAction {
   prescriptionId: string
   medicationId: string
   medication: any // Objeto completo do medication
+  administration?: any // Dados da administração (se existir)
 }
 
 // Função para determinar o turno baseado no horário
@@ -67,8 +69,14 @@ const STATUS_CONFIG = {
 
 export function TodayActions() {
   const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
+
+  // Estados para modal de registro
   const [selectedMedication, setSelectedMedication] = useState<any>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isAdministerModalOpen, setIsAdministerModalOpen] = useState(false)
+
+  // Estados para modal de visualização
+  const [selectedAdministration, setSelectedAdministration] = useState<any>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
 
   // Buscar prescrições ativas
   const { prescriptions, isLoading } = usePrescriptions({
@@ -77,14 +85,39 @@ export function TodayActions() {
     isActive: true,
   })
 
-  const handleMedicationClick = (medication: any) => {
-    setSelectedMedication(medication)
-    setIsModalOpen(true)
+  const handleMedicationClick = (action: MedicationAction) => {
+    // Se existe administração → abrir modal de visualização
+    if (action.administration) {
+      setSelectedAdministration({
+        ...action.administration,
+        medication: {
+          name: action.medication.name,
+          presentation: action.medication.presentation,
+          concentration: action.medication.concentration,
+          dose: action.medication.dose,
+          route: action.medication.route,
+          requiresDoubleCheck: action.medication.requiresDoubleCheck,
+        }
+      })
+      setIsViewModalOpen(true)
+    } else {
+      // Sem administração → abrir modal de registro
+      setSelectedMedication({
+        ...action.medication,
+        preselectedScheduledTime: action.scheduledTime,
+      })
+      setIsAdministerModalOpen(true)
+    }
   }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
+  const handleCloseAdministerModal = () => {
+    setIsAdministerModalOpen(false)
     setSelectedMedication(null)
+  }
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false)
+    setSelectedAdministration(null)
   }
 
   // Processar medicações do dia e agrupar por turno
@@ -141,6 +174,7 @@ export function TodayActions() {
             prescriptionId: prescription.id,
             medicationId: medication.id,
             medication: medication,
+            administration: todayAdministration, // Incluir dados da administração
           })
         })
       })
@@ -207,14 +241,14 @@ export function TodayActions() {
                       return (
                         <div
                           key={`${action.prescriptionId}-${action.scheduledTime}-${idx}`}
-                          onClick={() => handleMedicationClick(action.medication)}
+                          onClick={() => handleMedicationClick(action)}
                           className="bg-card rounded p-3 text-sm border cursor-pointer hover:bg-accent/5 hover:border-accent transition-colors"
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault()
-                              handleMedicationClick(action.medication)
+                              handleMedicationClick(action)
                             }
                           }}
                         >
@@ -247,11 +281,22 @@ export function TodayActions() {
         </CardContent>
       </Card>
 
+      {/* Modal de Registro de Administração */}
       {selectedMedication && (
         <AdministerMedicationModal
-          open={isModalOpen}
-          onClose={handleCloseModal}
+          open={isAdministerModalOpen}
+          onClose={handleCloseAdministerModal}
           medication={selectedMedication}
+        />
+      )}
+
+      {/* Modal de Visualização de Administração */}
+      {selectedAdministration && (
+        <ViewMedicationAdministrationModal
+          open={isViewModalOpen}
+          onClose={handleCloseViewModal}
+          administration={selectedAdministration}
+          medication={selectedAdministration.medication}
         />
       )}
     </>
