@@ -6,6 +6,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import Login from '@/pages/auth/Login'
 import Register from '@/pages/auth/Register'
 import Welcome from '@/pages/auth/Welcome'
+import SessionExpired from '@/pages/auth/SessionExpired'
 
 // Dashboard Pages
 import Dashboard from '@/pages/Dashboard'
@@ -14,7 +15,7 @@ import Dashboard from '@/pages/Dashboard'
 import ResidentsList from '@/pages/residents/ResidentsList'
 import ResidentForm from '@/pages/residents/ResidentForm'
 import ResidentView from '@/pages/residents/ResidentView'
-import ResidentProfile from '@/pages/residents/ResidentProfile'
+import ResidentMedicalRecord from '@/pages/residents/ResidentMedicalRecord'
 import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecordsCalendar'
 import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
@@ -27,6 +28,7 @@ import PrescriptionsPage from '@/pages/prescriptions/PrescriptionsPage'
 import PrescriptionsList from '@/pages/prescriptions/PrescriptionsList'
 import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
 import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
+import PrescriptionEdit from '@/pages/prescriptions/PrescriptionEdit'
 
 // Medications Pages
 import ActiveMedicationsPage from '@/pages/medications/ActiveMedicationsPage'
@@ -62,6 +64,10 @@ export const router = createBrowserRouter([
     element: <Welcome />,
   },
   {
+    path: '/session-expired',
+    element: <SessionExpired />,
+  },
+  {
     path: '/dashboard',
     element: (
       <ProtectedRoute>
@@ -87,7 +93,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'residentes/:id',
-        element: <ResidentProfile />,
+        element: <ResidentMedicalRecord />,
       },
       {
         path: 'residentes/:id/edit',
@@ -127,7 +133,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'prescricoes/:id/edit',
-        element: <PrescriptionForm />,
+        element: <PrescriptionEdit />,
       },
       {
         path: 'medicacoes-ativas/:residentId',

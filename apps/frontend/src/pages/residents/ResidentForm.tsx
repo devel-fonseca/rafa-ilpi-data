@@ -853,11 +853,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-semibold text-foreground">
             {readOnly ? 'Visualizar Residente' : isEditMode ? 'Editar Residente' : 'Novo Residente'}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -873,9 +873,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           <Button
             onClick={handleVoltar}
             variant="outline"
-            className="flex items-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
           {readOnly && (
@@ -883,17 +882,15 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               <Button
                 onClick={() => navigate(`/dashboard/residentes/${id}`)}
                 variant="default"
-                className="flex items-center gap-2"
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="h-4 w-4 mr-2" />
                 Prontuário
               </Button>
               <Button
                 onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
                 variant="default"
-                className="flex items-center gap-2"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-4 w-4 mr-2" />
                 Editar
               </Button>
             </>
@@ -959,20 +956,20 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         <Tabs defaultValue="tab1" className="mb-8">
             {/* ========== NAVEGAÇÃO DE ABAS ========== */}
             <div className="overflow-x-auto mb-6">
-              <TabsList className="inline-flex w-full md:grid md:grid-cols-5 gap-2 h-auto p-2 bg-white rounded-lg shadow-md min-w-max">
-                <TabsTrigger value="tab1" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+              <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
+                <TabsTrigger value="tab1" className="whitespace-nowrap">
                   1. Dados & Contatos
                 </TabsTrigger>
-                <TabsTrigger value="tab2" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                <TabsTrigger value="tab2" className="whitespace-nowrap">
                   2. Endereços & Responsável
                 </TabsTrigger>
-                <TabsTrigger value="tab3" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                <TabsTrigger value="tab3" className="whitespace-nowrap">
                   3. Saúde & Convênios
                 </TabsTrigger>
-                <TabsTrigger value="tab4" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                <TabsTrigger value="tab4" className="whitespace-nowrap">
                   4. Admissão & Acomodação
                 </TabsTrigger>
-                <TabsTrigger value="tab5" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground whitespace-nowrap">
+                <TabsTrigger value="tab5" className="whitespace-nowrap">
                   5. Documentos
                 </TabsTrigger>
               </TabsList>

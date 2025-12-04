@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useResident, useDeleteResident } from '@/hooks/useResidents'
+import { useResident } from '@/hooks/useResidents'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
+import { useMyProfile } from '@/hooks/queries/useUserProfile'
+import { PositionCode } from '@/types/permissions'
 import { api } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,7 +23,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import {
   ArrowLeft,
-  Edit,
   Trash2,
   Phone,
   MapPin,
@@ -41,7 +42,7 @@ import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
-import { formatBedFromResident } from '@/utils/formatters'
+import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import {
@@ -70,9 +71,14 @@ export default function ResidentProfile() {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [viewingRecord, setViewingRecord] = useState<any>(null)
   const [vitalSignsModalOpen, setVitalSignsModalOpen] = useState(false)
+  const [currentEmergencyContactIndex, setCurrentEmergencyContactIndex] = useState(0)
 
   const { data: resident, isLoading, error } = useResident(id || '')
-  const deleteMutation = useDeleteResident()
+  const { data: userProfile } = useMyProfile()
+
+  // Verificar se o usuário tem permissão para remover (apenas Administrador e Responsável Técnico)
+  const canDelete = userProfile?.positionCode === PositionCode.ADMINISTRATOR ||
+                    userProfile?.positionCode === PositionCode.TECHNICAL_MANAGER
 
   // Funções de navegação entre datas
   const goToPreviousDay = () => {
@@ -155,6 +161,28 @@ export default function ResidentProfile() {
       age--
     }
     return age
+  }
+
+  const calculateTimeInInstitution = (admissionDate: string) => {
+    const today = new Date()
+    const admission = new Date(admissionDate)
+
+    let years = today.getFullYear() - admission.getFullYear()
+    let months = today.getMonth() - admission.getMonth()
+
+    if (months < 0) {
+      years--
+      months += 12
+    }
+
+    if (years > 0) {
+      return years === 1 ? '1 ano' : `${years} anos`
+    } else if (months > 0) {
+      return months === 1 ? '1 mês' : `${months} meses`
+    } else {
+      const days = Math.floor((today.getTime() - admission.getTime()) / (1000 * 60 * 60 * 24))
+      return days === 1 ? '1 dia' : `${days} dias`
+    }
   }
 
   // Calcular IMC
@@ -269,26 +297,6 @@ export default function ResidentProfile() {
     }
   }
 
-  // Confirmar exclusão
-  const handleDelete = async () => {
-    if (!id) return
-
-    try {
-      await deleteMutation.mutateAsync(id)
-      toast({
-        title: 'Sucesso',
-        description: 'Residente removido com sucesso',
-      })
-      navigate('/dashboard/residentes')
-    } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao remover residente',
-        variant: 'destructive',
-      })
-    }
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -320,7 +328,7 @@ export default function ResidentProfile() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{resident.fullName}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{resident.fullName}</h1>
             <div className="flex items-center gap-3 mt-2">
               <Badge className={getStatusBadgeColor(resident.status)}>{resident.status}</Badge>
               <span className="text-muted-foreground">{calculateAge(resident.birthDate)} anos</span>
@@ -330,64 +338,17 @@ export default function ResidentProfile() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar
+          <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/view`)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Ver Cadastro
           </Button>
-          <Button variant="destructive" onClick={() => setDeleteModal(true)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Remover
-          </Button>
+          {canDelete && (
+            <Button variant="destructive" onClick={() => setDeleteModal(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Remover
+            </Button>
+          )}
         </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="text-xs">Data de Admissão</CardDescription>
-            <CardTitle className="text-lg">
-              {resident.admissionDate
-                ? formatDateOnlySafe(resident.admissionDate)
-                : '-'}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="text-xs">Tempo na Instituição</CardDescription>
-            <CardTitle className="text-lg">
-              {resident.admissionDate
-                ? `${Math.floor(
-                    (new Date().getTime() - new Date(resident.admissionDate).getTime()) /
-                      (1000 * 60 * 60 * 24 * 30)
-                  )} meses`
-                : '-'}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="text-xs">Grau de Dependência</CardDescription>
-            <CardTitle className="text-lg">{resident.dependencyLevel || '-'}</CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="text-xs">Responsável</CardDescription>
-            <CardTitle className="text-lg">{resident.legalGuardianName || '-'}</CardTitle>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="text-xs">Prescrições Ativas</CardDescription>
-            <CardTitle className="text-lg">{activePrescriptions.length}</CardTitle>
-          </CardHeader>
-        </Card>
       </div>
 
       {/* Main Tabs */}
@@ -406,10 +367,10 @@ export default function ResidentProfile() {
           {/* Seção: Dados Essenciais */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Card: Identificação */}
+              {/* Card: Dados do Residente */}
               <Card className="lg:col-span-2">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Identificação</CardTitle>
+                  <CardTitle className="text-lg">Dados do Residente</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -421,7 +382,7 @@ export default function ResidentProfile() {
                       />
                       <div className="flex-1">
                         <div className="text-sm text-muted-foreground">Nome Completo</div>
-                        <div className="font-semibold text-lg text-gray-900">{resident.fullName}</div>
+                        <div className="font-semibold text-lg text-foreground">{resident.fullName}</div>
                         {resident.socialName && (
                           <>
                             <div className="text-sm text-muted-foreground mt-2">Nome Social</div>
@@ -430,24 +391,67 @@ export default function ResidentProfile() {
                         )}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 border-t pt-4">
+
+                    {/* Grid 1: Data de Admissão, Tempo na Instituição e Grau de Dependência */}
+                    <div className="grid grid-cols-3 gap-4 border-t pt-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Data de Admissão</div>
+                        <div className="font-medium text-foreground">
+                          {resident.admissionDate ? formatDateOnlySafe(resident.admissionDate) : '-'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Tempo na Instituição</div>
+                        <div className="font-medium text-foreground">
+                          {resident.admissionDate ? calculateTimeInInstitution(resident.admissionDate) : '-'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Grau de Dependência</div>
+                        <div className="font-medium text-foreground">{resident.dependencyLevel || '-'}</div>
+                      </div>
+                    </div>
+
+                    {/* Grid 2: Data de Nascimento, Idade e Gênero */}
+                    <div className="grid grid-cols-3 gap-4 pt-4">
                       <div>
                         <div className="text-sm text-muted-foreground">Data de Nascimento</div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {formatDateOnlySafe(resident.birthDate)}
                         </div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Idade</div>
-                        <div className="font-medium text-gray-900">{calculateAge(resident.birthDate)} anos</div>
+                        <div className="font-medium text-foreground">{calculateAge(resident.birthDate)} anos</div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Gênero</div>
-                        <div className="font-medium text-gray-900">{translateGender(resident.gender)}</div>
+                        <div className="font-medium text-foreground">{translateGender(resident.gender)}</div>
+                      </div>
+                    </div>
+
+                    {/* Grid 3: CNS, CPF e RG */}
+                    <div className="grid grid-cols-3 gap-4 pt-4">
+                      <div>
+                        <div className="text-sm text-muted-foreground">CNS</div>
+                        <div className="font-medium text-foreground">{formatCNS(resident.cns)}</div>
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">CPF</div>
-                        <div className="font-medium text-gray-900">{resident.cpf || '-'}</div>
+                        <div className="font-medium text-foreground">{resident.cpf || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">RG</div>
+                        <div className="font-medium text-foreground">
+                          {resident.rg ? (
+                            <>
+                              {resident.rg}
+                              {resident.rgIssuer && <span className="text-muted-foreground"> / {resident.rgIssuer}</span>}
+                            </>
+                          ) : (
+                            '-'
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -507,7 +511,7 @@ export default function ResidentProfile() {
                     return (
                       <div className="border-t pt-4">
                         <div className="text-sm text-muted-foreground">Sinais Vitais</div>
-                        <div className="text-sm text-gray-400 italic">Nenhum registro de monitoramento</div>
+                        <div className="text-sm text-muted-foreground italic">Nenhum registro de monitoramento</div>
                       </div>
                     )
                   })()}
@@ -555,27 +559,65 @@ export default function ResidentProfile() {
                 </CardContent>
               </Card>
 
-              {/* Card: Contato de Emergência */}
+              {/* Card: Contatos de Emergência */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Emergência</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Contatos de Emergência</CardTitle>
+                    {resident.emergencyContacts && resident.emergencyContacts.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentEmergencyContactIndex((prev) =>
+                            prev === 0 ? resident.emergencyContacts!.length - 1 : prev - 1
+                          )}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          {currentEmergencyContactIndex + 1} / {resident.emergencyContacts.length}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentEmergencyContactIndex((prev) =>
+                            prev === resident.emergencyContacts!.length - 1 ? 0 : prev + 1
+                          )}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {resident.emergencyContacts && resident.emergencyContacts.length > 0 ? (
                     <div className="space-y-3">
-                      {resident.emergencyContacts.slice(0, 1).map((contact, idx) => (
-                        <div key={idx}>
-                          <div className="text-sm text-muted-foreground">Nome</div>
-                          <div className="font-medium text-gray-900">{contact.name}</div>
-                          <div className="text-sm text-muted-foreground mt-2">Telefone</div>
-                          <div className="font-medium text-gray-900">{contact.phone}</div>
-                          <div className="text-sm text-muted-foreground mt-2">Parentesco</div>
-                          <div className="font-medium text-gray-900">{contact.relationship}</div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">Nome</div>
+                        <div className="font-medium text-foreground">
+                          {resident.emergencyContacts[currentEmergencyContactIndex].name}
                         </div>
-                      ))}
+                        <div className="text-sm text-muted-foreground mt-2">Telefone</div>
+                        <div className="font-medium text-foreground">
+                          {resident.emergencyContacts[currentEmergencyContactIndex].phone}
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-2">Parentesco</div>
+                        <div className="font-medium text-foreground">
+                          {resident.emergencyContacts[currentEmergencyContactIndex].relationship}
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center text-muted-foreground py-4">Não informado</div>
+                    <div className="space-y-3 py-4">
+                      <div className="text-center font-medium text-foreground">
+                        Nenhum contato de emergência cadastrado.
+                      </div>
+                      <div className="text-sm text-muted-foreground text-center px-4">
+                        A indicação de pelo menos um contato é um requisito operacional e uma boa prática essencial para o manejo adequado de urgências e emergências. Cadastre um contato para garantir segurança e continuidade do cuidado.
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -612,33 +654,21 @@ export default function ResidentProfile() {
                       )}
                     </div>
                   ) : (
-                    <div className="font-semibold text-lg text-gray-900">
+                    <div className="font-semibold text-lg text-foreground">
                       Sem acomodação definida
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Card: Status */}
+              {/* Placeholder para futuras informações */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Status</CardTitle>
+                  <CardTitle className="text-lg">Informações Adicionais</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Tempo na Instituição</div>
-                    <div className="font-semibold text-lg text-gray-900">
-                      {resident.admissionDate
-                        ? `${Math.floor(
-                            (new Date().getTime() - new Date(resident.admissionDate).getTime()) /
-                              (1000 * 60 * 60 * 24 * 30)
-                          )} meses`
-                        : '-'}
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <div className="text-sm text-muted-foreground mb-1">Grau de Dependência</div>
-                    <div className="font-medium text-gray-900">{resident.dependencyLevel || '-'}</div>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground italic">
+                    Espaço reservado para informações adicionais
                   </div>
                 </CardContent>
               </Card>
@@ -647,237 +677,6 @@ export default function ResidentProfile() {
 
           {/* Seção: Informações Detalhadas */}
           <div className="space-y-4">
-            {/* Card: Informações Pessoais */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Informações Pessoais</CardTitle>
-                  {getSectionCompletionBadge(getCompletionPercentage([
-                    resident.rg,
-                    resident.rgIssuer,
-                    resident.cns,
-                    resident.civilStatus,
-                    resident.religion,
-                    resident.education,
-                    resident.profession,
-                    resident.nationality,
-                    resident.motherName,
-                    resident.fatherName,
-                  ]))}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Sub-seção: Identificação */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Identificação</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground">RG</div>
-                      <div className="font-medium text-gray-900">{resident.rg || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Órgão Emissor</div>
-                      <div className="font-medium text-gray-900">{resident.rgIssuer || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">CNS</div>
-                      <div className="font-medium text-gray-900">{resident.cns || '-'}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-seção: Dados Demográficos */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Demográficos</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Estado Civil</div>
-                      <div className="font-medium text-gray-900">{translateMaritalStatus(resident.civilStatus)}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Religião</div>
-                      <div className="font-medium text-gray-900">{resident.religion || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Escolaridade</div>
-                      <div className="font-medium text-gray-900">{resident.education || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Profissão</div>
-                      <div className="font-medium text-gray-900">{resident.profession || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Nacionalidade</div>
-                      <div className="font-medium text-gray-900">{resident.nationality || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Naturalidade</div>
-                      <div className="font-medium text-gray-900">
-                        {resident.birthCity && resident.birthState
-                          ? `${resident.birthCity}/${resident.birthState}`
-                          : '-'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sub-seção: Filiação */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Filiação</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-sm text-muted-foreground">Nome da Mãe</div>
-                      <div className="font-medium text-gray-900">{resident.motherName || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">Nome do Pai</div>
-                      <div className="font-medium text-gray-900">{resident.fatherName || '-'}</div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Card: Endereços */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Endereços</CardTitle>
-                  {getSectionCompletionBadge(getCompletionPercentage([
-                    resident.currentStreet,
-                    resident.currentCity,
-                    resident.currentPhone,
-                  ]))}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Endereço Atual */}
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Endereço Atual</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="md:col-span-2">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
-                          <div>
-                            <div className="text-sm text-muted-foreground">Endereço</div>
-                            <div className="font-medium">
-                              {resident.currentStreet
-                                ? `${resident.currentStreet}${
-                                    resident.currentNumber ? `, ${resident.currentNumber}` : ''
-                                  }${
-                                    resident.currentComplement
-                                      ? `, ${resident.currentComplement}`
-                                      : ''
-                                  }${
-                                    resident.currentDistrict ? `, ${resident.currentDistrict}` : ''
-                                  }${resident.currentCity ? `, ${resident.currentCity}` : ''}${
-                                    resident.currentState ? `/${resident.currentState}` : ''
-                                  }${resident.currentCep ? ` - CEP: ${resident.currentCep}` : ''}`
-                                : 'Não informado'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex items-start gap-3">
-                          <Phone className="h-5 w-5 text-gray-400" />
-                          <div>
-                            <div className="text-sm text-muted-foreground">Telefone</div>
-                            <div className="font-medium">
-                              {resident.currentPhone || 'Não informado'}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Endereço de Procedência */}
-                  {resident.originStreet && (
-                    <div className="pt-6 border-t">
-                      <h4 className="text-md font-semibold text-gray-900 mb-3">
-                        Endereço de Procedência
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <div className="flex items-start gap-3">
-                            <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
-                            <div>
-                              <div className="text-sm text-muted-foreground">Endereço</div>
-                              <div className="font-medium">
-                                {`${resident.originStreet}${
-                                  resident.originNumber ? `, ${resident.originNumber}` : ''
-                                }${
-                                  resident.originComplement ? `, ${resident.originComplement}` : ''
-                                }${resident.originDistrict ? `, ${resident.originDistrict}` : ''}${
-                                  resident.originCity ? `, ${resident.originCity}` : ''
-                                }${resident.originState ? `/${resident.originState}` : ''}${
-                                  resident.originCep ? ` - CEP: ${resident.originCep}` : ''
-                                }`}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {resident.originPhone && (
-                          <div>
-                            <div className="flex items-start gap-3">
-                              <Phone className="h-5 w-5 text-gray-400" />
-                              <div>
-                                <div className="text-sm text-muted-foreground">Telefone</div>
-                                <div className="font-medium">{resident.originPhone}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Card: Contatos de Emergência */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Contatos de Emergência</CardTitle>
-                  {resident.emergencyContacts && resident.emergencyContacts.length > 0
-                    ? <Badge variant="success">Preenchido</Badge>
-                    : <Badge variant="warning">Não preenchido</Badge>
-                  }
-                </div>
-              </CardHeader>
-              <CardContent>
-                {resident.emergencyContacts && resident.emergencyContacts.length > 0 ? (
-                  <div className="space-y-4">
-                    {resident.emergencyContacts.map((contact, index) => (
-                      <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Nome</div>
-                            <div className="font-medium">{contact.name}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">Telefone</div>
-                            <div className="font-medium">{contact.phone}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">Parentesco</div>
-                            <div className="font-medium">{contact.relationship}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground py-4">
-                    Nenhum contato de emergência cadastrado
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Card: Responsável Legal */}
             <Card>
               <CardHeader>
@@ -998,9 +797,7 @@ export default function ResidentProfile() {
                       <div>
                         <div className="text-sm text-muted-foreground">Data de Desligamento</div>
                         <div className="font-medium">
-                          {format(new Date(resident.dischargeDate), 'dd/MM/yyyy', {
-                            locale: ptBR,
-                          })}
+                          {formatDateOnlySafe(resident.dischargeDate)}
                         </div>
                       </div>
                       <div>
@@ -1034,7 +831,7 @@ export default function ResidentProfile() {
                 <div className="space-y-6">
                   {/* Sub-seção: Dados Gerais */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 pb-2 border-b">Dados Gerais</h4>
+                    <h4 className="font-semibold text-foreground mb-3 pb-2 border-b">Dados Gerais</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-muted-foreground">Tipo Sanguíneo</div>
@@ -1079,7 +876,7 @@ export default function ResidentProfile() {
 
                   {/* Condições e Observações */}
                   <div className="border-t pt-6">
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">
+                    <h4 className="text-md font-semibold text-foreground mb-3">
                       Condições e Observações
                     </h4>
                     <div className="grid grid-cols-1 gap-4">
@@ -1165,38 +962,12 @@ export default function ResidentProfile() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Card: Pertences */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Pertences</CardTitle>
-                  {resident.belongings && resident.belongings.length > 0
-                    ? <Badge variant="success">Preenchido</Badge>
-                    : <Badge variant="warning">Não preenchido</Badge>
-                  }
-                </div>
-              </CardHeader>
-              <CardContent>
-                {resident.belongings && resident.belongings.length > 0 ? (
-                  <ul className="list-disc list-inside space-y-1">
-                    {resident.belongings.map((item, index) => (
-                      <li key={index} className="text-sm">
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-center text-muted-foreground py-4">Nenhum pertence cadastrado</div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
         {/* TAB 2: Vacinação */}
         <TabsContent value="vaccinations">
-          <VaccinationList residentId={id || ''} />
+          <VaccinationList residentId={id || ''} residentName={resident.fullName} />
         </TabsContent>
 
         {/* TAB 3: Prescrições */}
@@ -1288,7 +1059,7 @@ export default function ResidentProfile() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                  <Pill className="h-12 w-12 text-gray-300" />
+                  <Pill className="h-12 w-12 text-muted-foreground" />
                   <div className="text-muted-foreground">Nenhuma prescrição cadastrada</div>
                   <Button
                     variant="outline"
@@ -1391,10 +1162,10 @@ export default function ResidentProfile() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                  <Calendar className="h-12 w-12 text-gray-300" />
+                  <Calendar className="h-12 w-12 text-muted-foreground" />
                   <div className="text-muted-foreground font-medium">Nenhum registro encontrado</div>
                   {isToday && (
-                    <p className="text-sm text-gray-400 text-center max-w-md">
+                    <p className="text-sm text-muted-foreground text-center max-w-md">
                       Use o botão "Dia anterior" acima para navegar até o último registro realizado
                     </p>
                   )}
@@ -1416,21 +1187,14 @@ export default function ResidentProfile() {
       <AlertDialog open={deleteModal} onOpenChange={setDeleteModal}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Funcionalidade não implementada</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o residente <strong>{resident.fullName}</strong>?
-              Esta ação não pode ser desfeita.
+              A funcionalidade de remoção de residentes ainda não foi implementada.
+              Esta funcionalidade estará disponível em uma próxima atualização do sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              variant="danger"
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Removendo...' : 'Remover'}
-            </AlertDialogAction>
+            <AlertDialogCancel>Fechar</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

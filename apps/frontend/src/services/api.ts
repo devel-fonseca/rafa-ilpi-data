@@ -44,7 +44,7 @@ api.interceptors.response.use(
 
         if (!refreshToken) {
           useAuthStore.getState().clearAuth()
-          window.location.href = '/login'
+          window.location.href = '/session-expired'
           return Promise.reject(error)
         }
 
@@ -65,9 +65,9 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        // Refresh falhou - desloga
+        // Refresh falhou - sessão expirada
         useAuthStore.getState().clearAuth()
-        window.location.href = '/login'
+        window.location.href = '/session-expired'
         return Promise.reject(refreshError)
       }
     }

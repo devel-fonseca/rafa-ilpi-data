@@ -8,7 +8,7 @@ export interface UserProfile {
   tenantId: string
   profilePhoto: string | null
   phone: string | null
-  position: string | null
+  positionCode: string | null  // ✅ Corrigido: era 'position', mas no backend é 'positionCode'
   department: string | null
   birthDate: string | null
   notes: string | null
@@ -26,7 +26,7 @@ export interface UserProfile {
 export interface UpdateProfileData {
   profilePhoto?: string
   phone?: string
-  position?: string
+  positionCode?: string  // ✅ Corrigido: era 'position', mas no backend é 'positionCode'
   department?: string
   birthDate?: string
   notes?: string
