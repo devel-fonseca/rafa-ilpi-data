@@ -209,7 +209,6 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.CREATE_USERS,
       PermissionType.UPDATE_USERS,
       PermissionType.DELETE_USERS,
-      PermissionType.ASSIGN_PERMISSIONS,
       // Relatórios e Exportação
       PermissionType.VIEW_REPORTS,
       PermissionType.EXPORT_DATA,

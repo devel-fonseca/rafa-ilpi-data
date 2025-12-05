@@ -35,6 +35,29 @@ import { PermissionType, PositionCode } from '@prisma/client';
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
+  @Get('me')
+  @ApiOperation({
+    summary: 'Buscar minhas próprias permissões (herdadas + customizadas)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Permissões do usuário logado',
+    schema: {
+      example: {
+        inherited: ['VIEW_RESIDENTS', 'CREATE_DAILY_RECORDS'],
+        custom: ['DELETE_RESIDENTS'],
+        all: ['VIEW_RESIDENTS', 'CREATE_DAILY_RECORDS', 'DELETE_RESIDENTS'],
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  async getMyPermissions(@CurrentUser() user: any) {
+    return await this.permissionsService.getUserAllPermissions(
+      user.id,
+      user.tenantId,
+    );
+  }
+
   @Get('user/:userId')
   @Roles('admin', 'manager')
   @ApiOperation({

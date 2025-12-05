@@ -16,6 +16,7 @@ import {
   useDietaryRestrictionsByResident,
   useDeleteDietaryRestriction,
 } from '@/hooks/useDietaryRestrictions'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { ClinicalProfileModal } from './ClinicalProfileModal'
 import { AllergyModal } from './AllergyModal'
 import { ConditionModal } from './ConditionModal'
@@ -73,6 +74,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   const [deletingCondition, setDeletingCondition] = useState<Condition | undefined>()
   const [deletingRestriction, setDeletingRestriction] = useState<DietaryRestriction | undefined>()
 
+  // Verificar permissões do usuário
+  const { hasPermission } = usePermissions()
+
   // Buscar dados clínicos
   const { data: clinicalProfile, isLoading: profileLoading } = useClinicalProfile(residentId)
   const { data: allergies = [], isLoading: allergiesLoading } = useAllergiesByResident(residentId)
@@ -81,6 +85,18 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
     data: dietaryRestrictions = [],
     isLoading: restrictionsLoading,
   } = useDietaryRestrictionsByResident(residentId)
+
+  // Permissões específicas
+  const canUpdateProfile = hasPermission(PermissionType.UPDATE_CLINICAL_PROFILE)
+  const canCreateAllergies = hasPermission(PermissionType.CREATE_ALLERGIES)
+  const canUpdateAllergies = hasPermission(PermissionType.UPDATE_ALLERGIES)
+  const canDeleteAllergies = hasPermission(PermissionType.DELETE_ALLERGIES)
+  const canCreateConditions = hasPermission(PermissionType.CREATE_CONDITIONS)
+  const canUpdateConditions = hasPermission(PermissionType.UPDATE_CONDITIONS)
+  const canDeleteConditions = hasPermission(PermissionType.DELETE_CONDITIONS)
+  const canCreateRestrictions = hasPermission(PermissionType.CREATE_DIETARY_RESTRICTIONS)
+  const canUpdateRestrictions = hasPermission(PermissionType.UPDATE_DIETARY_RESTRICTIONS)
+  const canDeleteRestrictions = hasPermission(PermissionType.DELETE_DIETARY_RESTRICTIONS)
 
   // Mutations para delete
   const deleteAllergyMutation = useDeleteAllergy()
@@ -160,10 +176,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 <CardTitle>Perfil Clínico</CardTitle>
                 <CardDescription>Estado de saúde e aspectos clínicos atuais</CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={() => setProfileModalOpen(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                {clinicalProfile ? 'Editar' : 'Criar'}
-              </Button>
+              {canUpdateProfile && (
+                <Button size="sm" variant="outline" onClick={() => setProfileModalOpen(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  {clinicalProfile ? 'Editar' : 'Criar'}
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -204,10 +222,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 <p className="text-sm text-muted-foreground mb-4">
                   Nenhum perfil clínico cadastrado
                 </p>
-                <Button size="sm" onClick={() => setProfileModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Perfil Clínico
-                </Button>
+                {canUpdateProfile && (
+                  <Button size="sm" onClick={() => setProfileModalOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar Perfil Clínico
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
@@ -223,10 +243,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   Registro de alergias e reações adversas
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={handleCreateAllergy}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Alergia
-              </Button>
+              {canCreateAllergies && (
+                <Button size="sm" variant="outline" onClick={handleCreateAllergy}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Alergia
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -254,20 +276,24 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditAllergy(allergy)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setDeletingAllergy(allergy)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canUpdateAllergies && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditAllergy(allergy)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteAllergies && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingAllergy(allergy)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -290,10 +316,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   Registro de condições médicas e comorbidades
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={handleCreateCondition}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Condição
-              </Button>
+              {canCreateConditions && (
+                <Button size="sm" variant="outline" onClick={handleCreateCondition}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Condição
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -318,20 +346,24 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditCondition(condition)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setDeletingCondition(condition)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canUpdateConditions && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditCondition(condition)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteConditions && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingCondition(condition)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -354,10 +386,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   Restrições dietéticas e orientações nutricionais
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={handleCreateRestriction}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Restrição
-              </Button>
+              {canCreateRestrictions && (
+                <Button size="sm" variant="outline" onClick={handleCreateRestriction}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Restrição
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -380,20 +414,24 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditRestriction(restriction)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setDeletingRestriction(restriction)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canUpdateRestrictions && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditRestriction(restriction)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteRestrictions && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setDeletingRestriction(restriction)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

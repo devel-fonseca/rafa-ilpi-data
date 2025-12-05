@@ -123,6 +123,16 @@ export async function updateMyPreferences(preferences: Record<string, unknown>) 
   return response.data
 }
 
+// ==================== PERMISSIONS ====================
+
+/**
+ * Busca as permissões do usuário autenticado
+ */
+export async function getMyPermissions() {
+  const response = await api.get('/permissions/me')
+  return response.data
+}
+
 /**
  * Busca todos os perfis de usuários (para ADMINs)
  */
