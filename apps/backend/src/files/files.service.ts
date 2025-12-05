@@ -17,6 +17,14 @@ export class FilesService {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
 
+  // Cache de URLs assinadas (em memória)
+  // Key: filePath, Value: { url: string, expiresAt: number }
+  private readonly urlCache = new Map<string, { url: string; expiresAt: number }>();
+
+  // Limpar cache expirado a cada 10 minutos
+  private readonly CACHE_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutos
+  private readonly URL_CACHE_DURATION = 50 * 60 * 1000; // 50 minutos (URLs válidas por 1 hora)
+
   // Tipos de arquivo permitidos
   private readonly allowedMimeTypes = [
     'image/jpeg',
@@ -57,6 +65,28 @@ export class FilesService {
     this.logger.log(
       `FilesService initialized with bucket: ${this.bucket}`,
     );
+
+    // Iniciar limpeza automática do cache
+    setInterval(() => this.cleanExpiredCache(), this.CACHE_CLEANUP_INTERVAL);
+  }
+
+  /**
+   * Limpar URLs expiradas do cache
+   */
+  private cleanExpiredCache(): void {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [key, value] of this.urlCache.entries()) {
+      if (now > value.expiresAt) {
+        this.urlCache.delete(key);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      this.logger.log(`Cleaned ${cleaned} expired URLs from cache`);
+    }
   }
 
   /**
@@ -198,9 +228,19 @@ export class FilesService {
 
   /**
    * Gerar URL assinada para download (válida por 1 hora)
+   * Com cache em memória para evitar sobrecarga no MinIO
    */
   async getFileUrl(filePath: string): Promise<string> {
     try {
+      // Verificar cache primeiro
+      const now = Date.now();
+      const cached = this.urlCache.get(filePath);
+
+      if (cached && now < cached.expiresAt) {
+        return cached.url;
+      }
+
+      // Cache miss ou expirado - gerar nova URL
       const command = new GetObjectCommand({
         Bucket: this.bucket,
         Key: filePath,
@@ -209,6 +249,12 @@ export class FilesService {
       // URL assinada válida por 1 hora
       const url = await getSignedUrl(this.s3Client, command, {
         expiresIn: 3600,
+      });
+
+      // Armazenar no cache (expira em 50 minutos)
+      this.urlCache.set(filePath, {
+        url,
+        expiresAt: now + this.URL_CACHE_DURATION,
       });
 
       return url;

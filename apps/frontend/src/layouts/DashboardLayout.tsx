@@ -24,6 +24,7 @@ import { getMyProfile } from '@/services/api'
 import { getSignedFileUrl } from '@/services/upload'
 import { usePreferences } from '@/contexts/PreferencesContext'
 import { toast } from 'sonner'
+import { CookieConsent } from '@/components/common/CookieConsent'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -527,6 +528,9 @@ export function DashboardLayout() {
           </div>
         </main>
       </div>
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent />
     </div>
   )
 }

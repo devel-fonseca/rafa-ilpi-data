@@ -57,21 +57,21 @@ export class ClinicalNotesService {
     }
 
     // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL
-    // Buscar positionCode do usuário
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    // Buscar positionCode do usuário (está na tabela user_profiles)
+    const userProfile = await this.prisma.userProfile.findUnique({
+      where: { userId: userId },
       select: { positionCode: true },
     })
 
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado')
+    if (!userProfile || !userProfile.positionCode) {
+      throw new NotFoundException('Perfil profissional não encontrado')
     }
 
     // Verificar se o cargo está habilitado para registrar a profissão
     const profession = createDto.profession as ClinicalProfession
-    if (!isAuthorizedForProfession(user.positionCode, profession)) {
+    if (!isAuthorizedForProfession(userProfile.positionCode, profession)) {
       throw new ForbiddenException(
-        getUnauthorizedMessage(user.positionCode, profession),
+        getUnauthorizedMessage(userProfile.positionCode, profession),
       )
     }
 
@@ -313,21 +313,21 @@ export class ClinicalNotesService {
     }
 
     // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL (mesmo na edição)
-    // Buscar positionCode do usuário
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    // Buscar positionCode do usuário (está na tabela user_profiles)
+    const userProfile = await this.prisma.userProfile.findUnique({
+      where: { userId: userId },
       select: { positionCode: true },
     })
 
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado')
+    if (!userProfile || !userProfile.positionCode) {
+      throw new NotFoundException('Perfil profissional não encontrado')
     }
 
     // Verificar se o cargo está habilitado para a profissão da evolução
     const profession = note.profession as unknown as ClinicalProfession
-    if (!isAuthorizedForProfession(user.positionCode, profession)) {
+    if (!isAuthorizedForProfession(userProfile.positionCode, profession)) {
       throw new ForbiddenException(
-        getUnauthorizedMessage(user.positionCode, profession),
+        getUnauthorizedMessage(userProfile.positionCode, profession),
       )
     }
 

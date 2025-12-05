@@ -72,7 +72,11 @@ export const PROFESSION_CONFIG: Record<ClinicalProfession, ProfessionConfig> = {
 /**
  * Helper para obter configuração de uma profissão
  */
-export function getProfessionConfig(profession: ClinicalProfession): ProfessionConfig {
+export function getProfessionConfig(profession?: ClinicalProfession): ProfessionConfig {
+  // Fallback para MEDICINE se profession for undefined
+  if (!profession) {
+    return PROFESSION_CONFIG.MEDICINE
+  }
   return PROFESSION_CONFIG[profession]
 }
 
@@ -632,6 +636,10 @@ export const SOAP_TEMPLATES: Record<ClinicalProfession, SOAPTemplate> = {
 /**
  * Helper para obter template SOAP de uma profissão
  */
-export function getSOAPTemplate(profession: ClinicalProfession): SOAPTemplate {
+export function getSOAPTemplate(profession?: ClinicalProfession): SOAPTemplate {
+  // Fallback para MEDICINE se profession for undefined
+  if (!profession) {
+    return SOAP_TEMPLATES.MEDICINE
+  }
   return SOAP_TEMPLATES[profession]
 }
