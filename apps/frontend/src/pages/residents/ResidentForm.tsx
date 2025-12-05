@@ -152,19 +152,13 @@ const residentSchema = z.object({
   consentimentoLgpd: z.any().optional(),
   consentimentoImagem: z.any().optional(),
 
-  // Saúde
-  necessidadesEspeciais: z.string().optional(),
-  restricoesAlimentares: z.string().optional(),
-  aspectosFuncionais: z.string().optional(),
+  // Saúde (campos básicos mantidos - dados clínicos evolutivos migraram para tabelas dedicadas)
   necessitaAuxilioMobilidade: z.boolean().optional(),
-  situacaoSaude: z.string().optional(),
   tipoSanguineo: z.string().optional(),
   altura: z.string().optional(),
   peso: z.string().optional(),
   grauDependencia: z.string().optional(),
   medicamentos: z.array(z.object({ nome: z.string().optional() })).optional(),
-  alergias: z.array(z.object({ nome: z.string().optional() })).optional(),
-  condicoesCronicas: z.array(z.object({ nome: z.string().optional() })).optional(),
   observacoesSaude: z.string().optional(),
   laudoMedico: z.any().optional(), // Arquivo
   laudoMedicoUrl: z.string().optional(), // URL retornada do backend
@@ -251,16 +245,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     name: 'medicamentos'
   })
 
-  const { fields: alergiasFields, append: appendAlergia, remove: removeAlergia } = useFieldArray({
-    control,
-    name: 'alergias'
-  })
-
-  const { fields: condicoesCronicasFields, append: appendCondicaoCronica, remove: removeCondicaoCronica } = useFieldArray({
-    control,
-    name: 'condicoesCronicas'
-  })
-
   const { fields: pertencesFields, append: appendPertence, remove: removePertence } = useFieldArray({
     control,
     name: 'pertences'
@@ -273,8 +257,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
   // Refs para inputs de badges
   const medicamentosInputRef = useRef<HTMLInputElement>(null)
-  const alergiasInputRef = useRef<HTMLInputElement>(null)
-  const condicoesCronicasInputRef = useRef<HTMLInputElement>(null)
   const pertencesInputRef = useRef<HTMLInputElement>(null)
 
   const watchEndProcedenciaDiferente = watch('endProcedenciaDiferente')
@@ -409,13 +391,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (resident.bloodType) setValue('tipoSanguineo', mapTipoSanguineoFromBackend(resident.bloodType))
         if (resident.height) setValue('altura', resident.height.toString())
         if (resident.weight) setValue('peso', resident.weight.toString())
-        if (resident.allergies) setValue('alergias', resident.allergies.split(',').map(nome => ({ nome: nome.trim() })))
         if (resident.medicationsOnAdmission) setValue('medicamentos', resident.medicationsOnAdmission.split(',').map(nome => ({ nome: nome.trim() })))
-        if (resident.chronicConditions) setValue('condicoesCronicas', resident.chronicConditions.split(',').map(nome => ({ nome: nome.trim() })))
-        if (resident.healthStatus) setValue('situacaoSaude', resident.healthStatus)
-        if (resident.specialNeeds) setValue('necessidadesEspeciais', resident.specialNeeds)
-        if (resident.functionalAspects) setValue('aspectosFuncionais', resident.functionalAspects)
-        if (resident.dietaryRestrictions) setValue('restricoesAlimentares', resident.dietaryRestrictions)
         if (resident.dependencyLevel) setValue('grauDependencia', resident.dependencyLevel)
 
         // ===== MOBILIDADE =====
@@ -725,28 +701,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         dischargeDate: convertToISODate(data.dataDesligamento) || null,
         dischargeReason: data.motivoDesligamento || null,
 
-        // 6. Saúde - NOMES EM INGLÊS
-        healthStatus: data.situacaoSaude || null,
+        // 6. Saúde - Apenas dados físicos/cadastrais (dados clínicos evolutivos gerenciados na aba Perfil Clínico)
         bloodType: mapTipoSanguineoToBackend(data.tipoSanguineo),
         height: data.altura ? parseFloat(data.altura.replace(',', '.')) : null,
         weight: data.peso ? parseFloat(data.peso.replace(',', '.')) : null,
         dependencyLevel: data.grauDependencia || null,
         mobilityAid: data.necessitaAuxilioMobilidade || false,
-        specialNeeds: data.necessidadesEspeciais || null,
-        functionalAspects: data.aspectosFuncionais || null,
         medicationsOnAdmission: (data.medicamentos || [])
           .filter(m => m.nome && m.nome.trim())
           .map(m => m.nome.trim())
           .join(', ') || null,
-        allergies: (data.alergias || [])
-          .filter(a => a.nome && a.nome.trim())
-          .map(a => a.nome.trim())
-          .join(', ') || null,
-        chronicConditions: (data.condicoesCronicas || [])
-          .filter(c => c.nome && c.nome.trim())
-          .map(c => c.nome.trim())
-          .join(', ') || null,
-        dietaryRestrictions: data.restricoesAlimentares || null,
 
         // 7. Convênios/Planos de Saúde - Array JSON
         healthPlans: (data.convenios || [])
@@ -1654,11 +1618,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     <div className="bg-muted border border-border rounded-lg p-4 mb-4">
                       <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Situação de Saúde</h3>
                       <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-12">
-                          <Label>Situação Clínica</Label>
-                          <Textarea {...register('situacaoSaude')} rows={2} className="mt-2" />
-                        </div>
-
                         {/* Medicamentos com Badges */}
                         <div className="col-span-12 md:col-span-4">
                           <Label className="text-sm font-semibold mb-2 block">Medicamentos</Label>
@@ -1701,125 +1660,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           </div>
                         </div>
 
-                        {/* Alergias com Badges */}
-                        <div className="col-span-12 md:col-span-4">
-                          <Label className="text-sm font-semibold mb-2 block">Alergias</Label>
-                          {alergiasFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-warning/10 border border-warning/30 rounded min-h-[40px]">
-                              {alergiasFields.map((field, index) => {
-                                const nome = watch(`alergias.${index}.nome`)
-                                return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-warning text-warning-foreground px-2 py-0.5 rounded-full text-xs font-medium">
-                                    <span>{nome}</span>
-                                    <button type="button" onClick={() => removeAlergia(index)} className="hover:opacity-80">
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ) : null
-                              })}
-                            </div>
-                          )}
-                          <div className="flex gap-1">
-                            <Input
-                              ref={alergiasInputRef}
-                              placeholder="Adicionar..."
-                              className="text-xs h-8"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                  e.preventDefault()
-                                  appendAlergia({ nome: e.currentTarget.value })
-                                  e.currentTarget.value = ''
-                                }
-                              }}
-                            />
-                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
-                              if (alergiasInputRef.current?.value.trim()) {
-                                appendAlergia({ nome: alergiasInputRef.current.value })
-                                alergiasInputRef.current.value = ''
-                              }
-                            }}>
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Condições Crônicas com Badges */}
-                        <div className="col-span-12 md:col-span-4">
-                          <Label className="text-sm font-semibold mb-2 block">Condições Crônicas</Label>
-                          {condicoesCronicasFields.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2 p-2 bg-danger/10 border border-danger/30 rounded min-h-[40px]">
-                              {condicoesCronicasFields.map((field, index) => {
-                                const nome = watch(`condicoesCronicas.${index}.nome`)
-                                return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-danger text-danger-foreground px-2 py-0.5 rounded-full text-xs font-medium">
-                                    <span>{nome}</span>
-                                    <button type="button" onClick={() => removeCondicaoCronica(index)} className="hover:opacity-80">
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ) : null
-                              })}
-                            </div>
-                          )}
-                          <div className="flex gap-1">
-                            <Input
-                              ref={condicoesCronicasInputRef}
-                              placeholder="Adicionar..."
-                              className="text-xs h-8"
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                  e.preventDefault()
-                                  appendCondicaoCronica({ nome: e.currentTarget.value })
-                                  e.currentTarget.value = ''
-                                }
-                              }}
-                            />
-                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
-                              if (condicoesCronicasInputRef.current?.value.trim()) {
-                                appendCondicaoCronica({ nome: condicoesCronicasInputRef.current.value })
-                                condicoesCronicasInputRef.current.value = ''
-                              }
-                            }}>
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Seção 3: Restrições e Funcionalidade */}
-                    <div className="bg-muted border border-border rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Restrições e Funcionalidade</h3>
-                      <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-12">
-                          <Label>Restrições Alimentares</Label>
-                          <Textarea
-                            {...register('restricoesAlimentares')}
-                            rows={2}
-                            placeholder="Ex: Sem lactose, hipossódico, diabético..."
-                            className="mt-2"
-                          />
-                        </div>
-
-                        <div className="col-span-12">
-                          <Label>Aspectos Funcionais</Label>
-                          <Textarea
-                            {...register('aspectosFuncionais')}
-                            rows={2}
-                            placeholder="Ex: Independente para AVDs, necessita auxílio para banho e vestuário..."
-                            className="mt-2"
-                          />
-                        </div>
-
-                        <div className="col-span-12">
-                          <Label>Necessidades Especiais</Label>
-                          <Textarea
-                            {...register('necessidadesEspeciais')}
-                            rows={2}
-                            placeholder="Ex: Cadeirante, uso de sonda, colostomia, dependência total para AVDs..."
-                            className="mt-2"
-                          />
-                        </div>
+                        {/* Dados clínicos evolutivos removidos - agora gerenciados na aba "Perfil Clínico" do prontuário */}
 
                         <div className="col-span-12">
                           <div className="flex items-center gap-2 p-3 bg-info/10 border border-info/30 rounded-lg">
