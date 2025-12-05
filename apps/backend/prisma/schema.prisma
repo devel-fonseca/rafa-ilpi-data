@@ -289,6 +289,28 @@ enum ClinicalProfession {
   @@map("ClinicalProfession")
 }
 
+enum AllergySeverity {
+  LEVE
+  MODERADA
+  GRAVE
+  ANAFILAXIA
+
+  @@map("AllergySeverity")
+}
+
+enum RestrictionType {
+  ALERGIA_ALIMENTAR
+  INTOLERANCIA
+  RESTRICAO_MEDICA
+  RESTRICAO_RELIGIOSA
+  DISFAGIA
+  DIABETES
+  HIPERTENSAO
+  OUTRA
+
+  @@map("RestrictionType")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -351,6 +373,10 @@ model Tenant {
   vaccinations              Vaccination[]
   clinicalNotes             ClinicalNote[]
   clinicalNoteHistory       ClinicalNoteHistory[]
+  clinicalProfiles          ClinicalProfile[]
+  allergies                 Allergy[]
+  conditions                Condition[]
+  dietaryRestrictions       DietaryRestriction[]
   auditLogs                 AuditLog[]
   buildings                 Building[]
   floors                    Floor[]
@@ -404,17 +430,21 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  profile                   UserProfile?
-  refreshTokens             RefreshToken[]
-  dailyRecords              DailyRecord[]
-  medicationAdministrations MedicationAdministration[]
-  sosAdministrations        SOSAdministration[]
-  vaccinations              Vaccination[]
-  vitalSigns                VitalSign[]
-  clinicalNotes             ClinicalNote[]
-  clinicalNoteHistoryAuthor ClinicalNoteHistory[]      @relation("ClinicalNoteHistoryProfessional")
-  clinicalNoteHistoryChanges ClinicalNoteHistory[]     @relation("ClinicalNoteHistoryChangedBy")
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile                    UserProfile?
+  refreshTokens              RefreshToken[]
+  dailyRecords               DailyRecord[]
+  medicationAdministrations  MedicationAdministration[]
+  sosAdministrations         SOSAdministration[]
+  vaccinations               Vaccination[]
+  vitalSigns                 VitalSign[]
+  clinicalNotes              ClinicalNote[]
+  clinicalNoteHistoryAuthor  ClinicalNoteHistory[]      @relation("ClinicalNoteHistoryProfessional")
+  clinicalNoteHistoryChanges ClinicalNoteHistory[]      @relation("ClinicalNoteHistoryChangedBy")
+  clinicalProfilesUpdated    ClinicalProfile[]
+  allergiesRecorded          Allergy[]
+  conditionsRecorded         Condition[]
+  dietaryRestrictionsRecorded DietaryRestriction[]
 
   @@unique([tenantId, email])
   @@map("users")
@@ -584,19 +614,13 @@ model Resident {
   dischargeDate       DateTime? @db.Date
   dischargeReason     String?
 
-  // 6 – Saúde
-  healthStatus           String?
+  // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)
   bloodType              BloodType @default(NAO_INFORMADO)
   height                 Decimal?  @db.Decimal(5, 2) // metros
   weight                 Decimal?  @db.Decimal(5, 1) // kg
   dependencyLevel        String? // Grau I - Independente | Grau II - Semidependente | Grau III - Dependente
   mobilityAid            Boolean?
-  specialNeeds           String?
-  functionalAspects      String?
   medicationsOnAdmission String?
-  allergies              String?
-  chronicConditions      String?
-  dietaryRestrictions    String?
 
   // 7 – Convênios / Planos de Saúde
   healthPlans Json @default("[]")
@@ -627,6 +651,10 @@ model Resident {
   clinicalNotes             ClinicalNote[]
   clinicalNoteHistory       ClinicalNoteHistory[]
   residentDocuments         ResidentDocument[]
+  clinicalProfile           ClinicalProfile?
+  allergies                 Allergy[]
+  conditions                Condition[]
+  dietaryRestrictions       DietaryRestriction[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -634,6 +662,135 @@ model Resident {
   @@index([tenantId, admissionDate(sort: Desc)])
   @@index([deletedAt])
   @@map("residents")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERFIL CLÍNICO DO RESIDENTE
+// ──────────────────────────────────────────────────────────────────────────────
+model ClinicalProfile {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @db.Uuid
+  residentId String   @unique @db.Uuid
+
+  // Dados clínicos textuais
+  healthStatus       String? @db.Text
+  specialNeeds       String? @db.Text
+  functionalAspects  String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  updatedBy String?   @db.Uuid
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([deletedAt])
+  @@map("clinical_profiles")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ALERGIAS
+// ──────────────────────────────────────────────────────────────────────────────
+model Allergy {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  residentId String    @db.Uuid
+
+  // Dados da alergia
+  substance String              // Medicamento, alimento, látex, etc.
+  reaction  String?    @db.Text // Descrição da reação
+  severity  AllergySeverity?
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  recordedBy String    @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([substance])
+  @@index([deletedAt])
+  @@map("allergies")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  CONDIÇÕES CRÔNICAS / DIAGNÓSTICOS
+// ──────────────────────────────────────────────────────────────────────────────
+model Condition {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  residentId String    @db.Uuid
+
+  // Dados do diagnóstico
+  condition String              // Nome da condição
+  icdCode   String?   @db.VarChar(10) // CID-10 (opcional)
+  notes     String?   @db.Text // Observações clínicas
+
+  // Auditoria
+  recordedBy String    @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([condition])
+  @@index([deletedAt])
+  @@map("conditions")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  RESTRIÇÕES ALIMENTARES
+// ──────────────────────────────────────────────────────────────────────────────
+model DietaryRestriction {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @db.Uuid
+  residentId String    @db.Uuid
+
+  // Dados da restrição
+  restrictionType RestrictionType
+  description     String              // Ex: "Sem glúten", "Dieta hipossódica"
+  notes           String?   @db.Text  // Observações do nutricionista
+
+  // Auditoria
+  recordedBy String    @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([restrictionType])
+  @@index([deletedAt])
+  @@map("dietary_restrictions")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
