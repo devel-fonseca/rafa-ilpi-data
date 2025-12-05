@@ -15,16 +15,16 @@ import {
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
-import { Roles } from '../auth/decorators/roles.decorator'
+import { PermissionsGuard } from '../permissions/guards/permissions.guard'
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { InstitutionalProfileService } from './institutional-profile.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { getRequiredDocuments, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
-import { LegalNature } from '@prisma/client'
+import { LegalNature, PermissionType } from '@prisma/client'
 
 @Controller('institutional-profile')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class InstitutionalProfileController {
   constructor(private readonly service: InstitutionalProfileService) {}
 
@@ -37,7 +37,7 @@ export class InstitutionalProfileController {
    * Retorna o perfil institucional do tenant combinado com dados do tenant
    */
   @Get()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getProfile(@CurrentUser('tenantId') tenantId: string) {
     return this.service.getFullProfile(tenantId)
   }
@@ -47,7 +47,7 @@ export class InstitutionalProfileController {
    * Cria ou atualiza o perfil institucional e dados do tenant
    */
   @Post()
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   async createOrUpdateProfile(
     @CurrentUser('tenantId') tenantId: string,
     @Body() dto: UpdateInstitutionalProfileDto
@@ -60,7 +60,7 @@ export class InstitutionalProfileController {
    * Upload de logo institucional
    */
   @Post('logo')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   @UseInterceptors(FileInterceptor('file'))
   async uploadLogo(
     @CurrentUser('tenantId') tenantId: string,
@@ -84,7 +84,7 @@ export class InstitutionalProfileController {
    * Lista todos os documentos com filtros opcionais
    */
   @Get('documents')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getDocuments(
     @CurrentUser('tenantId') tenantId: string,
     @Query('type') type?: string,
@@ -101,7 +101,7 @@ export class InstitutionalProfileController {
    * Busca um documento específico
    */
   @Get('documents/:id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getDocument(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string
@@ -114,7 +114,7 @@ export class InstitutionalProfileController {
    * Upload de novo documento
    */
   @Post('documents')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(
     @CurrentUser() user: any,
@@ -151,7 +151,7 @@ export class InstitutionalProfileController {
    * Atualiza metadados do documento (sem alterar o arquivo)
    */
   @Patch('documents/:id')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   async updateDocumentMetadata(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string,
@@ -165,7 +165,7 @@ export class InstitutionalProfileController {
    * Substitui o arquivo de um documento existente
    */
   @Post('documents/:id/file')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   @UseInterceptors(FileInterceptor('file'))
   async replaceDocumentFile(
     @CurrentUser('tenantId') tenantId: string,
@@ -186,7 +186,7 @@ export class InstitutionalProfileController {
    * Remove um documento
    */
   @Delete('documents/:id')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   async deleteDocument(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') documentId: string
@@ -203,7 +203,7 @@ export class InstitutionalProfileController {
    * Dashboard de compliance com estatísticas
    */
   @Get('compliance')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getComplianceDashboard(@CurrentUser('tenantId') tenantId: string) {
     return this.service.getComplianceDashboard(tenantId)
   }
@@ -213,7 +213,7 @@ export class InstitutionalProfileController {
    * Lista documentos obrigatórios para uma natureza jurídica
    */
   @Get('requirements/:legalNature')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getDocumentRequirements(@Param('legalNature') legalNature: LegalNature) {
     const documents = getRequiredDocuments(legalNature)
 
@@ -232,7 +232,7 @@ export class InstitutionalProfileController {
    * Apenas admin pode executar manualmente
    */
   @Post('update-statuses')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   async updateDocumentsStatus() {
     return this.service.updateDocumentsStatus()
   }
