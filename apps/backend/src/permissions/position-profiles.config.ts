@@ -325,6 +325,20 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     ],
   },
 
+  [PositionCode.OCCUPATIONAL_THERAPIST]: {
+    positionCode: PositionCode.OCCUPATIONAL_THERAPIST,
+    displayName: 'Terapeuta Ocupacional',
+    description: 'Terapeuta ocupacional para reabilitação e atividades terapêuticas',
+    requiredRegistration: 'CREFITO',
+    defaultRole: 'staff',
+    permissions: [
+      ...BASE_PERMISSIONS.STAFF,
+      PermissionType.UPDATE_RESIDENTS,
+      PermissionType.VIEW_REPORTS,
+      PermissionType.EXPORT_DATA,
+    ],
+  },
+
   // ─────────────────────────────────────────────────────────────────────────
   // EQUIPE DE CUIDADOS DIRETOS
   // ─────────────────────────────────────────────────────────────────────────

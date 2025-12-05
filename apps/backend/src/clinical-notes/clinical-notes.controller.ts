@@ -110,28 +110,6 @@ export class ClinicalNotesController {
   }
 
   /**
-   * Listar evoluções clínicas de um residente
-   */
-  @Get('resident/:residentId')
-  @RequirePermissions(PermissionType.VIEW_CLINICAL_NOTES)
-  @ApiOperation({
-    summary: 'Listar evoluções por residente',
-    description:
-      'Retorna todas as evoluções clínicas de um residente em ordem cronológica (mais recente primeiro).',
-  })
-  @ApiResponse({ status: 200, description: 'Lista de evoluções do residente' })
-  @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
-  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
-  findByResident(
-    @Param('residentId', ParseUUIDPipe) residentId: string,
-    @Query() queryDto: QueryClinicalNoteDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.clinicalNotesService.findByResident(residentId, user.tenantId, queryDto)
-  }
-
-  /**
    * Buscar profissões autorizadas para o usuário logado
    */
   @Get('authorized-professions')
@@ -163,6 +141,28 @@ export class ClinicalNotesController {
 
     // Retornar profissões autorizadas baseadas no cargo
     return getAuthorizedProfessions(userProfile.positionCode)
+  }
+
+  /**
+   * Listar evoluções clínicas de um residente
+   */
+  @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_CLINICAL_NOTES)
+  @ApiOperation({
+    summary: 'Listar evoluções por residente',
+    description:
+      'Retorna todas as evoluções clínicas de um residente em ordem cronológica (mais recente primeiro).',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de evoluções do residente' })
+  @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  findByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Query() queryDto: QueryClinicalNoteDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.clinicalNotesService.findByResident(residentId, user.tenantId, queryDto)
   }
 
   /**
