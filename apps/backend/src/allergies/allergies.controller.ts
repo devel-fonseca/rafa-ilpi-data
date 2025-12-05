@@ -18,16 +18,20 @@ import { AllergiesService } from './allergies.service';
 import { CreateAllergyDto } from './dto/create-allergy.dto';
 import { UpdateAllergyDto } from './dto/update-allergy.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('allergies')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('allergies')
 export class AllergiesController {
   constructor(private readonly allergiesService: AllergiesService) {}
 
   @Post()
+  @RequirePermissions(PermissionType.CREATE_ALLERGIES)
   @ApiOperation({ summary: 'Registrar nova alergia' })
   @ApiResponse({ status: 201, description: 'Alergia registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
@@ -36,6 +40,7 @@ export class AllergiesController {
   }
 
   @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_ALLERGIES)
   @ApiOperation({ summary: 'Listar todas as alergias de um residente' })
   @ApiResponse({ status: 200, description: 'Lista de alergias' })
   findByResidentId(
@@ -46,6 +51,7 @@ export class AllergiesController {
   }
 
   @Get(':id')
+  @RequirePermissions(PermissionType.VIEW_ALLERGIES)
   @ApiOperation({ summary: 'Buscar uma alergia específica' })
   @ApiResponse({ status: 200, description: 'Alergia encontrada' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
@@ -54,6 +60,7 @@ export class AllergiesController {
   }
 
   @Patch(':id')
+  @RequirePermissions(PermissionType.UPDATE_ALLERGIES)
   @ApiOperation({ summary: 'Atualizar alergia' })
   @ApiResponse({ status: 200, description: 'Alergia atualizada com sucesso' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
@@ -66,6 +73,7 @@ export class AllergiesController {
   }
 
   @Delete(':id')
+  @RequirePermissions(PermissionType.DELETE_ALLERGIES)
   @ApiOperation({ summary: 'Deletar alergia (soft delete)' })
   @ApiResponse({ status: 200, description: 'Alergia deletada com sucesso' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })

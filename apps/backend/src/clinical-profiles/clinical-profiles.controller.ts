@@ -18,11 +18,14 @@ import { ClinicalProfilesService } from './clinical-profiles.service';
 import { CreateClinicalProfileDto } from './dto/create-clinical-profile.dto';
 import { UpdateClinicalProfileDto } from './dto/update-clinical-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('clinical-profiles')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('clinical-profiles')
 export class ClinicalProfilesController {
   constructor(
@@ -30,6 +33,7 @@ export class ClinicalProfilesController {
   ) {}
 
   @Post()
+  @RequirePermissions(PermissionType.UPDATE_CLINICAL_PROFILE)
   @ApiOperation({ summary: 'Criar perfil clínico para um residente' })
   @ApiResponse({
     status: 201,
@@ -49,6 +53,7 @@ export class ClinicalProfilesController {
   }
 
   @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_CLINICAL_PROFILE)
   @ApiOperation({ summary: 'Buscar perfil clínico de um residente' })
   @ApiResponse({
     status: 200,
@@ -69,6 +74,7 @@ export class ClinicalProfilesController {
   }
 
   @Patch(':id')
+  @RequirePermissions(PermissionType.UPDATE_CLINICAL_PROFILE)
   @ApiOperation({ summary: 'Atualizar perfil clínico' })
   @ApiResponse({
     status: 200,
@@ -92,6 +98,7 @@ export class ClinicalProfilesController {
   }
 
   @Delete(':id')
+  @RequirePermissions(PermissionType.UPDATE_CLINICAL_PROFILE)
   @ApiOperation({ summary: 'Deletar perfil clínico (soft delete)' })
   @ApiResponse({
     status: 200,

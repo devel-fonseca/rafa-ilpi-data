@@ -18,11 +18,14 @@ import { DietaryRestrictionsService } from './dietary-restrictions.service';
 import { CreateDietaryRestrictionDto } from './dto/create-dietary-restriction.dto';
 import { UpdateDietaryRestrictionDto } from './dto/update-dietary-restriction.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('dietary-restrictions')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('dietary-restrictions')
 export class DietaryRestrictionsController {
   constructor(
@@ -30,6 +33,7 @@ export class DietaryRestrictionsController {
   ) {}
 
   @Post()
+  @RequirePermissions(PermissionType.CREATE_DIETARY_RESTRICTIONS)
   @ApiOperation({ summary: 'Registrar nova restrição alimentar' })
   @ApiResponse({
     status: 201,
@@ -48,6 +52,7 @@ export class DietaryRestrictionsController {
   }
 
   @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_DIETARY_RESTRICTIONS)
   @ApiOperation({
     summary: 'Listar todas as restrições alimentares de um residente',
   })
@@ -63,6 +68,7 @@ export class DietaryRestrictionsController {
   }
 
   @Get(':id')
+  @RequirePermissions(PermissionType.VIEW_DIETARY_RESTRICTIONS)
   @ApiOperation({ summary: 'Buscar uma restrição alimentar específica' })
   @ApiResponse({ status: 200, description: 'Restrição alimentar encontrada' })
   @ApiResponse({
@@ -74,6 +80,7 @@ export class DietaryRestrictionsController {
   }
 
   @Patch(':id')
+  @RequirePermissions(PermissionType.UPDATE_DIETARY_RESTRICTIONS)
   @ApiOperation({ summary: 'Atualizar restrição alimentar' })
   @ApiResponse({
     status: 200,
@@ -97,6 +104,7 @@ export class DietaryRestrictionsController {
   }
 
   @Delete(':id')
+  @RequirePermissions(PermissionType.DELETE_DIETARY_RESTRICTIONS)
   @ApiOperation({ summary: 'Deletar restrição alimentar (soft delete)' })
   @ApiResponse({
     status: 200,

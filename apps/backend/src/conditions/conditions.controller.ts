@@ -18,16 +18,20 @@ import { ConditionsService } from './conditions.service';
 import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('conditions')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('conditions')
 export class ConditionsController {
   constructor(private readonly conditionsService: ConditionsService) {}
 
   @Post()
+  @RequirePermissions(PermissionType.CREATE_CONDITIONS)
   @ApiOperation({ summary: 'Registrar nova condição crônica/diagnóstico' })
   @ApiResponse({ status: 201, description: 'Condição registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
@@ -36,6 +40,7 @@ export class ConditionsController {
   }
 
   @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_CONDITIONS)
   @ApiOperation({ summary: 'Listar todas as condições de um residente' })
   @ApiResponse({ status: 200, description: 'Lista de condições' })
   findByResidentId(
@@ -46,6 +51,7 @@ export class ConditionsController {
   }
 
   @Get(':id')
+  @RequirePermissions(PermissionType.VIEW_CONDITIONS)
   @ApiOperation({ summary: 'Buscar uma condição específica' })
   @ApiResponse({ status: 200, description: 'Condição encontrada' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
@@ -54,6 +60,7 @@ export class ConditionsController {
   }
 
   @Patch(':id')
+  @RequirePermissions(PermissionType.UPDATE_CONDITIONS)
   @ApiOperation({ summary: 'Atualizar condição' })
   @ApiResponse({ status: 200, description: 'Condição atualizada com sucesso' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
@@ -71,6 +78,7 @@ export class ConditionsController {
   }
 
   @Delete(':id')
+  @RequirePermissions(PermissionType.DELETE_CONDITIONS)
   @ApiOperation({ summary: 'Deletar condição (soft delete)' })
   @ApiResponse({ status: 200, description: 'Condição deletada com sucesso' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
