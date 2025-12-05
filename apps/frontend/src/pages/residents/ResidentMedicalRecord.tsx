@@ -46,6 +46,7 @@ import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import { ClinicalNotesList } from '@/components/clinical-notes'
+import { ClinicalProfileTab } from '@/components/clinical-data/ClinicalProfileTab'
 import {
   ViewHigieneModal,
   ViewAlimentacaoModal,
@@ -355,8 +356,9 @@ export default function ResidentProfile() {
       {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
         <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-6 min-w-max">
             <TabsTrigger value="personal" className="whitespace-nowrap">Dados do Residente</TabsTrigger>
+            <TabsTrigger value="clinical-profile" className="whitespace-nowrap">Perfil Clínico</TabsTrigger>
             <TabsTrigger value="vaccinations" className="whitespace-nowrap">Vacinação</TabsTrigger>
             <TabsTrigger value="clinical-notes" className="whitespace-nowrap">Evoluções Clínicas</TabsTrigger>
             <TabsTrigger value="prescriptions" className="whitespace-nowrap">Prescrições</TabsTrigger>
@@ -967,17 +969,22 @@ export default function ResidentProfile() {
           </div>
         </TabsContent>
 
-        {/* TAB 2: Vacinação */}
+        {/* TAB 2: Perfil Clínico */}
+        <TabsContent value="clinical-profile">
+          <ClinicalProfileTab residentId={id || ''} />
+        </TabsContent>
+
+        {/* TAB 3: Vacinação */}
         <TabsContent value="vaccinations">
           <VaccinationList residentId={id || ''} residentName={resident.fullName} />
         </TabsContent>
 
-        {/* TAB 3: Evoluções Clínicas (SOAP) */}
+        {/* TAB 4: Evoluções Clínicas (SOAP) */}
         <TabsContent value="clinical-notes">
           <ClinicalNotesList residentId={id || ''} residentName={resident.fullName} />
         </TabsContent>
 
-        {/* TAB 4: Prescrições */}
+        {/* TAB 5: Prescrições */}
         <TabsContent value="prescriptions">
           <Card>
             <CardHeader>
@@ -1081,7 +1088,7 @@ export default function ResidentProfile() {
           </Card>
         </TabsContent>
 
-        {/* TAB 4: Registros Diários */}
+        {/* TAB 6: Registros Diários */}
         <TabsContent value="daily-records">
           <Card>
             <CardHeader>
