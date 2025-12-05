@@ -28,6 +28,10 @@ import { ResidentDocumentsModule } from './resident-documents/resident-documents
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
 import { EmailModule } from './email/email.module';
 import { PermissionsModule } from './permissions/permissions.module';
+import { ClinicalProfilesModule } from './clinical-profiles/clinical-profiles.module';
+import { AllergiesModule } from './allergies/allergies.module';
+import { ConditionsModule } from './conditions/conditions.module';
+import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restrictions.module';
 
 @Module({
   imports: [
@@ -76,6 +80,10 @@ import { PermissionsModule } from './permissions/permissions.module';
     UserProfilesModule,
     EmailModule,
     PermissionsModule,
+    ClinicalProfilesModule,
+    AllergiesModule,
+    ConditionsModule,
+    DietaryRestrictionsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

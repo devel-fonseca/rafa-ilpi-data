@@ -49,6 +49,11 @@ const BASE_PERMISSIONS = {
     PermissionType.UPDATE_CLINICAL_NOTES,
     PermissionType.VIEW_DOCUMENTS,
     PermissionType.VIEW_BEDS,
+    // Dados Clínicos
+    PermissionType.VIEW_CLINICAL_PROFILE,
+    PermissionType.VIEW_ALLERGIES,
+    PermissionType.VIEW_CONDITIONS,
+    PermissionType.VIEW_DIETARY_RESTRICTIONS,
   ] as PermissionType[],
 
   // MANAGER: Gerenciamento clínico e operacional
@@ -80,6 +85,18 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_USERS,
     PermissionType.VIEW_REPORTS,
     PermissionType.EXPORT_DATA,
+    // Dados Clínicos
+    PermissionType.VIEW_CLINICAL_PROFILE,
+    PermissionType.UPDATE_CLINICAL_PROFILE,
+    PermissionType.VIEW_ALLERGIES,
+    PermissionType.CREATE_ALLERGIES,
+    PermissionType.UPDATE_ALLERGIES,
+    PermissionType.VIEW_CONDITIONS,
+    PermissionType.CREATE_CONDITIONS,
+    PermissionType.UPDATE_CONDITIONS,
+    PermissionType.VIEW_DIETARY_RESTRICTIONS,
+    PermissionType.CREATE_DIETARY_RESTRICTIONS,
+    PermissionType.UPDATE_DIETARY_RESTRICTIONS,
   ] as PermissionType[],
 
   // ADMIN: Controle total
@@ -114,6 +131,21 @@ const BASE_PERMISSIONS = {
     PermissionType.CREATE_CLINICAL_NOTES,
     PermissionType.UPDATE_CLINICAL_NOTES,
     PermissionType.DELETE_CLINICAL_NOTES,
+    // Dados Clínicos
+    PermissionType.VIEW_CLINICAL_PROFILE,
+    PermissionType.UPDATE_CLINICAL_PROFILE,
+    PermissionType.VIEW_ALLERGIES,
+    PermissionType.CREATE_ALLERGIES,
+    PermissionType.UPDATE_ALLERGIES,
+    PermissionType.DELETE_ALLERGIES,
+    PermissionType.VIEW_CONDITIONS,
+    PermissionType.CREATE_CONDITIONS,
+    PermissionType.UPDATE_CONDITIONS,
+    PermissionType.DELETE_CONDITIONS,
+    PermissionType.VIEW_DIETARY_RESTRICTIONS,
+    PermissionType.CREATE_DIETARY_RESTRICTIONS,
+    PermissionType.UPDATE_DIETARY_RESTRICTIONS,
+    PermissionType.DELETE_DIETARY_RESTRICTIONS,
     // Leitos
     PermissionType.VIEW_BEDS,
     PermissionType.MANAGE_BEDS,
