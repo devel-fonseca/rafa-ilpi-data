@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { useVaccinationsByResident, useDeleteVaccination, Vaccination } from '@/hooks/useVaccinations'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { VaccinationForm } from './VaccinationForm'
 import { VaccinationPrintView } from './VaccinationPrintView'
 
@@ -20,6 +21,12 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
   const [formOpen, setFormOpen] = useState(false)
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
   const printRef = useRef<HTMLDivElement>(null)
+
+  // Verificar permissões
+  const { hasPermission } = usePermissions()
+  const canCreate = hasPermission(PermissionType.CREATE_VACCINATIONS)
+  const canUpdate = hasPermission(PermissionType.UPDATE_VACCINATIONS)
+  const canDelete = hasPermission(PermissionType.DELETE_VACCINATIONS)
 
   const { data: vaccinations = [], isLoading, error } = useVaccinationsByResident(residentId)
   const deleteMutation = useDeleteVaccination()
@@ -98,17 +105,19 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
               <Printer className="h-4 w-4" />
               Imprimir Registro
             </Button>
-            <Button
-              size="sm"
-              onClick={() => {
-                setSelectedVaccination(undefined)
-                setFormOpen(true)
-              }}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Registrar Vacinação
-            </Button>
+            {canCreate && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedVaccination(undefined)
+                  setFormOpen(true)
+                }}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Registrar Vacinação
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -133,22 +142,26 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(vaccination)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(vaccination.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canUpdate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(vaccination)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(vaccination.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
 

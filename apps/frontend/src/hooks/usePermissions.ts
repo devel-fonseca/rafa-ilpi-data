@@ -115,7 +115,7 @@ export function usePermissions() {
    * Verifica se o usuário tem uma permissão específica
    */
   const hasPermission = (permission: PermissionType): boolean => {
-    if (!query.data) return false
+    if (!query.data?.all) return false
     return query.data.all.includes(permission)
   }
 
@@ -123,7 +123,7 @@ export function usePermissions() {
    * Verifica se o usuário tem TODAS as permissões especificadas
    */
   const hasAllPermissions = (permissions: PermissionType[]): boolean => {
-    if (!query.data) return false
+    if (!query.data?.all) return false
     return permissions.every((p) => query.data.all.includes(p))
   }
 
@@ -131,7 +131,7 @@ export function usePermissions() {
    * Verifica se o usuário tem QUALQUER UMA das permissões especificadas
    */
   const hasAnyPermission = (permissions: PermissionType[]): boolean => {
-    if (!query.data) return false
+    if (!query.data?.all) return false
     return permissions.some((p) => query.data.all.includes(p))
   }
 
