@@ -25,6 +25,7 @@ import { getSignedFileUrl } from '@/services/upload'
 import { usePreferences } from '@/contexts/PreferencesContext'
 import { toast } from 'sonner'
 import { CookieConsent } from '@/components/common/CookieConsent'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -33,6 +34,10 @@ export function DashboardLayout() {
   const { user, logout } = useAuthStore()
   const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
+  const { hasPermission } = usePermissions()
+
+  // Verificar se tem permissão para ver perfil institucional
+  const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
 
   // Carregar foto do perfil do usuário
   useEffect(() => {
@@ -375,22 +380,24 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/perfil-institucional"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <FileText className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Perfil Institucional'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Perfil Institucional</TooltipContent>
-                )}
-              </Tooltip>
+              {canViewInstitutionalProfile && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/perfil-institucional"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Perfil Institucional'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Perfil Institucional</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
               {/* Separator */}
               <div className="border-t my-2" />
@@ -486,14 +493,16 @@ export function DashboardLayout() {
                 <Building2 className="h-4 w-4" />
                 Mapa de Leitos
               </Link>
-              <Link
-                to="/dashboard/perfil-institucional"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                Perfil Institucional
-              </Link>
+              {canViewInstitutionalProfile && (
+                <Link
+                  to="/dashboard/perfil-institucional"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  Perfil Institucional
+                </Link>
+              )}
 
               {/* Separator */}
               <div className="border-t my-2" />
