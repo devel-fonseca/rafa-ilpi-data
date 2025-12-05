@@ -36,8 +36,9 @@ export function DashboardLayout() {
   const navigate = useNavigate()
   const { hasPermission } = usePermissions()
 
-  // Verificar se tem permissão para ver perfil institucional
+  // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
+  const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
 
   // Carregar foto do perfil do usuário
   useEffect(() => {
@@ -346,22 +347,24 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/beds/structure"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Bed className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Gestão de Leitos'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Gestão de Leitos</TooltipContent>
-                )}
-              </Tooltip>
+              {canManageInfrastructure && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/beds/structure"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Bed className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Gestão de Leitos'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Gestão de Leitos</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -477,14 +480,16 @@ export function DashboardLayout() {
                 <Pill className="h-4 w-4" />
                 Medicações
               </Link>
-              <Link
-                to="/dashboard/beds/structure"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
-              >
-                <Bed className="h-4 w-4" />
-                Gestão de Leitos
-              </Link>
+              {canManageInfrastructure && (
+                <Link
+                  to="/dashboard/beds/structure"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                >
+                  <Bed className="h-4 w-4" />
+                  Gestão de Leitos
+                </Link>
+              )}
               <Link
                 to="/dashboard/beds/map"
                 onClick={() => setIsSidebarOpen(false)}
