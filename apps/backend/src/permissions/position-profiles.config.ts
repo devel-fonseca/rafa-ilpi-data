@@ -181,7 +181,7 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     positionCode: PositionCode.ADMINISTRATOR,
     displayName: 'Administrador',
     description: 'Responsável pela gestão administrativa e operacional da ILPI',
-    defaultRole: 'manager',
+    defaultRole: 'admin',
     permissions: [
       // Gerenciamento de Residentes (cadastro/administrativo)
       PermissionType.VIEW_RESIDENTS,
@@ -202,13 +202,18 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Gerenciamento Operacional
       PermissionType.VIEW_BEDS,
       PermissionType.MANAGE_BEDS,
+      PermissionType.MANAGE_INFRASTRUCTURE,
       PermissionType.VIEW_DOCUMENTS,
       PermissionType.UPLOAD_DOCUMENTS,
+      // Perfil Institucional
+      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
+      PermissionType.UPDATE_INSTITUTIONAL_PROFILE,
       // Gestão de Usuários e Sistema
       PermissionType.VIEW_USERS,
       PermissionType.CREATE_USERS,
       PermissionType.UPDATE_USERS,
       PermissionType.DELETE_USERS,
+      PermissionType.MANAGE_PERMISSIONS,
       // Relatórios e Exportação
       PermissionType.VIEW_REPORTS,
       PermissionType.EXPORT_DATA,
