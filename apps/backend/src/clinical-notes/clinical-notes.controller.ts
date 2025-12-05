@@ -129,13 +129,16 @@ export class ClinicalNotesController {
   })
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   async getAuthorizedProfessionsForUser(@CurrentUser() user: any) {
-    // Buscar positionCode do usuário
-    const userProfile = await this.prisma.user.findUnique({
-      where: { id: user.userId },
+    // Buscar positionCode do usuário (está na tabela user_profiles, não em users)
+    // O JWT retorna user.id (não user.userId)
+    const userProfile = await this.prisma.userProfile.findUnique({
+      where: {
+        userId: user.id,
+      },
       select: { positionCode: true },
     })
 
-    if (!userProfile) {
+    if (!userProfile || !userProfile.positionCode) {
       return []
     }
 
