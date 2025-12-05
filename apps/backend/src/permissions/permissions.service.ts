@@ -357,13 +357,87 @@ export class PermissionsService {
   }
 
   /**
-   * Alias para getUserEffectivePermissions (mantido para compatibilidade)
+   * Retorna permissões separadas: herdadas do cargo, customizadas e todas
    */
   async getUserAllPermissions(
     userId: string,
     tenantId: string,
-  ): Promise<PermissionType[]> {
-    return this.getUserEffectivePermissions(userId, tenantId);
+  ): Promise<{
+    inherited: PermissionType[];
+    custom: PermissionType[];
+    all: PermissionType[];
+  }> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          profile: {
+            include: {
+              customPermissions: true,
+            },
+          },
+        },
+      });
+
+      if (!user || user.tenantId !== tenantId) {
+        return { inherited: [], custom: [], all: [] };
+      }
+
+      // Se é ADMIN, retorna TODAS as permissões como herdadas
+      if (user.role === 'admin') {
+        const allPermissions = Object.values(PermissionType);
+        return {
+          inherited: allPermissions,
+          custom: [],
+          all: allPermissions,
+        };
+      }
+
+      // Permissões herdadas do cargo (PositionCode)
+      let inherited: PermissionType[] = [];
+      if (user.profile?.positionCode) {
+        inherited = getPositionPermissions(user.profile.positionCode);
+      }
+
+      // Permissões customizadas (concedidas)
+      const customGranted: PermissionType[] = [];
+      const customRevoked: PermissionType[] = [];
+
+      if (user.profile?.customPermissions) {
+        for (const customPerm of user.profile.customPermissions) {
+          if (customPerm.isGranted) {
+            customGranted.push(customPerm.permission);
+          } else {
+            customRevoked.push(customPerm.permission);
+          }
+        }
+      }
+
+      // Calcular permissões efetivas (all)
+      let all = [...inherited];
+
+      // Adicionar permissões customizadas concedidas
+      for (const perm of customGranted) {
+        if (!all.includes(perm)) {
+          all.push(perm);
+        }
+      }
+
+      // Remover permissões customizadas revogadas
+      all = all.filter((perm) => !customRevoked.includes(perm));
+
+      return {
+        inherited,
+        custom: customGranted,
+        all,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Erro ao buscar permissões do usuário ${userId}:`,
+        error,
+      );
+      return { inherited: [], custom: [], all: [] };
+    }
   }
 
   /**
