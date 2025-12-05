@@ -181,8 +181,40 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     positionCode: PositionCode.ADMINISTRATOR,
     displayName: 'Administrador',
     description: 'Responsável pela gestão administrativa e operacional da ILPI',
-    defaultRole: 'admin',
-    permissions: [...BASE_PERMISSIONS.ADMIN],
+    defaultRole: 'manager',
+    permissions: [
+      // Gerenciamento de Residentes (cadastro/administrativo)
+      PermissionType.VIEW_RESIDENTS,
+      PermissionType.CREATE_RESIDENTS,
+      PermissionType.UPDATE_RESIDENTS,
+      PermissionType.DELETE_RESIDENTS,
+      // Visualização de Dados Clínicos (somente leitura)
+      PermissionType.VIEW_CLINICAL_PROFILE,
+      PermissionType.VIEW_ALLERGIES,
+      PermissionType.VIEW_CONDITIONS,
+      PermissionType.VIEW_DIETARY_RESTRICTIONS,
+      PermissionType.VIEW_PRESCRIPTIONS,
+      PermissionType.VIEW_MEDICATIONS,
+      PermissionType.VIEW_VITAL_SIGNS,
+      PermissionType.VIEW_VACCINATIONS,
+      PermissionType.VIEW_CLINICAL_NOTES,
+      PermissionType.VIEW_DAILY_RECORDS,
+      // Gerenciamento Operacional
+      PermissionType.VIEW_BEDS,
+      PermissionType.MANAGE_BEDS,
+      PermissionType.VIEW_DOCUMENTS,
+      PermissionType.UPLOAD_DOCUMENTS,
+      // Gestão de Usuários e Sistema
+      PermissionType.VIEW_USERS,
+      PermissionType.CREATE_USERS,
+      PermissionType.UPDATE_USERS,
+      PermissionType.DELETE_USERS,
+      PermissionType.ASSIGN_PERMISSIONS,
+      // Relatórios e Exportação
+      PermissionType.VIEW_REPORTS,
+      PermissionType.EXPORT_DATA,
+      PermissionType.VIEW_AUDIT_LOGS,
+    ],
   },
 
   [PositionCode.ADMINISTRATIVE_ASSISTANT]: {
