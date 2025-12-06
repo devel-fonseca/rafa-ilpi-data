@@ -393,22 +393,53 @@ export default function PrescriptionsList() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            {prescription.medications && prescription.medications.length > 0 ? (
-                              <div className="space-y-1">
-                                {prescription.medications.slice(0, 2).map((med: any) => (
-                                  <div key={med.id} className="text-gray-600">
-                                    {med.name}
-                                  </div>
-                                ))}
-                                {prescription.medications.length > 2 && (
-                                  <div className="text-gray-500 italic">
-                                    +{prescription.medications.length - 2} mais
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-gray-500">-</span>
-                            )}
+                            {(() => {
+                              const continuousMeds = prescription.medications || []
+                              const sosMeds = prescription.sosMedications || []
+                              const totalMeds = continuousMeds.length + sosMeds.length
+
+                              if (totalMeds === 0) {
+                                return <span className="text-gray-500">-</span>
+                              }
+
+                              const displayMeds = [
+                                ...continuousMeds.slice(0, 2).map((med: any) => ({
+                                  id: med.id,
+                                  name: med.name,
+                                  type: 'contínuo',
+                                })),
+                                ...sosMeds
+                                  .slice(0, Math.max(0, 2 - continuousMeds.length))
+                                  .map((med: any) => ({
+                                    id: med.id,
+                                    name: med.name,
+                                    type: 'SOS',
+                                  })),
+                              ]
+
+                              return (
+                                <div className="space-y-1">
+                                  {displayMeds.map((med) => (
+                                    <div key={med.id} className="flex items-center gap-2">
+                                      <span className="text-gray-600">{med.name}</span>
+                                      {med.type === 'SOS' && (
+                                        <Badge
+                                          variant="outline"
+                                          className="text-xs px-1.5 py-0 bg-orange-50 text-orange-700 border-orange-300"
+                                        >
+                                          SOS
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {totalMeds > 2 && (
+                                    <div className="text-gray-500 italic text-xs">
+                                      +{totalMeds - 2} mais
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell>{prescription.doctorName || 'N/A'}</TableCell>
