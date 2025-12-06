@@ -15,6 +15,7 @@ interface RoomCardProps {
   onEdit?: (room: Room) => void
   onDelete?: (room: Room) => void
   onClick?: (room: Room) => void
+  canManage?: boolean
 }
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ const ROOM_TYPE_COLORS: Record<string, string> = {
   COLETIVO: 'bg-purple-100 text-purple-800',
 }
 
-export function RoomCard({ room, onEdit, onDelete, onClick }: RoomCardProps) {
+export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: RoomCardProps) {
   const occupancyRate =
     room.capacity > 0 ? Math.round(((room.occupiedBeds || 0) / room.capacity) * 100) : 0
 
@@ -51,34 +52,36 @@ export function RoomCard({ room, onEdit, onDelete, onClick }: RoomCardProps) {
           <DoorOpen className="h-5 w-5 text-orange-600" />
           <CardTitle className="text-lg font-bold">{room.name}</CardTitle>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit?.(room)
-              }}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete?.(room)
-              }}
-              className="text-red-600"
-            >
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit?.(room)
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete?.(room)
+                }}
+                className="text-red-600"
+              >
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

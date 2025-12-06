@@ -373,6 +373,7 @@ export function BedsStructurePage() {
                   floor={floor}
                   onEdit={handleEditFloor}
                   onDelete={handleDeleteFloor}
+                  canManage={canManageInfrastructure}
                 />
               ))}
             </div>
@@ -410,6 +411,7 @@ export function BedsStructurePage() {
                   room={room}
                   onEdit={handleEditRoom}
                   onDelete={handleDeleteRoom}
+                  canManage={canManageInfrastructure}
                 />
               ))}
             </div>
@@ -451,6 +453,7 @@ export function BedsStructurePage() {
                   bed={bed}
                   onEdit={handleEditBed}
                   onDelete={handleDeleteBed}
+                  canManage={canManageInfrastructure}
                 />
               ))}
             </div>

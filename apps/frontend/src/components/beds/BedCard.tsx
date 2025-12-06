@@ -21,6 +21,7 @@ interface BedCardProps {
   onAssign?: (bed: Bed) => void
   onUnassign?: (bed: Bed) => void
   onClick?: (bed: Bed) => void
+  canManage?: boolean
 }
 
 const BED_STATUS_LABELS: Record<string, string> = {
@@ -45,7 +46,7 @@ const BED_STATUS_COLORS: Record<string, string> = {
   RESERVADO: 'bg-blue-100 text-blue-800',
 }
 
-export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }: BedCardProps) {
+export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, canManage = true }: BedCardProps) {
   const isOccupied = (bed.status === 'Ocupado' || bed.status === 'OCUPADO') && bed.resident
 
   return (
@@ -58,13 +59,14 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
           <BedIcon className="h-5 w-5 text-indigo-600" />
           <CardTitle className="text-lg font-bold">{formatBedFromObject(bed)}</CardTitle>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
             {(bed.status === 'Disponível' || bed.status === 'DISPONIVEL') && (
               <DropdownMenuItem
                 onClick={(e) => {
@@ -108,6 +110,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick }
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">

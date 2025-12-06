@@ -15,9 +15,10 @@ interface FloorCardProps {
   onEdit?: (floor: Floor) => void
   onDelete?: (floor: Floor) => void
   onClick?: (floor: Floor) => void
+  canManage?: boolean
 }
 
-export function FloorCard({ floor, onEdit, onDelete, onClick }: FloorCardProps) {
+export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }: FloorCardProps) {
   const occupancyRate =
     floor.bedsCount && floor.bedsCount > 0
       ? Math.round(((floor.occupiedBeds || 0) / floor.bedsCount) * 100)
@@ -39,25 +40,26 @@ export function FloorCard({ floor, onEdit, onDelete, onClick }: FloorCardProps) 
           <Layers className="h-5 w-5 text-purple-600" />
           <CardTitle className="text-lg font-bold">{floor.name}</CardTitle>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit?.(floor)
-              }}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit?.(floor)
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
                 onDelete?.(floor)
               }}
               className="text-red-600"
@@ -67,6 +69,7 @@ export function FloorCard({ floor, onEdit, onDelete, onClick }: FloorCardProps) 
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
