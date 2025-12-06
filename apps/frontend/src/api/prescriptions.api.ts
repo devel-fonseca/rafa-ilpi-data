@@ -1,4 +1,5 @@
 import { api } from '../services/api'
+import type { Allergy } from './residents.api'
 
 // ========== TYPES & INTERFACES ==========
 
@@ -86,7 +87,7 @@ export interface Prescription {
     fotoUrl?: string
     roomId?: string
     bedId?: string
-    allergies?: string
+    allergies?: Allergy[]
     chronicConditions?: string
   }
   medications: Medication[]

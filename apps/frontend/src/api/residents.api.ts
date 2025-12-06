@@ -1,5 +1,13 @@
 import { api } from '../services/api'
 
+export interface Allergy {
+  id: string
+  substance: string
+  reaction?: string
+  severity?: 'LEVE' | 'MODERADA' | 'GRAVE' | 'ANAFILAXIA'
+  notes?: string
+}
+
 export interface Resident {
   id: string
 
@@ -73,7 +81,7 @@ export interface Resident {
   specialNeeds?: string
   functionalAspects?: string
   medicationsOnAdmission?: string
-  allergies?: string
+  allergies?: Allergy[]
   chronicConditions?: string
   dietaryRestrictions?: string
 
