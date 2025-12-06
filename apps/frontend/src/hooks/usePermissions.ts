@@ -69,7 +69,10 @@ export enum PermissionType {
   UPLOAD_DOCUMENTS = 'UPLOAD_DOCUMENTS',
   DELETE_DOCUMENTS = 'DELETE_DOCUMENTS',
 
-  // Infraestrutura (quartos, leitos, etc)
+  // Leitos
+  VIEW_BEDS = 'VIEW_BEDS',
+
+  // Infraestrutura (prédios, andares, quartos, leitos)
   MANAGE_INFRASTRUCTURE = 'MANAGE_INFRASTRUCTURE',
 
   // Auditoria
