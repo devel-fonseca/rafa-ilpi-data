@@ -584,9 +584,10 @@ export default function ResidentProfile() {
                                     {allergy.severity && (
                                       <p className="text-xs">
                                         <span className="font-medium">Severidade:</span>{' '}
-                                        {allergy.severity === 'MILD' && 'Leve'}
-                                        {allergy.severity === 'MODERATE' && 'Moderada'}
-                                        {allergy.severity === 'SEVERE' && 'Grave'}
+                                        {allergy.severity === 'LEVE' && 'Leve'}
+                                        {allergy.severity === 'MODERADA' && 'Moderada'}
+                                        {allergy.severity === 'GRAVE' && 'Grave'}
+                                        {allergy.severity === 'ANAFILAXIA' && 'Anafilaxia'}
                                       </p>
                                     )}
                                     {allergy.reaction && (
