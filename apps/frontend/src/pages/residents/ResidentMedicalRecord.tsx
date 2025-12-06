@@ -10,6 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
   AlertDialog,
@@ -557,13 +563,54 @@ export default function ResidentProfile() {
                   {resident.allergies && Array.isArray(resident.allergies) && resident.allergies.length > 0 && (
                     <div className="border-t pt-4">
                       <div className="text-sm text-muted-foreground mb-2">Alergias</div>
-                      <div className="flex flex-wrap gap-2">
-                        {resident.allergies.map((allergy: any) => (
-                          <Badge key={allergy.id} variant="destructive" className="text-xs">
-                            {allergy.substance}
-                          </Badge>
-                        ))}
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex flex-wrap gap-2">
+                          {resident.allergies.map((allergy: any) => {
+                            // Construir conteúdo do tooltip dinamicamente
+                            const hasDetails = allergy.reaction || allergy.severity || allergy.notes
+                            const tooltipContent = hasDetails ? (
+                              <div className="space-y-1 max-w-xs">
+                                <p className="font-semibold">{allergy.substance}</p>
+                                {allergy.severity && (
+                                  <p className="text-xs">
+                                    <span className="font-medium">Severidade:</span>{' '}
+                                    {allergy.severity === 'MILD' && 'Leve'}
+                                    {allergy.severity === 'MODERATE' && 'Moderada'}
+                                    {allergy.severity === 'SEVERE' && 'Grave'}
+                                  </p>
+                                )}
+                                {allergy.reaction && (
+                                  <p className="text-xs">
+                                    <span className="font-medium">Reação:</span> {allergy.reaction}
+                                  </p>
+                                )}
+                                {allergy.notes && (
+                                  <p className="text-xs">
+                                    <span className="font-medium">Observações:</span> {allergy.notes}
+                                  </p>
+                                )}
+                              </div>
+                            ) : null
+
+                            return hasDetails ? (
+                              <Tooltip key={allergy.id}>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="destructive" className="text-xs cursor-help">
+                                    {allergy.substance}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-popover text-popover-foreground">
+                                  {tooltipContent}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <Badge key={allergy.id} variant="destructive" className="text-xs">
+                                {allergy.substance}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      </TooltipProvider>
                     </div>
                   )}
                   {resident.chronicConditions && (() => {
