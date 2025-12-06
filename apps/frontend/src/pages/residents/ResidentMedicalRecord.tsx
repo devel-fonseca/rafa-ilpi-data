@@ -554,27 +554,18 @@ export default function ResidentProfile() {
                     )
                   })()}
 
-                  {resident.allergies && (() => {
-                    const { text: truncatedAllergies, isTruncated: allergiesTruncated } = truncateText(resident.allergies)
-                    return (
-                      <div className="border-t pt-4">
-                        <div className="text-sm text-muted-foreground mb-1">Alergias</div>
-                        <div className="text-sm bg-danger/10 border border-danger/30 rounded p-2 text-danger">
-                          {truncatedAllergies}
-                        </div>
-                        {allergiesTruncated && (
-                          <Button
-                            type="button"
-                            variant="link"
-                            className="text-xs p-0 mt-2 h-auto"
-                            onClick={scrollToHealthConditions}
-                          >
-                            Ver mais →
-                          </Button>
-                        )}
+                  {resident.allergies && Array.isArray(resident.allergies) && resident.allergies.length > 0 && (
+                    <div className="border-t pt-4">
+                      <div className="text-sm text-muted-foreground mb-2">Alergias</div>
+                      <div className="flex flex-wrap gap-2">
+                        {resident.allergies.map((allergy: any) => (
+                          <Badge key={allergy.id} variant="destructive" className="text-xs">
+                            {allergy.substance}
+                          </Badge>
+                        ))}
                       </div>
-                    )
-                  })()}
+                    </div>
+                  )}
                   {resident.chronicConditions && (() => {
                     const { text: truncatedConditions, isTruncated: conditionsTruncated } = truncateText(resident.chronicConditions)
                     return (

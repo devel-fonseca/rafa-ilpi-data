@@ -682,6 +682,25 @@ export class ResidentsService {
         );
       }
 
+      // Buscar alergias da tabela Allergy
+      const allergies = await this.prisma.allergy.findMany({
+        where: {
+          residentId: id,
+          tenantId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          substance: true,
+          reaction: true,
+          severity: true,
+          notes: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
       // Retornar dados do residente com URLs assinadas e datas formatadas
       return this.formatDateOnlyFields({
         ...resident,
@@ -691,6 +710,7 @@ export class ResidentsService {
         bed,
         floor,
         building,
+        allergies, // Substituir campo allergies do Resident pelas alergias da tabela Allergy
       });
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {
