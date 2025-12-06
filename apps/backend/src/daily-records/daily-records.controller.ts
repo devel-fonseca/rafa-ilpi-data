@@ -98,44 +98,32 @@ export class DailyRecordsController {
 
   @Get('resident/:residentId/last-vital-sign')
   @ApiOperation({
-    summary: 'Buscar o último Monitoramento Vital de um residente',
-    description: 'Retorna apenas o registro mais recente de Monitoramento Vital, otimizado para não sobrecarregar o tráfego.',
+    summary: 'Buscar o último Sinal Vital de um residente',
+    description: 'Retorna apenas o registro mais recente da tabela VitalSign.',
   })
-  @ApiResponse({ status: 200, description: 'Último Monitoramento Vital encontrado' })
+  @ApiResponse({ status: 200, description: 'Último Sinal Vital encontrado' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado ou sem registros' })
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   async findLastVitalSign(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    const record = await this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
+    const vitalSign = await this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
 
-    if (!record) {
+    if (!vitalSign) {
       return null;
     }
 
-    // Combinar date + time para criar timestamp ISO 8601
-    // IMPORTANTE: record.date é @db.Date (date-only), vem como "2025-12-03T00:00:00.000Z"
-    // Extrair apenas a parte da data (YYYY-MM-DD) e combinar com time
-    const dateStr = record.date.toISOString().split('T')[0]; // "2025-12-03"
-    const timestampStr = `${dateStr}T${record.time}:00`; // "2025-12-03T06:50:00"
-
-    // Criar Date interpretando como horário local (não UTC)
-    // Isso garante que "2025-12-03 06:50" seja interpretado como tal, não convertido
-    const timestamp = new Date(timestampStr);
-
-    // Transformar DailyRecord em formato VitalSign para compatibilidade com frontend
+    // Retornar VitalSign diretamente (já está no formato correto)
     return {
-      id: record.id,
-      timestamp: timestamp.toISOString(),
-      systolicBloodPressure: (record.data as any)?.pressaoSistolica || null,
-      diastolicBloodPressure: (record.data as any)?.pressaoDiastolica || null,
-      temperature: (record.data as any)?.temperatura || null,
-      heartRate: (record.data as any)?.frequenciaCardiaca || null,
-      oxygenSaturation: (record.data as any)?.saturacaoOxigenio || null,
-      bloodGlucose: (record.data as any)?.glicemia || null,
-      recordedBy: record.recordedBy,
-      notes: record.notes || '',
+      id: vitalSign.id,
+      timestamp: vitalSign.timestamp,
+      systolicBloodPressure: vitalSign.systolicBloodPressure,
+      diastolicBloodPressure: vitalSign.diastolicBloodPressure,
+      temperature: vitalSign.temperature,
+      heartRate: vitalSign.heartRate,
+      oxygenSaturation: vitalSign.oxygenSaturation,
+      bloodGlucose: vitalSign.bloodGlucose,
     };
   }
 

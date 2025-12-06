@@ -511,27 +511,36 @@ export default function ResidentProfile() {
                   {/* Sinais Vitais */}
                   {(() => {
                     if (lastVitalSignData) {
-                      const vitalData = lastVitalSignData.data || {}
+                      // Formatar pressão arterial combinando sistólica e diastólica
+                      const pressaoArterial = lastVitalSignData.systolicBloodPressure && lastVitalSignData.diastolicBloodPressure
+                        ? `${lastVitalSignData.systolicBloodPressure}/${lastVitalSignData.diastolicBloodPressure} mmHg`
+                        : null
+
+                      // Formatar timestamp para data e hora
+                      const timestamp = new Date(lastVitalSignData.timestamp)
+                      const dateStr = formatDateOnlySafe(lastVitalSignData.timestamp)
+                      const timeStr = format(timestamp, 'HH:mm')
+
                       return (
                         <div className="border-t pt-4">
                           <div className="text-sm text-muted-foreground mb-2">
-                            Sinais Vitais{lastVitalSignData.date && ` em ${formatDateOnlySafe(lastVitalSignData.date)}`}{lastVitalSignData.time && ` às ${lastVitalSignData.time}`}
+                            Sinais Vitais em {dateStr} às {timeStr}
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {vitalData.pressaoArterial && (
-                              <Badge variant="outline" className="text-xs">PA: {vitalData.pressaoArterial}</Badge>
+                            {pressaoArterial && (
+                              <Badge variant="outline" className="text-xs">PA: {pressaoArterial}</Badge>
                             )}
-                            {vitalData.temperatura && (
-                              <Badge variant="outline" className="text-xs">Temp: {vitalData.temperatura}°C</Badge>
+                            {lastVitalSignData.temperature && (
+                              <Badge variant="outline" className="text-xs">Temp: {lastVitalSignData.temperature}°C</Badge>
                             )}
-                            {vitalData.frequenciaCardiaca && (
-                              <Badge variant="outline" className="text-xs">FC: {vitalData.frequenciaCardiaca} bpm</Badge>
+                            {lastVitalSignData.heartRate && (
+                              <Badge variant="outline" className="text-xs">FC: {lastVitalSignData.heartRate} bpm</Badge>
                             )}
-                            {vitalData.saturacaoO2 && (
-                              <Badge variant="outline" className="text-xs">SpO₂: {vitalData.saturacaoO2}%</Badge>
+                            {lastVitalSignData.oxygenSaturation && (
+                              <Badge variant="outline" className="text-xs">SpO₂: {lastVitalSignData.oxygenSaturation}%</Badge>
                             )}
-                            {vitalData.glicemia && (
-                              <Badge variant="outline" className="text-xs">Glicemia: {vitalData.glicemia} mg/dL</Badge>
+                            {lastVitalSignData.bloodGlucose && (
+                              <Badge variant="outline" className="text-xs">Glicemia: {lastVitalSignData.bloodGlucose} mg/dL</Badge>
                             )}
                           </div>
                         </div>
@@ -540,7 +549,7 @@ export default function ResidentProfile() {
                     return (
                       <div className="border-t pt-4">
                         <div className="text-sm text-muted-foreground">Sinais Vitais</div>
-                        <div className="text-sm text-muted-foreground italic">Nenhum registro de monitoramento</div>
+                        <div className="text-sm text-muted-foreground italic">Nenhum registro de sinais vitais</div>
                       </div>
                     )
                   })()}

@@ -805,16 +805,15 @@ export class DailyRecordsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const record = await this.prisma.dailyRecord.findFirst({
+    // Buscar último sinal vital da tabela VitalSign
+    const vitalSign = await this.prisma.vitalSign.findFirst({
       where: {
         residentId,
         tenantId,
-        type: 'MONITORAMENTO',
         deletedAt: null,
       },
       orderBy: [
-        { date: 'desc' },
-        { time: 'desc' },
+        { timestamp: 'desc' },
         { createdAt: 'desc' },
       ],
       include: {
@@ -828,6 +827,6 @@ export class DailyRecordsService {
       },
     });
 
-    return record || null;
+    return vitalSign || null;
   }
 }
