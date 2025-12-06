@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common'
 import { BuildingsController } from './buildings.controller'
 import { BuildingsService } from './buildings.service'
+import { PermissionsModule } from '../permissions/permissions.module'
 
 @Module({
+  imports: [PermissionsModule],
   controllers: [BuildingsController],
   providers: [BuildingsService],
   exports: [BuildingsService],

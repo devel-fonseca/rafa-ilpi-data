@@ -12,19 +12,20 @@ import {
 import { BuildingsService } from './buildings.service'
 import { CreateBuildingDto, UpdateBuildingDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { Roles } from '../auth/decorators/roles.decorator'
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
+import { PermissionsGuard } from '../permissions/guards/permissions.guard'
+import { PermissionType } from '@prisma/client'
 
 @Controller('buildings')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('Building')
 export class BuildingsController {
   constructor(private readonly buildingsService: BuildingsService) {}
 
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
     @CurrentUser('tenantId') tenantId: string,
@@ -34,7 +35,7 @@ export class BuildingsController {
   }
 
   @Get()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
     @CurrentUser('tenantId') tenantId: string,
     @Query('skip') skip?: string,
@@ -44,13 +45,13 @@ export class BuildingsController {
   }
 
   @Get('stats/summary')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   getStats(@CurrentUser('tenantId') tenantId: string) {
     return this.buildingsService.getStats(tenantId)
   }
 
   @Get(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   findOne(
     @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string
@@ -59,7 +60,7 @@ export class BuildingsController {
   }
 
   @Patch(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
     @CurrentUser('tenantId') tenantId: string,
@@ -70,7 +71,7 @@ export class BuildingsController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
   remove(
     @CurrentUser('tenantId') tenantId: string,
@@ -80,7 +81,7 @@ export class BuildingsController {
   }
 
   @Post('structure')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   createStructure(
     @CurrentUser('tenantId') tenantId: string,

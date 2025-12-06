@@ -19,6 +19,7 @@ import { useBuildings, useDeleteBuilding } from '@/hooks/useBuildings'
 import { useFloors, useDeleteFloor } from '@/hooks/useFloors'
 import { useRooms, useDeleteRoom } from '@/hooks/useRooms'
 import { useBeds, useDeleteBed } from '@/hooks/useBeds'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 // Components
 import { BuildingCard } from '@/components/beds/BuildingCard'
@@ -39,6 +40,10 @@ import { Building, Floor, Room, Bed } from '@/api/beds.api'
 export function BedsStructurePage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('buildings')
+  const { hasPermission } = usePermissions()
+
+  // Verificar permissão para gerenciar infraestrutura
+  const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
 
   // Estados para filtros
   const [searchText, setSearchText] = useState('')
@@ -240,7 +245,7 @@ export function BedsStructurePage() {
             Gerencie prédios, andares, quartos e leitos
           </p>
         </div>
-        {activeTab === 'buildings' && (
+        {canManageInfrastructure && activeTab === 'buildings' && (
           <div className="flex gap-2">
             <Button
               onClick={() => setGeneratorOpen(true)}
@@ -260,7 +265,7 @@ export function BedsStructurePage() {
             </Button>
           </div>
         )}
-        {activeTab === 'floors' && (
+        {canManageInfrastructure && activeTab === 'floors' && (
           <Button
             onClick={() => {
               setSelectedFloor(undefined)
@@ -271,7 +276,7 @@ export function BedsStructurePage() {
             Novo Andar
           </Button>
         )}
-        {activeTab === 'rooms' && (
+        {canManageInfrastructure && activeTab === 'rooms' && (
           <Button
             onClick={() => {
               setSelectedRoom(undefined)
@@ -282,7 +287,7 @@ export function BedsStructurePage() {
             Novo Quarto
           </Button>
         )}
-        {activeTab === 'beds' && (
+        {canManageInfrastructure && activeTab === 'beds' && (
           <Button
             onClick={() => {
               setSelectedBed(undefined)
@@ -334,6 +339,7 @@ export function BedsStructurePage() {
                   onNavigateFloors={handleNavigateFloors}
                   onNavigateRooms={handleNavigateRooms}
                   onNavigateBeds={handleNavigateBeds}
+                  canManage={canManageInfrastructure}
                 />
               ))}
             </div>

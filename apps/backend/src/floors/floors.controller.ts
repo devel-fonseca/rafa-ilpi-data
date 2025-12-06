@@ -12,19 +12,20 @@ import {
 import { FloorsService } from './floors.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { Roles } from '../auth/decorators/roles.decorator'
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
+import { PermissionsGuard } from '../permissions/guards/permissions.guard'
+import { PermissionType } from '@prisma/client'
 
 @Controller('floors')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('Floor')
 export class FloorsController {
   constructor(private readonly floorsService: FloorsService) {}
 
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
     @CurrentUser('tenantId') tenantId: string,
@@ -34,7 +35,7 @@ export class FloorsController {
   }
 
   @Get()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
     @CurrentUser('tenantId') tenantId: string,
     @Query('skip') skip?: string,
@@ -50,19 +51,19 @@ export class FloorsController {
   }
 
   @Get('stats/summary')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   getStats(@CurrentUser('tenantId') tenantId: string) {
     return this.floorsService.getStats(tenantId)
   }
 
   @Get(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
   findOne(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
     return this.floorsService.findOne(tenantId, id)
   }
 
   @Patch(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
     @CurrentUser('tenantId') tenantId: string,
@@ -73,7 +74,7 @@ export class FloorsController {
   }
 
   @Delete(':id')
-  @Roles('admin')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
   remove(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
     return this.floorsService.remove(tenantId, id)

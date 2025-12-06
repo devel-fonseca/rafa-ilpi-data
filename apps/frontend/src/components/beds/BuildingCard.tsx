@@ -18,9 +18,10 @@ interface BuildingCardProps {
   onNavigateFloors?: (building: Building) => void
   onNavigateRooms?: (building: Building) => void
   onNavigateBeds?: (building: Building) => void
+  canManage?: boolean
 }
 
-export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFloors, onNavigateRooms, onNavigateBeds }: BuildingCardProps) {
+export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFloors, onNavigateRooms, onNavigateBeds, canManage = true }: BuildingCardProps) {
   const occupancyRate =
     building.totalBeds && building.totalBeds > 0
       ? Math.round(((building.occupiedBeds || 0) / building.totalBeds) * 100)
@@ -42,34 +43,36 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
           <Building2 className="h-5 w-5 text-blue-600" />
           <CardTitle className="text-lg font-bold">{building.name}</CardTitle>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                onEdit?.(building)
-              }}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete?.(building)
-              }}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {canManage && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit?.(building)
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete?.(building)
+                }}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
