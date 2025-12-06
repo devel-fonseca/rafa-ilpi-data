@@ -60,6 +60,8 @@ import {
   ViewOutrosModal,
 } from '@/components/view-modals'
 import { VitalSignsModal } from '@/components/vital-signs/VitalSignsModal'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { ShieldAlert } from 'lucide-react'
 
 export default function ResidentProfile() {
   const { id } = useParams()
@@ -77,6 +79,10 @@ export default function ResidentProfile() {
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const { data: userProfile } = useMyProfile()
+  const { hasPermission } = usePermissions()
+
+  // Verificar se o usuário tem permissão para visualizar prontuário
+  const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
 
   // Verificar se o usuário tem permissão para remover (apenas Administrador e Responsável Técnico)
   const canDelete = userProfile?.positionCode === PositionCode.ADMINISTRATOR ||
@@ -314,6 +320,25 @@ export default function ResidentProfile() {
         <div className="text-muted-foreground">Residente não encontrado</div>
         <Button variant="outline" onClick={() => navigate('/dashboard/residentes')}>
           Voltar para a lista
+        </Button>
+      </div>
+    )
+  }
+
+  // Verificar se o usuário tem permissão para visualizar prontuário
+  if (!canViewMedicalRecord) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+        <ShieldAlert className="h-16 w-16 text-destructive" />
+        <div className="text-2xl font-semibold">Acesso Negado</div>
+        <div className="text-muted-foreground text-center max-w-md">
+          Você não tem permissão para visualizar o prontuário médico dos residentes.
+          <br />
+          Entre em contato com o administrador caso precise de acesso.
+        </div>
+        <Button variant="outline" onClick={() => navigate('/dashboard/residentes')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Residentes
         </Button>
       </div>
     )

@@ -39,6 +39,9 @@ export function DashboardLayout() {
   // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
+  const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
+                             hasPermission(PermissionType.UPDATE_RESIDENTS) ||
+                             hasPermission(PermissionType.DELETE_RESIDENTS)
 
   // Carregar foto do perfil do usuário
   useEffect(() => {
@@ -296,22 +299,24 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/residentes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Residentes'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Residentes</TooltipContent>
-                )}
-              </Tooltip>
+              {canManageResidents && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/residentes"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Users className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Residentes'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Residentes</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -456,14 +461,16 @@ export function DashboardLayout() {
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link
-                to="/dashboard/residentes"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
-              >
-                <Users className="h-4 w-4" />
-                Residentes
-              </Link>
+              {canManageResidents && (
+                <Link
+                  to="/dashboard/residentes"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                >
+                  <Users className="h-4 w-4" />
+                  Residentes
+                </Link>
+              )}
               <Link
                 to="/dashboard/registros-diarios"
                 onClick={() => setIsSidebarOpen(false)}

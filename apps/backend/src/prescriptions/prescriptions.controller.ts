@@ -46,7 +46,7 @@ export class PrescriptionsController {
   // ========== CRUD BÁSICO ==========
 
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.CREATE_PRESCRIPTIONS)
   @AuditAction('CREATE')
   @ApiOperation({ summary: 'Criar nova prescrição' })
   @ApiResponse({ status: 201, description: 'Prescrição criada com sucesso' })

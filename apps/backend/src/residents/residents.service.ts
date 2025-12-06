@@ -313,18 +313,12 @@ export class ResidentsService {
           dischargeReason: createResidentDto.dischargeReason,
 
           // 6. Saúde
-          healthStatus: createResidentDto.healthStatus,
           bloodType: createResidentDto.bloodType || 'NAO_INFORMADO',
           height: createResidentDto.height,
           weight: createResidentDto.weight,
           dependencyLevel: createResidentDto.dependencyLevel,
           mobilityAid: createResidentDto.mobilityAid,
-          specialNeeds: createResidentDto.specialNeeds,
-          functionalAspects: createResidentDto.functionalAspects,
           medicationsOnAdmission: createResidentDto.medicationsOnAdmission,
-          allergies: createResidentDto.allergies,
-          chronicConditions: createResidentDto.chronicConditions,
-          dietaryRestrictions: createResidentDto.dietaryRestrictions,
 
           // 7. Convênios
           healthPlans: (createResidentDto.healthPlans || []) as any,

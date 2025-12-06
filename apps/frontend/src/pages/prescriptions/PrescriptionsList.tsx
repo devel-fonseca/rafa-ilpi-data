@@ -59,11 +59,17 @@ import {
 } from 'lucide-react'
 import { parseISO } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 export default function PrescriptionsList() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { hasPermission } = usePermissions()
   const [searchParams] = useSearchParams()
+
+  const canCreatePrescriptions = hasPermission(PermissionType.CREATE_PRESCRIPTIONS)
+  const canUpdatePrescriptions = hasPermission(PermissionType.UPDATE_PRESCRIPTIONS)
+  const canDeletePrescriptions = hasPermission(PermissionType.DELETE_PRESCRIPTIONS)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: any | null }>({
@@ -233,13 +239,15 @@ export default function PrescriptionsList() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
-          <Button
-            onClick={() => navigate('/dashboard/prescricoes/new')}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Prescrição
-          </Button>
+          {canCreatePrescriptions && (
+            <Button
+              onClick={() => navigate('/dashboard/prescricoes/new')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Prescrição
+            </Button>
+          )}
         </div>
       </div>
 
@@ -434,22 +442,28 @@ export default function PrescriptionsList() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver Detalhes
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/dashboard/prescricoes/${prescription.id}/edit`)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  setDeleteModal({ open: true, prescription })
-                                }
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Deletar
-                              </DropdownMenuItem>
+                              {canUpdatePrescriptions && (
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/dashboard/prescricoes/${prescription.id}/edit`)}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                              )}
+                              {canDeletePrescriptions && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setDeleteModal({ open: true, prescription })
+                                    }
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Deletar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

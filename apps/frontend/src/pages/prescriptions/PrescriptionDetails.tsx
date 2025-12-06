@@ -28,6 +28,7 @@ import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
 import { getSignedFileUrl } from '@/services/upload'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 import { ViewMedicationAdministrationModal } from './components/ViewMedicationAdministrationModal'
 import {
@@ -63,7 +64,10 @@ const ROUTE_LABELS: Record<string, string> = {
 export default function PrescriptionDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { hasPermission } = usePermissions()
   const { data: prescription, isLoading } = usePrescription(id)
+
+  const canUpdatePrescriptions = hasPermission(PermissionType.UPDATE_PRESCRIPTIONS)
 
   // Estados de modais de registro
   const [administerModalOpen, setAdministerModalOpen] = useState(false)
@@ -296,10 +300,12 @@ export default function PrescriptionDetails() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          {canUpdatePrescriptions && (
+            <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
         </div>
       </div>
 

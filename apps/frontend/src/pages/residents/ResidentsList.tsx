@@ -56,14 +56,18 @@ import {
   ChevronRight,
   Printer,
   Accessibility,
+  ShieldAlert,
+  ArrowLeft,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; resident: any | null }>({
@@ -78,6 +82,11 @@ export default function ResidentsList() {
 
   const { data: stats } = useResidentStats()
   const deleteMutation = useDeleteResident()
+
+  // Verificar se o usuário tem permissão para gerenciar residentes
+  const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
+                             hasPermission(PermissionType.UPDATE_RESIDENTS) ||
+                             hasPermission(PermissionType.DELETE_RESIDENTS)
 
   // Aplicar busca
   const handleSearch = () => {
@@ -147,6 +156,25 @@ export default function ResidentsList() {
       default:
         return 'bg-muted text-muted-foreground border-border'
     }
+  }
+
+  // Verificar se o usuário tem permissão para acessar a página
+  if (!canManageResidents) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+        <ShieldAlert className="h-16 w-16 text-destructive" />
+        <div className="text-2xl font-semibold">Acesso Negado</div>
+        <div className="text-muted-foreground text-center max-w-md">
+          Você não tem permissão para acessar a gestão de residentes.
+          <br />
+          Entre em contato com o administrador caso precise de acesso.
+        </div>
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar ao Dashboard
+        </Button>
+      </div>
+    )
   }
 
   return (

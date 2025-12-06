@@ -65,7 +65,7 @@ export class UserProfilesService {
           ? new Date(createUserProfileDto.birthDate)
           : null,
         notes: createUserProfileDto.notes,
-        preferences: createUserProfileDto.preferences || {},
+        preferences: (createUserProfileDto.preferences || {}) as any,
         createdBy,
       },
       include: {
@@ -218,7 +218,7 @@ export class UserProfilesService {
         isNursingCoordinator: updateUserProfileDto.isNursingCoordinator,
         // Preferências do Usuário
         preferences: updateUserProfileDto.preferences !== undefined
-          ? updateUserProfileDto.preferences
+          ? (updateUserProfileDto.preferences as any)
           : undefined,
         updatedBy,
       },

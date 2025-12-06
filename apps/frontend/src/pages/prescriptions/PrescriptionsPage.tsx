@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { StatsCards } from './components/StatsCards'
 import { CriticalAlerts } from './components/CriticalAlerts'
 import { TodayActions } from './components/TodayActions'
@@ -10,8 +11,11 @@ import { ControlledResidents } from './components/ControlledResidents'
 
 export function PrescriptionsPage() {
   const navigate = useNavigate()
+  const { hasPermission } = usePermissions()
   const { stats, alerts, expiring, controlled, isLoading, refetchAll } =
     usePrescriptionsDashboard()
+
+  const canCreatePrescriptions = hasPermission(PermissionType.CREATE_PRESCRIPTIONS)
 
   const handleNewPrescription = () => {
     navigate('/dashboard/prescricoes/new')
@@ -45,10 +49,12 @@ export function PrescriptionsPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
-          <Button onClick={handleNewPrescription}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Prescrição
-          </Button>
+          {canCreatePrescriptions && (
+            <Button onClick={handleNewPrescription}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Prescrição
+            </Button>
+          )}
         </div>
       </div>
 

@@ -359,8 +359,6 @@ export class PrescriptionsService {
             fotoUrl: true,
             roomId: true,
             bedId: true,
-            allergies: true,
-            chronicConditions: true,
             birthDate: true,
             bed: {
               select: {
