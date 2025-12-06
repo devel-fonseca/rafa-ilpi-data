@@ -47,6 +47,16 @@ export type RecordType =
 export type Severity = 'CRITICAL' | 'WARNING' | 'INFO'
 
 /**
+ * Severidades de notificações
+ */
+export type NotificationSeverity = 'CRITICAL' | 'WARNING' | 'INFO' | 'SUCCESS'
+
+/**
+ * Categorias de notificações
+ */
+export type NotificationCategory = 'PRESCRIPTION' | 'VITAL_SIGN' | 'DOCUMENT' | 'MEDICATION' | 'DAILY_RECORD' | 'SYSTEM'
+
+/**
  * Categorias de medicamentos
  */
 export type MedicationCategory = 'CONTROLADO' | 'SOS' | 'ALTO_RISCO'
@@ -192,6 +202,76 @@ export const CONTROLLED_CLASS_COLORS: Record<ControlledClass, string> = {
   OPIOIDE: 'bg-red-100 text-red-700 border-red-300',
   ANTICONVULSIVANTE: 'bg-blue-100 text-blue-700 border-blue-300',
   OUTRO: 'bg-gray-100 text-gray-700 border-gray-300',
+}
+
+/**
+ * Mapeamento de severidade de notificações para classes Tailwind
+ *
+ * Usado no dropdown e página completa de notificações
+ */
+export const NOTIFICATION_SEVERITY_COLORS: Record<
+  NotificationSeverity,
+  { bg: string; icon: string; badge: string; border: string }
+> = {
+  CRITICAL: {
+    bg: 'bg-danger/5',
+    icon: 'text-danger',
+    badge: 'bg-danger/10 text-danger border-danger/30',
+    border: 'border-danger/30',
+  },
+  WARNING: {
+    bg: 'bg-warning/5',
+    icon: 'text-warning',
+    badge: 'bg-warning/10 text-warning border-warning/30',
+    border: 'border-warning/30',
+  },
+  INFO: {
+    bg: 'bg-info/5',
+    icon: 'text-info',
+    badge: 'bg-info/10 text-info border-info/30',
+    border: 'border-info/30',
+  },
+  SUCCESS: {
+    bg: 'bg-success/5',
+    icon: 'text-success',
+    badge: 'bg-success/10 text-success border-success/30',
+    border: 'border-success/30',
+  },
+}
+
+/**
+ * Mapeamento de categorias de notificações para classes Tailwind
+ *
+ * Cada categoria tem cor específica para ícones e badges
+ */
+export const NOTIFICATION_CATEGORY_COLORS: Record<
+  NotificationCategory,
+  { icon: string; color: string }
+> = {
+  PRESCRIPTION: {
+    icon: 'text-blue-600',
+    color: 'text-blue-600',
+  },
+  VITAL_SIGN: {
+    icon: 'text-red-600',
+    color: 'text-red-600',
+  },
+  DOCUMENT: {
+    icon: 'text-yellow-600',
+    color: 'text-yellow-600',
+  },
+  MEDICATION: {
+    icon: 'text-green-600',
+    color: 'text-green-600',
+  },
+  DAILY_RECORD: {
+    icon: 'text-purple-600',
+    color: 'text-purple-600',
+  },
+  SYSTEM: {
+    icon: 'text-gray-600',
+    color: 'text-gray-600',
+  },
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -342,6 +422,42 @@ export function getAcceptanceColor(percentage: number): { bg: string; text: stri
   return { bg: 'bg-danger/10', text: 'text-danger' }
 }
 
+/**
+ * Retorna configuração completa de cores para uma severidade de notificação
+ *
+ * @param severity - Nível de severidade da notificação
+ * @returns Objeto com bg, icon, badge e border
+ *
+ * @example
+ * ```tsx
+ * const colors = getNotificationSeverityColors('CRITICAL')
+ * <div className={colors.bg}>
+ *   <Bell className={colors.icon} />
+ *   <Badge className={colors.badge}>Crítico</Badge>
+ * </div>
+ * ```
+ */
+export function getNotificationSeverityColors(severity: NotificationSeverity) {
+  return NOTIFICATION_SEVERITY_COLORS[severity] || NOTIFICATION_SEVERITY_COLORS.INFO
+}
+
+/**
+ * Retorna configuração de cores para uma categoria de notificação
+ *
+ * @param category - Categoria da notificação
+ * @returns Objeto com icon e color
+ *
+ * @example
+ * ```tsx
+ * const config = getNotificationCategoryConfig('PRESCRIPTION')
+ * <FileText className={config.icon} />
+ * <span className={config.color}>Prescrição</span>
+ * ```
+ */
+export function getNotificationCategoryConfig(category: NotificationCategory) {
+  return NOTIFICATION_CATEGORY_COLORS[category] || NOTIFICATION_CATEGORY_COLORS.SYSTEM
+}
+
 // ========== EXPORTS ==========
 
 /**
@@ -356,6 +472,8 @@ export default {
   SEVERITY_COLORS,
   MEDICATION_COLORS,
   CONTROLLED_CLASS_COLORS,
+  NOTIFICATION_SEVERITY_COLORS,
+  NOTIFICATION_CATEGORY_COLORS,
 
   // Helpers
   getBedStatusColor,
@@ -368,4 +486,6 @@ export default {
   getControlledClassColor,
   getOccupancyColor,
   getAcceptanceColor,
+  getNotificationSeverityColors,
+  getNotificationCategoryConfig,
 }

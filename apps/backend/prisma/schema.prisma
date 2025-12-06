@@ -414,6 +414,7 @@ model Tenant {
   profile                   TenantProfile?
   documents                 TenantDocument[]
   residentDocuments         ResidentDocument[]
+  notifications             Notification[]
 
   @@map("tenants")
 }
@@ -474,6 +475,7 @@ model User {
   allergiesRecorded          Allergy[]
   conditionsRecorded         Condition[]
   dietaryRestrictionsRecorded DietaryRestriction[]
+  notifications              Notification[]
 
   @@unique([tenantId, email])
   @@map("users")
@@ -1595,4 +1597,104 @@ model TenantDocument {
   @@index([status])
   @@index([deletedAt])
   @@map("tenant_documents")
+}
+
+// ============================================
+// NOTIFICATIONS SYSTEM
+// ============================================
+
+enum SystemNotificationType {
+  // Prescrições
+  PRESCRIPTION_EXPIRED
+  PRESCRIPTION_EXPIRING
+  PRESCRIPTION_MISSING_RECEIPT
+  PRESCRIPTION_CONTROLLED_NO_RECEIPT
+
+  // Sinais Vitais
+  VITAL_SIGN_ABNORMAL_BP
+  VITAL_SIGN_ABNORMAL_GLUCOSE
+  VITAL_SIGN_ABNORMAL_TEMPERATURE
+  VITAL_SIGN_ABNORMAL_HEART_RATE
+  VITAL_SIGN_ABNORMAL_RESPIRATORY_RATE
+
+  // Documentos
+  DOCUMENT_EXPIRED
+  DOCUMENT_EXPIRING
+
+  // Registro Diário
+  DAILY_RECORD_MISSING
+
+  // Medicação
+  MEDICATION_ADMINISTRATION_MISSED
+  MEDICATION_ADMINISTRATION_LATE
+
+  // Sistema
+  SYSTEM_UPDATE
+  SYSTEM_MAINTENANCE
+  USER_MENTION
+}
+
+enum NotificationCategory {
+  PRESCRIPTION
+  VITAL_SIGN
+  DOCUMENT
+  DAILY_RECORD
+  MEDICATION
+  SYSTEM
+}
+
+enum NotificationSeverity {
+  CRITICAL  // Requer ação imediata (vermelho)
+  WARNING   // Requer atenção (amarelo/laranja)
+  INFO      // Informativo (azul)
+  SUCCESS   // Sucesso (verde)
+}
+
+model Notification {
+  id          String                    @id @default(uuid()) @db.Uuid
+  tenantId    String                    @db.Uuid
+  userId      String?                   @db.Uuid // null = broadcast para todos do tenant
+
+  // Tipo e Categoria
+  type        SystemNotificationType
+  category    NotificationCategory
+  severity    NotificationSeverity
+
+  // Conteúdo
+  title       String               @db.VarChar(255)
+  message     String               @db.Text
+  actionUrl   String?              @db.Text // URL para navegação ao clicar
+
+  // Referência à entidade relacionada
+  entityType  String?              @db.VarChar(50) // Ex: "PRESCRIPTION", "VITAL_SIGN"
+  entityId    String?              @db.Uuid
+
+  // Metadata flexível para informações adicionais
+  metadata    Json?                @db.JsonB
+
+  // Status de leitura
+  read        Boolean              @default(false)
+  readAt      DateTime?            @db.Timestamptz(3)
+
+  // Expiração automática
+  expiresAt   DateTime?            @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt   DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([tenantId, userId, read, createdAt(sort: Desc)])
+  @@index([tenantId, category, read, createdAt(sort: Desc)])
+  @@index([tenantId, severity, read, createdAt(sort: Desc)])
+  @@index([type])
+  @@index([category])
+  @@index([severity])
+  @@index([expiresAt])
+  @@index([read])
+  @@map("notifications")
 }

@@ -13,7 +13,7 @@ export const api = axios.create({
   },
 })
 
-// Request interceptor - adiciona token JWT
+// Request interceptor - adiciona token JWT e headers anti-cache
 api.interceptors.request.use(
   (config) => {
     const accessToken = useAuthStore.getState().accessToken
@@ -21,6 +21,11 @@ api.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
     }
+
+    // Headers anti-cache para evitar HTTP 304
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    config.headers['Pragma'] = 'no-cache'
+    config.headers['Expires'] = '0'
 
     return config
   },

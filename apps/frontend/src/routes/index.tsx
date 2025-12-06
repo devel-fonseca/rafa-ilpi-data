@@ -43,6 +43,9 @@ import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalPro
 import MyProfile from '@/pages/profile/MyProfile'
 import UsersList from '@/pages/users/UsersList'
 
+// Notifications Pages
+import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
 
@@ -162,6 +165,10 @@ export const router = createBrowserRouter([
             <UsersList />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: 'notificacoes',
+        element: <NotificationsPage />,
       },
       {
         path: 'settings',

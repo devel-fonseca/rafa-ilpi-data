@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Bell } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,13 +28,13 @@ import { toast } from 'sonner'
 import { CookieConsent } from '@/components/common/CookieConsent'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { PositionCode, POSITION_CODE_LABELS } from '@/types/permissions'
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown'
 
 export function DashboardLayout() {
   useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
-  const [notificationCount, setNotificationCount] = useState(6) // TODO: conectar com API real
   const { user, logout } = useAuthStore()
   const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
@@ -153,34 +153,8 @@ export function DashboardLayout() {
 
             {/* Desktop: Notifications + Theme + User Avatar + Dropdown */}
             <div className="hidden md:flex items-center gap-2">
-              {/* Botão de Notificações */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative"
-                      onClick={() => {
-                        toast.info('Funcionalidade de notificações em desenvolvimento')
-                      }}
-                    >
-                      <Bell className="h-5 w-5" />
-                      {notificationCount > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                        >
-                          {notificationCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Notificações</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* Dropdown de Notificações */}
+              <NotificationsDropdown />
 
               {/* Botão de Toggle Tema */}
               <TooltipProvider>
@@ -253,25 +227,8 @@ export function DashboardLayout() {
 
             {/* Mobile: Notifications + Theme + Avatar + Dropdown */}
             <div className="md:hidden flex items-center gap-1">
-              {/* Botão de Notificações Mobile */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-9 w-9"
-                onClick={() => {
-                  toast.info('Funcionalidade de notificações em desenvolvimento')
-                }}
-              >
-                <Bell className="h-4 w-4" />
-                {notificationCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                  >
-                    {notificationCount}
-                  </Badge>
-                )}
-              </Button>
+              {/* Dropdown de Notificações Mobile */}
+              <NotificationsDropdown />
 
               {/* Botão de Toggle Tema Mobile */}
               <Button

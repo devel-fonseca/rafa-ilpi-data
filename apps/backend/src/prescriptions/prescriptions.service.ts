@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { QueryPrescriptionDto } from './dto/query-prescription.dto';
@@ -28,6 +29,7 @@ export class PrescriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly filesService: FilesService,
+    private readonly notificationsService: NotificationsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 

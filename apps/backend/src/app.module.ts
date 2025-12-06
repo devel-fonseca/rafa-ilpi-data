@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { WinstonModule } from 'nest-winston';
 import { PrismaModule } from './prisma/prisma.module';
@@ -32,6 +33,7 @@ import { ClinicalProfilesModule } from './clinical-profiles/clinical-profiles.mo
 import { AllergiesModule } from './allergies/allergies.module';
 import { ConditionsModule } from './conditions/conditions.module';
 import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restrictions.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +45,9 @@ import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restri
 
     // Winston Logger (logs estruturados)
     WinstonModule.forRoot(winstonConfig),
+
+    // Schedule Module (cron jobs)
+    ScheduleModule.forRoot(),
 
     // Redis + BullMQ (filas de processamento)
     BullModule.forRootAsync({
@@ -84,6 +89,7 @@ import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restri
     AllergiesModule,
     ConditionsModule,
     DietaryRestrictionsModule,
+    NotificationsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
