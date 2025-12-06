@@ -706,74 +706,6 @@ export default function ResidentProfile() {
 
           {/* Seção: Informações Detalhadas */}
           <div className="space-y-4">
-            {/* Card: Responsável Legal */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Responsável Legal</CardTitle>
-                  {getSectionCompletionBadge(getCompletionPercentage([
-                    resident.legalGuardianName,
-                    resident.legalGuardianCpf,
-                    resident.legalGuardianPhone,
-                  ]))}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Nome</div>
-                    <div className="font-medium">
-                      {resident.legalGuardianName || 'Não informado'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">CPF</div>
-                    <div className="font-medium">
-                      {resident.legalGuardianCpf || 'Não informado'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">RG</div>
-                    <div className="font-medium">{resident.legalGuardianRg || 'Não informado'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Tipo de Responsabilidade</div>
-                    <div className="font-medium">
-                      {resident.legalGuardianType || 'Não informado'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">Telefone</div>
-                    <div className="font-medium">
-                      {resident.legalGuardianPhone || 'Não informado'}
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="text-sm text-muted-foreground">Endereço</div>
-                    <div className="font-medium">
-                      {resident.legalGuardianStreet
-                        ? `${resident.legalGuardianStreet}${
-                            resident.legalGuardianNumber ? `, ${resident.legalGuardianNumber}` : ''
-                          }${
-                            resident.legalGuardianComplement
-                              ? `, ${resident.legalGuardianComplement}`
-                              : ''
-                          }${
-                            resident.legalGuardianDistrict
-                              ? `, ${resident.legalGuardianDistrict}`
-                              : ''
-                          }${resident.legalGuardianCity ? `, ${resident.legalGuardianCity}` : ''}${
-                            resident.legalGuardianState ? `/${resident.legalGuardianState}` : ''
-                          }${
-                            resident.legalGuardianCep ? ` - CEP: ${resident.legalGuardianCep}` : ''
-                          }`
-                        : 'Não informado'}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Card: Admissão */}
             <Card>
               <CardHeader>
@@ -952,43 +884,6 @@ export default function ResidentProfile() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Card: Convênios e Planos de Saúde */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Convênios e Planos de Saúde</CardTitle>
-                  {resident.healthPlans && resident.healthPlans.length > 0
-                    ? <Badge variant="success">Preenchido</Badge>
-                    : <Badge variant="warning">Não preenchido</Badge>
-                  }
-                </div>
-              </CardHeader>
-              <CardContent>
-                {resident.healthPlans && resident.healthPlans.length > 0 ? (
-                  <div className="space-y-4">
-                    {resident.healthPlans.map((plan, index) => (
-                      <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Nome do Plano</div>
-                            <div className="font-medium">{plan.name}</div>
-                          </div>
-                          <div>
-                            <div className="text-sm text-muted-foreground">Número da Carteirinha</div>
-                            <div className="font-medium">{plan.cardNumber}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground py-4">
-                    Nenhum convênio cadastrado
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
