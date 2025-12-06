@@ -72,7 +72,24 @@ ALTER TABLE "residents" RENAME COLUMN "birth_date_tz" TO "birthDate";
 
 ---
 
-### FASE 4: Atualizar Schema Prisma ✅
+### FASE 4: Deletar Colunas Antigas ✅
+**Arquivo:** `drop_old_date_columns.sql`
+
+```sql
+-- RESIDENTS (3 columns)
+ALTER TABLE "residents" DROP COLUMN IF EXISTS "birthDate_old";
+ALTER TABLE "residents" DROP COLUMN IF EXISTS "admissionDate_old";
+ALTER TABLE "residents" DROP COLUMN IF EXISTS "dischargeDate_old";
+-- ... (17 colunas adicionais)
+```
+
+**Problema Resolvido:** Colunas `*_old` com constraint NOT NULL estavam bloqueando criação de novos registros
+
+**Resultado:** 20 colunas deletadas, banco limpo e funcional
+
+---
+
+### FASE 5: Atualizar Schema Prisma ✅
 **Comando:** `sed -i 's/@db\.Date/@db.Timestamptz(3)/g' schema.prisma`
 
 **Antes:**
@@ -89,7 +106,7 @@ birthDate DateTime @db.Timestamptz(3)
 
 ---
 
-### FASE 5: Atualizar Frontend ✅
+### FASE 6: Atualizar Frontend ✅
 
 #### Helpers de Conversão (formMappers.ts)
 ```typescript
@@ -229,19 +246,13 @@ const date = new Date(timestamptz) // PostgreSQL gerencia timezone
 
 ## 🔐 Segurança e Rollback
 
-### Colunas Antigas Preservadas
-- ✅ `birthDate_old` mantida para comparação
-- ✅ `admission_date_tz` → `admissionDate` (nova oficial)
-- ✅ Possível rollback em caso de emergência
+### ⚠️ Colunas `*_old` Deletadas (FASE 4)
 
-### Comando de Rollback (se necessário)
-```sql
--- Reverter para colunas antigas
-ALTER TABLE "residents" RENAME COLUMN "birthDate" TO "birthDate_new";
-ALTER TABLE "residents" RENAME COLUMN "birthDate_old" TO "birthDate";
-```
+- ❌ Colunas `*_old` foram **deletadas permanentemente** após validação
+- ✅ Validação completa realizada antes da deleção
+- ✅ Rollback não é mais possível (migração consolidada)
 
-**Recomendação:** Manter colunas `*_old` por 30 dias antes de deletar
+**Motivo da deleção:** Colunas `*_old` com constraint NOT NULL bloqueavam criação de novos registros
 
 ---
 
@@ -283,6 +294,7 @@ ALTER TABLE "residents" RENAME COLUMN "birthDate_old" TO "birthDate";
 - ✅ `migrations/20251206185841_add_timestamptz_columns/migration.sql`
 - ✅ `migrations/populate_timestamptz_data.sql`
 - ✅ `migrations/rename_date_columns.sql`
+- ✅ `migrations/drop_old_date_columns.sql` - **FIX:** Deletar colunas `*_old` que bloqueavam criação
 
 ### Frontend
 - ✅ `formMappers.ts` - Novos helpers `timestamptzToDisplay`, `displayToDate`
@@ -307,12 +319,6 @@ ALTER TABLE "residents" RENAME COLUMN "birthDate_old" TO "birthDate";
    CREATE INDEX idx_prescriptions_expiring
    ON prescriptions(validUntil)
    WHERE deletedAt IS NULL;
-   ```
-
-3. **Deletar colunas `*_old`** após 30 dias:
-   ```sql
-   ALTER TABLE residents DROP COLUMN birthDate_old;
-   -- Repetir para todas as tabelas
    ```
 
 ---
