@@ -260,7 +260,11 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
 
         <p>{resident.healthStatus ? `Situação de Saúde: ${resident.healthStatus}` : ''}</p>
         <p>{resident.medicationsOnAdmission ? `Medicamentos em uso: ${resident.medicationsOnAdmission}` : ''}</p>
-        <p>{resident.allergies ? `Alergias: ${resident.allergies}` : ''}</p>
+        {resident.allergies && Array.isArray(resident.allergies) && resident.allergies.length > 0 && (
+          <p>
+            Alergias: {resident.allergies.map((a: any) => a.substance).join(', ')}
+          </p>
+        )}
         <p>{resident.chronicConditions ? `Condições crônicas: ${resident.chronicConditions}` : ''}</p>
 
         {resident.medicalReport?.length ? (

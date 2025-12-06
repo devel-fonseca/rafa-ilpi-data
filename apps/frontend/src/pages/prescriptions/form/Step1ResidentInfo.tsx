@@ -14,6 +14,14 @@ import { ptBR } from 'date-fns/locale'
 import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
 
+interface Allergy {
+  id: string
+  substance: string
+  reaction?: string
+  severity?: string
+  notes?: string
+}
+
 interface Resident {
   id: string
   fullName: string
@@ -21,7 +29,7 @@ interface Resident {
   fotoUrl?: string
   roomId?: string
   bedId?: string
-  allergies?: string
+  allergies?: Allergy[]
   chronicConditions?: string
   cns?: string
   cpf?: string
@@ -289,7 +297,7 @@ export function Step1ResidentInfo() {
               </div>
 
               {/* Alergias */}
-              {resident.allergies && (
+              {resident.allergies && resident.allergies.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="h-4 w-4 text-red-600" />
@@ -298,7 +306,13 @@ export function Step1ResidentInfo() {
                     </span>
                   </div>
                   <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                    <p className="text-sm text-red-900">{resident.allergies}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {resident.allergies.map((allergy) => (
+                        <Badge key={allergy.id} variant="destructive" className="text-xs">
+                          {allergy.substance}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
