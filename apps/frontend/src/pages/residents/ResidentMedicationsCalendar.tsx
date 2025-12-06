@@ -112,23 +112,34 @@ export default function ResidentMedicationsCalendar() {
                   <div
                     key={admin.id}
                     className={`border-l-4 pl-4 py-3 rounded-r-md ${
-                      admin.wasAdministered
+                      admin.type === 'SOS'
+                        ? 'bg-orange-50 border-orange-500'
+                        : admin.wasAdministered
                         ? 'bg-green-50 border-green-500'
                         : 'bg-red-50 border-red-500'
                     }`}
                   >
                     {/* Linha 1: Horário e Status */}
                     <div className="flex items-center justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-semibold text-base min-w-[50px]">
-                          {admin.scheduledTime}
+                          {admin.scheduledTime || admin.actualTime || 'SOS'}
                         </span>
-                        <Badge
-                          variant={admin.wasAdministered ? 'default' : 'destructive'}
-                          className="text-xs"
-                        >
-                          {admin.wasAdministered ? 'Administrado' : 'Não Administrado'}
-                        </Badge>
+                        {admin.type === 'SOS' ? (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-orange-50 text-orange-700 border-orange-300"
+                          >
+                            SOS
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={admin.wasAdministered ? 'default' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {admin.wasAdministered ? 'Administrado' : 'Não Administrado'}
+                          </Badge>
+                        )}
                       </div>
                       <Eye className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -156,6 +167,22 @@ export default function ResidentMedicationsCalendar() {
                       </div>
                     )}
 
+                    {/* Indicação (apenas SOS) */}
+                    {admin.type === 'SOS' && admin.indication && (
+                      <div className="mt-2 p-2 bg-orange-100 border border-orange-200 rounded text-xs">
+                        <span className="font-medium text-orange-900">Indicação:</span>
+                        <p className="text-orange-800 mt-1">
+                          {admin.indication === 'DOR' && 'Dor'}
+                          {admin.indication === 'FEBRE' && 'Febre'}
+                          {admin.indication === 'ANSIEDADE' && 'Ansiedade'}
+                          {admin.indication === 'AGITACAO' && 'Agitação'}
+                          {admin.indication === 'NAUSEA' && 'Náusea/Vômito'}
+                          {admin.indication === 'INSONIA' && 'Insônia'}
+                          {admin.indication === 'OUTRO' && 'Outro'}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Linha 4: Informações de administração */}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>Registrado por {admin.administeredBy}</span>
@@ -164,7 +191,7 @@ export default function ResidentMedicationsCalendar() {
                     </div>
 
                     {/* Horário real (se diferente do programado) */}
-                    {admin.actualTime && admin.actualTime !== admin.scheduledTime && (
+                    {admin.actualTime && admin.actualTime !== admin.scheduledTime && admin.type !== 'SOS' && (
                       <div className="mt-2 text-xs text-muted-foreground">
                         <span className="font-medium">Horário real:</span> {admin.actualTime}
                       </div>

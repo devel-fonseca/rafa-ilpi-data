@@ -1121,8 +1121,8 @@ export class PrescriptionsService {
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0); // Último dia do mês
 
-    // Buscar administrações do residente no período
-    const administrations = await this.prisma.medicationAdministration.findMany({
+    // Buscar administrações contínuas do residente no período
+    const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
       where: {
         tenantId,
         residentId,
@@ -1140,21 +1140,53 @@ export class PrescriptionsService {
       },
     });
 
-    // Converter para array de strings YYYY-MM-DD
-    return administrations.map((admin) => {
-      // admin.date é um Date object do Prisma
-      // Converter para YYYY-MM-DD (date-only)
+    // Buscar administrações SOS do residente no período
+    const sosAdministrations = await this.prisma.sOSAdministration.findMany({
+      where: {
+        tenantId,
+        residentId,
+        date: {
+          gte: firstDay,
+          lte: lastDay,
+        },
+      },
+      select: {
+        date: true,
+      },
+      distinct: ['date'],
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Combinar e deduplicar datas
+    const allDates = new Set<string>();
+
+    // Adicionar datas contínuas
+    continuousAdministrations.forEach((admin) => {
       const date = new Date(admin.date);
       const yearStr = date.getFullYear();
       const monthStr = String(date.getMonth() + 1).padStart(2, '0');
       const dayStr = String(date.getDate()).padStart(2, '0');
-      return `${yearStr}-${monthStr}-${dayStr}`;
+      allDates.add(`${yearStr}-${monthStr}-${dayStr}`);
     });
+
+    // Adicionar datas SOS
+    sosAdministrations.forEach((admin) => {
+      const date = new Date(admin.date);
+      const yearStr = date.getFullYear();
+      const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(date.getDate()).padStart(2, '0');
+      allDates.add(`${yearStr}-${monthStr}-${dayStr}`);
+    });
+
+    // Converter Set para Array e ordenar
+    return Array.from(allDates).sort();
   }
 
   /**
    * Buscar administrações de um residente em uma data específica
-   * Retorna lista completa com informações do medicamento
+   * Retorna lista completa com informações do medicamento (contínuas E SOS)
    */
   async getMedicationAdministrationsByDate(
     residentId: string,
@@ -1178,8 +1210,8 @@ export class PrescriptionsService {
       parseInt(dayStr),
     );
 
-    // Buscar administrações da data
-    const administrations = await this.prisma.medicationAdministration.findMany({
+    // Buscar administrações contínuas da data
+    const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
       where: {
         tenantId,
         residentId,
@@ -1205,7 +1237,86 @@ export class PrescriptionsService {
       ],
     });
 
-    return administrations;
+    // Buscar administrações SOS da data
+    const sosAdministrations = await this.prisma.sOSAdministration.findMany({
+      where: {
+        tenantId,
+        residentId,
+        date: targetDate,
+      },
+      include: {
+        sosMedication: {
+          select: {
+            name: true,
+            presentation: true,
+            concentration: true,
+            dose: true,
+            route: true,
+            indication: true,
+          },
+        },
+      },
+      orderBy: [
+        { administeredAt: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    // Mapear administrações contínuas para formato unificado
+    const continuousMapped = continuousAdministrations.map((admin) => ({
+      ...admin,
+      type: 'CONTINUOUS' as const,
+      // Renomear medication para manter compatibilidade
+      medication: admin.medication,
+    }));
+
+    // Mapear administrações SOS para formato unificado
+    const sosMapped = sosAdministrations.map((admin) => ({
+      id: admin.id,
+      tenantId: admin.tenantId,
+      residentId: admin.residentId,
+      date: admin.date,
+      scheduledTime: null, // SOS não tem horário programado
+      actualTime: admin.administeredAt ? new Date(admin.administeredAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+      wasAdministered: true, // SOS sempre foi administrado (senão não existiria registro)
+      administeredBy: admin.administeredByName,
+      reason: null,
+      notes: admin.notes,
+      checkedBy: null,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt,
+      type: 'SOS' as const,
+      // Mapear sosMedication para medication para manter compatibilidade com frontend
+      medication: admin.sosMedication ? {
+        name: admin.sosMedication.name,
+        presentation: admin.sosMedication.presentation,
+        concentration: admin.sosMedication.concentration,
+        dose: admin.sosMedication.dose,
+        route: admin.sosMedication.route,
+        isControlled: false,
+        isHighRisk: false,
+        requiresDoubleCheck: false,
+      } : null,
+      // Informações adicionais do SOS
+      indication: admin.sosMedication?.indication,
+    }));
+
+    // Combinar e ordenar por horário
+    const allAdministrations = [...continuousMapped, ...sosMapped].sort((a, b) => {
+      // SOS sem horário programado vai para o final
+      if (!a.scheduledTime && b.scheduledTime) return 1;
+      if (a.scheduledTime && !b.scheduledTime) return -1;
+      if (!a.scheduledTime && !b.scheduledTime) {
+        // Ambos SOS: ordenar por horário de administração
+        const timeA = a.actualTime || '';
+        const timeB = b.actualTime || '';
+        return timeA.localeCompare(timeB);
+      }
+      // Ambos têm scheduledTime: ordenar normalmente
+      return (a.scheduledTime || '').localeCompare(b.scheduledTime || '');
+    });
+
+    return allAdministrations;
   }
 
   // ========== VALIDAÇÕES PRIVADAS ==========
