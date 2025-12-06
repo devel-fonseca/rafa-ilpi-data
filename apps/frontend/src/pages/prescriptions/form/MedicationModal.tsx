@@ -105,7 +105,20 @@ export function MedicationModal({
   // Reset form quando modal abre/fecha
   useEffect(() => {
     if (open && initialData) {
-      reset(initialData)
+      // Converter datas ISO para formato local YYYY-MM-DD
+      const convertDateToLocal = (isoDate: string | undefined): string => {
+        if (!isoDate) return getCurrentDateLocal()
+        // Se já está no formato YYYY-MM-DD, retorna direto
+        if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate
+        // Se é ISO completo (com hora), extrai apenas a parte da data
+        return isoDate.split('T')[0]
+      }
+
+      reset({
+        ...initialData,
+        startDate: convertDateToLocal(initialData.startDate),
+        endDate: initialData.endDate ? convertDateToLocal(initialData.endDate) : undefined,
+      })
     } else if (open && !initialData) {
       reset({
         name: '',
