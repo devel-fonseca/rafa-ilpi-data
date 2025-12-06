@@ -43,6 +43,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   Search,
   Plus,
   Eye,
@@ -417,6 +423,17 @@ export default function PrescriptionsList() {
                                   })),
                               ]
 
+                              const remainingMeds = [
+                                ...continuousMeds.slice(2).map((med: any) => ({
+                                  name: med.name,
+                                  type: 'contínuo',
+                                })),
+                                ...sosMeds.slice(Math.max(0, 2 - continuousMeds.length)).map((med: any) => ({
+                                  name: med.name,
+                                  type: 'SOS',
+                                })),
+                              ]
+
                               return (
                                 <div className="space-y-1">
                                   {displayMeds.map((med) => (
@@ -433,9 +450,35 @@ export default function PrescriptionsList() {
                                     </div>
                                   ))}
                                   {totalMeds > 2 && (
-                                    <div className="text-gray-500 italic text-xs">
-                                      +{totalMeds - 2} mais
-                                    </div>
+                                    <TooltipProvider delayDuration={200}>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="inline-block">
+                                            <span className="text-gray-500 italic text-xs cursor-help underline decoration-dotted">
+                                              +{totalMeds - 2} mais
+                                            </span>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="max-w-xs">
+                                          <div className="space-y-1">
+                                            <p className="font-semibold text-xs mb-2">Outros medicamentos:</p>
+                                            {remainingMeds.map((med, idx) => (
+                                              <div key={idx} className="flex items-center gap-2 text-xs">
+                                                <span>• {med.name}</span>
+                                                {med.type === 'SOS' && (
+                                                  <Badge
+                                                    variant="outline"
+                                                    className="text-[10px] px-1 py-0 bg-orange-50 text-orange-700 border-orange-300"
+                                                  >
+                                                    SOS
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
                                 </div>
                               )
