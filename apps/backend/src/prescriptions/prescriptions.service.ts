@@ -86,9 +86,11 @@ export class PrescriptionsService {
       // 2. Validar campos obrigatórios por tipo de prescrição
       this.validatePrescriptionByType(createPrescriptionDto);
 
-      // 3. Validar horários dos medicamentos
-      for (const medication of createPrescriptionDto.medications) {
-        this.validateScheduledTimes(medication.scheduledTimes);
+      // 3. Validar horários dos medicamentos contínuos (se houver)
+      if (createPrescriptionDto.medications && createPrescriptionDto.medications.length > 0) {
+        for (const medication of createPrescriptionDto.medications) {
+          this.validateScheduledTimes(medication.scheduledTimes);
+        }
       }
 
       // 4. Criar prescrição com medicamentos e SOS em transação
@@ -1089,10 +1091,13 @@ export class PrescriptionsService {
       }
     }
 
-    // Pelo menos 1 medicamento contínuo obrigatório
-    if (!dto.medications || dto.medications.length === 0) {
+    // Pelo menos 1 medicamento (contínuo OU SOS) obrigatório
+    const hasMedications = dto.medications && dto.medications.length > 0;
+    const hasSOSMedications = dto.sosMedications && dto.sosMedications.length > 0;
+
+    if (!hasMedications && !hasSOSMedications) {
       throw new BadRequestException(
-        'Pelo menos um medicamento contínuo é obrigatório',
+        'Pelo menos um medicamento (contínuo ou SOS) é obrigatório',
       );
     }
   }
