@@ -20,8 +20,8 @@ import { FileUpload } from '@/components/form/FileUpload'
 import { validarCPF, getMensagemValidacaoCPF, getMensagemValidacaoCNS } from '@/utils/validators'
 import { buscarCEP } from '@/services/viacep'
 import {
-  convertISOToDisplayDate,
-  convertToISODate,
+  timestamptzToDisplay,
+  displayToDate,
   mapEstadoCivilFromBackend,
   mapEstadoCivilToBackend,
   mapTipoSanguineoFromBackend,
@@ -332,7 +332,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (resident.gender) setValue('genero', resident.gender)
         if (resident.civilStatus) setValue('estadoCivil', mapEstadoCivilFromBackend(resident.civilStatus))
         if (resident.religion) setValue('religiao', resident.religion)
-        if (resident.birthDate) setValue('dataNascimento', convertISOToDisplayDate(resident.birthDate))
+        if (resident.birthDate) setValue('dataNascimento', timestamptzToDisplay(resident.birthDate))
         if (resident.nationality) setValue('nacionalidade', resident.nationality)
         if (resident.birthCity) setValue('naturalidade', resident.birthCity)
         if (resident.birthState) setValue('ufNascimento', resident.birthState)
@@ -415,11 +415,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         }
 
         // ===== ADMISSÃO/DESLIGAMENTO =====
-        if (resident.admissionDate) setValue('dataAdmissao', convertISOToDisplayDate(resident.admissionDate))
+        if (resident.admissionDate) setValue('dataAdmissao', timestamptzToDisplay(resident.admissionDate))
         if (resident.admissionType) setValue('tipoAdmissao', resident.admissionType)
         if (resident.admissionReason) setValue('motivoAdmissao', resident.admissionReason)
         if (resident.admissionConditions) setValue('condicoesAdmissao', resident.admissionConditions)
-        if (resident.dischargeDate) setValue('dataDesligamento', convertISOToDisplayDate(resident.dischargeDate))
+        if (resident.dischargeDate) setValue('dataDesligamento', timestamptzToDisplay(resident.dischargeDate))
         if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
 
         // ===== ACOMODAÇÃO =====
@@ -641,7 +641,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         gender: data.genero || 'NAO_INFORMADO',
         civilStatus: mapEstadoCivilToBackend(data.estadoCivil),
         religion: data.religiao || null,
-        birthDate: convertToISODate(data.dataNascimento),
+        birthDate: displayToDate(data.dataNascimento),
         nationality: data.nacionalidade || 'Brasileira',
         birthCity: data.naturalidade || null,
         birthState: data.ufNascimento || null,
@@ -694,11 +694,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         legalGuardianDistrict: data.responsavelLegalBairro || null,
 
         // 5. Admissão - NOMES EM INGLÊS
-        admissionDate: convertToISODate(data.dataAdmissao),
+        admissionDate: displayToDate(data.dataAdmissao),
         admissionType: data.tipoAdmissao && data.tipoAdmissao.trim() ? data.tipoAdmissao : undefined,
         admissionReason: data.motivoAdmissao || null,
         admissionConditions: data.condicoesAdmissao || null,
-        dischargeDate: convertToISODate(data.dataDesligamento) || null,
+        dischargeDate: displayToDate(data.dataDesligamento) || null,
         dischargeReason: data.motivoDesligamento || null,
 
         // 6. Saúde - Apenas dados físicos/cadastrais (dados clínicos evolutivos gerenciados na aba Perfil Clínico)

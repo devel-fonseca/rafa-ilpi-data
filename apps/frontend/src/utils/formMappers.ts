@@ -3,68 +3,34 @@
  * Centraliza toda a lógica de transformação de dados para evitar duplicação
  */
 
-import { localToUtc, utcToLocal } from './timezone'
+import { format } from 'date-fns'
 
-// ========== CONVERSÃO DE DATAS ==========
+// ========== CONVERSÃO DE DATAS (Pós-migração TIMESTAMPTZ) ==========
 
 /**
- * Converte data ISO UTC (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss.sssZ) para formato brasileiro DD/MM/YYYY
- * Usado para preencher campos de input quando carrega dados do backend
- *
- * IMPORTANTE: Para datas sem hora (YYYY-MM-DD), NÃO faz conversão de timezone
- * Para datas com hora completa, converte de UTC para timezone local
+ * Converte TIMESTAMPTZ do backend para formato brasileiro DD/MM/YYYY
+ * Usado para preencher inputs no modo de edição
  */
-export const convertISOToDisplayDate = (isoDate: string | null | undefined): string => {
-  if (!isoDate) return ''
+export const timestamptzToDisplay = (timestamp: string | Date | null | undefined): string => {
+  if (!timestamp) return ''
   try {
-    // Se a data está no formato YYYY-MM-DD (apenas data, sem hora)
-    // NÃO fazemos conversão de timezone para evitar mudança de dia
-    if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
-      const [year, month, day] = isoDate.split('-')
-      return `${day}/${month}/${year}`
-    }
-
-    // Se tem hora completa, converter UTC para timezone local
-    const localDate = utcToLocal(isoDate)
-    const day = String(localDate.getDate()).padStart(2, '0')
-    const month = String(localDate.getMonth() + 1).padStart(2, '0')
-    const year = localDate.getFullYear()
-    return `${day}/${month}/${year}`
-  } catch (error) {
-    console.error('Erro ao converter data ISO para display:', isoDate, error)
+    const date = new Date(timestamp)
+    return format(date, 'dd/MM/yyyy')
+  } catch {
     return ''
   }
 }
 
 /**
- * Converte DD/MM/YYYY (timezone local) para YYYY-MM-DDTHH:mm:ss.000Z (ISO 8601 UTC)
- * Usado para enviar datas para o backend
- *
- * IMPORTANTE: Converte de timezone local (America/Sao_Paulo) para UTC antes de enviar
- * Isso garante que 20/06/2025 no Brasil seja salvo como 20/06/2025 no banco, não 19/06/2025
+ * Converte DD/MM/YYYY para Date object
+ * Backend recebe Date e salva automaticamente como TIMESTAMPTZ
  */
-export const convertToISODate = (dateStr: string | undefined): string | null => {
+export const displayToDate = (dateStr: string | undefined): Date | null => {
   if (!dateStr) return null
   const parts = dateStr.split('/')
   if (parts.length !== 3) return null
   const [day, month, year] = parts
-
-  // Criar data no timezone local (America/Sao_Paulo) às 12:00 (meio-dia)
-  // Usamos 12:00 para evitar problemas de DST (horário de verão)
-  const localDate = new Date(
-    parseInt(year),
-    parseInt(month) - 1,
-    parseInt(day),
-    12, // 12:00 para evitar edge cases de timezone
-    0,
-    0
-  )
-
-  // Converter para UTC
-  const utcDate = localToUtc(localDate)
-
-  // Retornar ISO string
-  return utcDate.toISOString()
+  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)
 }
 
 // ========== MAPEAMENTO DE ESTADO CIVIL ==========

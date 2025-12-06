@@ -509,7 +509,7 @@ model UserProfile {
   profilePhoto String?   // URL ou path da foto de perfil
   phone        String?
   department   String?   // Departamento
-  birthDate    DateTime? @db.Date
+  birthDate    DateTime? @db.Timestamptz(3)
   notes        String?   @db.Text
   preferences  Json?     @default("{}")  // Preferências do usuário (tema, sidebar, etc)
 
@@ -590,7 +590,7 @@ model Resident {
   gender      Gender
   civilStatus CivilStatus?
   religion    String?
-  birthDate   DateTime     @db.Date
+  birthDate   DateTime     @db.Timestamptz(3)
   nationality String       @default("Brasileira")
   birthCity   String?
   birthState  String? // UF (2 letras)
@@ -638,11 +638,11 @@ model Resident {
   legalGuardianDistrict   String?
 
   // 5 – Admissão
-  admissionDate       DateTime  @db.Date
+  admissionDate       DateTime  @db.Timestamptz(3)
   admissionType       String? // Voluntária | Involuntária | Judicial | outro
   admissionReason     String?
   admissionConditions String?
-  dischargeDate       DateTime? @db.Date
+  dischargeDate       DateTime? @db.Timestamptz(3)
   dischargeReason     String?
 
   // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)
@@ -882,7 +882,7 @@ model DailyRecord {
 
   // Tipo e metadados
   type RecordType
-  date DateTime   @db.Date // Data do registro (sem hora)
+  date DateTime   @db.Timestamptz(3) // Data do registro (sem hora)
   time String // Hora no formato "HH:mm" (ex: "07:00", "14:30")
 
   // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
@@ -1004,10 +1004,10 @@ model Prescription {
   doctorName       String
   doctorCrm        String
   doctorCrmState   String // UF
-  prescriptionDate DateTime @db.Date
+  prescriptionDate DateTime @db.Timestamptz(3)
   prescriptionType PrescriptionType
-  validUntil       DateTime? @db.Date // Obrigatório para ANTIBIOTICO e CONTROLADO
-  reviewDate       DateTime? @db.Date // Data estimada para revisão da prescrição
+  validUntil       DateTime? @db.Timestamptz(3) // Obrigatório para ANTIBIOTICO e CONTROLADO
+  reviewDate       DateTime? @db.Timestamptz(3) // Data estimada para revisão da prescrição
 
   // Campos específicos para CONTROLADO
   controlledClass    ControlledClass?
@@ -1062,8 +1062,8 @@ model Medication {
   scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
 
   // Período
-  startDate DateTime  @db.Date
-  endDate   DateTime? @db.Date // null = uso contínuo
+  startDate DateTime  @db.Timestamptz(3)
+  endDate   DateTime? @db.Timestamptz(3) // null = uso contínuo
 
   // Flags especiais
   isControlled        Boolean @default(false)
@@ -1111,8 +1111,8 @@ model SOSMedication {
   maxDailyDoses     Int // Limite diário (ex: 3)
 
   // Período de validade
-  startDate DateTime  @db.Date
-  endDate   DateTime? @db.Date
+  startDate DateTime  @db.Timestamptz(3)
+  endDate   DateTime? @db.Timestamptz(3)
 
   // Observações
   instructions String? @db.Text
@@ -1144,7 +1144,7 @@ model MedicationAdministration {
   residentId     String   @db.Uuid
 
   // Data/hora da administração
-  date          DateTime @db.Date
+  date          DateTime @db.Timestamptz(3)
   scheduledTime String // Horário programado (ex: "06:00")
   actualTime    String? // Horário real de administração (se diferente)
 
@@ -1191,7 +1191,7 @@ model SOSAdministration {
   residentId      String   @db.Uuid
 
   // Data/hora
-  date DateTime @db.Date
+  date DateTime @db.Timestamptz(3)
   time String // Horário da administração
 
   // Motivo
@@ -1233,7 +1233,7 @@ model Vaccination {
   // 11 Campos obrigatórios (RDC 502/2021)
   vaccine        String                    // 1) Vacina/Profilaxia (ex: "COVID-19", "Influenza")
   dose           String                    // 3) Dose (ex: "1ª dose", "2ª dose", "Reforço")
-  date           DateTime   @db.Date       // 2) Data da vacinação
+  date           DateTime   @db.Timestamptz(3)       // 2) Data da vacinação
   batch          String                    // 4) Lote do imunizante
   manufacturer   String                    // 5) Fabricante
   cnes           String                    // 6) CNES (Código Nacional do Estabelecimento de Saúde)
@@ -1524,7 +1524,7 @@ model TenantProfile {
   websiteUrl          String?
 
   // Informações complementares
-  foundedAt           DateTime?    @db.Date         // Data de fundação
+  foundedAt           DateTime?    @db.Timestamptz(3)         // Data de fundação
   mission             String?      @db.Text         // Missão institucional
   vision              String?      @db.Text         // Visão institucional
   values              String?      @db.Text         // Valores institucionais
@@ -1573,8 +1573,8 @@ model TenantDocument {
   mimeType    String?         @db.VarChar(100) // application/pdf, image/jpeg, etc.
 
   // Metadados do documento
-  issuedAt    DateTime?       @db.Date         // Data de emissão
-  expiresAt   DateTime?       @db.Date         // Data de vencimento (se aplicável)
+  issuedAt    DateTime?       @db.Timestamptz(3)         // Data de emissão
+  expiresAt   DateTime?       @db.Timestamptz(3)         // Data de vencimento (se aplicável)
   status      DocumentStatus  @default(PENDENTE) // Calculado automaticamente
 
   // Observações
