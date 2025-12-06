@@ -92,6 +92,9 @@ enum PermissionType {
   VIEW_BEDS
   MANAGE_BEDS
 
+  // Infraestrutura (Prédios, Andares, Quartos, Leitos)
+  MANAGE_INFRASTRUCTURE
+
   // Documentos
   VIEW_DOCUMENTS
   UPLOAD_DOCUMENTS
@@ -112,6 +115,10 @@ enum PermissionType {
   // Configurações Institucionais
   VIEW_INSTITUTIONAL_SETTINGS
   UPDATE_INSTITUTIONAL_SETTINGS
+
+  // Perfil Institucional
+  VIEW_INSTITUTIONAL_PROFILE
+  UPDATE_INSTITUTIONAL_PROFILE
 
   @@map("PermissionType")
 }
