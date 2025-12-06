@@ -13,6 +13,16 @@ import { UserPreferences } from '../types/user-preferences.type';
 
 export class CreateUserProfileDto {
   @ApiProperty({
+    description: 'Nome completo do usuário',
+    example: 'João da Silva',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  name?: string;
+
+  @ApiProperty({
     description: 'URL ou path da foto de perfil do usuário',
     example: 'https://example.com/photos/user123.jpg',
     required: false,

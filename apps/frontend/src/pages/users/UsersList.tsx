@@ -59,6 +59,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { PhotoViewer } from "@/components/form/PhotoViewer";
 import {
   Loader2,
   Plus,
@@ -227,6 +228,7 @@ export default function UsersList() {
       setSubmitting(true);
 
       await updateUserProfile(editUserModal.user.id, {
+        name: editFormData.name || undefined,
         positionCode: editFormData.positionCode || undefined,
         registrationType: editFormData.registrationType || undefined,
         registrationNumber: editFormData.registrationNumber || undefined,
@@ -425,6 +427,7 @@ export default function UsersList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12"></TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Cargo</TableHead>
@@ -438,6 +441,14 @@ export default function UsersList() {
                 const profile = getUserProfile(user.id);
                 return (
                   <TableRow key={user.id}>
+                    <TableCell className="w-12">
+                      <PhotoViewer
+                        photoUrl={profile?.profilePhoto}
+                        altText={user.name}
+                        size="sm"
+                        rounded={true}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex flex-col gap-1">
                         <span>{user.name}</span>
@@ -509,6 +520,7 @@ export default function UsersList() {
                           size="icon"
                           onClick={() => {
                             setEditFormData({
+                              name: user?.name || "",
                               positionCode: profile?.positionCode || "",
                               registrationType: profile?.registrationType || "",
                               registrationNumber:
@@ -855,6 +867,20 @@ export default function UsersList() {
           </DialogHeader>
 
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nome *</Label>
+              <Input
+                id="edit-name"
+                type="text"
+                value={editFormData.name || ""}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                placeholder="Nome completo do usuário"
+                required
+              />
+            </div>
+
             <PositionCodeSelector
               value={editFormData.positionCode}
               onValueChange={(value) =>

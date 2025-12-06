@@ -20,9 +20,9 @@
   --secondary: 142 70% 45%;
   --secondary-foreground: 222.2 47.4% 11.2%;
 
-  /** Acento: Roxo ajustado */
-  --accent: 258 85% 70%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  /** Acento: Hover visível para botões e interações */
+  --accent: 217.2 32.6% 25%;
+  --accent-foreground: 210 40% 98%;
 
   /* ========== FEEDBACK COLORS (ajustados) ========== */
 

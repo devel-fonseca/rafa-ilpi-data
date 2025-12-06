@@ -30,7 +30,7 @@ interface PositionCodeSelectorProps {
 export function PositionCodeSelector({
   value,
   onValueChange,
-  label = 'Cargo ILPI',
+  label = 'Cargo',
   required = false,
   disabled = false,
 }: PositionCodeSelectorProps) {

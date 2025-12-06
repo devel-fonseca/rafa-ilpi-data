@@ -198,6 +198,14 @@ export class UserProfilesService {
       );
     }
 
+    // Atualizar o nome do usuário se fornecido
+    if (updateUserProfileDto.name) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { name: updateUserProfileDto.name },
+      });
+    }
+
     // Atualizar o perfil
     const updatedProfile = await this.prisma.userProfile.update({
       where: { id: profile.id },

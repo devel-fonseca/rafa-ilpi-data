@@ -21,9 +21,9 @@
   --secondary: 142 76% 36%;
   --secondary-foreground: 210 40% 98%;
 
-  /** Acento: Roxo Multiprofissional (#7C3AED) - equipes técnicas */
-  --accent: 258 90% 66%;
-  --accent-foreground: 210 40% 98%;
+  /** Acento: Hover visível para botões e interações */
+  --accent: 210 40% 90%;
+  --accent-foreground: 222.2 84% 4.9%;
 
   /* ========== FEEDBACK COLORS ========== */
 

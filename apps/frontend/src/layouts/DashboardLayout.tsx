@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,11 +27,14 @@ import { usePreferences } from '@/contexts/PreferencesContext'
 import { toast } from 'sonner'
 import { CookieConsent } from '@/components/common/CookieConsent'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { PositionCode, POSITION_CODE_LABELS } from '@/types/permissions'
 
 export function DashboardLayout() {
   useScrollToTop()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
+  const [notificationCount, setNotificationCount] = useState(6) // TODO: conectar com API real
   const { user, logout } = useAuthStore()
   const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
@@ -43,11 +47,13 @@ export function DashboardLayout() {
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
 
-  // Carregar foto do perfil do usuário
+  // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
-    const loadUserAvatar = async () => {
+    const loadUserProfile = async () => {
       try {
         const profile = await getMyProfile()
+
+        // Carregar foto de perfil
         if (profile.profilePhoto) {
           // Se é URL completa, usa direto
           if (profile.profilePhoto.startsWith('http')) {
@@ -58,12 +64,17 @@ export function DashboardLayout() {
             setAvatarUrl(signedUrl)
           }
         }
+
+        // Carregar cargo
+        if (profile.positionCode) {
+          setUserPosition(profile.positionCode as PositionCode)
+        }
       } catch (error) {
-        console.error('Erro ao carregar avatar:', error)
+        console.error('Erro ao carregar perfil:', error)
       }
     }
 
-    loadUserAvatar()
+    loadUserProfile()
   }, [])
 
   const handleLogout = async () => {
@@ -104,6 +115,11 @@ export function DashboardLayout() {
     return names[0][0].toUpperCase()
   }
 
+  const getPositionLabel = () => {
+    if (!userPosition) return 'Usuário'
+    return POSITION_CODE_LABELS[userPosition] || 'Usuário'
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -135,23 +151,78 @@ export function DashboardLayout() {
               </div>
             </div>
 
-            {/* Desktop: User Avatar + Dropdown */}
-            <div className="hidden md:flex items-center">
+            {/* Desktop: Notifications + Theme + User Avatar + Dropdown */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Botão de Notificações */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative"
+                      onClick={() => {
+                        toast.info('Funcionalidade de notificações em desenvolvimento')
+                      }}
+                    >
+                      <Bell className="h-5 w-5" />
+                      {notificationCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                        >
+                          {notificationCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Notificações</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Botão de Toggle Tema */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleTheme}
+                    >
+                      {preferences.theme === 'dark' ? (
+                        <Sun className="h-5 w-5" />
+                      ) : (
+                        <Moon className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{preferences.theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* User Avatar + Nome + Cargo */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Button variant="ghost" className="flex items-center gap-3 h-auto py-2 px-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={avatarUrl || undefined} alt={user?.name} />
                       <AvatarFallback className="bg-primary/10 text-primary">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium leading-none">{user?.name}</span>
+                      <span className="text-xs text-muted-foreground mt-1">{getPositionLabel()}</span>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user?.email}
                       </p>
@@ -169,20 +240,6 @@ export function DashboardLayout() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={toggleTheme}>
-                    {preferences.theme === 'dark' ? (
-                      <>
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>Modo Claro</span>
-                      </>
-                    ) : (
-                      <>
-                        <Moon className="mr-2 h-4 w-4" />
-                        <span>Modo Escuro</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className="text-danger focus:text-danger"
@@ -194,8 +251,43 @@ export function DashboardLayout() {
               </DropdownMenu>
             </div>
 
-            {/* Mobile: Avatar + Dropdown */}
-            <div className="md:hidden">
+            {/* Mobile: Notifications + Theme + Avatar + Dropdown */}
+            <div className="md:hidden flex items-center gap-1">
+              {/* Botão de Notificações Mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9"
+                onClick={() => {
+                  toast.info('Funcionalidade de notificações em desenvolvimento')
+                }}
+              >
+                <Bell className="h-4 w-4" />
+                {notificationCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                  >
+                    {notificationCount}
+                  </Badge>
+                )}
+              </Button>
+
+              {/* Botão de Toggle Tema Mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={toggleTheme}
+              >
+                {preferences.theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Avatar + Dropdown Mobile */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-9 w-9 rounded-full">
@@ -212,6 +304,9 @@ export function DashboardLayout() {
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{user?.name}</p>
                       <p className="text-xs leading-none text-muted-foreground">
+                        {getPositionLabel()}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground mt-1">
                         {user?.email}
                       </p>
                     </div>
@@ -227,20 +322,6 @@ export function DashboardLayout() {
                       <span>Gerenciar Usuários</span>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={toggleTheme}>
-                    {preferences.theme === 'dark' ? (
-                      <>
-                        <Sun className="mr-2 h-4 w-4" />
-                        <span>Modo Claro</span>
-                      </>
-                    ) : (
-                      <>
-                        <Moon className="mr-2 h-4 w-4" />
-                        <span>Modo Escuro</span>
-                      </>
-                    )}
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
@@ -286,7 +367,7 @@ export function DashboardLayout() {
                 <TooltipTrigger asChild>
                   <Link
                     to="/dashboard"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
@@ -304,7 +385,7 @@ export function DashboardLayout() {
                   <TooltipTrigger asChild>
                     <Link
                       to="/dashboard/residentes"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
@@ -322,7 +403,7 @@ export function DashboardLayout() {
                 <TooltipTrigger asChild>
                   <Link
                     to="/dashboard/registros-diarios"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
@@ -339,7 +420,7 @@ export function DashboardLayout() {
                 <TooltipTrigger asChild>
                   <Link
                     to="/dashboard/prescricoes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
@@ -357,7 +438,7 @@ export function DashboardLayout() {
                   <TooltipTrigger asChild>
                     <Link
                       to="/dashboard/beds/structure"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
@@ -375,7 +456,7 @@ export function DashboardLayout() {
                 <TooltipTrigger asChild>
                   <Link
                     to="/dashboard/beds/map"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
@@ -393,7 +474,7 @@ export function DashboardLayout() {
                   <TooltipTrigger asChild>
                     <Link
                       to="/dashboard/perfil-institucional"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
@@ -414,7 +495,7 @@ export function DashboardLayout() {
                 <TooltipTrigger asChild>
                   <Link
                     to="/dashboard/meu-perfil"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
@@ -432,7 +513,7 @@ export function DashboardLayout() {
                   <TooltipTrigger asChild>
                     <Link
                       to="/dashboard/usuarios"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
@@ -456,7 +537,7 @@ export function DashboardLayout() {
               <Link
                 to="/dashboard"
                 onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <Home className="h-4 w-4" />
                 Dashboard
@@ -465,7 +546,7 @@ export function DashboardLayout() {
                 <Link
                   to="/dashboard/residentes"
                   onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Users className="h-4 w-4" />
                   Residentes
@@ -474,7 +555,7 @@ export function DashboardLayout() {
               <Link
                 to="/dashboard/registros-diarios"
                 onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <ClipboardList className="h-4 w-4" />
                 Registros Diários
@@ -482,7 +563,7 @@ export function DashboardLayout() {
               <Link
                 to="/dashboard/prescricoes"
                 onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <Pill className="h-4 w-4" />
                 Medicações
@@ -491,7 +572,7 @@ export function DashboardLayout() {
                 <Link
                   to="/dashboard/beds/structure"
                   onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Bed className="h-4 w-4" />
                   Gestão de Leitos
@@ -500,7 +581,7 @@ export function DashboardLayout() {
               <Link
                 to="/dashboard/beds/map"
                 onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <Building2 className="h-4 w-4" />
                 Mapa de Leitos
@@ -509,7 +590,7 @@ export function DashboardLayout() {
                 <Link
                   to="/dashboard/perfil-institucional"
                   onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <FileText className="h-4 w-4" />
                   Perfil Institucional
@@ -522,7 +603,7 @@ export function DashboardLayout() {
               <Link
                 to="/dashboard/meu-perfil"
                 onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <User2 className="h-4 w-4" />
                 Meu Perfil
@@ -532,7 +613,7 @@ export function DashboardLayout() {
                 <Link
                   to="/dashboard/usuarios"
                   onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent/10 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Shield className="h-4 w-4" />
                   Gerenciar Usuários
