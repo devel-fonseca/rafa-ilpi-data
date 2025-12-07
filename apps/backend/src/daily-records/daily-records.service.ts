@@ -11,6 +11,7 @@ import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import * as vitalSignsService from '../services/vitalSigns.service';
+import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 @Injectable()
 export class DailyRecordsService {
@@ -43,7 +44,9 @@ export class DailyRecordsService {
     const record = await this.prisma.dailyRecord.create({
       data: {
         type: dto.type as any, // Cast para RecordType
-        date: new Date(dto.date),
+        // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
+        // dto.date vem como "YYYY-MM-DD", adicionamos T12:00:00 para manter a data correta
+        date: parseISO(`${dto.date}T12:00:00.000`),
         time: dto.time,
         data: dto.data as any,
         recordedBy: dto.recordedBy,
@@ -147,10 +150,12 @@ export class DailyRecordsService {
 
   /**
    * Constrói timestamp completo a partir de date e time
+   * FIX TIMESTAMPTZ: Usar parseISO para garantir timezone correto
    */
   private buildTimestamp(dateStr: string, timeStr: string): Date {
     const [hours, minutes] = timeStr.split(':').map(Number);
-    const timestamp = new Date(dateStr);
+    // dateStr vem como "YYYY-MM-DD", parseamos e setamos a hora
+    const timestamp = parseISO(`${dateStr}T00:00:00.000`);
     timestamp.setHours(hours, minutes, 0, 0);
     return timestamp;
   }
@@ -175,17 +180,20 @@ export class DailyRecordsService {
     }
 
     if (query.date) {
-      // Filtrar por data exata
-      const date = new Date(query.date);
-      where.date = date;
+      // FIX TIMESTAMPTZ: Filtrar por data exata usando range (dia completo)
+      const dateObj = parseISO(query.date);
+      where.date = {
+        gte: startOfDay(dateObj),
+        lte: endOfDay(dateObj),
+      };
     } else if (query.startDate || query.endDate) {
-      // Filtrar por período
+      // FIX TIMESTAMPTZ: Filtrar por período usando startOfDay/endOfDay
       where.date = {};
       if (query.startDate) {
-        where.date.gte = new Date(query.startDate);
+        where.date.gte = startOfDay(parseISO(query.startDate));
       }
       if (query.endDate) {
-        where.date.lte = new Date(query.endDate);
+        where.date.lte = endOfDay(parseISO(query.endDate));
       }
     }
 
@@ -265,19 +273,18 @@ export class DailyRecordsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    // FIX: Comparar apenas a data (sem hora) usando DATE_TRUNC do PostgreSQL
+    // FIX TIMESTAMPTZ: Comparar por dia completo usando date-fns
     // date vem como "YYYY-MM-DD", precisamos buscar todos os registros desse dia
     // independente do horário armazenado no TIMESTAMPTZ
-    const startOfDay = `${date}T00:00:00.000Z`;
-    const endOfDay = `${date}T23:59:59.999Z`;
+    const dateObj = parseISO(date);
 
     const records = await this.prisma.dailyRecord.findMany({
       where: {
         residentId,
         tenantId,
         date: {
-          gte: new Date(startOfDay),
-          lte: new Date(endOfDay),
+          gte: startOfDay(dateObj),
+          lte: endOfDay(dateObj),
         },
         deletedAt: null,
       },
@@ -385,7 +392,8 @@ export class DailyRecordsService {
         where: { id },
         data: {
           type: dto.type as any,
-          date: dto.date ? new Date(dto.date) : undefined,
+          // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
+          date: dto.date ? parseISO(`${dto.date}T12:00:00.000`) : undefined,
           time: dto.time,
           data: dto.data as any,
           recordedBy: dto.recordedBy,
@@ -765,9 +773,11 @@ export class DailyRecordsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    // Calcular primeiro e último dia do mês
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0, 23, 59, 59);
+    // FIX TIMESTAMPTZ: Calcular primeiro e último dia do mês usando date-fns
+    // Garante timezone correto e evita problemas com horário de verão
+    const referenceDate = new Date(year, month - 1, 1);
+    const firstDay = startOfMonth(referenceDate);
+    const lastDay = endOfMonth(referenceDate);
 
     // Buscar datas únicas que têm registros
     const datesWithRecords = await this.prisma.dailyRecord.findMany({
