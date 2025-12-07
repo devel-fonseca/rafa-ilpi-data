@@ -1202,20 +1202,30 @@ export class PrescriptionsService {
       throw new BadRequestException('Data inválida. Use o formato YYYY-MM-DD');
     }
 
-    // Converter string para Date (date-only)
+    // Converter string para Date range (início e fim do dia no timezone local)
     const [yearStr, monthStr, dayStr] = dateStr.split('-');
-    const targetDate = new Date(
+    const startOfDay = new Date(
       parseInt(yearStr),
       parseInt(monthStr) - 1,
       parseInt(dayStr),
+      0, 0, 0, 0
+    );
+    const endOfDay = new Date(
+      parseInt(yearStr),
+      parseInt(monthStr) - 1,
+      parseInt(dayStr),
+      23, 59, 59, 999
     );
 
-    // Buscar administrações contínuas da data
+    // Buscar administrações contínuas da data (usando range para compatibilidade com TIMESTAMPTZ)
     const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
       where: {
         tenantId,
         residentId,
-        date: targetDate,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
       include: {
         medication: {
@@ -1237,12 +1247,15 @@ export class PrescriptionsService {
       ],
     });
 
-    // Buscar administrações SOS da data
+    // Buscar administrações SOS da data (usando range para compatibilidade com TIMESTAMPTZ)
     const sosAdministrations = await this.prisma.sOSAdministration.findMany({
       where: {
         tenantId,
         residentId,
-        date: targetDate,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
       include: {
         sosMedication: {
@@ -1257,7 +1270,7 @@ export class PrescriptionsService {
         },
       },
       orderBy: [
-        { administeredAt: 'asc' },
+        { time: 'asc' },
         { createdAt: 'desc' },
       ],
     });
@@ -1277,9 +1290,9 @@ export class PrescriptionsService {
       residentId: admin.residentId,
       date: admin.date,
       scheduledTime: null, // SOS não tem horário programado
-      actualTime: admin.administeredAt ? new Date(admin.administeredAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+      actualTime: admin.time || null,
       wasAdministered: true, // SOS sempre foi administrado (senão não existiria registro)
-      administeredBy: admin.administeredByName,
+      administeredBy: admin.administeredBy,
       reason: null,
       notes: admin.notes,
       checkedBy: null,

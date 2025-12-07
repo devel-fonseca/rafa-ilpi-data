@@ -134,7 +134,7 @@ export function VitalSignsModal({
       avgDiastolic: validDiastolic.length > 0 ? Math.round(validDiastolic.reduce((a, b) => a + b, 0) / validDiastolic.length) : 0,
       avgGlucose: validGlucose.length > 0 ? Math.round(validGlucose.reduce((a, b) => a + b, 0) / validGlucose.length) : 0,
       criticalAlerts,
-      lastRecord: vitalSigns[vitalSigns.length - 1] || null,
+      lastRecord: vitalSigns[0] || null, // Backend retorna ordenado DESC, então [0] é o mais recente
       trend,
     }
   }
@@ -306,6 +306,7 @@ export function VitalSignsModal({
                       color="#ef4444"
                       height={60}
                       domain={[80, 180]}
+                      unit="mmHg"
                     />
                   </CardContent>
                 </Card>
@@ -320,6 +321,7 @@ export function VitalSignsModal({
                       color="#f59e0b"
                       height={60}
                       domain={[35, 40]}
+                      unit="°C"
                     />
                   </CardContent>
                 </Card>
@@ -334,6 +336,7 @@ export function VitalSignsModal({
                       color="#10b981"
                       height={60}
                       domain={[50, 250]}
+                      unit="mg/dL"
                     />
                   </CardContent>
                 </Card>
