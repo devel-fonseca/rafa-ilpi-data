@@ -265,11 +265,20 @@ export class DailyRecordsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
+    // FIX: Comparar apenas a data (sem hora) usando DATE_TRUNC do PostgreSQL
+    // date vem como "YYYY-MM-DD", precisamos buscar todos os registros desse dia
+    // independente do horário armazenado no TIMESTAMPTZ
+    const startOfDay = `${date}T00:00:00.000Z`;
+    const endOfDay = `${date}T23:59:59.999Z`;
+
     const records = await this.prisma.dailyRecord.findMany({
       where: {
         residentId,
         tenantId,
-        date: new Date(date),
+        date: {
+          gte: new Date(startOfDay),
+          lte: new Date(endOfDay),
+        },
         deletedAt: null,
       },
       orderBy: {

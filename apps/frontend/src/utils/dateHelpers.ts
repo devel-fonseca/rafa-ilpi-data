@@ -69,8 +69,11 @@ export function normalizeUTCDate(utcDateString: string | Date): Date {
 
     const isDateOnlyString = /^\d{4}-\d{2}-\d{2}$/.test(utcDateString.trim())
     const isMidnightUTC = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/.test(utcDateString.trim())
+    // FIX TIMESTAMPTZ: Após migração para TIMESTAMPTZ, datas são armazenadas com 12h (meio-dia)
+    // Ex: "2025-12-06T12:00:00.000-03:00" → deve ser tratado como date-only
+    const isNoonTimestamp = /^\d{4}-\d{2}-\d{2}T12:00:00\.000/.test(utcDateString.trim())
 
-    if (isDateOnlyString || isMidnightUTC) {
+    if (isDateOnlyString || isMidnightUTC || isNoonTimestamp) {
       // Para date-only, extrair apenas a parte da data e interpretar como meia-noite LOCAL
       const dateOnlyPart = utcDateString.split('T')[0]
       const localMidnight = parseISO(`${dateOnlyPart}T00:00:00`)
