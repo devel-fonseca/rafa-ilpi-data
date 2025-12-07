@@ -79,6 +79,8 @@ export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '-'
 
   try {
+    // eslint-disable-next-line no-restricted-syntax
+    // OK: Este helper é usado APENAS para exibição, não envia dados ao backend
     const dateObj = typeof date === 'string' ? new Date(date) : date
     const day = String(dateObj.getDate()).padStart(2, '0')
     const month = String(dateObj.getMonth() + 1).padStart(2, '0')
@@ -96,6 +98,8 @@ export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return '-'
 
   try {
+    // eslint-disable-next-line no-restricted-syntax
+    // OK: Este helper é usado APENAS para exibição, não envia dados ao backend
     const dateObj = typeof date === 'string' ? new Date(date) : date
     const day = String(dateObj.getDate()).padStart(2, '0')
     const month = String(dateObj.getMonth() + 1).padStart(2, '0')
