@@ -14,6 +14,7 @@ import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { startOfDay, endOfDay, addDays } from 'date-fns';
 import {
   PrescriptionType,
   ControlledClass,
@@ -234,24 +235,26 @@ export class PrescriptionsService {
     if (query.expiringInDays) {
       const days = parseInt(query.expiringInDays, 10);
       const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + days);
+      // FIX TIMESTAMPTZ: Usar endOfDay e startOfDay para range correto
+      const futureDate = endOfDay(addDays(today, days));
+      const todayStart = startOfDay(today);
 
       where.validUntil = {
         lte: futureDate,
-        gte: today,
+        gte: todayStart,
       };
     }
 
     if (query.reviewInDays) {
       const days = parseInt(query.reviewInDays, 10);
       const today = new Date();
-      const futureDate = new Date();
-      futureDate.setDate(today.getDate() + days);
+      // FIX TIMESTAMPTZ: Usar endOfDay e startOfDay para range correto
+      const futureDate = endOfDay(addDays(today, days));
+      const todayStart = startOfDay(today);
 
       where.reviewDate = {
         lte: futureDate,
-        gte: today,
+        gte: todayStart,
       };
     }
 
@@ -549,9 +552,10 @@ export class PrescriptionsService {
           tenantId,
           isActive: true,
           deletedAt: null,
+          // FIX TIMESTAMPTZ: Usar endOfDay para incluir todo o dia final na contagem
           validUntil: {
-            lte: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-            gte: new Date(),
+            lte: endOfDay(addDays(new Date(), 5)),
+            gte: startOfDay(new Date()),
           },
         },
       }),
@@ -587,13 +591,16 @@ export class PrescriptionsService {
   async getCriticalAlerts(tenantId: string) {
     const alerts = [];
     const now = new Date();
+    // FIX TIMESTAMPTZ: Usar startOfDay para comparar corretamente prescrições que expiram à meia-noite
+    // Prescrição com validUntil = 2025-12-10T00:00:00 deve ser considerada vencida apenas após 2025-12-10T00:00:00
+    const startOfToday = startOfDay(now);
 
     // Prescrições vencidas
     const expiredPrescriptions = await this.prisma.prescription.findMany({
       where: {
         tenantId,
         isActive: true,
-        validUntil: { lt: now },
+        validUntil: { lt: startOfToday },
         deletedAt: null,
       },
       include: {
@@ -748,8 +755,10 @@ export class PrescriptionsService {
    * Obtém prescrições próximas do vencimento
    */
   async getExpiringPrescriptions(days: number, tenantId: string) {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + days);
+    // FIX TIMESTAMPTZ: Usar endOfDay para incluir prescrições que expiram em qualquer hora do último dia
+    const today = new Date();
+    const futureDate = endOfDay(addDays(today, days));
+    const todayStart = startOfDay(today);
 
     const prescriptions = await this.prisma.prescription.findMany({
       where: {
@@ -758,7 +767,7 @@ export class PrescriptionsService {
         deletedAt: null,
         validUntil: {
           lte: futureDate,
-          gte: new Date(),
+          gte: todayStart,
         },
       },
       include: {
