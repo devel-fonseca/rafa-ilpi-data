@@ -14,5 +14,14 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    // Regras customizadas para prevenir bugs de timezone
+    '@typescript-eslint/no-explicit-any': 'warn',
+    'no-restricted-syntax': [
+      'warn',
+      {
+        selector: "NewExpression[callee.name='Date'][arguments.length=1][arguments.0.type='Identifier']",
+        message: '⚠️ Evite new Date(variável) - Use helpers de dateHelpers.ts ou formMappers.ts. Veja docs/GUIA-PADROES-DATA.md',
+      },
+    ],
   },
 }
