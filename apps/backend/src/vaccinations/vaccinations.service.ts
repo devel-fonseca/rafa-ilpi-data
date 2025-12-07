@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
+import { parseISO, startOfDay } from 'date-fns'
 import { CreateVaccinationDto, UpdateVaccinationDto } from './dto'
 
 @Injectable()
@@ -38,10 +39,10 @@ export class VaccinationsService {
       throw new NotFoundException('Residente não encontrado')
     }
 
-    // Validar data não está no futuro
-    const vaccinationDate = new Date(dto.date)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // FIX TIMESTAMPTZ: Validar data não está no futuro usando date-fns
+    // Usar parseISO com meio-dia para garantir timestamp consistente
+    const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`)
+    const today = startOfDay(new Date())
 
     if (vaccinationDate > today) {
       throw new BadRequestException('Data de vacinação não pode ser no futuro')
@@ -238,11 +239,10 @@ export class VaccinationsService {
       }
     }
 
-    // Validar data se foi fornecida
+    // FIX TIMESTAMPTZ: Validar data se foi fornecida usando date-fns
     if (dto.date) {
-      const vaccinationDate = new Date(dto.date)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`)
+      const today = startOfDay(new Date())
 
       if (vaccinationDate > today) {
         throw new BadRequestException('Data de vacinação não pode ser no futuro')
@@ -264,7 +264,8 @@ export class VaccinationsService {
       data: {
         vaccine: dto.vaccine,
         dose: dto.dose,
-        date: dto.date ? new Date(dto.date) : undefined,
+        // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
+        date: dto.date ? parseISO(`${dto.date}T12:00:00.000`) : undefined,
         batch: dto.batch,
         manufacturer: dto.manufacturer,
         cnes: dto.cnes,
