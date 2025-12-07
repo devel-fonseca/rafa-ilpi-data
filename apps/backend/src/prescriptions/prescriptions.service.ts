@@ -14,7 +14,7 @@ import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { startOfDay, endOfDay, addDays } from 'date-fns';
+import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import {
   PrescriptionType,
   ControlledClass,
@@ -709,8 +709,8 @@ export class PrescriptionsService {
         isActive: true,
         deletedAt: null,
         reviewDate: {
-          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          gte: new Date(),
+          lte: endOfDay(addDays(new Date(), 30)),
+          gte: startOfDay(new Date()),
         },
       },
       include: {
@@ -949,13 +949,14 @@ export class PrescriptionsService {
     }
 
     // Criar registro de administração
+    // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
     const administration = await this.prisma.medicationAdministration.create({
       data: {
         tenantId,
         prescriptionId: medication.prescriptionId,
         medicationId: dto.medicationId,
         residentId: medication.prescription.residentId,
-        date: new Date(dto.date),
+        date: parseISO(`${dto.date}T12:00:00.000`),
         scheduledTime: dto.scheduledTime,
         actualTime: dto.actualTime || null,
         wasAdministered: dto.wasAdministered,
@@ -1011,17 +1012,17 @@ export class PrescriptionsService {
     }
 
     // Verificar limite diário
-    const today = new Date(dto.date);
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // FIX TIMESTAMPTZ: Usar parseISO + startOfDay/endOfDay para range correto
+    const dateObj = parseISO(dto.date);
+    const dayStart = startOfDay(dateObj);
+    const dayEnd = endOfDay(dateObj);
 
     const todayCount = await this.prisma.sOSAdministration.count({
       where: {
         sosMedicationId: dto.sosMedicationId,
         date: {
-          gte: today,
-          lt: tomorrow,
+          gte: dayStart,
+          lte: dayEnd,
         },
       },
     });
@@ -1033,13 +1034,14 @@ export class PrescriptionsService {
     }
 
     // Criar registro de administração SOS
+    // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
     const administration = await this.prisma.sOSAdministration.create({
       data: {
         tenantId,
         prescriptionId: sosMedication.prescriptionId,
         sosMedicationId: dto.sosMedicationId,
         residentId: sosMedication.prescription.residentId,
-        date: new Date(dto.date),
+        date: parseISO(`${dto.date}T12:00:00.000`),
         time: dto.time,
         indication: dto.indication,
         administeredBy: dto.administeredBy,
@@ -1126,9 +1128,10 @@ export class PrescriptionsService {
     // Validar residente existe e pertence ao tenant
     await this.validateResidentExists(residentId, tenantId);
 
-    // Calcular primeiro e último dia do mês
-    const firstDay = new Date(year, month - 1, 1);
-    const lastDay = new Date(year, month, 0); // Último dia do mês
+    // FIX TIMESTAMPTZ: Calcular primeiro e último dia do mês usando date-fns
+    const referenceDate = new Date(year, month - 1, 1);
+    const firstDay = startOfMonth(referenceDate);
+    const lastDay = endOfMonth(referenceDate);
 
     // Buscar administrações contínuas do residente no período
     const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
@@ -1211,20 +1214,10 @@ export class PrescriptionsService {
       throw new BadRequestException('Data inválida. Use o formato YYYY-MM-DD');
     }
 
-    // Converter string para Date range (início e fim do dia no timezone local)
-    const [yearStr, monthStr, dayStr] = dateStr.split('-');
-    const startOfDay = new Date(
-      parseInt(yearStr),
-      parseInt(monthStr) - 1,
-      parseInt(dayStr),
-      0, 0, 0, 0
-    );
-    const endOfDay = new Date(
-      parseInt(yearStr),
-      parseInt(monthStr) - 1,
-      parseInt(dayStr),
-      23, 59, 59, 999
-    );
+    // FIX TIMESTAMPTZ: Converter string para Date range usando date-fns
+    const dateObj = parseISO(dateStr);
+    const dayStart = startOfDay(dateObj);
+    const dayEnd = endOfDay(dateObj);
 
     // Buscar administrações contínuas da data (usando range para compatibilidade com TIMESTAMPTZ)
     const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
@@ -1232,8 +1225,8 @@ export class PrescriptionsService {
         tenantId,
         residentId,
         date: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: dayStart,
+          lte: dayEnd,
         },
       },
       include: {
@@ -1262,8 +1255,8 @@ export class PrescriptionsService {
         tenantId,
         residentId,
         date: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: dayStart,
+          lte: dayEnd,
         },
       },
       include: {
