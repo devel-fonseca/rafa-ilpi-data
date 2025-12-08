@@ -70,6 +70,7 @@ export class AuditInterceptor implements NestInterceptor {
           // Adicionar corpo da requisição para ações de criação/atualização
           if (['CREATE', 'UPDATE'].includes(auditAction) && request.body) {
             // Remover campos sensíveis
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { password, ...safeBody } = request.body;
             details.requestBody = safeBody;
           }

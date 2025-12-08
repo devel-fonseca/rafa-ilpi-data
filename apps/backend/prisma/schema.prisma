@@ -415,6 +415,7 @@ model Tenant {
   documents                 TenantDocument[]
   residentDocuments         ResidentDocument[]
   notifications             Notification[]
+  clinicalNoteDocuments     ClinicalNoteDocument[]
 
   @@map("tenants")
 }
@@ -476,6 +477,7 @@ model User {
   conditionsRecorded         Condition[]
   dietaryRestrictionsRecorded DietaryRestriction[]
   notifications              Notification[]
+  clinicalNoteDocumentsCreated ClinicalNoteDocument[] @relation("ClinicalNoteDocumentCreator")
 
   @@unique([tenantId, email])
   @@map("users")
@@ -686,6 +688,7 @@ model Resident {
   allergies                 Allergy[]
   conditions                Condition[]
   dietaryRestrictions       DietaryRestriction[]
+  clinicalNoteDocuments     ClinicalNoteDocument[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -1305,6 +1308,7 @@ model ClinicalNote {
   resident       Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
   professional   User               @relation(fields: [professionalId], references: [id], onDelete: Restrict)
   history        ClinicalNoteHistory[]
+  documents      ClinicalNoteDocument[]
 
   // Índices
   @@index([tenantId, residentId, noteDate(sort: Desc)])
@@ -1351,6 +1355,39 @@ model ClinicalNoteHistory {
   @@index([tenantId, residentId])
   @@index([changedAt])
   @@map("clinical_notes_history")
+}
+
+// Documentos anexados às Evoluções Clínicas (gerados com Tiptap)
+model ClinicalNoteDocument {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @db.Uuid
+  noteId       String   @db.Uuid
+  residentId   String   @db.Uuid
+
+  title        String   @db.VarChar(255)
+  type         String?  @db.VarChar(100)
+  documentDate DateTime @db.Timestamptz(3)
+
+  // Conteúdo HTML (para futura edição)
+  htmlContent  String   @db.Text
+
+  // PDF no MinIO
+  pdfFileUrl   String?
+  pdfFileKey   String?
+  pdfFileName  String?  @db.VarChar(255)
+
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  createdBy    String   @db.Uuid
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clinicalNote ClinicalNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator      User         @relation("ClinicalNoteDocumentCreator", fields: [createdBy], references: [id])
+
+  @@index([tenantId, residentId])
+  @@index([noteId])
+  @@map("clinical_note_documents")
 }
 
 // ==========================================

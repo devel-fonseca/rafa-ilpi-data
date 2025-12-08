@@ -5,7 +5,8 @@ import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
-import html2pdf from 'html2pdf.js'
+// TODO: Migrar para @react-pdf/renderer
+// import html2pdf from 'html2pdf.js'
 import { getCurrentDate } from '@/utils/dateHelpers'
 
 export function ResidentPrintView() {
@@ -27,30 +28,32 @@ export function ResidentPrintView() {
   })
 
   // Função de exportação para PDF
+  // TODO: Migrar para @react-pdf/renderer
   const handleExportPDF = async () => {
     if (!printRef.current || !residentData) return
 
     setIsExporting(true)
 
     try {
+      alert('Funcionalidade de exportação para PDF temporariamente desabilitada. Será migrada para @react-pdf/renderer.')
       // Criar um elemento clone para exportação (sem elementos de UI)
-      const element = printRef.current.querySelector('.print-container') as HTMLElement
-      if (!element) return
+      // const element = printRef.current.querySelector('.print-container') as HTMLElement
+      // if (!element) return
 
-      const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${getCurrentDate()}.pdf`
+      // const fileName = `Residente_${residentData.fullName.replace(/\s+/g, '_')}_${getCurrentDate()}.pdf`
 
-      const opt = {
-        margin: [10, 15, 10, 15] as [number, number, number, number], // top, left, bottom, right em mm
-        filename: fileName,
-        image: { type: 'png' as const, quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-        jsPDF: { orientation: 'p', unit: 'mm', format: 'a4' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      }
+      // const opt = {
+      //   margin: [10, 15, 10, 15] as [number, number, number, number], // top, left, bottom, right em mm
+      //   filename: fileName,
+      //   image: { type: 'png' as const, quality: 0.98 },
+      //   html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+      //   jsPDF: { orientation: 'p', unit: 'mm', format: 'a4' },
+      //   pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      // }
 
-      await html2pdf().set(opt).from(element).save()
+      // await html2pdf().set(opt).from(element).save()
 
-      console.log('✅ PDF gerado com sucesso:', fileName)
+      // console.log('✅ PDF gerado com sucesso:', fileName)
     } catch (error) {
       console.error('❌ Erro ao gerar PDF:', error)
       alert('Erro ao gerar PDF. Por favor, tente novamente.')

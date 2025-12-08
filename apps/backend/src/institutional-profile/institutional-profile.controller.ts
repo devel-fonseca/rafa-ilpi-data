@@ -35,9 +35,13 @@ export class InstitutionalProfileController {
   /**
    * GET /institutional-profile
    * Retorna o perfil institucional do tenant combinado com dados do tenant
+   *
+   * NOTA: Não requer permissão VIEW_INSTITUTIONAL_PROFILE pois qualquer usuário
+   * autenticado do tenant precisa acessar esses dados para gerar documentos (PDFs)
+   * com cabeçalho institucional. Apenas operações de escrita (POST/PATCH) requerem
+   * a permissão UPDATE_INSTITUTIONAL_PROFILE.
    */
   @Get()
-  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   async getProfile(@CurrentUser('tenantId') tenantId: string) {
     return this.service.getFullProfile(tenantId)
   }

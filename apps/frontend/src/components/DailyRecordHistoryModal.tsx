@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { History, Clock, User, FileText, Filter, X, RotateCcw, GitCompare, Download } from 'lucide-react'
-import html2pdf from 'html2pdf.js'
+// TODO: Migrar para @react-pdf/renderer
+// import html2pdf from 'html2pdf.js'
 import {
   Dialog,
   DialogContent,
@@ -417,29 +418,35 @@ export function DailyRecordHistoryModal({
     element.style.left = '-9999px'
     document.body.appendChild(element)
 
-    // PDF options
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `historico-registro-${recordId}-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        letterRendering: true
-      },
-      jsPDF: {
-        unit: 'mm',
-        format: 'a4',
-        orientation: 'portrait'
-      }
-    }
+    // TODO: Migrar para @react-pdf/renderer
+    alert('Funcionalidade de exportação para PDF temporariamente desabilitada. Será migrada para @react-pdf/renderer.')
 
-    try {
-      await html2pdf().set(opt).from(element).save()
-    } finally {
-      // Remove temporary element
-      document.body.removeChild(element)
-    }
+    // Remove temporary element
+    document.body.removeChild(element)
+
+    // PDF options
+    // const opt = {
+    //   margin: [10, 10, 10, 10],
+    //   filename: `historico-registro-${recordId}-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.pdf`,
+    //   image: { type: 'jpeg', quality: 0.98 },
+    //   html2canvas: {
+    //     scale: 2,
+    //     useCORS: true,
+    //     letterRendering: true
+    //   },
+    //   jsPDF: {
+    //     unit: 'mm',
+    //     format: 'a4',
+    //     orientation: 'portrait'
+    //   }
+    // }
+
+    // try {
+    //   await html2pdf().set(opt).from(element).save()
+    // } finally {
+    //   // Remove temporary element
+    //   document.body.removeChild(element)
+    // }
   }
 
   return (

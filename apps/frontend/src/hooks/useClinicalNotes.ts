@@ -10,8 +10,10 @@ import {
   deleteClinicalNote,
   getClinicalNoteTags,
   getAuthorizedProfessions,
+  getClinicalNoteDocumentsByResident,
   type ClinicalNote,
   type ClinicalNoteHistoryResponse,
+  type ClinicalNoteDocument,
   type CreateClinicalNoteDto,
   type UpdateClinicalNoteDto,
   type QueryClinicalNoteDto,
@@ -116,6 +118,27 @@ export function useAuthorizedProfessions() {
     queryFn: getAuthorizedProfessions,
     staleTime: 1000 * 60 * 60, // 1 hora (profissões autorizadas mudam apenas se mudar cargo)
     refetchOnWindowFocus: false,
+  })
+}
+
+/**
+ * Hook para buscar documentos clínicos (Tiptap) de um residente
+ */
+export function useClinicalNoteDocuments(residentId: string | undefined) {
+  const enabled = !!residentId && residentId !== 'new'
+
+  return useQuery<ClinicalNoteDocument[]>({
+    queryKey: ['clinical-note-documents', 'resident', residentId],
+    queryFn: () => {
+      if (!residentId) {
+        throw new Error('residentId is required')
+      }
+      return getClinicalNoteDocumentsByResident(residentId)
+    },
+    enabled,
+    placeholderData: [],
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    refetchOnWindowFocus: true,
   })
 }
 

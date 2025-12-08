@@ -8,7 +8,10 @@ export interface UserProfile {
   tenantId: string
   profilePhoto: string | null
   phone: string | null
-  positionCode: string | null  // ✅ Corrigido: era 'position', mas no backend é 'positionCode'
+  positionCode: string | null
+  registrationType: string | null
+  registrationNumber: string | null
+  registrationState: string | null
   department: string | null
   birthDate: string | null
   notes: string | null

@@ -421,7 +421,7 @@ export class ResidentsService {
       const residentsWithBedIds = residents.filter(r => r.bedId);
       const bedIds = residentsWithBedIds.map(r => r.bedId).filter((id): id is string => id !== null);
 
-      let bedsMap = new Map();
+      const bedsMap = new Map();
       if (bedIds.length > 0) {
         const beds = await this.prisma.bed.findMany({
           where: {
@@ -758,7 +758,7 @@ export class ResidentsService {
 
       // Validar acomodação (roomId e bedId) se estiverem sendo atualizados
       let accommodationToUpdate: { roomId?: string; bedId?: string } | null = null;
-      let oldBedId = existingResident.bedId;
+      const oldBedId = existingResident.bedId;
       let newBedId: string | undefined;
 
       if (updateResidentDto.roomId !== undefined || updateResidentDto.bedId !== undefined) {

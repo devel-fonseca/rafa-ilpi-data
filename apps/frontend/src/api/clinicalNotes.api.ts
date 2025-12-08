@@ -41,6 +41,13 @@ export interface ClinicalNote {
     fullName: string
     cpf: string
   }
+  documents?: Array<{
+    id: string
+    title: string
+    type: string | null
+    pdfFileUrl: string | null
+    documentDate: string
+  }>
 }
 
 export interface ClinicalNoteHistory {
@@ -111,6 +118,33 @@ export interface ClinicalNoteHistoryResponse {
   history: ClinicalNoteHistory[]
 }
 
+export interface ClinicalNoteDocument {
+  id: string
+  tenantId: string
+  noteId: string
+  residentId: string
+  title: string
+  type: string | null
+  documentDate: string
+  htmlContent: string
+  pdfFileUrl: string | null
+  pdfFileKey: string | null
+  pdfFileName: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: string
+  clinicalNote?: {
+    profession: ClinicalProfession
+    professional: {
+      name: string
+      profile: {
+        registrationNumber: string | null
+        registrationState: string | null
+      } | null
+    }
+  }
+}
+
 // ==================== API FUNCTIONS ====================
 
 /**
@@ -118,6 +152,31 @@ export interface ClinicalNoteHistoryResponse {
  */
 export async function createClinicalNote(data: CreateClinicalNoteDto): Promise<ClinicalNote> {
   const response = await api.post('/clinical-notes', data)
+  return response.data
+}
+
+/**
+ * Cria evolução clínica com documento opcional (PDF)
+ */
+export async function createClinicalNoteWithDocument(
+  data: CreateClinicalNoteDto,
+  pdfFile?: Blob
+): Promise<ClinicalNote> {
+  if (!pdfFile) {
+    // Se não há documento, usar método normal
+    return createClinicalNote(data)
+  }
+
+  // Criar FormData com dados + PDF
+  const formData = new FormData()
+  formData.append('data', JSON.stringify(data))
+  formData.append('pdfFile', pdfFile, 'document.pdf')
+
+  const response = await api.post('/clinical-notes', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return response.data
 }
 
@@ -216,5 +275,15 @@ export async function getAuthorizedProfessions(): Promise<ClinicalProfession[]> 
  */
 export async function getClinicalNoteTags(): Promise<string[]> {
   const response = await api.get('/clinical-notes/tags/suggestions')
+  return response.data
+}
+
+/**
+ * Busca documentos clínicos (Tiptap) de um residente
+ */
+export async function getClinicalNoteDocumentsByResident(
+  residentId: string
+): Promise<ClinicalNoteDocument[]> {
+  const response = await api.get(`/clinical-notes/documents/resident/${residentId}`)
   return response.data
 }

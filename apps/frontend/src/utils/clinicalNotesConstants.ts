@@ -8,6 +8,7 @@ export interface ProfessionConfig {
   bgColor: string
   borderColor: string
   icon: string
+  registrationLabel?: string // Ex: "CRM-SP 123456", "COREN-SP 654321"
 }
 
 export const PROFESSION_CONFIG: Record<ClinicalProfession, ProfessionConfig> = {
@@ -85,6 +86,24 @@ export function getProfessionConfig(profession?: ClinicalProfession): Profession
  */
 export function getProfessionLabel(profession: ClinicalProfession): string {
   return PROFESSION_CONFIG[profession].label
+}
+
+/**
+ * Helper para obter prefixo do registro profissional
+ * Retorna o código do conselho profissional (ex: CRM, COREN, CRN, etc.)
+ */
+export function getRegistrationPrefix(profession: ClinicalProfession): string {
+  const prefixes: Record<ClinicalProfession, string> = {
+    MEDICINE: 'CRM',
+    NURSING: 'COREN',
+    NUTRITION: 'CRN',
+    PHYSIOTHERAPY: 'CREFITO',
+    PSYCHOLOGY: 'CRP',
+    SOCIAL_WORK: 'CRESS',
+    SPEECH_THERAPY: 'CRFa',
+    OCCUPATIONAL_THERAPY: 'CREFITO',
+  }
+  return prefixes[profession]
 }
 
 // ==================== TAGS PRÉ-DEFINIDAS ====================

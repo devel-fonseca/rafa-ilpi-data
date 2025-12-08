@@ -1,5 +1,5 @@
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
-import { Eye, Edit2, History, Printer, AlertTriangle } from 'lucide-react'
+import { Eye, Edit2, History, Printer, AlertTriangle, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +12,7 @@ interface ClinicalNoteCardProps {
   onEdit?: (note: ClinicalNote) => void
   onHistory: (note: ClinicalNote) => void
   onPrint: (note: ClinicalNote) => void
+  onViewDocument?: (documentUrl: string, documentTitle?: string) => void
   canEdit: boolean // Se o usuário é o autor e está dentro da janela de 12h
 }
 
@@ -21,6 +22,7 @@ export function ClinicalNoteCard({
   onEdit,
   onHistory,
   onPrint,
+  onViewDocument,
   canEdit,
 }: ClinicalNoteCardProps) {
   const professionConfig = getProfessionConfig(note.profession)
@@ -38,6 +40,13 @@ export function ClinicalNoteCard({
     ? note.assessment.substring(0, 100) + (note.assessment.length > 100 ? '...' : '')
     : ''
 
+  // Verificar se tem documento anexado
+  const hasDocument = note.documents && note.documents.length > 0
+  const firstDocument = hasDocument ? note.documents[0] : null
+
+  // Formatar ID curto (primeiros 8 caracteres)
+  const shortId = note.id.substring(0, 8)
+
   return (
     <Card className={`border-l-4 ${professionConfig.borderColor} ${professionConfig.bgColor}`}>
       <CardContent className="pt-4">
@@ -49,6 +58,9 @@ export function ClinicalNoteCard({
               <h3 className={`font-semibold ${professionConfig.color}`}>
                 {professionConfig.label}
               </h3>
+              <span className="text-sm text-muted-foreground">
+                - {formatDateTimeSafe(note.noteDate)}
+              </span>
               {note.isAmended && (
                 <Badge variant="destructive" className="text-xs gap-1">
                   <AlertTriangle className="h-3 w-3" />
@@ -61,16 +73,23 @@ export function ClinicalNoteCard({
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
-              {formatDateTimeSafe(note.noteDate)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Por: {note.professional.name}
-            </p>
           </div>
 
           {/* Botões de ação */}
           <div className="flex gap-1">
+            {hasDocument && firstDocument?.pdfFileUrl && onViewDocument && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onViewDocument(firstDocument.pdfFileUrl!, firstDocument.title)}
+                title="Ver documento anexado"
+                className="gap-1"
+              >
+                <FileText className="h-4 w-4" />
+                Doc
+              </Button>
+            )}
+
             <Button
               size="sm"
               variant="ghost"
@@ -151,6 +170,24 @@ export function ClinicalNoteCard({
             })}
           </div>
         )}
+
+        {/* Assinatura Eletrônica */}
+        <div className="mt-4 pt-3 border-t text-xs text-muted-foreground space-y-0.5">
+          <p>
+            <span className="font-medium text-foreground">{note.professional.name}</span>
+            {' | '}
+            <span>{professionConfig.label}</span>
+            {professionConfig.registrationLabel && (
+              <>
+                {' – '}
+                <span>{professionConfig.registrationLabel}</span>
+              </>
+            )}
+          </p>
+          <p>
+            Assinado eletronicamente em {formatDateTimeSafe(note.createdAt)} – ID: {shortId}
+          </p>
+        </div>
 
         {/* Avisos */}
         {!note.isAmended && canEdit && !isWithinEditWindow && (

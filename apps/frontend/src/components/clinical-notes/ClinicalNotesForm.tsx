@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, X, Activity, AlertCircle } from 'lucide-react'
+import { Loader2, X, Activity, AlertCircle, FileText, Eye, Trash2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -22,14 +23,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { TiptapEditor } from '@/components/tiptap'
+import { DocumentPreviewModal } from './DocumentPreviewModal'
+import { DocumentEditorModal } from './DocumentEditorModal'
 import { toast } from 'sonner'
 import { getCurrentDateTimeLocal, formatDateTimeSafe } from '@/utils/dateHelpers'
+import { generateDocumentPdf } from '@/utils/generateDocumentPdf'
+import { useProfile } from '@/hooks/useInstitutionalProfile'
+import { useResident } from '@/hooks/useResidents'
+import { useAuthStore } from '@/stores/auth.store'
+import { useMyProfile } from '@/hooks/queries/useUserProfile'
+import { POSITION_CODE_LABELS, PositionCode } from '@/types/permissions'
 import {
   useCreateClinicalNote,
   useUpdateClinicalNote,
   useClinicalNoteTags,
   useAuthorizedProfessions,
 } from '@/hooks/useClinicalNotes'
+import { createClinicalNoteWithDocument } from '@/api/clinicalNotes.api'
 import { useLastVitalSign } from '@/hooks/useVitalSigns'
 import type { ClinicalNote, ClinicalProfession } from '@/api/clinicalNotes.api'
 import { SOAPTemplateFields } from './SOAPTemplateFields'
@@ -91,13 +102,46 @@ export function ClinicalNotesForm({
   const isEditing = !!note
   const [customTagInput, setCustomTagInput] = useState('')
 
+  // Estados para documento opcional
+  const [documentEnabled, setDocumentEnabled] = useState(false)
+  const [documentTitle, setDocumentTitle] = useState('')
+  const [documentType, setDocumentType] = useState('')
+  const [documentContent, setDocumentContent] = useState('')
+  const [showEditorModal, setShowEditorModal] = useState(false)
+
+  // Estados para preview do documento
+  const [showPreview, setShowPreview] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<ClinicalNoteFormData | null>(null)
+  const [isConfirming, setIsConfirming] = useState(false)
+
   const createMutation = useCreateClinicalNote()
   const updateMutation = useUpdateClinicalNote()
   const { data: suggestedTags = [] } = useClinicalNoteTags()
   const { data: lastVitalSign, isLoading: vitalSignsLoading } = useLastVitalSign(residentId)
   const { data: authorizedProfessions = [], isLoading: authorizationLoading } = useAuthorizedProfessions()
+  const { data: profileData } = useProfile()
+  const { data: residentData } = useResident(residentId)
+  const { data: myProfile } = useMyProfile()
+  const { user } = useAuthStore()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
+
+  // Helper para mapear dados profissionais do perfil do usuário (memoizado para evitar re-renders infinitos)
+  const professionalData = useMemo(() => {
+    if (!user || !myProfile) {
+      return { name: user?.name || '' }
+    }
+
+    return {
+      name: user.name,
+      profession: myProfile.positionCode
+        ? POSITION_CODE_LABELS[myProfile.positionCode as PositionCode]
+        : undefined,
+      council: myProfile.registrationType || undefined,
+      councilNumber: myProfile.registrationNumber || undefined,
+      councilState: myProfile.registrationState || undefined,
+    }
+  }, [user, myProfile])
 
   const {
     control,
@@ -143,6 +187,12 @@ export function ClinicalNotesForm({
     if (!open) {
       reset()
       setCustomTagInput('')
+      // Limpar estados do documento
+      setDocumentEnabled(false)
+      setDocumentTitle('')
+      setDocumentType('')
+      setDocumentContent('')
+      setShowEditorModal(false)
     }
   }, [open, reset])
 
@@ -225,8 +275,37 @@ export function ClinicalNotesForm({
             editReason: data.editReason,
           },
         })
+
+        onOpenChange(false)
+        onSuccess?.()
       } else {
-        await createMutation.mutateAsync({
+        // Verificar autenticação antes de iniciar
+        if (!user) {
+          toast.error('Sessão expirada. Por favor, faça login novamente.')
+          console.error('❌ [onSubmit] Usuário não autenticado')
+          return
+        }
+
+        // Validação do documento se habilitado
+        if (documentEnabled) {
+          if (!documentTitle || documentTitle.trim().length < 3) {
+            toast.error('Título do documento deve ter no mínimo 3 caracteres')
+            return
+          }
+          if (!documentContent || documentContent.trim().length < 10) {
+            toast.error('Conteúdo do documento deve ser preenchido')
+            return
+          }
+        }
+
+        console.log('🚀 [onSubmit] Salvando evolução clínica...', {
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+        })
+
+        // Preparar dados da evolução
+        const clinicalNoteData = {
           residentId,
           profession: data.profession,
           noteDate: data.noteDate,
@@ -235,14 +314,245 @@ export function ClinicalNotesForm({
           assessment: data.assessment || undefined,
           plan: data.plan || undefined,
           tags: data.tags || [],
-        })
-      }
+          document:
+            documentEnabled && documentTitle && documentContent
+              ? {
+                  title: documentTitle,
+                  type: documentType || undefined,
+                  htmlContent: documentContent,
+                }
+              : undefined,
+        }
 
-      onOpenChange(false)
-      onSuccess?.()
+        console.log('📋 [onSubmit] Dados preparados:', {
+          hasDocument: !!clinicalNoteData.document,
+          documentTitle,
+          contentLength: documentContent?.length,
+        })
+
+        let pdfBlob: Blob | undefined
+
+        // Gerar PDF se documento estiver habilitado
+        if (documentEnabled && documentTitle && documentContent && residentData && user) {
+          try {
+            console.log('📄 [onSubmit] Gerando PDF do documento...')
+            toast.info('Gerando PDF do documento...')
+
+            pdfBlob = await generateDocumentPdf({
+              title: documentTitle,
+              content: documentContent,
+              resident: {
+                fullName: residentData.fullName,
+                birthDate: residentData.birthDate,
+                cpf: residentData.cpf || '',
+                cns: residentData.cns || undefined,
+                admissionDate: residentData.admissionDate || undefined,
+              },
+              professional: professionalData,
+              date: data.noteDate || new Date().toISOString(),
+              documentId: undefined,
+              institutionalData: profileData?.profile
+                ? {
+                    tenantName: profileData.tenant?.name,
+                    logoUrl: profileData.profile.logoUrl || undefined,
+                    cnpj: profileData.tenant?.cnpj || undefined,
+                    cnesCode: profileData.profile.cnesCode || undefined,
+                    phone: profileData.tenant?.phone || undefined,
+                    email: profileData.tenant?.email || undefined,
+                    addressStreet: profileData.tenant?.addressStreet || undefined,
+                    addressNumber: profileData.tenant?.addressNumber || undefined,
+                    addressDistrict: profileData.tenant?.addressDistrict || undefined,
+                    addressCity: profileData.tenant?.addressCity || undefined,
+                    addressState: profileData.tenant?.addressState || undefined,
+                    addressZipCode: profileData.tenant?.addressZipCode || undefined,
+                  }
+                : undefined,
+            })
+
+            console.log('✅ [onSubmit] PDF gerado com sucesso!', {
+              pdfSize: pdfBlob.size,
+              pdfType: pdfBlob.type,
+            })
+          } catch (pdfError) {
+            console.error('❌ [onSubmit] Erro ao gerar PDF:', pdfError)
+            toast.error('Erro ao gerar PDF do documento')
+            return
+          }
+        }
+
+        // Salvar evolução com ou sem documento
+        console.log('💾 [onSubmit] Salvando no servidor...', {
+          hasPdf: !!pdfBlob,
+          hasDocument: !!clinicalNoteData.document,
+        })
+
+        try {
+          if (pdfBlob) {
+            console.log('📤 [onSubmit] Enviando com PDF via FormData...')
+            await createClinicalNoteWithDocument(clinicalNoteData, pdfBlob)
+          } else {
+            console.log('📤 [onSubmit] Enviando sem PDF...')
+            await createClinicalNoteWithDocument(clinicalNoteData, undefined)
+          }
+
+          console.log('✅ [onSubmit] Salvo com sucesso!')
+          toast.success('Evolução salva com sucesso!')
+          onOpenChange(false)
+          onSuccess?.()
+        } catch (saveError: any) {
+          console.error('❌ [onSubmit] Erro ao salvar:', saveError)
+
+          // Tratamento específico para erros de autenticação
+          if (saveError?.response?.status === 401 || saveError?.response?.status === 403) {
+            toast.error('Sessão expirada durante o salvamento. Por favor, faça login novamente.')
+          } else {
+            toast.error('Erro ao salvar evolução clínica')
+          }
+          throw saveError
+        }
+      }
     } catch (error: any) {
       // Erro já tratado pelo hook com toast
+      console.error('Erro ao salvar evolução:', error)
     }
+  }
+
+  // Função para confirmar salvamento após preview
+  const handleConfirmSave = async () => {
+    if (!pendingFormData) return
+
+    try {
+      setIsConfirming(true)
+      console.log('🚀 [handleConfirmSave] Iniciando salvamento...')
+
+      // Verificar autenticação antes de iniciar
+      if (!user) {
+        toast.error('Sessão expirada. Por favor, faça login novamente.')
+        console.error('❌ [handleConfirmSave] Usuário não autenticado')
+        setShowPreview(false)
+        return
+      }
+
+      // Preparar dados da evolução
+      const clinicalNoteData = {
+        residentId,
+        profession: pendingFormData.profession,
+        noteDate: pendingFormData.noteDate,
+        subjective: pendingFormData.subjective || undefined,
+        objective: pendingFormData.objective || undefined,
+        assessment: pendingFormData.assessment || undefined,
+        plan: pendingFormData.plan || undefined,
+        tags: pendingFormData.tags || [],
+        document:
+          documentEnabled && documentTitle && documentContent
+            ? {
+                title: documentTitle,
+                type: documentType || undefined,
+                htmlContent: documentContent,
+              }
+            : undefined,
+      }
+
+      console.log('📋 [handleConfirmSave] Dados preparados:', {
+        hasDocument: !!clinicalNoteData.document,
+        documentTitle,
+        contentLength: documentContent?.length,
+      })
+
+      // Se tem documento, gerar PDF agora
+      let pdfBlob: Blob | undefined
+      if (documentEnabled && documentTitle && documentContent && residentData && user) {
+        console.log('📄 [handleConfirmSave] Gerando PDF para envio...')
+        toast.info('Gerando PDF do documento...')
+
+        try {
+          pdfBlob = await generateDocumentPdf({
+            title: documentTitle,
+            content: documentContent,
+            resident: {
+              fullName: residentData.fullName,
+              birthDate: residentData.birthDate,
+              cpf: residentData.cpf || '',
+              cns: residentData.cns || undefined,
+              admissionDate: residentData.admissionDate || undefined,
+            },
+            professional: professionalData,
+            date: pendingFormData.noteDate || new Date().toISOString(),
+            documentId: undefined, // TODO: Gerar UUID ao criar documento
+            institutionalData: profileData?.profile
+              ? {
+                  tenantName: profileData.tenant?.name,
+                  logoUrl: profileData.profile.logoUrl || undefined,
+                  cnpj: profileData.tenant?.cnpj || undefined,
+                  cnesCode: profileData.profile.cnesCode || undefined,
+                  phone: profileData.tenant?.phone || undefined,
+                  email: profileData.tenant?.email || undefined,
+                  addressStreet: profileData.tenant?.addressStreet || undefined,
+                  addressNumber: profileData.tenant?.addressNumber || undefined,
+                  addressDistrict: profileData.tenant?.addressDistrict || undefined,
+                  addressCity: profileData.tenant?.addressCity || undefined,
+                  addressState: profileData.tenant?.addressState || undefined,
+                  addressZipCode: profileData.tenant?.addressZipCode || undefined,
+                }
+              : undefined,
+          })
+
+          console.log('✅ [handleConfirmSave] PDF gerado com sucesso!', {
+            pdfSize: pdfBlob.size,
+            pdfType: pdfBlob.type,
+          })
+        } catch (pdfError) {
+          console.error('❌ [handleConfirmSave] Erro ao gerar PDF:', pdfError)
+          throw new Error(`Falha ao gerar PDF: ${pdfError instanceof Error ? pdfError.message : String(pdfError)}`)
+        }
+      }
+
+      // Salvar evolução com documento
+      console.log('💾 [handleConfirmSave] Salvando no servidor...', {
+        hasPdf: !!pdfBlob,
+        hasDocument: !!clinicalNoteData.document,
+      })
+
+      try {
+        if (pdfBlob) {
+          console.log('📤 [handleConfirmSave] Enviando com PDF via FormData...')
+          await createClinicalNoteWithDocument(clinicalNoteData, pdfBlob)
+        } else {
+          console.log('📤 [handleConfirmSave] Enviando sem PDF...')
+          await createMutation.mutateAsync(clinicalNoteData)
+        }
+
+        console.log('✅ [handleConfirmSave] Salvo com sucesso!')
+        toast.success('Evolução e documento salvos com sucesso!')
+
+        // Fechar modals e limpar estados
+        setShowPreview(false)
+        setPendingFormData(null)
+        onOpenChange(false)
+        onSuccess?.()
+      } catch (saveError: any) {
+        console.error('❌ [handleConfirmSave] Erro ao salvar:', saveError)
+
+        // Tratamento específico para erros de autenticação
+        if (saveError?.response?.status === 401 || saveError?.response?.status === 403) {
+          toast.error('Sessão expirada durante o salvamento. Por favor, faça login novamente.')
+        } else {
+          toast.error(`Erro ao salvar: ${saveError.message || 'Erro desconhecido'}`)
+        }
+        throw saveError
+      }
+    } catch (error: any) {
+      console.error('❌ [handleConfirmSave] Erro completo:', error)
+      console.error('❌ [handleConfirmSave] Stack:', error.stack)
+    } finally {
+      setIsConfirming(false)
+    }
+  }
+
+  // Função para voltar a editar
+  const handleBackToEdit = () => {
+    setShowPreview(false)
+    // Mantém os dados, usuário pode continuar editando
   }
 
   const professionConfig = getProfessionConfig(selectedProfession)
@@ -330,6 +640,66 @@ export function ClinicalNotesForm({
             </div>
           </div>
 
+          {/* Sinais Vitais Compacto */}
+          {lastVitalSign && !vitalSignsLoading && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">Último Monitoramento</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDateTimeSafe(lastVitalSign.timestamp)}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={insertVitalSignsIntoObjective}
+                  disabled={isLoading}
+                  className="h-7 text-xs"
+                >
+                  Inserir no Objetivo
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {lastVitalSign.systolicBloodPressure && lastVitalSign.diastolicBloodPressure && (
+                  <div className="bg-white rounded px-2 py-1 text-xs">
+                    <span className="text-muted-foreground">PA:</span>{' '}
+                    <span className="font-medium">
+                      {lastVitalSign.systolicBloodPressure}/{lastVitalSign.diastolicBloodPressure}
+                    </span>
+                  </div>
+                )}
+                {lastVitalSign.heartRate && (
+                  <div className="bg-white rounded px-2 py-1 text-xs">
+                    <span className="text-muted-foreground">FC:</span>{' '}
+                    <span className="font-medium">{lastVitalSign.heartRate} bpm</span>
+                  </div>
+                )}
+                {lastVitalSign.temperature && (
+                  <div className="bg-white rounded px-2 py-1 text-xs">
+                    <span className="text-muted-foreground">Temp:</span>{' '}
+                    <span className="font-medium">{lastVitalSign.temperature.toFixed(1)}°C</span>
+                  </div>
+                )}
+                {lastVitalSign.oxygenSaturation && (
+                  <div className="bg-white rounded px-2 py-1 text-xs">
+                    <span className="text-muted-foreground">SpO2:</span>{' '}
+                    <span className="font-medium">{lastVitalSign.oxygenSaturation}%</span>
+                  </div>
+                )}
+                {lastVitalSign.bloodGlucose && (
+                  <div className="bg-white rounded px-2 py-1 text-xs">
+                    <span className="text-muted-foreground">Gli:</span>{' '}
+                    <span className="font-medium">{lastVitalSign.bloodGlucose} mg/dL</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Campos SOAP com template dinâmico */}
           <div className={`rounded-lg border-2 p-4 ${professionConfig.borderColor} ${professionConfig.bgColor}`}>
             <h3 className={`font-semibold mb-4 ${professionConfig.color}`}>
@@ -350,98 +720,85 @@ export function ClinicalNotesForm({
             />
           </div>
 
-          {/* Sinais Vitais */}
-          <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-blue-900 flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Últimos Sinais Vitais
-              </h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={insertVitalSignsIntoObjective}
-                disabled={isLoading || vitalSignsLoading || !lastVitalSign}
-                className="gap-2"
-              >
-                Inserir no Objetivo
-              </Button>
+          {/* Documento Opcional */}
+          {!isEditing && (
+            <div>
+              {documentTitle && documentContent ? (
+                // Card compacto quando documento existe
+                <div className="p-3 border-2 border-purple-200 bg-purple-50 rounded-lg">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-4 w-4 text-purple-600 shrink-0" />
+                        <h4 className="font-medium text-purple-900 text-sm truncate">{documentTitle}</h4>
+                        {documentType && (
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {documentType}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {documentContent.replace(/<[^>]*>/g, '')}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowPreview(true)}
+                        className="shrink-0 h-8 w-8 p-0"
+                        title="Visualizar documento"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowEditorModal(true)}
+                        className="shrink-0 h-8 w-8 p-0"
+                        title="Editar documento"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este documento?')) {
+                            setDocumentTitle('')
+                            setDocumentType('')
+                            setDocumentContent('')
+                            setDocumentEnabled(false)
+                          }
+                        }}
+                        className="shrink-0 h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Excluir documento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // Botão compacto quando não há documento
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setDocumentEnabled(true)
+                    setShowEditorModal(true)
+                  }}
+                  className="w-full gap-2 text-purple-700 border-purple-200 hover:bg-purple-50"
+                >
+                  <FileText className="h-4 w-4" />
+                  Adicionar Documento Formatado (opcional)
+                </Button>
+              )}
             </div>
-
-            {vitalSignsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando sinais vitais...
-              </div>
-            ) : lastVitalSign ? (
-              <div className="space-y-3">
-                {/* Dados dos sinais vitais */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                  {lastVitalSign.systolicBloodPressure && lastVitalSign.diastolicBloodPressure && (
-                    <div className="bg-white rounded p-2">
-                      <div className="text-xs text-muted-foreground">Pressão Arterial</div>
-                      <div className="font-semibold">
-                        {lastVitalSign.systolicBloodPressure}/{lastVitalSign.diastolicBloodPressure} mmHg
-                      </div>
-                    </div>
-                  )}
-                  {lastVitalSign.heartRate && (
-                    <div className="bg-white rounded p-2">
-                      <div className="text-xs text-muted-foreground">Frequência Cardíaca</div>
-                      <div className="font-semibold">{lastVitalSign.heartRate} bpm</div>
-                    </div>
-                  )}
-                  {lastVitalSign.temperature && (
-                    <div className="bg-white rounded p-2">
-                      <div className="text-xs text-muted-foreground">Temperatura</div>
-                      <div className="font-semibold">{lastVitalSign.temperature.toFixed(1)}°C</div>
-                    </div>
-                  )}
-                  {lastVitalSign.oxygenSaturation && (
-                    <div className="bg-white rounded p-2">
-                      <div className="text-xs text-muted-foreground">SpO2</div>
-                      <div className="font-semibold">{lastVitalSign.oxygenSaturation}%</div>
-                    </div>
-                  )}
-                  {lastVitalSign.bloodGlucose && (
-                    <div className="bg-white rounded p-2">
-                      <div className="text-xs text-muted-foreground">Glicemia</div>
-                      <div className="font-semibold">{lastVitalSign.bloodGlucose} mg/dL</div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Alertas críticos */}
-                {(() => {
-                  const alerts = checkCriticalVitalSigns(lastVitalSign)
-                  return alerts.length > 0 ? (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                      <div className="flex items-center gap-2 text-yellow-800 font-semibold text-sm mb-2">
-                        <AlertCircle className="h-4 w-4" />
-                        Alertas Críticos
-                      </div>
-                      <ul className="text-sm text-yellow-700 space-y-1">
-                        {alerts.map((alert, index) => (
-                          <li key={index}>{alert}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null
-                })()}
-
-                {/* Timestamp */}
-                <div className="text-xs text-muted-foreground">
-                  Registrado em: {formatDateTimeSafe(lastVitalSign.timestamp)}
-                  {lastVitalSign.recordedBy && ` por ${lastVitalSign.recordedBy}`}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                Nenhum sinal vital registrado recentemente.
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Tags */}
           <div className="space-y-2">
@@ -552,6 +909,64 @@ export function ClinicalNotesForm({
           </div>
         </form>
       </DialogContent>
+
+      {/* Modal de Preview do Documento */}
+      {showPreview && (
+        <DocumentPreviewModal
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          documentTitle={documentTitle}
+          documentContent={documentContent}
+          resident={{
+            fullName: residentData?.fullName || '',
+            age: residentData?.birthDate
+              ? new Date().getFullYear() - new Date(residentData.birthDate).getFullYear()
+              : 0,
+            cpf: residentData?.cpf || '',
+            cns: residentData?.cns,
+            admissionDate: residentData?.admissionDate,
+          }}
+          professional={professionalData}
+          date={pendingFormData?.noteDate || new Date().toISOString()}
+          documentId={undefined} // TODO: Gerar UUID ao criar documento
+          institutionalData={
+            profileData?.profile
+              ? {
+                  tenantName: profileData.tenant?.name,
+                  logoUrl: profileData.profile.logoUrl || undefined,
+                  cnpj: profileData.tenant?.cnpj || undefined,
+                  cnesCode: profileData.profile.cnesCode || undefined,
+                  phone: profileData.tenant?.phone || undefined,
+                  email: profileData.tenant?.email || undefined,
+                  addressStreet: profileData.tenant?.addressStreet || undefined,
+                  addressNumber: profileData.tenant?.addressNumber || undefined,
+                  addressDistrict: profileData.tenant?.addressDistrict || undefined,
+                  addressCity: profileData.tenant?.addressCity || undefined,
+                  addressState: profileData.tenant?.addressState || undefined,
+                  addressZipCode: profileData.tenant?.addressZipCode || undefined,
+                }
+              : undefined
+          }
+          onConfirm={handleConfirmSave}
+          onEdit={handleBackToEdit}
+          isConfirming={isConfirming}
+        />
+      )}
+
+      {/* Modal do Editor de Documentos (fullscreen) */}
+      <DocumentEditorModal
+        open={showEditorModal}
+        onOpenChange={setShowEditorModal}
+        documentTitle={documentTitle}
+        documentType={documentType}
+        documentContent={documentContent}
+        onDocumentTitleChange={setDocumentTitle}
+        onDocumentTypeChange={setDocumentType}
+        onDocumentContentChange={setDocumentContent}
+        onSave={() => {
+          toast.success('Documento salvo! Será anexado à evolução.')
+        }}
+      />
     </Dialog>
   )
 }

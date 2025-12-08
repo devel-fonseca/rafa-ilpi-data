@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { FilesService } from '../files/files.service'
 import { CreateClinicalNoteDto } from './dto/create-clinical-note.dto'
 import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
 import { QueryClinicalNoteDto } from './dto/query-clinical-note.dto'
@@ -29,7 +30,41 @@ import {
  */
 @Injectable()
 export class ClinicalNotesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly filesService: FilesService,
+  ) {}
+
+  /**
+   * Processa documentos de uma evolução clínica, gerando URLs assinadas
+   */
+  private async processDocumentUrls(note: any): Promise<any> {
+    if (!note) return note
+
+    // Se a nota tem documentos, processar URLs
+    if (note.documents && Array.isArray(note.documents)) {
+      const documentsWithUrls = await Promise.all(
+        note.documents.map(async (doc: any) => {
+          if (doc.pdfFileUrl) {
+            // Gerar URL assinada
+            const signedUrl = await this.filesService.getFileUrl(doc.pdfFileUrl)
+            return {
+              ...doc,
+              pdfFileUrl: signedUrl,
+            }
+          }
+          return doc
+        }),
+      )
+
+      return {
+        ...note,
+        documents: documentsWithUrls,
+      }
+    }
+
+    return note
+  }
 
   /**
    * Cria uma nova evolução clínica
@@ -43,6 +78,7 @@ export class ClinicalNotesService {
     createDto: CreateClinicalNoteDto,
     userId: string,
     tenantId: string,
+    pdfFile?: Express.Multer.File,
   ): Promise<ClinicalNote> {
     // Validar se ao menos 1 campo SOAP foi preenchido
     if (
@@ -82,7 +118,7 @@ export class ClinicalNotesService {
     const editableUntil = new Date(noteDate.getTime() + 12 * 60 * 60 * 1000)
 
     // Criar evolução clínica
-    return this.prisma.clinicalNote.create({
+    const clinicalNote = await this.prisma.clinicalNote.create({
       data: {
         tenantId,
         residentId: createDto.residentId,
@@ -116,6 +152,43 @@ export class ClinicalNotesService {
         },
       },
     })
+
+    // Se documento foi fornecido, criar ClinicalNoteDocument e fazer upload do PDF
+    if (createDto.document && pdfFile) {
+      // 1. Criar registro do documento
+      const clinicalDoc = await this.prisma.clinicalNoteDocument.create({
+        data: {
+          tenantId,
+          noteId: clinicalNote.id,
+          residentId: createDto.residentId,
+          title: createDto.document.title,
+          type: createDto.document.type || null,
+          documentDate: noteDate,
+          htmlContent: createDto.document.htmlContent,
+          createdBy: userId,
+        },
+      })
+
+      // 2. Upload do PDF para MinIO
+      const uploadResult = await this.filesService.uploadFile(
+        tenantId,
+        pdfFile,
+        'clinical-documents',
+        clinicalDoc.id,
+      )
+
+      // 3. Atualizar registro com informações do PDF
+      await this.prisma.clinicalNoteDocument.update({
+        where: { id: clinicalDoc.id },
+        data: {
+          pdfFileUrl: uploadResult.fileUrl,
+          pdfFileKey: uploadResult.fileId,
+          pdfFileName: uploadResult.fileName,
+        },
+      })
+    }
+
+    return clinicalNote
   }
 
   /**
@@ -143,6 +216,15 @@ export class ClinicalNotesService {
             cpf: true,
           },
         },
+        documents: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            pdfFileUrl: true,
+            documentDate: true,
+          },
+        },
       },
     })
 
@@ -150,7 +232,8 @@ export class ClinicalNotesService {
       throw new NotFoundException('Evolução clínica não encontrada')
     }
 
-    return note
+    // Processar URLs dos documentos
+    return this.processDocumentUrls(note)
   }
 
   /**
@@ -212,13 +295,27 @@ export class ClinicalNotesService {
               cpf: true,
             },
           },
+          documents: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              pdfFileUrl: true,
+              documentDate: true,
+            },
+          },
         },
       }),
       this.prisma.clinicalNote.count({ where }),
     ])
 
+    // Processar URLs dos documentos para todas as notas
+    const dataWithUrls = await Promise.all(
+      data.map((note) => this.processDocumentUrls(note)),
+    )
+
     return {
-      data,
+      data: dataWithUrls,
       total,
       page,
       limit,
@@ -274,12 +371,26 @@ export class ClinicalNotesService {
               cpf: true,
             },
           },
+          documents: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              pdfFileUrl: true,
+              documentDate: true,
+            },
+          },
         },
       }),
       this.prisma.clinicalNote.count({ where }),
     ])
 
-    return { data, total }
+    // Processar URLs dos documentos para todas as notas
+    const dataWithUrls = await Promise.all(
+      data.map((note) => this.processDocumentUrls(note)),
+    )
+
+    return { data: dataWithUrls, total }
   }
 
   /**
@@ -516,5 +627,68 @@ export class ClinicalNotesService {
     // Extrair todas as tags e remover duplicatas
     const allTags = notes.flatMap((note) => note.tags)
     return [...new Set(allTags)].sort()
+  }
+
+  /**
+   * Busca documentos clínicos (Tiptap) de um residente
+   * Retorna todos os documentos PDF criados junto com evoluções clínicas
+   */
+  async getDocumentsByResident(residentId: string, tenantId: string) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findUnique({
+      where: {
+        id: residentId,
+        tenantId,
+      },
+    })
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado')
+    }
+
+    // Buscar documentos do residente com informações do profissional
+    const documents = await this.prisma.clinicalNoteDocument.findMany({
+      where: {
+        residentId,
+        tenantId,
+      },
+      include: {
+        clinicalNote: {
+          select: {
+            profession: true,
+            professional: {
+              select: {
+                name: true,
+                profile: {
+                  select: {
+                    registrationNumber: true,
+                    registrationState: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        documentDate: 'desc',
+      },
+    })
+
+    // Processar URLs assinadas para cada documento
+    const documentsWithSignedUrls = await Promise.all(
+      documents.map(async (doc) => {
+        if (doc.pdfFileUrl) {
+          const signedUrl = await this.filesService.getFileUrl(doc.pdfFileUrl)
+          return {
+            ...doc,
+            pdfFileUrl: signedUrl,
+          }
+        }
+        return doc
+      }),
+    )
+
+    return documentsWithSignedUrls
   }
 }

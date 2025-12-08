@@ -337,8 +337,24 @@ export class PrescriptionsService {
       this.prisma.prescription.count({ where }),
     ]);
 
+    // Processar URLs assinadas para prescriptionImageUrl
+    const prescriptionsWithSignedUrls = await Promise.all(
+      prescriptions.map(async (prescription) => {
+        if (prescription.prescriptionImageUrl) {
+          const signedUrl = await this.filesService.getFileUrl(
+            prescription.prescriptionImageUrl,
+          );
+          return {
+            ...prescription,
+            prescriptionImageUrl: signedUrl,
+          };
+        }
+        return prescription;
+      }),
+    );
+
     return {
-      data: prescriptions.map(p => this.formatDateOnlyFields(p)),
+      data: prescriptionsWithSignedUrls.map(p => this.formatDateOnlyFields(p)),
       meta: {
         total,
         page,

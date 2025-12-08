@@ -93,3 +93,98 @@
     }
   }
 }
+
+/* ========== Tiptap Editor Styles ========== */
+
+@layer components {
+  /* Estilos para o conteúdo do editor Tiptap */
+  .tiptap {
+    @apply focus:outline-none;
+  }
+
+  /* Parágrafos */
+  .tiptap p {
+    @apply my-4 first:mt-0 last:mb-0 text-base leading-relaxed;
+  }
+
+  .tiptap p.is-editor-empty:first-child::before {
+    @apply text-muted-foreground float-left h-0 pointer-events-none;
+    content: attr(data-placeholder);
+  }
+
+  /* Títulos */
+  .tiptap h1 {
+    @apply text-3xl font-bold mt-8 mb-4 first:mt-0 last:mb-0;
+  }
+
+  .tiptap h2 {
+    @apply text-2xl font-bold mt-6 mb-3 first:mt-0 last:mb-0;
+  }
+
+  .tiptap h3 {
+    @apply text-xl font-bold mt-5 mb-2 first:mt-0 last:mb-0;
+  }
+
+  /* Listas */
+  .tiptap ul {
+    @apply list-disc my-4 first:mt-0 last:mb-0;
+    padding-left: 1.5rem;
+    list-style-position: outside;
+  }
+
+  .tiptap ol {
+    @apply list-decimal my-4 first:mt-0 last:mb-0;
+    padding-left: 1.5rem;
+    list-style-position: outside;
+  }
+
+  .tiptap li {
+    @apply my-2;
+    display: list-item;
+  }
+
+  .tiptap li p {
+    @apply my-0;
+  }
+
+  /* Links */
+  .tiptap a {
+    @apply text-primary underline cursor-pointer hover:text-primary/80 transition-colors;
+  }
+
+  /* Formatação de texto */
+  .tiptap strong {
+    @apply font-bold;
+  }
+
+  .tiptap em {
+    @apply italic;
+  }
+
+  .tiptap u {
+    @apply underline;
+  }
+
+  /* Blockquotes */
+  .tiptap blockquote {
+    @apply border-l-4 border-border pl-4 italic my-4 text-muted-foreground;
+  }
+
+  /* Code blocks */
+  .tiptap code {
+    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .tiptap pre {
+    @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
+  }
+
+  .tiptap pre code {
+    @apply bg-transparent p-0;
+  }
+
+  /* Horizontal rule */
+  .tiptap hr {
+    @apply border-t border-border my-6;
+  }
+}

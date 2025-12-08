@@ -55,6 +55,18 @@ export class InstitutionalProfileService {
 
     const profile = await this.getProfile(tenantId)
 
+    // Se houver logo, gerar URL pré-assinada
+    if (profile?.logoUrl) {
+      const signedUrl = await this.filesService.getFileUrl(profile.logoUrl)
+      return {
+        tenant,
+        profile: {
+          ...profile,
+          logoUrl: signedUrl, // Substituir path relativo por URL assinada
+        },
+      }
+    }
+
     return {
       tenant,
       profile,

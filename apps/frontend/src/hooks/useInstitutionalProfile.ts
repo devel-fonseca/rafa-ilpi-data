@@ -47,6 +47,8 @@ export function useProfile() {
       console.log('✅ [useProfile] API retornou:', {
         legalNature: result.profile?.legalNature,
         tenantName: result.tenant.name,
+        logoUrl: result.profile?.logoUrl,
+        hasProfile: !!result.profile,
         timestamp: new Date().toISOString()
       })
       return result

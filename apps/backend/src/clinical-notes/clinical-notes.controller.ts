@@ -11,7 +11,10 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import {
   ApiTags,
   ApiOperation,
@@ -19,6 +22,8 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger'
 import { ClinicalNotesService } from './clinical-notes.service'
 import {
@@ -66,12 +71,32 @@ export class ClinicalNotesController {
   @Post()
   @RequirePermissions(PermissionType.CREATE_CLINICAL_NOTES)
   @AuditAction('CREATE')
+  @UseInterceptors(FileInterceptor('pdfFile'))
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiOperation({
     summary: 'Criar evolução clínica (SOAP)',
     description:
       'Cria uma nova evolução clínica multiprofissional usando metodologia SOAP. ' +
       'Ao menos um campo SOAP (S, O, A ou P) deve ser preenchido. ' +
-      'A janela de edição é de 12 horas a partir da data da evolução.',
+      'A janela de edição é de 12 horas a partir da data da evolução. ' +
+      'Se um documento Tiptap for incluído, enviar o PDF gerado via pdfFile.',
+  })
+  @ApiBody({
+    description: 'Dados da evolução clínica + PDF opcional do documento',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'string',
+          description: 'JSON stringificado do CreateClinicalNoteDto',
+        },
+        pdfFile: {
+          type: 'string',
+          format: 'binary',
+          description: 'PDF do documento Tiptap (opcional)',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 201, description: 'Evolução criada com sucesso' })
   @ApiResponse({
@@ -79,8 +104,24 @@ export class ClinicalNotesController {
     description: 'Dados inválidos ou nenhum campo SOAP preenchido',
   })
   @ApiResponse({ status: 403, description: 'Sem permissão CREATE_CLINICAL_NOTES' })
-  create(@Body() createDto: CreateClinicalNoteDto, @CurrentUser() user: any) {
-    return this.clinicalNotesService.create(createDto, user.id, user.tenantId)
+  create(
+    @Body() body: any,
+    @CurrentUser() user: any,
+    @UploadedFile() pdfFile?: Express.Multer.File,
+  ) {
+    // Se FormData foi enviado, parsear o campo 'data'
+    let createDto: CreateClinicalNoteDto
+    if (typeof body.data === 'string') {
+      try {
+        createDto = JSON.parse(body.data)
+      } catch (e) {
+        throw new Error('Invalid JSON in data field')
+      }
+    } else {
+      createDto = body
+    }
+
+    return this.clinicalNotesService.create(createDto, user.id, user.tenantId, pdfFile)
   }
 
   /**
@@ -182,6 +223,27 @@ export class ClinicalNotesController {
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   getTagsSuggestions(@CurrentUser() user: any) {
     return this.clinicalNotesService.getTagsSuggestions(user.tenantId)
+  }
+
+  /**
+   * Buscar documentos clínicos (Tiptap) de um residente
+   */
+  @Get('documents/resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_CLINICAL_NOTES)
+  @ApiOperation({
+    summary: 'Buscar documentos clínicos de um residente',
+    description:
+      'Retorna todos os documentos Tiptap (PDFs) criados junto com evoluções clínicas de um residente.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de documentos clínicos' })
+  @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  getDocumentsByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.clinicalNotesService.getDocumentsByResident(residentId, user.tenantId)
   }
 
   /**

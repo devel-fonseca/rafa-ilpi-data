@@ -9,6 +9,7 @@ import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
 import { format } from 'date-fns'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
+import { PendingActivities } from '@/components/dashboard/PendingActivities'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -166,10 +167,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Activities Grid - Recent & Pending */}
       <div className="mt-8">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Atividade Recente</h3>
-        <RecentActivity />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Activity */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Atividades Recentes</h3>
+            <RecentActivity />
+          </div>
+
+          {/* Pending Activities */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Atividades Pendentes</h3>
+            <PendingActivities />
+          </div>
+        </div>
       </div>
 
       {/* Plan Info */}

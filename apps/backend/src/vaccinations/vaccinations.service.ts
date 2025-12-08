@@ -5,6 +5,7 @@ import {
   Inject,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { FilesService } from '../files/files.service'
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
 import { Logger } from 'winston'
 import { parseISO, startOfDay } from 'date-fns'
@@ -14,6 +15,7 @@ import { CreateVaccinationDto, UpdateVaccinationDto } from './dto'
 export class VaccinationsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -148,7 +150,7 @@ export class VaccinationsService {
       throw new NotFoundException('Residente não encontrado')
     }
 
-    return await this.prisma.vaccination.findMany({
+    const vaccinations = await this.prisma.vaccination.findMany({
       where: {
         residentId,
         tenantId,
@@ -166,6 +168,24 @@ export class VaccinationsService {
         },
       },
     })
+
+    // Processar URLs assinadas para certificados
+    const vaccinationsWithSignedUrls = await Promise.all(
+      vaccinations.map(async (vaccination) => {
+        if (vaccination.certificateUrl) {
+          const signedUrl = await this.filesService.getFileUrl(
+            vaccination.certificateUrl,
+          )
+          return {
+            ...vaccination,
+            certificateUrl: signedUrl,
+          }
+        }
+        return vaccination
+      }),
+    )
+
+    return vaccinationsWithSignedUrls
   }
 
   /**

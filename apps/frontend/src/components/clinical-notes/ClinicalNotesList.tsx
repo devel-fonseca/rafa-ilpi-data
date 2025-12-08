@@ -19,6 +19,7 @@ import { ClinicalNotesForm } from './ClinicalNotesForm'
 import { ViewClinicalNoteModal } from './ViewClinicalNoteModal'
 import { ClinicalNoteHistoryModal } from './ClinicalNoteHistoryModal'
 import { ClinicalNotePrintView } from './ClinicalNotePrintView'
+import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 import { PROFESSION_CONFIG } from '@/utils/clinicalNotesConstants'
 import { extractDateOnly } from '@/utils/dateHelpers'
 
@@ -42,6 +43,11 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
   const [historyNoteId, setHistoryNoteId] = useState<string | null>(null)
   const [printNote, setPrintNote] = useState<ClinicalNote | null>(null)
+
+  // Document viewer modal states
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>('')
+  const [selectedDocumentTitle, setSelectedDocumentTitle] = useState<string>('Documento')
 
   // Filter states
   const [professionFilter, setProfessionFilter] = useState<ClinicalProfession | 'all'>('all')
@@ -145,6 +151,12 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
     setTimeout(() => {
       handlePrintSingleNote()
     }, 100)
+  }
+
+  const handleViewDocument = (documentUrl: string, documentTitle?: string) => {
+    setSelectedDocumentUrl(documentUrl)
+    setSelectedDocumentTitle(documentTitle || 'Documento Clínico')
+    setDocumentViewerOpen(true)
   }
 
   const handleFormClose = () => {
@@ -297,6 +309,7 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
                   onEdit={handleEdit}
                   onHistory={handleHistory}
                   onPrint={handlePrintNote}
+                  onViewDocument={handleViewDocument}
                   canEdit={canEdit(note)}
                 />
               ))}
@@ -352,6 +365,14 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
         noteId={historyNoteId}
         open={historyModalOpen}
         onOpenChange={setHistoryModalOpen}
+      />
+
+      <DocumentViewerModal
+        open={documentViewerOpen}
+        onOpenChange={setDocumentViewerOpen}
+        documentUrl={selectedDocumentUrl}
+        documentTitle={selectedDocumentTitle}
+        documentType="auto"
       />
     </div>
   )
