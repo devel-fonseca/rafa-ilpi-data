@@ -10,10 +10,21 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd apps/backend && npm run build",
     "build:frontend": "cd apps/frontend && npm run build",
-    "install:all": "npm install && cd apps/backend && npm install && cd ../frontend && npm install"
+    "install:all": "npm install && cd apps/backend && npm install && cd ../frontend && npm install",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7"
+  },
+  "lint-staged": {
+    "apps/frontend/**/*.{ts,tsx}": [
+      "bash -c 'cd apps/frontend && npm run lint:staged'"
+    ],
+    "apps/backend/src/**/*.ts": [
+      "bash -c 'cd apps/backend && npm run lint:staged'"
+    ]
   },
   "author": "Rafa Labs Desenvolvimento e Tecnologia",
   "license": "PROPRIETARY",

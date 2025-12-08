@@ -561,4 +561,120 @@ describe('DailyRecordsService', () => {
       ).resolves.not.toThrow();
     });
   });
+
+  describe('Validação de Timezone (TIMESTAMPTZ)', () => {
+    it('deve converter campos date-only para Date com T12:00:00 (meio-dia)', async () => {
+      const dateStr = '2025-12-06';
+      const dto = {
+        residentId: mockResident.id,
+        type: 'ALIMENTACAO',
+        date: dateStr,
+        time: '08:00',
+        data: { refeicao: 'Café da manhã' },
+        recordedBy: 'Test',
+      };
+
+      prisma.resident.findFirst.mockResolvedValue(mockResident);
+
+      let capturedDate: Date | undefined;
+      prisma.dailyRecord.create.mockImplementation((params: any) => {
+        capturedDate = params.data.date;
+        return Promise.resolve({
+          ...mockDailyRecord,
+          date: capturedDate,
+          resident: { id: mockResident.id, fullName: mockResident.fullName },
+        });
+      });
+
+      await service.create(dto, mockTenant.id, mockAdminUser.id);
+
+      expect(capturedDate).toBeDefined();
+      expect(capturedDate!.getUTCHours()).toBeGreaterThanOrEqual(12);
+      expect(capturedDate!.getUTCHours()).toBeLessThanOrEqual(15); // UTC-3 = 15:00 UTC
+    });
+
+    it('deve usar range de datas (startOfDay/endOfDay) em queries por data', async () => {
+      const testDate = '2025-12-06';
+
+      prisma.dailyRecord.findMany.mockResolvedValue([mockDailyRecord]);
+      prisma.dailyRecord.count.mockResolvedValue(1);
+
+      await service.findAll({ date: testDate }, mockTenant.id);
+
+      const findManyCall = prisma.dailyRecord.findMany.mock.calls[0][0];
+      expect(findManyCall.where.date).toBeDefined();
+      expect(findManyCall.where.date.gte).toBeInstanceOf(Date);
+      expect(findManyCall.where.date.lte).toBeInstanceOf(Date);
+
+      // Verificar que gte e lte formam um range de 1 dia completo
+      const gte = findManyCall.where.date.gte as Date;
+      const lte = findManyCall.where.date.lte as Date;
+
+      // startOfDay e endOfDay usam timezone local (UTC-3)
+      // startOfDay(2025-12-06) em UTC-3 = 2025-12-06T03:00:00.000Z
+      // endOfDay(2025-12-06) em UTC-3 = 2025-12-07T02:59:59.999Z
+      const diffMs = lte.getTime() - gte.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      // Deve cobrir aproximadamente 24 horas
+      expect(diffHours).toBeGreaterThan(23);
+      expect(diffHours).toBeLessThan(25);
+    });
+
+    it('NÃO deve permitir registros "pularem" de dia devido a timezone', async () => {
+      const date1 = '2025-12-06';
+      const date2 = '2025-12-07';
+
+      prisma.dailyRecord.findMany.mockResolvedValue([
+        { ...mockDailyRecord, id: '1', date: new Date('2025-12-06T12:00:00.000Z') },
+      ]);
+      prisma.dailyRecord.count.mockResolvedValue(1);
+
+      await service.findAll({ date: date1 }, mockTenant.id);
+
+      const findManyCall = prisma.dailyRecord.findMany.mock.calls[0][0];
+      const gte = findManyCall.where.date.gte as Date;
+      const lte = findManyCall.where.date.lte as Date;
+
+      // Verificar que o range de data está dentro do mesmo dia
+      // O range deve começar em 2025-12-06 e terminar antes de 2025-12-08
+      const currentDayStart = new Date('2025-12-06T00:00:00.000Z');
+      const nextNextDayStart = new Date('2025-12-08T00:00:00.000Z');
+
+      expect(gte.getTime()).toBeGreaterThanOrEqual(currentDayStart.getTime());
+      expect(lte.getTime()).toBeLessThan(nextNextDayStart.getTime());
+    });
+
+    it('deve usar startOfMonth/endOfMonth para findDatesWithRecordsByResident', async () => {
+      const year = 2025;
+      const month = 12;
+
+      prisma.resident.findFirst.mockResolvedValue(mockResident);
+      prisma.dailyRecord.findMany.mockResolvedValue([
+        { date: new Date('2025-12-01T12:00:00.000Z') },
+        { date: new Date('2025-12-15T12:00:00.000Z') },
+        { date: new Date('2025-12-31T12:00:00.000Z') },
+      ]);
+
+      await service.findDatesWithRecordsByResident(mockResident.id, mockTenant.id, year, month);
+
+      const findManyCall = prisma.dailyRecord.findMany.mock.calls[0][0];
+      expect(findManyCall.where.date).toBeDefined();
+      expect(findManyCall.where.date.gte).toBeInstanceOf(Date);
+      expect(findManyCall.where.date.lte).toBeInstanceOf(Date);
+
+      const gte = findManyCall.where.date.gte as Date;
+      const lte = findManyCall.where.date.lte as Date;
+
+      // Verificar que cobre todo o mês (startOfMonth e endOfMonth em UTC-3)
+      // startOfMonth(2025, 12) = 2025-12-01T03:00:00.000Z (UTC-3)
+      // endOfMonth(2025, 12) = 2026-01-01T02:59:59.999Z (fim do dia 31 em UTC-3)
+      const monthStart = new Date('2025-12-01T00:00:00.000Z');
+      const monthEnd = new Date('2026-01-01T00:00:00.000Z');
+
+      expect(gte.getTime()).toBeGreaterThanOrEqual(monthStart.getTime());
+      expect(lte.getTime()).toBeGreaterThanOrEqual(monthStart.getTime());
+      expect(lte.getTime()).toBeLessThan(monthEnd.getTime() + 24 * 60 * 60 * 1000);
+    });
+  });
 });

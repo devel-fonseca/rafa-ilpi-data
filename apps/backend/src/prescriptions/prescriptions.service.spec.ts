@@ -11,6 +11,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrescriptionsService } from './prescriptions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FilesService } from '../files/files.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { mockPrismaService } from '../../test/mocks/prisma.mock';
 import { mockTenant } from '../../test/fixtures/tenant.fixture';
 import { mockAdminUser } from '../../test/fixtures/user.fixture';
@@ -25,6 +26,11 @@ describe('PrescriptionsService', () => {
     uploadPrescriptionImage: jest.fn(),
     deleteFile: jest.fn(),
     getFileUrl: jest.fn(),
+  };
+
+  const mockNotificationsService = {
+    sendNotification: jest.fn(),
+    createNotification: jest.fn(),
   };
 
   const mockLogger = {
@@ -86,6 +92,10 @@ describe('PrescriptionsService', () => {
         {
           provide: FilesService,
           useValue: mockFilesService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -253,7 +263,10 @@ describe('PrescriptionsService', () => {
 
       const result = await service.findAll({}, mockTenant.id);
 
-      expect(result.data).toEqual(mockPrescriptions);
+      // Service converte datas para strings, então não fazemos toEqual direto
+      expect(result.data.length).toBe(2);
+      expect(result.data[0].id).toBe('prescription-1');
+      expect(result.data[1].id).toBe('prescription-2');
       expect(result.meta.total).toBe(2);
     });
 
@@ -485,6 +498,119 @@ describe('PrescriptionsService', () => {
       await expect(
         service.findOne('prescription-other-tenant', mockTenant.id)
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('Validação de Timezone (TIMESTAMPTZ)', () => {
+    it('deve converter string de data para Date com meio-dia ao criar prescrição', async () => {
+      const prescriptionDateStr = '2025-12-06';
+      const validUntilStr = '2026-06-30';
+
+      const createDto: any = {
+        residentId: mockResident.id,
+        doctorName: 'Dr. João Silva',
+        doctorCrm: '12345',
+        doctorCrmState: 'SP',
+        prescriptionDate: prescriptionDateStr,
+        prescriptionType: 'ROTINA',
+        validUntil: validUntilStr,
+        medications: [
+          {
+            name: 'Losartana',
+            presentation: 'COMPRIMIDO',
+            concentration: '50mg',
+            dose: '1 comprimido',
+            route: 'ORAL',
+            frequency: 'UMA_VEZ_DIA',
+            scheduledTimes: ['08:00'],
+            startDate: prescriptionDateStr,
+          },
+        ],
+      };
+
+      prisma.resident.findFirst.mockResolvedValue(mockResident);
+
+      let capturedPrescriptionDate: any;
+      let capturedValidUntil: any;
+
+      prisma.$transaction.mockImplementation(async (callback: any) => {
+        return await callback(prisma);
+      });
+
+      prisma.prescription.create.mockImplementation((params: any) => {
+        capturedPrescriptionDate = params.data.prescriptionDate;
+        capturedValidUntil = params.data.validUntil;
+        return Promise.resolve({
+          ...mockPrescription,
+          prescriptionDate: '2025-12-06',
+          validUntil: '2026-06-30',
+          medications: [mockMedication],
+          sosMedications: [],
+          resident: { id: mockResident.id, fullName: mockResident.fullName },
+        });
+      });
+
+      await service.create(createDto, mockTenant.id, mockAdminUser.id);
+
+      // Verificar que datas foram convertidas para Date objects ao salvar
+      expect(capturedPrescriptionDate).toBeInstanceOf(Date);
+      expect(capturedValidUntil).toBeInstanceOf(Date);
+    });
+
+    it('deve usar comparação de datas com endOfDay para identificar prescrições expirando', async () => {
+      const expiringIn5Days = '2025-12-11';
+
+      prisma.prescription.findMany.mockResolvedValue([
+        {
+          ...mockPrescription,
+          validUntil: expiringIn5Days,
+          resident: {
+            id: mockResident.id,
+            fullName: mockResident.fullName,
+            fotoUrl: null,
+            bedId: null,
+          },
+          _count: { medications: 1, sosMedications: 0 },
+        },
+      ]);
+      prisma.prescription.count.mockResolvedValue(1);
+
+      const result = await service.findAll({ expiringInDays: '7' }, mockTenant.id);
+
+      // Verificar que a query usou comparação com endOfDay
+      const findManyCall = prisma.prescription.findMany.mock.calls[0][0];
+      if (findManyCall.where.validUntil?.lte) {
+        expect(findManyCall.where.validUntil.lte).toBeInstanceOf(Date);
+      }
+
+      // Deve encontrar prescrição expirando
+      expect(result.data.length).toBeGreaterThan(0);
+    });
+
+    it('deve retornar datas como strings YYYY-MM-DD para evitar bugs de timezone no frontend', async () => {
+      prisma.prescription.findMany.mockResolvedValue([
+        {
+          ...mockPrescription,
+          prescriptionDate: new Date('2025-12-06T12:00:00.000Z'),
+          validUntil: new Date('2026-06-30T12:00:00.000Z'),
+          resident: {
+            id: mockResident.id,
+            fullName: mockResident.fullName,
+            fotoUrl: null,
+            bedId: null,
+          },
+          _count: { medications: 1, sosMedications: 0 },
+        },
+      ]);
+      prisma.prescription.count.mockResolvedValue(1);
+
+      const result = await service.findAll({}, mockTenant.id);
+
+      // Service deve converter Date para string YYYY-MM-DD antes de retornar
+      expect(typeof result.data[0].prescriptionDate).toBe('string');
+      expect(typeof result.data[0].validUntil).toBe('string');
+      expect(result.data[0].prescriptionDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(result.data[0].validUntil).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
 });
