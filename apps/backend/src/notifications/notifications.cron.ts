@@ -2,6 +2,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsService } from './notifications.service'
+import {
+  getDocumentLabel,
+  shouldTriggerAlert,
+} from '../institutional-profile/config/document-requirements.config'
 
 @Injectable()
 export class NotificationsCronService {
@@ -187,34 +191,46 @@ export class NotificationsCronService {
             })
 
             if (!existing) {
+              // Usar label amigável em vez do tipo técnico
+              const documentLabel = getDocumentLabel(doc.type)
               await this.notificationsService.createDocumentExpiredNotification(
                 tenant.id,
                 doc.id,
-                doc.type, // TenantDocument usa 'type' em vez de 'name'
+                documentLabel,
                 'TENANT_DOCUMENT',
               )
               totalExpired++
             }
           }
-          // Documento vencendo em 30 dias ou menos
-          else if (diffDays >= 0 && diffDays <= 30) {
+          // Documento vencendo - verificar se está em janela de alerta configurada
+          else if (diffDays >= 0 && shouldTriggerAlert(doc.type, diffDays)) {
+            // Verificar se já foi enviado alerta para esta janela específica
             const existing = await this.prisma.notification.findFirst({
               where: {
                 tenantId: tenant.id,
                 entityType: 'TENANT_DOCUMENT',
                 entityId: doc.id,
                 type: 'DOCUMENT_EXPIRING',
+                metadata: {
+                  path: ['daysLeft'],
+                  // Procura notificação com mesmo número de dias (±2 dias de margem)
+                  gte: diffDays - 2,
+                  lte: diffDays + 2,
+                },
                 createdAt: {
-                  gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                  // Evita duplicatas recentes (últimas 48h)
+                  gte: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
                 },
               },
             })
 
             if (!existing) {
+              // Usar label amigável em vez do tipo técnico
+              const documentLabel = getDocumentLabel(doc.type)
               await this.notificationsService.createDocumentExpiringNotification(
                 tenant.id,
                 doc.id,
-                doc.type, // TenantDocument usa 'type' em vez de 'name'
+                documentLabel,
                 diffDays,
                 'TENANT_DOCUMENT',
               )

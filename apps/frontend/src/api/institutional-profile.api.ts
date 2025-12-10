@@ -42,7 +42,13 @@ export interface TenantDocument {
   issuedAt?: string
   expiresAt?: string
   status: DocumentStatus
+  documentNumber?: string         // Número do documento (protocolo, alvará, etc.)
+  issuerEntity?: string           // Entidade emissora
+  tags?: string[]                 // Tags para categorização
   notes?: string
+  version: number                 // Versão do documento (incrementa a cada substituição)
+  replacedById?: string           // ID do documento que substituiu este
+  replacedAt?: string             // Data em que foi substituído
   uploadedBy: string
   createdAt: string
   updatedAt: string
@@ -83,6 +89,17 @@ export interface DocumentRequirement {
 export interface DocumentRequirementsResponse {
   legalNature: LegalNature
   required: DocumentRequirement[]
+}
+
+export interface DocumentType {
+  type: string
+  label: string
+  required: boolean
+}
+
+export interface AllDocumentTypesResponse {
+  legalNature: LegalNature
+  documentTypes: DocumentType[]
 }
 
 export interface CreateTenantProfileDto {
@@ -144,6 +161,9 @@ export interface CreateTenantDocumentDto {
   type: string
   issuedAt?: string
   expiresAt?: string
+  documentNumber?: string
+  issuerEntity?: string
+  tags?: string[]
   notes?: string
 }
 
@@ -206,6 +226,9 @@ class InstitutionalProfileAPI {
     formData.append('type', metadata.type)
     if (metadata.issuedAt) formData.append('issuedAt', metadata.issuedAt)
     if (metadata.expiresAt) formData.append('expiresAt', metadata.expiresAt)
+    if (metadata.documentNumber) formData.append('documentNumber', metadata.documentNumber)
+    if (metadata.issuerEntity) formData.append('issuerEntity', metadata.issuerEntity)
+    if (metadata.tags && metadata.tags.length > 0) formData.append('tags', JSON.stringify(metadata.tags))
     if (metadata.notes) formData.append('notes', metadata.notes)
 
     const response = await api.post<TenantDocument>(`${this.baseUrl}/documents`, formData, {
@@ -213,6 +236,31 @@ class InstitutionalProfileAPI {
         'Content-Type': 'multipart/form-data',
       },
     })
+    return response.data
+  }
+
+  /**
+   * Cria documento a partir de arquivo já enviado
+   * (usado quando o arquivo é enviado primeiro via /files/upload)
+   */
+  async createDocumentWithFileUrl(
+    fileUrl: string,
+    fileKey: string,
+    fileName: string,
+    fileSize: number,
+    mimeType: string,
+    metadata: CreateTenantDocumentDto
+  ): Promise<TenantDocument> {
+    const payload = {
+      fileUrl,
+      fileKey,
+      fileName,
+      fileSize,
+      mimeType,
+      ...metadata,
+    }
+
+    const response = await api.post<TenantDocument>(`${this.baseUrl}/documents/with-file-url`, payload)
     return response.data
   }
 
@@ -249,6 +297,11 @@ class InstitutionalProfileAPI {
 
   async getDocumentRequirements(legalNature: LegalNature): Promise<DocumentRequirementsResponse> {
     const response = await api.get<DocumentRequirementsResponse>(`${this.baseUrl}/requirements/${legalNature}`)
+    return response.data
+  }
+
+  async getAllDocumentTypes(legalNature: LegalNature): Promise<AllDocumentTypesResponse> {
+    const response = await api.get<AllDocumentTypesResponse>(`${this.baseUrl}/all-document-types/${legalNature}`)
     return response.data
   }
 

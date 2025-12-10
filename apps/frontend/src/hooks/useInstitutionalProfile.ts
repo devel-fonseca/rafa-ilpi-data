@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { uploadFileDetailed } from '@/services/upload'
 import {
   institutionalProfileAPI,
   type TenantProfile,
@@ -29,6 +30,7 @@ export const institutionalProfileKeys = {
   document: (id: string) => [...institutionalProfileKeys.documents(), 'detail', id] as const,
   compliance: () => [...institutionalProfileKeys.all, 'compliance'] as const,
   requirements: (legalNature: LegalNature) => [...institutionalProfileKeys.all, 'requirements', legalNature] as const,
+  allTypes: (legalNature: LegalNature) => [...institutionalProfileKeys.all, 'all-types', legalNature] as const,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -114,13 +116,26 @@ export function useDocument(documentId: string) {
 
 /**
  * Hook para upload de novo documento
+ * Separa o upload do arquivo (usando /files/upload) dos metadados
  */
 export function useUploadDocument() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ file, metadata }: { file: File; metadata: CreateTenantDocumentDto }) =>
-      institutionalProfileAPI.uploadDocument(file, metadata),
+    mutationFn: async ({ file, metadata }: { file: File; metadata: CreateTenantDocumentDto }) => {
+      // 1. Primeiro faz upload do arquivo usando o serviço genérico de files
+      const uploadResult = await uploadFileDetailed(file, 'institutional-documents')
+
+      // 2. Depois cria o registro do documento com a URL do arquivo e os metadados
+      return institutionalProfileAPI.createDocumentWithFileUrl(
+        uploadResult.fileUrl,
+        uploadResult.fileId,
+        uploadResult.fileName,
+        uploadResult.fileSize,
+        uploadResult.mimeType,
+        metadata
+      )
+    },
     onSuccess: () => {
       // Invalidar todas as queries de documentos e compliance
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
@@ -198,6 +213,17 @@ export function useDocumentRequirements(legalNature: LegalNature | null | undefi
   return useQuery({
     queryKey: institutionalProfileKeys.requirements(legalNature!),
     queryFn: () => institutionalProfileAPI.getDocumentRequirements(legalNature!),
+    enabled: !!legalNature,
+  })
+}
+
+/**
+ * Hook para buscar TODOS os tipos de documentos (obrigatórios + opcionais)
+ */
+export function useAllDocumentTypes(legalNature: LegalNature | null | undefined) {
+  return useQuery({
+    queryKey: institutionalProfileKeys.allTypes(legalNature!),
+    queryFn: () => institutionalProfileAPI.getAllDocumentTypes(legalNature!),
     enabled: !!legalNature,
   })
 }

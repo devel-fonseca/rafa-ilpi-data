@@ -27,6 +27,12 @@ api.interceptors.request.use(
     config.headers['Pragma'] = 'no-cache'
     config.headers['Expires'] = '0'
 
+    // IMPORTANTE: Se o body é FormData, remover Content-Type para permitir
+    // que o navegador defina automaticamente com o boundary correto
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+
     return config
   },
   (error) => {

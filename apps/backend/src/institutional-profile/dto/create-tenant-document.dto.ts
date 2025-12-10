@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsDateString, MaxLength } from 'class-validator'
+import { IsString, IsOptional, IsDateString, IsArray, MaxLength } from 'class-validator'
 
 export class CreateTenantDocumentDto {
   @IsString()
@@ -12,6 +12,21 @@ export class CreateTenantDocumentDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  documentNumber?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  issuerEntity?: string
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[]
 
   @IsOptional()
   @IsString()

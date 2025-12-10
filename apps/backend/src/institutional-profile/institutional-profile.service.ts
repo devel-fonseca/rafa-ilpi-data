@@ -262,7 +262,7 @@ export class InstitutionalProfileService {
       }
     }
 
-    return this.prisma.tenantDocument.findMany({
+    const documents = await this.prisma.tenantDocument.findMany({
       where,
       orderBy: [
         { status: 'asc' }, // VENCIDO, VENCENDO, PENDENTE, OK
@@ -270,6 +270,19 @@ export class InstitutionalProfileService {
         { createdAt: 'desc' },
       ],
     })
+
+    // Gerar presigned URLs para todos os documentos
+    const documentsWithUrls = await Promise.all(
+      documents.map(async (doc) => {
+        const signedUrl = await this.filesService.getFileUrl(doc.fileUrl)
+        return {
+          ...doc,
+          fileUrl: signedUrl,
+        }
+      })
+    )
+
+    return documentsWithUrls
   }
 
   /**
@@ -284,7 +297,13 @@ export class InstitutionalProfileService {
       throw new NotFoundException('Documento não encontrado')
     }
 
-    return document
+    // Gerar presigned URL para o documento
+    const signedUrl = await this.filesService.getFileUrl(document.fileUrl)
+
+    return {
+      ...document,
+      fileUrl: signedUrl,
+    }
   }
 
   /**
@@ -304,19 +323,6 @@ export class InstitutionalProfileService {
     // Validar tamanho
     if (file.size > MAX_FILE_SIZE) {
       throw new BadRequestException(`Arquivo muito grande. Tamanho máximo: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
-    }
-
-    // Verificar se já existe documento do mesmo tipo
-    const existing = await this.prisma.tenantDocument.findFirst({
-      where: {
-        tenantId,
-        type: dto.type,
-        deletedAt: null,
-      },
-    })
-
-    if (existing) {
-      throw new BadRequestException(`Já existe um documento do tipo "${getDocumentLabel(dto.type)}". Atualize o existente ou remova-o primeiro.`)
     }
 
     // Upload do arquivo
@@ -343,7 +349,52 @@ export class InstitutionalProfileService {
         issuedAt: dto.issuedAt ? new Date(dto.issuedAt) : null,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
         status,
+        documentNumber: dto.documentNumber,
+        issuerEntity: dto.issuerEntity,
+        tags: dto.tags || [],
         notes: dto.notes,
+        version: 1, // Novo documento sempre começa na versão 1
+      },
+    })
+  }
+
+  /**
+   * Cria registro de documento a partir de arquivo já enviado
+   * (usado quando o arquivo é enviado primeiro via /files/upload)
+   */
+  async createDocumentWithFileUrl(
+    tenantId: string,
+    userId: string,
+    dto: CreateTenantDocumentDto & {
+      fileUrl: string
+      fileKey: string
+      fileName: string
+      fileSize: number
+      mimeType: string
+    }
+  ) {
+    // Calcular status do documento
+    const status = this.calculateDocumentStatus(dto.expiresAt || null)
+
+    // Criar registro do documento
+    return this.prisma.tenantDocument.create({
+      data: {
+        tenantId,
+        uploadedBy: userId,
+        type: dto.type,
+        fileUrl: dto.fileUrl,
+        fileKey: dto.fileKey,
+        fileName: dto.fileName,
+        fileSize: dto.fileSize,
+        mimeType: dto.mimeType,
+        issuedAt: dto.issuedAt ? new Date(dto.issuedAt) : null,
+        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
+        status,
+        documentNumber: dto.documentNumber,
+        issuerEntity: dto.issuerEntity,
+        tags: dto.tags || [],
+        notes: dto.notes,
+        version: 1,
       },
     })
   }
@@ -481,13 +532,18 @@ export class InstitutionalProfileService {
     const okDocuments = documents.filter(d => d.status === 'OK').length
     const expiringDocuments = documents.filter(d => d.status === 'VENCENDO').length
     const expiredDocuments = documents.filter(d => d.status === 'VENCIDO').length
-    const pendingDocuments = requiredDocuments.length - documents.filter(d => requiredDocuments.includes(d.type)).length
 
-    // Tipos de documentos já enviados
-    const uploadedDocumentTypes = documents.map(d => d.type)
+    // Tipos de documentos considerados "atendidos" = que têm pelo menos 1 documento vigente (OK ou VENCENDO)
+    // Documentos VENCIDOS não contam para compliance (precisam ser renovados)
+    const uploadedDocumentTypes = documents
+      .filter(d => d.status === 'OK' || d.status === 'VENCENDO')
+      .map(d => d.type)
 
-    // Documentos faltantes
+    // Documentos faltantes (tipos que não possuem nenhum documento vigente)
     const missingDocuments = requiredDocuments.filter(type => !uploadedDocumentTypes.includes(type))
+
+    // Conta quantos tipos obrigatórios estão pendentes (sem nenhum documento vigente)
+    const pendingDocuments = missingDocuments.length
 
     // Documentos vencidos ou vencendo (para alertas)
     const alerts = documents

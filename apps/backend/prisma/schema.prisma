@@ -416,6 +416,7 @@ model Tenant {
   residentDocuments         ResidentDocument[]
   notifications             Notification[]
   clinicalNoteDocuments     ClinicalNoteDocument[]
+  documentHistory           DocumentHistory[]
 
   @@map("tenants")
 }
@@ -1610,12 +1611,20 @@ model TenantDocument {
   mimeType    String?         @db.VarChar(100) // application/pdf, image/jpeg, etc.
 
   // Metadados do documento
-  issuedAt    DateTime?       @db.Timestamptz(3)         // Data de emissão
-  expiresAt   DateTime?       @db.Timestamptz(3)         // Data de vencimento (se aplicável)
-  status      DocumentStatus  @default(PENDENTE) // Calculado automaticamente
+  issuedAt        DateTime?       @db.Timestamptz(3)         // Data de emissão
+  expiresAt       DateTime?       @db.Timestamptz(3)         // Data de vencimento (se aplicável)
+  status          DocumentStatus  @default(PENDENTE) // Calculado automaticamente
+  documentNumber  String?         @db.VarChar(100)   // Número do documento (ex: protocolo, número de alvará)
+  issuerEntity    String?         @db.VarChar(200)   // Entidade emissora (ex: Vigilância Sanitária, Corpo de Bombeiros)
+  tags            String[]        @default([])       // Tags para categorização adicional
 
   // Observações
   notes       String?         @db.Text
+
+  // Versionamento e substituição
+  version     Int             @default(1)            // Versão do documento (incrementa a cada substituição)
+  replacedById String?        @db.Uuid               // ID do documento que substituiu este
+  replacedAt  DateTime?       @db.Timestamptz(3)     // Data em que foi substituído
 
   // Auditoria
   uploadedBy  String          @db.Uuid         // ID do usuário que fez upload
@@ -1624,7 +1633,10 @@ model TenantDocument {
   deletedAt   DateTime?       @db.Timestamptz(3)
 
   // Relações
-  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  replacedBy      TenantDocument?     @relation("DocumentReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces        TenantDocument[]    @relation("DocumentReplacement")
+  history         DocumentHistory[]
 
   // Índices
   @@index([tenantId, type])
@@ -1633,7 +1645,50 @@ model TenantDocument {
   @@index([expiresAt])
   @@index([status])
   @@index([deletedAt])
+  @@index([replacedById])
+  @@index([version])
   @@map("tenant_documents")
+}
+
+// Histórico de documentos para auditoria completa
+model DocumentHistory {
+  id              String          @id @default(uuid()) @db.Uuid
+  tenantId        String          @db.Uuid
+  documentId      String          @db.Uuid           // Documento atual relacionado
+
+  // Ação realizada
+  action          DocumentAction                     // CREATED, UPDATED, REPLACED, DELETED
+  reason          String?         @db.Text           // Motivo da alteração
+
+  // Snapshot dos dados anteriores (JSON)
+  previousData    Json?                              // Estado anterior do documento
+  newData         Json?                              // Novo estado do documento
+
+  // Campos que mudaram
+  changedFields   String[]        @default([])       // Lista de campos alterados
+
+  // Auditoria
+  changedBy       String          @db.Uuid           // Usuário que realizou a ação
+  changedAt       DateTime        @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document        TenantDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, documentId])
+  @@index([documentId])
+  @@index([action])
+  @@index([changedAt])
+  @@map("document_history")
+}
+
+// Enum para ações de histórico de documentos
+enum DocumentAction {
+  CREATED       // Documento criado
+  UPDATED       // Metadados atualizados
+  REPLACED      // Arquivo substituído
+  DELETED       // Documento deletado
 }
 
 // ============================================

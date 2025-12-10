@@ -18,7 +18,9 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -26,7 +28,7 @@ import { useToast } from '@/components/ui/use-toast'
 import {
   useUploadDocument,
   useProfile,
-  useDocumentRequirements,
+  useAllDocumentTypes,
 } from '@/hooks/useInstitutionalProfile'
 import { Upload, Loader2, FileText, X, CheckCircle, AlertCircle } from 'lucide-react'
 
@@ -59,11 +61,15 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024
 
 /**
  * Schema de validação com Zod
+ * Todos os campos além de 'type' são opcionais
  */
 const documentSchema = z.object({
   type: z.string().min(1, 'Selecione o tipo de documento'),
   issuedAt: z.string().optional(),
   expiresAt: z.string().optional(),
+  documentNumber: z.string().optional(),
+  issuerEntity: z.string().optional(),
+  tags: z.string().optional(), // Será convertido para array no submit
   notes: z.string().optional(),
 })
 
@@ -82,8 +88,8 @@ interface DocumentUploadModalProps {
  */
 export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalProps) {
   const { toast } = useToast()
-  const { data: profile } = useProfile()
-  const { data: requirements } = useDocumentRequirements(profile?.legalNature)
+  const { data: fullProfile } = useProfile()
+  const { data: allDocumentTypes } = useAllDocumentTypes(fullProfile?.profile?.legalNature)
   const uploadMutation = useUploadDocument()
 
   // Estado para arquivo selecionado
@@ -175,15 +181,27 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
     }
 
     try {
-      // Montar payload
-      const metadata = {
+      // Processar tags: converter string separada por vírgula em array
+      let tagsArray: string[] | undefined = undefined
+      if (data.tags && data.tags.trim() !== '') {
+        tagsArray = data.tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== '')
+      }
+
+      // Montar payload com todos os metadados
+      const metadata: any = {
         type: data.type,
         ...(data.issuedAt && { issuedAt: data.issuedAt }),
         ...(data.expiresAt && { expiresAt: data.expiresAt }),
+        ...(data.documentNumber && { documentNumber: data.documentNumber }),
+        ...(data.issuerEntity && { issuerEntity: data.issuerEntity }),
+        ...(tagsArray && { tags: tagsArray }),
         ...(data.notes && { notes: data.notes }),
       }
 
-      // Fazer upload
+      // Fazer upload (agora o hook vai separar arquivo de metadados)
       await uploadMutation.mutateAsync({
         file: selectedFile,
         metadata,
@@ -265,11 +283,31 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                 <SelectValue placeholder="Selecione o tipo do documento" />
               </SelectTrigger>
               <SelectContent>
-                {requirements?.required.map((req) => (
-                  <SelectItem key={req.type} value={req.type}>
-                    {req.label}
-                  </SelectItem>
-                ))}
+                {/* Documentos Obrigatórios */}
+                <SelectGroup>
+                  <SelectLabel>Documentos Obrigatórios</SelectLabel>
+                  {allDocumentTypes?.documentTypes
+                    .filter((doc) => doc.required)
+                    .map((doc) => (
+                      <SelectItem key={doc.type} value={doc.type}>
+                        {doc.label}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+
+                {/* Documentos Opcionais */}
+                {allDocumentTypes?.documentTypes.some((doc) => !doc.required) && (
+                  <SelectGroup>
+                    <SelectLabel>Documentos Opcionais</SelectLabel>
+                    {allDocumentTypes?.documentTypes
+                      .filter((doc) => !doc.required)
+                      .map((doc) => (
+                        <SelectItem key={doc.type} value={doc.type}>
+                          {doc.label}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
             {errors.type && (
@@ -278,7 +316,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                 {errors.type.message}
               </p>
             )}
-            {!profile?.legalNature && (
+            {!fullProfile?.profile?.legalNature && (
               <p className="text-xs text-warning bg-warning/10 border border-warning/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
                 Configure a natureza jurídica na aba "Dados Básicos" para ver os documentos específicos da sua instituição.
@@ -391,6 +429,65 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                 Deixe em branco se o documento não possui validade
               </p>
             </div>
+          </div>
+
+          {/* Campos de Metadados Adicionais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Número do Documento */}
+            <div className="space-y-2">
+              <Label htmlFor="document-number">Número do Documento</Label>
+              <Input
+                id="document-number"
+                type="text"
+                placeholder="Ex: Protocolo, Alvará, etc."
+                {...register('documentNumber')}
+                maxLength={100}
+              />
+              {errors.documentNumber && (
+                <p className="text-sm text-danger flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.documentNumber.message}
+                </p>
+              )}
+            </div>
+
+            {/* Entidade Emissora */}
+            <div className="space-y-2">
+              <Label htmlFor="issuer-entity">Entidade Emissora</Label>
+              <Input
+                id="issuer-entity"
+                type="text"
+                placeholder="Ex: Prefeitura, Cartório, etc."
+                {...register('issuerEntity')}
+                maxLength={200}
+              />
+              {errors.issuerEntity && (
+                <p className="text-sm text-danger flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {errors.issuerEntity.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <Input
+              id="tags"
+              type="text"
+              placeholder="Separe as tags por vírgula (ex: urgente, renovação)"
+              {...register('tags')}
+            />
+            {errors.tags && (
+              <p className="text-sm text-danger flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {errors.tags.message}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Utilize tags para facilitar a organização e busca dos documentos
+            </p>
           </div>
 
           {/* Observações */}

@@ -20,7 +20,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { InstitutionalProfileService } from './institutional-profile.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
-import { getRequiredDocuments, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
+import { CreateTenantDocumentWithUrlDto } from './dto/create-tenant-document-with-url.dto'
+import { getRequiredDocuments, getAllDocumentTypes, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { LegalNature, PermissionType } from '@prisma/client'
 
 @Controller('institutional-profile')
@@ -101,6 +102,24 @@ export class InstitutionalProfileController {
   }
 
   /**
+   * POST /institutional-profile/documents/with-file-url
+   * Cria documento a partir de arquivo já enviado
+   * (usado quando o arquivo é enviado primeiro via /files/upload)
+   * IMPORTANTE: Deve vir ANTES de POST documents para não ser capturado pela rota genérica
+   */
+  @Post('documents/with-file-url')
+  @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
+  async createDocumentWithFileUrl(
+    @CurrentUser() user: any,
+    @Body() dto: CreateTenantDocumentWithUrlDto
+  ) {
+    const tenantId = user.tenantId
+    const userId = user.id
+
+    return this.service.createDocumentWithFileUrl(tenantId, userId, dto)
+  }
+
+  /**
    * GET /institutional-profile/documents/:id
    * Busca um documento específico
    */
@@ -138,11 +157,16 @@ export class InstitutionalProfileController {
     const userId = user.id
 
     // Extrair DTO dos campos do FormData
+    // Converter strings vazias para undefined para passar na validação
+    // class-validator rejeita strings vazias mesmo com @IsOptional()
     const dto: CreateTenantDocumentDto = {
       type: body.type,
-      issuedAt: body.issuedAt,
-      expiresAt: body.expiresAt,
-      notes: body.notes,
+      issuedAt: body.issuedAt && body.issuedAt.trim() !== '' ? body.issuedAt : undefined,
+      expiresAt: body.expiresAt && body.expiresAt.trim() !== '' ? body.expiresAt : undefined,
+      documentNumber: body.documentNumber && body.documentNumber.trim() !== '' ? body.documentNumber : undefined,
+      issuerEntity: body.issuerEntity && body.issuerEntity.trim() !== '' ? body.issuerEntity : undefined,
+      tags: body.tags ? (typeof body.tags === 'string' ? JSON.parse(body.tags) : body.tags) : undefined,
+      notes: body.notes && body.notes.trim() !== '' ? body.notes : undefined,
     }
 
     console.log('🔍 DEBUG uploadDocument - tenantId:', tenantId, 'userId:', userId, 'dto:', dto)
@@ -226,6 +250,26 @@ export class InstitutionalProfileController {
       required: documents.map(type => ({
         type,
         label: getDocumentLabel(type),
+      })),
+    }
+  }
+
+  /**
+   * GET /institutional-profile/all-document-types/:legalNature
+   * Lista TODOS os tipos de documentos disponíveis (obrigatórios + opcionais)
+   */
+  @Get('all-document-types/:legalNature')
+  @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
+  async getAllDocumentTypes(@Param('legalNature') legalNature: LegalNature) {
+    const allTypes = getAllDocumentTypes(legalNature)
+    const requiredTypes = getRequiredDocuments(legalNature)
+
+    return {
+      legalNature,
+      documentTypes: allTypes.map(type => ({
+        type,
+        label: getDocumentLabel(type),
+        required: requiredTypes.includes(type),
       })),
     }
   }

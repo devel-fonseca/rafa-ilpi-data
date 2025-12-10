@@ -55,6 +55,18 @@ export const COMMON_REGULATORY_DOCUMENTS = [
 ]
 
 /**
+ * Documentos opcionais/adicionais (NÃO obrigatórios para compliance)
+ * Úteis para fiscalizações, auditorias e gestão administrativa
+ */
+export const OPTIONAL_DOCUMENTS = [
+  'CERT_CMI',                     // Certidão de Regularidade no Conselho Municipal do Idoso
+  'REGIMENTO_INTERNO',            // Regimento Interno da ILPI
+  'PLANO_CONTINGENCIA',           // Plano de Contingência de Emergências Sanitárias
+  'CNAS_CEBAS',                   // Comprovante de inscrição no CNAS/CEBAS (quando houver)
+  'RELATORIO_ANUAL',              // Relatório Anual de Atividades (alguns municípios exigem de fundações)
+]
+
+/**
  * Descrições amigáveis para cada tipo de documento
  */
 export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
@@ -74,7 +86,7 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   DOC_MEI: 'Documentos do MEI (RG/CPF)',
 
   // Documentos comuns
-  CMI: 'Certidão de Matrícula de Imóvel',
+  CMI: 'Certidão de Matrícula do Imóvel / Contrato de Locação',
   DOC_REPRESENTANTE: 'Documentos do Representante Legal (RG/CPF)',
   CNPJ: 'Cadastro Nacional de Pessoa Jurídica',
   RT_INDICACAO: 'Indicação de Responsável Técnico',
@@ -82,6 +94,13 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   ALVARA_USO: 'Alvará de Funcionamento/Uso',
   LIC_SANITARIA: 'Licença Sanitária (Vigilância Sanitária)',
   AVCB: 'Auto de Vistoria do Corpo de Bombeiros',
+
+  // Documentos opcionais/adicionais
+  CERT_CMI: 'Certidão de Regularidade no Conselho Municipal do Idoso',
+  REGIMENTO_INTERNO: 'Regimento Interno da ILPI',
+  PLANO_CONTINGENCIA: 'Plano de Contingência de Emergências Sanitárias',
+  CNAS_CEBAS: 'Comprovante de Inscrição CNAS/CEBAS',
+  RELATORIO_ANUAL: 'Relatório Anual de Atividades',
 }
 
 /**
@@ -97,6 +116,24 @@ export function getRequiredDocuments(legalNature: LegalNature | null | undefined
   const specificDocuments = DOCUMENT_TYPES_BY_LEGAL_NATURE[legalNature] || []
 
   return [...specificDocuments, ...COMMON_REGULATORY_DOCUMENTS]
+}
+
+/**
+ * Retorna todos os tipos de documentos disponíveis (obrigatórios + opcionais)
+ * @param legalNature - Natureza jurídica da ILPI
+ * @returns Array com todos os tipos de documentos
+ */
+export function getAllDocumentTypes(legalNature: LegalNature | null | undefined): string[] {
+  const required = getRequiredDocuments(legalNature)
+  return [...required, ...OPTIONAL_DOCUMENTS]
+}
+
+/**
+ * Retorna apenas os documentos opcionais
+ * @returns Array com tipos de documentos opcionais
+ */
+export function getOptionalDocuments(): string[] {
+  return OPTIONAL_DOCUMENTS
 }
 
 /**
@@ -145,4 +182,69 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024
  */
 export function isAllowedFileType(mimeType: string): boolean {
   return ALLOWED_MIME_TYPES.includes(mimeType)
+}
+
+/**
+ * Janelas de alerta configuráveis por tipo de documento (em dias antes do vencimento)
+ *
+ * Documentos críticos (CNPJ, Licenças, Alvarás): 5 alertas (90, 60, 30, 15, 7 dias)
+ * Documentos importantes (Estatuto, Contrato): 4 alertas (60, 30, 15, 7 dias)
+ * Documentos secundários: 3 alertas (30, 15, 7 dias)
+ */
+export const DOCUMENT_ALERT_WINDOWS: Record<string, number[]> = {
+  // Documentos CRÍTICOS - Regulatórios (5 alertas)
+  CNPJ: [90, 60, 30, 15, 7],
+  LIC_SANITARIA: [90, 60, 30, 15, 7],        // Licença Sanitária
+  ALVARA_USO: [90, 60, 30, 15, 7],           // Alvará de Uso/Funcionamento
+  AVCB: [90, 60, 30, 15, 7],                 // Auto de Vistoria do Corpo de Bombeiros
+  RT_INDICACAO: [90, 60, 30, 15, 7],         // Responsável Técnico
+  RT_DOCUMENTOS: [90, 60, 30, 15, 7],        // Documentos do RT
+
+  // Documentos IMPORTANTES - Constitutivos (4 alertas)
+  ESTATUTO: [60, 30, 15, 7],                 // Estatuto Social
+  ATA_DIRETORIA: [60, 30, 15, 7],            // Ata de Diretoria
+  ESCRITURA: [60, 30, 15, 7],                // Escritura de Constituição
+  CONTRATO_SOCIAL: [60, 30, 15, 7],          // Contrato Social
+  DOC_ADMINISTRADORES: [60, 30, 15, 7],      // Documentos de Administradores
+  MEI_REGISTRO: [60, 30, 15, 7],             // Registro MEI
+  DOC_MEI: [60, 30, 15, 7],                  // Documentos do MEI
+
+  // Documentos SECUNDÁRIOS - Complementares (3 alertas)
+  CMI: [30, 15, 7],                          // Certidão de Matrícula de Imóvel
+  DOC_REPRESENTANTE: [30, 15, 7],            // Documentos de Representante Legal
+  CERT_CMI: [30, 15, 7],                     // Certidão CMI (Conselho Municipal do Idoso)
+  REGIMENTO_INTERNO: [30, 15, 7],            // Regimento Interno
+  PLANO_CONTINGENCIA: [30, 15, 7],           // Plano de Contingência
+  CNAS_CEBAS: [30, 15, 7],                   // CNAS/CEBAS
+  RELATORIO_ANUAL: [30, 15, 7],              // Relatório Anual
+}
+
+/**
+ * Janela de alerta padrão para documentos não mapeados (30, 15, 7 dias)
+ */
+export const DEFAULT_ALERT_WINDOWS = [30, 15, 7]
+
+/**
+ * Retorna as janelas de alerta configuradas para um tipo de documento
+ * @param documentType - Tipo do documento
+ * @returns Array com os dias de antecedência para alertas (ordenado DESC)
+ */
+export function getDocumentAlertWindows(documentType: string): number[] {
+  return DOCUMENT_ALERT_WINDOWS[documentType] || DEFAULT_ALERT_WINDOWS
+}
+
+/**
+ * Verifica se um documento deve disparar alerta baseado nos dias restantes
+ * @param documentType - Tipo do documento
+ * @param daysUntilExpiration - Dias até o vencimento
+ * @returns true se deve disparar alerta nesta janela
+ */
+export function shouldTriggerAlert(documentType: string, daysUntilExpiration: number): boolean {
+  const alertWindows = getDocumentAlertWindows(documentType)
+
+  // Alerta se os dias restantes correspondem exatamente a uma das janelas configuradas
+  // Ou se está na margem de ±1 dia (para evitar perder alertas por diferença de horário)
+  return alertWindows.some(window =>
+    Math.abs(daysUntilExpiration - window) <= 1
+  )
 }

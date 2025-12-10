@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -55,10 +55,15 @@ import {
   AlertCircle,
   Search,
   X,
+  ChevronDown,
+  ChevronRight,
+  Star,
 } from 'lucide-react'
 import { formatDate } from '@/utils/formatters'
 import type { DocumentStatus, TenantDocument } from '@/api/institutional-profile.api'
 import { DocumentUploadModal } from './DocumentUploadModal'
+import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
+import { DocumentMetadataModal } from './DocumentMetadataModal'
 
 /**
  * Mapeamento de cores de badge por status de documento
@@ -122,8 +127,8 @@ function getDocumentTypeLabel(type: string): string {
  */
 export function DocumentsTab() {
   const { toast } = useToast()
-  const { data: profile } = useProfile()
-  const { data: requirements } = useDocumentRequirements(profile?.legalNature)
+  const { data: fullProfile } = useProfile()
+  const { data: requirements } = useDocumentRequirements(fullProfile?.profile?.legalNature)
 
   // Estados para filtros
   const [typeFilter, setTypeFilter] = useState<string>('')
@@ -132,6 +137,17 @@ export function DocumentsTab() {
 
   // Estado para modal de upload
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
+
+  // Estado para modal de visualização
+  const [viewerModalOpen, setViewerModalOpen] = useState(false)
+  const [documentToView, setDocumentToView] = useState<TenantDocument | null>(null)
+
+  // Estado para modal de edição de metadados
+  const [metadataModalOpen, setMetadataModalOpen] = useState(false)
+  const [documentToEdit, setDocumentToEdit] = useState<TenantDocument | null>(null)
+
+  // Estado para controlar quais grupos estão expandidos (tipo do documento -> boolean)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   // Buscar documentos com filtros
   const filters = {
@@ -179,6 +195,22 @@ export function DocumentsTab() {
   }
 
   /**
+   * Handler para visualizar documento
+   */
+  const handleView = (document: TenantDocument) => {
+    setDocumentToView(document)
+    setViewerModalOpen(true)
+  }
+
+  /**
+   * Handler para editar metadados do documento
+   */
+  const handleEditMetadata = (document: TenantDocument) => {
+    setDocumentToEdit(document)
+    setMetadataModalOpen(true)
+  }
+
+  /**
    * Handler para download de documento
    */
   const handleDownload = (document: TenantDocument) => {
@@ -196,6 +228,44 @@ export function DocumentsTab() {
       getDocumentTypeLabel(doc.type).toLowerCase().includes(searchQuery.toLowerCase())
     )
   })
+
+  /**
+   * Agrupa documentos por tipo
+   * Retorna um Map onde a chave é o tipo e o valor é um array de documentos daquele tipo
+   * Os documentos dentro de cada tipo são ordenados por data de emissão (mais recente primeiro)
+   */
+  const groupedDocuments = useMemo(() => {
+    if (!filteredDocuments) return new Map<string, TenantDocument[]>()
+
+    const groups = new Map<string, TenantDocument[]>()
+
+    filteredDocuments.forEach((doc) => {
+      const existing = groups.get(doc.type) || []
+      groups.set(doc.type, [...existing, doc])
+    })
+
+    // Ordenar documentos dentro de cada grupo (mais recente primeiro)
+    groups.forEach((docs) => {
+      docs.sort((a, b) => {
+        // Priorizar issuedAt se existir, senão usar createdAt
+        const dateA = a.issuedAt ? new Date(a.issuedAt) : new Date(a.createdAt)
+        const dateB = b.issuedAt ? new Date(b.issuedAt) : new Date(b.createdAt)
+        return dateB.getTime() - dateA.getTime() // DESC (mais recente primeiro)
+      })
+    })
+
+    return groups
+  }, [filteredDocuments])
+
+  /**
+   * Função para alternar expansão de um grupo
+   */
+  const toggleGroup = (type: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }))
+  }
 
   /**
    * Handler para limpar todos os filtros
@@ -349,85 +419,230 @@ export function DocumentsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDocuments.map((document) => (
-                    <TableRow key={document.id}>
-                      {/* Tipo de Documento */}
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate">{getDocumentTypeLabel(document.type)}</span>
-                        </div>
-                      </TableCell>
+                  {Array.from(groupedDocuments.entries()).map(([type, docs]) => {
+                    const isExpanded = expandedGroups[type]
+                    const isSingleDocument = docs.length === 1
 
-                      {/* Nome do Arquivo */}
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm truncate max-w-[200px]" title={document.fileName}>
-                            {document.fileName}
-                          </span>
-                          {document.fileSize && (
-                            <span className="text-xs text-muted-foreground">
-                              {(document.fileSize / 1024 / 1024).toFixed(2)} MB
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
+                    // Se apenas 1 documento: exibir direto (sem agrupamento)
+                    if (isSingleDocument) {
+                      const document = docs[0]
+                      return (
+                        <TableRow key={document.id}>
+                          {/* Tipo de Documento */}
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="truncate">{getDocumentTypeLabel(document.type)}</span>
+                            </div>
+                          </TableCell>
 
-                      {/* Data de Emissão */}
-                      <TableCell>
-                        <span className="text-sm">{formatDate(document.issuedAt)}</span>
-                      </TableCell>
+                          {/* Nome do Arquivo */}
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-sm truncate max-w-[200px]" title={document.fileName}>
+                                {document.fileName}
+                              </span>
+                              {document.fileSize && (
+                                <span className="text-xs text-muted-foreground">
+                                  {(document.fileSize / 1024 / 1024).toFixed(2)} MB
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
 
-                      {/* Data de Validade */}
-                      <TableCell>
-                        <span className="text-sm">{formatDate(document.expiresAt)}</span>
-                      </TableCell>
+                          {/* Data de Emissão */}
+                          <TableCell>
+                            <span className="text-sm">{formatDate(document.issuedAt)}</span>
+                          </TableCell>
 
-                      {/* Status */}
-                      <TableCell>
-                        <Badge variant={statusBadgeVariants[document.status]}>
-                          {statusLabels[document.status]}
-                        </Badge>
-                      </TableCell>
+                          {/* Data de Validade */}
+                          <TableCell>
+                            <span className="text-sm">{formatDate(document.expiresAt)}</span>
+                          </TableCell>
 
-                      {/* Ações */}
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <span className="sr-only">Abrir menu</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => handleDownload(document)}
-                              className="cursor-pointer"
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Eye className="mr-2 h-4 w-4" />
-                              Visualizar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer">
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar metadados
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteClick(document)}
-                              className="cursor-pointer text-danger focus:text-danger"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          {/* Status */}
+                          <TableCell>
+                            <Badge variant={statusBadgeVariants[document.status]}>
+                              {statusLabels[document.status]}
+                            </Badge>
+                          </TableCell>
+
+                          {/* Ações */}
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Abrir menu</span>
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                  onClick={() => handleDownload(document)}
+                                  className="cursor-pointer"
+                                >
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Download
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleView(document)}
+                                  className="cursor-pointer"
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Visualizar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditMetadata(document)}
+                                  className="cursor-pointer"
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Editar metadados
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(document)}
+                                  className="cursor-pointer text-danger focus:text-danger"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+
+                    // Se múltiplos documentos: exibir grupo com expansão
+                    return (
+                      <>
+                        {/* Linha do cabeçalho do grupo */}
+                        <TableRow
+                          key={`group-${type}`}
+                          className="bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                          onClick={() => toggleGroup(type)}
+                        >
+                          <TableCell className="font-semibold" colSpan={6}>
+                            <div className="flex items-center gap-3">
+                              {/* Ícone de expansão */}
+                              {isExpanded ? (
+                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                              )}
+
+                              {/* Ícone do documento */}
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+
+                              {/* Nome do tipo */}
+                              <span className="flex-1">{getDocumentTypeLabel(type)}</span>
+
+                              {/* Badge com contador */}
+                              <Badge variant="secondary" className="ml-auto">
+                                {docs.length} {docs.length === 1 ? 'documento' : 'documentos'}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Documentos do grupo (se expandido) */}
+                        {isExpanded &&
+                          docs.map((document, index) => {
+                            const isMostRecent = index === 0 // Primeiro da lista = mais recente
+
+                            return (
+                              <TableRow key={document.id} className="bg-muted/10">
+                                {/* Tipo de Documento (com indentação) */}
+                                <TableCell className="font-medium">
+                                  <div className="flex items-center gap-2 pl-12">
+                                    {isMostRecent && (
+                                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                    )}
+                                    <span className="text-sm text-muted-foreground truncate">
+                                      {isMostRecent ? 'Mais recente' : `Documento ${index + 1}`}
+                                    </span>
+                                  </div>
+                                </TableCell>
+
+                                {/* Nome do Arquivo */}
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm truncate max-w-[200px]" title={document.fileName}>
+                                      {document.fileName}
+                                    </span>
+                                    {document.fileSize && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {(document.fileSize / 1024 / 1024).toFixed(2)} MB
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+
+                                {/* Data de Emissão */}
+                                <TableCell>
+                                  <span className="text-sm">{formatDate(document.issuedAt)}</span>
+                                </TableCell>
+
+                                {/* Data de Validade */}
+                                <TableCell>
+                                  <span className="text-sm">{formatDate(document.expiresAt)}</span>
+                                </TableCell>
+
+                                {/* Status */}
+                                <TableCell>
+                                  <Badge variant={statusBadgeVariants[document.status]}>
+                                    {statusLabels[document.status]}
+                                  </Badge>
+                                </TableCell>
+
+                                {/* Ações */}
+                                <TableCell className="text-right">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Abrir menu</span>
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                      <DropdownMenuItem
+                                        onClick={() => handleDownload(document)}
+                                        className="cursor-pointer"
+                                      >
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Download
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleView(document)}
+                                        className="cursor-pointer"
+                                      >
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Visualizar
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleEditMetadata(document)}
+                                        className="cursor-pointer"
+                                      >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Editar metadados
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteClick(document)}
+                                        className="cursor-pointer text-danger focus:text-danger"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Excluir
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                      </>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -491,6 +706,23 @@ export function DocumentsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Visualização */}
+      {documentToView && (
+        <DocumentViewerModal
+          open={viewerModalOpen}
+          onOpenChange={setViewerModalOpen}
+          documentUrl={documentToView.fileUrl}
+          documentTitle={getDocumentTypeLabel(documentToView.type)}
+        />
+      )}
+
+      {/* Modal de Edição de Metadados */}
+      <DocumentMetadataModal
+        open={metadataModalOpen}
+        onOpenChange={setMetadataModalOpen}
+        document={documentToEdit}
+      />
 
       {/* Modal de Upload */}
       <DocumentUploadModal open={uploadModalOpen} onOpenChange={setUploadModalOpen} />

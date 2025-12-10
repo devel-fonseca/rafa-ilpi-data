@@ -71,7 +71,7 @@ function StatCard({ title, value, icon: Icon, iconColor, bgColor }: StatCardProp
  * Componente principal da aba de Compliance
  */
 export function ComplianceTab() {
-  const { data: profile } = useProfile()
+  const { data: fullProfile } = useProfile()
   const { data: dashboard, isLoading } = useComplianceDashboard()
 
   if (isLoading) {
@@ -202,7 +202,7 @@ export function ComplianceTab() {
             <div className="text-right">
               <p className="text-3xl font-bold text-primary">{compliancePercentage}%</p>
               <p className="text-sm text-muted-foreground">
-                {requiredDocuments.filter((d) => d.uploaded).length} de {requiredDocuments.length} documentos
+                {requiredDocuments.filter((d) => d.uploaded).length} de {requiredDocuments.length} tipos de documento
               </p>
             </div>
           </div>
@@ -230,9 +230,9 @@ export function ComplianceTab() {
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Documentos Obrigatórios
-            {profile?.legalNature && (
+            {fullProfile?.profile?.legalNature && (
               <Badge variant="secondary" className="ml-2">
-                {profile.legalNature}
+                {fullProfile.profile.legalNature}
               </Badge>
             )}
           </CardTitle>
@@ -241,7 +241,7 @@ export function ComplianceTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!profile?.legalNature ? (
+          {!fullProfile?.profile?.legalNature ? (
             <Alert className="border-warning/50 bg-warning/5">
               <AlertCircle className="h-4 w-4 text-warning" />
               <AlertDescription className="text-warning">

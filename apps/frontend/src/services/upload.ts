@@ -12,6 +12,30 @@ export interface UploadResponse {
 }
 
 /**
+ * Sanitiza o nome do arquivo removendo acentos e caracteres especiais
+ * Mantém apenas letras, números, hífens, underscores e pontos
+ *
+ * @param filename - Nome original do arquivo
+ * @returns Nome sanitizado
+ */
+const sanitizeFilename = (filename: string): string => {
+  // Remover acentos usando normalize + replace
+  const withoutAccents = filename
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+  // Separar nome e extensão
+  const lastDotIndex = withoutAccents.lastIndexOf('.')
+  const name = lastDotIndex > 0 ? withoutAccents.slice(0, lastDotIndex) : withoutAccents
+  const extension = lastDotIndex > 0 ? withoutAccents.slice(lastDotIndex) : ''
+
+  // Remover caracteres especiais (manter apenas letras, números, hífens e underscores)
+  const sanitizedName = name.replace(/[^a-zA-Z0-9-_]/g, '_')
+
+  return sanitizedName + extension
+}
+
+/**
  * Faz upload de um arquivo para o MinIO
  *
  * @param file - Arquivo a ser enviado
@@ -25,22 +49,23 @@ export const uploadFile = async (
   relatedId?: string
 ): Promise<string> => {
   try {
+    // Sanitizar nome do arquivo
+    const sanitizedFilename = sanitizeFilename(file.name)
+    const sanitizedFile = new File([file], sanitizedFilename, { type: file.type })
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', sanitizedFile)
 
     const params = new URLSearchParams({ category })
     if (relatedId) {
       params.append('relatedId', relatedId)
     }
 
+    // IMPORTANTE: Não definir Content-Type manualmente para FormData
+    // O navegador define automaticamente com o boundary correto
     const response = await api.post<UploadResponse>(
       `/files/upload?${params.toString()}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      formData
     )
 
     return response.data.fileUrl
@@ -94,22 +119,23 @@ export const uploadFileDetailed = async (
   relatedId?: string
 ): Promise<UploadResponse> => {
   try {
+    // Sanitizar nome do arquivo
+    const sanitizedFilename = sanitizeFilename(file.name)
+    const sanitizedFile = new File([file], sanitizedFilename, { type: file.type })
+
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', sanitizedFile)
 
     const params = new URLSearchParams({ category })
     if (relatedId) {
       params.append('relatedId', relatedId)
     }
 
+    // IMPORTANTE: Não definir Content-Type manualmente para FormData
+    // O navegador define automaticamente com o boundary correto
     const response = await api.post<UploadResponse>(
       `/files/upload?${params.toString()}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      formData
     )
 
     return response.data
