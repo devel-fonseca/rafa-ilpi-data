@@ -1,6 +1,5 @@
 import {
   IsString,
-  IsEnum,
   IsOptional,
   IsInt,
   Min,
@@ -8,7 +7,6 @@ import {
   MinLength,
   MaxLength,
 } from 'class-validator'
-import { PopCategory } from '@prisma/client'
 
 /**
  * DTO para criação de POP

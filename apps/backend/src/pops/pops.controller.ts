@@ -24,7 +24,6 @@ import {
   CreatePopDto,
   UpdatePopDto,
   CreatePopVersionDto,
-  PublishPopDto,
   MarkObsoleteDto,
   AddAttachmentDto,
   FilterPopsDto,
@@ -230,11 +229,7 @@ export class PopsController {
    */
   @Post(':id/publish')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
-  async publish(
-    @Req() req: any,
-    @Param('id') id: string,
-    @Body() dto: PublishPopDto,
-  ) {
+  async publish(@Req() req: any, @Param('id') id: string) {
     return this.popsService.publish(req.user.tenantId, id, req.user.id)
   }
 
