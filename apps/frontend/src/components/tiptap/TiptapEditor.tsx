@@ -2,6 +2,10 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
 import { EditorToolbar } from './EditorToolbar'
 import { useEffect } from 'react'
 
@@ -20,6 +24,7 @@ interface TiptapEditorProps {
  * - Títulos (H1, H2, H3)
  * - Listas (marcadores e numeradas)
  * - Links
+ * - Tabelas (inserir, adicionar/remover linhas e colunas)
  * - Toolbar visual com botões
  *
  * @example
@@ -47,6 +52,15 @@ export function TiptapEditor({
           class: 'text-primary underline',
         },
       }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'tiptap-table',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     editorProps: {

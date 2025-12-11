@@ -10,6 +10,15 @@ import {
   Heading3,
   Link,
   Unlink,
+  Table,
+  TableProperties,
+  Columns,
+  Rows,
+  Trash2,
+  Combine,
+  Split,
+  ArrowRight,
+  ArrowDown,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 
@@ -25,6 +34,7 @@ interface EditorToolbarProps {
  * - Listas: Marcadores, Numeradas
  * - Títulos: H1, H2, H3
  * - Links: Adicionar/Remover
+ * - Tabelas: Inserir, Adicionar/Remover linhas e colunas, Mesclar/Dividir células, Deletar tabela
  */
 export function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) {
@@ -148,6 +158,137 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
         type="button"
       >
         <Unlink className="h-4 w-4" />
+      </Button>
+
+      <div className="w-px bg-border mx-1" />
+
+      {/* Tabelas */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() =>
+          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        }
+        title="Inserir tabela 3x3"
+        type="button"
+      >
+        <Table className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().addColumnBefore().run()}
+        disabled={!editor.can().addColumnBefore()}
+        title="Adicionar coluna antes"
+        type="button"
+      >
+        <Columns className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().addColumnAfter().run()}
+        disabled={!editor.can().addColumnAfter()}
+        title="Adicionar coluna depois"
+        type="button"
+      >
+        <Columns className="h-4 w-4" />
+        <ArrowRight className="h-3 w-3 -ml-1" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().addRowBefore().run()}
+        disabled={!editor.can().addRowBefore()}
+        title="Adicionar linha antes"
+        type="button"
+      >
+        <Rows className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().addRowAfter().run()}
+        disabled={!editor.can().addRowAfter()}
+        title="Adicionar linha depois"
+        type="button"
+      >
+        <Rows className="h-4 w-4" />
+        <ArrowDown className="h-3 w-3 -ml-1" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().deleteColumn().run()}
+        disabled={!editor.can().deleteColumn()}
+        title="Remover coluna"
+        type="button"
+      >
+        <Columns className="h-4 w-4 text-destructive" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().deleteRow().run()}
+        disabled={!editor.can().deleteRow()}
+        title="Remover linha"
+        type="button"
+      >
+        <Rows className="h-4 w-4 text-destructive" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        disabled={!editor.can().deleteTable()}
+        title="Deletar tabela"
+        type="button"
+      >
+        <Trash2 className="h-4 w-4 text-destructive" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleHeaderRow().run()}
+        disabled={!editor.can().toggleHeaderRow()}
+        className={editor.isActive('table') ? 'bg-muted' : ''}
+        title="Alternar linha de cabeçalho"
+        type="button"
+      >
+        <TableProperties className="h-4 w-4" />
+      </Button>
+
+      <div className="w-px bg-border mx-1" />
+
+      {/* Mesclar/Dividir células */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().mergeCells().run()}
+        disabled={!editor.can().mergeCells()}
+        title="Mesclar células selecionadas"
+        type="button"
+      >
+        <Combine className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().splitCell().run()}
+        disabled={!editor.can().splitCell()}
+        title="Dividir célula"
+        type="button"
+      >
+        <Split className="h-4 w-4" />
       </Button>
     </div>
   )

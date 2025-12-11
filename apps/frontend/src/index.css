@@ -187,4 +187,63 @@
   .tiptap hr {
     @apply border-t border-border my-6;
   }
+
+  /* Tabelas */
+  .tiptap table {
+    @apply border-collapse my-6 w-full;
+    table-layout: auto;
+  }
+
+  .tiptap table td,
+  .tiptap table th {
+    @apply border border-border px-3 py-2 text-left align-top;
+    min-width: 1em;
+    position: relative;
+  }
+
+  .tiptap table th {
+    @apply bg-muted font-semibold;
+  }
+
+  .tiptap table tbody tr:hover {
+    @apply bg-muted/50;
+  }
+
+  /* Célula selecionada */
+  .tiptap table .selectedCell {
+    @apply bg-primary/10;
+  }
+
+  /* Controles de redimensionamento de coluna */
+  .tiptap table .column-resize-handle {
+    @apply absolute right-0 top-0 bottom-0 w-1 bg-primary/50 cursor-col-resize;
+    pointer-events: none;
+  }
+
+  .tiptap table .column-resize-handle:hover {
+    @apply bg-primary;
+  }
+
+  /* Placeholder para tabelas vazias */
+  .tiptap table p.is-empty::before {
+    content: '';
+  }
+
+  /* Estilos para visualização (somente leitura) */
+  .tiptap-table {
+    @apply border-collapse w-full my-4;
+  }
+
+  .tiptap-table td,
+  .tiptap-table th {
+    @apply border border-border px-3 py-2 text-left;
+  }
+
+  .tiptap-table th {
+    @apply bg-muted font-semibold;
+  }
+
+  .tiptap-table tbody tr:hover {
+    @apply bg-muted/30;
+  }
 }
