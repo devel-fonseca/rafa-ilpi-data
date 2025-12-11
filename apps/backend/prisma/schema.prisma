@@ -120,6 +120,14 @@ enum PermissionType {
   VIEW_INSTITUTIONAL_PROFILE
   UPDATE_INSTITUTIONAL_PROFILE
 
+  // POPs (Procedimentos Operacionais Padrão)
+  VIEW_POPS
+  CREATE_POPS
+  UPDATE_POPS
+  DELETE_POPS
+  PUBLISH_POPS
+  MANAGE_POPS
+
   @@map("PermissionType")
 }
 
@@ -417,6 +425,9 @@ model Tenant {
   notifications             Notification[]
   clinicalNoteDocuments     ClinicalNoteDocument[]
   documentHistory           DocumentHistory[]
+  pops                      Pop[]
+  popAttachments            PopAttachment[]
+  popHistory                PopHistory[]
 
   @@map("tenants")
 }
@@ -1720,6 +1731,9 @@ enum SystemNotificationType {
   MEDICATION_ADMINISTRATION_MISSED
   MEDICATION_ADMINISTRATION_LATE
 
+  // POPs
+  POP_REVIEW_DUE
+
   // Sistema
   SYSTEM_UPDATE
   SYSTEM_MAINTENANCE
@@ -1732,6 +1746,7 @@ enum NotificationCategory {
   DOCUMENT
   DAILY_RECORD
   MEDICATION
+  POP
   SYSTEM
 }
 
@@ -1740,6 +1755,36 @@ enum NotificationSeverity {
   WARNING   // Requer atenção (amarelo/laranja)
   INFO      // Informativo (azul)
   SUCCESS   // Sucesso (verde)
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS - POPs (Procedimentos Operacionais Padrão)
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum PopStatus {
+  DRAFT      // Rascunho (criado por RT ou sugestão de enfermeiro)
+  PUBLISHED  // Publicado e vigente
+  OBSOLETE   // Substituído ou descontinuado
+
+  @@map("PopStatus")
+}
+
+enum PopCategory {
+  GESTAO_OPERACAO      // Gestão e Operação (8 templates)
+  ENFERMAGEM_CUIDADOS  // Enfermagem e Cuidados (20 templates)
+
+  @@map("PopCategory")
+}
+
+enum PopAction {
+  CREATED    // POP criado
+  UPDATED    // Conteúdo atualizado
+  PUBLISHED  // Publicado (de DRAFT para PUBLISHED)
+  VERSIONED  // Nova versão criada
+  OBSOLETED  // Marcado como obsoleto
+  DELETED    // Soft delete
+
+  @@map("PopAction")
 }
 
 model Notification {
@@ -1789,4 +1834,132 @@ model Notification {
   @@index([expiresAt])
   @@index([read])
   @@map("notifications")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MODELS - POPs (Procedimentos Operacionais Padrão)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Pop {
+  id                   String      @id @default(uuid()) @db.Uuid
+  tenantId             String      @db.Uuid
+
+  // Identificação
+  title                String      @db.VarChar(255)
+  category             PopCategory
+  templateId           String?     @db.VarChar(100) // ID do template (ex: "POP_HIGIENIZACAO_MAOS")
+
+  // Conteúdo (HTML do Tiptap - headings, listas, tabelas)
+  content              String      @db.Text
+
+  // Status e Workflow
+  status               PopStatus   @default(DRAFT)
+
+  // Versionamento
+  version              Int         @default(1)
+  replacedById         String?     @db.Uuid
+  replacedAt           DateTime?   @db.Timestamptz(3)
+
+  // Revisão periódica
+  reviewIntervalMonths Int?
+  lastReviewedAt       DateTime?   @db.Timestamptz(3)
+  nextReviewDate       DateTime?   @db.Timestamptz(3)
+  requiresReview       Boolean     @default(false)
+
+  // Observações
+  notes                String?     @db.Text
+
+  // Auditoria
+  createdBy            String      @db.Uuid
+  updatedBy            String?     @db.Uuid
+  publishedBy          String?     @db.Uuid
+  publishedAt          DateTime?   @db.Timestamptz(3)
+  createdAt            DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime    @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime?   @db.Timestamptz(3)
+
+  // Relações
+  tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  replacedBy           Pop?             @relation("PopReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces             Pop[]            @relation("PopReplacement")
+  attachments          PopAttachment[]
+  history              PopHistory[]
+
+  // Índices
+  @@index([tenantId, status])
+  @@index([tenantId, category, status])
+  @@index([tenantId, templateId])
+  @@index([status])
+  @@index([category])
+  @@index([nextReviewDate])
+  @@index([requiresReview])
+  @@index([replacedById])
+  @@index([deletedAt])
+  @@map("pops")
+}
+
+model PopHistory {
+  id             String    @id @default(uuid()) @db.Uuid
+  tenantId       String    @db.Uuid
+  popId          String    @db.Uuid
+
+  // Ação e motivo
+  action         PopAction
+  reason         String?   @db.Text
+
+  // Snapshots para auditoria
+  previousData   Json?     @db.JsonB
+  newData        Json?     @db.JsonB
+  changedFields  String[]  @default([])
+
+  // Auditoria
+  changedBy      String    @db.Uuid
+  changedByName  String    @db.VarChar(255)
+  changedAt      DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress      String?   @db.VarChar(45)
+  userAgent      String?   @db.Text
+
+  // Relações
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pop            Pop       @relation(fields: [popId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, popId, changedAt(sort: Desc)])
+  @@index([popId, action])
+  @@index([changedAt(sort: Desc)])
+  @@index([action])
+  @@map("pop_history")
+}
+
+model PopAttachment {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  popId       String    @db.Uuid
+
+  // Arquivo
+  fileUrl     String    @db.Text
+  fileKey     String?   @db.Text
+  fileName    String    @db.VarChar(255)
+  fileSize    Int?
+  mimeType    String?   @db.VarChar(100)
+
+  // Metadados opcionais
+  description String?   @db.Text
+  type        String?   @db.VarChar(50) // FORMULARIO, CHECKLIST, FLUXOGRAMA, etc.
+
+  // Auditoria
+  uploadedBy  String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pop         Pop       @relation(fields: [popId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, popId])
+  @@index([popId])
+  @@index([deletedAt])
+  @@map("pop_attachments")
 }

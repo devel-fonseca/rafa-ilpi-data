@@ -250,7 +250,7 @@ function drawFoodHydration(doc: jsPDF, records: DailyRecord[], startY: number): 
   const meals = getMealsByType(records)
   const mealNames = Object.keys(meals)
   const cellWidth = foodWidth / 6
-  let tableY = y + 3
+  const tableY = y + 3
 
   doc.setFontSize(6.5)
   doc.setFont('helvetica', 'bold')

@@ -516,13 +516,13 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       // FASE 1: Upload de arquivos para MinIO
       // ========================================
       let fotoUrl = null
-      let documentosPessoaisUrls: string[] = []
-      let documentosEnderecoUrls: string[] = []
-      let documentosResponsavelUrls: string[] = []
+      const documentosPessoaisUrls: string[] = []
+      const documentosEnderecoUrls: string[] = []
+      const documentosResponsavelUrls: string[] = []
       let laudoMedicoUrl = null
       let convenioArquivoUrl = null
       let termoAdmissaoUrl = null
-      let consentimentosUrls: string[] = []
+      const consentimentosUrls: string[] = []
 
       try {
         // Upload da foto

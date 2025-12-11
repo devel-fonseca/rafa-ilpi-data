@@ -32,6 +32,7 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_DAILY_RECORDS,
     PermissionType.VIEW_MEDICATIONS,
     PermissionType.VIEW_VITAL_SIGNS,
+    PermissionType.VIEW_POPS,
   ] as PermissionType[],
 
   // STAFF: Operações básicas de cuidado
@@ -54,6 +55,9 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_ALLERGIES,
     PermissionType.VIEW_CONDITIONS,
     PermissionType.VIEW_DIETARY_RESTRICTIONS,
+    // POPs
+    PermissionType.VIEW_POPS,
+    PermissionType.CREATE_POPS, // Enfermeiros podem criar sugestões (DRAFT)
   ] as PermissionType[],
 
   // MANAGER: Gerenciamento clínico e operacional
@@ -97,6 +101,13 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_DIETARY_RESTRICTIONS,
     PermissionType.CREATE_DIETARY_RESTRICTIONS,
     PermissionType.UPDATE_DIETARY_RESTRICTIONS,
+    // POPs
+    PermissionType.VIEW_POPS,
+    PermissionType.CREATE_POPS,
+    PermissionType.UPDATE_POPS,
+    PermissionType.DELETE_POPS,
+    PermissionType.PUBLISH_POPS,
+    PermissionType.MANAGE_POPS, // RT tem controle total sobre POPs
   ] as PermissionType[],
 
   // ADMIN: Controle total
@@ -166,6 +177,13 @@ const BASE_PERMISSIONS = {
     // Configurações
     PermissionType.VIEW_INSTITUTIONAL_SETTINGS,
     PermissionType.UPDATE_INSTITUTIONAL_SETTINGS,
+    // POPs
+    PermissionType.VIEW_POPS,
+    PermissionType.CREATE_POPS,
+    PermissionType.UPDATE_POPS,
+    PermissionType.DELETE_POPS,
+    PermissionType.PUBLISH_POPS,
+    PermissionType.MANAGE_POPS, // Admin tem controle total sobre POPs
   ] as PermissionType[],
 };
 

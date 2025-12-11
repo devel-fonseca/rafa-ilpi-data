@@ -82,6 +82,14 @@ export enum PermissionType {
   VIEW_INSTITUTIONAL_PROFILE = 'VIEW_INSTITUTIONAL_PROFILE',
   UPDATE_INSTITUTIONAL_PROFILE = 'UPDATE_INSTITUTIONAL_PROFILE',
 
+  // POPs (Procedimentos Operacionais Padrão)
+  VIEW_POPS = 'VIEW_POPS',
+  CREATE_POPS = 'CREATE_POPS',
+  UPDATE_POPS = 'UPDATE_POPS',
+  DELETE_POPS = 'DELETE_POPS',
+  PUBLISH_POPS = 'PUBLISH_POPS',
+  MANAGE_POPS = 'MANAGE_POPS',
+
   // Audit
   VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
 }
@@ -181,6 +189,13 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.VIEW_INSTITUTIONAL_PROFILE]: 'Visualizar perfil institucional',
   [PermissionType.UPDATE_INSTITUTIONAL_PROFILE]: 'Editar perfil institucional',
 
+  [PermissionType.VIEW_POPS]: 'Visualizar POPs',
+  [PermissionType.CREATE_POPS]: 'Criar POPs',
+  [PermissionType.UPDATE_POPS]: 'Editar POPs',
+  [PermissionType.DELETE_POPS]: 'Excluir POPs',
+  [PermissionType.PUBLISH_POPS]: 'Publicar POPs',
+  [PermissionType.MANAGE_POPS]: 'Gerenciar POPs',
+
   [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
 };
 
@@ -245,6 +260,17 @@ export const PERMISSION_GROUPS = {
       PermissionType.MANAGE_FLOORS,
       PermissionType.MANAGE_ROOMS,
       PermissionType.MANAGE_BEDS,
+    ],
+  },
+  pops: {
+    label: 'POPs',
+    permissions: [
+      PermissionType.VIEW_POPS,
+      PermissionType.CREATE_POPS,
+      PermissionType.UPDATE_POPS,
+      PermissionType.DELETE_POPS,
+      PermissionType.PUBLISH_POPS,
+      PermissionType.MANAGE_POPS,
     ],
   },
   administration: {

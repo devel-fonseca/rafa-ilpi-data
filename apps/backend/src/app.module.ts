@@ -34,6 +34,7 @@ import { AllergiesModule } from './allergies/allergies.module';
 import { ConditionsModule } from './conditions/conditions.module';
 import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restrictions.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PopsModule } from './pops/pops.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ConditionsModule,
     DietaryRestrictionsModule,
     NotificationsModule,
+    PopsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

@@ -234,7 +234,7 @@ export function MultiFileUpload({
                       className="w-full h-full object-cover"
                       crossOrigin="anonymous"
                       onError={(e) => {
-                        ;(e.target as HTMLImageElement).style.display = 'none'
+                        (e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   </div>

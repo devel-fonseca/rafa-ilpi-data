@@ -14,7 +14,7 @@ import { format } from 'date-fns'
 export const timestamptzToDisplay = (timestamp: string | Date | null | undefined): string => {
   if (!timestamp) return ''
   try {
-    // eslint-disable-next-line no-restricted-syntax
+     
     // OK: timestamp é um TIMESTAMPTZ completo ou Date object do backend, não um campo date-only
     // Este helper é usado APENAS para exibição, não para enviar de volta ao backend
     const date = new Date(timestamp)

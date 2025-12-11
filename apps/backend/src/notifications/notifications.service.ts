@@ -379,4 +379,40 @@ export class NotificationsService {
       metadata: { documentName, daysLeft },
     })
   }
+
+  /**
+   * Cria notificação para POP que precisa de revisão
+   */
+  async createPopReviewNotification(
+    tenantId: string,
+    popId: string,
+    popTitle: string,
+    daysUntilReview: number,
+  ) {
+    let message: string
+    let severity: NotificationSeverity
+
+    if (daysUntilReview <= 0) {
+      message = `O POP "${popTitle}" está vencido e precisa ser revisado urgentemente.`
+      severity = NotificationSeverity.CRITICAL
+    } else if (daysUntilReview <= 7) {
+      message = `O POP "${popTitle}" precisa ser revisado em ${daysUntilReview} dia${daysUntilReview > 1 ? 's' : ''}.`
+      severity = NotificationSeverity.WARNING
+    } else {
+      message = `O POP "${popTitle}" precisa ser revisado em ${daysUntilReview} dias.`
+      severity = NotificationSeverity.INFO
+    }
+
+    return this.create(tenantId, {
+      type: SystemNotificationType.POP_REVIEW_DUE,
+      category: NotificationCategory.POP,
+      severity,
+      title: 'POP Precisa de Revisão',
+      message,
+      actionUrl: `/dashboard/pops/${popId}`,
+      entityType: 'POP',
+      entityId: popId,
+      metadata: { popTitle, daysUntilReview },
+    })
+  }
 }

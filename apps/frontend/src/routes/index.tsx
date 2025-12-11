@@ -46,6 +46,12 @@ import UsersList from '@/pages/users/UsersList'
 // Notifications Pages
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 
+// POPs Pages
+import PopsList from '@/pages/pops/PopsList'
+import PopEditor from '@/pages/pops/PopEditor'
+import PopViewer from '@/pages/pops/PopViewer'
+import PopHistoryPage from '@/pages/pops/PopHistoryPage'
+
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
 
@@ -169,6 +175,26 @@ export const router = createBrowserRouter([
       {
         path: 'notificacoes',
         element: <NotificationsPage />,
+      },
+      {
+        path: 'pops',
+        element: <PopsList />,
+      },
+      {
+        path: 'pops/new',
+        element: <PopEditor />,
+      },
+      {
+        path: 'pops/:id/edit',
+        element: <PopEditor />,
+      },
+      {
+        path: 'pops/:id/history',
+        element: <PopHistoryPage />,
+      },
+      {
+        path: 'pops/:id',
+        element: <PopViewer />,
       },
       {
         path: 'settings',

@@ -253,6 +253,111 @@ export class NotificationsCronService {
   }
 
   /**
+   * Cron Job - Verificar POPs que precisam de revisão
+   * Executa todos os dias às 09:00
+   */
+  @Cron('0 9 * * *', {
+    name: 'checkPopsReview',
+    timeZone: 'America/Sao_Paulo',
+  })
+  async checkPopsReview() {
+    this.logger.log('📋 Running cron: checkPopsReview')
+
+    try {
+      const tenants = await this.prisma.tenant.findMany({
+        where: { deletedAt: null },
+        select: { id: true, name: true },
+      })
+
+      let totalNotifications = 0
+      let totalMarkedForReview = 0
+
+      for (const tenant of tenants) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        // Buscar POPs PUBLISHED com nextReviewDate <= hoje + 30 dias
+        const inThirtyDays = new Date(today)
+        inThirtyDays.setDate(inThirtyDays.getDate() + 30)
+
+        const popsNeedingReview = await this.prisma.pop.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: 'PUBLISHED',
+            nextReviewDate: {
+              lte: inThirtyDays,
+            },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            title: true,
+            nextReviewDate: true,
+            requiresReview: true,
+          },
+        })
+
+        for (const pop of popsNeedingReview) {
+          const reviewDate = pop.nextReviewDate
+            ? new Date(pop.nextReviewDate)
+            : null
+
+          if (!reviewDate) continue
+
+          reviewDate.setHours(0, 0, 0, 0)
+
+          const diffTime = reviewDate.getTime() - today.getTime()
+          const daysUntilReview = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+          // Janelas de alerta: 30, 15, 7, 3, 1, 0 (vencido)
+          const alertWindows = [30, 15, 7, 3, 1, 0]
+
+          if (alertWindows.includes(daysUntilReview)) {
+            // Verificar se já existe notificação para hoje
+            const existingNotification =
+              await this.prisma.notification.findFirst({
+                where: {
+                  tenantId: tenant.id,
+                  type: 'POP_REVIEW_DUE',
+                  entityType: 'POP',
+                  entityId: pop.id,
+                  createdAt: {
+                    gte: new Date(today),
+                  },
+                },
+              })
+
+            if (!existingNotification) {
+              await this.notificationsService.createPopReviewNotification(
+                tenant.id,
+                pop.id,
+                pop.title,
+                daysUntilReview,
+              )
+              totalNotifications++
+            }
+          }
+
+          // Se vencido (dias <= 0), marcar requiresReview = true
+          if (daysUntilReview <= 0 && !pop.requiresReview) {
+            await this.prisma.pop.update({
+              where: { id: pop.id },
+              data: { requiresReview: true },
+            })
+            totalMarkedForReview++
+          }
+        }
+      }
+
+      this.logger.log(
+        `✅ Cron checkPopsReview completed: ${totalNotifications} notifications created, ${totalMarkedForReview} POPs marked for review`,
+      )
+    } catch (error) {
+      this.logger.error('❌ Error in checkPopsReview cron:', error)
+    }
+  }
+
+  /**
    * Cron Job - Limpar notificações expiradas
    * Executa todos os dias às 03:00
    */

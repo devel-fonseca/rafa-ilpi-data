@@ -46,6 +46,7 @@ export function DashboardLayout() {
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
+  const canViewPops = hasPermission(PermissionType.VIEW_POPS)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -390,6 +391,25 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
+              {canViewPops && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/pops"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'POPs'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">POPs</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {canManageInfrastructure && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -525,6 +545,16 @@ export function DashboardLayout() {
                 <Pill className="h-4 w-4" />
                 Medicações
               </Link>
+              {canViewPops && (
+                <Link
+                  to="/dashboard/pops"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  POPs
+                </Link>
+              )}
               {canManageInfrastructure && (
                 <Link
                   to="/dashboard/beds/structure"

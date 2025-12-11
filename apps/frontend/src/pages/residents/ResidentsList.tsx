@@ -131,7 +131,7 @@ export default function ResidentsList() {
   // Calcular idade
   const calculateAge = (birthDate: string) => {
     const today = new Date()
-    // eslint-disable-next-line no-restricted-syntax
+     
     // OK: Usado apenas para cálculo de idade (exibição), não envia dados ao backend
     const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
