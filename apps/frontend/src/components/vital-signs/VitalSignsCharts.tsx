@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { formatDateTimeShortSafe } from '@/utils/dateHelpers'
 import {
   LineChart,

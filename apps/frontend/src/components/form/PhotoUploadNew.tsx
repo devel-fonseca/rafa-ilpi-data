@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { CloudUpload, X, Loader2, Scan } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { PhotoViewer } from './PhotoViewer'

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UserPreferences, DEFAULT_USER_PREFERENCES } from '@/types/preferences';
 import { updateMyPreferences, getMyProfile } from '@/services/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
