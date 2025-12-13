@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
-import { History, Clock, User, FileText, Filter, X, Loader2 } from 'lucide-react'
+import { History, Clock, User, Filter, X, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useClinicalNoteHistory } from '@/hooks/useClinicalNotes'
-import type { ClinicalNoteHistory } from '@/api/clinicalNotes.api'
 import { getProfessionLabel } from '@/utils/clinicalNotesConstants'
 
 interface ClinicalNoteHistoryModalProps {

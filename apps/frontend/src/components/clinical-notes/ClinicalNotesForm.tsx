@@ -2,12 +2,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, X, Activity, AlertCircle, FileText, Eye, Trash2, Edit } from 'lucide-react'
+import { Loader2, X, Activity, FileText, Eye, Trash2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { TiptapEditor } from '@/components/tiptap'
 import { DocumentPreviewModal } from './DocumentPreviewModal'
 import { DocumentEditorModal } from './DocumentEditorModal'
 import { toast } from 'sonner'
@@ -49,7 +47,7 @@ import {
   DEFAULT_CLINICAL_TAGS,
   PROFESSION_CONFIG,
 } from '@/utils/clinicalNotesConstants'
-import { formatVitalSignsToText, checkCriticalVitalSigns } from '@/utils/vitalSignsFormatter'
+import { formatVitalSignsToText } from '@/utils/vitalSignsFormatter'
 
 // Validação com Zod
 const clinicalNoteSchema = z

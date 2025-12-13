@@ -1,5 +1,5 @@
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
-import { X, Edit2, History, Printer } from 'lucide-react'
+import { Edit2, History, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
