@@ -15,6 +15,7 @@ import {
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
+import { DeletePrescriptionDto } from './dto/delete-prescription.dto';
 import { QueryPrescriptionDto } from './dto/query-prescription.dto';
 import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
@@ -112,15 +113,60 @@ export class PrescriptionsController {
   @Roles('admin')
   @AuditAction('DELETE')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Remover prescrição (soft delete)' })
+  @ApiOperation({ summary: 'Remover prescrição (soft delete) com motivo obrigatório' })
   @ApiResponse({ status: 200, description: 'Prescrição removida com sucesso' })
+  @ApiResponse({ status: 400, description: 'deleteReason inválido (mínimo 10 caracteres)' })
   @ApiResponse({ status: 404, description: 'Prescrição não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() deletePrescriptionDto: DeletePrescriptionDto,
     @CurrentUser() user: any,
   ) {
-    return this.prescriptionsService.remove(id, user.tenantId, user.id);
+    return this.prescriptionsService.remove(
+      id,
+      user.tenantId,
+      user.id,
+      deletePrescriptionDto.deleteReason,
+    );
+  }
+
+  // ========== VERSIONAMENTO E HISTÓRICO ==========
+
+  @Get(':id/history')
+  @ApiOperation({ summary: 'Obter histórico completo de versões de uma prescrição' })
+  @ApiResponse({
+    status: 200,
+    description: 'Histórico completo de alterações com audit trail',
+  })
+  @ApiResponse({ status: 404, description: 'Prescrição não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.prescriptionsService.getHistory(id, user.tenantId);
+  }
+
+  @Get(':id/history/:versionNumber')
+  @ApiOperation({ summary: 'Obter versão específica do histórico' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dados completos de uma versão específica (previousData, newData, changedFields)',
+  })
+  @ApiResponse({ status: 404, description: 'Versão não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão (1, 2, 3, ...)' })
+  getHistoryVersion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.prescriptionsService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 
   // ========== ESTATÍSTICAS E DASHBOARD ==========

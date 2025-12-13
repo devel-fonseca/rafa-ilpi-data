@@ -1,14 +1,34 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { createEncryptionMiddleware } from './middleware/encryption.middleware';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private tenantClients: Map<string, PrismaClient> = new Map();
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     super({
-      log: ['query', 'error', 'warn'],
+      log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
     });
+
+    // Registrar middleware de criptografia
+    this.registerEncryptionMiddleware();
+  }
+
+  /**
+   * Registrar middleware de criptografia para todos os clientes
+   * Garante que dados sensíveis sejam automaticamente criptografados/descriptografados
+   */
+  private registerEncryptionMiddleware(): void {
+    const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY');
+
+    if (!encryptionKey) {
+      throw new Error('ENCRYPTION_KEY must be defined in environment variables');
+    }
+
+    // Registrar middleware no cliente principal
+    this.$use(createEncryptionMiddleware(encryptionKey));
   }
 
   async onModuleInit() {
@@ -46,7 +66,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
             url: tenantUrl,
           },
         },
+        log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
       });
+
+      // Registrar middleware de criptografia no tenant client também
+      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY')!;
+      tenantClient.$use(createEncryptionMiddleware(encryptionKey));
 
       this.tenantClients.set(schemaName, tenantClient);
     }

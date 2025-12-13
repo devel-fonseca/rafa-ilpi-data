@@ -7,16 +7,21 @@ import {
   Param,
   Delete,
   UseGuards,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AllergiesService } from './allergies.service';
 import { CreateAllergyDto } from './dto/create-allergy.dto';
-import { UpdateAllergyDto } from './dto/update-allergy.dto';
+import { UpdateAllergyDto } from './dto/update-allergy-versioned.dto';
+import { DeleteAllergyDto } from './dto/delete-allergy.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
@@ -73,11 +78,59 @@ export class AllergiesController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_ALLERGIES)
-  @ApiOperation({ summary: 'Deletar alergia (soft delete)' })
-  @ApiResponse({ status: 200, description: 'Alergia deletada com sucesso' })
+  @ApiOperation({
+    summary: 'Remover alergia',
+    description: 'Remove o registro de alergia (soft delete) com motivo obrigatório',
+  })
+  @ApiResponse({ status: 200, description: 'Alergia removida com sucesso' })
+  @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
-  remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.allergiesService.remove(user.tenantId, id);
+  @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
+  remove(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteAllergyDto,
+  ) {
+    return this.allergiesService.remove(user.tenantId, user.id, id, deleteDto.deleteReason);
+  }
+
+  @Get(':id/history')
+  @RequirePermissions(PermissionType.VIEW_ALLERGIES)
+  @ApiOperation({
+    summary: 'Consultar histórico de alergia',
+    description: 'Retorna todas as versões de uma alergia (RDC 502/2021)',
+  })
+  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
+  getHistory(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.allergiesService.getHistory(id, user.tenantId);
+  }
+
+  @Get(':id/history/:versionNumber')
+  @RequirePermissions(PermissionType.VIEW_ALLERGIES)
+  @ApiOperation({
+    summary: 'Consultar versão específica do histórico',
+    description: 'Retorna uma versão específica do histórico de alergia',
+  })
+  @ApiResponse({ status: 200, description: 'Versão retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Alergia ou versão não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
+  getHistoryVersion(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+  ) {
+    return this.allergiesService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 }

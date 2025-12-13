@@ -1,12 +1,25 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDateLongSafe, extractDateOnly } from '@/utils/dateHelpers'
-import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer } from 'lucide-react'
+import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer, ShieldAlert } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { useVaccinationsByResident, useDeleteVaccination, Vaccination } from '@/hooks/useVaccinations'
+import { useVaccinationsByResident, Vaccination } from '@/hooks/useVaccinations'
+import { useDeleteVaccination } from '@/hooks/useVaccinationVersioning'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { VaccinationForm } from './VaccinationForm'
 import { VaccinationPrintView } from './VaccinationPrintView'
@@ -20,6 +33,9 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
   const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
+  const [deletingVaccination, setDeletingVaccination] = useState<Vaccination | undefined>(undefined)
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteReasonError, setDeleteReasonError] = useState('')
   const printRef = useRef<HTMLDivElement>(null)
 
   // Verificar permissões
@@ -41,14 +57,33 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
     setFormOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja remover este registro de vacinação?')) return
+  const handleDelete = (vaccination: Vaccination) => {
+    setDeletingVaccination(vaccination)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingVaccination) return
+
+    // Validação do motivo da exclusão
+    const trimmedReason = deleteReason.trim()
+    if (!trimmedReason || trimmedReason.length < 10) {
+      setDeleteReasonError(
+        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
+      )
+      return
+    }
 
     try {
-      await deleteMutation.mutateAsync(id)
-      toast.success('Vacinação removida com sucesso')
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao remover vacinação')
+      await deleteMutation.mutateAsync({
+        id: deletingVaccination.id,
+        deleteReason: trimmedReason,
+      })
+      setDeletingVaccination(undefined)
+      setDeleteReason('')
+      setDeleteReasonError('')
+      // Sucesso é tratado automaticamente pelo hook (toast)
+    } catch (error) {
+      // Erro é tratado automaticamente pelo hook (toast)
     }
   }
 
@@ -156,7 +191,7 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(vaccination.id)}
+                      onClick={() => handleDelete(vaccination)}
                       disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -244,6 +279,88 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
       <div ref={printRef}>
         <VaccinationPrintView residentId={residentId} vaccinations={sortedVaccinations} />
       </div>
+
+      {/* AlertDialog para Confirmação de Delete */}
+      <AlertDialog
+        open={!!deletingVaccination}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingVaccination(undefined)
+            setDeleteReason('')
+            setDeleteReasonError('')
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Vacinação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o registro de vacinação "{deletingVaccination?.vaccine}"
+              ({deletingVaccination?.dose})?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {/* Card Destacado - RDC 502/2021 */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  Toda exclusão de registro deve ter justificativa documentada para fins de
+                  auditoria e conformidade regulatória.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label
+                htmlFor="deleteReason"
+                className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+              >
+                Motivo da Exclusão <span className="text-red-600">*</span>
+              </Label>
+              <Textarea
+                id="deleteReason"
+                placeholder="Ex: Registro duplicado - vacinação já estava cadastrada no sistema..."
+                value={deleteReason}
+                onChange={(e) => {
+                  setDeleteReason(e.target.value)
+                  setDeleteReasonError('')
+                }}
+                className={`min-h-[100px] ${deleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+              />
+              {deleteReasonError && (
+                <p className="text-sm text-red-600 mt-2">{deleteReasonError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
+                histórico de alterações.
+              </p>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteReason('')
+                setDeleteReasonError('')
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir Definitivamente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

@@ -4,13 +4,14 @@ import {
   getTenantUsers,
   getAllUserProfiles,
   addUserToTenant,
-  removeUserFromTenant,
   createUserProfile,
   updateUserProfile,
   getUserPermissions,
   manageCustomPermissions,
   getPositionPermissions,
 } from "@/services/api";
+import { useDeleteUser } from "@/hooks/useUserVersioning";
+import { UserHistoryDrawer } from "@/components/users/UserHistoryDrawer";
 import {
   Card,
   CardContent,
@@ -21,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -71,6 +73,8 @@ import {
   Key,
   Briefcase,
   Award,
+  History,
+  ShieldAlert,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -88,6 +92,7 @@ import { PermissionsManager } from "@/components/users/PermissionsManager";
 export default function UsersList() {
   const { user: currentUser } = useAuthStore();
   const { toast } = useToast();
+  const deleteUser = useDeleteUser();
 
   const [users, setUsers] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -118,6 +123,14 @@ export default function UsersList() {
     open: false,
     user: null,
   });
+  const [historyDrawer, setHistoryDrawer] = useState<{
+    open: boolean;
+    userId: string | null;
+    userName?: string;
+  }>({
+    open: false,
+    userId: null,
+  });
 
   // Form states
   const [addFormData, setAddFormData] = useState({
@@ -142,6 +155,12 @@ export default function UsersList() {
     []
   );
   const [submitting, setSubmitting] = useState(false);
+
+  // Estados para versionamento
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteReasonError, setDeleteReasonError] = useState("");
+  const [changeReason, setChangeReason] = useState("");
+  const [changeReasonError, setChangeReasonError] = useState("");
 
   useEffect(() => {
     loadData();
@@ -320,25 +339,31 @@ export default function UsersList() {
   };
 
   const handleDeleteUser = async () => {
-    if (!deleteModal.user || !currentUser?.tenantId) return;
+    if (!deleteModal.user) return;
+
+    // Validação do motivo da exclusão
+    const trimmedReason = deleteReason.trim();
+    if (!trimmedReason || trimmedReason.length < 10) {
+      setDeleteReasonError(
+        "Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)"
+      );
+      return;
+    }
 
     try {
-      await removeUserFromTenant(currentUser.tenantId, deleteModal.user.id);
-
-      toast({
-        title: "Usuário removido",
-        description: `${deleteModal.user.name} foi removido com sucesso`,
+      await deleteUser.mutateAsync({
+        id: deleteModal.user.id,
+        deleteReason: trimmedReason,
       });
 
+      // Sucesso é tratado automaticamente pelo hook (toast + invalidateQueries)
       setDeleteModal({ open: false, user: null });
+      setDeleteReason("");
+      setDeleteReasonError("");
       await loadData();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao remover usuário",
-        description:
-          error.response?.data?.message || "Não foi possível remover o usuário",
-        variant: "destructive",
-      });
+    } catch (error) {
+      // Erro é tratado automaticamente pelo hook (toast)
+      // Mantém o modal aberto para o usuário tentar novamente
     }
   };
 
@@ -515,6 +540,20 @@ export default function UsersList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setHistoryDrawer({
+                              open: true,
+                              userId: user.id,
+                              userName: user.name,
+                            })
+                          }
+                          title="Ver histórico"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1089,9 +1128,15 @@ export default function UsersList() {
       {/* Modal Confirmar Exclusão */}
       <AlertDialog
         open={deleteModal.open}
-        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        onOpenChange={(open) => {
+          setDeleteModal({ ...deleteModal, open });
+          if (!open) {
+            setDeleteReason("");
+            setDeleteReasonError("");
+          }
+        }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1100,17 +1145,72 @@ export default function UsersList() {
               desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* Card Destacado - RDC 502/2021 */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                  Toda exclusão de registro deve ter justificativa documentada para fins de auditoria e conformidade regulatória.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deleteReason" className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                Motivo da Exclusão <span className="text-red-600">*</span>
+              </Label>
+              <Textarea
+                id="deleteReason"
+                placeholder="Ex: Desligamento do funcionário em 13/12/2025 - Pedido de demissão..."
+                value={deleteReason}
+                onChange={(e) => {
+                  setDeleteReason(e.target.value);
+                  setDeleteReasonError("");
+                }}
+                className={`min-h-[100px] ${deleteReasonError ? "border-red-500 focus:border-red-500" : ""}`}
+              />
+              {deleteReasonError && (
+                <p className="text-sm text-red-600 mt-2">{deleteReasonError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
+              </p>
+            </div>
+          </div>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteReason("");
+                setDeleteReasonError("");
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteUser}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Remover
+              Remover Definitivamente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Drawer de Histórico */}
+      <UserHistoryDrawer
+        userId={historyDrawer.userId || undefined}
+        userName={historyDrawer.userName}
+        open={historyDrawer.open}
+        onOpenChange={(open) =>
+          setHistoryDrawer({ open, userId: null, userName: undefined })
+        }
+      />
     </div>
   );
 }

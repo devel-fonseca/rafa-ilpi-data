@@ -35,6 +35,8 @@ import { ConditionsModule } from './conditions/conditions.module';
 import { DietaryRestrictionsModule } from './dietary-restrictions/dietary-restrictions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PopsModule } from './pops/pops.module';
+import { MedicationsModule } from './medications/medications.module';
+import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
 
 @Module({
   imports: [
@@ -72,6 +74,8 @@ import { PopsModule } from './pops/pops.module';
     ResidentsModule,
     DailyRecordsModule,
     PrescriptionsModule,
+    MedicationsModule,
+    SOSMedicationsModule,
     VaccinationsModule,
     ClinicalNotesModule,
     AuditModule,

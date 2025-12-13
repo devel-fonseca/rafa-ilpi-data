@@ -1,5 +1,7 @@
 import { api } from '../services/api'
 
+// ==================== TYPES ====================
+
 export interface Allergy {
   id: string
   substance: string
@@ -148,6 +150,237 @@ export interface ResidentStats {
   feminino: number
 }
 
+/**
+ * DTO para criar residente
+ */
+export interface CreateResidentDto {
+  fullName: string
+  socialName?: string
+  cpf?: string
+  rg?: string
+  rgIssuer?: string
+  education?: string
+  profession?: string
+  cns?: string
+  gender: 'MASCULINO' | 'FEMININO' | 'OUTRO' | 'NAO_INFORMADO'
+  civilStatus?: 'SOLTEIRO' | 'CASADO' | 'DIVORCIADO' | 'VIUVO' | 'UNIAO_ESTAVEL'
+  religion?: string
+  birthDate: string
+  nationality?: string
+  birthCity?: string
+  birthState?: string
+  motherName?: string
+  fatherName?: string
+  fotoUrl?: string
+  currentCep?: string
+  currentState?: string
+  currentCity?: string
+  currentStreet?: string
+  currentNumber?: string
+  currentComplement?: string
+  currentDistrict?: string
+  currentPhone?: string
+  originCep?: string
+  originState?: string
+  originCity?: string
+  originStreet?: string
+  originNumber?: string
+  originComplement?: string
+  originDistrict?: string
+  originPhone?: string
+  legalGuardianName?: string
+  legalGuardianCpf?: string
+  legalGuardianRg?: string
+  legalGuardianPhone?: string
+  legalGuardianType?: string
+  legalGuardianCep?: string
+  legalGuardianState?: string
+  legalGuardianCity?: string
+  legalGuardianStreet?: string
+  legalGuardianNumber?: string
+  legalGuardianComplement?: string
+  legalGuardianDistrict?: string
+  admissionDate?: string
+  admissionType?: string
+  admissionReason?: string
+  admissionConditions?: string
+  dischargeDate?: string
+  dischargeReason?: string
+  healthStatus?: string
+  bloodType?: string
+  height?: number
+  weight?: number
+  dependencyLevel?: string
+  mobilityAid?: boolean
+  specialNeeds?: string
+  functionalAspects?: string
+  medicationsOnAdmission?: string
+  allergies?: Allergy[]
+  chronicConditions?: string
+  dietaryRestrictions?: string
+  roomId?: string
+  bedId?: string
+  status: string
+  emergencyContacts?: Array<{
+    name: string
+    phone: string
+    relationship: string
+  }>
+  healthPlans?: Array<{
+    name: string
+    cardNumber: string
+    cardUrl?: string
+  }>
+  belongings?: string[]
+  documents?: Array<{
+    type: string
+    url: string
+  }>
+}
+
+/**
+ * DTO para atualizar residente (todos os campos opcionais + changeReason obrigatório)
+ */
+export interface UpdateResidentDto {
+  fullName?: string
+  socialName?: string
+  cpf?: string
+  rg?: string
+  rgIssuer?: string
+  education?: string
+  profession?: string
+  cns?: string
+  gender?: 'MASCULINO' | 'FEMININO' | 'OUTRO' | 'NAO_INFORMADO'
+  civilStatus?: 'SOLTEIRO' | 'CASADO' | 'DIVORCIADO' | 'VIUVO' | 'UNIAO_ESTAVEL'
+  religion?: string
+  birthDate?: string
+  nationality?: string
+  birthCity?: string
+  birthState?: string
+  motherName?: string
+  fatherName?: string
+  fotoUrl?: string
+  currentCep?: string
+  currentState?: string
+  currentCity?: string
+  currentStreet?: string
+  currentNumber?: string
+  currentComplement?: string
+  currentDistrict?: string
+  currentPhone?: string
+  originCep?: string
+  originState?: string
+  originCity?: string
+  originStreet?: string
+  originNumber?: string
+  originComplement?: string
+  originDistrict?: string
+  originPhone?: string
+  legalGuardianName?: string
+  legalGuardianCpf?: string
+  legalGuardianRg?: string
+  legalGuardianPhone?: string
+  legalGuardianType?: string
+  legalGuardianCep?: string
+  legalGuardianState?: string
+  legalGuardianCity?: string
+  legalGuardianStreet?: string
+  legalGuardianNumber?: string
+  legalGuardianComplement?: string
+  legalGuardianDistrict?: string
+  admissionDate?: string
+  admissionType?: string
+  admissionReason?: string
+  admissionConditions?: string
+  dischargeDate?: string
+  dischargeReason?: string
+  healthStatus?: string
+  bloodType?: string
+  height?: number
+  weight?: number
+  dependencyLevel?: string
+  mobilityAid?: boolean
+  specialNeeds?: string
+  functionalAspects?: string
+  medicationsOnAdmission?: string
+  allergies?: Allergy[]
+  chronicConditions?: string
+  dietaryRestrictions?: string
+  roomId?: string
+  bedId?: string
+  status?: string
+  emergencyContacts?: Array<{
+    name: string
+    phone: string
+    relationship: string
+  }>
+  healthPlans?: Array<{
+    name: string
+    cardNumber: string
+    cardUrl?: string
+  }>
+  belongings?: string[]
+  documents?: Array<{
+    type: string
+    url: string
+  }>
+  /**
+   * Motivo da alteração (obrigatório - RDC 502/2021 Art. 39)
+   */
+  changeReason: string
+}
+
+/**
+ * Entrada de histórico de residente
+ */
+export interface ResidentHistoryEntry {
+  id: string
+  tenantId: string
+  residentId: string
+  versionNumber: number
+  changeType: 'CREATE' | 'UPDATE' | 'DELETE'
+  changeReason: string
+  previousData: Partial<Resident> | null
+  newData: Partial<Resident>
+  changedFields: string[]
+  changedAt: string
+  changedBy: string
+  changedByName?: string
+  ipAddress?: string
+  userAgent?: string
+}
+
+/**
+ * Resposta de histórico de residente (estrutura customizada)
+ */
+export interface ResidentHistoryResponse {
+  residentId: string
+  resident: {
+    fullName: string
+    cpf: string | null
+    currentVersion: number
+  }
+  currentVersion: number
+  totalVersions: number
+  history: Array<{
+    id: string
+    versionNumber: number
+    changeType: 'CREATE' | 'UPDATE' | 'DELETE'
+    changeReason: string
+    changedFields: string[]
+    changedAt: string
+    changedBy: {
+      id: string
+      name: string
+      email: string
+    }
+    previousData?: Partial<Resident>
+    newData: Partial<Resident>
+  }>
+}
+
+// ==================== API CLASS ====================
+
 class ResidentsAPI {
   async getAll(query?: ResidentQuery): Promise<ResidentsResponse> {
     const params = new URLSearchParams()
@@ -169,22 +402,35 @@ class ResidentsAPI {
     return response.data
   }
 
-  async create(data: any): Promise<Resident> {
+  async create(data: CreateResidentDto): Promise<Resident> {
     const response = await api.post('/residents', data)
     return response.data
   }
 
-  async update(id: string, data: any): Promise<Resident> {
+  async update(id: string, data: UpdateResidentDto): Promise<Resident> {
     const response = await api.patch(`/residents/${id}`, data)
     return response.data
   }
 
-  async delete(id: string): Promise<void> {
-    await api.delete(`/residents/${id}`)
+  async delete(id: string, deleteReason: string): Promise<{ message: string }> {
+    const response = await api.delete(`/residents/${id}`, {
+      data: { deleteReason }
+    })
+    return response.data
   }
 
   async getStats(): Promise<ResidentStats> {
     const response = await api.get('/residents/stats/overview')
+    return response.data
+  }
+
+  async getHistory(id: string): Promise<ResidentHistoryResponse> {
+    const response = await api.get(`/residents/${id}/history`)
+    return response.data
+  }
+
+  async getHistoryVersion(id: string, versionNumber: number): Promise<ResidentHistoryEntry> {
+    const response = await api.get(`/residents/${id}/history/${versionNumber}`)
     return response.data
   }
 }

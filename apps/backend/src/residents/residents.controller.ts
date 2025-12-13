@@ -17,6 +17,7 @@ import {
 import { ResidentsService } from './residents.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
+import { DeleteResidentDto } from './dto/delete-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -123,15 +124,56 @@ export class ResidentsController {
   @AuditAction('DELETE')
   @ApiOperation({ summary: 'Remover residente (soft delete)' })
   @ApiResponse({ status: 200, description: 'Residente removido com sucesso' })
+  @ApiResponse({ status: 400, description: 'changeReason obrigatório ou inválido' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 403, description: 'Sem permissão' })
   @ApiParam({ name: 'id', description: 'ID do residente' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteResidentDto: DeleteResidentDto,
     @CurrentUser() user: any,
   ) {
-    return this.residentsService.remove(id, user.tenantId, user.id);
+    return this.residentsService.remove(
+      id,
+      user.tenantId,
+      user.id,
+      deleteResidentDto.changeReason,
+    );
+  }
+
+  @Get(':id/history')
+  @RequirePermissions(PermissionType.VIEW_RESIDENTS)
+  @ApiOperation({ summary: 'Buscar histórico completo de alterações do residente' })
+  @ApiResponse({ status: 200, description: 'Histórico de alterações' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiParam({ name: 'id', description: 'ID do residente' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.residentsService.getHistory(id, user.tenantId);
+  }
+
+  @Get(':id/history/:versionNumber')
+  @RequirePermissions(PermissionType.VIEW_RESIDENTS)
+  @ApiOperation({ summary: 'Buscar versão específica do histórico' })
+  @ApiResponse({ status: 200, description: 'Versão do histórico encontrada' })
+  @ApiResponse({ status: 404, description: 'Versão não encontrada' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiParam({ name: 'id', description: 'ID do residente' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
+  getHistoryVersion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.residentsService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 
   @Get('stats/overview')

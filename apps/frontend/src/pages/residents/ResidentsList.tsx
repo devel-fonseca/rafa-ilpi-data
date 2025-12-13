@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useResidents, useDeleteResident, useResidentStats } from '@/hooks/useResidents'
 import type { Resident } from '@/api/residents.api'
+import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
   Table,
@@ -58,6 +60,7 @@ import {
   Accessibility,
   ShieldAlert,
   ArrowLeft,
+  History,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
@@ -74,6 +77,16 @@ export default function ResidentsList() {
     open: false,
     resident: null,
   })
+  const [historyDrawer, setHistoryDrawer] = useState<{
+    open: boolean
+    residentId: string | null
+    residentName?: string
+  }>({
+    open: false,
+    residentId: null,
+  })
+  const [deleteChangeReason, setDeleteChangeReason] = useState('')
+  const [deleteReasonError, setDeleteReasonError] = useState('')
 
   const { residents, meta, query, setQuery, isLoading, error } = useResidents({
     page: 1,
@@ -112,13 +125,25 @@ export default function ResidentsList() {
   const handleDelete = async () => {
     if (!deleteModal.resident) return
 
+    // Validar changeReason (mínimo 10 caracteres)
+    const trimmedReason = deleteChangeReason.trim()
+    if (trimmedReason.length < 10) {
+      setDeleteReasonError('Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)')
+      return
+    }
+
     try {
-      await deleteMutation.mutateAsync(deleteModal.resident.id)
+      await deleteMutation.mutateAsync({
+        id: deleteModal.resident.id,
+        deleteReason: deleteChangeReason,
+      })
       toast({
         title: 'Sucesso',
         description: 'Residente removido com sucesso',
       })
       setDeleteModal({ open: false, resident: null })
+      setDeleteChangeReason('')
+      setDeleteReasonError('')
     } catch (error) {
       toast({
         title: 'Erro',
@@ -414,6 +439,19 @@ export default function ResidentsList() {
                               Prontuário
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              onClick={() =>
+                                setHistoryDrawer({
+                                  open: true,
+                                  residentId: resident.id,
+                                  residentName: resident.fullName,
+                                })
+                              }
+                            >
+                              <History className="mr-2 h-4 w-4" />
+                              Ver Histórico
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
                               onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}
                             >
                               <Edit className="mr-2 h-4 w-4" />
@@ -476,27 +514,89 @@ export default function ResidentsList() {
       </Card>
 
       {/* Delete Confirmation Modal */}
-      <AlertDialog open={deleteModal.open} onOpenChange={(open) => setDeleteModal({ open, resident: null })}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={deleteModal.open}
+        onOpenChange={(open) => {
+          setDeleteModal({ open, resident: null })
+          if (!open) {
+            setDeleteChangeReason('')
+            setDeleteReasonError('')
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja remover o residente{' '}
-              <strong>{deleteModal.resident?.fullName}</strong>? Esta ação não pode ser desfeita.
+              <strong>{deleteModal.resident?.fullName}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* Campo de Motivo da Exclusão - Obrigatório (RDC 502/2021) */}
+          <div className="space-y-3 py-4">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-2">
+                ⚠️ Atenção: Remoção Permanente
+              </p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo da remoção do prontuário.
+                Esta ação ficará registrada permanentemente no histórico de auditoria.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deleteChangeReason" className="text-base font-semibold">
+                Motivo da Exclusão <span className="text-danger">*</span>
+              </Label>
+              <Textarea
+                id="deleteChangeReason"
+                placeholder="Ex: Falecimento do residente em 12/12/2025 - Atestado de óbito nº 123456..."
+                value={deleteChangeReason}
+                onChange={(e) => {
+                  setDeleteChangeReason(e.target.value)
+                  setDeleteReasonError('')
+                }}
+                className={`min-h-[100px] ${deleteReasonError ? 'border-danger focus:border-danger' : ''}`}
+              />
+              {deleteReasonError && (
+                <p className="text-sm text-danger mt-2">{deleteReasonError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
+              </p>
+            </div>
+          </div>
+
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteChangeReason('')
+                setDeleteReasonError('')
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              variant="danger"
+              className="bg-danger hover:bg-danger/90"
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? 'Removendo...' : 'Remover'}
+              {deleteMutation.isPending ? 'Removendo...' : 'Remover Definitivamente'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Drawer de Histórico */}
+      <ResidentHistoryDrawer
+        residentId={historyDrawer.residentId || undefined}
+        residentName={historyDrawer.residentName}
+        open={historyDrawer.open}
+        onOpenChange={(open) =>
+          setHistoryDrawer({ open, residentId: null, residentName: undefined })
+        }
+      />
     </div>
   )
 }

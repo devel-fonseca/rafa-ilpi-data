@@ -33,6 +33,43 @@ export interface UpdateConditionDto {
   notes?: string
 }
 
+/**
+ * DTO para atualizar condição com versionamento
+ */
+export interface UpdateConditionVersionedDto extends UpdateConditionDto {
+  changeReason: string
+}
+
+/**
+ * Entrada de histórico de condição
+ */
+export interface ConditionHistoryEntry {
+  id: string
+  tenantId: string
+  conditionId: string
+  versionNumber: number
+  changeType: 'CREATE' | 'UPDATE' | 'DELETE'
+  changeReason: string
+  previousData: Partial<Condition> | null
+  newData: Partial<Condition>
+  changedFields: string[]
+  changedAt: string
+  changedBy: string
+  changedByName?: string
+  ipAddress?: string
+  userAgent?: string
+}
+
+/**
+ * Resposta de histórico de condição
+ */
+export interface ConditionHistoryResponse {
+  conditionId: string
+  currentVersion: number
+  totalVersions: number
+  history: ConditionHistoryEntry[]
+}
+
 // ==================== API FUNCTIONS ====================
 
 /**
@@ -60,16 +97,35 @@ export async function getCondition(id: string): Promise<Condition> {
 }
 
 /**
- * Atualiza uma condição
+ * Atualiza uma condição com versionamento
  */
-export async function updateCondition(id: string, data: UpdateConditionDto): Promise<Condition> {
+export async function updateCondition(id: string, data: UpdateConditionVersionedDto): Promise<Condition> {
   const response = await api.patch(`/conditions/${id}`, data)
   return response.data
 }
 
 /**
- * Soft delete de uma condição
+ * Soft delete de uma condição com versionamento
  */
-export async function deleteCondition(id: string): Promise<void> {
-  await api.delete(`/conditions/${id}`)
+export async function deleteCondition(id: string, deleteReason: string): Promise<{ message: string }> {
+  const response = await api.delete(`/conditions/${id}`, {
+    data: { deleteReason },
+  })
+  return response.data
+}
+
+/**
+ * Consultar histórico completo de alterações de uma condição
+ */
+export async function getConditionHistory(id: string): Promise<ConditionHistoryResponse> {
+  const response = await api.get(`/conditions/${id}/history`)
+  return response.data
+}
+
+/**
+ * Consultar versão específica do histórico de uma condição
+ */
+export async function getConditionHistoryVersion(id: string, version: number): Promise<ConditionHistoryEntry> {
+  const response = await api.get(`/conditions/${id}/history/${version}`)
+  return response.data
 }

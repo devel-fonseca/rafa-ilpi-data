@@ -144,7 +144,12 @@ export interface CreatePrescriptionDto {
 }
 
 export interface UpdatePrescriptionDto extends Partial<CreatePrescriptionDto> {
+  changeReason: string // Obrigatório (mínimo 10 caracteres)
   isActive?: boolean
+}
+
+export interface DeletePrescriptionDto {
+  deleteReason: string // Obrigatório (mínimo 10 caracteres)
 }
 
 export interface QueryPrescriptionParams {
@@ -221,6 +226,35 @@ export interface AdministerSOSDto {
   notes?: string
 }
 
+// ========== VERSIONAMENTO ==========
+
+export type ChangeType = 'CREATE' | 'UPDATE' | 'DELETE'
+
+export interface PrescriptionHistoryEntry {
+  id: string
+  versionNumber: number
+  changeType: ChangeType
+  changeReason: string
+  previousData: any | null
+  newData: any
+  changedFields: string[]
+  changedAt: string
+  changedBy: {
+    id: string
+    name: string
+    email: string
+  }
+  ipAddress?: string
+  userAgent?: string
+  metadata?: any
+}
+
+export interface PrescriptionHistoryResponse {
+  prescription: Prescription
+  history: PrescriptionHistoryEntry[]
+  totalVersions: number
+}
+
 // ========== API METHODS ==========
 
 export const prescriptionsApi = {
@@ -237,8 +271,17 @@ export const prescriptionsApi = {
   update: (id: string, data: UpdatePrescriptionDto) =>
     api.patch<Prescription>(`/prescriptions/${id}`, data),
 
-  remove: (id: string) =>
-    api.delete(`/prescriptions/${id}`),
+  remove: (id: string, deleteReason: string) =>
+    api.delete(`/prescriptions/${id}`, {
+      data: { deleteReason }
+    }),
+
+  // Versionamento
+  getHistory: (id: string) =>
+    api.get<PrescriptionHistoryResponse>(`/prescriptions/${id}/history`),
+
+  getHistoryVersion: (id: string, versionNumber: number) =>
+    api.get<PrescriptionHistoryEntry>(`/prescriptions/${id}/history/${versionNumber}`),
 
   // Dashboard & Stats
   getDashboardStats: () =>

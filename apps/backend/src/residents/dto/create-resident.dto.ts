@@ -455,4 +455,7 @@ export class CreateResidentDto {
   @IsOptional()
   @IsUUID()
   bedId?: string;
+
+  // changeReason: Não deve ser aceito na criação (apenas em updates/deletes)
+  // Se enviado, será ignorado pelo ValidationPipe com whitelist: true
 }

@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ChevronDown, Plus, X, ArrowLeft, FileText, Edit } from 'lucide-react'
+import { ChevronDown, Plus, X, ArrowLeft, FileText, Edit, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,6 +35,7 @@ import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
 import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
 import { ResidentDocuments } from '@/components/residents/ResidentDocuments'
+import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { toast } from 'sonner'
 
 // Componente Collapsible customizado (inline)
@@ -71,6 +72,9 @@ function Collapsible({ title, children, defaultOpen = true, required = false }: 
 const residentSchema = z.object({
   // Status (opcional - apenas para modo edição)
   status: z.enum(['Ativo', 'Inativo', 'Falecido']).optional(),
+
+  // Motivo da alteração (obrigatório apenas no modo edição - RDC 502/2021 Art. 39)
+  changeReason: z.string().optional(),
 
   // Dados Pessoais
   foto: z.any().optional(),
@@ -180,6 +184,20 @@ const residentSchema = z.object({
   leitoNumero: z.string().optional()
 })
 
+// Schema com validação condicional para changeReason (obrigatório no modo edição)
+const getResidentSchema = (isEditMode: boolean) => {
+  if (isEditMode) {
+    return residentSchema.extend({
+      changeReason: z.string()
+        .min(10, 'Motivo da alteração deve ter no mínimo 10 caracteres')
+        .refine(val => val.trim().length >= 10, {
+          message: 'Motivo da alteração deve ter no mínimo 10 caracteres (sem contar espaços)'
+        })
+    })
+  }
+  return residentSchema
+}
+
 type ResidentFormData = z.infer<typeof residentSchema>
 
 interface ResidentFormProps {
@@ -194,6 +212,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [isLoading, setIsLoading] = useState(false) // Carregando dados do residente
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | undefined>(undefined)
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false)
+  const [residentFullName, setResidentFullName] = useState<string | undefined>(undefined)
 
   // Pegar tenantId do usuário logado
   const user = useAuthStore((state) => state.user)
@@ -218,7 +238,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     setValue,
     formState: { errors }
   } = useForm<ResidentFormData>({
-    resolver: zodResolver(residentSchema),
+    resolver: zodResolver(getResidentSchema(isEditMode)),
     mode: 'onChange',
     defaultValues: {
       status: 'Ativo', // Valor padrão para novos residentes
@@ -321,7 +341,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (!isMounted) return
 
         // ===== DADOS PESSOAIS =====
-        if (resident.fullName) setValue('nome', resident.fullName)
+        if (resident.fullName) {
+          setValue('nome', resident.fullName)
+          setResidentFullName(resident.fullName)
+        }
         if (resident.socialName) setValue('nomeSocial', resident.socialName)
         if (resident.cns) setValue('cns', resident.cns)
         if (resident.cpf) setValue('cpf', resident.cpf)
@@ -736,10 +759,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       }
 
       // ========================================
-      // Em modo edição, adicionar status se foi alterado
+      // Em modo edição, adicionar status e changeReason
       // ========================================
-      if (isEditMode && data.status) {
-        payload.status = data.status
+      if (isEditMode) {
+        if (data.status) {
+          payload.status = data.status
+        }
+        // changeReason é OBRIGATÓRIO no modo edição (RDC 502/2021 Art. 39)
+        payload.changeReason = data.changeReason
       }
 
       console.log('✅ Payload para API:', payload)
@@ -851,6 +878,13 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 Prontuário
               </Button>
               <Button
+                onClick={() => setHistoryDrawerOpen(true)}
+                variant="outline"
+              >
+                <History className="h-4 w-4 mr-2" />
+                Histórico
+              </Button>
+              <Button
                 onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
                 variant="default"
               >
@@ -858,6 +892,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 Editar
               </Button>
             </>
+          )}
+          {isEditMode && !readOnly && id && (
+            <Button
+              onClick={() => setHistoryDrawerOpen(true)}
+              variant="outline"
+              type="button"
+            >
+              <History className="h-4 w-4 mr-2" />
+              Histórico
+            </Button>
           )}
         </div>
       </div>
@@ -909,6 +953,37 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               {errors.status && (
                 <p className="text-sm text-danger mt-2">{errors.status.message}</p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Campo de Motivo da Alteração - Obrigatório no modo edição (RDC 502/2021) */}
+      {isEditMode && !readOnly && (
+        <Card className="shadow-lg mb-6 border-yellow-500/50">
+          <CardContent className="p-6">
+            <div className="space-y-2">
+              <Label htmlFor="changeReason" className="text-base font-semibold">
+                Motivo da Alteração <span className="text-danger">*</span>
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo de qualquer alteração no prontuário do residente.
+              </p>
+              <Textarea
+                id="changeReason"
+                placeholder="Ex: Atualização do endereço conforme solicitação da família em 12/12/2025..."
+                {...register('changeReason')}
+                className={cn(
+                  'min-h-[100px]',
+                  errors.changeReason && 'border-danger focus:border-danger'
+                )}
+              />
+              {errors.changeReason && (
+                <p className="text-sm text-danger mt-2">{errors.changeReason.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -1941,6 +2016,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           </div>
         )}
       </form>
+
+      {/* Drawer de Histórico de Alterações */}
+      <ResidentHistoryDrawer
+        residentId={id}
+        residentName={residentFullName}
+        open={historyDrawerOpen}
+        onOpenChange={setHistoryDrawerOpen}
+      />
     </div>
   )
 }

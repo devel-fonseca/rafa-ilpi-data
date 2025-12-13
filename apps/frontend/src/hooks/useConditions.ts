@@ -104,13 +104,14 @@ export function useUpdateCondition() {
 }
 
 /**
- * Hook para soft delete de condição
+ * Hook para soft delete de condição com versionamento
  */
 export function useDeleteCondition() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => deleteCondition(id),
+    mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
+      deleteCondition(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de conditions
       queryClient.invalidateQueries({ queryKey: ['conditions'] })

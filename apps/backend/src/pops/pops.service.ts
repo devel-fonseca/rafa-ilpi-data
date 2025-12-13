@@ -10,6 +10,7 @@ import {
   PopAction,
   PopHistory,
   PopAttachment,
+  PopCategory,
   Prisma,
 } from '@prisma/client'
 import {
@@ -58,7 +59,7 @@ export class PopsService {
         data: {
           tenantId,
           title: dto.title,
-          category: dto.category,
+          category: dto.category as PopCategory,
           templateId: dto.templateId,
           content: dto.content,
           status: PopStatus.DRAFT,

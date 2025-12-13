@@ -70,8 +70,13 @@ export async function updateClinicalProfile(
 }
 
 /**
- * Soft delete do perfil clínico
+ * Soft delete do perfil clínico com versionamento
  */
-export async function deleteClinicalProfile(id: string): Promise<void> {
-  await api.delete(`/clinical-profiles/${id}`)
+export async function deleteClinicalProfile(
+  id: string,
+  deleteReason: string
+): Promise<void> {
+  await api.delete(`/clinical-profiles/${id}`, {
+    data: { deleteReason },
+  })
 }

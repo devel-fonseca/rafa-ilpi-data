@@ -3,13 +3,15 @@ import {
   NotFoundException,
   BadRequestException,
   Inject,
-} from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
-import { FilesService } from '../files/files.service'
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston'
-import { Logger } from 'winston'
-import { parseISO, startOfDay } from 'date-fns'
-import { CreateVaccinationDto, UpdateVaccinationDto } from './dto'
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { FilesService } from '../files/files.service';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
+import { parseISO, startOfDay } from 'date-fns';
+import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
+import { DeleteVaccinationDto } from './dto/delete-vaccination.dto';
+import { ChangeType } from '@prisma/client';
 
 @Injectable()
 export class VaccinationsService {
@@ -20,7 +22,7 @@ export class VaccinationsService {
   ) {}
 
   /**
-   * Criar novo registro de vacinação
+   * Criar novo registro de vacinação COM versionamento
    * Com validações conforme RDC 502/2021
    */
   async create(
@@ -35,36 +37,37 @@ export class VaccinationsService {
         tenantId,
         deletedAt: null,
       },
-    })
+    });
 
     if (!resident) {
-      throw new NotFoundException('Residente não encontrado')
+      throw new NotFoundException('Residente não encontrado');
     }
 
     // FIX TIMESTAMPTZ: Validar data não está no futuro usando date-fns
-    // Usar parseISO com meio-dia para garantir timestamp consistente
-    const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`)
-    const today = startOfDay(new Date())
+    const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`);
+    const today = startOfDay(new Date());
 
     if (vaccinationDate > today) {
-      throw new BadRequestException('Data de vacinação não pode ser no futuro')
+      throw new BadRequestException('Data de vacinação não pode ser no futuro');
     }
 
     // Validar UF
     if (!/^[A-Z]{2}$/.test(dto.state)) {
-      throw new BadRequestException('UF deve conter 2 caracteres maiúsculos')
+      throw new BadRequestException('UF deve conter 2 caracteres maiúsculos');
     }
 
     // Validar CNES
     if (!/^\d{8,10}$/.test(dto.cnes)) {
-      throw new BadRequestException('CNES deve conter 8 a 10 dígitos')
+      throw new BadRequestException('CNES deve conter 8 a 10 dígitos');
     }
 
     // Criar registro com transação para incluir documento se houver comprovante
     const vaccination = await this.prisma.$transaction(async (tx) => {
-      // 1. Criar registro de vacinação
+      // 1. Criar registro de vacinação COM versionamento
       const vaccinationRecord = await tx.vaccination.create({
         data: {
+          tenantId,
+          residentId: dto.residentId,
           vaccine: dto.vaccine,
           dose: dto.dose,
           date: vaccinationDate,
@@ -76,15 +79,8 @@ export class VaccinationsService {
           state: dto.state,
           certificateUrl: dto.certificateUrl,
           notes: dto.notes,
-          tenant: {
-            connect: { id: tenantId },
-          },
-          resident: {
-            connect: { id: dto.residentId },
-          },
-          user: {
-            connect: { id: userId },
-          },
+          versionNumber: 1,
+          createdBy: userId,
         },
         include: {
           resident: {
@@ -93,18 +89,18 @@ export class VaccinationsService {
               fullName: true,
             },
           },
-          user: {
+          createdByUser: {
             select: {
               id: true,
               name: true,
             },
           },
         },
-      })
+      });
 
       // 2. Se houver comprovante de vacinação, criar documento do residente
       if (dto.certificateUrl) {
-        const formattedDate = vaccinationDate.toLocaleDateString('pt-BR')
+        const formattedDate = vaccinationDate.toLocaleDateString('pt-BR');
 
         await tx.residentDocument.create({
           data: {
@@ -116,11 +112,11 @@ export class VaccinationsService {
             details: `${dto.vaccine} - ${dto.dose} - ${formattedDate}`,
             uploadedBy: userId,
           },
-        })
+        });
       }
 
-      return vaccinationRecord
-    })
+      return vaccinationRecord;
+    });
 
     this.logger.info('Vacinação registrada com sucesso', {
       vaccinationId: vaccination.id,
@@ -128,9 +124,9 @@ export class VaccinationsService {
       vaccine: dto.vaccine,
       tenantId,
       userId,
-    })
+    });
 
-    return vaccination
+    return vaccination;
   }
 
   /**
@@ -144,10 +140,10 @@ export class VaccinationsService {
         tenantId,
         deletedAt: null,
       },
-    })
+    });
 
     if (!resident) {
-      throw new NotFoundException('Residente não encontrado')
+      throw new NotFoundException('Residente não encontrado');
     }
 
     const vaccinations = await this.prisma.vaccination.findMany({
@@ -160,14 +156,14 @@ export class VaccinationsService {
         date: 'desc',
       },
       include: {
-        user: {
+        createdByUser: {
           select: {
             id: true,
             name: true,
           },
         },
       },
-    })
+    });
 
     // Processar URLs assinadas para certificados
     const vaccinationsWithSignedUrls = await Promise.all(
@@ -175,17 +171,17 @@ export class VaccinationsService {
         if (vaccination.certificateUrl) {
           const signedUrl = await this.filesService.getFileUrl(
             vaccination.certificateUrl,
-          )
+          );
           return {
             ...vaccination,
             certificateUrl: signedUrl,
-          }
+          };
         }
-        return vaccination
+        return vaccination;
       }),
-    )
+    );
 
-    return vaccinationsWithSignedUrls
+    return vaccinationsWithSignedUrls;
   }
 
   /**
@@ -206,154 +202,368 @@ export class VaccinationsService {
             cpf: true,
           },
         },
-        user: {
+        createdByUser: {
           select: {
             id: true,
             name: true,
           },
         },
       },
-    })
+    });
 
     if (!vaccination) {
-      throw new NotFoundException('Vacinação não encontrada')
+      throw new NotFoundException('Vacinação não encontrada');
     }
 
-    return vaccination
+    return vaccination;
   }
 
   /**
-   * Atualizar registro de vacinação
+   * Atualizar registro de vacinação COM versionamento
    */
   async update(
     id: string,
-    dto: UpdateVaccinationDto,
+    updateVaccinationDto: UpdateVaccinationDto,
     tenantId: string,
     userId: string,
   ) {
-    // Verificar se vacinação existe
-    const existing = await this.prisma.vaccination.findFirst({
-      where: {
-        id,
-        tenantId,
-        deletedAt: null,
-      },
-    })
+    const { changeReason, ...updateData } = updateVaccinationDto;
 
-    if (!existing) {
-      throw new NotFoundException('Vacinação não encontrada')
+    // Buscar vacinação existente
+    const vaccination = await this.prisma.vaccination.findFirst({
+      where: { id, tenantId, deletedAt: null },
+    });
+
+    if (!vaccination) {
+      this.logger.error('Erro ao atualizar vacinação', {
+        error: 'Vacinação não encontrada',
+        vaccinationId: id,
+        tenantId,
+        userId,
+      });
+      throw new NotFoundException('Vacinação não encontrada');
     }
 
     // Se trocar residente, validar novo residente
-    if (dto.residentId && dto.residentId !== existing.residentId) {
+    if (updateData.residentId && updateData.residentId !== vaccination.residentId) {
       const resident = await this.prisma.resident.findFirst({
         where: {
-          id: dto.residentId,
+          id: updateData.residentId,
           tenantId,
           deletedAt: null,
         },
-      })
+      });
 
       if (!resident) {
-        throw new NotFoundException('Novo residente não encontrado')
+        throw new NotFoundException('Novo residente não encontrado');
       }
     }
 
-    // FIX TIMESTAMPTZ: Validar data se foi fornecida usando date-fns
-    if (dto.date) {
-      const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`)
-      const today = startOfDay(new Date())
+    // FIX TIMESTAMPTZ: Validar data se foi fornecida
+    if (updateData.date) {
+      const vaccinationDate = parseISO(`${updateData.date}T12:00:00.000`);
+      const today = startOfDay(new Date());
 
       if (vaccinationDate > today) {
-        throw new BadRequestException('Data de vacinação não pode ser no futuro')
+        throw new BadRequestException('Data de vacinação não pode ser no futuro');
       }
     }
 
-    // Validar UF se foi fornecido
-    if (dto.state && !/^[A-Z]{2}$/.test(dto.state)) {
-      throw new BadRequestException('UF deve conter 2 caracteres maiúsculos')
+    // Validar UF se fornecido
+    if (updateData.state && !/^[A-Z]{2}$/.test(updateData.state)) {
+      throw new BadRequestException('UF deve conter 2 caracteres maiúsculos');
     }
 
-    // Validar CNES se foi fornecido
-    if (dto.cnes && !/^\d{8,10}$/.test(dto.cnes)) {
-      throw new BadRequestException('CNES deve conter 8 a 10 dígitos')
+    // Validar CNES se fornecido
+    if (updateData.cnes && !/^\d{8,10}$/.test(updateData.cnes)) {
+      throw new BadRequestException('CNES deve conter 8 a 10 dígitos');
     }
 
-    const updated = await this.prisma.vaccination.update({
-      where: { id },
-      data: {
-        vaccine: dto.vaccine,
-        dose: dto.dose,
-        // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
-        date: dto.date ? parseISO(`${dto.date}T12:00:00.000`) : undefined,
-        batch: dto.batch,
-        manufacturer: dto.manufacturer,
-        cnes: dto.cnes,
-        healthUnit: dto.healthUnit,
-        municipality: dto.municipality,
-        state: dto.state,
-        certificateUrl: dto.certificateUrl,
-        notes: dto.notes,
-        ...(dto.residentId && {
-          resident: {
-            connect: { id: dto.residentId },
-          },
-        }),
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    })
+    // Capturar estado anterior
+    const previousData = {
+      vaccine: vaccination.vaccine,
+      dose: vaccination.dose,
+      date: vaccination.date,
+      batch: vaccination.batch,
+      manufacturer: vaccination.manufacturer,
+      cnes: vaccination.cnes,
+      healthUnit: vaccination.healthUnit,
+      municipality: vaccination.municipality,
+      state: vaccination.state,
+      certificateUrl: vaccination.certificateUrl,
+      notes: vaccination.notes,
+      residentId: vaccination.residentId,
+      versionNumber: vaccination.versionNumber,
+    };
 
-    this.logger.info('Vacinação atualizada com sucesso', {
+    // Detectar campos alterados
+    const changedFields: string[] = [];
+    (Object.keys(updateData) as Array<keyof typeof updateData>).forEach(
+      (key) => {
+        if (
+          updateData[key] !== undefined &&
+          JSON.stringify(updateData[key]) !==
+            JSON.stringify((previousData as any)[key])
+        ) {
+          changedFields.push(key as string);
+        }
+      },
+    );
+
+    // Incrementar versão
+    const newVersionNumber = vaccination.versionNumber + 1;
+
+    // Executar update e criar histórico em transação atômica
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Atualizar vacinação
+      const updatedVaccination = await tx.vaccination.update({
+        where: { id },
+        data: {
+          ...(updateData as any),
+          // FIX TIMESTAMPTZ: Processar data se fornecida
+          ...(updateData.date && {
+            date: parseISO(`${updateData.date}T12:00:00.000`),
+          }),
+          versionNumber: newVersionNumber,
+          updatedBy: userId,
+        },
+      });
+
+      // 2. Capturar novo estado
+      const newData = {
+        vaccine: updatedVaccination.vaccine,
+        dose: updatedVaccination.dose,
+        date: updatedVaccination.date,
+        batch: updatedVaccination.batch,
+        manufacturer: updatedVaccination.manufacturer,
+        cnes: updatedVaccination.cnes,
+        healthUnit: updatedVaccination.healthUnit,
+        municipality: updatedVaccination.municipality,
+        state: updatedVaccination.state,
+        certificateUrl: updatedVaccination.certificateUrl,
+        notes: updatedVaccination.notes,
+        residentId: updatedVaccination.residentId,
+        versionNumber: updatedVaccination.versionNumber,
+      };
+
+      // 3. Criar entrada no histórico
+      await tx.vaccinationHistory.create({
+        data: {
+          tenantId,
+          vaccinationId: id,
+          versionNumber: newVersionNumber,
+          changeType: ChangeType.UPDATE,
+          changeReason,
+          previousData: previousData as any,
+          newData: newData as any,
+          changedFields,
+          changedAt: new Date(),
+          changedBy: userId,
+        },
+      });
+
+      return updatedVaccination;
+    });
+
+    this.logger.info('Vacinação atualizada com versionamento', {
       vaccinationId: id,
+      versionNumber: newVersionNumber,
+      changedFields,
       tenantId,
       userId,
-    })
+    });
 
-    return updated
+    return result;
   }
 
   /**
-   * Soft delete de registro de vacinação
+   * Soft delete de registro de vacinação COM versionamento
    */
-  async remove(id: string, tenantId: string, userId: string) {
-    const existing = await this.prisma.vaccination.findFirst({
-      where: {
-        id,
-        tenantId,
-        deletedAt: null,
-      },
-    })
+  async remove(
+    id: string,
+    tenantId: string,
+    userId: string,
+    deleteReason: string,
+  ) {
+    // Buscar vacinação existente
+    const vaccination = await this.prisma.vaccination.findFirst({
+      where: { id, tenantId, deletedAt: null },
+    });
 
-    if (!existing) {
-      throw new NotFoundException('Vacinação não encontrada')
+    if (!vaccination) {
+      this.logger.error('Erro ao remover vacinação', {
+        error: 'Vacinação não encontrada',
+        vaccinationId: id,
+        tenantId,
+        userId,
+      });
+      throw new NotFoundException('Vacinação não encontrada');
     }
 
-    await this.prisma.vaccination.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
-    })
+    // Capturar estado antes da exclusão
+    const previousData = {
+      vaccine: vaccination.vaccine,
+      dose: vaccination.dose,
+      date: vaccination.date,
+      batch: vaccination.batch,
+      manufacturer: vaccination.manufacturer,
+      cnes: vaccination.cnes,
+      healthUnit: vaccination.healthUnit,
+      municipality: vaccination.municipality,
+      state: vaccination.state,
+      certificateUrl: vaccination.certificateUrl,
+      notes: vaccination.notes,
+      residentId: vaccination.residentId,
+      versionNumber: vaccination.versionNumber,
+      deletedAt: null,
+    };
 
-    this.logger.info('Vacinação removida (soft delete)', {
+    // Incrementar versão
+    const newVersionNumber = vaccination.versionNumber + 1;
+
+    // Executar soft delete e criar histórico em transação atômica
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Soft delete
+      const deletedVaccination = await tx.vaccination.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          versionNumber: newVersionNumber,
+          updatedBy: userId,
+        },
+      });
+
+      // 2. Criar entrada no histórico
+      await tx.vaccinationHistory.create({
+        data: {
+          tenantId,
+          vaccinationId: id,
+          versionNumber: newVersionNumber,
+          changeType: ChangeType.DELETE,
+          changeReason: deleteReason,
+          previousData: previousData as any,
+          newData: {
+            ...previousData,
+            deletedAt: deletedVaccination.deletedAt,
+            versionNumber: newVersionNumber,
+          } as any,
+          changedFields: ['deletedAt'],
+          changedAt: new Date(),
+          changedBy: userId,
+        },
+      });
+
+      return deletedVaccination;
+    });
+
+    this.logger.info('Vacinação removida com versionamento', {
       vaccinationId: id,
+      versionNumber: newVersionNumber,
       tenantId,
       userId,
-    })
+    });
 
-    return { message: 'Vacinação removida com sucesso' }
+    return {
+      message: 'Vacinação removida com sucesso',
+      vaccination: result,
+    };
+  }
+
+  /**
+   * Consultar histórico completo de vacinação
+   */
+  async getHistory(vaccinationId: string, tenantId: string) {
+    // Verificar se a vacinação existe
+    const vaccination = await this.prisma.vaccination.findFirst({
+      where: { id: vaccinationId, tenantId },
+    });
+
+    if (!vaccination) {
+      this.logger.error('Erro ao consultar histórico de vacinação', {
+        error: 'Vacinação não encontrada',
+        vaccinationId,
+        tenantId,
+      });
+      throw new NotFoundException('Vacinação não encontrada');
+    }
+
+    // Buscar histórico ordenado por versão decrescente
+    const history = await this.prisma.vaccinationHistory.findMany({
+      where: {
+        vaccinationId,
+        tenantId,
+      },
+      orderBy: {
+        versionNumber: 'desc',
+      },
+    });
+
+    this.logger.info('Histórico de vacinação consultado', {
+      vaccinationId,
+      totalVersions: history.length,
+      tenantId,
+    });
+
+    return {
+      vaccinationId,
+      vaccine: vaccination.vaccine,
+      vaccinationVaccine: vaccination.vaccine,
+      currentVersion: vaccination.versionNumber,
+      totalVersions: history.length,
+      history,
+    };
+  }
+
+  /**
+   * Consultar versão específica do histórico
+   */
+  async getHistoryVersion(
+    vaccinationId: string,
+    versionNumber: number,
+    tenantId: string,
+  ) {
+    // Verificar se a vacinação existe
+    const vaccination = await this.prisma.vaccination.findFirst({
+      where: { id: vaccinationId, tenantId },
+    });
+
+    if (!vaccination) {
+      this.logger.error('Erro ao consultar versão do histórico', {
+        error: 'Vacinação não encontrada',
+        vaccinationId,
+        versionNumber,
+        tenantId,
+      });
+      throw new NotFoundException('Vacinação não encontrada');
+    }
+
+    // Buscar versão específica
+    const historyVersion = await this.prisma.vaccinationHistory.findFirst({
+      where: {
+        vaccinationId,
+        versionNumber,
+        tenantId,
+      },
+    });
+
+    if (!historyVersion) {
+      this.logger.error('Erro ao consultar versão do histórico', {
+        error: `Versão ${versionNumber} não encontrada para esta vacinação`,
+        vaccinationId,
+        versionNumber,
+        tenantId,
+      });
+      throw new NotFoundException(
+        `Versão ${versionNumber} não encontrada para esta vacinação`,
+      );
+    }
+
+    this.logger.info('Versão específica do histórico consultada', {
+      vaccinationId,
+      versionNumber,
+      tenantId,
+    });
+
+    return historyVersion;
   }
 }

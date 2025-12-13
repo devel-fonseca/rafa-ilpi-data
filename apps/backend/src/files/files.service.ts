@@ -10,6 +10,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
+import { createHash, randomBytes } from 'crypto';
 
 @Injectable()
 export class FilesService {
@@ -71,6 +72,37 @@ export class FilesService {
   }
 
   /**
+   * Gerar chave de criptografia derivada para SSE-C (Server-Side Encryption with Customer Key)
+   * Usa master key do .env + tenantId para isolamento total
+   */
+  private generateEncryptionKey(tenantId: string): Buffer {
+    const masterKey = this.configService.get<string>('ENCRYPTION_KEY')!;
+
+    // Derivar chave única por tenant usando HMAC-SHA256
+    const derivedKey = createHash('sha256')
+      .update(`${masterKey}:${tenantId}`)
+      .digest();
+
+    return derivedKey; // 32 bytes (256 bits)
+  }
+
+  /**
+   * Verificar se categoria requer criptografia (dados sensíveis LGPD)
+   */
+  private requiresEncryption(category: string): boolean {
+    const sensitiveCategories = [
+      'documents',     // Documentos pessoais (RG, CPF, certidões)
+      'prescriptions', // Receitas médicas
+      'vaccinations',  // Comprovantes de vacinação
+      'clinical',      // Laudos, exames clínicos
+      'contracts',     // Contratos assinados
+      'photos',        // Fotos dos residentes (dado biométrico)
+    ];
+
+    return sensitiveCategories.includes(category);
+  }
+
+  /**
    * Limpar URLs expiradas do cache
    */
   private cleanExpiredCache(): void {
@@ -93,16 +125,22 @@ export class FilesService {
    * Processa foto e gera thumbnails (small, medium, original)
    * Usa convenção de nomenclatura: base.webp, base_small.webp, base_medium.webp
    * NÃO altera schema do banco - apenas gera múltiplos arquivos no MinIO
+   * COM CRIPTOGRAFIA SSE-C para dados biométricos (LGPD Art. 5º, II)
    */
   private async processPhotoWithThumbnails(
     fileBuffer: Buffer,
     basePath: string, // Ex: "tenants/123/photos/456/uuid.webp"
+    tenantId: string,
   ): Promise<void> {
     const variants = [
       { suffix: '', size: 300, quality: 95 }, // Original: uuid.webp
       { suffix: '_small', size: 64, quality: 90 }, // Small: uuid_small.webp
       { suffix: '_medium', size: 150, quality: 90 }, // Medium: uuid_medium.webp
     ];
+
+    // Gerar chave de criptografia para fotos (dado biométrico sensível)
+    const encryptionKey = this.generateEncryptionKey(tenantId);
+    const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
 
     for (const variant of variants) {
       // Processar imagem
@@ -117,17 +155,21 @@ export class FilesService {
       // Gerar path com sufixo
       const variantPath = basePath.replace('.webp', `${variant.suffix}.webp`);
 
-      // Upload para MinIO
+      // Upload para MinIO COM CRIPTOGRAFIA SSE-C
       await this.s3Client.send(
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: variantPath,
           Body: processed,
           ContentType: 'image/webp',
+          // SSE-C: Criptografia com chave fornecida pelo cliente
+          SSECustomerAlgorithm: 'AES256',
+          SSECustomerKey: encryptionKey.toString('base64'),
+          SSECustomerKeyMD5: encryptionKeyMD5,
         }),
       );
 
-      this.logger.log(`Uploaded thumbnail: ${variantPath}`);
+      this.logger.log(`Uploaded ENCRYPTED thumbnail: ${variantPath}`);
     }
   }
 
@@ -175,12 +217,15 @@ export class FilesService {
     filePath += `/${fileName}`;
 
     try {
+      // Verificar se categoria requer criptografia (dados sensíveis LGPD)
+      const needsEncryption = this.requiresEncryption(category);
+
       // Se for foto, gerar thumbnails (3 arquivos no MinIO)
       if (category === 'photos') {
-        await this.processPhotoWithThumbnails(file.buffer, filePath);
+        await this.processPhotoWithThumbnails(file.buffer, filePath, tenantId);
 
         this.logger.log(
-          `Photo uploaded successfully with thumbnails: ${filePath}`,
+          `Photo uploaded successfully with ENCRYPTED thumbnails: ${filePath}`,
         );
 
         // Retorna apenas path base (compatível com banco atual)
@@ -193,24 +238,39 @@ export class FilesService {
         };
       }
 
-      // Outros tipos de arquivo (comportamento atual sem mudanças)
-      await this.s3Client.send(
-        new PutObjectCommand({
-          Bucket: this.bucket,
-          Key: filePath,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          Metadata: {
-            originalName: file.originalname,
-            tenantId,
-            category,
-            relatedId: relatedId || '',
-            uploadedAt: new Date().toISOString(),
-          },
-        }),
-      );
+      // Preparar comando base
+      const baseCommand: any = {
+        Bucket: this.bucket,
+        Key: filePath,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        Metadata: {
+          originalName: file.originalname,
+          tenantId,
+          category,
+          relatedId: relatedId || '',
+          uploadedAt: new Date().toISOString(),
+        },
+      };
 
-      this.logger.log(`File uploaded successfully: ${filePath}`);
+      // Se categoria sensível, adicionar criptografia SSE-C
+      if (needsEncryption) {
+        const encryptionKey = this.generateEncryptionKey(tenantId);
+        const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+
+        baseCommand.SSECustomerAlgorithm = 'AES256';
+        baseCommand.SSECustomerKey = encryptionKey.toString('base64');
+        baseCommand.SSECustomerKeyMD5 = encryptionKeyMD5;
+
+        this.logger.log(`Uploading ENCRYPTED file (${category}): ${filePath}`);
+      }
+
+      // Upload para MinIO
+      await this.s3Client.send(new PutObjectCommand(baseCommand));
+
+      this.logger.log(
+        `File uploaded successfully${needsEncryption ? ' (ENCRYPTED)' : ''}: ${filePath}`,
+      );
 
       // Retornar informações do arquivo
       return {
@@ -227,8 +287,25 @@ export class FilesService {
   }
 
   /**
+   * Extrair tenantId do filePath (formato: tenants/{tenantId}/...)
+   */
+  private extractTenantIdFromPath(filePath: string): string | null {
+    const match = filePath.match(/^tenants\/([^/]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Extrair categoria do filePath (formato: tenants/{tenantId}/{category}/...)
+   */
+  private extractCategoryFromPath(filePath: string): string | null {
+    const match = filePath.match(/^tenants\/[^/]+\/([^/]+)/);
+    return match ? match[1] : null;
+  }
+
+  /**
    * Gerar URL assinada para download (válida por 1 hora)
    * Com cache em memória para evitar sobrecarga no MinIO
+   * SUPORTA arquivos criptografados SSE-C
    */
   async getFileUrl(filePath: string): Promise<string> {
     try {
@@ -240,11 +317,28 @@ export class FilesService {
         return cached.url;
       }
 
-      // Cache miss ou expirado - gerar nova URL
-      const command = new GetObjectCommand({
+      // Extrair tenantId e categoria do path
+      const tenantId = this.extractTenantIdFromPath(filePath);
+      const category = this.extractCategoryFromPath(filePath);
+
+      // Preparar comando base
+      const commandParams: any = {
         Bucket: this.bucket,
         Key: filePath,
-      });
+      };
+
+      // Se arquivo criptografado, adicionar chaves SSE-C
+      if (tenantId && category && this.requiresEncryption(category)) {
+        const encryptionKey = this.generateEncryptionKey(tenantId);
+        const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+
+        commandParams.SSECustomerAlgorithm = 'AES256';
+        commandParams.SSECustomerKey = encryptionKey.toString('base64');
+        commandParams.SSECustomerKeyMD5 = encryptionKeyMD5;
+      }
+
+      // Cache miss ou expirado - gerar nova URL
+      const command = new GetObjectCommand(commandParams);
 
       // URL assinada válida por 1 hora
       const url = await getSignedUrl(this.s3Client, command, {
@@ -319,16 +413,33 @@ export class FilesService {
   }
 
   /**
-   * Deletar arquivo
+   * Deletar arquivo (suporta arquivos criptografados SSE-C)
    */
   async deleteFile(filePath: string): Promise<void> {
     try {
-      await this.s3Client.send(
-        new DeleteObjectCommand({
-          Bucket: this.bucket,
-          Key: filePath,
-        }),
-      );
+      // Extrair tenantId e categoria
+      const tenantId = this.extractTenantIdFromPath(filePath);
+      const category = this.extractCategoryFromPath(filePath);
+
+      const commandParams: any = {
+        Bucket: this.bucket,
+        Key: filePath,
+      };
+
+      // Se arquivo criptografado, fornecer chaves SSE-C
+      if (tenantId && category && this.requiresEncryption(category)) {
+        const encryptionKey = this.generateEncryptionKey(tenantId);
+        const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+
+        commandParams.SSECustomerAlgorithm = 'AES256';
+        commandParams.SSECustomerKey = encryptionKey.toString('base64');
+        commandParams.SSECustomerKeyMD5 = encryptionKeyMD5;
+      }
+
+      await this.s3Client.send(new DeleteObjectCommand(commandParams));
+
+      // Remover do cache se existir
+      this.urlCache.delete(filePath);
 
       this.logger.log(`File deleted successfully: ${filePath}`);
     } catch (error) {

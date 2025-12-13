@@ -12,6 +12,7 @@ import { UpdateResidentDto } from './dto/update-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ResidentsService {
@@ -20,6 +21,79 @@ export class ResidentsService {
     private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
+
+  /**
+   * Cria registro de histórico para auditoria (RDC 502/2021)
+   * Sempre executado dentro de transação junto com a operação principal
+   */
+  private async createHistoryRecord(
+    residentId: string,
+    tenantId: string,
+    changeType: ChangeType,
+    changeReason: string,
+    changedBy: string,
+    previousData: any | null,
+    newData: any,
+    changedFields: string[],
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    await tx.residentHistory.create({
+      data: {
+        residentId,
+        tenantId,
+        versionNumber: newData.versionNumber,
+        changeType,
+        changeReason,
+        changedFields,
+        previousData: previousData ? JSON.parse(JSON.stringify(previousData)) : null,
+        newData: JSON.parse(JSON.stringify(newData)),
+        changedAt: new Date(),
+        changedBy,
+        metadata: {
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.logger.info('History record created', {
+      residentId,
+      tenantId,
+      changeType,
+      versionNumber: newData.versionNumber,
+    });
+  }
+
+  /**
+   * Calcula quais campos foram alterados comparando previousData e newData
+   * Retorna array de nomes de campos modificados
+   */
+  private calculateChangedFields(previousData: any, newData: any): string[] {
+    const changedFields: string[] = [];
+    const allKeys = new Set([...Object.keys(previousData), ...Object.keys(newData)]);
+
+    for (const key of allKeys) {
+      // Ignorar campos de metadata que sempre mudam
+      if (['updatedAt', 'versionNumber', 'updatedBy'].includes(key)) {
+        continue;
+      }
+
+      // Ignorar CPF e outros campos criptografados (geram hash diferente a cada update mesmo sem mudança)
+      // O middleware de criptografia usa salt+IV aleatórios, criando hashes diferentes para o mesmo valor
+      if (['cpf', 'legalGuardianCpf'].includes(key)) {
+        continue;
+      }
+
+      const oldValue = previousData[key];
+      const newValue = newData[key];
+
+      // Comparação profunda para objetos e arrays (JSON fields)
+      if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+        changedFields.push(key);
+      }
+    }
+
+    return changedFields;
+  }
 
   /**
    * Converte campos DateTime que são @db.Date do Prisma para string YYYY-MM-DD
@@ -240,108 +314,154 @@ export class ResidentsService {
         tenantId,
       );
 
-      // Criar o residente
-      const resident = await this.prisma.resident.create({
-        data: {
+      // Usar transação para garantir atomicidade (Resident + ResidentHistory)
+      const resident = await this.prisma.$transaction(async (tx) => {
+        // Criar o residente
+        const newResident = await tx.resident.create({
+          data: {
+            tenantId,
+            createdBy: userId, // Auditoria: quem criou
+            versionNumber: 1, // Primeira versão
+
+            // 0. Status
+            status: createResidentDto.status || 'Ativo',
+
+            // 1. Dados Pessoais
+            fullName: createResidentDto.fullName,
+            socialName: createResidentDto.socialName,
+            cpf: createResidentDto.cpf,
+            rg: createResidentDto.rg,
+            rgIssuer: createResidentDto.rgIssuer,
+            education: createResidentDto.education,
+            profession: createResidentDto.profession,
+            cns: createResidentDto.cns,
+            gender: createResidentDto.gender,
+            civilStatus: createResidentDto.civilStatus,
+            religion: createResidentDto.religion,
+            birthDate: new Date(createResidentDto.birthDate),
+            nationality: createResidentDto.nationality || 'Brasileira',
+            birthCity: createResidentDto.birthCity,
+            birthState: createResidentDto.birthState,
+            motherName: createResidentDto.motherName,
+            fatherName: createResidentDto.fatherName,
+            fotoUrl: createResidentDto.fotoUrl,
+
+            // 2. Endereços
+            currentCep: createResidentDto.currentCep,
+            currentState: createResidentDto.currentState,
+            currentCity: createResidentDto.currentCity,
+            currentStreet: createResidentDto.currentStreet,
+            currentNumber: createResidentDto.currentNumber,
+            currentComplement: createResidentDto.currentComplement,
+            currentDistrict: createResidentDto.currentDistrict,
+            currentPhone: createResidentDto.currentPhone,
+
+            originCep: createResidentDto.originCep,
+            originState: createResidentDto.originState,
+            originCity: createResidentDto.originCity,
+            originStreet: createResidentDto.originStreet,
+            originNumber: createResidentDto.originNumber,
+            originComplement: createResidentDto.originComplement,
+            originDistrict: createResidentDto.originDistrict,
+            originPhone: createResidentDto.originPhone,
+
+            // 3. Contatos de Emergência
+            emergencyContacts: (createResidentDto.emergencyContacts || []) as any,
+
+            // 4. Responsável Legal
+            legalGuardianName: createResidentDto.legalGuardianName,
+            legalGuardianCpf: createResidentDto.legalGuardianCpf,
+            legalGuardianRg: createResidentDto.legalGuardianRg,
+            legalGuardianPhone: createResidentDto.legalGuardianPhone,
+            legalGuardianType: createResidentDto.legalGuardianType,
+            legalGuardianCep: createResidentDto.legalGuardianCep,
+            legalGuardianState: createResidentDto.legalGuardianState,
+            legalGuardianCity: createResidentDto.legalGuardianCity,
+            legalGuardianStreet: createResidentDto.legalGuardianStreet,
+            legalGuardianNumber: createResidentDto.legalGuardianNumber,
+            legalGuardianComplement: createResidentDto.legalGuardianComplement,
+            legalGuardianDistrict: createResidentDto.legalGuardianDistrict,
+
+            // 5. Admissão
+            admissionDate: new Date(createResidentDto.admissionDate),
+            admissionType: createResidentDto.admissionType,
+            admissionReason: createResidentDto.admissionReason,
+            admissionConditions: createResidentDto.admissionConditions,
+            dischargeDate: createResidentDto.dischargeDate ? new Date(createResidentDto.dischargeDate) : null,
+            dischargeReason: createResidentDto.dischargeReason,
+
+            // 6. Saúde
+            bloodType: createResidentDto.bloodType || 'NAO_INFORMADO',
+            height: createResidentDto.height,
+            weight: createResidentDto.weight,
+            dependencyLevel: createResidentDto.dependencyLevel,
+            mobilityAid: createResidentDto.mobilityAid,
+            medicationsOnAdmission: createResidentDto.medicationsOnAdmission,
+
+            // 7. Convênios
+            healthPlans: (createResidentDto.healthPlans || []) as any,
+
+            // 8. Pertences
+            belongings: createResidentDto.belongings || [],
+
+            // 9. Acomodação
+            roomId: accommodation.roomId,
+            bedId: accommodation.bedId,
+          },
+        });
+
+        // Criar histórico de criação (RDC 502/2021 - rastreabilidade completa)
+        await this.createHistoryRecord(
+          newResident.id,
           tenantId,
+          ChangeType.CREATE,
+          'Criação inicial do registro do residente',
+          userId,
+          null, // previousData é null em CREATE
+          newResident,
+          [], // changedFields vazio em CREATE (todos os campos são novos)
+          tx,
+        );
 
-          // 0. Status
-          status: createResidentDto.status || 'Ativo',
+        // Atualizar status do leito para "Ocupado" se foi atribuído
+        if (accommodation.bedId) {
+          await tx.bed.update({
+            where: { id: accommodation.bedId },
+            data: { status: 'Ocupado' },
+          });
+        }
 
-          // 1. Dados Pessoais
-          fullName: createResidentDto.fullName,
-          socialName: createResidentDto.socialName,
-          cpf: createResidentDto.cpf,
-          rg: createResidentDto.rg,
-          rgIssuer: createResidentDto.rgIssuer,
-          education: createResidentDto.education,
-          profession: createResidentDto.profession,
-          cns: createResidentDto.cns,
-          gender: createResidentDto.gender,
-          civilStatus: createResidentDto.civilStatus,
-          religion: createResidentDto.religion,
-          birthDate: createResidentDto.birthDate,
-          nationality: createResidentDto.nationality || 'Brasileira',
-          birthCity: createResidentDto.birthCity,
-          birthState: createResidentDto.birthState,
-          motherName: createResidentDto.motherName,
-          fatherName: createResidentDto.fatherName,
-          fotoUrl: createResidentDto.fotoUrl,
+        // Criar ClinicalProfile se campos clínicos foram fornecidos
+        // (campos migraram de Resident para ClinicalProfile)
+        if (
+          createResidentDto.healthStatus ||
+          createResidentDto.specialNeeds ||
+          createResidentDto.functionalAspects
+        ) {
+          await tx.clinicalProfile.create({
+            data: {
+              tenantId,
+              residentId: newResident.id,
+              healthStatus: createResidentDto.healthStatus,
+              specialNeeds: createResidentDto.specialNeeds,
+              functionalAspects: createResidentDto.functionalAspects,
+              updatedBy: userId,
+            },
+          });
+        }
 
-          // 2. Endereços
-          currentCep: createResidentDto.currentCep,
-          currentState: createResidentDto.currentState,
-          currentCity: createResidentDto.currentCity,
-          currentStreet: createResidentDto.currentStreet,
-          currentNumber: createResidentDto.currentNumber,
-          currentComplement: createResidentDto.currentComplement,
-          currentDistrict: createResidentDto.currentDistrict,
-          currentPhone: createResidentDto.currentPhone,
+        // TODO: Implementar criação de Allergies, Conditions e DietaryRestrictions
+        // quando o frontend enviar os dados no formato correto (não apenas strings CSV)
 
-          originCep: createResidentDto.originCep,
-          originState: createResidentDto.originState,
-          originCity: createResidentDto.originCity,
-          originStreet: createResidentDto.originStreet,
-          originNumber: createResidentDto.originNumber,
-          originComplement: createResidentDto.originComplement,
-          originDistrict: createResidentDto.originDistrict,
-          originPhone: createResidentDto.originPhone,
-
-          // 3. Contatos de Emergência
-          emergencyContacts: (createResidentDto.emergencyContacts || []) as any,
-
-          // 4. Responsável Legal
-          legalGuardianName: createResidentDto.legalGuardianName,
-          legalGuardianCpf: createResidentDto.legalGuardianCpf,
-          legalGuardianRg: createResidentDto.legalGuardianRg,
-          legalGuardianPhone: createResidentDto.legalGuardianPhone,
-          legalGuardianType: createResidentDto.legalGuardianType,
-          legalGuardianCep: createResidentDto.legalGuardianCep,
-          legalGuardianState: createResidentDto.legalGuardianState,
-          legalGuardianCity: createResidentDto.legalGuardianCity,
-          legalGuardianStreet: createResidentDto.legalGuardianStreet,
-          legalGuardianNumber: createResidentDto.legalGuardianNumber,
-          legalGuardianComplement: createResidentDto.legalGuardianComplement,
-          legalGuardianDistrict: createResidentDto.legalGuardianDistrict,
-
-          // 5. Admissão
-          admissionDate: createResidentDto.admissionDate,
-          admissionType: createResidentDto.admissionType,
-          admissionReason: createResidentDto.admissionReason,
-          admissionConditions: createResidentDto.admissionConditions,
-          dischargeDate: createResidentDto.dischargeDate,
-          dischargeReason: createResidentDto.dischargeReason,
-
-          // 6. Saúde
-          bloodType: createResidentDto.bloodType || 'NAO_INFORMADO',
-          height: createResidentDto.height,
-          weight: createResidentDto.weight,
-          dependencyLevel: createResidentDto.dependencyLevel,
-          mobilityAid: createResidentDto.mobilityAid,
-          medicationsOnAdmission: createResidentDto.medicationsOnAdmission,
-
-          // 7. Convênios
-          healthPlans: (createResidentDto.healthPlans || []) as any,
-
-          // 8. Pertences
-          belongings: createResidentDto.belongings || [],
-
-          // 9. Acomodação
-          roomId: accommodation.roomId,
-          bedId: accommodation.bedId,
-        },
+        return newResident;
       });
 
-      // Atualizar status do leito para "Ocupado" se foi atribuído
-      if (accommodation.bedId) {
-        await this.updateBedStatus(accommodation.bedId, 'Ocupado', tenantId);
-      }
-
-      this.logger.info('Residente criado', {
+      this.logger.info('Residente criado com histórico', {
         residentId: resident.id,
         tenantId,
         userId,
         bedId: accommodation.bedId,
+        versionNumber: 1,
       });
 
       return this.formatDateOnlyFields(resident);
@@ -723,10 +843,20 @@ export class ResidentsService {
   }
 
   /**
-   * Atualiza um residente
+   * Atualiza um residente COM VERSIONAMENTO
+   * IMPORTANTE: updateResidentDto DEVE conter changeReason (validado no DTO)
    */
   async update(id: string, updateResidentDto: UpdateResidentDto, tenantId: string, userId: string) {
     try {
+      // Extrair changeReason do DTO (será validado no DTO layer)
+      const changeReason = (updateResidentDto as any).changeReason;
+
+      if (!changeReason || changeReason.trim().length < 10) {
+        throw new BadRequestException(
+          'changeReason é obrigatório e deve ter no mínimo 10 caracteres',
+        );
+      }
+
       // Verificar se residente existe
       const existingResident = await this.prisma.resident.findFirst({
         where: {
@@ -788,7 +918,9 @@ export class ResidentsService {
         }
       }
 
-      // Atualizar o residente
+      // Criar snapshot completo do estado anterior (para histórico)
+      const previousData = JSON.parse(JSON.stringify(existingResident));
+
       // Extrair campos JSON para tratamento explícito (conversão de tipo necessária para Prisma)
       const {
         emergencyContacts,
@@ -801,30 +933,14 @@ export class ResidentsService {
         roomId,
         bedId,
         tenantId: _tenantId, // Remove tenantId pois não pode ser atualizado
+        changeReason: _changeReason, // Remove changeReason pois não é campo do modelo
         ...restDto
       } = updateResidentDto as any;
 
       // Construir objeto de atualização com tipos corretos
-      // Cast para 'any' necessário porque Prisma espera InputJsonValue para campos JSON
-      // Filtrar apenas campos undefined para não sobrescrever valores existentes
-      // Nota: null e '' são valores válidos que o usuário pode querer salvar
       const dataToUpdate: any = Object.fromEntries(
         Object.entries(restDto).filter(([_, value]) => value !== undefined)
       );
-
-      // Log para debug
-      this.logger.debug('Update resident data', {
-        residentId: id,
-        fieldsReceived: Object.keys(updateResidentDto),
-        fieldsToUpdate: Object.keys(dataToUpdate),
-        healthFields: {
-          healthStatus: updateResidentDto.healthStatus,
-          specialNeeds: updateResidentDto.specialNeeds,
-          medicationsOnAdmission: updateResidentDto.medicationsOnAdmission,
-          allergies: updateResidentDto.allergies,
-          chronicConditions: updateResidentDto.chronicConditions,
-        },
-      });
 
       // Adicionar campos JSON apenas se foram enviados
       if (emergencyContacts !== undefined) dataToUpdate.emergencyContacts = emergencyContacts;
@@ -841,22 +957,75 @@ export class ResidentsService {
         if (accommodationToUpdate.bedId !== undefined) dataToUpdate.bedId = accommodationToUpdate.bedId;
       }
 
-      const updated = await this.prisma.resident.update({
-        where: { id },
-        data: dataToUpdate,
+      // Adicionar campos de auditoria e versionamento
+      dataToUpdate.updatedBy = userId;
+      dataToUpdate.versionNumber = existingResident.versionNumber + 1;
+
+      // Usar transação para garantir atomicidade (UPDATE + HISTORY + BED STATUS)
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // Atualizar o residente
+        const updatedResident = await tx.resident.update({
+          where: { id },
+          data: dataToUpdate,
+        });
+
+        // Criar snapshot do novo estado
+        const newData = JSON.parse(JSON.stringify(updatedResident));
+
+        // Calcular campos alterados
+        const changedFields = this.calculateChangedFields(previousData, newData);
+
+        // Criar histórico da alteração
+        await this.createHistoryRecord(
+          id,
+          tenantId,
+          ChangeType.UPDATE,
+          changeReason,
+          userId,
+          previousData,
+          newData,
+          changedFields,
+          tx,
+        );
+
+        // Atualizar status do leito se mudou
+        if (oldBedId && newBedId && oldBedId !== newBedId) {
+          // Liberar leito antigo
+          await tx.bed.update({
+            where: { id: oldBedId },
+            data: { status: 'Disponível' },
+          });
+
+          // Ocupar novo leito
+          await tx.bed.update({
+            where: { id: newBedId },
+            data: { status: 'Ocupado' },
+          });
+        } else if (oldBedId && !newBedId) {
+          // Liberar leito se foi removido
+          await tx.bed.update({
+            where: { id: oldBedId },
+            data: { status: 'Disponível' },
+          });
+        } else if (!oldBedId && newBedId) {
+          // Ocupar novo leito se foi adicionado
+          await tx.bed.update({
+            where: { id: newBedId },
+            data: { status: 'Ocupado' },
+          });
+        }
+
+        return updatedResident;
       });
 
-      // Atualizar status do novo leito para "Ocupado" se foi atribuído
-      if (newBedId && newBedId !== oldBedId) {
-        await this.updateBedStatus(newBedId, 'Ocupado', tenantId);
-      }
-
-      this.logger.info('Residente atualizado', {
+      this.logger.info('Residente atualizado com versionamento', {
         residentId: id,
         tenantId,
         userId,
         oldBedId,
         newBedId,
+        versionNumber: updated.versionNumber,
+        changedFieldsCount: this.calculateChangedFields(previousData, updated).length,
       });
 
       return this.formatDateOnlyFields(updated);
@@ -872,10 +1041,18 @@ export class ResidentsService {
   }
 
   /**
-   * Remove um residente (soft delete)
+   * Remove um residente (soft delete COM VERSIONAMENTO)
+   * IMPORTANTE: Requer changeReason para documentar o motivo da exclusão
    */
-  async remove(id: string, tenantId: string, userId: string) {
+  async remove(id: string, tenantId: string, userId: string, changeReason: string) {
     try {
+      // Validar changeReason
+      if (!changeReason || changeReason.trim().length < 10) {
+        throw new BadRequestException(
+          'changeReason é obrigatório e deve ter no mínimo 10 caracteres',
+        );
+      }
+
       // Verificar se residente existe
       const existingResident = await this.prisma.resident.findFirst({
         where: {
@@ -889,18 +1066,53 @@ export class ResidentsService {
         throw new NotFoundException('Residente não encontrado');
       }
 
-      // Soft delete
-      await this.prisma.resident.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-        },
+      // Criar snapshot do estado anterior
+      const previousData = JSON.parse(JSON.stringify(existingResident));
+
+      // Usar transação para soft delete + histórico
+      const deleted = await this.prisma.$transaction(async (tx) => {
+        // Soft delete
+        const deletedResident = await tx.resident.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+            updatedBy: userId,
+            versionNumber: existingResident.versionNumber + 1,
+          },
+        });
+
+        // Criar snapshot do estado deletado
+        const newData = JSON.parse(JSON.stringify(deletedResident));
+
+        // Criar histórico da deleção
+        await this.createHistoryRecord(
+          id,
+          tenantId,
+          ChangeType.DELETE,
+          changeReason,
+          userId,
+          previousData,
+          newData,
+          ['deletedAt'], // Campo alterado
+          tx,
+        );
+
+        // Liberar leito se estava ocupado
+        if (existingResident.bedId) {
+          await tx.bed.update({
+            where: { id: existingResident.bedId },
+            data: { status: 'Disponível' },
+          });
+        }
+
+        return deletedResident;
       });
 
-      this.logger.info('Residente removido (soft delete)', {
+      this.logger.info('Residente removido (soft delete) com versionamento', {
         residentId: id,
         tenantId,
         userId,
+        versionNumber: deleted.versionNumber,
       });
 
       return { message: 'Residente removido com sucesso' };
@@ -981,5 +1193,132 @@ export class ResidentsService {
       masculino,
       feminino,
     };
+  }
+
+  /**
+   * Retorna o histórico completo de alterações de um residente
+   * Ordenado por versionNumber DESC (mais recente primeiro)
+   */
+  async getHistory(residentId: string, tenantId: string) {
+    try {
+      // Verificar se residente existe (permitir deletados para ver histórico completo)
+      const resident = await this.prisma.resident.findFirst({
+        where: {
+          id: residentId,
+          tenantId,
+        },
+      });
+
+      if (!resident) {
+        throw new NotFoundException('Residente não encontrado');
+      }
+
+      // Buscar histórico completo com informações do usuário que fez a alteração
+      const history = await this.prisma.residentHistory.findMany({
+        where: {
+          residentId,
+          tenantId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          versionNumber: 'desc',
+        },
+      });
+
+      return {
+        resident: {
+          id: resident.id,
+          fullName: resident.fullName,
+          cpf: resident.cpf,
+          versionNumber: resident.versionNumber,
+          status: resident.status,
+          deletedAt: resident.deletedAt,
+        },
+        history: history.map(entry => ({
+          id: entry.id,
+          versionNumber: entry.versionNumber,
+          changeType: entry.changeType,
+          changeReason: entry.changeReason,
+          changedFields: entry.changedFields,
+          changedAt: entry.changedAt,
+          changedBy: {
+            id: entry.user.id,
+            name: entry.user.name,
+            email: entry.user.email,
+          },
+          // previousData e newData estão disponíveis mas não retornados por padrão
+          // para evitar payload muito grande - pode ser adicionado via query param
+        })),
+        totalVersions: history.length,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao buscar histórico do residente', {
+        error: error.message,
+        residentId,
+        tenantId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Retorna uma versão específica do histórico com snapshots completos
+   */
+  async getHistoryVersion(residentId: string, versionNumber: number, tenantId: string) {
+    try {
+      const historyEntry = await this.prisma.residentHistory.findFirst({
+        where: {
+          residentId,
+          versionNumber,
+          tenantId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!historyEntry) {
+        throw new NotFoundException(`Versão ${versionNumber} não encontrada no histórico`);
+      }
+
+      return {
+        id: historyEntry.id,
+        versionNumber: historyEntry.versionNumber,
+        changeType: historyEntry.changeType,
+        changeReason: historyEntry.changeReason,
+        changedFields: historyEntry.changedFields,
+        previousData: historyEntry.previousData,
+        newData: historyEntry.newData,
+        changedAt: historyEntry.changedAt,
+        changedBy: {
+          id: historyEntry.user.id,
+          name: historyEntry.user.name,
+          email: historyEntry.user.email,
+        },
+        metadata: historyEntry.metadata,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao buscar versão específica do histórico', {
+        error: error.message,
+        residentId,
+        versionNumber,
+        tenantId,
+      });
+      throw error;
+    }
   }
 }

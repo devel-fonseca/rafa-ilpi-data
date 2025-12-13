@@ -1,8 +1,18 @@
-import { PartialType } from '@nestjs/swagger';
+import { PartialType, OmitType, ApiProperty } from '@nestjs/swagger';
+import { IsString, MinLength } from 'class-validator';
 import { CreateClinicalProfileDto } from './create-clinical-profile.dto';
 
 export class UpdateClinicalProfileDto extends PartialType(
-  CreateClinicalProfileDto,
+  OmitType(CreateClinicalProfileDto, ['residentId'] as const),
 ) {
-  // Herda todas as propriedades como opcionais
+  @ApiProperty({
+    description: 'Motivo obrigatório da alteração (mínimo 10 caracteres)',
+    example: 'Atualização do perfil clínico após avaliação multidisciplinar',
+    minLength: 10,
+  })
+  @IsString()
+  @MinLength(10, {
+    message: 'O motivo da alteração deve ter no mínimo 10 caracteres',
+  })
+  changeReason: string;
 }

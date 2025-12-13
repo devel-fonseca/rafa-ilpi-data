@@ -7,16 +7,21 @@ import {
   Param,
   Delete,
   UseGuards,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { DietaryRestrictionsService } from './dietary-restrictions.service';
 import { CreateDietaryRestrictionDto } from './dto/create-dietary-restriction.dto';
 import { UpdateDietaryRestrictionDto } from './dto/update-dietary-restriction.dto';
+import { DeleteDietaryRestrictionDto } from './dto/delete-dietary-restriction.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
@@ -104,17 +109,64 @@ export class DietaryRestrictionsController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_DIETARY_RESTRICTIONS)
-  @ApiOperation({ summary: 'Deletar restrição alimentar (soft delete)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Restrição alimentar deletada com sucesso',
+  @ApiOperation({
+    summary: 'Remover restrição alimentar',
+    description: 'Remove o registro de restrição alimentar (soft delete) com motivo obrigatório',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Restrição alimentar não encontrada',
+  @ApiResponse({ status: 200, description: 'Restrição alimentar removida com sucesso' })
+  @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
+  @ApiResponse({ status: 404, description: 'Restrição alimentar não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
+  remove(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteDietaryRestrictionDto,
+  ) {
+    return this.dietaryRestrictionsService.remove(
+      user.tenantId,
+      user.id,
+      id,
+      deleteDto.deleteReason,
+    );
+  }
+
+  @Get(':id/history')
+  @RequirePermissions(PermissionType.VIEW_DIETARY_RESTRICTIONS)
+  @ApiOperation({
+    summary: 'Consultar histórico de restrição alimentar',
+    description: 'Retorna todas as versões de uma restrição alimentar (RDC 502/2021)',
   })
-  remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.dietaryRestrictionsService.remove(user.tenantId, id);
+  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Restrição alimentar não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
+  getHistory(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.dietaryRestrictionsService.getHistory(id, user.tenantId);
+  }
+
+  @Get(':id/history/:versionNumber')
+  @RequirePermissions(PermissionType.VIEW_DIETARY_RESTRICTIONS)
+  @ApiOperation({
+    summary: 'Consultar versão específica do histórico',
+    description: 'Retorna uma versão específica do histórico de restrição alimentar',
+  })
+  @ApiResponse({ status: 200, description: 'Versão retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Restrição alimentar ou versão não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
+  getHistoryVersion(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+  ) {
+    return this.dietaryRestrictionsService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 }

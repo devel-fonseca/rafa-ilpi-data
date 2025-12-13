@@ -104,13 +104,14 @@ export function useUpdateAllergy() {
 }
 
 /**
- * Hook para soft delete de alergia
+ * Hook para soft delete de alergia com versionamento
  */
 export function useDeleteAllergy() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => deleteAllergy(id),
+    mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
+      deleteAllergy(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de allergies
       queryClient.invalidateQueries({ queryKey: ['allergies'] })

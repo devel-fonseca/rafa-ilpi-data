@@ -49,7 +49,14 @@ export async function createVitalSign(data: CreateVitalSignInput) {
       heartRate: data.heartRate || null,
       oxygenSaturation: data.oxygenSaturation || null,
       bloodGlucose: data.bloodGlucose || null,
+      versionNumber: 1,
+      createdBy: data.userId, // Usar userId como createdBy para compatibilidade
     },
+  })
+
+  // Buscar com include separadamente para evitar erro de tipo
+  const fullVitalSign = await prisma.vitalSign.findUnique({
+    where: { id: vitalSign.id },
     include: {
       resident: {
         select: {
@@ -67,9 +74,9 @@ export async function createVitalSign(data: CreateVitalSignInput) {
   })
 
   // Detectar anomalias e criar notificações
-  if (notificationsServiceInstance) {
+  if (notificationsServiceInstance && fullVitalSign) {
     try {
-      const residentName = vitalSign.resident?.fullName || 'Residente'
+      const residentName = fullVitalSign.resident?.fullName || 'Residente'
 
       // Pressão Arterial anormal (Sistólica)
       if (data.systolicBloodPressure) {
@@ -181,7 +188,7 @@ export async function createVitalSign(data: CreateVitalSignInput) {
     }
   }
 
-  return vitalSign
+  return fullVitalSign || vitalSign
 }
 
 /**

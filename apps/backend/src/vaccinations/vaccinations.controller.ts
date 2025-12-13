@@ -19,12 +19,13 @@ import {
   ApiParam,
 } from '@nestjs/swagger'
 import { VaccinationsService } from './vaccinations.service'
-import { CreateVaccinationDto, UpdateVaccinationDto } from './dto'
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
-import { Roles } from '../auth/decorators/roles.decorator'
-import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { AuditEntity, AuditAction } from '../audit/audit.decorator'
+import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
+import { DeleteVaccinationDto } from './dto/delete-vaccination.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 @ApiTags('Vaccinations')
 @ApiBearerAuth()
@@ -104,7 +105,7 @@ export class VaccinationsController {
   }
 
   /**
-   * Remover registro de vacinação (soft delete)
+   * Remover registro de vacinação (soft delete) COM versionamento
    */
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
@@ -112,15 +113,59 @@ export class VaccinationsController {
   @AuditAction('DELETE')
   @ApiOperation({
     summary: 'Remover vacinação',
-    description: 'Remove o registro de vacinação (soft delete)',
+    description: 'Remove o registro de vacinação (soft delete) com motivo obrigatório',
   })
   @ApiResponse({ status: 200, description: 'Vacinação removida com sucesso' })
+  @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
   @ApiResponse({ status: 404, description: 'Vacinação não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteVaccinationDto,
     @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.remove(id, user.tenantId, user.id)
+    return this.vaccinationsService.remove(id, user.tenantId, user.id, deleteDto.deleteReason);
+  }
+
+  /**
+   * Consultar histórico completo de alterações de uma vacinação
+   */
+  @Get(':id/history')
+  @ApiOperation({
+    summary: 'Consultar histórico de vacinação',
+    description: 'Retorna todas as versões de uma vacinação (RDC 502/2021)',
+  })
+  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Vacinação não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.vaccinationsService.getHistory(id, user.tenantId);
+  }
+
+  /**
+   * Consultar versão específica do histórico de uma vacinação
+   */
+  @Get(':id/history/:versionNumber')
+  @ApiOperation({
+    summary: 'Consultar versão específica do histórico',
+    description: 'Retorna uma versão específica do histórico de vacinação',
+  })
+  @ApiResponse({ status: 200, description: 'Versão retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Vacinação ou versão não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
+  getHistoryVersion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.vaccinationsService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 }

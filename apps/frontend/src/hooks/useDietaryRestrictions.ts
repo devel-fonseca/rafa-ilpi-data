@@ -107,13 +107,14 @@ export function useUpdateDietaryRestriction() {
 }
 
 /**
- * Hook para soft delete de restrição alimentar
+ * Hook para soft delete de restrição alimentar com versionamento
  */
 export function useDeleteDietaryRestriction() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => deleteDietaryRestriction(id),
+    mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
+      deleteDietaryRestriction(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de dietary restrictions
       queryClient.invalidateQueries({ queryKey: ['dietary-restrictions'] })

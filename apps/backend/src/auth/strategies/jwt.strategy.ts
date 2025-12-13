@@ -19,8 +19,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   async validate(payload: any) {
     // Payload contém: { sub, email, tenantId, role }
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: payload.sub,
+        deletedAt: null,
+      },
       include: {
         tenant: true,
       },
@@ -31,7 +34,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     // Retorna o usuário que será adicionado ao request
+    // IMPORTANTE: O campo 'sub' é necessário para o controller
     return {
+      sub: user.id, // Campo esperado pelo controller (req.user.sub)
       id: user.id,
       email: user.email,
       name: user.name,

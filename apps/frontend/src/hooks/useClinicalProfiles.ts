@@ -82,13 +82,14 @@ export function useUpdateClinicalProfile() {
 }
 
 /**
- * Hook para soft delete de perfil clínico
+ * Hook para soft delete de perfil clínico com versionamento
  */
 export function useDeleteClinicalProfile() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => deleteClinicalProfile(id),
+    mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
+      deleteClinicalProfile(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de clinical profiles
       queryClient.invalidateQueries({ queryKey: ['clinical-profiles'] })

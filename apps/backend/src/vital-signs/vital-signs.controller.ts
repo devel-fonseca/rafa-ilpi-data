@@ -1,168 +1,168 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
+  Patch,
   Param,
-  Query,
+  Delete,
   UseGuards,
+  HttpCode,
+  HttpStatus,
   ParseUUIDPipe,
-} from '@nestjs/common'
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger'
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { RolesGuard } from '../auth/guards/roles.guard'
-import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { User } from '@prisma/client'
-import * as vitalSignsService from '../services/vitalSigns.service'
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { VitalSignsService } from './vital-signs.service';
+import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
+import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
+import { DeleteVitalSignDto } from './dto/delete-vital-sign.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('vital-signs')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('vital-signs')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class VitalSignsController {
+  constructor(private readonly vitalSignsService: VitalSignsService) {}
+
+  @Post()
+  @RequirePermissions(PermissionType.CREATE_DAILY_RECORDS)
+  @ApiOperation({ summary: 'Criar registro de sinais vitais' })
+  @ApiResponse({
+    status: 201,
+    description: 'Sinal vital criado com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  create(@CurrentUser() user: any, @Body() createDto: CreateVitalSignDto) {
+    return this.vitalSignsService.create(user.tenantId, user.id, createDto);
+  }
+
+  @Get(':id')
+  @RequirePermissions(PermissionType.VIEW_DAILY_RECORDS)
+  @ApiOperation({ summary: 'Buscar sinal vital por ID' })
+  @ApiResponse({ status: 200, description: 'Sinal vital encontrado' })
+  @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
+  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.vitalSignsService.findOne(user.tenantId, id);
+  }
+
   @Get('resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_DAILY_RECORDS)
   @ApiOperation({ summary: 'Buscar sinais vitais de um residente' })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Sinais vitais encontrados' })
-  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  async getVitalSignsByResident(
-    @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: User,
+  findByResident(
+    @CurrentUser() user: any,
+    @Param('residentId') residentId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const start = startDate ? new Date(startDate) : undefined
-    const end = endDate ? new Date(endDate) : undefined
-
-    const vitalSigns = await vitalSignsService.getVitalSignsByResident(
-      residentId,
+    const start = startDate ? new Date(startDate) : undefined;
+    const end = endDate ? new Date(endDate) : undefined;
+    return this.vitalSignsService.findByResident(
       user.tenantId,
+      residentId,
       start,
       end,
-    )
-
-    // Transformar os dados para o formato esperado pelo frontend
-    return vitalSigns.map((vs) => ({
-      id: vs.id,
-      timestamp: vs.timestamp,
-      systolicBloodPressure: vs.systolicBloodPressure,
-      diastolicBloodPressure: vs.diastolicBloodPressure,
-      temperature: vs.temperature,
-      heartRate: vs.heartRate,
-      oxygenSaturation: vs.oxygenSaturation,
-      bloodGlucose: vs.bloodGlucose,
-      recordedBy: vs.user?.name || 'Sistema',
-      notes: '', // Podemos adicionar um campo notes na tabela futuramente
-    }))
+    );
   }
 
-  @Get('resident/:residentId/last')
-  @ApiOperation({ summary: 'Buscar último registro de sinais vitais' })
-  @ApiResponse({ status: 200, description: 'Último registro encontrado' })
-  @ApiResponse({ status: 404, description: 'Nenhum registro encontrado' })
-  async getLastVitalSign(
-    @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: User,
+  @Patch(':id')
+  @RequirePermissions(PermissionType.UPDATE_DAILY_RECORDS)
+  @ApiOperation({ summary: 'Atualizar sinal vital' })
+  @ApiResponse({
+    status: 200,
+    description: 'Sinal vital atualizado com sucesso',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sinal vital não encontrado',
+  })
+  update(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() updateDto: UpdateVitalSignDto,
   ) {
-    const lastSign = await vitalSignsService.getLastVitalSign(
-      residentId,
-      user.tenantId,
-    )
-
-    if (!lastSign) {
-      return null
-    }
-
-    return {
-      id: lastSign.id,
-      timestamp: lastSign.timestamp,
-      systolicBloodPressure: lastSign.systolicBloodPressure,
-      diastolicBloodPressure: lastSign.diastolicBloodPressure,
-      temperature: lastSign.temperature,
-      heartRate: lastSign.heartRate,
-      oxygenSaturation: lastSign.oxygenSaturation,
-      bloodGlucose: lastSign.bloodGlucose,
-    }
+    return this.vitalSignsService.update(user.tenantId, user.id, id, updateDto);
   }
 
-  @Get('resident/:residentId/statistics')
-  @ApiOperation({ summary: 'Buscar estatísticas de sinais vitais' })
-  @ApiQuery({ name: 'days', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Estatísticas calculadas' })
-  async getVitalSignsStatistics(
-    @Param('residentId', ParseUUIDPipe) residentId: string,
-    @Query('days') days: string = '30',
-    @CurrentUser() user: User,
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions(PermissionType.DELETE_DAILY_RECORDS)
+  @ApiOperation({
+    summary: 'Remover sinal vital',
+    description:
+      'Remove o registro de sinal vital (soft delete) com motivo obrigatório',
+  })
+  @ApiResponse({ status: 200, description: 'Sinal vital removido com sucesso' })
+  @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
+  @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
+  remove(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteVitalSignDto,
   ) {
-    const daysNumber = parseInt(days)
-    const endDate = new Date()
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - daysNumber)
-
-    const vitalSigns = await vitalSignsService.getVitalSignsByResident(
-      residentId,
+    return this.vitalSignsService.remove(
       user.tenantId,
-      startDate,
-      endDate,
-    )
+      user.id,
+      id,
+      deleteDto.deleteReason,
+    );
+  }
 
-    if (vitalSigns.length === 0) {
-      return {
-        avgSystolic: 0,
-        avgDiastolic: 0,
-        avgGlucose: 0,
-        avgTemperature: 0,
-        avgHeartRate: 0,
-        avgOxygenSaturation: 0,
-        criticalAlerts: 0,
-        totalRecords: 0,
-      }
-    }
+  @Get(':id/history')
+  @RequirePermissions(PermissionType.VIEW_DAILY_RECORDS)
+  @ApiOperation({
+    summary: 'Consultar histórico de sinal vital',
+    description: 'Retorna todas as versões de um sinal vital (RDC 502/2021)',
+  })
+  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
+  getHistory(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.vitalSignsService.getHistory(id, user.tenantId);
+  }
 
-    // Calcular médias
-    const validSystolic = vitalSigns.filter((v) => v.systolicBloodPressure)
-    const validDiastolic = vitalSigns.filter((v) => v.diastolicBloodPressure)
-    const validGlucose = vitalSigns.filter((v) => v.bloodGlucose)
-    const validTemp = vitalSigns.filter((v) => v.temperature)
-    const validHR = vitalSigns.filter((v) => v.heartRate)
-    const validSpO2 = vitalSigns.filter((v) => v.oxygenSaturation)
-
-    // Contar alertas críticos
-    let criticalAlerts = 0
-    vitalSigns.forEach((v) => {
-      if (v.systolicBloodPressure && (v.systolicBloodPressure >= 140 || v.systolicBloodPressure < 90)) {
-        criticalAlerts++
-      }
-      if (v.bloodGlucose && (v.bloodGlucose >= 180 || v.bloodGlucose < 70)) {
-        criticalAlerts++
-      }
-      if (v.temperature && (v.temperature >= 38 || v.temperature < 35)) {
-        criticalAlerts++
-      }
-      if (v.oxygenSaturation && v.oxygenSaturation < 92) {
-        criticalAlerts++
-      }
-    })
-
-    return {
-      avgSystolic: validSystolic.length > 0
-        ? Math.round(validSystolic.reduce((a, b) => a + b.systolicBloodPressure!, 0) / validSystolic.length)
-        : 0,
-      avgDiastolic: validDiastolic.length > 0
-        ? Math.round(validDiastolic.reduce((a, b) => a + b.diastolicBloodPressure!, 0) / validDiastolic.length)
-        : 0,
-      avgGlucose: validGlucose.length > 0
-        ? Math.round(validGlucose.reduce((a, b) => a + b.bloodGlucose!, 0) / validGlucose.length)
-        : 0,
-      avgTemperature: validTemp.length > 0
-        ? Math.round(validTemp.reduce((a, b) => a + b.temperature!, 0) / validTemp.length * 10) / 10
-        : 0,
-      avgHeartRate: validHR.length > 0
-        ? Math.round(validHR.reduce((a, b) => a + b.heartRate!, 0) / validHR.length)
-        : 0,
-      avgOxygenSaturation: validSpO2.length > 0
-        ? Math.round(validSpO2.reduce((a, b) => a + b.oxygenSaturation!, 0) / validSpO2.length)
-        : 0,
-      criticalAlerts,
-      totalRecords: vitalSigns.length,
-    }
+  @Get(':id/history/:versionNumber')
+  @RequirePermissions(PermissionType.VIEW_DAILY_RECORDS)
+  @ApiOperation({
+    summary: 'Consultar versão específica do histórico',
+    description:
+      'Retorna uma versão específica do histórico de sinal vital',
+  })
+  @ApiResponse({ status: 200, description: 'Versão retornada com sucesso' })
+  @ApiResponse({
+    status: 404,
+    description: 'Sinal vital ou versão não encontrada',
+  })
+  @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
+  @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
+  getHistoryVersion(
+    @CurrentUser() user: any,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('versionNumber') versionNumber: string,
+  ) {
+    return this.vitalSignsService.getHistoryVersion(
+      id,
+      parseInt(versionNumber, 10),
+      user.tenantId,
+    );
   }
 }

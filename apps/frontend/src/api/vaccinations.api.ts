@@ -62,6 +62,43 @@ export interface UpdateVaccinationDto {
 }
 
 /**
+ * DTO para atualizar vacinação com versionamento
+ */
+export interface UpdateVaccinationVersionedDto extends UpdateVaccinationDto {
+  changeReason: string
+}
+
+/**
+ * Entrada de histórico de vacinação
+ */
+export interface VaccinationHistoryEntry {
+  id: string
+  tenantId: string
+  vaccinationId: string
+  versionNumber: number
+  changeType: 'CREATE' | 'UPDATE' | 'DELETE'
+  changeReason: string
+  previousData: Partial<Vaccination> | null
+  newData: Partial<Vaccination>
+  changedFields: string[]
+  changedAt: string
+  changedBy: string
+  changedByName?: string
+  ipAddress?: string
+  userAgent?: string
+}
+
+/**
+ * Resposta de histórico de vacinação
+ */
+export interface VaccinationHistoryResponse {
+  vaccinationId: string
+  currentVersion: number
+  totalVersions: number
+  history: VaccinationHistoryEntry[]
+}
+
+/**
  * API de Vacinações
  */
 export const vaccinationsAPI = {
@@ -90,17 +127,36 @@ export const vaccinationsAPI = {
   },
 
   /**
-   * Atualizar vacinação
+   * Atualizar vacinação com versionamento
    */
-  async update(id: string, data: UpdateVaccinationDto): Promise<Vaccination> {
+  async update(id: string, data: UpdateVaccinationVersionedDto): Promise<Vaccination> {
     const response = await api.patch(`/vaccinations/${id}`, data)
     return response.data
   },
 
   /**
-   * Remover vacinação (soft delete)
+   * Remover vacinação (soft delete) com versionamento
    */
-  async remove(id: string): Promise<void> {
-    await api.delete(`/vaccinations/${id}`)
+  async remove(id: string, deleteReason: string): Promise<{ message: string }> {
+    const response = await api.delete(`/vaccinations/${id}`, {
+      data: { deleteReason },
+    })
+    return response.data
+  },
+
+  /**
+   * Consultar histórico completo de alterações
+   */
+  async getHistory(id: string): Promise<VaccinationHistoryResponse> {
+    const response = await api.get(`/vaccinations/${id}/history`)
+    return response.data
+  },
+
+  /**
+   * Consultar versão específica do histórico
+   */
+  async getHistoryVersion(id: string, version: number): Promise<VaccinationHistoryEntry> {
+    const response = await api.get(`/vaccinations/${id}/history/${version}`)
+    return response.data
   },
 }

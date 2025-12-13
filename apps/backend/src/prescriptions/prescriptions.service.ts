@@ -35,6 +35,80 @@ export class PrescriptionsService {
   ) {}
 
   /**
+   * Cria um registro de histórico para a prescrição
+   * Usado em CREATE, UPDATE e DELETE para manter auditoria completa
+   */
+  private async createPrescriptionHistoryRecord(
+    prescriptionId: string,
+    tenantId: string,
+    changeType: 'CREATE' | 'UPDATE' | 'DELETE',
+    changeReason: string,
+    changedBy: string,
+    changedByName: string,
+    previousData: any | null,
+    newData: any,
+    changedFields: string[],
+    tx: any,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    await tx.prescriptionHistory.create({
+      data: {
+        tenantId,
+        prescriptionId,
+        versionNumber: newData.versionNumber,
+        changeType,
+        changeReason,
+        previousData: previousData ? JSON.parse(JSON.stringify(previousData)) : null,
+        newData: JSON.parse(JSON.stringify(newData)),
+        changedFields,
+        changedAt: new Date(),
+        changedBy,
+        changedByName,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+      },
+    });
+  }
+
+  /**
+   * Calcula quais campos foram alterados comparando previousData e newData
+   * Retorna array de strings com os nomes dos campos alterados
+   */
+  private calculateChangedFields(previousData: any, newData: any): string[] {
+    const changedFields: string[] = [];
+
+    // Campos a verificar (excluir campos de auditoria)
+    const fieldsToCheck = [
+      'doctorName',
+      'doctorCrm',
+      'doctorCrmState',
+      'prescriptionDate',
+      'prescriptionType',
+      'validUntil',
+      'reviewDate',
+      'controlledClass',
+      'notificationNumber',
+      'notificationType',
+      'prescriptionImageUrl',
+      'notes',
+      'isActive',
+    ];
+
+    for (const field of fieldsToCheck) {
+      const prev = previousData?.[field];
+      const next = newData?.[field];
+
+      // Comparação de valores (incluindo null/undefined)
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        changedFields.push(field);
+      }
+    }
+
+    return changedFields;
+  }
+
+  /**
    * Converte campos DateTime que são @db.Date do Prisma para string YYYY-MM-DD
    * Isso evita problemas de timezone causados pela serialização JSON do JavaScript
    *
@@ -118,7 +192,9 @@ export class PrescriptionsService {
             prescriptionImageUrl:
               createPrescriptionDto.prescriptionImageUrl || null,
             notes: createPrescriptionDto.notes || null,
+            versionNumber: 1, // Versão inicial
             createdBy: userId,
+            updatedBy: null, // Null na criação
             medications: {
               create: createPrescriptionDto.medications.map((med) => ({
                 name: med.name,
@@ -134,6 +210,8 @@ export class PrescriptionsService {
                 isHighRisk: med.isHighRisk || false,
                 requiresDoubleCheck: med.requiresDoubleCheck || false,
                 instructions: med.instructions || null,
+                versionNumber: 1, // Versão inicial
+                createdBy: userId,
               })),
             },
             sosMedications: createPrescriptionDto.sosMedications
@@ -151,6 +229,8 @@ export class PrescriptionsService {
                     startDate: new Date(sos.startDate),
                     endDate: sos.endDate ? new Date(sos.endDate) : null,
                     instructions: sos.instructions || null,
+                    versionNumber: 1,
+                    createdBy: userId,
                   })),
                 }
               : undefined,
@@ -168,7 +248,27 @@ export class PrescriptionsService {
           },
         });
 
-        // 4.2 Se houver imagem da prescrição, criar documento do residente
+        // 4.2 Buscar nome do usuário para histórico
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        // 4.3 Criar entrada de histórico (CREATE)
+        await this.createPrescriptionHistoryRecord(
+          newPrescription.id,
+          tenantId,
+          'CREATE',
+          'Criação inicial da prescrição médica',
+          userId,
+          user?.name || 'Sistema',
+          null, // previousData é null em CREATE
+          newPrescription,
+          [], // changedFields vazio em CREATE (todos os campos são novos)
+          tx,
+        );
+
+        // 4.4 Se houver imagem da prescrição, criar documento do residente
         if (createPrescriptionDto.prescriptionImageUrl) {
           const prescriptionDate = new Date(createPrescriptionDto.prescriptionDate);
           const formattedDate = prescriptionDate.toLocaleDateString('pt-BR');
@@ -455,99 +555,398 @@ export class PrescriptionsService {
     tenantId: string,
     userId: string,
   ) {
-    // Verificar se prescrição existe
-    const existing = await this.prisma.prescription.findFirst({
-      where: {
-        id,
-        tenantId,
-        deletedAt: null,
-      },
-    });
+    try {
+      // 1. Validar changeReason obrigatório
+      if (!updatePrescriptionDto.changeReason || updatePrescriptionDto.changeReason.trim().length < 10) {
+        throw new BadRequestException(
+          'changeReason é obrigatório e deve ter no mínimo 10 caracteres'
+        );
+      }
 
-    if (!existing) {
-      throw new NotFoundException('Prescrição não encontrada');
-    }
-
-    // Validar tipo de prescrição se fornecido
-    if (updatePrescriptionDto.prescriptionType) {
-      this.validatePrescriptionByType(updatePrescriptionDto as any);
-    }
-
-    // Atualizar prescrição
-    const updated = await this.prisma.prescription.update({
-      where: { id },
-      data: {
-        doctorName: updatePrescriptionDto.doctorName,
-        doctorCrm: updatePrescriptionDto.doctorCrm,
-        doctorCrmState: updatePrescriptionDto.doctorCrmState,
-        prescriptionDate: updatePrescriptionDto.prescriptionDate
-          ? new Date(updatePrescriptionDto.prescriptionDate)
-          : undefined,
-        prescriptionType: updatePrescriptionDto.prescriptionType as PrescriptionType | undefined,
-        validUntil: updatePrescriptionDto.validUntil
-          ? new Date(updatePrescriptionDto.validUntil)
-          : undefined,
-        reviewDate: updatePrescriptionDto.reviewDate
-          ? new Date(updatePrescriptionDto.reviewDate)
-          : undefined,
-        controlledClass: updatePrescriptionDto.controlledClass as ControlledClass | undefined,
-        notificationNumber: updatePrescriptionDto.notificationNumber,
-        notificationType: updatePrescriptionDto.notificationType as NotificationType | undefined,
-        prescriptionImageUrl: updatePrescriptionDto.prescriptionImageUrl,
-        notes: updatePrescriptionDto.notes,
-        isActive: updatePrescriptionDto.isActive,
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-          },
+      // 2. Buscar prescrição existente com includes para snapshot completo
+      const existing = await this.prisma.prescription.findFirst({
+        where: {
+          id,
+          tenantId,
+          deletedAt: null,
         },
-        medications: true,
-        sosMedications: true,
-      },
-    });
+        include: {
+          medications: true,
+          sosMedications: true,
+        },
+      });
 
-    this.logger.info('Prescrição atualizada', {
-      prescriptionId: id,
-      tenantId,
-      userId,
-    });
+      if (!existing) {
+        throw new NotFoundException('Prescrição não encontrada');
+      }
 
-    return this.formatDateOnlyFields(updated);
+      // 3. Validar tipo de prescrição se fornecido
+      if (updatePrescriptionDto.prescriptionType) {
+        this.validatePrescriptionByType(updatePrescriptionDto as any);
+      }
+
+      // 4. Criar snapshot do estado anterior (previousData)
+      const previousData = JSON.parse(JSON.stringify(existing));
+
+      // 5. Atualizar prescrição em transação com histórico
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // 5.1 Atualizar prescrição com versionNumber incrementado
+        const updatedPrescription = await tx.prescription.update({
+          where: { id },
+          data: {
+            doctorName: updatePrescriptionDto.doctorName,
+            doctorCrm: updatePrescriptionDto.doctorCrm,
+            doctorCrmState: updatePrescriptionDto.doctorCrmState,
+            prescriptionDate: updatePrescriptionDto.prescriptionDate
+              ? new Date(updatePrescriptionDto.prescriptionDate)
+              : undefined,
+            prescriptionType: updatePrescriptionDto.prescriptionType as PrescriptionType | undefined,
+            validUntil: updatePrescriptionDto.validUntil
+              ? new Date(updatePrescriptionDto.validUntil)
+              : undefined,
+            reviewDate: updatePrescriptionDto.reviewDate
+              ? new Date(updatePrescriptionDto.reviewDate)
+              : undefined,
+            controlledClass: updatePrescriptionDto.controlledClass as ControlledClass | undefined,
+            notificationNumber: updatePrescriptionDto.notificationNumber,
+            notificationType: updatePrescriptionDto.notificationType as NotificationType | undefined,
+            prescriptionImageUrl: updatePrescriptionDto.prescriptionImageUrl,
+            notes: updatePrescriptionDto.notes,
+            isActive: updatePrescriptionDto.isActive,
+            versionNumber: existing.versionNumber + 1, // Incrementar versão
+            updatedBy: userId, // Registrar quem atualizou
+          },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+            medications: true,
+            sosMedications: true,
+          },
+        });
+
+        // 5.2 Criar snapshot do novo estado (newData)
+        const newData = JSON.parse(JSON.stringify(updatedPrescription));
+
+        // 5.3 Calcular campos alterados
+        const changedFields = this.calculateChangedFields(previousData, newData);
+
+        // 5.4 Buscar nome do usuário para histórico
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        // 5.5 Criar entrada de histórico (UPDATE)
+        await this.createPrescriptionHistoryRecord(
+          id,
+          tenantId,
+          'UPDATE',
+          updatePrescriptionDto.changeReason,
+          userId,
+          user?.name || 'Sistema',
+          previousData,
+          newData,
+          changedFields,
+          tx,
+        );
+
+        return updatedPrescription;
+      });
+
+      this.logger.info('Prescrição atualizada com versionamento', {
+        prescriptionId: id,
+        versionNumber: updated.versionNumber,
+        changedFields: this.calculateChangedFields(previousData, updated),
+        tenantId,
+        userId,
+      });
+
+      return this.formatDateOnlyFields(updated);
+    } catch (error) {
+      this.logger.error('Erro ao atualizar prescrição', {
+        error: error.message,
+        prescriptionId: id,
+        tenantId,
+        userId,
+      });
+      throw error;
+    }
   }
 
   /**
    * Remove (soft delete) uma prescrição
    */
-  async remove(id: string, tenantId: string, userId: string) {
-    const prescription = await this.prisma.prescription.findFirst({
-      where: {
-        id,
+  async remove(id: string, tenantId: string, userId: string, changeReason: string) {
+    try {
+      // 1. Validar changeReason obrigatório
+      if (!changeReason || changeReason.trim().length < 10) {
+        throw new BadRequestException(
+          'changeReason é obrigatório e deve ter no mínimo 10 caracteres'
+        );
+      }
+
+      // 2. Buscar prescrição existente com includes para snapshot completo
+      const prescription = await this.prisma.prescription.findFirst({
+        where: {
+          id,
+          tenantId,
+          deletedAt: null,
+        },
+        include: {
+          medications: true,
+          sosMedications: true,
+        },
+      });
+
+      if (!prescription) {
+        throw new NotFoundException('Prescrição não encontrada');
+      }
+
+      // 3. Criar snapshot do estado anterior (previousData)
+      const previousData = JSON.parse(JSON.stringify(prescription));
+
+      // 4. Realizar soft delete em transação com histórico
+      const deleted = await this.prisma.$transaction(async (tx) => {
+        // 4.1 Soft delete da prescrição com versionNumber incrementado
+        const deletedPrescription = await tx.prescription.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+            versionNumber: prescription.versionNumber + 1, // Incrementar versão
+            updatedBy: userId, // Registrar quem deletou
+          },
+        });
+
+        // 4.2 Criar snapshot do novo estado (newData) com deletedAt
+        const newData = JSON.parse(JSON.stringify(deletedPrescription));
+
+        // 4.3 Buscar nome do usuário para histórico
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        // 4.4 Criar entrada de histórico (DELETE)
+        await this.createPrescriptionHistoryRecord(
+          id,
+          tenantId,
+          'DELETE',
+          changeReason,
+          userId,
+          user?.name || 'Sistema',
+          previousData,
+          newData,
+          ['deletedAt'], // Campo alterado é apenas deletedAt
+          tx,
+        );
+
+        return deletedPrescription;
+      });
+
+      this.logger.info('Prescrição removida com versionamento', {
+        prescriptionId: id,
+        versionNumber: deleted.versionNumber,
         tenantId,
-        deletedAt: null,
-      },
-    });
+        userId,
+      });
 
-    if (!prescription) {
-      throw new NotFoundException('Prescrição não encontrada');
+      return { message: 'Prescrição removida com sucesso' };
+    } catch (error) {
+      this.logger.error('Erro ao remover prescrição', {
+        error: error.message,
+        prescriptionId: id,
+        tenantId,
+        userId,
+      });
+      throw error;
     }
+  }
 
-    await this.prisma.prescription.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
+  /**
+   * Obtém o histórico completo de versões de uma prescrição
+   * Retorna todas as alterações registradas no audit trail
+   *
+   * @param prescriptionId - ID da prescrição
+   * @param tenantId - ID do tenant (isolamento multi-tenant)
+   * @returns Prescrição atual + histórico completo ordenado por versionNumber DESC
+   */
+  async getHistory(prescriptionId: string, tenantId: string) {
+    try {
+      // 1. Buscar prescrição (incluindo soft deleted para permitir acesso ao histórico)
+      const prescription = await this.prisma.prescription.findFirst({
+        where: {
+          id: prescriptionId,
+          tenantId,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          medications: true,
+          sosMedications: true,
+        },
+      });
 
-    this.logger.info('Prescrição removida', {
-      prescriptionId: id,
-      tenantId,
-      userId,
-    });
+      if (!prescription) {
+        throw new NotFoundException('Prescrição não encontrada');
+      }
 
-    return { message: 'Prescrição removida com sucesso' };
+      // 2. Buscar histórico completo
+      const history = await this.prisma.prescriptionHistory.findMany({
+        where: {
+          prescriptionId,
+          tenantId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          versionNumber: 'desc', // Mais recente primeiro
+        },
+      });
+
+      this.logger.info('Histórico de prescrição consultado', {
+        prescriptionId,
+        totalVersions: history.length,
+        tenantId,
+      });
+
+      return {
+        prescription: this.formatDateOnlyFields(prescription),
+        history: history.map((h) => ({
+          id: h.id,
+          versionNumber: h.versionNumber,
+          changeType: h.changeType,
+          changeReason: h.changeReason,
+          previousData: h.previousData,
+          newData: h.newData,
+          changedFields: h.changedFields,
+          changedAt: h.changedAt,
+          changedBy: {
+            id: h.user.id,
+            name: h.user.name,
+            email: h.user.email,
+          },
+          ipAddress: h.ipAddress,
+          userAgent: h.userAgent,
+          metadata: h.metadata,
+        })),
+        totalVersions: history.length,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao consultar histórico de prescrição', {
+        error: error.message,
+        prescriptionId,
+        tenantId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém uma versão específica do histórico de uma prescrição
+   * Retorna previousData, newData e changedFields para comparação detalhada
+   *
+   * @param prescriptionId - ID da prescrição
+   * @param versionNumber - Número da versão (1, 2, 3, ...)
+   * @param tenantId - ID do tenant (isolamento multi-tenant)
+   * @returns Versão específica com dados completos de previousData e newData
+   */
+  async getHistoryVersion(
+    prescriptionId: string,
+    versionNumber: number,
+    tenantId: string,
+  ) {
+    try {
+      // 1. Buscar versão específica do histórico
+      const version = await this.prisma.prescriptionHistory.findFirst({
+        where: {
+          prescriptionId,
+          versionNumber,
+          tenantId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          prescription: {
+            select: {
+              id: true,
+              doctorName: true,
+              prescriptionType: true,
+              resident: {
+                select: {
+                  id: true,
+                  fullName: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!version) {
+        throw new NotFoundException(
+          `Versão ${versionNumber} não encontrada para esta prescrição`,
+        );
+      }
+
+      this.logger.info('Versão específica do histórico consultada', {
+        prescriptionId,
+        versionNumber,
+        tenantId,
+      });
+
+      return {
+        id: version.id,
+        versionNumber: version.versionNumber,
+        changeType: version.changeType,
+        changeReason: version.changeReason,
+        previousData: version.previousData,
+        newData: version.newData,
+        changedFields: version.changedFields,
+        changedAt: version.changedAt,
+        changedBy: {
+          id: version.user.id,
+          name: version.user.name,
+          email: version.user.email,
+        },
+        ipAddress: version.ipAddress,
+        userAgent: version.userAgent,
+        metadata: version.metadata,
+        prescription: {
+          id: version.prescription.id,
+          doctorName: version.prescription.doctorName,
+          prescriptionType: version.prescription.prescriptionType,
+          resident: version.prescription.resident,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Erro ao consultar versão do histórico', {
+        error: error.message,
+        prescriptionId,
+        versionNumber,
+        tenantId,
+      });
+      throw error;
+    }
   }
 
   /**
