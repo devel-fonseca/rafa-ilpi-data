@@ -138,7 +138,7 @@ export function DailyRecordHistoryModal({
   const hasActiveFilters = filterUser !== 'all' || filterType !== 'all'
 
   // Handle restore version
-  const handleRestoreClick = (versionId: string, versionNumber: number) => {
+  const handleRestoreClick = (versionId: string) => {
     setRestoreVersionId(versionId)
     setRestoreReason('')
     setShowRestoreDialog(true)
@@ -638,7 +638,7 @@ export function DailyRecordHistoryModal({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRestoreClick(version.id, version.versionNumber)}
+                            onClick={() => handleRestoreClick(version.id)}
                             title="Restaurar esta versão"
                           >
                             <RotateCcw className="h-4 w-4 mr-1" />

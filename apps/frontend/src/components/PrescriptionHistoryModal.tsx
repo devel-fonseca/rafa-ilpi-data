@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { History, Clock, User, FileText, AlertCircle } from 'lucide-react'
 import {
   Dialog,
@@ -43,7 +42,10 @@ export function PrescriptionHistoryModal({
 }: PrescriptionHistoryModalProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['prescription-history', prescriptionId],
-    queryFn: () => prescriptionsApi.getHistory(prescriptionId),
+    queryFn: async () => {
+      const response = await prescriptionsApi.getHistory(prescriptionId)
+      return response.data
+    },
     enabled: open && !!prescriptionId,
   })
 

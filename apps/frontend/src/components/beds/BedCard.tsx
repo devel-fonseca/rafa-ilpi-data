@@ -47,7 +47,7 @@ const BED_STATUS_COLORS: Record<string, string> = {
 }
 
 export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, canManage = true }: BedCardProps) {
-  const isOccupied = (bed.status === 'Ocupado' || bed.status === 'OCUPADO') && bed.resident
+  const isOccupied = bed.status === 'OCUPADO' && bed.resident
 
   return (
     <Card
@@ -67,7 +67,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-            {(bed.status === 'Disponível' || bed.status === 'DISPONIVEL') && (
+            {bed.status === 'DISPONIVEL' && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()
@@ -78,7 +78,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
                 Atribuir Residente
               </DropdownMenuItem>
             )}
-            {(bed.status === 'Ocupado' || bed.status === 'OCUPADO') && bed.residentId && (
+            {bed.status === 'OCUPADO' && bed.residentId && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation()

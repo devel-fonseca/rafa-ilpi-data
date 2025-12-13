@@ -92,12 +92,12 @@ export function BedSearchCombobox({
   // Filtrar leitos baseado na busca e filtros ativos
   const filteredBeds = beds.filter((bed) => {
     // SEMPRE excluir leitos ocupados (segurança)
-    const isOccupied = bed.status === 'Ocupado' || bed.status === 'OCUPADO'
+    const isOccupied = bed.status === 'OCUPADO'
     if (isOccupied) return false
 
     // Filtro de status (apenas disponíveis)
     if (showOnlyAvailable) {
-      const isAvailable = bed.status === 'Disponível' || bed.status === 'DISPONIVEL'
+      const isAvailable = bed.status === 'DISPONIVEL'
       if (!isAvailable) return false
     }
 

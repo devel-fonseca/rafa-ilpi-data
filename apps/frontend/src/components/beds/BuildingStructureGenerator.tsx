@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
-import { bedsAPI, Building, Floor, Room, Bed } from '@/api/beds.api'
-import { ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react'
+import { bedsAPI } from '@/api/beds.api'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { generateBuildingCodeSuggestions, formatBedIdentification } from '@/utils/formatters'
 
 interface FloorConfig {
