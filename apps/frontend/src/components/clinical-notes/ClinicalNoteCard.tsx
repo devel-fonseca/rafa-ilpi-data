@@ -42,7 +42,7 @@ export function ClinicalNoteCard({
 
   // Verificar se tem documento anexado
   const hasDocument = note.documents && note.documents.length > 0
-  const firstDocument = hasDocument ? note.documents[0] : null
+  const firstDocument = hasDocument ? note.documents?.[0] : null
 
   // Formatar ID curto (primeiros 8 caracteres)
   const shortId = note.id.substring(0, 8)
