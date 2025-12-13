@@ -35,6 +35,7 @@ import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
 import {
+import { getErrorMessage } from '@/utils/errorHandling'
   ViewHigieneModal,
   ViewAlimentacaoModal,
   ViewHidratacaoModal,
@@ -164,7 +165,7 @@ export function DailyRecordsPage() {
       })
 
       toast.success('PDF gerado com sucesso!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao gerar PDF:', error)
       toast.error(error?.message || 'Erro ao gerar PDF')
     }

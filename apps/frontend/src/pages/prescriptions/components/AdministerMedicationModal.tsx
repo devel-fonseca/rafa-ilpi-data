@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerMedicationDto } from '@/api/prescriptions.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 interface AdministerMedicationModalProps {
   open: boolean
@@ -59,7 +60,7 @@ export function AdministerMedicationModal({
       toast.success('Administração registrada com sucesso!')
       reset()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error?.response?.data?.message || 'Erro ao registrar administração')
     }
   }

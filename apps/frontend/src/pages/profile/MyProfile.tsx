@@ -13,6 +13,7 @@ import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound } from 'lucide-react'
 import { format } from 'date-fns'
 import {
+import { getErrorMessage } from '@/utils/errorHandling'
   PositionCode,
   RegistrationType,
   POSITION_CODE_LABELS,
@@ -111,10 +112,10 @@ export default function MyProfile() {
 
       // Limpar arquivo de foto após salvar
       setPhotoFile(null)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar perfil',
-        description: error.response?.data?.message || 'Não foi possível salvar as alterações',
+        description: getErrorMessage(error, 'Não foi possível salvar as alterações'),
         variant: 'destructive',
       })
     }

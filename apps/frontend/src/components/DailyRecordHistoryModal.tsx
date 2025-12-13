@@ -25,6 +25,7 @@ import {
 } from './ui/select'
 import { dailyRecordsAPI, type DailyRecordHistoryResponse } from '@/api/dailyRecords.api'
 import { getRecordTypeConfig } from '@/design-system/tokens/colors'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 interface DailyRecordHistoryModalProps {
   recordId: string
@@ -69,9 +70,9 @@ export function DailyRecordHistoryModal({
       setError(null)
       const data = await dailyRecordsAPI.getHistory(recordId)
       setHistory(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao buscar histórico:', err)
-      setError(err.response?.data?.message || 'Erro ao carregar histórico')
+      setError(getErrorMessage(err, 'Erro ao carregar histórico'))
     } finally {
       setLoading(false)
     }
@@ -163,9 +164,9 @@ export function DailyRecordHistoryModal({
       setShowRestoreDialog(false)
       setRestoreVersionId(null)
       setRestoreReason('')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao restaurar versão:', err)
-      alert(err.response?.data?.message || 'Erro ao restaurar versão')
+      alert(getErrorMessage(err, 'Erro ao restaurar versão'))
     } finally {
       setRestoring(false)
     }

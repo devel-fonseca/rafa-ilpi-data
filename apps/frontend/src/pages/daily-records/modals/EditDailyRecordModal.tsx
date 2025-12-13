@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { dailyRecordsAPI, type DailyRecord } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para edição de Daily Record
@@ -119,7 +120,7 @@ export function EditDailyRecordModal({
 
       handleClose()
       onSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar registro:', error)
       toast({
         variant: 'destructive',

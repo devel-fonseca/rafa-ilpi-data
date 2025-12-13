@@ -37,6 +37,7 @@ import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
 import { ResidentDocuments } from '@/components/residents/ResidentDocuments'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -458,7 +459,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (isMounted) {
           console.log('✅ Residente carregado com sucesso para edição:', resident.fullName)
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Ignora erros de abortamento
         if (error.name === 'AbortError') {
           console.log('Requisição cancelada')
@@ -802,7 +803,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       // Redirecionar para lista
       navigate('/dashboard/residentes')
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Erro ao salvar residente:', error)
 
       // Extrair mensagem de erro do backend ou fallback

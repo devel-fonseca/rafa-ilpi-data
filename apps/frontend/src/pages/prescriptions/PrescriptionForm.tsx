@@ -17,6 +17,7 @@ import { Step2PrescriberInfo } from './form/Step2PrescriberInfo'
 import { Step3Medications } from './form/Step3Medications'
 import { Step4SOSMedications } from './form/Step4SOSMedications'
 import { Step5Review } from './form/Step5Review'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 const STEPS = [
   { id: 1, title: 'Residente', description: 'Dados do residente' },
@@ -87,7 +88,7 @@ export default function PrescriptionForm() {
         toast.success('Prescrição criada com sucesso!')
       }
       navigate('/dashboard/prescricoes')
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error?.response?.data?.message || 'Erro ao salvar prescrição')
     }
   }

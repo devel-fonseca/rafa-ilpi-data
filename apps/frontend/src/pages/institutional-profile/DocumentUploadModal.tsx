@@ -31,6 +31,7 @@ import {
   useAllDocumentTypes,
 } from '@/hooks/useInstitutionalProfile'
 import { Upload, Loader2, FileText, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Tipos MIME permitidos para upload
@@ -217,10 +218,10 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
       setSelectedFile(null)
       setFileError(null)
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao enviar documento',
-        description: error.response?.data?.message || 'Ocorreu um erro ao fazer upload do documento',
+        description: getErrorMessage(error, 'Ocorreu um erro ao fazer upload do documento'),
         variant: 'destructive',
       })
     }

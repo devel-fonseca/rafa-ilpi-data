@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerSOSDto } from '@/api/prescriptions.api'
 import { getCurrentDateLocal, getCurrentTimeLocal } from '@/utils/timezone'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 interface AdministerSOSModalProps {
   open: boolean
@@ -53,7 +54,7 @@ export function AdministerSOSModal({
       toast.success('Administração SOS registrada com sucesso!')
       reset()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error?.response?.data?.message || 'Erro ao registrar administração SOS')
     }
   }

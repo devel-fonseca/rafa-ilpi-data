@@ -88,6 +88,7 @@ import {
 import { UserWithProfile, UserPermissions } from "@/types/user";
 import { PositionCodeSelector } from "@/components/users/PositionCodeSelector";
 import { PermissionsManager } from "@/components/users/PermissionsManager";
+import { getErrorMessage } from '@/utils/errorHandling'
 
 export default function UsersList() {
   const { user: currentUser } = useAuthStore();
@@ -177,11 +178,11 @@ export default function UsersList() {
       ]);
       setUsers(usersData);
       setProfiles(profilesData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao carregar dados",
         description:
-          error.response?.data?.message || "Não foi possível carregar os dados",
+          getErrorMessage(error, 'Não foi possível carregar os dados'),
         variant: "destructive",
       });
     } finally {
@@ -227,7 +228,7 @@ export default function UsersList() {
       resetAddForm();
       setAddUserModal(false);
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao adicionar usuário",
         description:
@@ -265,7 +266,7 @@ export default function UsersList() {
 
       setEditUserModal({ open: false, user: null });
       await loadData();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao atualizar perfil",
         description:
@@ -287,7 +288,7 @@ export default function UsersList() {
         user,
         permissions,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao carregar permissões",
         description:
@@ -325,7 +326,7 @@ export default function UsersList() {
       });
 
       setPermissionsModal({ open: false, user: null, permissions: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao atualizar permissões",
         description:

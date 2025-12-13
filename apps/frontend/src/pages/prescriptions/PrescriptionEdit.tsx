@@ -18,6 +18,7 @@ import { usePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions
 import { getSignedFileUrl } from '@/services/upload'
 import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -96,7 +97,7 @@ export default function PrescriptionEdit() {
       setTimeout(() => {
         navigate(`/dashboard/prescricoes/${id}`)
       }, 100)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error(error?.response?.data?.message || 'Erro ao atualizar prescrição')
     }
   }

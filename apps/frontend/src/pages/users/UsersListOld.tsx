@@ -43,6 +43,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { Loader2, Plus, Trash2, Mail, Shield, UserPlus } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 interface User {
   id: string
@@ -87,10 +88,10 @@ export default function UsersList() {
       setLoading(true)
       const data = await getTenantUsers(currentUser.tenantId)
       setUsers(data)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao carregar usuários',
-        description: error.response?.data?.message || 'Não foi possível carregar a lista de usuários',
+        description: getErrorMessage(error, 'Não foi possível carregar a lista de usuários'),
         variant: 'destructive',
       })
     } finally {
@@ -130,10 +131,10 @@ export default function UsersList() {
 
       setAddUserModal(false)
       await loadUsers()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao adicionar usuário',
-        description: error.response?.data?.message || 'Não foi possível adicionar o usuário',
+        description: getErrorMessage(error, 'Não foi possível adicionar o usuário'),
         variant: 'destructive',
       })
     } finally {
@@ -154,10 +155,10 @@ export default function UsersList() {
 
       setDeleteModal({ open: false, user: null })
       await loadUsers()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro ao remover usuário',
-        description: error.response?.data?.message || 'Não foi possível remover o usuário',
+        description: getErrorMessage(error, 'Não foi possível remover o usuário'),
         variant: 'destructive',
       })
     }

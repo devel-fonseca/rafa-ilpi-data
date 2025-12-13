@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para edição de Prescription
@@ -121,7 +122,7 @@ export function EditPrescriptionModal({
 
       handleClose()
       onSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar prescrição:', error)
       toast({
         variant: 'destructive',

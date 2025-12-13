@@ -64,6 +64,7 @@ import type { DocumentStatus, TenantDocument } from '@/api/institutional-profile
 import { DocumentUploadModal } from './DocumentUploadModal'
 import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 import { DocumentMetadataModal } from './DocumentMetadataModal'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Mapeamento de cores de badge por status de documento
@@ -185,10 +186,10 @@ export function DocumentsTab() {
       })
       setDeleteDialogOpen(false)
       setDocumentToDelete(null)
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao excluir documento',
+        description: getErrorMessage(error, 'Erro ao excluir documento'),
         variant: 'destructive',
       })
     }

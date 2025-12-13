@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para exclusão de Prescription
@@ -106,7 +107,7 @@ export function DeletePrescriptionModal({
 
       handleClose()
       onSuccess?.()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao excluir prescrição:', error)
       toast({
         variant: 'destructive',
