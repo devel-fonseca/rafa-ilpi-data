@@ -18,11 +18,21 @@ import {
   Circle,
   ChevronLeft,
   ChevronRight,
+  MoreVertical,
+  Trash2,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
@@ -31,6 +41,10 @@ import { AdministerMedicationModal } from './components/AdministerMedicationModa
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 import { ViewMedicationAdministrationModal } from './components/ViewMedicationAdministrationModal'
+import { DeleteMedicationModal } from './modals/DeleteMedicationModal'
+import { DeleteSOSMedicationModal } from './modals/DeleteSOSMedicationModal'
+import type { Medication } from '@/api/medications.api'
+import type { SOSMedication } from '@/api/sos-medications.api'
 import {
   getCurrentDate,
   extractDateOnly,
@@ -78,6 +92,12 @@ export default function PrescriptionDetails() {
   // Estados de modal de visualização (NOVO)
   const [viewAdministrationModalOpen, setViewAdministrationModalOpen] = useState(false)
   const [selectedAdministration, setSelectedAdministration] = useState<any>(null)
+
+  // Estados de modais de versionamento (delete)
+  const [deleteMedicationModalOpen, setDeleteMedicationModalOpen] = useState(false)
+  const [medicationToDelete, setMedicationToDelete] = useState<Medication | null>(null)
+  const [deleteSOSModalOpen, setDeleteSOSModalOpen] = useState(false)
+  const [sosMedicationToDelete, setSOSMedicationToDelete] = useState<SOSMedication | null>(null)
 
   // Estados de navegação e filtros (NOVO)
   const [viewDate, setViewDate] = useState(getCurrentDate())
@@ -139,6 +159,22 @@ export default function PrescriptionDetails() {
   const handleAdministerSOS = (sosMedication: any) => {
     setSelectedSOSMedication(sosMedication)
     setAdministerSOSModalOpen(true)
+  }
+
+  // Handlers para delete com versionamento
+  const handleDeleteMedication = (medication: Medication) => {
+    setMedicationToDelete(medication)
+    setDeleteMedicationModalOpen(true)
+  }
+
+  const handleDeleteSOSMedication = (sosMedication: SOSMedication) => {
+    setSOSMedicationToDelete(sosMedication)
+    setDeleteSOSModalOpen(true)
+  }
+
+  const handleDeleteSuccess = () => {
+    // Recarregar dados da prescrição após exclusão
+    queryClient.invalidateQueries({ queryKey: ['prescription', id] })
   }
 
   // Processar medicações expandidas por horário com filtros (NOVO)
@@ -774,23 +810,43 @@ export default function PrescriptionDetails() {
                         )}
                       </div>
 
-                      {/* Botão de Ação Condicional */}
-                      <Button
-                        onClick={() => {
-                          if (administration) {
-                            // Já foi administrado → Abrir modal de visualização
-                            handleViewAdministration(administration, medication)
-                          } else {
-                            // Pendente ou atrasado → Abrir modal de registro
-                            handleRegisterAdministration(medication, scheduledTime)
-                          }
-                        }}
-                        size="sm"
-                        variant={buttonVariant}
-                      >
-                        <ButtonIcon className="h-4 w-4 mr-2" />
-                        {buttonLabel}
-                      </Button>
+                      {/* Botões de Ação */}
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (administration) {
+                              // Já foi administrado → Abrir modal de visualização
+                              handleViewAdministration(administration, medication)
+                            } else {
+                              // Pendente ou atrasado → Abrir modal de registro
+                              handleRegisterAdministration(medication, scheduledTime)
+                            }
+                          }}
+                          size="sm"
+                          variant={buttonVariant}
+                        >
+                          <ButtonIcon className="h-4 w-4 mr-2" />
+                          {buttonLabel}
+                        </Button>
+
+                        {/* Menu de Ações (Delete/History) */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteMedication(medication)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir Medicamento
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -851,14 +907,34 @@ export default function PrescriptionDetails() {
                       )}
                     </div>
 
-                    <Button
-                      onClick={() => handleAdministerSOS(sos)}
-                      size="sm"
-                      variant="outline"
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Administrar SOS
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleAdministerSOS(sos)}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Administrar SOS
+                      </Button>
+
+                      {/* Menu de Ações (Delete/History) */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteSOSMedication(sos)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir SOS
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -914,6 +990,31 @@ export default function PrescriptionDetails() {
             setSelectedSOSMedication(null)
           }}
           sosMedication={selectedSOSMedication}
+        />
+      )}
+
+      {/* Modais de Delete com Versionamento */}
+      {medicationToDelete && (
+        <DeleteMedicationModal
+          medication={medicationToDelete}
+          open={deleteMedicationModalOpen}
+          onOpenChange={setDeleteMedicationModalOpen}
+          onSuccess={() => {
+            handleDeleteSuccess()
+            setMedicationToDelete(null)
+          }}
+        />
+      )}
+
+      {sosMedicationToDelete && (
+        <DeleteSOSMedicationModal
+          sosMedication={sosMedicationToDelete}
+          open={deleteSOSModalOpen}
+          onOpenChange={setDeleteSOSModalOpen}
+          onSuccess={() => {
+            handleDeleteSuccess()
+            setSOSMedicationToDelete(null)
+          }}
         />
       )}
     </div>
