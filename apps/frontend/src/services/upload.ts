@@ -1,4 +1,5 @@
 import { api } from './api'
+import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Interface para resposta do upload de arquivo
@@ -69,11 +70,9 @@ export const uploadFile = async (
     )
 
     return response.data.fileUrl
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao fazer upload do arquivo:', error)
-    throw new Error(
-      error.response?.data?.message || 'Erro ao fazer upload do arquivo'
-    )
+    throw new Error(getErrorMessage(error, 'Erro ao fazer upload do arquivo'))
   }
 }
 
@@ -96,11 +95,9 @@ export const uploadFiles = async (
     )
 
     return await Promise.all(uploadPromises)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao fazer upload dos arquivos:', error)
-    throw new Error(
-      error.response?.data?.message || 'Erro ao fazer upload dos arquivos'
-    )
+    throw new Error(getErrorMessage(error, 'Erro ao fazer upload dos arquivos'))
   }
 }
 
@@ -139,11 +136,9 @@ export const uploadFileDetailed = async (
     )
 
     return response.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao fazer upload do arquivo:', error)
-    throw new Error(
-      error.response?.data?.message || 'Erro ao fazer upload do arquivo'
-    )
+    throw new Error(getErrorMessage(error, 'Erro ao fazer upload do arquivo'))
   }
 }
 
@@ -160,10 +155,8 @@ export const getSignedFileUrl = async (filePath: string): Promise<string> => {
       `/files/download/${filePath}`
     )
     return response.data.url
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao obter URL do arquivo:', error)
-    throw new Error(
-      error.response?.data?.message || 'Erro ao obter URL do arquivo'
-    )
+    throw new Error(getErrorMessage(error, 'Erro ao obter URL do arquivo'))
   }
 }
