@@ -78,12 +78,14 @@ export function ClinicalNotesList({ residentId, residentName }: ClinicalNotesLis
     switch (period) {
       case 'today':
         return extractDateOnly(note.noteDate) === extractDateOnly(now.toISOString())
-      case '7days':
+      case '7days': {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
         return noteDate >= sevenDaysAgo
-      case '30days':
+      }
+      case '30days': {
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
         return noteDate >= thirtyDaysAgo
+      }
       case 'year':
         return noteDate.getFullYear() === now.getFullYear()
       default:
