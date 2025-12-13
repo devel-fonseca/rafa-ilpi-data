@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, MouseEvent } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -124,12 +124,12 @@ export function EditAlimentacaoModal({
     onClose()
   }
 
-  const nextStep = (e?: React.MouseEvent) => {
+  const nextStep = (e?: MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault()
     if (currentStep < 4) setCurrentStep(currentStep + 1)
   }
 
-  const prevStep = (e?: React.MouseEvent) => {
+  const prevStep = (e?: MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault()
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
