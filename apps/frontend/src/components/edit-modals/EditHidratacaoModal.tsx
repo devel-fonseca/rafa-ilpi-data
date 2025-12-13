@@ -22,8 +22,8 @@ const editHidratacaoSchema = z.object({
     .string()
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
-  volumeMl: z.coerce
-    .number({ required_error: 'Volume é obrigatório' })
+  volumeMl: z
+    .number({ message: 'Volume é obrigatório' })
     .positive('Volume deve ser maior que zero')
     .max(5000, 'Volume máximo: 5000ml'),
   tipo: z.string().optional(),
@@ -127,7 +127,7 @@ export function EditHidratacaoModal({
               Volume (ml)
             </Label>
             <Input
-              {...register('volumeMl')}
+              {...register('volumeMl', { valueAsNumber: true })}
               type="number"
               className="mt-2"
               placeholder="200"

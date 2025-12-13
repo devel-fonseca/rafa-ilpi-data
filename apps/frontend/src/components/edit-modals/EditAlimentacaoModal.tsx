@@ -33,14 +33,14 @@ const editAlimentacaoSchema = z.object({
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
   refeicao: z.enum(
     ['Café da Manhã', 'Colação', 'Almoço', 'Lanche', 'Jantar', 'Ceia', 'Colação Extra'],
-    { required_error: 'Refeição é obrigatória' },
+    { message: 'Refeição é obrigatória' },
   ),
   cardapio: z.string().optional(),
   consistencia: z.enum(['Geral', 'Pastosa', 'Líquida', 'Triturada'], {
-    required_error: 'Consistência é obrigatória',
+    message: 'Consistência é obrigatória',
   }),
   ingeriu: z.enum(['100%', '75%', '50%', '<25%', 'Recusou'], {
-    required_error: 'Campo obrigatório',
+    message: 'Campo obrigatório',
   }),
   auxilioNecessario: z.boolean(),
   volumeMl: z.string().optional(),
