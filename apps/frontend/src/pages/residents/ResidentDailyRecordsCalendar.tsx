@@ -26,6 +26,7 @@ import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabel
 import { DailyRecordHistoryModal } from '@/components/DailyRecordHistoryModal'
 import { dailyRecordsAPI } from '@/api/dailyRecords.api'
 import { toast } from 'sonner'
+import { getErrorMessage } from '@/utils/errorHandling'
 import {
   EditAlimentacaoModal,
   EditMonitoramentoModal,
@@ -110,9 +111,9 @@ export default function ResidentDailyRecordsCalendar() {
       setEditModalOpen(false)
       setEditingRecord(null)
       refetchRecords()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao atualizar registro:', err)
-      toast.error(err.response?.data?.message || 'Erro ao atualizar registro')
+      toast.error(getErrorMessage(err, 'Erro ao atualizar registro'))
     } finally {
       setIsUpdating(false)
     }
@@ -133,9 +134,9 @@ export default function ResidentDailyRecordsCalendar() {
       setDeletingRecord(null)
       setDeleteReason('')
       refetchRecords()
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao excluir registro:', err)
-      toast.error(err.response?.data?.message || 'Erro ao excluir registro')
+      toast.error(getErrorMessage(err, 'Erro ao excluir registro'))
     } finally {
       setIsDeleting(false)
     }
