@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { User, AlertCircle } from 'lucide-react'
 import { getSignedFileUrl } from '@/services/upload'
 
