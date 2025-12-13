@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Layers, Door, Bed, CheckCircle, XCircle, Wrench, Clock } from 'lucide-react'
+import { Building2, Layers, Bed, CheckCircle } from 'lucide-react'
 
 interface OccupancyStatsProps {
   stats: {

@@ -42,7 +42,7 @@ const roomSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   roomNumber: z.string().min(1, 'Número do quarto é obrigatório'),
   roomType: z.enum(['INDIVIDUAL', 'DUPLO', 'TRIPLO', 'COLETIVO']),
-  capacity: z.coerce.number().min(1, 'Capacidade deve ser no mínimo 1'),
+  capacity: z.number().min(1, 'Capacidade deve ser no mínimo 1'),
   hasPrivateBathroom: z.boolean().optional(),
   accessible: z.boolean().optional(),
   observations: z.string().optional(),
@@ -274,7 +274,13 @@ export function RoomForm({
                   <FormItem>
                     <FormLabel>Capacidade *</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" placeholder="Ex: 2" {...field} />
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Ex: 2"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

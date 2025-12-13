@@ -34,13 +34,10 @@ import { useToast } from '@/components/ui/use-toast'
 import { useEffect, useState } from 'react'
 import { generateFloorCode } from '@/utils/codeGenerator'
 import { Badge } from '@/components/ui/badge'
-import { ContinueCreationDialog } from './ContinueCreationDialog'
-import { RoomForm } from './RoomForm'
-
 const floorSchema = z.object({
   buildingId: z.string().min(1, 'Prédio é obrigatório'),
   name: z.string().min(1, 'Nome é obrigatório'),
-  floorNumber: z.coerce.number().min(0, 'Número do andar deve ser positivo'),
+  floorNumber: z.number().min(0, 'Número do andar deve ser positivo'),
   description: z.string().optional(),
 })
 
@@ -66,9 +63,6 @@ export function FloorForm({
   const updateMutation = useUpdateFloor()
   const { data: buildings, isLoading: isLoadingBuildings } = useBuildings()
   const [generatedCode, setGeneratedCode] = useState<string>('')
-  const [showContinueDialog, setShowContinueDialog] = useState(false)
-  const [showRoomForm, setShowRoomForm] = useState(false)
-  const [newFloorId, setNewFloorId] = useState<string>('')
 
   const form = useForm<FloorFormData>({
     resolver: zodResolver(floorSchema),
@@ -223,7 +217,12 @@ export function FloorForm({
                 <FormItem>
                   <FormLabel>Número do Andar *</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="Ex: 0 para Térreo, 1 para 1º Andar" {...field} />
+                    <Input
+                      type="number"
+                      placeholder="Ex: 0 para Térreo, 1 para 1º Andar"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
