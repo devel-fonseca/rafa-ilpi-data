@@ -1,6 +1,6 @@
 # TODO - Tarefas Ativas
 
-**Última atualização:** 13/12/2025
+**Última atualização:** 14/12/2025
 
 > **Nota:** Este arquivo contém APENAS tarefas ativas e pendentes.
 > Histórico completo de implementações está em [CHANGELOG.md](CHANGELOG.md).
@@ -65,6 +65,41 @@ _(Nenhuma tarefa em andamento no momento)_
 - ✅ Prescription-versioning: Corrigido tenant slug duplicado + cleanup FK
 - ✅ User-versioning: Corrigido JWT strategy (findFirst + campo sub)
 - ✅ Todas as 391 testes E2E agora passam sem erros
+
+---
+
+### 🔐 Implementação LGPD - Segurança de Dados
+
+**Plano Detalhado:** [docs/LGPD-DATA-SECURITY-IMPLEMENTATION.md](docs/LGPD-DATA-SECURITY-IMPLEMENTATION.md)
+
+**Status Geral:** Camada 1 ✅ COMPLETA | Camada 2 e 3 🔄 Planejadas
+
+**Camada 1 - Transport Layer (HTTPS/TLS):**
+- [x] ✅ Certificado SSL configurado (Cloudflare/Let's Encrypt)
+- [x] ✅ HTTPS obrigatório em produção
+
+**Camada 2 - Storage Layer (MinIO SSE):**
+- [x] ✅ Master Key AES-256 gerada (base64, 32 bytes)
+- [x] ✅ Docker Compose MinIO atualizado com `MINIO_KMS_SECRET_KEY`
+- [x] ✅ Criptografia automática habilitada (AES-256-GCM)
+- [x] ✅ Testes validados (arquivos criptografados no disco, download funcionando)
+- [x] ✅ Guia de configuração criado: [docs/MINIO-SSE-SETUP-GUIDE.md](docs/MINIO-SSE-SETUP-GUIDE.md)
+- [x] ✅ Master Key backupeada em password manager
+
+**Camada 3 - Database Layer (Prisma Middleware):**
+- [ ] 🔄 Implementar Prisma Middleware de criptografia (20-24h)
+- [ ] 🔄 Criptografar campos sensíveis no Resident (CPF, RG, CNS)
+- [ ] 🔄 Criptografar campos em ClinicalNote (dados SOAP)
+- [ ] 🔄 Migrar modelo Resident primeiro (3-4h)
+- [ ] 🔄 Expandir para outros módulos gradualmente
+
+**Conformidade Regulatória:**
+- [x] ✅ LGPD Art. 46 - Criptografia em repouso (MinIO)
+- [ ] 🔄 LGPD Art. 46 - Criptografia em banco (Prisma Middleware)
+- [ ] 🔄 Política de Privacidade atualizada
+- [ ] 🔄 RIPD (Relatório de Impacto) documentado
+
+**Estimativa Restante:** 38-52 horas (Camadas 2 + 3 + Documentação)
 
 ---
 
@@ -170,4 +205,4 @@ _(Nenhuma tarefa em andamento no momento)_
 
 ---
 
-**Última revisão:** 11/12/2025 por Claude Sonnet 4.5
+**Última revisão:** 14/12/2025 por Claude Sonnet 4.5
