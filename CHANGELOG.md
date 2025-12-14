@@ -6,6 +6,76 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-14] - Implementação LGPD - Camada 1: Criptografia em Repouso (MinIO SSE) ✅
+
+### 🔐 Segurança
+
+**MinIO Server-Side Encryption (SSE) - COMPLETO:**
+
+- ✅ **Geração de Master Key Segura**: AES-256 (32 bytes em base64)
+  - Chave: `0aviGkCAbHl4mThrijtrOFIBTGW1QsNVnrSeTCrCPSM=`
+  - Formato corrigido: hex → base64 (após feedback do usuário)
+- ✅ **Configuração Docker**: Variável `MINIO_KMS_SECRET_KEY` adicionada
+- ✅ **Criptografia Automática**: AES-256-GCM para todos novos uploads
+- ✅ **Descriptografia Transparente**: MinIO gerencia automaticamente
+- ✅ **Isolamento Multi-tenant**: Criptografia por tenant
+- ✅ **Testes Validados**:
+  - Arquivos criptografados no disco (binary data)
+  - Download com descriptografia automática funcionando
+  - MD5 integrity verificada
+  - Upload via aplicação Rafa funcionando
+
+### 📚 Documentação
+
+**Novos Guias Criados:**
+
+1. ✅ **MINIO-SSE-SETUP-GUIDE.md** (368 linhas):
+   - Passo-a-passo de configuração no servidor
+   - Geração de master key (base64)
+   - Edição de docker-compose.yml
+   - Testes de validação
+   - Troubleshooting completo
+   - Rotação de chaves (procedimento anual)
+
+2. ✅ **LGPD-DATA-SECURITY-IMPLEMENTATION.md** (atualizado):
+   - Status: "Em Implementação (Camada 1 ✅ Completa)"
+   - Camada 2 (Storage): IMPLEMENTADO (14/12/2025 05:51)
+   - Plano completo de 3 camadas (48-62h total)
+   - Conformidade LGPD Art. 46 (proteção de dados sensíveis de saúde)
+
+### ✨ Adicionado
+
+**Infraestrutura de Segurança:**
+
+- Sistema de criptografia em repouso para arquivos sensíveis
+- Conformidade com LGPD Art. 46 (dados de saúde)
+- Backup seguro da master key (password manager)
+- Monitoramento via logs MinIO
+
+### 📊 Conformidade Regulatória
+
+**LGPD - Lei Geral de Proteção de Dados:**
+
+- ✅ Art. 5º, II - Proteção de dados sensíveis de saúde
+- ✅ Art. 11, II - Base legal para tratamento de dados de saúde
+- ✅ Art. 46 - Medidas técnicas de segurança (criptografia AES-256)
+- ✅ Isolamento criptográfico por tenant
+
+### 🎯 Próximos Passos LGPD
+
+**Camada 2 - Database Encryption (Prisma Middleware):**
+
+- [ ] Implementar middleware de criptografia para campos sensíveis
+- [ ] Modelos prioritários: Resident (CPF, RG, CNS), ClinicalNote
+- [ ] Estimativa: 20-24 horas
+- [ ] Status: Planejado (ver docs/LGPD-DATA-SECURITY-IMPLEMENTATION.md)
+
+**Arquivos criados:** 1 (docs: MINIO-SSE-SETUP-GUIDE.md)
+**Arquivos modificados:** 1 (docs: LGPD-DATA-SECURITY-IMPLEMENTATION.md)
+**Configuração servidor:** Docker Compose MinIO (Hostinger KVM)
+
+---
+
 ## [2025-12-13] - Sprint 8: Integração Frontend - EM PROGRESSO 🔄
 
 ### ✨ Adicionado
