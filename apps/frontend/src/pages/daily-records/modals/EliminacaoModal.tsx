@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment, MouseEvent } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -108,12 +108,12 @@ export function EliminacaoModal({
     }
   }, [tipo, setValue])
 
-  const nextStep = (e?: React.MouseEvent) => {
+  const nextStep = (e?: MouseEvent) => {
     e?.preventDefault()
     if (currentStep < 2) setCurrentStep(currentStep + 1)
   }
 
-  const prevStep = (e?: React.MouseEvent) => {
+  const prevStep = (e?: MouseEvent) => {
     e?.preventDefault()
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
@@ -160,7 +160,7 @@ export function EliminacaoModal({
         {/* Stepper */}
         <div className="flex items-center justify-center gap-2 mb-4">
           {[1, 2].map((step) => (
-            <React.Fragment key={step}>
+            <Fragment key={step}>
               <div className="flex flex-col items-center gap-1">
                 <div
                   className={cn(
@@ -186,7 +186,7 @@ export function EliminacaoModal({
                   )}
                 />
               )}
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
 
