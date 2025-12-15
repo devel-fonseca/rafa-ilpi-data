@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useResidents, useDeleteResident, useResidentStats } from '@/hooks/useResidents'
 import type { Resident } from '@/api/residents.api'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
+import { ResidentDocumentsModal } from '@/components/residents/ResidentDocumentsModal'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -69,6 +70,7 @@ import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
   const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
@@ -85,8 +87,30 @@ export default function ResidentsList() {
     open: false,
     residentId: null,
   })
+  const [documentsModal, setDocumentsModal] = useState<{
+    open: boolean
+    residentId: string | null
+    residentName?: string
+  }>({
+    open: false,
+    residentId: null,
+  })
   const [deleteChangeReason, setDeleteChangeReason] = useState('')
   const [deleteReasonError, setDeleteReasonError] = useState('')
+
+  // Detectar state de navegação para abrir modal automaticamente após criação
+  useEffect(() => {
+    const state = location.state as any
+    if (state?.openDocumentsModal && state?.residentId) {
+      setDocumentsModal({
+        open: true,
+        residentId: state.residentId,
+        residentName: state.residentName,
+      })
+      // Limpar state para evitar reabrir ao navegar de volta
+      window.history.replaceState({}, document.title)
+    }
+  }, [location])
 
   const { residents, meta, query, setQuery, isLoading, error } = useResidents({
     page: 1,
@@ -450,6 +474,18 @@ export default function ResidentsList() {
                               <History className="mr-2 h-4 w-4" />
                               Ver Histórico
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setDocumentsModal({
+                                  open: true,
+                                  residentId: resident.id,
+                                  residentName: resident.fullName,
+                                })
+                              }
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Documentos
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}
@@ -597,6 +633,18 @@ export default function ResidentsList() {
           setHistoryDrawer({ open, residentId: null, residentName: undefined })
         }
       />
+
+      {/* Modal de Documentos */}
+      {documentsModal.residentId && (
+        <ResidentDocumentsModal
+          isOpen={documentsModal.open}
+          onClose={() =>
+            setDocumentsModal({ open: false, residentId: null, residentName: undefined })
+          }
+          residentId={documentsModal.residentId}
+          residentName={documentsModal.residentName || 'Residente'}
+        />
+      )}
     </div>
   )
 }

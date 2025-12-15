@@ -6,6 +6,74 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-14 - PARTE 5] - Correções UX e Criptografia no Módulo Residentes ✅
+
+### 🔧 Corrigido
+
+**Frontend - ResidentForm:**
+
+- Corrigido erro `React is not defined` ao criar novo residente
+  - Ajustado imports para padrão React 17+ (named imports)
+  - Alterado `React.ReactNode` → `ReactNode` (type import)
+  - Alterado `React.useEffect` → `useEffect`
+
+**Backend - Descriptografia de CPF:**
+
+- Corrigido CPF aparecendo criptografado na lista de residentes
+  - Adicionado `tenantId: true` ao select do `findMany()` (linha 519)
+  - Middleware de criptografia requer `tenantId` no resultado para descriptografar
+  - Realizada auditoria completa: 8 queries verificadas, apenas 1 precisou correção
+
+### ✨ Adicionado
+
+**Novo Fluxo de Upload de Documentos:**
+
+- Criado componente `ResidentDocumentsModal.tsx`
+  - Modal independente para gestão de documentos
+  - Props: `isOpen`, `onClose`, `residentId`, `residentName`
+  - Reutilizável em múltiplos contextos
+
+**ResidentForm (Formulário):**
+
+- Removida Aba 5 (Documentos) do formulário
+- Implementado redirecionamento inteligente após criação:
+  - Modo edição: retorna para lista
+  - Modo criação: navega com state para abrir modal de documentos
+
+**ResidentsList (Listagem):**
+
+- Adicionado botão "Documentos" no menu dropdown de ações
+- Implementado auto-open de modal via `location.state` (useEffect)
+- Detecta criação de residente e oferece upload imediato
+
+### 📝 Alterado
+
+**Fluxo de Trabalho Otimizado:**
+
+- Antes: Criar residente → Editar residente → Upload docs → Cria histórico ❌
+- Agora: Criar residente → Modal automático → Upload docs → Sem histórico ✅
+- Upload de documentos chama `POST /residents/:id/documents` (não PATCH)
+- Elimina entrada desnecessária no `ResidentHistory`
+
+### 📚 Documentação
+
+**Atualizado docs/modules/residents.md (v1.1.0):**
+
+- Seção "Fluxos de Trabalho":
+  - Fluxo completo de criação com documentos
+  - Diagrama de navegação com state
+  - Benefícios da arquitetura modal
+- Seção "Criptografia de Dados Sensíveis":
+  - Campos criptografados listados
+  - Algoritmo AES-256-GCM documentado
+  - Middleware de descriptografia explicado
+  - Auditoria de queries (dezembro/2025)
+  - Exemplo de query correta com `tenantId`
+- Atualizada lista de componentes reutilizáveis
+- Atualizada seção de integrações (modal vs aba 5)
+
+---
+
 ## [2025-12-14] - Implementação LGPD COMPLETA - 3 Camadas de Segurança ✅
 
 ### 🎉 MARCO HISTÓRICO: Conformidade LGPD 100% Implementada

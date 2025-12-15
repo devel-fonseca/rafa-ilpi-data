@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller, useFieldArray } from 'react-hook-form'
@@ -34,7 +34,6 @@ import { uploadFile, getSignedFileUrl } from '@/services/upload'
 import { useRooms } from '@/hooks/useRooms'
 import { useBeds } from '@/hooks/useBeds'
 import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
-import { ResidentDocuments } from '@/components/residents/ResidentDocuments'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils/errorHandling'
@@ -42,7 +41,7 @@ import { getErrorMessage } from '@/utils/errorHandling'
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
   title: string
-  children: React.ReactNode
+  children: ReactNode
   defaultOpen?: boolean
   required?: boolean
 }
@@ -286,14 +285,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Removido - usando BedSelector agora
 
   // Validação de CPF em tempo real
-  React.useEffect(() => {
+  useEffect(() => {
     if (watchCpf) {
       setCpfValidation(getMensagemValidacaoCPF(watchCpf))
     }
   }, [watchCpf])
 
   // Validação de CNS em tempo real
-  React.useEffect(() => {
+  useEffect(() => {
     if (watchCns) {
       setCnsValidation(getMensagemValidacaoCNS(watchCns))
     }
@@ -801,7 +800,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       toast.success(isEditMode ? 'Residente atualizado com sucesso!' : 'Residente criado com sucesso!')
 
       // Redirecionar para lista
-      navigate('/dashboard/residentes')
+      if (isEditMode) {
+        // Modo edição: apenas volta para lista
+        navigate('/dashboard/residentes')
+      } else {
+        // Modo criação: redireciona para lista com state para abrir modal de documentos
+        navigate('/dashboard/residentes', {
+          state: {
+            openDocumentsModal: true,
+            residentId: response.data.id,
+            residentName: response.data.fullName,
+          }
+        })
+      }
 
     } catch (error: unknown) {
       console.error('❌ Erro ao salvar residente:', error)
@@ -1008,9 +1019,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 </TabsTrigger>
                 <TabsTrigger value="tab4" className="whitespace-nowrap">
                   4. Admissão & Acomodação
-                </TabsTrigger>
-                <TabsTrigger value="tab5" className="whitespace-nowrap">
-                  5. Documentos
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1945,21 +1953,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* ========== ABA 5: DOCUMENTOS ========== */}
-            <TabsContent value="tab5" forceMount className="data-[state=inactive]:hidden">
-              <div style={{ pointerEvents: 'auto' }}>
-                {id && <ResidentDocuments residentId={id} />}
-                {!id && (
-                  <Card className="shadow-lg">
-                    <CardContent className="p-6 text-center text-gray-500">
-                      <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>Salve o cadastro do residente primeiro para adicionar documentos.</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
             </TabsContent>
 
             </fieldset>

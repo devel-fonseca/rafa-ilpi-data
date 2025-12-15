@@ -1,8 +1,8 @@
 # Módulo: Residentes
 
 **Status:** ✅ Implementado
-**Versão:** 1.0.0
-**Última atualização:** 11/12/2025
+**Versão:** 1.1.0
+**Última atualização:** 14/12/2025
 
 ## Visão Geral
 
@@ -10,9 +10,10 @@ Sistema completo de cadastro e gestão de residentes com prontuário médico int
 
 ## Funcionalidades Principais
 
-- ✅ **Cadastro completo**: 70+ campos organizados em 5 abas
+- ✅ **Cadastro completo**: 70+ campos organizados em 4 abas
 - ✅ **Upload de foto**: 3 tamanhos (original, medium, small) via MinIO/S3
 - ✅ **Prontuário médico**: 8 abas integradas com outros módulos
+- ✅ **Gestão de documentos**: Modal independente para upload (sem histórico desnecessário)
 - ✅ **Gestão de acomodação**: Sincronização automática com leitos
 - ✅ **Contatos de emergência**: Array dinâmico de contatos
 - ✅ **Responsável legal**: Dados completos com endereço
@@ -21,6 +22,8 @@ Sistema completo de cadastro e gestão de residentes com prontuário médico int
 - ✅ **Validação de CPF**: Único por tenant
 - ✅ **Limite por plano**: Valida maxResidents do tenant
 - ✅ **Soft delete**: Exclusão lógica para compliance
+- ✅ **Versionamento**: Sistema completo de histórico (ResidentHistory)
+- ✅ **Criptografia LGPD**: Campos sensíveis (CPF, RG, CNS) criptografados
 - ✅ **Auditoria completa**: Log de todas as operações
 - ✅ **Estatísticas**: Dashboard com métricas agregadas
 
@@ -37,12 +40,15 @@ Sistema completo de cadastro e gestão de residentes com prontuário médico int
 
 ### Frontend
 - **Listagem:** [apps/frontend/src/pages/residents/ResidentsList.tsx](../../apps/frontend/src/pages/residents/ResidentsList.tsx)
-- **Formulário:** [apps/frontend/src/pages/residents/ResidentForm.tsx](../../apps/frontend/src/pages/residents/ResidentForm.tsx) (1.949 linhas)
+- **Formulário:** [apps/frontend/src/pages/residents/ResidentForm.tsx](../../apps/frontend/src/pages/residents/ResidentForm.tsx)
 - **Prontuário:** [apps/frontend/src/pages/residents/ResidentMedicalRecord.tsx](../../apps/frontend/src/pages/residents/ResidentMedicalRecord.tsx)
 - **Visualização:** [apps/frontend/src/pages/residents/ResidentView.tsx](../../apps/frontend/src/pages/residents/ResidentView.tsx)
 - **Impressão:** [apps/frontend/src/pages/residents/ResidentPrintView.tsx](../../apps/frontend/src/pages/residents/ResidentPrintView.tsx)
 - **API:** [apps/frontend/src/api/residents.api.ts](../../apps/frontend/src/api/residents.api.ts)
 - **Componentes:** [apps/frontend/src/components/residents/](../../apps/frontend/src/components/residents/)
+  - `ResidentDocumentsModal.tsx` - Modal de gestão de documentos
+  - `ResidentHistoryDrawer.tsx` - Drawer de histórico de alterações
+  - `ResidentDocuments.tsx` - Componente de upload de documentos
 
 ## Modelo de Dados
 
@@ -393,7 +399,7 @@ enum BloodType {
 10. **Resident Documents** (Documentos)
     - Relação: `1:n`
     - Upload de documentos do residente
-    - Exibição: Tab 8 do prontuário + aba 5 do formulário
+    - Exibição: Tab 8 do prontuário + modal independente (`ResidentDocumentsModal`)
 
 11. **Bed** (Leito)
     - Relação: `1:1` (opcional)
@@ -450,18 +456,20 @@ Retornada automaticamente em `findOne()` e `findAll()`:
 - Cards de estatísticas (Total, Ativos, Inativos, Grau de Dependência)
 - Filtros: busca por nome/CPF, status
 - Tabela com: Foto, Nome, CPF, Idade, Acomodação, Data de Admissão, Status
-- Menu de ações: Visualizar, Prontuário, Editar, Imprimir, Remover
+- Menu de ações: Visualizar, Prontuário, Editar, Documentos, Imprimir, Remover
 - Paginação com navegação
 - Botão "Novo Residente" (verifica permissão)
+- **Detecção automática de navegação:** Abre modal de documentos automaticamente após criação
 
 **Componentes:**
 - `ResidentsList.tsx` (página principal)
+- `ResidentDocumentsModal` (modal de gestão de documentos)
 - `PhotoViewer` (avatar do residente)
 - `ConfirmDialog` (confirmação de exclusão)
 
 ### ResidentForm (Formulário)
 
-**5 Abas:**
+**4 Abas:**
 
 1. **Dados & Contatos**
    - Upload de foto (PhotoUploadNew)
@@ -486,9 +494,14 @@ Retornada automaticamente em `findOne()` e `findAll()`:
    - Pertences (badges)
    - Seletor de leito (BedSearchCombobox)
 
-5. **Documentos** (apenas em modo edição)
-   - ResidentDocuments component
-   - Upload de documentos por categoria
+**Gestão de Documentos:**
+- Removida da aba 5 do formulário
+- Agora via modal independente (`ResidentDocumentsModal`)
+- Acessível via:
+  - Modal automático após criação do residente
+  - Botão "Documentos" na lista de residentes (menu dropdown)
+  - Tab "Documentos" no prontuário médico
+- **Vantagem:** Upload de documentos NÃO cria histórico (ResidentHistory)
 
 **Validações:**
 - CPF: Validação de dígitos verificadores
@@ -558,27 +571,126 @@ Retornada automaticamente em `findOne()` e `findAll()`:
 
 **Localização:** [apps/frontend/src/components/residents/](../../apps/frontend/src/components/residents/)
 
-1. **ResidentDocuments.tsx**
-   - Upload de documentos do residente
+1. **ResidentDocumentsModal.tsx** ⭐ NOVO
+   - Modal independente para gestão de documentos
+   - Abre automaticamente após criação de residente
+   - Acessível via botão "Documentos" na lista
+   - **Props:** `isOpen`, `onClose`, `residentId`, `residentName`
+   - **Vantagem:** Upload NÃO cria histórico (ResidentHistory)
+
+2. **ResidentHistoryDrawer.tsx**
+   - Drawer lateral com histórico de alterações
+   - Exibe versões anteriores com diff visual
+   - Mostra usuário, data e motivo de cada alteração
+
+3. **ResidentDocuments.tsx**
+   - Componente de upload de documentos (usado dentro do modal)
    - Categorias: Cartão Convênio, Comprovante de Residência, Documentos do Responsável, etc.
 
-2. **AddressFields.tsx**
+4. **AddressFields.tsx**
    - Campos de endereço reutilizáveis
    - Integração com ViaCEP
 
-3. **PreRegistrationModal.tsx**
+5. **PreRegistrationModal.tsx**
    - Modal de pré-cadastro rápido
 
-4. **ResidentSelectionGrid.tsx**
+6. **ResidentSelectionGrid.tsx**
    - Grade de seleção de residentes (usado em outros módulos)
 
-5. **PhotoUploadNew** (genérico)
+7. **PhotoUploadNew** (genérico)
    - Upload com preview e crop
    - Redimensionamento automático
 
-6. **BedSearchCombobox** (genérico)
+8. **BedSearchCombobox** (genérico)
    - Busca de leito com autocomplete
    - Hierarquia visual (Prédio > Andar > Quarto > Leito)
+
+## Fluxos de Trabalho
+
+### Fluxo de Criação de Residente com Documentos
+
+#### Versão 1.1.0 - Otimizado para evitar histórico desnecessário
+
+1. **Usuário preenche formulário** (4 abas)
+   - Dados & Contatos
+   - Endereços & Responsável
+   - Saúde & Convênios
+   - Admissão & Acomodação
+
+2. **Usuário clica em "Salvar"**
+   - Backend cria registro `Resident`
+   - Backend cria entrada `ResidentHistory` (CREATE)
+   - Frontend recebe `residentId` e `residentName`
+
+3. **Redirecionamento inteligente**
+   - Se EDIÇÃO: Volta para lista (`/dashboard/residentes`)
+   - Se CRIAÇÃO: Navega com state:
+
+     ```typescript
+     navigate('/dashboard/residentes', {
+       state: {
+         openDocumentsModal: true,
+         residentId: response.data.id,
+         residentName: response.data.fullName,
+       }
+     })
+     ```
+
+4. **Modal de documentos abre automaticamente**
+   - `ResidentsList` detecta `location.state` via `useEffect`
+   - Abre `ResidentDocumentsModal`
+   - Usuário pode fazer upload de documentos
+   - Cada upload chama `POST /residents/:id/documents` (tabela `ResidentDocument`)
+   - **NÃO dispara `PATCH /residents/:id`** → Sem histórico desnecessário
+
+5. **Acesso posterior aos documentos**
+   - Botão "Documentos" no menu dropdown da lista
+   - Tab "Documentos" no prontuário médico
+
+#### Benefícios
+
+- ✅ Elimina histórico desnecessário na criação
+- ✅ Fluxo intuitivo (criou → adicionar docs?)
+- ✅ Documentos separados da edição de dados cadastrais
+- ✅ Modal reutilizável em múltiplos contextos
+
+### Criptografia de Dados Sensíveis (LGPD - Camada 3)
+
+#### Campos Criptografados
+
+- `cpf` (Resident)
+- `rg` (Resident)
+- `cns` (Cartão Nacional de Saúde)
+- `legalGuardianCpf` (Responsável legal)
+- `legalGuardianRg` (Responsável legal)
+
+**Algoritmo:** AES-256-GCM com Scrypt KDF (derivação de chave por tenant)
+
+#### Middleware de Descriptografia
+
+- Intercepta todas as queries Prisma
+- Descriptografa automaticamente **SE `tenantId` estiver presente no resultado**
+- ⚠️ **CRÍTICO:** Queries com `select` explícito **DEVEM incluir `tenantId: true`**
+
+#### Exemplo de Query Correta
+
+```typescript
+this.prisma.resident.findMany({
+  select: {
+    id: true,
+    tenantId: true, // ← OBRIGATÓRIO para descriptografia
+    fullName: true,
+    cpf: true, // Será descriptografado pelo middleware
+    // ...
+  }
+})
+```
+
+#### Auditoria de Descriptografia (Dezembro/2025)
+
+- ✅ `findOne()` - Usa `include`, tenantId vem automaticamente
+- ✅ `findMany()` - Corrigido (linha 519) para incluir `tenantId: true`
+- ✅ `create()`, `update()`, `delete()` - Não afetados (retornam objeto completo)
 
 ## Logs e Auditoria
 

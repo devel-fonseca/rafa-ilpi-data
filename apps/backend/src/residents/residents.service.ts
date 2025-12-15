@@ -516,6 +516,7 @@ export class ResidentsService {
           },
           select: {
             id: true,
+            tenantId: true, // CRITICAL: Necessário para descriptografia do middleware
             fullName: true,
             cpf: true,
             rg: true,

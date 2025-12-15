@@ -1,6 +1,4 @@
 import { pdf } from '@react-pdf/renderer'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { ClinicalDocumentPDF } from '@/components/pdf/ClinicalDocumentPDF'
 import { convertTiptapHtmlToReactPdf } from './htmlToReactPdf'
 
