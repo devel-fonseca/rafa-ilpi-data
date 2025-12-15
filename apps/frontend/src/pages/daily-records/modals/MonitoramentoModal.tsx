@@ -2,9 +2,9 @@ import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import InputMask from 'react-input-mask'
 import { getCurrentTimeLocal } from '@/utils/timezone'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { MaskedInput } from '@/components/form/MaskedInput'
 import {
   Dialog,
   DialogContent,
@@ -118,19 +118,13 @@ export function MonitoramentoModal({
                 name="pressaoArterial"
                 control={control}
                 render={({ field }) => (
-                  <InputMask
+                  <MaskedInput
                     mask="999/99"
-                    value={field.value}
+                    value={field.value || ''}
                     onChange={field.onChange}
-                  >
-                    {(inputProps: any) => (
-                      <Input
-                        {...inputProps}
-                        className="mt-2"
-                        placeholder="120/80"
-                      />
-                    )}
-                  </InputMask>
+                    placeholder="120/80"
+                    className="mt-2"
+                  />
                 )}
               />
             </div>
@@ -143,19 +137,13 @@ export function MonitoramentoModal({
                 name="temperatura"
                 control={control}
                 render={({ field }) => (
-                  <InputMask
+                  <MaskedInput
                     mask="99.9"
-                    value={field.value}
+                    value={field.value || ''}
                     onChange={field.onChange}
-                  >
-                    {(inputProps: any) => (
-                      <Input
-                        {...inputProps}
-                        className="mt-2"
-                        placeholder="36.5"
-                      />
-                    )}
-                  </InputMask>
+                    placeholder="36.5"
+                    className="mt-2"
+                  />
                 )}
               />
             </div>
@@ -166,19 +154,13 @@ export function MonitoramentoModal({
                 name="frequenciaCardiaca"
                 control={control}
                 render={({ field }) => (
-                  <InputMask
+                  <MaskedInput
                     mask="999"
-                    value={field.value}
+                    value={field.value || ''}
                     onChange={field.onChange}
-                  >
-                    {(inputProps: any) => (
-                      <Input
-                        {...inputProps}
-                        className="mt-2"
-                        placeholder="70"
-                      />
-                    )}
-                  </InputMask>
+                    placeholder="70"
+                    className="mt-2"
+                  />
                 )}
               />
             </div>
@@ -191,19 +173,13 @@ export function MonitoramentoModal({
                 name="saturacaoO2"
                 control={control}
                 render={({ field }) => (
-                  <InputMask
+                  <MaskedInput
                     mask="999"
-                    value={field.value}
+                    value={field.value || ''}
                     onChange={field.onChange}
-                  >
-                    {(inputProps: any) => (
-                      <Input
-                        {...inputProps}
-                        className="mt-2"
-                        placeholder="96"
-                      />
-                    )}
-                  </InputMask>
+                    placeholder="96"
+                    className="mt-2"
+                  />
                 )}
               />
             </div>
@@ -214,19 +190,13 @@ export function MonitoramentoModal({
                 name="glicemia"
                 control={control}
                 render={({ field }) => (
-                  <InputMask
+                  <MaskedInput
                     mask="999"
-                    value={field.value}
+                    value={field.value || ''}
                     onChange={field.onChange}
-                  >
-                    {(inputProps: any) => (
-                      <Input
-                        {...inputProps}
-                        className="mt-2"
-                        placeholder="95"
-                      />
-                    )}
-                  </InputMask>
+                    placeholder="95"
+                    className="mt-2"
+                  />
                 )}
               />
             </div>
