@@ -53,31 +53,49 @@ export class UserProfilesService {
       throw new BadRequestException('Usuário já possui um perfil');
     }
 
-    // Criar o perfil
-    const profile = await this.prisma.userProfile.create({
-      data: {
-        userId,
-        tenantId,
-        profilePhoto: createUserProfileDto.profilePhoto,
-        phone: createUserProfileDto.phone,
-        department: createUserProfileDto.department,
-        birthDate: createUserProfileDto.birthDate
-          ? new Date(createUserProfileDto.birthDate)
-          : null,
-        notes: createUserProfileDto.notes,
-        preferences: (createUserProfileDto.preferences || {}) as any,
-        createdBy,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+    // Criar o perfil e sincronizar CPF se necessário
+    const profile = await this.prisma.$transaction(async (tx) => {
+      // Criar o perfil
+      const newProfile = await tx.userProfile.create({
+        data: {
+          userId,
+          tenantId,
+          profilePhoto: createUserProfileDto.profilePhoto,
+          phone: createUserProfileDto.phone,
+          cpf: createUserProfileDto.cpf,
+          department: createUserProfileDto.department,
+          birthDate: createUserProfileDto.birthDate
+            ? new Date(createUserProfileDto.birthDate)
+            : null,
+          notes: createUserProfileDto.notes,
+          preferences: (createUserProfileDto.preferences || {}) as any,
+          createdBy,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
+      });
+
+      // Sincronizar CPF com User se fornecido
+      if (createUserProfileDto.cpf !== undefined) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { cpf: createUserProfileDto.cpf },
+        });
+        this.logger.info('CPF sincronizado com User', {
+          userId,
+          cpf: createUserProfileDto.cpf ? 'definido' : 'removido',
+        });
+      }
+
+      return newProfile;
     });
 
     this.logger.info('Perfil de usuário criado', {
@@ -198,48 +216,64 @@ export class UserProfilesService {
       );
     }
 
-    // Atualizar o nome do usuário se fornecido
-    if (updateUserProfileDto.name) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { name: updateUserProfileDto.name },
-      });
-    }
+    // Atualizar perfil e sincronizar campos com User
+    const updatedProfile = await this.prisma.$transaction(async (tx) => {
+      // Atualizar o nome do usuário se fornecido
+      if (updateUserProfileDto.name) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { name: updateUserProfileDto.name },
+        });
+      }
 
-    // Atualizar o perfil
-    const updatedProfile = await this.prisma.userProfile.update({
-      where: { id: profile.id },
-      data: {
-        profilePhoto: updateUserProfileDto.profilePhoto,
-        phone: updateUserProfileDto.phone,
-        department: updateUserProfileDto.department,
-        birthDate: updateUserProfileDto.birthDate
-          ? new Date(updateUserProfileDto.birthDate)
-          : undefined,
-        notes: updateUserProfileDto.notes,
-        // Campos de Permissões ILPI
-        positionCode: updateUserProfileDto.positionCode,
-        registrationType: updateUserProfileDto.registrationType,
-        registrationNumber: updateUserProfileDto.registrationNumber,
-        registrationState: updateUserProfileDto.registrationState,
-        isTechnicalManager: updateUserProfileDto.isTechnicalManager,
-        isNursingCoordinator: updateUserProfileDto.isNursingCoordinator,
-        // Preferências do Usuário
-        preferences: updateUserProfileDto.preferences !== undefined
-          ? (updateUserProfileDto.preferences as any)
-          : undefined,
-        updatedBy,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+      // Sincronizar CPF com User se fornecido
+      if (updateUserProfileDto.cpf !== undefined) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { cpf: updateUserProfileDto.cpf },
+        });
+        this.logger.info('CPF sincronizado com User', {
+          userId,
+          cpf: updateUserProfileDto.cpf ? 'definido' : 'removido',
+        });
+      }
+
+      // Atualizar o perfil
+      return await tx.userProfile.update({
+        where: { id: profile.id },
+        data: {
+          profilePhoto: updateUserProfileDto.profilePhoto,
+          phone: updateUserProfileDto.phone,
+          cpf: updateUserProfileDto.cpf,
+          department: updateUserProfileDto.department,
+          birthDate: updateUserProfileDto.birthDate
+            ? new Date(updateUserProfileDto.birthDate)
+            : undefined,
+          notes: updateUserProfileDto.notes,
+          // Campos de Permissões ILPI
+          positionCode: updateUserProfileDto.positionCode,
+          registrationType: updateUserProfileDto.registrationType,
+          registrationNumber: updateUserProfileDto.registrationNumber,
+          registrationState: updateUserProfileDto.registrationState,
+          isTechnicalManager: updateUserProfileDto.isTechnicalManager,
+          isNursingCoordinator: updateUserProfileDto.isNursingCoordinator,
+          // Preferências do Usuário
+          preferences: updateUserProfileDto.preferences !== undefined
+            ? (updateUserProfileDto.preferences as any)
+            : undefined,
+          updatedBy,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
+      });
     });
 
     this.logger.info('Perfil de usuário atualizado', {

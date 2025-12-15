@@ -5,6 +5,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  cpf?: string | null;
   role: 'admin' | 'manager' | 'user' | 'viewer';
   isActive: boolean;
   lastLogin: string | null;
@@ -18,6 +19,7 @@ export interface UserProfile {
   tenantId: string;
   profilePhoto?: string | null;
   phone?: string | null;
+  cpf?: string | null;
   department?: string | null;
   birthDate?: string | null;
   notes?: string | null;
@@ -70,6 +72,7 @@ export interface CreateUserRequest {
 export interface CreateUserProfileRequest {
   profilePhoto?: string;
   phone?: string;
+  cpf?: string;
   department?: string;
   birthDate?: string;
   notes?: string;

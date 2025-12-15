@@ -1,5 +1,6 @@
 import { PartialType, ApiProperty } from '@nestjs/swagger';
 import { IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
+import { IsCPF } from '../../common/validators/cpf.validator';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -46,6 +47,16 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean({ message: 'isActive deve ser verdadeiro ou falso' })
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'CPF do usuário (identificação única nacional)',
+    example: '123.456.789-00',
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ message: 'CPF deve ser um texto' })
+  @IsCPF({ message: 'CPF inválido. Formato esperado: xxx.xxx.xxx-xx ou apenas 11 dígitos numéricos' })
+  cpf?: string;
 
   @ApiProperty({
     description:

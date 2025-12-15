@@ -235,6 +235,16 @@ export default function MyProfile() {
                   <Label>Email</Label>
                   <Input value={profile.user.email} disabled />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>CPF</Label>
+                  <Input
+                    value={profile.user.cpf || profile.cpf || ''}
+                    placeholder="Não informado"
+                    disabled
+                  />
+                </div>
                 <div>
                   <Label>Status</Label>
                   <Input

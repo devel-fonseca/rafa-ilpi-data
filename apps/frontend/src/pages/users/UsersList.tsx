@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth.store";
+import { MaskedInput } from "@/components/form/MaskedInput";
+import { getMensagemValidacaoCPF } from "@/utils/validators";
 import {
   getTenantUsers,
   getAllUserProfiles,
@@ -149,12 +151,17 @@ export default function UsersList() {
     isNursingCoordinator: false,
     phone: "",
     department: "",
+    cpf: "",
   });
 
   const [editFormData, setEditFormData] = useState<any>({});
   const [customPermissions, setCustomPermissions] = useState<PermissionType[]>(
     []
   );
+
+  // Validação de CPF em tempo real
+  const [cpfValidationAdd, setCpfValidationAdd] = useState({ valido: true, mensagem: '' });
+  const [cpfValidationEdit, setCpfValidationEdit] = useState({ valido: true, mensagem: '' });
   const [submitting, setSubmitting] = useState(false);
 
   // Estados para versionamento
@@ -166,6 +173,24 @@ export default function UsersList() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Validação de CPF em tempo real - Modal Adicionar
+  useEffect(() => {
+    if (addFormData.cpf) {
+      setCpfValidationAdd(getMensagemValidacaoCPF(addFormData.cpf));
+    } else {
+      setCpfValidationAdd({ valido: true, mensagem: '' });
+    }
+  }, [addFormData.cpf]);
+
+  // Validação de CPF em tempo real - Modal Editar
+  useEffect(() => {
+    if (editFormData.cpf) {
+      setCpfValidationEdit(getMensagemValidacaoCPF(editFormData.cpf));
+    } else {
+      setCpfValidationEdit({ valido: true, mensagem: '' });
+    }
+  }, [editFormData.cpf]);
 
   const loadData = async () => {
     if (!currentUser?.tenantId) return;
@@ -217,6 +242,7 @@ export default function UsersList() {
           isNursingCoordinator: addFormData.isNursingCoordinator,
           phone: addFormData.phone || undefined,
           department: addFormData.department || undefined,
+          cpf: addFormData.cpf || undefined,
         });
       }
 
@@ -257,6 +283,7 @@ export default function UsersList() {
         isNursingCoordinator: editFormData.isNursingCoordinator,
         phone: editFormData.phone || undefined,
         department: editFormData.department || undefined,
+        cpf: editFormData.cpf || undefined,
       });
 
       toast({
@@ -647,17 +674,37 @@ export default function UsersList() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={addFormData.email}
-                    onChange={(e) =>
-                      setAddFormData({ ...addFormData, email: e.target.value })
-                    }
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cpf">CPF</Label>
+                    <MaskedInput
+                      id="cpf"
+                      mask="999.999.999-99"
+                      value={addFormData.cpf}
+                      onChange={(e) =>
+                        setAddFormData({
+                          ...addFormData,
+                          cpf: e.target.value,
+                        })
+                      }
+                      validation={cpfValidationAdd}
+                      placeholder="000.000.000-00"
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={addFormData.email}
+                      onChange={(e) =>
+                        setAddFormData({ ...addFormData, email: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -807,6 +854,31 @@ export default function UsersList() {
                     </div>
 
                     <div>
+                      <Label htmlFor="cpf">CPF</Label>
+                      <InputMask
+                        mask="999.999.999-99"
+                        value={addFormData.cpf}
+                        onChange={(e) =>
+                          setAddFormData({
+                            ...addFormData,
+                            cpf: e.target.value,
+                          })
+                        }
+                      >
+                        {(inputProps: any) => (
+                          <Input
+                            {...inputProps}
+                            id="cpf"
+                            placeholder="000.000.000-00"
+                          />
+                        )}
+                      </InputMask>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Será sincronizado automaticamente entre User e UserProfile
+                      </p>
+                    </div>
+
+                    <div>
                       <Label htmlFor="department">Departamento</Label>
                       <Input
                         id="department"
@@ -921,6 +993,24 @@ export default function UsersList() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="edit-cpf">CPF</Label>
+              <MaskedInput
+                id="edit-cpf"
+                mask="999.999.999-99"
+                value={editFormData.cpf || ""}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    cpf: e.target.value,
+                  })
+                }
+                validation={cpfValidationEdit}
+                placeholder="000.000.000-00"
+                className="mt-2"
+              />
+            </div>
+
             <PositionCodeSelector
               value={editFormData.positionCode}
               onValueChange={(value) =>
@@ -978,23 +1068,21 @@ export default function UsersList() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-registrationState">
-                      UF do Registro
-                    </Label>
-                    <Input
-                      id="edit-registrationState"
-                      maxLength={2}
-                      value={editFormData.registrationState}
-                      onChange={(e) =>
-                        setEditFormData({
-                          ...editFormData,
-                          registrationState: e.target.value.toUpperCase(),
-                        })
-                      }
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="edit-registrationState">
+                    UF do Registro
+                  </Label>
+                  <Input
+                    id="edit-registrationState"
+                    maxLength={2}
+                    value={editFormData.registrationState}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        registrationState: e.target.value.toUpperCase(),
+                      })
+                    }
+                  />
                 </div>
 
                 <div>

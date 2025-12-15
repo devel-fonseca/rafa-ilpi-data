@@ -10,6 +10,7 @@ import {
 } from 'class-validator';
 import { PositionCode, RegistrationType } from '@prisma/client';
 import { UserPreferences } from '../types/user-preferences.type';
+import { IsCPF } from '../../common/validators/cpf.validator';
 
 export class CreateUserProfileDto {
   @ApiProperty({
@@ -41,6 +42,17 @@ export class CreateUserProfileDto {
   @IsString()
   @MaxLength(20)
   phone?: string;
+
+  @ApiProperty({
+    description: 'CPF do usuário (sincronizado com User.cpf)',
+    example: '123.456.789-00',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(14)
+  @IsCPF({ message: 'CPF inválido. Formato esperado: xxx.xxx.xxx-xx ou apenas 11 dígitos numéricos' })
+  cpf?: string;
 
   @ApiProperty({
     description: 'Departamento do usuário',

@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { createEncryptionMiddleware } from './middleware/encryption.middleware';
+import { createCpfSyncMiddleware } from './middleware/cpf-sync.middleware';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -12,8 +13,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
     });
 
-    // Registrar middleware de criptografia
+    // Registrar middlewares
     this.registerEncryptionMiddleware();
+    this.registerCpfSyncMiddleware();
   }
 
   /**
@@ -29,6 +31,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Registrar middleware no cliente principal
     this.$use(createEncryptionMiddleware(encryptionKey));
+  }
+
+  /**
+   * Registrar middleware de sincronização de CPF
+   * Garante que User.cpf e UserProfile.cpf estejam sempre sincronizados
+   */
+  private registerCpfSyncMiddleware(): void {
+    this.$use(createCpfSyncMiddleware());
   }
 
   async onModuleInit() {
@@ -69,9 +79,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
       });
 
-      // Registrar middleware de criptografia no tenant client também
+      // Registrar middlewares no tenant client também
       const encryptionKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY')!;
       tenantClient.$use(createEncryptionMiddleware(encryptionKey));
+      tenantClient.$use(createCpfSyncMiddleware());
 
       this.tenantClients.set(schemaName, tenantClient);
     }

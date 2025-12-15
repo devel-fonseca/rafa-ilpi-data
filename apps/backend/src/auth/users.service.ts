@@ -89,6 +89,18 @@ export class UsersService {
         },
       });
 
+      // 1.5. Sincronizar CPF com UserProfile se CPF foi alterado
+      if (updateData.cpf !== undefined) {
+        await tx.userProfile.updateMany({
+          where: { userId: id },
+          data: { cpf: updateData.cpf },
+        });
+        this.logger.log('CPF sincronizado com UserProfile', {
+          userId: id,
+          cpf: updateData.cpf ? 'definido' : 'removido',
+        });
+      }
+
       // 2. Capturar novo estado (com password mascarado)
       const newData = {
         name: updatedUser.name,

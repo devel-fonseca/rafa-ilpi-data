@@ -485,6 +485,7 @@ model User {
   name                  String
   email                 String
   password              String
+  cpf                   String?   // CPF do usuário (identificação única nacional)
   role                  String // admin | user | viewer (pode virar enum depois)
   isActive              Boolean   @default(true)
   lastLogin             DateTime? @db.Timestamptz(3)
@@ -641,6 +642,7 @@ model UserProfile {
   // Dados do Perfil
   profilePhoto String? // URL ou path da foto de perfil
   phone        String?
+  cpf          String? // CPF do usuário (sincronizado com User.cpf)
   department   String? // Departamento
   birthDate    DateTime? @db.Timestamptz(3)
   notes        String?   @db.Text
