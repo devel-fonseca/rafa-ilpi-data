@@ -1,5 +1,5 @@
 import React from 'react'
-import { Eye, Clock, Calendar, User, Heart } from 'lucide-react'
+import { Eye, Clock, Calendar, User, Moon } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -10,17 +10,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-interface ViewComportamentoModalProps {
+interface ViewSonoModalProps {
   open: boolean
   onClose: () => void
   record: any
 }
 
-export function ViewComportamentoModal({
+export function ViewSonoModal({
   open,
   onClose,
   record,
-}: ViewComportamentoModalProps) {
+}: ViewSonoModalProps) {
   if (!record) return null
 
   const { data, time, date, recordedBy, createdAt } = record
@@ -31,7 +31,7 @@ export function ViewComportamentoModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Estado Emocional - Detalhes
+            Sono - Detalhes
           </DialogTitle>
         </DialogHeader>
 
@@ -55,19 +55,19 @@ export function ViewComportamentoModal({
             </div>
           </div>
 
-          {/* Estado Emocional */}
+          {/* Padrão de Sono */}
           <div>
             <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Estado Emocional Relatado
+              <Moon className="h-4 w-4" />
+              Padrão de Sono
             </h3>
             <div className="bg-muted/20 p-4 rounded-lg">
               <Badge variant="secondary" className="text-base px-3 py-1">
-                {data.estadoEmocional}
+                {data.padraoSono}
               </Badge>
-              {data.estadoEmocional === 'Outro' && data.outroEstado && (
+              {data.padraoSono === 'Outro' && data.outroPadrao && (
                 <p className="text-sm mt-3 text-muted-foreground">
-                  Especificação: <span className="font-medium text-foreground">{data.outroEstado}</span>
+                  Especificação: <span className="font-medium text-foreground">{data.outroPadrao}</span>
                 </p>
               )}
             </div>

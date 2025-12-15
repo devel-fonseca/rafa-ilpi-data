@@ -45,6 +45,9 @@ import {
   ViewMonitoramentoModal,
   ViewEliminacaoModal,
   ViewComportamentoModal,
+  ViewHumorModal,
+  ViewSonoModal,
+  ViewPesoModal,
   ViewIntercorrenciaModal,
   ViewAtividadesModal,
   ViewVisitaModal,
@@ -644,6 +647,30 @@ export function DailyRecordsPage() {
 
       {viewingRecord?.type === 'COMPORTAMENTO' && (
         <ViewComportamentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'HUMOR' && (
+        <ViewHumorModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'SONO' && (
+        <ViewSonoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'PESO' && (
+        <ViewPesoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
           record={viewingRecord}

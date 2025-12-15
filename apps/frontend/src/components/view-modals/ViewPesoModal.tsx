@@ -1,5 +1,5 @@
 import React from 'react'
-import { Eye, Clock, Calendar, User, Heart } from 'lucide-react'
+import { Eye, Clock, Calendar, User, Weight, Ruler } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -10,20 +10,28 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-interface ViewComportamentoModalProps {
+interface ViewPesoModalProps {
   open: boolean
   onClose: () => void
   record: any
 }
 
-export function ViewComportamentoModal({
+export function ViewPesoModal({
   open,
   onClose,
   record,
-}: ViewComportamentoModalProps) {
+}: ViewPesoModalProps) {
   if (!record) return null
 
   const { data, time, date, recordedBy, createdAt } = record
+
+  // Função para classificar IMC
+  const getIMCClassification = (imc: number) => {
+    if (imc < 18.5) return { texto: 'Baixo peso', cor: 'text-yellow-600' }
+    if (imc < 25) return { texto: 'Peso normal', cor: 'text-green-600' }
+    if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-orange-600' }
+    return { texto: 'Obesidade', cor: 'text-red-600' }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -31,7 +39,7 @@ export function ViewComportamentoModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Estado Emocional - Detalhes
+            Peso e Altura - Detalhes
           </DialogTitle>
         </DialogHeader>
 
@@ -55,23 +63,56 @@ export function ViewComportamentoModal({
             </div>
           </div>
 
-          {/* Estado Emocional */}
-          <div>
-            <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Estado Emocional Relatado
-            </h3>
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                {data.estadoEmocional}
-              </Badge>
-              {data.estadoEmocional === 'Outro' && data.outroEstado && (
-                <p className="text-sm mt-3 text-muted-foreground">
-                  Especificação: <span className="font-medium text-foreground">{data.outroEstado}</span>
+          {/* Medições */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                <Weight className="h-4 w-4" />
+                Peso
+              </h3>
+              <div className="bg-muted/20 p-4 rounded-lg">
+                <p className="text-2xl font-bold text-primary">
+                  {data.peso} <span className="text-base font-normal text-muted-foreground">kg</span>
                 </p>
-              )}
+              </div>
             </div>
+
+            {data.altura && (
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
+                  <Ruler className="h-4 w-4" />
+                  Altura
+                </h3>
+                <div className="bg-muted/20 p-4 rounded-lg">
+                  <p className="text-2xl font-bold text-primary">
+                    {data.altura} <span className="text-base font-normal text-muted-foreground">cm</span>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* IMC */}
+          {data.imc && (
+            <div>
+              <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+                Índice de Massa Corporal (IMC)
+              </h3>
+              <div className="bg-primary/10 p-4 rounded-lg border-2 border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">IMC</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {data.imc.toFixed(1)} <span className="text-base font-normal">kg/m²</span>
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className={`text-base px-4 py-2 ${getIMCClassification(data.imc).cor}`}>
+                    {getIMCClassification(data.imc).texto}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Observações */}
           {data.observacoes && (
