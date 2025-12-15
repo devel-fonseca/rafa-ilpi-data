@@ -65,6 +65,9 @@ export function SonoModal({
     resolver: zodResolver(sonoSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
+      padraoSono: '',
+      outroPadrao: '',
+      observacoes: '',
     },
   })
 

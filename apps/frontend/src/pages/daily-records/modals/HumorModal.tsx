@@ -65,6 +65,9 @@ export function HumorModal({
     resolver: zodResolver(humorSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
+      humor: '',
+      outroHumor: '',
+      observacoes: '',
     },
   })
 

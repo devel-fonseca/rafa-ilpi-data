@@ -31,7 +31,17 @@ const pesoSchema = z.object({
       },
       { message: 'Peso deve ser entre 0 e 500 kg' }
     ),
-  altura: z.string().optional(),
+  altura: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val || val === '') return true
+        const num = parseFloat(val.replace(',', '.'))
+        return !isNaN(num) && num > 0 && num < 300
+      },
+      { message: 'Altura deve ser entre 0 e 300 cm' }
+    ),
   observacoes: z.string().optional(),
 })
 
@@ -66,6 +76,9 @@ export function PesoModal({
     resolver: zodResolver(pesoSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
+      peso: '',
+      altura: '',
+      observacoes: '',
     },
   })
 
@@ -150,7 +163,7 @@ export function PesoModal({
             <Input
               {...register('peso')}
               type="text"
-              placeholder="Ex: 65.5"
+              placeholder="Ex: 65,5"
               className="mt-2"
             />
             {errors.peso && (
@@ -163,7 +176,7 @@ export function PesoModal({
             <Input
               {...register('altura')}
               type="text"
-              placeholder="Ex: 170"
+              placeholder="Ex: 1,70"
               className="mt-2"
             />
             {errors.altura && (
