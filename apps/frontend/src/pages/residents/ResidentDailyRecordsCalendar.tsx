@@ -34,6 +34,9 @@ import {
   EditHidratacaoModal,
   EditEliminacaoModal,
   EditComportamentoModal,
+  EditHumorModal,
+  EditSonoModal,
+  EditPesoModal,
   EditIntercorrenciaModal,
   EditAtividadesModal,
   EditVisitaModal,
@@ -46,6 +49,9 @@ import {
   ViewMonitoramentoModal,
   ViewEliminacaoModal,
   ViewComportamentoModal,
+  ViewHumorModal,
+  ViewSonoModal,
+  ViewPesoModal,
   ViewIntercorrenciaModal,
   ViewAtividadesModal,
   ViewVisitaModal,
@@ -394,6 +400,36 @@ export default function ResidentDailyRecordsCalendar() {
         />
       )}
 
+      {editingRecord?.type === 'HUMOR' && (
+        <EditHumorModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'SONO' && (
+        <EditSonoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
+      {editingRecord?.type === 'PESO' && (
+        <EditPesoModal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          onSubmit={handleConfirmEdit}
+          record={editingRecord}
+          isUpdating={isUpdating}
+        />
+      )}
+
       {editingRecord?.type === 'INTERCORRENCIA' && (
         <EditIntercorrenciaModal
           open={editModalOpen}
@@ -566,6 +602,30 @@ export default function ResidentDailyRecordsCalendar() {
 
       {viewingRecord?.type === 'COMPORTAMENTO' && (
         <ViewComportamentoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'HUMOR' && (
+        <ViewHumorModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'SONO' && (
+        <ViewSonoModal
+          open={viewModalOpen}
+          onClose={() => setViewModalOpen(false)}
+          record={viewingRecord}
+        />
+      )}
+
+      {viewingRecord?.type === 'PESO' && (
+        <ViewPesoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
           record={viewingRecord}

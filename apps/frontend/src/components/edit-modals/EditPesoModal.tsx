@@ -1,22 +1,23 @@
-import React, { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-const pesoSchema = z.object({
+const editPesoSchema = z.object({
   time: z
     .string()
     .min(1, 'Horário é obrigatório')
@@ -43,43 +44,34 @@ const pesoSchema = z.object({
       { message: 'Altura deve ser entre 1 e 300 cm' }
     ),
   observacoes: z.string().optional(),
+  editReason: z.string().min(10, 'O motivo da edição deve ter pelo menos 10 caracteres'),
 })
 
-type PesoFormData = z.infer<typeof pesoSchema>
+type EditPesoFormData = z.infer<typeof editPesoSchema>
 
-interface PesoModalProps {
+interface EditPesoModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: any) => void
-  residentId: string
-  residentName: string
-  date: string
-  currentUserName: string
+  record: any
+  isUpdating?: boolean
 }
 
-export function PesoModal({
+export function EditPesoModal({
   open,
   onClose,
   onSubmit,
-  residentId,
-  residentName,
-  date,
-  currentUserName,
-}: PesoModalProps) {
+  record,
+  isUpdating,
+}: EditPesoModalProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     watch,
-  } = useForm<PesoFormData>({
-    resolver: zodResolver(pesoSchema),
-    defaultValues: {
-      time: getCurrentTimeLocal(),
-      peso: '',
-      altura: '',
-      observacoes: '',
-    },
+  } = useForm<EditPesoFormData>({
+    resolver: zodResolver(editPesoSchema),
   })
 
   const watchPeso = watch('peso')
@@ -112,43 +104,71 @@ export function PesoModal({
     return { texto: 'Obesidade', cor: 'text-red-600' }
   }, [imc])
 
-  const handleFormSubmit = (data: PesoFormData) => {
+  // Preencher form com dados do registro ao abrir
+  useEffect(() => {
+    if (record && open) {
+      // Formatar peso com vírgula para exibição
+      const pesoFormatted = record.data.peso
+        ? String(record.data.peso).replace('.', ',')
+        : ''
+
+      reset({
+        time: record.time,
+        peso: pesoFormatted,
+        altura: record.data.altura ? String(record.data.altura) : '',
+        observacoes: record.data.observacoes || '',
+        editReason: '',
+      })
+    }
+  }, [record, open, reset])
+
+  const handleFormSubmit = (data: EditPesoFormData) => {
     const pesoNum = parseFloat(data.peso.replace(',', '.'))
     const alturaCm = data.altura ? parseFloat(data.altura) : undefined
 
     const payload = {
-      residentId,
-      type: 'PESO',
-      date,
       time: data.time,
-      recordedBy: currentUserName,
       data: {
         peso: pesoNum,
         altura: alturaCm,
         imc: imc || undefined,
         observacoes: data.observacoes,
       },
+      notes: '',
+      editReason: data.editReason,
     }
     onSubmit(payload)
-    reset()
-  }
-
-  const handleClose = () => {
-    reset()
-    onClose()
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Peso e Altura - {residentName}</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            Data: {formatDateOnlySafe(date)}
-          </p>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="h-5 w-5" />
+            Editar Peso e Altura
+          </DialogTitle>
+          <DialogDescription>
+            É obrigatório informar o motivo da edição para auditoria.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {/* Box com info do registro original */}
+          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+            <p className="text-sm">
+              <span className="font-medium">Registrado por:</span>{' '}
+              {record?.recordedBy}
+            </p>
+            <p className="text-sm">
+              <span className="font-medium">Data:</span>{' '}
+              {record && formatDateOnlySafe(record.date)}
+            </p>
+            <p className="text-sm">
+              <span className="font-medium">Horário original:</span> {record?.time}
+            </p>
+          </div>
+
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
@@ -166,7 +186,7 @@ export function PesoModal({
             <Input
               {...register('peso')}
               type="text"
-              placeholder="Ex: 655"
+              placeholder="Ex: 65,5"
               className="mt-2"
               onChange={(e) => {
                 // Remove tudo que não é dígito
@@ -242,20 +262,48 @@ export function PesoModal({
             <Textarea
               {...register('observacoes')}
               rows={3}
-              className="mt-2"
+              className="mt-2 resize-none"
               placeholder="Observações adicionais sobre peso/altura..."
             />
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            Responsável: <span className="font-medium">{currentUserName}</span>
+          {/* Campo de motivo OBRIGATÓRIO */}
+          <div>
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+              Motivo da edição
+            </Label>
+            <Textarea
+              {...register('editReason')}
+              rows={4}
+              className="mt-2 resize-none"
+              placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
+            />
+            {errors.editReason && (
+              <p className="text-sm text-danger mt-1">
+                {errors.editReason.message}
+              </p>
+            )}
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isUpdating}
+            >
               Cancelar
             </Button>
-            <Button type="submit" variant="success">Adicionar</Button>
+            <Button type="submit" variant="success" disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                'Salvar Alterações'
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
