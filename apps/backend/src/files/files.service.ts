@@ -138,9 +138,12 @@ export class FilesService {
       { suffix: '_medium', size: 150, quality: 90 }, // Medium: uuid_medium.webp
     ];
 
+    // Verificar se criptografia SSE-C está habilitada
+    const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
     // Gerar chave de criptografia para fotos (dado biométrico sensível)
-    const encryptionKey = this.generateEncryptionKey(tenantId);
-    const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+    const encryptionKey = useEncryption ? this.generateEncryptionKey(tenantId) : null;
+    const encryptionKeyMD5 = encryptionKey ? createHash('md5').update(encryptionKey).digest('base64') : null;
 
     for (const variant of variants) {
       // Processar imagem
@@ -155,21 +158,25 @@ export class FilesService {
       // Gerar path com sufixo
       const variantPath = basePath.replace('.webp', `${variant.suffix}.webp`);
 
-      // Upload para MinIO COM CRIPTOGRAFIA SSE-C
-      await this.s3Client.send(
-        new PutObjectCommand({
-          Bucket: this.bucket,
-          Key: variantPath,
-          Body: processed,
-          ContentType: 'image/webp',
-          // SSE-C: Criptografia com chave fornecida pelo cliente
-          SSECustomerAlgorithm: 'AES256',
-          SSECustomerKey: encryptionKey.toString('base64'),
-          SSECustomerKeyMD5: encryptionKeyMD5,
-        }),
-      );
+      // Preparar comando base
+      const uploadCommand: any = {
+        Bucket: this.bucket,
+        Key: variantPath,
+        Body: processed,
+        ContentType: 'image/webp',
+      };
 
-      this.logger.log(`Uploaded ENCRYPTED thumbnail: ${variantPath}`);
+      // Adicionar SSE-C apenas se habilitado
+      if (useEncryption && encryptionKey && encryptionKeyMD5) {
+        uploadCommand.SSECustomerAlgorithm = 'AES256';
+        uploadCommand.SSECustomerKey = encryptionKey.toString('base64');
+        uploadCommand.SSECustomerKeyMD5 = encryptionKeyMD5;
+      }
+
+      // Upload para MinIO
+      await this.s3Client.send(new PutObjectCommand(uploadCommand));
+
+      this.logger.log(`Uploaded ${useEncryption ? 'ENCRYPTED' : 'UNENCRYPTED'} thumbnail: ${variantPath}`);
     }
   }
 
@@ -253,8 +260,11 @@ export class FilesService {
         },
       };
 
-      // Se categoria sensível, adicionar criptografia SSE-C
-      if (needsEncryption) {
+      // Se categoria sensível E criptografia habilitada, adicionar SSE-C
+      // SSE-C requer HTTPS - desabilitar em dev local, habilitar em prod
+      const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
+      if (needsEncryption && useEncryption) {
         const encryptionKey = this.generateEncryptionKey(tenantId);
         const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
 
@@ -263,6 +273,8 @@ export class FilesService {
         baseCommand.SSECustomerKeyMD5 = encryptionKeyMD5;
 
         this.logger.log(`Uploading ENCRYPTED file (${category}): ${filePath}`);
+      } else if (needsEncryption && !useEncryption) {
+        this.logger.warn(`SSE-C disabled - uploading UNENCRYPTED file (${category}): ${filePath}`);
       }
 
       // Upload para MinIO
@@ -327,8 +339,10 @@ export class FilesService {
         Key: filePath,
       };
 
-      // Se arquivo criptografado, adicionar chaves SSE-C
-      if (tenantId && category && this.requiresEncryption(category)) {
+      // Se arquivo criptografado E criptografia habilitada, adicionar chaves SSE-C
+      const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
+      if (tenantId && category && this.requiresEncryption(category) && useEncryption) {
         const encryptionKey = this.generateEncryptionKey(tenantId);
         const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
 
