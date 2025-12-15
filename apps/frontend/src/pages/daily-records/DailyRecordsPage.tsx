@@ -26,6 +26,9 @@ import { HidratacaoModal } from './modals/HidratacaoModal'
 import { MonitoramentoModal } from './modals/MonitoramentoModal'
 import { EliminacaoModal } from './modals/EliminacaoModal'
 import { ComportamentoModal } from './modals/ComportamentoModal'
+import { HumorModal } from './modals/HumorModal'
+import { SonoModal } from './modals/SonoModal'
+import { PesoModal } from './modals/PesoModal'
 import { IntercorrenciaModal } from './modals/IntercorrenciaModal'
 import { AtividadesModal } from './modals/AtividadesModal'
 import { VisitaModal } from './modals/VisitaModal'
@@ -367,7 +370,19 @@ export function DailyRecordsPage() {
             </Button>
             <Button onClick={() => setActiveModal('COMPORTAMENTO')} variant="outline" size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Comportamento
+              Estado Emocional
+            </Button>
+            <Button onClick={() => setActiveModal('HUMOR')} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Humor
+            </Button>
+            <Button onClick={() => setActiveModal('SONO')} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Sono
+            </Button>
+            <Button onClick={() => setActiveModal('PESO')} variant="outline" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Peso/Altura
             </Button>
             <Button onClick={() => setActiveModal('INTERCORRENCIA')} variant="outline" size="sm">
               <Plus className="h-4 w-4 mr-2" />
@@ -499,6 +514,39 @@ export function DailyRecordsPage() {
       )}
       {activeModal === 'COMPORTAMENTO' && (
         <ComportamentoModal
+          open={true}
+          onClose={() => setActiveModal(null)}
+          onSubmit={handleCreateRecord}
+          residentId={residentId}
+          residentName={resident?.fullName || ''}
+          date={selectedDate}
+          currentUserName={user?.name || ''}
+        />
+      )}
+      {activeModal === 'HUMOR' && (
+        <HumorModal
+          open={true}
+          onClose={() => setActiveModal(null)}
+          onSubmit={handleCreateRecord}
+          residentId={residentId}
+          residentName={resident?.fullName || ''}
+          date={selectedDate}
+          currentUserName={user?.name || ''}
+        />
+      )}
+      {activeModal === 'SONO' && (
+        <SonoModal
+          open={true}
+          onClose={() => setActiveModal(null)}
+          onSubmit={handleCreateRecord}
+          residentId={residentId}
+          residentName={resident?.fullName || ''}
+          date={selectedDate}
+          currentUserName={user?.name || ''}
+        />
+      )}
+      {activeModal === 'PESO' && (
+        <PesoModal
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}

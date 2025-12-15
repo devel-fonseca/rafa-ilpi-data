@@ -33,9 +33,24 @@ export const RECORD_TYPE_LABELS: Record<
     bgColor: 'bg-gray-100 border-gray-300',
   },
   COMPORTAMENTO: {
-    label: 'Comportamento',
+    label: 'Estado Emocional',
     color: 'text-purple-700',
     bgColor: 'bg-purple-100 border-purple-300',
+  },
+  HUMOR: {
+    label: 'Humor',
+    color: 'text-violet-700',
+    bgColor: 'bg-violet-100 border-violet-300',
+  },
+  SONO: {
+    label: 'Sono',
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100 border-indigo-300',
+  },
+  PESO: {
+    label: 'Peso/Altura',
+    color: 'text-teal-700',
+    bgColor: 'bg-teal-100 border-teal-300',
   },
   INTERCORRENCIA: {
     label: 'Intercorrência',
@@ -115,8 +130,46 @@ export function renderRecordSummary(record: any): string {
 
       return parts.join(' - ')
     }
-    case 'COMPORTAMENTO':
-      return record.data.descricao.substring(0, 100) + (record.data.descricao.length > 100 ? '...' : '')
+    case 'COMPORTAMENTO': {
+      const parts = [record.data.estadoEmocional]
+      if (record.data.estadoEmocional === 'Outro' && record.data.outroEstado) {
+        parts.push(`(${record.data.outroEstado})`)
+      }
+      if (record.data.observacoes) {
+        parts.push(record.data.observacoes.substring(0, 60))
+      }
+      return parts.join(' - ')
+    }
+    case 'HUMOR': {
+      const parts = [record.data.humor]
+      if (record.data.humor === 'Outro' && record.data.outroHumor) {
+        parts.push(`(${record.data.outroHumor})`)
+      }
+      if (record.data.observacoes) {
+        parts.push(record.data.observacoes.substring(0, 60))
+      }
+      return parts.join(' - ')
+    }
+    case 'SONO': {
+      const parts = [record.data.padraoSono]
+      if (record.data.padraoSono === 'Outro' && record.data.outroPadrao) {
+        parts.push(`(${record.data.outroPadrao})`)
+      }
+      if (record.data.observacoes) {
+        parts.push(record.data.observacoes.substring(0, 60))
+      }
+      return parts.join(' - ')
+    }
+    case 'PESO': {
+      const parts = [`${record.data.peso} kg`]
+      if (record.data.altura) {
+        parts.push(`${record.data.altura} cm`)
+      }
+      if (record.data.imc) {
+        parts.push(`IMC: ${record.data.imc.toFixed(1)} kg/m²`)
+      }
+      return parts.join(' | ')
+    }
     case 'INTERCORRENCIA': {
       const descricao = record.data.descricao.substring(0, 60)
       const acao = record.data.acaoTomada ? ` → ${record.data.acaoTomada.substring(0, 60)}` : ''

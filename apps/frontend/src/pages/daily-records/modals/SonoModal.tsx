@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,19 +23,19 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-const comportamentoSchema = z.object({
+const sonoSchema = z.object({
   time: z
     .string()
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
-  estadoEmocional: z.string().min(1, 'Estado emocional é obrigatório'),
-  outroEstado: z.string().optional(),
+  padraoSono: z.string().min(1, 'Padrão de sono é obrigatório'),
+  outroPadrao: z.string().optional(),
   observacoes: z.string().optional(),
 })
 
-type ComportamentoFormData = z.infer<typeof comportamentoSchema>
+type SonoFormData = z.infer<typeof sonoSchema>
 
-interface ComportamentoModalProps {
+interface SonoModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: any) => void
@@ -45,7 +45,7 @@ interface ComportamentoModalProps {
   currentUserName: string
 }
 
-export function ComportamentoModal({
+export function SonoModal({
   open,
   onClose,
   onSubmit,
@@ -53,9 +53,7 @@ export function ComportamentoModal({
   residentName,
   date,
   currentUserName,
-}: ComportamentoModalProps) {
-  const [estadoEmocional, setEstadoEmocional] = useState('')
-
+}: SonoModalProps) {
   const {
     register,
     handleSubmit,
@@ -63,31 +61,30 @@ export function ComportamentoModal({
     formState: { errors },
     reset,
     watch,
-  } = useForm<ComportamentoFormData>({
-    resolver: zodResolver(comportamentoSchema),
+  } = useForm<SonoFormData>({
+    resolver: zodResolver(sonoSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
     },
   })
 
-  const watchEstadoEmocional = watch('estadoEmocional')
+  const watchPadraoSono = watch('padraoSono')
 
-  const handleFormSubmit = (data: ComportamentoFormData) => {
+  const handleFormSubmit = (data: SonoFormData) => {
     const payload = {
       residentId,
-      type: 'COMPORTAMENTO',
+      type: 'SONO',
       date,
       time: data.time,
       recordedBy: currentUserName,
       data: {
-        estadoEmocional: data.estadoEmocional,
-        outroEstado: data.estadoEmocional === 'Outro' ? data.outroEstado : undefined,
+        padraoSono: data.padraoSono,
+        outroPadrao: data.padraoSono === 'Outro' ? data.outroPadrao : undefined,
         observacoes: data.observacoes,
       },
     }
     onSubmit(payload)
     reset()
-    setEstadoEmocional('')
   }
 
   const handleClose = () => {
@@ -99,7 +96,7 @@ export function ComportamentoModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Estado Emocional - {residentName}</DialogTitle>
+          <DialogTitle>Avaliação de Sono - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
@@ -118,10 +115,10 @@ export function ComportamentoModal({
 
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-              Estado Emocional Relatado
+              Padrão de Sono
             </Label>
             <Controller
-              name="estadoEmocional"
+              name="padraoSono"
               control={control}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
@@ -129,31 +126,30 @@ export function ComportamentoModal({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Calmo">Calmo</SelectItem>
-                    <SelectItem value="Ansioso">Ansioso</SelectItem>
-                    <SelectItem value="Triste">Triste</SelectItem>
-                    <SelectItem value="Eufórico">Eufórico</SelectItem>
-                    <SelectItem value="Irritado">Irritado</SelectItem>
-                    <SelectItem value="Apático">Apático</SelectItem>
+                    <SelectItem value="Preservado">Preservado</SelectItem>
+                    <SelectItem value="Insônia inicial">Insônia inicial</SelectItem>
+                    <SelectItem value="Insônia intermediária">Insônia intermediária</SelectItem>
+                    <SelectItem value="Insônia terminal">Insônia terminal</SelectItem>
+                    <SelectItem value="Hipersonia">Hipersonia</SelectItem>
                     <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.estadoEmocional && (
+            {errors.padraoSono && (
               <p className="text-sm text-danger mt-1">
-                {errors.estadoEmocional.message}
+                {errors.padraoSono.message}
               </p>
             )}
           </div>
 
-          {watchEstadoEmocional === 'Outro' && (
+          {watchPadraoSono === 'Outro' && (
             <div>
-              <Label>Especificar outro estado</Label>
+              <Label>Especificar outro padrão</Label>
               <Input
-                {...register('outroEstado')}
+                {...register('outroPadrao')}
                 className="mt-2"
-                placeholder="Descreva o estado emocional"
+                placeholder="Descreva o padrão de sono"
               />
             </div>
           )}
@@ -164,7 +160,7 @@ export function ComportamentoModal({
               {...register('observacoes')}
               rows={3}
               className="mt-2"
-              placeholder="Observações adicionais sobre o comportamento..."
+              placeholder="Observações adicionais sobre o sono..."
             />
           </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,19 +23,19 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-const comportamentoSchema = z.object({
+const humorSchema = z.object({
   time: z
     .string()
     .min(1, 'Horário é obrigatório')
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
-  estadoEmocional: z.string().min(1, 'Estado emocional é obrigatório'),
-  outroEstado: z.string().optional(),
+  humor: z.string().min(1, 'Humor é obrigatório'),
+  outroHumor: z.string().optional(),
   observacoes: z.string().optional(),
 })
 
-type ComportamentoFormData = z.infer<typeof comportamentoSchema>
+type HumorFormData = z.infer<typeof humorSchema>
 
-interface ComportamentoModalProps {
+interface HumorModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: any) => void
@@ -45,7 +45,7 @@ interface ComportamentoModalProps {
   currentUserName: string
 }
 
-export function ComportamentoModal({
+export function HumorModal({
   open,
   onClose,
   onSubmit,
@@ -53,9 +53,7 @@ export function ComportamentoModal({
   residentName,
   date,
   currentUserName,
-}: ComportamentoModalProps) {
-  const [estadoEmocional, setEstadoEmocional] = useState('')
-
+}: HumorModalProps) {
   const {
     register,
     handleSubmit,
@@ -63,31 +61,30 @@ export function ComportamentoModal({
     formState: { errors },
     reset,
     watch,
-  } = useForm<ComportamentoFormData>({
-    resolver: zodResolver(comportamentoSchema),
+  } = useForm<HumorFormData>({
+    resolver: zodResolver(humorSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
     },
   })
 
-  const watchEstadoEmocional = watch('estadoEmocional')
+  const watchHumor = watch('humor')
 
-  const handleFormSubmit = (data: ComportamentoFormData) => {
+  const handleFormSubmit = (data: HumorFormData) => {
     const payload = {
       residentId,
-      type: 'COMPORTAMENTO',
+      type: 'HUMOR',
       date,
       time: data.time,
       recordedBy: currentUserName,
       data: {
-        estadoEmocional: data.estadoEmocional,
-        outroEstado: data.estadoEmocional === 'Outro' ? data.outroEstado : undefined,
+        humor: data.humor,
+        outroHumor: data.humor === 'Outro' ? data.outroHumor : undefined,
         observacoes: data.observacoes,
       },
     }
     onSubmit(payload)
     reset()
-    setEstadoEmocional('')
   }
 
   const handleClose = () => {
@@ -99,7 +96,7 @@ export function ComportamentoModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Estado Emocional - {residentName}</DialogTitle>
+          <DialogTitle>Avaliação de Humor - {residentName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
@@ -118,10 +115,10 @@ export function ComportamentoModal({
 
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-              Estado Emocional Relatado
+              Humor
             </Label>
             <Controller
-              name="estadoEmocional"
+              name="humor"
               control={control}
               render={({ field }) => (
                 <Select onValueChange={field.onChange} value={field.value}>
@@ -129,31 +126,31 @@ export function ComportamentoModal({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Calmo">Calmo</SelectItem>
-                    <SelectItem value="Ansioso">Ansioso</SelectItem>
-                    <SelectItem value="Triste">Triste</SelectItem>
-                    <SelectItem value="Eufórico">Eufórico</SelectItem>
-                    <SelectItem value="Irritado">Irritado</SelectItem>
-                    <SelectItem value="Apático">Apático</SelectItem>
+                    <SelectItem value="Eutímico">Eutímico</SelectItem>
+                    <SelectItem value="Disfórico">Disfórico</SelectItem>
+                    <SelectItem value="Deprimido">Deprimido</SelectItem>
+                    <SelectItem value="Elevado">Elevado</SelectItem>
+                    <SelectItem value="Irritável">Irritável</SelectItem>
+                    <SelectItem value="Lábil">Lábil</SelectItem>
                     <SelectItem value="Outro">Outro</SelectItem>
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.estadoEmocional && (
+            {errors.humor && (
               <p className="text-sm text-danger mt-1">
-                {errors.estadoEmocional.message}
+                {errors.humor.message}
               </p>
             )}
           </div>
 
-          {watchEstadoEmocional === 'Outro' && (
+          {watchHumor === 'Outro' && (
             <div>
-              <Label>Especificar outro estado</Label>
+              <Label>Especificar outro humor</Label>
               <Input
-                {...register('outroEstado')}
+                {...register('outroHumor')}
                 className="mt-2"
-                placeholder="Descreva o estado emocional"
+                placeholder="Descreva o humor"
               />
             </div>
           )}
@@ -164,7 +161,7 @@ export function ComportamentoModal({
               {...register('observacoes')}
               rows={3}
               className="mt-2"
-              placeholder="Observações adicionais sobre o comportamento..."
+              placeholder="Observações adicionais sobre o humor..."
             />
           </div>
 
