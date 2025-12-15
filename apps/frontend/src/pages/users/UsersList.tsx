@@ -855,7 +855,8 @@ export default function UsersList() {
 
                     <div>
                       <Label htmlFor="cpf">CPF</Label>
-                      <InputMask
+                      <MaskedInput
+                        id="cpf"
                         mask="999.999.999-99"
                         value={addFormData.cpf}
                         onChange={(e) =>
@@ -864,15 +865,9 @@ export default function UsersList() {
                             cpf: e.target.value,
                           })
                         }
-                      >
-                        {(inputProps: any) => (
-                          <Input
-                            {...inputProps}
-                            id="cpf"
-                            placeholder="000.000.000-00"
-                          />
-                        )}
-                      </InputMask>
+                        validation={cpfValidationAdd}
+                        placeholder="000.000.000-00"
+                      />
                       <p className="text-xs text-muted-foreground mt-1">
                         Será sincronizado automaticamente entre User e UserProfile
                       </p>
