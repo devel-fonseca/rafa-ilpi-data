@@ -6,6 +6,65 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-15] - Configuração Condicional de SSE-C MinIO (Dev vs Produção) 🔐
+
+### 🔧 Corrigido
+
+**Backend - Upload de Documentos (MinIO SSE-C):**
+
+- Corrigido erro `InvalidRequest: Requests specifying Server Side Encryption with Customer provided keys must be made over a secure connection` em desenvolvimento
+  - **Causa raiz:** SSE-C (Server-Side Encryption with Customer-provided keys) requer obrigatoriamente conexão HTTPS
+  - Ambiente de desenvolvimento local usa HTTP (localhost), causando rejeição do MinIO
+  - Adicionada flag `MINIO_USE_ENCRYPTION` para controlar SSE-C por ambiente
+
+**FilesService - Criptografia Condicional:**
+
+- Modificados 3 métodos para verificar flag antes de aplicar SSE-C:
+  - `uploadFile()` (linhas ~256-271): Upload genérico com SSE-C condicional
+  - `processPhotoWithThumbnails()` (linhas ~141-180): Fotos com variantes criptografadas
+  - `getFileUrl()` (linhas ~342-352): URLs assinadas com chaves SSE-C quando necessário
+- Adicionados logs de warning quando criptografia está desabilitada em arquivos sensíveis
+
+### ✨ Adicionado
+
+**Variável de Ambiente:**
+
+- `MINIO_USE_ENCRYPTION=false` (desenvolvimento) / `true` (produção)
+- Controla aplicação de SSE-C em uploads para MinIO
+- Documentação clara no `.env` sobre quando usar cada valor
+
+**Validação de Comportamento:**
+
+- Logs informativos sobre status de criptografia:
+  - Dev: `[FilesService] SSE-C disabled - uploading UNENCRYPTED file (documents): ...`
+  - Prod: `[FilesService] Uploading ENCRYPTED file (documents): ...`
+
+### 📝 Alterado
+
+**Documentação Técnica:**
+
+- Atualizado `docs/MINIO-SSE-SETUP-GUIDE.md` com nova seção "Configuração Condicional SSE-C"
+  - Tabela comparativa Dev vs Produção
+  - Exemplos de código dos 3 métodos modificados
+  - Guia de troubleshooting para erros comuns
+  - Implicações de segurança por ambiente
+
+**Controller - Limpeza de Debug:**
+
+- Removidos logs temporários de debug do `ResidentDocumentsController.uploadDocument()`
+  - Removidas 5 linhas de `console.log()` de diagnóstico
+  - Método retornado ao estado limpo
+
+### 🔒 Segurança
+
+**Estratégia de Criptografia por Ambiente:**
+
+- **Desenvolvimento (HTTP):** Arquivos não criptografados no MinIO (banco de dados ainda protegido com AES-256-GCM)
+- **Produção (HTTPS):** Arquivos criptografados com SSE-C AES-256 (conformidade LGPD Art. 46)
+- Multi-camada: Storage (MinIO SSE-C) + Database (Prisma Middleware AES-256-GCM + Scrypt KDF)
+
+---
+
 ## [2025-12-14 - PARTE 5] - Correções UX e Criptografia no Módulo Residentes ✅
 
 ### 🔧 Corrigido

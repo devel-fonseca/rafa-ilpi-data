@@ -343,13 +343,198 @@ AWS_SECRET_ACCESS_KEY=hJWYfy6hQ0TG9Aygwv76evinyO2VF3HzEA+mb7/l
 
 ---
 
+## ⚙️ Configuração Condicional SSE-C (Dev vs Produção)
+
+### 🔴 Problema: SSE-C Requer HTTPS
+
+**Erro comum em desenvolvimento:**
+```
+InvalidRequest: Requests specifying Server Side Encryption with Customer
+provided keys must be made over a secure connection.
+```
+
+**Causa raiz:**
+
+- SSE-C (Server-Side Encryption with Customer-provided keys) **obrigatoriamente requer conexão HTTPS**
+- Ambiente de desenvolvimento local usa HTTP (localhost)
+- MinIO rejeita requisições SSE-C via HTTP por segurança
+
+### ✅ Solução: Criptografia Condicional por Ambiente
+
+Implementamos flag de configuração no `.env` do backend:
+
+```bash
+# apps/backend/.env
+
+# MinIO SSE-C (Server-Side Encryption with Customer-provided keys)
+# LGPD - Camada 2: Criptografia de arquivos em repouso
+# ATENÇÃO: SSE-C requer conexão HTTPS! Desabilitar em dev local (HTTP)
+# Produção (s3.rafalabs.com.br com HTTPS): true
+# Desenvolvimento local (localhost sem HTTPS): false
+MINIO_USE_ENCRYPTION=false
+```
+
+### 🎯 Valores da Flag por Ambiente
+
+| Ambiente | `MINIO_USE_ENCRYPTION` | Conexão MinIO | SSE-C Ativo | Arquivos Criptografados |
+|----------|------------------------|---------------|-------------|-------------------------|
+| **Desenvolvimento** | `false` | HTTP (localhost) | ❌ Não | ❌ Não |
+| **Produção** | `true` | HTTPS (s3.rafalabs.com.br) | ✅ Sim | ✅ Sim |
+
+### 🔧 Implementação no FilesService
+
+Três métodos foram modificados para verificar a flag antes de aplicar SSE-C:
+
+#### 1. `uploadFile()` - Upload genérico de arquivos
+
+```typescript
+// apps/backend/src/files/files.service.ts (linhas ~256-271)
+
+// Se categoria sensível E criptografia habilitada, adicionar SSE-C
+// SSE-C requer HTTPS - desabilitar em dev local, habilitar em prod
+const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
+if (needsEncryption && useEncryption) {
+  const encryptionKey = this.generateEncryptionKey(tenantId);
+  const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+
+  baseCommand.SSECustomerAlgorithm = 'AES256';
+  baseCommand.SSECustomerKey = encryptionKey.toString('base64');
+  baseCommand.SSECustomerKeyMD5 = encryptionKeyMD5;
+
+  this.logger.log(`Uploading ENCRYPTED file (${category}): ${filePath}`);
+} else if (needsEncryption && !useEncryption) {
+  this.logger.warn(`SSE-C disabled - uploading UNENCRYPTED file (${category}): ${filePath}`);
+}
+```
+
+#### 2. `processPhotoWithThumbnails()` - Fotos com variantes
+
+```typescript
+// apps/backend/src/files/files.service.ts (linhas ~141-180)
+
+// Verificar se criptografia SSE-C está habilitada
+const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
+// Gerar chave de criptografia para fotos (dado biométrico sensível)
+const encryptionKey = useEncryption ? this.generateEncryptionKey(tenantId) : null;
+const encryptionKeyMD5 = encryptionKey ? createHash('md5').update(encryptionKey).digest('base64') : null;
+
+for (const variant of variants) {
+  // ... processamento de imagem ...
+
+  // Preparar comando base
+  const uploadCommand: any = {
+    Bucket: this.bucket,
+    Key: variantPath,
+    Body: processed,
+    ContentType: 'image/webp',
+  };
+
+  // Adicionar SSE-C apenas se habilitado
+  if (useEncryption && encryptionKey && encryptionKeyMD5) {
+    uploadCommand.SSECustomerAlgorithm = 'AES256';
+    uploadCommand.SSECustomerKey = encryptionKey.toString('base64');
+    uploadCommand.SSECustomerKeyMD5 = encryptionKeyMD5;
+  }
+
+  await this.s3Client.send(new PutObjectCommand(uploadCommand));
+  this.logger.log(`Uploaded ${useEncryption ? 'ENCRYPTED' : 'UNENCRYPTED'} thumbnail: ${variantPath}`);
+}
+```
+
+#### 3. `getFileUrl()` - Geração de URLs assinadas
+
+```typescript
+// apps/backend/src/files/files.service.ts (linhas ~342-352)
+
+// Se arquivo criptografado E criptografia habilitada, adicionar chaves SSE-C
+const useEncryption = this.configService.get<string>('MINIO_USE_ENCRYPTION') === 'true';
+
+if (tenantId && category && this.requiresEncryption(category) && useEncryption) {
+  const encryptionKey = this.generateEncryptionKey(tenantId);
+  const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
+
+  commandParams.SSECustomerAlgorithm = 'AES256';
+  commandParams.SSECustomerKey = encryptionKey.toString('base64');
+  commandParams.SSECustomerKeyMD5 = encryptionKeyMD5;
+}
+```
+
+### 🚀 Deploy em Produção
+
+Ao fazer deploy para produção, **OBRIGATORIAMENTE** ajustar `.env`:
+
+```bash
+# ❌ DESENVOLVIMENTO
+MINIO_USE_ENCRYPTION=false
+
+# ✅ PRODUÇÃO
+MINIO_USE_ENCRYPTION=true
+```
+
+### ⚠️ Implicações de Segurança
+
+**Desenvolvimento (HTTP sem SSE-C):**
+
+- ❌ Arquivos **NÃO** são criptografados no MinIO
+- ⚠️ Aceitável apenas em ambiente local isolado
+- 🔒 Database ainda protegido (campos sensíveis com AES-256-GCM)
+
+**Produção (HTTPS com SSE-C):**
+
+- ✅ Arquivos criptografados com AES-256
+- ✅ Conformidade LGPD Art. 46 (dados sensíveis de saúde)
+- ✅ Proteção em múltiplas camadas (storage + database)
+
+### 🧪 Validação do Comportamento
+
+**Logs esperados em desenvolvimento:**
+
+```log
+[FilesService] SSE-C disabled - uploading UNENCRYPTED file (documents): tenant_123/documents/file.pdf
+[FilesService] SSE-C disabled - uploading UNENCRYPTED file (photos): tenant_456/photos/resident_789/original.webp
+```
+
+**Logs esperados em produção:**
+
+```log
+[FilesService] Uploading ENCRYPTED file (documents): tenant_123/documents/file.pdf
+[FilesService] Uploaded ENCRYPTED thumbnail: tenant_456/photos/resident_789/original.webp
+```
+
+### 🔍 Troubleshooting
+
+**Problema:** Upload funciona em dev mas falha em produção com erro SSE-C
+
+**Possíveis causas:**
+
+1. ❌ `MINIO_USE_ENCRYPTION=false` em produção (deveria ser `true`)
+2. ❌ MinIO endpoint ainda usando HTTP em produção (deveria ser HTTPS)
+3. ❌ Certificado SSL expirado/inválido no servidor MinIO
+
+**Verificação:**
+
+```bash
+# No backend, verificar conexão MinIO
+echo $AWS_S3_ENDPOINT
+# Deve retornar: https://s3.rafalabs.com.br (com https://)
+
+# Testar conexão SSL
+curl -I https://s3.rafalabs.com.br
+# Deve retornar: HTTP/2 200 (sem erros de certificado)
+```
+
+---
+
 ## 🔗 Próximos Passos
 
 Após SSE configurado:
 
 1. ✅ **Camada 1 (Storage)** - COMPLETO
-2. ⏳ **Camada 2 (Database)** - Implementar Prisma Middleware
-3. ⏳ **Camada 3 (Documentação)** - Política de Privacidade
+2. ✅ **Camada 2 (Database)** - COMPLETO (Prisma Middleware)
+3. ✅ **Configuração Condicional** - COMPLETO (Dev vs Prod)
+4. ⏳ **Camada 3 (Documentação)** - Política de Privacidade
 
 Ver: `docs/LGPD-DATA-SECURITY-IMPLEMENTATION.md`
 
