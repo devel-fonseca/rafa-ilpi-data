@@ -282,22 +282,22 @@ export class BedsService {
           }
         })
 
-        const totalRooms = roomsWithStats.length
-        const totalBeds = roomsWithStats.reduce((sum, r) => sum + r.totalBeds, 0)
+        const roomsCount = roomsWithStats.length
+        const bedsCount = roomsWithStats.reduce((sum, r) => sum + r.totalBeds, 0)
         const occupiedBeds = roomsWithStats.reduce((sum, r) => sum + r.occupiedBeds, 0)
 
         return {
           ...floor,
           rooms: roomsWithStats,
-          totalRooms,
-          totalBeds,
+          roomsCount,
+          bedsCount,
           occupiedBeds,
         }
       })
 
       const totalFloors = floorsWithStats.length
-      const totalRooms = floorsWithStats.reduce((sum, f) => sum + f.totalRooms, 0)
-      const totalBeds = floorsWithStats.reduce((sum, f) => sum + f.totalBeds, 0)
+      const totalRooms = floorsWithStats.reduce((sum, f) => sum + f.roomsCount, 0)
+      const totalBeds = floorsWithStats.reduce((sum, f) => sum + f.bedsCount, 0)
       const occupiedBeds = floorsWithStats.reduce((sum, f) => sum + f.occupiedBeds, 0)
 
       return {

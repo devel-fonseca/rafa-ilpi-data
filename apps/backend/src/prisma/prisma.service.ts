@@ -21,10 +21,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * Garante que dados sensíveis sejam automaticamente criptografados/descriptografados
    */
   private registerEncryptionMiddleware(): void {
-    const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY');
+    const encryptionKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY');
 
     if (!encryptionKey) {
-      throw new Error('ENCRYPTION_KEY must be defined in environment variables');
+      throw new Error('ENCRYPTION_MASTER_KEY must be defined in environment variables');
     }
 
     // Registrar middleware no cliente principal
@@ -70,7 +70,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       });
 
       // Registrar middleware de criptografia no tenant client também
-      const encryptionKey = this.configService.get<string>('ENCRYPTION_KEY')!;
+      const encryptionKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY')!;
       tenantClient.$use(createEncryptionMiddleware(encryptionKey));
 
       this.tenantClients.set(schemaName, tenantClient);

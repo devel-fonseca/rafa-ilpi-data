@@ -34,8 +34,8 @@ import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionG
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
-import {
 import { getErrorMessage } from '@/utils/errorHandling'
+import {
   ViewHigieneModal,
   ViewAlimentacaoModal,
   ViewHidratacaoModal,

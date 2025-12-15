@@ -45,6 +45,7 @@ const actionLabels: Record<string, string> = {
   DELETE_USER: 'removeu',
   READ: 'visualizou',
   ADMINISTER_MEDICATION: 'administrou medicação',
+  TRANSFER_BED: 'transferiu de leito',
 }
 
 const entityIcons: Record<string, any> = {

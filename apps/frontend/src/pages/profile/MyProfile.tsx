@@ -12,8 +12,8 @@ import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound } from 'lucide-react'
 import { format } from 'date-fns'
-import {
 import { getErrorMessage } from '@/utils/errorHandling'
+import {
   PositionCode,
   RegistrationType,
   POSITION_CODE_LABELS,

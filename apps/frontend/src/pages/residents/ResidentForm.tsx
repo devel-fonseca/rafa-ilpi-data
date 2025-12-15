@@ -110,7 +110,7 @@ const residentSchema = z.object({
   telefoneAtual: z.string().optional(),
 
   // Endereço de Procedência
-  endProcedenciaDiferente: z.boolean().optional(),
+  endProcedenciaDiferente: z.boolean().nullable().optional().transform(val => val ?? false),
   cepProcedencia: z.string().optional(),
   estadoProcedencia: z.string().optional(),
   cidadeProcedencia: z.string().optional(),
@@ -157,7 +157,7 @@ const residentSchema = z.object({
   consentimentoImagem: z.any().optional(),
 
   // Saúde (campos básicos mantidos - dados clínicos evolutivos migraram para tabelas dedicadas)
-  necessitaAuxilioMobilidade: z.boolean().optional(),
+  necessitaAuxilioMobilidade: z.boolean().nullable().optional().transform(val => val ?? false),
   tipoSanguineo: z.string().optional(),
   altura: z.string().optional(),
   peso: z.string().optional(),
@@ -531,6 +531,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const onSubmit = async (data: ResidentFormData) => {
     console.log('🚀 onSubmit chamado. isEditMode:', isEditMode, 'id:', id)
     console.log('📋 Dados do formulário:', data)
+    console.log('🔍 Estado atual - isLoading:', isLoading, 'isUploading:', isUploading)
+    console.log('🔍 Erros de validação:', errors)
     try {
       console.log('✓ Entrando no try block')
       setIsUploading(true)
@@ -1002,7 +1004,18 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       )}
 
       {/* Tabs/Abas */}
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(
+        onSubmit,
+        (errors) => {
+          console.error('❌ Erros de validação detectados:', errors)
+          // Mostrar o primeiro erro encontrado
+          const firstError = Object.entries(errors)[0]
+          if (firstError) {
+            const [field, error] = firstError
+            toast.error(`Erro no campo "${field}": ${error.message}`)
+          }
+        }
+      )}>
         {/* ========== FORMULÁRIO TABULAR (4 ABAS) ========== */}
         <Tabs defaultValue="tab1" className="mb-8">
             {/* ========== NAVEGAÇÃO DE ABAS ========== */}
@@ -1984,6 +1997,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           </Card>
         )}
 
+        {/* ========== DEBUG INFO (temporário) ========== */}
+        {!readOnly && isEditMode && (
+          <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
+            <p>Debug: isLoading={String(isLoading)} | isUploading={String(isUploading)} | isEditMode={String(isEditMode)}</p>
+            <p>Errors: {JSON.stringify(Object.keys(errors))}</p>
+          </div>
+        )}
+
         {/* ========== BOTÕES DE AÇÃO ========== */}
         {!readOnly && (
           <div className="text-center space-x-4">
@@ -1992,6 +2013,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               disabled={isUploading || isLoading}
               variant="default"
               className="hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => {
+                console.log('🔘 Botão clicado! isLoading:', isLoading, 'isUploading:', isUploading)
+                console.log('🔘 Botão disabled:', isUploading || isLoading)
+              }}
             >
               {isUploading
                 ? (isEditMode ? 'Atualizando...' : 'Salvando...')

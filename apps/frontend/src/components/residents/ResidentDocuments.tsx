@@ -214,9 +214,9 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
 
             {/* Tipo de Documento */}
             <div className="md:col-span-1">
-              <Label htmlFor="type-filter">Tipo de Documento</Label>
+              <Label htmlFor="document-filter-type">Tipo de Documento</Label>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger id="type-filter">
+                <SelectTrigger id="document-filter-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -337,11 +337,11 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
           <div className="space-y-4 py-4">
             {/* Tipo de Documento */}
             <div>
-              <Label htmlFor="upload-type">
+              <Label htmlFor="document-upload-type">
                 Tipo de Documento <span className="text-red-500">*</span>
               </Label>
               <Select value={uploadType} onValueChange={setUploadType}>
-                <SelectTrigger id="upload-type">
+                <SelectTrigger id="document-upload-type">
                   <SelectValue placeholder="Selecione o tipo..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -356,9 +356,9 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
 
             {/* Detalhes */}
             <div>
-              <Label htmlFor="upload-details">Detalhes (opcional)</Label>
+              <Label htmlFor="document-upload-details">Detalhes (opcional)</Label>
               <Input
-                id="upload-details"
+                id="document-upload-details"
                 placeholder="Ex: Unimed, Laudo de entrada, etc."
                 value={uploadDetails}
                 onChange={(e) => setUploadDetails(e.target.value)}
@@ -367,7 +367,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
 
             {/* Arquivo */}
             <div>
-              <Label htmlFor="upload-file">
+              <Label htmlFor="document-upload-file">
                 Arquivo <span className="text-red-500">*</span>
               </Label>
               <div className="mt-2">
@@ -406,6 +406,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                   </Button>
                 )}
                 <input
+                  id="document-upload-file"
                   ref={fileInputRef}
                   type="file"
                   accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
