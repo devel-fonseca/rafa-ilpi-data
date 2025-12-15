@@ -448,6 +448,7 @@ model Tenant {
   popAttachments            PopAttachment[]
   popHistory                PopHistory[]
   VitalSignHistory          VitalSignHistory[]
+  bedTransferHistory        BedTransferHistory[]
 
   @@map("tenants")
 }
@@ -555,12 +556,13 @@ model User {
   vitalSignHistory  VitalSignHistory[] @relation("VitalSignHistoryUser")
 
   // Relações de versionamento (User) - Self-referencing
-  createdByUser      User?         @relation("UserCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
-  updatedByUser      User?         @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
-  usersCreated       User[]        @relation("UserCreatedBy")
-  usersUpdated       User[]        @relation("UserUpdatedBy")
-  userHistory        UserHistory[] @relation("UserHistoryForUser")
-  userHistoryChanges UserHistory[] @relation("UserHistoryUser")
+  createdByUser      User?                @relation("UserCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser      User?                @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  usersCreated       User[]               @relation("UserCreatedBy")
+  usersUpdated       User[]               @relation("UserUpdatedBy")
+  userHistory        UserHistory[]        @relation("UserHistoryForUser")
+  userHistoryChanges UserHistory[]        @relation("UserHistoryUser")
+  bedTransfers       BedTransferHistory[]
 
   @@unique([tenantId, email])
   @@index([createdBy])
@@ -824,6 +826,7 @@ model Resident {
   conditions                Condition[]
   dietaryRestrictions       DietaryRestriction[]
   clinicalNoteDocuments     ClinicalNoteDocument[]
+  bedTransferHistory        BedTransferHistory[]
 
   // Índices
   @@unique([tenantId, cpf])
@@ -2064,9 +2067,11 @@ model Bed {
   updatedAt DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  room     Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  resident Resident?
+  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room               Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resident           Resident?
+  transfersFrom      BedTransferHistory[] @relation("BedTransferFrom")
+  transfersTo        BedTransferHistory[] @relation("BedTransferTo")
 
   @@unique([tenantId, code]) // Código do leito único por tenant
   @@index([tenantId, roomId])
@@ -2504,4 +2509,43 @@ model PopAttachment {
   @@index([popId])
   @@index([deletedAt])
   @@map("pop_attachments")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  HISTÓRICO DE TRANSFERÊNCIAS DE LEITOS (Compliance RDC 502/2021)
+// ──────────────────────────────────────────────────────────────────────────────
+model BedTransferHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Leitos
+  fromBedId String  @db.Uuid
+  toBedId   String  @db.Uuid
+
+  // Motivo da transferência
+  reason String @db.Text // Obrigatório, min 10 chars
+
+  // Data e hora da transferência
+  transferredAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Auditoria
+  transferredBy String    @db.Uuid // ID do usuário que realizou a transferência
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident  Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  fromBed   Bed      @relation("BedTransferFrom", fields: [fromBedId], references: [id], onDelete: Restrict)
+  toBed     Bed      @relation("BedTransferTo", fields: [toBedId], references: [id], onDelete: Restrict)
+  user      User     @relation(fields: [transferredBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, transferredAt(sort: Desc)])
+  @@index([fromBedId])
+  @@index([toBedId])
+  @@index([deletedAt])
+  @@map("bed_transfer_history")
 }

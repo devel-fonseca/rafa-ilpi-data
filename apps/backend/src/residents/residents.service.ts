@@ -10,6 +10,7 @@ import { FilesService } from '../files/files.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
+import { TransferBedDto } from './dto/transfer-bed.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { ChangeType, Prisma } from '@prisma/client';
@@ -1317,6 +1318,193 @@ export class ResidentsService {
         error: error.message,
         residentId,
         versionNumber,
+        tenantId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Transfere um residente para outro leito com histórico
+   * Compliance: RDC 502/2021 Art. 18 - Registro de movimentações
+   */
+  async transferBed(
+    residentId: string,
+    transferBedDto: TransferBedDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    try {
+      this.logger.info('Iniciando transferência de leito', {
+        residentId,
+        toBedId: transferBedDto.toBedId,
+        tenantId,
+        userId,
+      });
+
+      return await this.prisma.$transaction(async (prisma) => {
+        // 1. Buscar residente com bed atual
+        const resident = await prisma.resident.findFirst({
+          where: {
+            id: residentId,
+            tenantId,
+            deletedAt: null,
+          },
+          include: {
+            bed: true,
+          },
+        });
+
+        if (!resident) {
+          throw new NotFoundException('Residente não encontrado');
+        }
+
+        if (!resident.bedId) {
+          throw new BadRequestException(
+            'Residente não está alocado em nenhum leito',
+          );
+        }
+
+        // 2. Validar que não está tentando transferir para o mesmo leito
+        if (resident.bedId === transferBedDto.toBedId) {
+          throw new BadRequestException(
+            'O leito de destino é o mesmo que o leito atual',
+          );
+        }
+
+        // 3. Buscar leito de destino
+        const toBed = await prisma.bed.findFirst({
+          where: {
+            id: transferBedDto.toBedId,
+            tenantId,
+            deletedAt: null,
+          },
+          include: {
+            resident: true,
+          },
+        });
+
+        if (!toBed) {
+          throw new NotFoundException('Leito de destino não encontrado');
+        }
+
+        // 4. Validar que leito de destino está disponível
+        if (toBed.status === 'Ocupado' || toBed.resident) {
+          throw new BadRequestException(
+            `Leito ${toBed.code} já está ocupado`,
+          );
+        }
+
+        if (toBed.status === 'Manutenção') {
+          throw new BadRequestException(
+            `Leito ${toBed.code} está em manutenção`,
+          );
+        }
+
+        // 5. Atualizar status do leito de origem para Disponível
+        await prisma.bed.update({
+          where: { id: resident.bedId },
+          data: { status: 'Disponível' },
+        });
+
+        // 6. Atualizar status do leito de destino para Ocupado
+        await prisma.bed.update({
+          where: { id: transferBedDto.toBedId },
+          data: { status: 'Ocupado' },
+        });
+
+        // 7. Atualizar bedId do residente
+        const updatedResident = await prisma.resident.update({
+          where: { id: residentId },
+          data: {
+            bedId: transferBedDto.toBedId,
+            updatedBy: userId,
+          },
+          include: {
+            bed: {
+              include: {
+                room: {
+                  include: {
+                    floor: {
+                      include: {
+                        building: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        // 8. Criar registro de histórico de transferência
+        const transferHistory = await prisma.bedTransferHistory.create({
+          data: {
+            tenantId,
+            residentId,
+            fromBedId: resident.bedId,
+            toBedId: transferBedDto.toBedId,
+            reason: transferBedDto.reason,
+            transferredAt: transferBedDto.transferredAt
+              ? new Date(transferBedDto.transferredAt)
+              : new Date(),
+            transferredBy: userId,
+          },
+          include: {
+            fromBed: {
+              include: {
+                room: {
+                  include: {
+                    floor: {
+                      include: {
+                        building: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            toBed: {
+              include: {
+                room: {
+                  include: {
+                    floor: {
+                      include: {
+                        building: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        });
+
+        this.logger.info('Transferência de leito concluída', {
+          residentId,
+          fromBedId: resident.bedId,
+          toBedId: transferBedDto.toBedId,
+          transferHistoryId: transferHistory.id,
+        });
+
+        return {
+          resident: updatedResident,
+          transferHistory,
+          message: `Residente transferido de ${resident.bed?.code || 'leito anterior'} para ${toBed.code} com sucesso`,
+        };
+      });
+    } catch (error) {
+      this.logger.error('Erro ao transferir residente de leito', {
+        error: error.message,
+        residentId,
+        toBedId: transferBedDto.toBedId,
         tenantId,
       });
       throw error;

@@ -19,6 +19,7 @@ import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
 import { DeleteResidentDto } from './dto/delete-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
+import { TransferBedDto } from './dto/transfer-bed.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -183,5 +184,35 @@ export class ResidentsController {
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   async getStats(@CurrentUser() user: any) {
     return this.residentsService.getStats(user.tenantId);
+  }
+
+  @Post(':id/transfer-bed')
+  @RequirePermissions(PermissionType.UPDATE_RESIDENTS)
+  @AuditAction('TRANSFER_BED')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Transferir residente para outro leito' })
+  @ApiParam({ name: 'id', description: 'ID do residente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Residente transferido com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Leito destino ocupado ou inválido',
+  })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @UseInterceptors(AuditInterceptor)
+  async transferBed(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() transferBedDto: TransferBedDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.residentsService.transferBed(
+      id,
+      transferBedDto,
+      user.tenantId,
+      user.id,
+    );
   }
 }

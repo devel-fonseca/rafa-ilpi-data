@@ -433,6 +433,14 @@ class ResidentsAPI {
     const response = await api.get(`/residents/${id}/history/${versionNumber}`)
     return response.data
   }
+
+  async transferBed(residentId: string, toBedId: string, reason: string) {
+    const response = await api.post(`/residents/${residentId}/transfer-bed`, {
+      toBedId,
+      reason,
+    })
+    return response.data
+  }
 }
 
 export const residentsAPI = new ResidentsAPI()
