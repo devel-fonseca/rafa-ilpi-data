@@ -442,6 +442,11 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_VITAL_SIGNS,
       PermissionType.RECORD_VITAL_SIGNS, // Podem aferir sinais vitais
       PermissionType.VIEW_BEDS,
+      PermissionType.VIEW_REPORTS, // Permite visualizar estatísticas do dashboard
+      // Dados clínicos essenciais para cuidados seguros
+      PermissionType.VIEW_ALLERGIES, // CRÍTICO: Evitar reações alérgicas
+      PermissionType.VIEW_CONDITIONS, // IMPORTANTE: Conhecer condições crônicas
+      PermissionType.VIEW_DIETARY_RESTRICTIONS, // ESSENCIAL: Respeitar restrições alimentares
     ],
   },
 

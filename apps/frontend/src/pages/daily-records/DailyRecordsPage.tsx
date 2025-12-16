@@ -261,19 +261,19 @@ export function DailyRecordsPage() {
       {/* Cards de Resumo em Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {/* Card de Alergias */}
-        {allergies && allergies.length > 0 && (
-          <Card className="border-danger/20">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 bg-danger/10 rounded-lg shrink-0">
-                  <AlertCircle className="h-6 w-6 text-danger" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                    ⚠️ Alergias Registradas
-                  </h3>
+        <Card className="border-danger/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-danger/10 rounded-lg shrink-0">
+                <AlertCircle className="h-6 w-6 text-danger" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  ⚠️ Alergias
+                </h3>
+                {allergies && allergies.length > 0 ? (
                   <div className="space-y-1">
-                    {allergies.slice(0, 3).map((allergy: any, idx: number) => (
+                    {allergies.slice(0, 3).map((allergy: any) => (
                       <div key={allergy.id} className="flex items-start gap-2">
                         <Badge
                           variant="destructive"
@@ -292,24 +292,28 @@ export function DailyRecordsPage() {
                       </p>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma alergia registrada
+                  </p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Card de Condições Crônicas */}
-        {conditions && conditions.length > 0 && (
-          <Card className="border-warning/20">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg shrink-0">
-                  <Activity className="h-6 w-6 text-warning" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                    Condições Crônicas
-                  </h3>
+        <Card className="border-warning/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg shrink-0">
+                <Activity className="h-6 w-6 text-warning" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  Condições Crônicas
+                </h3>
+                {conditions && conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {conditions.slice(0, 3).map((condition: any) => (
                       <Badge
@@ -326,35 +330,45 @@ export function DailyRecordsPage() {
                       </Badge>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma condição crônica registrada
+                  </p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Card de Restrições Alimentares */}
-        {dietaryRestrictions && dietaryRestrictions.length > 0 && (
-          <Card className="border-blue-500/20">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg shrink-0">
-                  <UtensilsCrossed className="h-6 w-6 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                    Restrições Alimentares
-                  </h3>
-                  <p className="text-2xl font-bold text-blue-500">
-                    {dietaryRestrictions.length}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {dietaryRestrictions.length === 1 ? 'restrição registrada' : 'restrições registradas'}
-                  </p>
-                </div>
+        <Card className="border-blue-500/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg shrink-0">
+                <UtensilsCrossed className="h-6 w-6 text-blue-500" />
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  Restrições Alimentares
+                </h3>
+                {dietaryRestrictions && dietaryRestrictions.length > 0 ? (
+                  <>
+                    <p className="text-2xl font-bold text-blue-500">
+                      {dietaryRestrictions.length}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {dietaryRestrictions.length === 1 ? 'restrição registrada' : 'restrições registradas'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma restrição alimentar registrada
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Resumo de Hidratação */}
         {records && records.length > 0 && (() => {
