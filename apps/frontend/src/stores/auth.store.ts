@@ -13,6 +13,9 @@ interface User {
     id: string
     name: string
     status: string
+    profile?: {
+      tradeName?: string | null
+    }
   }
   profile?: {
     profilePhoto?: string | null

@@ -123,6 +123,11 @@ export class AuthService {
       include: {
         tenant: {
           include: {
+            profile: {
+              select: {
+                tradeName: true,
+              },
+            },
             subscriptions: {
               include: { plan: true },
               where: {
@@ -213,6 +218,11 @@ export class AuthService {
       include: {
         tenant: {
           include: {
+            profile: {
+              select: {
+                tradeName: true,
+              },
+            },
             subscriptions: {
               include: { plan: true },
               where: {

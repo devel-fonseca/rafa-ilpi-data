@@ -141,13 +141,13 @@ export function DashboardLayout() {
               <Building2 className="h-8 w-8 text-primary" />
               <div className="hidden sm:block">
                 <h1 className="text-xl font-semibold text-foreground">
-                  {user?.tenant?.name || 'Rafa ILPI'}
+                  {user?.tenant?.profile?.tradeName || user?.tenant?.name || 'Rafa ILPI'}
                 </h1>
                 <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
               </div>
               <div className="sm:hidden">
                 <h1 className="text-sm font-semibold text-foreground truncate max-w-[120px]">
-                  {user?.tenant?.name || 'Rafa ILPI'}
+                  {user?.tenant?.profile?.tradeName || user?.tenant?.name || 'Rafa ILPI'}
                 </h1>
               </div>
             </div>
