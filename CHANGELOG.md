@@ -6,6 +6,99 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-16] - Reorganização Layout e Permissões de Cuidadores 📊
+
+### 📝 Alterado
+
+**Frontend - DailyRecordsPage:**
+
+- Reorganizado layout dos cards de resumo clínico em 2 grids distintos:
+  - **Grid superior (3 colunas):** Alergias, Condições Crônicas, Restrições Alimentares
+  - **Grid inferior (3 colunas):** Sinais Vitais e Antropometria, Aceitação Alimentar, Líquidos Ingeridos
+- Reformatado card de Sinais Vitais para display inline compacto (ex: "66 kg • 1.60 m • IMC 25.8")
+- Simplificado exibição de sinais vitais em 2 linhas (cardiovascular + metabólico)
+
+**Frontend - Cálculo de Aceitação Alimentar:**
+
+- Adicionado card "Aceitação Alimentar Total" com percentual baseado em 6 refeições diárias
+- Conversão de valores: 100%→100, 75%→75, 50%→50, <25%→25, Recusou→0
+- Fórmula: `(soma_ingestão / 600) × 100` onde 600 = 6 refeições × 100%
+- Exibição de quantidade de refeições registradas
+
+**Frontend - Líquidos Ingeridos:**
+
+- Adicionado card "Total de Líquidos Ingeridos" com breakdown por fonte
+- Soma líquidos de registros de HIDRATACAO e ALIMENTACAO (volumeMl)
+- Exibição separada: "Hidratação: Xml" e "Durante refeições: Xml"
+
+### 🔧 Corrigido
+
+**Frontend - IMC Calculation e Padronização de Altura:**
+
+- Corrigido cálculo absurdo do IMC (257812.5 → valor correto)
+- **Padronizado entrada de altura em CENTÍMETROS em todo o sistema**:
+  - Schema Prisma: `height Decimal(5,2)` = metros (ex: 1.70)
+  - **ResidentForm**:
+    - Input em CENTÍMETROS com máscara numérica (ex: "170")
+    - Conversão automática CM→metros ao salvar (170cm → 1.70m)
+    - Conversão automática metros→CM ao carregar (1.70m → "170")
+    - Label atualizado: "Altura (cm)"
+  - **PesoModal**:
+    - Input em CENTÍMETROS com máscara numérica (ex: "170")
+    - Conversão automática CM→metros ao salvar (170cm → 1.70m)
+  - **DailyRecordsPage**: auto-detecção de unidade (< 10 = metros, >= 10 = centímetros)
+- Implementado type handling robusto para peso e altura:
+  - Suporte para string e number
+  - Conversão com `parseFloat()` e `.replace(',', '.')`
+  - Validação com null checks
+- Corrigido display da altura (0.02m → 1.60m)
+- Garantido divisão por 100 apenas uma vez no cálculo
+- **UX aprimorada**: usuários agora digitam altura de forma intuitiva em centímetros (170 ao invés de 1,70)
+
+**Backend - Permissões dos Cuidadores:**
+
+- Adicionadas 3 permissões clínicas essenciais ao perfil CAREGIVER:
+  - `VIEW_ALLERGIES` - CRÍTICO para evitar reações alérgicas
+  - `VIEW_CONDITIONS` - IMPORTANTE para conhecer condições crônicas
+  - `VIEW_DIETARY_RESTRICTIONS` - ESSENCIAL para respeitar restrições alimentares
+- Scripts SQL criados para aplicar retroativamente:
+  - `fix-caregiver-permissions-correct.sql` - Permissões básicas
+  - `add-clinical-permissions-to-caregivers.sql` - Permissões clínicas
+
+### ✨ Adicionado
+
+**Frontend - Conditional Rendering:**
+
+- Implementado IIFE (Immediately Invoked Function Expression) para lógica complexa em JSX
+- Cards agora retornam null quando não há dados (melhor UX)
+- Separadores visuais entre seções de antropometria e sinais vitais
+
+**Backend - Position Profiles Config:**
+
+- Atualizado `position-profiles.config.ts` com permissões clínicas padrão
+- Garantido que novos cuidadores criados já recebem as 9 permissões essenciais
+- Documentação inline sobre criticidade de cada permissão
+
+**Documentação Técnica - Daily Records:**
+
+- Atualizado [docs/modules/daily-records.md](docs/modules/daily-records.md) → v1.1.0
+- Adicionada seção "Interface de Usuário" com descrição completa dos 3 grids responsivos
+- Documentados os 6 cards de resumo clínico (Alergias, Condições, Restrições, Sinais Vitais, Alimentação, Hidratação)
+- Detalhado sistema de padronização de altura (CM no frontend, metros no backend)
+- Documentado cálculo de IMC com classificação por cores (Baixo peso/Normal/Sobrepeso/Obesidade)
+- Documentada fórmula de aceitação alimentar (600 pontos = 6 refeições × 100%)
+- Adicionados exemplos de código TypeScript para conversões e cálculos
+
+### 🔒 Segurança
+
+**Acesso a Dados Clínicos Sensíveis:**
+
+- Cuidadores agora têm acesso READ-ONLY a alergias, condições e restrições alimentares
+- Permissões críticas para prestação de cuidados seguros
+- Mantido isolamento multi-tenant nas queries
+
+---
+
 ## [2025-12-15] - Configuração Condicional de SSE-C MinIO (Dev vs Produção) 🔐
 
 ### 🔧 Corrigido

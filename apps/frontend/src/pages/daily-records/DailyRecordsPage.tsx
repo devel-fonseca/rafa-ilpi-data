@@ -4,7 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateLong, getCurrentDateLocal } from '@/utils/timezone'
-import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye, AlertCircle, Activity, UtensilsCrossed } from 'lucide-react'
+import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye, AlertCircle, Activity, UtensilsCrossed, Heart } from 'lucide-react'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
@@ -258,8 +258,8 @@ export function DailyRecordsPage() {
         </div>
       </div>
 
-      {/* Cards de Resumo em Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      {/* Cards de Resumo Clínico em Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Card de Alergias */}
         <Card className="border-danger/20">
           <CardContent className="p-6">
@@ -302,7 +302,7 @@ export function DailyRecordsPage() {
           </CardContent>
         </Card>
 
-        {/* Card de Condições Crônicas */}
+        {/* Card de Condições Crônicas - Segunda linha, 1 coluna */}
         <Card className="border-warning/20">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -340,7 +340,7 @@ export function DailyRecordsPage() {
           </CardContent>
         </Card>
 
-        {/* Card de Restrições Alimentares */}
+        {/* Card de Restrições Alimentares - Segunda linha, 1 coluna */}
         <Card className="border-blue-500/20">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -369,102 +369,6 @@ export function DailyRecordsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Resumo de Hidratação */}
-        {records && records.length > 0 && (() => {
-          // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
-          const totalHidratacao = records
-            .filter((r) => r.type === 'HIDRATACAO')
-            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
-
-          const totalAlimentacao = records
-            .filter((r) => r.type === 'ALIMENTACAO' && r.data?.volumeMl)
-            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
-
-          const totalGeral = totalHidratacao + totalAlimentacao
-
-          return totalGeral > 0 ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 bg-info/10 rounded-lg">
-                    <Droplets className="h-6 w-6 text-info" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Total de Líquidos Ingeridos</h3>
-                    <p className="text-2xl font-bold text-info">
-                      {totalGeral} ml
-                    </p>
-                    <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                      {totalHidratacao > 0 && (
-                        <span>Hidratação: {totalHidratacao}ml</span>
-                      )}
-                      {totalAlimentacao > 0 && (
-                        <span>Durante refeições: {totalAlimentacao}ml</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null
-        })()}
-
-        {/* Resumo de Alimentação */}
-        {records && records.length > 0 && (() => {
-          const refeicoesEsperadas = ['Café da Manhã', 'Colação', 'Almoço', 'Lanche', 'Jantar', 'Ceia']
-          const registrosAlimentacao = records.filter((r) => r.type === 'ALIMENTACAO')
-
-          if (registrosAlimentacao.length === 0) return null
-
-          // Converte porcentagem de ingestão em número
-          const converteIngestao = (ingeriu: string): number => {
-            switch (ingeriu) {
-              case '100%': return 100
-              case '75%': return 75
-              case '50%': return 50
-              case '<25%': return 25
-              case 'Recusou': return 0
-              default: return 0
-            }
-          }
-
-          // Calcula percentual total baseado em 600 pontos (6 refeições × 100%)
-          const totalIngestao = registrosAlimentacao.reduce(
-            (sum, r) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
-            0
-          )
-          const percentualTotal = Math.round((totalIngestao / 600) * 100)
-
-          // Define cor baseada no percentual total usando Design System
-          const getColor = (percentual: number) => {
-            if (percentual >= 75) return { bg: 'bg-success/10', text: 'text-success' }
-            if (percentual >= 50) return { bg: 'bg-warning/10', text: 'text-warning' }
-            return { bg: 'bg-danger/10', text: 'text-danger' }
-          }
-          const color = getColor(percentualTotal)
-
-          return (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className={`flex items-center justify-center w-12 h-12 ${color.bg} rounded-lg`}>
-                    <Utensils className={`h-6 w-6 ${color.text}`} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Aceitação Alimentar Total</h3>
-                    <p className={`text-2xl font-bold ${color.text}`}>
-                      {percentualTotal}%
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {registrosAlimentacao.length} de {refeicoesEsperadas.length} refeições registradas
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })()}
       </div>
 
       {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
@@ -597,6 +501,260 @@ export function DailyRecordsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Grid de Cards de Resumo (Sinais Vitais, Alimentação e Hidratação) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Card de Sinais Vitais e Antropometria */}
+        <Card className="border-purple-500/20">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 rounded-lg shrink-0">
+                <Heart className="h-6 w-6 text-purple-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Sinais Vitais e Antropometria
+                </h3>
+                {(() => {
+                  // Buscar último registro de PESO
+                  const ultimoPesoRecord = records
+                    ?.filter((r) => r.type === 'PESO')
+                    .sort((a, b) => b.time.localeCompare(a.time))[0]
+
+                  // Buscar último registro de MONITORAMENTO
+                  const ultimoMonitoramento = records
+                    ?.filter((r) => r.type === 'MONITORAMENTO')
+                    .sort((a, b) => b.time.localeCompare(a.time))[0]
+
+                  // Processar peso (pode vir como string "66" ou número)
+                  let pesoNum: number | null = null
+                  const pesoRaw = ultimoPesoRecord?.data?.peso || resident?.weight
+                  if (pesoRaw) {
+                    pesoNum = typeof pesoRaw === 'string' ? parseFloat(pesoRaw.replace(',', '.')) : pesoRaw
+                  }
+
+                  // Processar altura (pode vir em cm como 160 ou em metros como 1.60)
+                  let alturaCm: number | null = null
+                  const alturaRaw = ultimoPesoRecord?.data?.altura || resident?.height
+                  if (alturaRaw) {
+                    const alturaNum = typeof alturaRaw === 'string' ? parseFloat(alturaRaw.replace(',', '.')) : alturaRaw
+                    // Se o valor for menor que 10, provavelmente está em metros (ex: 1.60), converter para cm
+                    alturaCm = alturaNum < 10 ? alturaNum * 100 : alturaNum
+                  }
+
+                  // Calcular IMC se tiver peso e altura
+                  let imc: number | null = null
+                  let imcClassificacao: { texto: string; cor: string } | null = null
+
+                  if (pesoNum && alturaCm) {
+                    const alturaMetros = alturaCm / 100
+                    imc = pesoNum / (alturaMetros * alturaMetros)
+
+                    if (imc < 18.5) {
+                      imcClassificacao = { texto: 'Baixo peso', cor: 'text-yellow-600' }
+                    } else if (imc < 25) {
+                      imcClassificacao = { texto: 'Peso normal', cor: 'text-green-600' }
+                    } else if (imc < 30) {
+                      imcClassificacao = { texto: 'Sobrepeso', cor: 'text-orange-600' }
+                    } else {
+                      imcClassificacao = { texto: 'Obesidade', cor: 'text-danger' }
+                    }
+                  }
+
+                  // Dados de sinais vitais
+                  const pressaoArterial = ultimoMonitoramento?.data?.pressaoArterial
+                  const temperatura = ultimoMonitoramento?.data?.temperatura
+                  const frequenciaCardiaca = ultimoMonitoramento?.data?.frequenciaCardiaca
+                  const saturacaoO2 = ultimoMonitoramento?.data?.saturacaoO2
+                  const glicemia = ultimoMonitoramento?.data?.glicemia
+
+                  const temAntropometria = pesoNum || alturaCm
+                  const temSinaisVitais = pressaoArterial || temperatura || frequenciaCardiaca || saturacaoO2 || glicemia
+
+                  if (!temAntropometria && !temSinaisVitais) {
+                    return (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum dado registrado
+                      </p>
+                    )
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      {/* Linha 1: Antropometria em formato inline */}
+                      {temAntropometria && (
+                        <div className="text-base">
+                          {pesoNum && <span className="font-medium">{pesoNum} kg</span>}
+                          {pesoNum && alturaCm && <span className="mx-2">•</span>}
+                          {alturaCm && <span className="font-medium">{(alturaCm / 100).toFixed(2)} m</span>}
+                          {imc && (
+                            <>
+                              <span className="mx-2">•</span>
+                              <span className="font-bold">IMC {imc.toFixed(1)}</span>
+                              {imcClassificacao && (
+                                <span className={`ml-2 text-sm ${imcClassificacao.cor}`}>
+                                  ({imcClassificacao.texto})
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Separador */}
+                      {temAntropometria && temSinaisVitais && (
+                        <div className="border-t border-border my-2" />
+                      )}
+
+                      {/* Linha 2: Sinais Vitais - Cardiovascular */}
+                      {(pressaoArterial || frequenciaCardiaca || saturacaoO2) && (
+                        <div className="text-sm space-y-0.5">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {pressaoArterial && (
+                              <span>
+                                <span className="text-muted-foreground">PA:</span>{' '}
+                                <span className="font-medium">{pressaoArterial}</span>
+                                <span className="text-muted-foreground text-xs ml-1">mmHg</span>
+                              </span>
+                            )}
+                            {frequenciaCardiaca && (
+                              <span>
+                                <span className="text-muted-foreground">FC:</span>{' '}
+                                <span className="font-medium">{frequenciaCardiaca}</span>
+                                <span className="text-muted-foreground text-xs ml-1">bpm</span>
+                              </span>
+                            )}
+                            {saturacaoO2 && (
+                              <span>
+                                <span className="text-muted-foreground">SpO₂:</span>{' '}
+                                <span className="font-medium">{saturacaoO2}%</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Linha 3: Sinais Vitais - Metabólico */}
+                      {(temperatura || glicemia) && (
+                        <div className="text-sm space-y-0.5">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {temperatura && (
+                              <span>
+                                <span className="text-muted-foreground">Temp:</span>{' '}
+                                <span className="font-medium">{temperatura}°C</span>
+                              </span>
+                            )}
+                            {glicemia && (
+                              <span>
+                                <span className="text-muted-foreground">Glicemia:</span>{' '}
+                                <span className="font-medium">{glicemia}</span>
+                                <span className="text-muted-foreground text-xs ml-1">mg/dL</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card de Aceitação Alimentar */}
+        {records && records.length > 0 && (() => {
+          const registrosAlimentacao = records.filter((r) => r.type === 'ALIMENTACAO')
+
+          if (registrosAlimentacao.length === 0) return null
+
+          // Converte porcentagem de ingestão em número
+          const converteIngestao = (ingeriu: string): number => {
+            switch (ingeriu) {
+              case '100%': return 100
+              case '75%': return 75
+              case '50%': return 50
+              case '<25%': return 25
+              case 'Recusou': return 0
+              default: return 0
+            }
+          }
+
+          // Calcula percentual total baseado em 600 pontos (6 refeições × 100%)
+          const totalIngestao = registrosAlimentacao.reduce(
+            (sum, r) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
+            0
+          )
+          const percentualTotal = Math.round((totalIngestao / 600) * 100)
+
+          return (
+            <Card className="border-orange-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 rounded-lg shrink-0">
+                    <Utensils className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                      Aceitação Alimentar Total
+                    </h3>
+                    <p className="text-3xl font-bold text-orange-500">
+                      {percentualTotal}%
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {registrosAlimentacao.length} de 6 refeições registradas
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })()}
+
+        {/* Card de Líquidos Ingeridos */}
+        {records && records.length > 0 && (() => {
+          // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
+          const totalHidratacao = records
+            .filter((r) => r.type === 'HIDRATACAO')
+            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
+
+          const totalAlimentacao = records
+            .filter((r) => r.type === 'ALIMENTACAO' && r.data?.volumeMl)
+            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
+
+          const totalGeral = totalHidratacao + totalAlimentacao
+
+          if (totalGeral === 0) return null
+
+          return (
+            <Card className="border-info/20">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex items-center justify-center w-12 h-12 bg-info/10 rounded-lg shrink-0">
+                    <Droplets className="h-6 w-6 text-info" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">
+                      Total de Líquidos Ingeridos
+                    </h3>
+                    <p className="text-3xl font-bold text-info">
+                      {totalGeral} ml
+                    </p>
+                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
+                      {totalHidratacao > 0 && (
+                        <span>Hidratação: {totalHidratacao}ml</span>
+                      )}
+                      {totalAlimentacao > 0 && (
+                        <span>Durante refeições: {totalAlimentacao}ml</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })()}
       </div>
 
       {/* Modais */}

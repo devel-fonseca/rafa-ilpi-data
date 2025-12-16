@@ -114,7 +114,10 @@ export function PesoModal({
 
   const handleFormSubmit = (data: PesoFormData) => {
     const pesoNum = parseFloat(data.peso.replace(',', '.'))
-    const alturaCm = data.altura ? parseFloat(data.altura) : undefined
+
+    // Converter altura de centímetros para metros (padrão do banco)
+    // Ex: 170cm → 1.70m
+    const alturaMetros = data.altura ? parseFloat(data.altura) / 100 : undefined
 
     const payload = {
       residentId,
@@ -124,7 +127,7 @@ export function PesoModal({
       recordedBy: currentUserName,
       data: {
         peso: pesoNum,
-        altura: alturaCm,
+        altura: alturaMetros, // Salvar em METROS
         imc: imc || undefined,
         observacoes: data.observacoes,
       },

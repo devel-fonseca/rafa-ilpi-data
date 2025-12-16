@@ -412,7 +412,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         // ===== SAÚDE =====
         if (resident.bloodType) setValue('tipoSanguineo', mapTipoSanguineoFromBackend(resident.bloodType))
-        if (resident.height) setValue('altura', resident.height.toString())
+        // Converter altura de metros para centímetros ao carregar (ex: 1.70 → 170)
+        if (resident.height) setValue('altura', Math.round(resident.height * 100).toString())
         if (resident.weight) setValue('peso', resident.weight.toString())
         if (resident.medicationsOnAdmission) setValue('medicamentos', resident.medicationsOnAdmission.split(',').map(nome => ({ nome: nome.trim() })))
         if (resident.dependencyLevel) setValue('grauDependencia', resident.dependencyLevel)
@@ -728,7 +729,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         // 6. Saúde - Apenas dados físicos/cadastrais (dados clínicos evolutivos gerenciados na aba Perfil Clínico)
         bloodType: mapTipoSanguineoToBackend(data.tipoSanguineo),
-        height: data.altura ? parseFloat(data.altura.replace(',', '.')) : null,
+        // Converter altura de centímetros para metros antes de salvar (ex: 170 → 1.70)
+        height: data.altura ? parseFloat(data.altura) / 100 : null,
         weight: data.peso ? parseFloat(data.peso.replace(',', '.')) : null,
         dependencyLevel: data.grauDependencia || null,
         mobilityAid: data.necessitaAuxilioMobilidade || false,
@@ -1680,8 +1682,22 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         </div>
 
                         <div className="col-span-12 md:col-span-3">
-                          <Label>Altura (m)</Label>
-                          <Input {...register('altura')} placeholder="1,75" className="mt-2" />
+                          <Label>Altura (cm)</Label>
+                          <Input
+                            {...register('altura')}
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="170"
+                            className="mt-2"
+                            onChange={(e) => {
+                              // Remove tudo que não é dígito
+                              const value = e.target.value.replace(/\D/g, '')
+                              // Limita a 3 dígitos (máximo 300 cm)
+                              const limited = value.slice(0, 3)
+                              e.target.value = limited
+                              register('altura').onChange(e)
+                            }}
+                          />
                         </div>
 
                         <div className="col-span-12 md:col-span-3">

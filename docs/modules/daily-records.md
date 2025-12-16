@@ -1,8 +1,8 @@
 # Módulo: Registros Diários (Daily Records)
 
 **Status:** ✅ Implementado
-**Versão:** 1.0.0
-**Última atualização:** 11/12/2025
+**Versão:** 1.1.0
+**Última atualização:** 16/12/2025
 
 ## Visão Geral
 
@@ -17,6 +17,111 @@ Sistema completo de registros diários para documentar a rotina e cuidados dos r
 - ✅ **Soft delete**: Motivo obrigatório para exclusões com preservação de dados
 - ✅ **Timeline visual**: Interface cronológica intuitiva para profissionais de saúde
 - ✅ **Restauração de versões**: Capacidade de reverter para estados anteriores
+- ✅ **Dashboard clínico**: Cards de resumo com alergias, condições, sinais vitais e nutrição
+- ✅ **Cálculos automáticos**: IMC, aceitação alimentar e hidratação total
+
+## Interface de Usuário
+
+### Dashboard de Resumo Clínico
+
+A página de registros diários apresenta um dashboard completo dividido em 3 grids responsivos:
+
+#### Grid 1: Informações Clínicas Críticas (3 colunas)
+
+1. **Card de Alergias** (vermelho)
+   - Exibe todas as alergias ativas do residente
+   - Informações: alérgeno, reação, gravidade
+   - Integração: `useAllergiesByResident(residentId)`
+   - Ícone: AlertCircle
+
+2. **Card de Condições Crônicas** (amarelo)
+   - Lista condições ativas
+   - Informações: nome, CID-10, início, status
+   - Integração: `useConditionsByResident(residentId)`
+   - Ícone: Activity
+
+3. **Card de Restrições Alimentares** (azul)
+   - Lista restrições dietéticas
+   - Informações: tipo, grau, observações
+   - Integração: `useDietaryRestrictionsByResident(residentId)`
+   - Ícone: UtensilsCrossed
+
+#### Grid 2: Ações Rápidas (3 colunas)
+
+- **Tarefas do Dia**: Lista de registros obrigatórios
+- **Timeline**: Histórico cronológico dos registros
+- **Adicionar Registro**: 10 tipos de registro disponíveis
+
+#### Grid 3: Resumo Quantitativo (3 colunas)
+
+1. **Card de Sinais Vitais e Antropometria** (roxo)
+   - Dados antropométricos:
+     - Peso (kg)
+     - Altura (m)
+     - IMC com classificação (cores: verde/amarelo/laranja/vermelho)
+   - Sinais vitais cardiovasculares:
+     - Pressão Arterial (mmHg)
+     - Frequência Cardíaca (bpm)
+     - SpO₂ (%)
+   - Sinais vitais metabólicos:
+     - Temperatura (°C)
+     - Glicemia (mg/dL)
+   - Fonte: Registros de PESO e MONITORAMENTO
+   - Ícone: Heart
+
+2. **Card de Aceitação Alimentar Total** (laranja)
+   - Percentual de aceitação: 0-100%
+   - Baseado em 6 refeições diárias (600 pontos total)
+   - Conversão de valores:
+     - 100% → 100 pontos
+     - 75% → 75 pontos
+     - 50% → 50 pontos
+     - <25% → 25 pontos
+     - Recusou → 0 pontos
+   - Fórmula: `(soma_pontos / 600) × 100`
+   - Exibe quantidade de refeições registradas
+   - Fonte: Registros de ALIMENTACAO
+   - Ícone: Utensils
+
+3. **Card de Total de Líquidos Ingeridos** (ciano)
+   - Volume total em ml
+   - Breakdown por fonte:
+     - Hidratação direta (registros HIDRATACAO)
+     - Durante refeições (registros ALIMENTACAO com volumeMl)
+   - Fonte: Registros de HIDRATACAO e ALIMENTACAO
+   - Ícone: Droplets
+
+### Padronização de Altura
+
+O sistema implementa entrada de altura padronizada em centímetros para melhor UX:
+
+- **Camada de Apresentação** (Frontend):
+  - Input numérico em centímetros (ex: "170")
+  - Máscara: apenas dígitos, máximo 3 caracteres
+  - Label: "Altura (cm)"
+
+- **Camada de Dados** (Backend):
+  - Armazenamento em metros (ex: 1.70)
+  - Tipo: `Decimal(5,2)`
+
+- **Conversões Automáticas**:
+  - **Ao salvar**: CM → metros (170 → 1.70)
+  - **Ao carregar**: metros → CM (1.70 → "170")
+  - **Auto-detecção**: valores < 10 = metros, >= 10 = centímetros
+
+- **Cálculo de IMC**:
+
+  ```typescript
+  // Garantir que altura esteja em metros
+  const alturaMetros = alturaCm / 100
+  const imc = peso / (alturaMetros * alturaMetros)
+  ```
+
+- **Classificação de IMC**:
+  - < 18.5: Baixo peso (amarelo)
+  - 18.5-24.9: Peso normal (verde)
+  - 25.0-29.9: Sobrepeso (laranja)
+  - ≥ 30.0: Obesidade (vermelho)
 
 ## Arquitetura
 
