@@ -4,7 +4,10 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateLong, getCurrentDateLocal } from '@/utils/timezone'
-import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye } from 'lucide-react'
+import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye, AlertCircle, Activity, UtensilsCrossed } from 'lucide-react'
+import { useAllergiesByResident } from '@/hooks/useAllergies'
+import { useConditionsByResident } from '@/hooks/useConditions'
+import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -203,6 +206,15 @@ export function DailyRecordsPage() {
   const { data: latestRecords = [], isLoading: isLoadingLatest } =
     useLatestRecordsByResidents()
 
+  // Hook para buscar alergias do residente
+  const { data: allergies = [] } = useAllergiesByResident(residentId || '')
+
+  // Hook para buscar condições crônicas do residente
+  const { data: conditions = [] } = useConditionsByResident(residentId || '')
+
+  // Hook para buscar restrições alimentares do residente
+  const { data: dietaryRestrictions = [] } = useDietaryRestrictionsByResident(residentId || '')
+
   // Se não houver residente selecionado, mostrar grid de seleção
   if (!residentId) {
     return (
@@ -247,7 +259,103 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Cards de Resumo em Grid */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        {/* Card de Alergias */}
+        {allergies && allergies.length > 0 && (
+          <Card className="border-danger/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-danger/10 rounded-lg shrink-0">
+                  <AlertCircle className="h-6 w-6 text-danger" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    ⚠️ Alergias Registradas
+                  </h3>
+                  <div className="space-y-1">
+                    {allergies.slice(0, 3).map((allergy: any, idx: number) => (
+                      <div key={allergy.id} className="flex items-start gap-2">
+                        <Badge
+                          variant="destructive"
+                          className="text-xs shrink-0"
+                        >
+                          {allergy.severity || 'LEVE'}
+                        </Badge>
+                        <p className="text-sm font-medium text-danger truncate">
+                          {allergy.substance}
+                        </p>
+                      </div>
+                    ))}
+                    {allergies.length > 3 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        +{allergies.length - 3} outras alergias
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card de Condições Crônicas */}
+        {conditions && conditions.length > 0 && (
+          <Card className="border-warning/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg shrink-0">
+                  <Activity className="h-6 w-6 text-warning" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Condições Crônicas
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {conditions.slice(0, 3).map((condition: any) => (
+                      <Badge
+                        key={condition.id}
+                        variant="outline"
+                        className="border-warning text-warning"
+                      >
+                        {condition.condition}
+                      </Badge>
+                    ))}
+                    {conditions.length > 3 && (
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{conditions.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Card de Restrições Alimentares */}
+        {dietaryRestrictions && dietaryRestrictions.length > 0 && (
+          <Card className="border-blue-500/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg shrink-0">
+                  <UtensilsCrossed className="h-6 w-6 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                    Restrições Alimentares
+                  </h3>
+                  <p className="text-2xl font-bold text-blue-500">
+                    {dietaryRestrictions.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {dietaryRestrictions.length === 1 ? 'restrição registrada' : 'restrições registradas'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Resumo de Hidratação */}
         {records && records.length > 0 && (() => {
           // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
@@ -345,118 +453,137 @@ export function DailyRecordsPage() {
         })()}
       </div>
 
-      {/* Botões de Ação */}
-      <div className="mb-8">
-        <Card>
-        <CardContent className="p-6">
-          <h2 className="font-semibold text-lg mb-4">Adicionar Registro</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setActiveModal('HIGIENE')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Higiene
-            </Button>
-            <Button onClick={() => setActiveModal('ALIMENTACAO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Alimentação
-            </Button>
-            <Button onClick={() => setActiveModal('HIDRATACAO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Hidratação
-            </Button>
-            <Button onClick={() => setActiveModal('MONITORAMENTO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Monitoramento
-            </Button>
-            <Button onClick={() => setActiveModal('ELIMINACAO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Eliminação
-            </Button>
-            <Button onClick={() => setActiveModal('COMPORTAMENTO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Estado Emocional
-            </Button>
-            <Button onClick={() => setActiveModal('HUMOR')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Humor
-            </Button>
-            <Button onClick={() => setActiveModal('SONO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Sono
-            </Button>
-            <Button onClick={() => setActiveModal('PESO')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Peso/Altura
-            </Button>
-            <Button onClick={() => setActiveModal('INTERCORRENCIA')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Intercorrência
-            </Button>
-            <Button onClick={() => setActiveModal('ATIVIDADES')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Atividades
-            </Button>
-            <Button onClick={() => setActiveModal('VISITA')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Visita
-            </Button>
-            <Button onClick={() => setActiveModal('OUTROS')} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Outros
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      </div>
+      {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna 1: Tarefas do Dia (1/3) */}
+        <div className="lg:col-span-1">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <h2 className="font-semibold text-lg mb-4">Tarefas do Dia</h2>
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm">Em breve</p>
+                <p className="text-xs mt-1">Lista de tarefas aparecerá aqui</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Timeline de Registros */}
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="font-semibold text-lg mb-4">Timeline do Dia</h2>
+        {/* Coluna 2: Timeline de Registros (1/3) */}
+        <div className="lg:col-span-1">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <h2 className="font-semibold text-lg mb-4">Timeline do Dia</h2>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-              <span className="ml-2 text-gray-500">Carregando registros...</span>
-            </div>
-          ) : records && records.length > 0 ? (
-            <div className="space-y-2">
-              {records.map((record: any) => (
-                <div
-                  key={record.id}
-                  onClick={() => handleViewRecord(record)}
-                  className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Horário */}
-                    <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
-
-                    {/* Badge do Tipo */}
-                    <Badge
-                      variant="outline"
-                      className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
-                    >
-                      {RECORD_TYPE_LABELS[record.type]?.label}
-                    </Badge>
-
-                    {/* Responsável */}
-                    <span className="text-xs text-muted-foreground">
-                      {record.recordedBy}
-                    </span>
-
-                    {/* Ícone de visualização */}
-                    <Eye className="h-4 w-4 text-muted-foreground ml-auto mr-2" />
-                  </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                  <span className="ml-2 text-gray-500">Carregando...</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <p>Nenhum registro para este dia</p>
-              <p className="text-sm mt-1">Clique em um dos botões acima para adicionar</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : records && records.length > 0 ? (
+                <div className="space-y-2">
+                  {records.map((record: any) => (
+                    <div
+                      key={record.id}
+                      onClick={() => handleViewRecord(record)}
+                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* Horário */}
+                        <span className="font-semibold text-sm min-w-[40px]">{record.time}</span>
+
+                        <div className="flex-1 min-w-0">
+                          {/* Badge do Tipo */}
+                          <Badge
+                            variant="outline"
+                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs mb-1`}
+                          >
+                            {RECORD_TYPE_LABELS[record.type]?.label}
+                          </Badge>
+
+                          {/* Responsável */}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {record.recordedBy}
+                          </p>
+                        </div>
+
+                        {/* Ícone de visualização */}
+                        <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-sm">Nenhum registro para este dia</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna 3: Botões de Ação (1/3) */}
+        <div className="lg:col-span-1">
+          <Card className="h-full">
+            <CardContent className="p-6">
+              <h2 className="font-semibold text-lg mb-4">Adicionar Registro</h2>
+              <div className="flex flex-col gap-2">
+                <Button onClick={() => setActiveModal('HIGIENE')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Higiene
+                </Button>
+                <Button onClick={() => setActiveModal('ALIMENTACAO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Alimentação
+                </Button>
+                <Button onClick={() => setActiveModal('HIDRATACAO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Hidratação
+                </Button>
+                <Button onClick={() => setActiveModal('MONITORAMENTO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Monitoramento
+                </Button>
+                <Button onClick={() => setActiveModal('ELIMINACAO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Eliminação
+                </Button>
+                <Button onClick={() => setActiveModal('COMPORTAMENTO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Estado Emocional
+                </Button>
+                <Button onClick={() => setActiveModal('HUMOR')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Humor
+                </Button>
+                <Button onClick={() => setActiveModal('SONO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Sono
+                </Button>
+                <Button onClick={() => setActiveModal('PESO')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Peso/Altura
+                </Button>
+                <Button onClick={() => setActiveModal('INTERCORRENCIA')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Intercorrência
+                </Button>
+                <Button onClick={() => setActiveModal('ATIVIDADES')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Atividades
+                </Button>
+                <Button onClick={() => setActiveModal('VISITA')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Visita
+                </Button>
+                <Button onClick={() => setActiveModal('OUTROS')} variant="outline" size="sm" className="justify-start">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Outros
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Modais */}
       {activeModal === 'HIGIENE' && (
