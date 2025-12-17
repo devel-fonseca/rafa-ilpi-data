@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth.store'
 import { api } from '../../services/api'
@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
 import { cn } from '../../lib/utils'
+import { validarCPF } from '../../utils/validators'
 
 interface Plan {
   id: string
@@ -49,6 +50,7 @@ export default function Register() {
   const [currentStep, setCurrentStep] = useState(1)
   const [plans, setPlans] = useState<Plan[]>([])
   const [loadingPlans, setLoadingPlans] = useState(true)
+  const [loadingCNPJ, setLoadingCNPJ] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
 
@@ -70,6 +72,7 @@ export default function Register() {
 
     // Admin Data
     adminName: '',
+    adminCpf: '',
     adminEmail: '',
     adminPassword: '',
     adminPasswordConfirm: '',
@@ -123,8 +126,10 @@ export default function Register() {
           newErrors.addressZip = 'CEP deve estar no formato XXXXX-XXX'
         }
 
-        // Validação de CNPJ (opcional, mas se preenchido deve estar correto)
-        if (formData.cnpj && !/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(formData.cnpj)) {
+        // Validação de CNPJ (obrigatório)
+        if (!formData.cnpj) {
+          newErrors.cnpj = 'CNPJ é obrigatório'
+        } else if (!/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(formData.cnpj)) {
           newErrors.cnpj = 'CNPJ deve estar no formato XX.XXX.XXX/XXXX-XX'
         }
 
@@ -137,6 +142,16 @@ export default function Register() {
 
       case 2: // Admin Data
         if (!formData.adminName) newErrors.adminName = 'Nome do administrador é obrigatório'
+
+        // Validação de CPF
+        if (!formData.adminCpf) {
+          newErrors.adminCpf = 'CPF é obrigatório'
+        } else if (!/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(formData.adminCpf)) {
+          newErrors.adminCpf = 'CPF deve estar no formato XXX.XXX.XXX-XX'
+        } else if (!validarCPF(formData.adminCpf)) {
+          newErrors.adminCpf = 'CPF inválido'
+        }
+
         if (!formData.adminEmail) newErrors.adminEmail = 'Email do administrador é obrigatório'
 
         // Validação de senha complexa
@@ -233,12 +248,29 @@ export default function Register() {
         .replace(/^(\d{5})(\d)/, '$1-$2')
         .substring(0, 9)
     } else if (name === 'phone') {
-      // Máscara Telefone: (XX) XXXXX-XXXX
+      // Máscara Telefone: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+      const numbers = value.replace(/\D/g, '')
+
+      if (numbers.length <= 10) {
+        // Telefone fixo: (XX) XXXX-XXXX
+        formattedValue = numbers
+          .replace(/^(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{4})(\d)/, '$1-$2')
+      } else {
+        // Celular: (XX) XXXXX-XXXX
+        formattedValue = numbers
+          .replace(/^(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{5})(\d)/, '$1-$2')
+          .substring(0, 15)
+      }
+    } else if (name === 'adminCpf') {
+      // Máscara CPF: XXX.XXX.XXX-XX
       formattedValue = value
-        .replace(/\D/g, '')
-        .replace(/^(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{5})(\d)/, '$1-$2')
-        .substring(0, 15)
+        .replace(/\D/g, '') // Remove tudo que não é dígito
+        .replace(/^(\d{3})(\d)/, '$1.$2') // Coloca ponto após os 3 primeiros dígitos
+        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3') // Coloca ponto após o 6º dígito
+        .replace(/\.(\d{3})(\d)/, '.$1-$2') // Coloca hífen após o 9º dígito
+        .substring(0, 14) // Limita ao tamanho máximo
     }
 
     setFormData(prev => ({
@@ -251,6 +283,48 @@ export default function Register() {
         ...prev,
         [name]: ''
       }))
+    }
+  }
+
+  const fetchCompanyData = async () => {
+    if (formData.cnpj.length !== 18) return // Formato: XX.XXX.XXX/XXXX-XX
+
+    setLoadingCNPJ(true)
+    try {
+      const cnpjNumbers = formData.cnpj.replace(/\D/g, '')
+      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjNumbers}`)
+
+      if (!response.ok) {
+        setErrors(prev => ({
+          ...prev,
+          cnpj: 'CNPJ não encontrado ou inválido'
+        }))
+        return
+      }
+
+      const data = await response.json()
+
+      // Preencher APENAS o nome da ILPI
+      setFormData(prev => ({
+        ...prev,
+        name: data.razao_social || data.nome_fantasia || ''
+      }))
+
+      // Limpar erro de CNPJ se houver
+      if (errors.cnpj) {
+        setErrors(prev => ({
+          ...prev,
+          cnpj: ''
+        }))
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CNPJ:', err)
+      setErrors(prev => ({
+        ...prev,
+        cnpj: 'Erro ao consultar CNPJ. Tente novamente.'
+      }))
+    } finally {
+      setLoadingCNPJ(false)
     }
   }
 
@@ -280,31 +354,53 @@ export default function Register() {
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label htmlFor="cnpj">CNPJ *</Label>
+        <div className="relative">
+          <Input
+            id="cnpj"
+            name="cnpj"
+            value={formData.cnpj}
+            onChange={handleChange}
+            onBlur={fetchCompanyData}
+            placeholder="00.000.000/0000-00"
+            maxLength={18}
+            className={errors.cnpj ? 'border-red-500' : ''}
+            disabled={loadingCNPJ}
+          />
+          {loadingCNPJ && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            </div>
+          )}
+        </div>
+        {errors.cnpj && <p className="text-sm text-red-500">{errors.cnpj}</p>}
+        {!errors.cnpj && !loadingCNPJ && (
+          <p className="text-xs text-gray-500">
+            Digite o CNPJ para buscar automaticamente os dados da empresa
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="name">Nome da ILPI *</Label>
         <Input
           id="name"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          placeholder="Casa de Repouso Exemplo"
+          placeholder="Será preenchido automaticamente pelo CNPJ"
           className={errors.name ? 'border-red-500' : ''}
+          readOnly={!!formData.name && formData.cnpj.length === 18}
         />
         {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+        {formData.name && formData.cnpj.length === 18 && (
+          <p className="text-xs text-green-600">
+            ✓ Preenchido automaticamente via CNPJ
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="cnpj">CNPJ</Label>
-          <Input
-            id="cnpj"
-            name="cnpj"
-            value={formData.cnpj}
-            onChange={handleChange}
-            placeholder="00.000.000/0000-00"
-            maxLength={18}
-          />
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="phone">Telefone *</Label>
           <Input
@@ -317,20 +413,20 @@ export default function Register() {
           />
           {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email da ILPI *</Label>
-        <Input
-          id="email"
-          name="email"
-          type="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="contato@ilpi.com.br"
-          className={errors.email ? 'border-red-500' : ''}
-        />
-        {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        <div className="space-y-2">
+          <Label htmlFor="email">Email da ILPI *</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="contato@ilpi.com.br"
+            className={errors.email ? 'border-red-500' : ''}
+          />
+          {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        </div>
       </div>
 
       <div className="border-t pt-4">
@@ -453,6 +549,20 @@ export default function Register() {
           className={errors.adminName ? 'border-red-500' : ''}
         />
         {errors.adminName && <p className="text-sm text-red-500">{errors.adminName}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="adminCpf">CPF *</Label>
+        <Input
+          id="adminCpf"
+          name="adminCpf"
+          value={formData.adminCpf}
+          onChange={handleChange}
+          placeholder="000.000.000-00"
+          maxLength={14}
+          className={errors.adminCpf ? 'border-red-500' : ''}
+        />
+        {errors.adminCpf && <p className="text-sm text-red-500">{errors.adminCpf}</p>}
       </div>
 
       <div className="space-y-2">
@@ -617,7 +727,7 @@ export default function Register() {
           <div className="flex items-center justify-center mt-6">
             <div className="flex items-center gap-2">
               {[1, 2, 3].map((step) => (
-                <React.Fragment key={step}>
+                <div key={step} className="flex items-center gap-2">
                   <div
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
@@ -636,7 +746,7 @@ export default function Register() {
                       )}
                     />
                   )}
-                </React.Fragment>
+                </div>
               ))}
             </div>
           </div>

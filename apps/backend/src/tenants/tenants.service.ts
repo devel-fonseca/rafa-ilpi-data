@@ -43,6 +43,7 @@ export class TenantsService {
       addressState,
       addressZipCode,
       adminName,
+      adminCpf,
       adminEmail,
       adminPassword,
       planId,
@@ -120,10 +121,24 @@ export class TenantsService {
           data: {
             tenantId: tenant.id,
             name: adminName,
+            cpf: adminCpf,
             email: adminEmail,
             password: hashedPassword,
             role: UserRole.ADMIN,
             isActive: true,
+          },
+        });
+
+        // 4. Criar perfil do usuário com cargo de ADMINISTRATOR
+        const userProfile = await prisma.userProfile.create({
+          data: {
+            userId: user.id,
+            tenantId: tenant.id,
+            cpf: adminCpf, // Campo imutável
+            positionCode: 'ADMINISTRATOR',
+            department: 'Administração',
+            notes: 'Primeiro usuário administrador criado no onboarding',
+            createdBy: user.id, // Auto-criação
           },
         });
 
@@ -136,14 +151,15 @@ export class TenantsService {
             email: user.email,
             role: user.role,
           },
+          userProfile,
         };
       });
 
-      // 4. Criar o schema no PostgreSQL (FORA da transação)
+      // 5. Criar o schema no PostgreSQL (FORA da transação)
       try {
         await this.prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
 
-        // 5. Criar as tabelas do tenant no novo schema
+        // 6. Criar as tabelas do tenant no novo schema
         await this.createTenantSchema(schemaName);
 
         this.logger.log(`Tenant criado com sucesso: ${result.tenant.id} (${schemaName})`);
