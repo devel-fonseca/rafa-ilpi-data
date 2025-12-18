@@ -1,0 +1,220 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  ParseUUIDPipe,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { ResidentScheduleService } from './resident-schedule.service';
+import { ResidentScheduleTasksService } from './resident-schedule-tasks.service';
+import {
+  CreateScheduleConfigDto,
+  UpdateScheduleConfigDto,
+  CreateScheduledEventDto,
+  UpdateScheduledEventDto,
+  QueryDailyTasksDto,
+} from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+
+@ApiTags('Resident Schedule')
+@ApiBearerAuth()
+@Controller('resident-schedule')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@AuditEntity('RESIDENT_SCHEDULE')
+export class ResidentScheduleController {
+  constructor(
+    private readonly scheduleService: ResidentScheduleService,
+    private readonly tasksService: ResidentScheduleTasksService,
+  ) {}
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // CONFIGURAÇÕES (Registros Recorrentes)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @Post('configs')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('CREATE')
+  @ApiOperation({ summary: 'Criar configuração de registro obrigatório recorrente' })
+  @ApiResponse({ status: 201, description: 'Configuração criada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiResponse({ status: 409, description: 'Configuração duplicada' })
+  create(@Body() dto: CreateScheduleConfigDto, @CurrentUser() user: any) {
+    return this.scheduleService.createConfig(dto, user.tenantId, user.id);
+  }
+
+  @Get('configs/resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Listar configurações de um residente',
+    description: 'Retorna todas as configurações ativas de registros obrigatórios',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de configurações' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  getConfigsByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.getConfigsByResident(residentId, user.tenantId);
+  }
+
+  @Patch('configs/:id')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Atualizar configuração' })
+  @ApiResponse({ status: 200, description: 'Configuração atualizada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Configuração não encontrada' })
+  @ApiResponse({ status: 409, description: 'Configuração duplicada' })
+  @ApiParam({ name: 'id', description: 'ID da configuração (UUID)' })
+  updateConfig(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateScheduleConfigDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.updateConfig(id, dto, user.tenantId, user.id);
+  }
+
+  @Delete('configs/:id')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('DELETE')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deletar configuração (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Configuração removida com sucesso' })
+  @ApiResponse({ status: 404, description: 'Configuração não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da configuração (UUID)' })
+  deleteConfig(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.deleteConfig(id, user.tenantId, user.id);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AGENDAMENTOS PONTUAIS
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @Post('events')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('CREATE')
+  @ApiOperation({ summary: 'Criar agendamento pontual (vacina, consulta, exame)' })
+  @ApiResponse({ status: 201, description: 'Agendamento criado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  createEvent(@Body() dto: CreateScheduledEventDto, @CurrentUser() user: any) {
+    return this.scheduleService.createEvent(dto, user.tenantId, user.id);
+  }
+
+  @Get('events/resident/:residentId')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Listar agendamentos de um residente',
+    description: 'Retorna todos os agendamentos pontuais ordenados por data',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de agendamentos' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  getEventsByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.getEventsByResident(residentId, user.tenantId);
+  }
+
+  @Patch('events/:id')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Atualizar agendamento' })
+  @ApiResponse({ status: 200, description: 'Agendamento atualizado com sucesso' })
+  @ApiResponse({ status: 404, description: 'Agendamento não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do agendamento (UUID)' })
+  updateEvent(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateScheduledEventDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.updateEvent(id, dto, user.tenantId, user.id);
+  }
+
+  @Delete('events/:id')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('DELETE')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Deletar agendamento (soft delete)' })
+  @ApiResponse({ status: 200, description: 'Agendamento removido com sucesso' })
+  @ApiResponse({ status: 404, description: 'Agendamento não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do agendamento (UUID)' })
+  deleteEvent(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.deleteEvent(id, user.tenantId, user.id);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TAREFAS DO DIA
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @Get('tasks/resident/:residentId/daily')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Listar tarefas diárias de um residente',
+    description:
+      'Retorna tarefas do dia (registros obrigatórios + agendamentos pontuais) para um residente específico',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de tarefas do dia' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  @ApiQuery({
+    name: 'date',
+    description: 'Data no formato YYYY-MM-DD (se não informado, usa data atual)',
+    required: false,
+  })
+  getDailyTasksByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Query() query: QueryDailyTasksDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.tasksService.getDailyTasksByResident(
+      residentId,
+      user.tenantId,
+      query.date,
+    );
+  }
+
+  @Get('tasks/daily')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Listar tarefas diárias de todos os residentes',
+    description:
+      'Retorna tarefas do dia (registros obrigatórios + agendamentos pontuais) de todos os residentes do tenant',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de tarefas do dia' })
+  @ApiQuery({
+    name: 'date',
+    description: 'Data no formato YYYY-MM-DD (se não informado, usa data atual)',
+    required: false,
+  })
+  getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() user: any) {
+    return this.tasksService.getDailyTasks(user.tenantId, query.date);
+  }
+}

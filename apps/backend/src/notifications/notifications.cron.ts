@@ -17,6 +17,135 @@ export class NotificationsCronService {
   ) {}
 
   /**
+   * Cron Job - Verificar eventos agendados
+   * Executa todos os dias às 06:00
+   */
+  @Cron('0 6 * * *', {
+    name: 'checkScheduledEvents',
+    timeZone: 'America/Sao_Paulo',
+  })
+  async checkScheduledEvents() {
+    this.logger.log('📅 Running cron: checkScheduledEvents')
+
+    try {
+      const tenants = await this.prisma.tenant.findMany({
+        where: { deletedAt: null },
+        select: { id: true, name: true },
+      })
+
+      let totalDue = 0
+      let totalMissed = 0
+
+      for (const tenant of tenants) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        // Buscar eventos agendados para hoje (status SCHEDULED)
+        const eventsToday = await this.prisma.residentScheduledEvent.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: 'SCHEDULED',
+            scheduledDate: {
+              gte: today,
+              lt: new Date(today.getTime() + 24 * 60 * 60 * 1000), // Menos de 24h
+            },
+            deletedAt: null,
+          },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+          },
+        })
+
+        // Criar notificações para eventos do dia
+        for (const event of eventsToday) {
+          // Verificar se já existe notificação para hoje
+          const existing = await this.prisma.notification.findFirst({
+            where: {
+              tenantId: tenant.id,
+              entityType: 'SCHEDULED_EVENT',
+              entityId: event.id,
+              type: 'SCHEDULED_EVENT_DUE',
+              createdAt: {
+                gte: today,
+              },
+            },
+          })
+
+          if (!existing) {
+            await this.notificationsService.createScheduledEventDueNotification(
+              tenant.id,
+              event.id,
+              event.resident?.fullName || 'Residente',
+              event.title,
+              event.scheduledTime,
+            )
+            totalDue++
+          }
+        }
+
+        // Buscar eventos passados não concluídos (status SCHEDULED)
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+
+        const missedEvents = await this.prisma.residentScheduledEvent.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: 'SCHEDULED',
+            scheduledDate: {
+              lt: today, // Antes de hoje
+              gte: yesterday, // Apenas de ontem (evitar notificações antigas)
+            },
+            deletedAt: null,
+          },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+          },
+        })
+
+        // Criar notificações para eventos perdidos
+        for (const event of missedEvents) {
+          // Verificar se já existe notificação para evitar duplicatas
+          const existing = await this.prisma.notification.findFirst({
+            where: {
+              tenantId: tenant.id,
+              entityType: 'SCHEDULED_EVENT',
+              entityId: event.id,
+              type: 'SCHEDULED_EVENT_MISSED',
+            },
+          })
+
+          if (!existing) {
+            await this.notificationsService.createScheduledEventMissedNotification(
+              tenant.id,
+              event.id,
+              event.resident?.fullName || 'Residente',
+              event.title,
+              event.scheduledDate,
+            )
+            totalMissed++
+          }
+        }
+      }
+
+      this.logger.log(
+        `✅ Cron checkScheduledEvents completed: ${totalDue} due, ${totalMissed} missed notifications created`,
+      )
+    } catch (error) {
+      this.logger.error('❌ Error in checkScheduledEvents cron:', error)
+    }
+  }
+
+  /**
    * Cron Job - Verificar prescrições vencidas e vencendo
    * Executa todos os dias às 07:00
    */

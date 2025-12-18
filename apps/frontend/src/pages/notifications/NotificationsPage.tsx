@@ -14,6 +14,7 @@ import {
   Search,
   CheckCheck,
   X,
+  Calendar,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -35,12 +36,14 @@ import {
 import {
   NotificationCategory,
   NotificationSeverity,
+  SystemNotificationType,
   type Notification,
 } from '@/api/notifications.api'
 import {
   getNotificationSeverityColors,
   getNotificationCategoryConfig,
 } from '@/design-system/tokens/colors'
+import { MissedEventActionsModal } from '@/components/resident-schedule/MissedEventActionsModal'
 
 const CATEGORY_CONFIG = {
   [NotificationCategory.PRESCRIPTION]: {
@@ -62,6 +65,10 @@ const CATEGORY_CONFIG = {
   [NotificationCategory.DAILY_RECORD]: {
     label: 'Registros',
     icon: FileText,
+  },
+  [NotificationCategory.SCHEDULED_EVENT]: {
+    label: 'Agendamentos',
+    icon: Calendar,
   },
   [NotificationCategory.SYSTEM]: {
     label: 'Sistema',
@@ -90,6 +97,8 @@ export function NotificationsPage() {
   const [selectedSeverity, setSelectedSeverity] = useState<NotificationSeverity | 'all'>('all')
   const [showOnlyUnread, setShowOnlyUnread] = useState(false)
   const [page, setPage] = useState(1)
+  const [missedEventModalOpen, setMissedEventModalOpen] = useState(false)
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const limit = 20
 
   const { data, isLoading } = useNotifications({
@@ -106,6 +115,13 @@ export function NotificationsPage() {
   const deleteMutation = useDeleteNotification()
 
   const handleNotificationClick = (notification: Notification) => {
+    // Se for notificação de evento perdido, abrir modal específico
+    if (notification.type === SystemNotificationType.SCHEDULED_EVENT_MISSED) {
+      setSelectedNotification(notification)
+      setMissedEventModalOpen(true)
+      return
+    }
+
     if (!notification.read) {
       markAsReadMutation.mutate(notification.id)
     }
@@ -228,7 +244,7 @@ export function NotificationsPage() {
                 {notifications.map((notification) => {
                   const categoryConfig = CATEGORY_CONFIG[notification.category]
                   const severityColors = getNotificationSeverityColors(notification.severity)
-                  const categoryColors = getNotificationCategoryConfig(notification.category)
+                  const categoryColors = getNotificationCategoryConfig(notification.category as any)
                   const CategoryIcon = categoryConfig.icon
                   const SeverityIcon = SEVERITY_ICONS[notification.severity]
 
@@ -324,6 +340,20 @@ export function NotificationsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Ações para Evento Perdido */}
+      {selectedNotification && (
+        <MissedEventActionsModal
+          open={missedEventModalOpen}
+          onOpenChange={setMissedEventModalOpen}
+          eventId={selectedNotification.entityId || ''}
+          eventTitle={selectedNotification.metadata?.eventTitle || selectedNotification.title}
+          scheduledDate={selectedNotification.metadata?.scheduledDate || ''}
+          scheduledTime={selectedNotification.metadata?.scheduledTime || ''}
+          residentName={selectedNotification.metadata?.residentName || 'Residente'}
+          notificationId={selectedNotification.id}
+        />
+      )}
     </div>
   )
 }

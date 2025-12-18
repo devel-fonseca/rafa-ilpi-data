@@ -37,6 +37,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { PopsModule } from './pops/pops.module';
 import { MedicationsModule } from './medications/medications.module';
 import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
+import { ResidentScheduleModule } from './resident-schedule/resident-schedule.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
     DietaryRestrictionsModule,
     NotificationsModule,
     PopsModule,
+    ResidentScheduleModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

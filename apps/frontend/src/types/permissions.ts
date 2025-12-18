@@ -90,6 +90,10 @@ export enum PermissionType {
   PUBLISH_POPS = 'PUBLISH_POPS',
   MANAGE_POPS = 'MANAGE_POPS',
 
+  // Agenda do Residente
+  VIEW_RESIDENT_SCHEDULE = 'VIEW_RESIDENT_SCHEDULE',
+  MANAGE_RESIDENT_SCHEDULE = 'MANAGE_RESIDENT_SCHEDULE',
+
   // Audit
   VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
 }
@@ -196,6 +200,9 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.PUBLISH_POPS]: 'Publicar POPs',
   [PermissionType.MANAGE_POPS]: 'Gerenciar POPs',
 
+  [PermissionType.VIEW_RESIDENT_SCHEDULE]: 'Visualizar agenda do residente',
+  [PermissionType.MANAGE_RESIDENT_SCHEDULE]: 'Gerenciar agenda do residente',
+
   [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
 };
 
@@ -271,6 +278,13 @@ export const PERMISSION_GROUPS = {
       PermissionType.DELETE_POPS,
       PermissionType.PUBLISH_POPS,
       PermissionType.MANAGE_POPS,
+    ],
+  },
+  residentSchedule: {
+    label: 'Agenda do Residente',
+    permissions: [
+      PermissionType.VIEW_RESIDENT_SCHEDULE,
+      PermissionType.MANAGE_RESIDENT_SCHEDULE,
     ],
   },
   administration: {

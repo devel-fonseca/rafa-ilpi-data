@@ -48,6 +48,7 @@ import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { ResidentScheduleTab } from '@/components/resident-schedule/ResidentScheduleTab'
 import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
@@ -391,7 +392,7 @@ export default function ResidentProfile() {
       {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
         <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-7 min-w-max">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-8 min-w-max">
             <TabsTrigger value="personal" className="whitespace-nowrap">Dados do Residente</TabsTrigger>
             <TabsTrigger value="clinical-profile" className="whitespace-nowrap">Perfil Clínico</TabsTrigger>
             <TabsTrigger value="vaccinations" className="whitespace-nowrap">Vacinação</TabsTrigger>
@@ -399,6 +400,7 @@ export default function ResidentProfile() {
             <TabsTrigger value="clinical-notes" className="whitespace-nowrap">Evoluções Clínicas</TabsTrigger>
             <TabsTrigger value="prescriptions" className="whitespace-nowrap">Prescrições</TabsTrigger>
             <TabsTrigger value="daily-records" className="whitespace-nowrap">Registros Diários</TabsTrigger>
+            <TabsTrigger value="schedule" className="whitespace-nowrap">Agenda do Residente</TabsTrigger>
           </TabsList>
         </div>
 
@@ -988,6 +990,16 @@ export default function ResidentProfile() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* TAB 8: Agenda do Residente */}
+        <TabsContent value="schedule">
+          {resident && (
+            <ResidentScheduleTab
+              residentId={resident.id}
+              residentName={resident.fullName}
+            />
+          )}
         </TabsContent>
       </Tabs>
 

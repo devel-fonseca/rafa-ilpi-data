@@ -6,6 +6,187 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-18] - Notificações para Agendamentos Pontuais 🔔
+
+### ✨ Adicionado
+
+**Backend - Notificações de Scheduled Events:**
+
+- Migration `20251218101226_add_scheduled_event_notifications` com:
+  - Enum `SystemNotificationType`: adicionado `SCHEDULED_EVENT_DUE` e `SCHEDULED_EVENT_MISSED`
+  - Enum `NotificationCategory`: adicionado `SCHEDULED_EVENT`
+- Cron job `checkScheduledEvents` executando diariamente às 06:00 (America/Sao_Paulo):
+  - Verifica eventos agendados para o dia atual com status `SCHEDULED`
+  - Cria notificação INFO "Evento Agendado Hoje" para cada evento do dia
+  - Verifica eventos de ontem não concluídos (status ainda `SCHEDULED`)
+  - Cria notificação WARNING "Evento Não Concluído" para eventos perdidos
+  - Previne duplicatas verificando notificações existentes
+- Service `NotificationsService`:
+  - Método `createScheduledEventDueNotification()`: notificação para evento agendado hoje
+  - Método `createScheduledEventMissedNotification()`: notificação para evento perdido
+  - Mensagens formatadas com nome do residente, título do evento e horário/data
+  - ActionUrl aponta para aba de agenda do residente
+- **Notificações automáticas em tempo real** (ResidentScheduleService):
+  - Ao **criar** agendamento pontual: notificação `SCHEDULED_EVENT_DUE` gerada automaticamente
+  - Ao **reagendar** (update de data/hora): nova notificação `SCHEDULED_EVENT_DUE` gerada automaticamente
+  - Detecção inteligente de mudanças (compara data e hora para identificar reagendamento)
+  - Tratamento de erros com try-catch: falha na notificação não bloqueia criação/edição do evento
+  - Logging de erros para troubleshooting
+
+**Lógica de Notificações:**
+
+- **SCHEDULED_EVENT_DUE**: criada para eventos com `scheduledDate = hoje` e `status = SCHEDULED`
+- **SCHEDULED_EVENT_MISSED**: criada para eventos com `scheduledDate < hoje` (apenas de ontem) e `status = SCHEDULED`
+- Janela de 24h para eventos do dia: `>= hoje 00:00` e `< amanhã 00:00`
+- Apenas eventos pontuais geram notificações, registros recorrentes não
+
+### 📝 Alterado
+
+**Backend:**
+
+- `notifications.cron.ts`: adicionado cron job `checkScheduledEvents` às 06:00
+- `notifications.service.ts`: adicionados 2 métodos de criação de notificações para scheduled events
+
+### 🔧 Corrigido
+
+- **Backend: Campo vaccineData tornado completamente opcional**:
+  - Removida validação condicional `@ValidateIf` no DTO que causava erro "vaccineData must be an object"
+  - Removida validação no service que lançava BadRequestException "Dados da vacina são obrigatórios para eventos de vacinação"
+  - Campo marcado como DEPRECATED na documentação da API
+  - Agora é possível criar agendamento de vacinação sem preencher dados da vacina
+  - Dados da vacina devem ser registrados posteriormente no módulo de Vacinação existente
+
+**Frontend:**
+
+- `CreateScheduledEventModal.tsx`: removidos campos de dados da vacina (nome, dose, fabricante, lote)
+- `EditScheduledEventModal.tsx`: removidos campos de dados da vacina
+- `DailyTasksPanel.tsx`: removida referência a `task.notes` que não existe na interface
+- **Frontend: Suporte a notificações de agendamentos**:
+  - `notifications.api.ts`: adicionados enums `SCHEDULED_EVENT_DUE`, `SCHEDULED_EVENT_MISSED` e categoria `SCHEDULED_EVENT`
+  - `NotificationsDropdown.tsx`: adicionado ícone Calendar e configuração para categoria `SCHEDULED_EVENT`
+  - `colors.ts`: adicionada configuração de cores para categoria `SCHEDULED_EVENT` (verde)
+  - Corrige erro "can't access property 'icon', categoryConfig is undefined"
+
+**Documentação:**
+
+- `docs/modules/resident-schedule.md`: atualizado para refletir que dados de vacina NÃO são coletados no agendamento
+- Fluxo de vacinação documentado: (1) Agendar evento, (2) Administrar vacina, (3) Registrar no módulo de Vacinação
+
+---
+
+## [2025-12-17] - Sistema de Agenda do Residente 📅
+
+### ✨ Adicionado
+
+**Backend - Módulo ResidentSchedule:**
+
+- Criado módulo completo para gerenciamento de agenda de residentes
+- Migration `20251217055514_add_resident_schedule_system` com:
+  - Tabela `ResidentScheduleConfig` para registros obrigatórios recorrentes (DAILY/WEEKLY/MONTHLY)
+  - Tabela `ResidentScheduledEvent` para agendamentos pontuais (vacinas, consultas, exames, procedimentos)
+  - Enums: `ScheduleFrequency`, `ScheduledEventType`, `ScheduledEventStatus`
+  - Permissões: `VIEW_RESIDENT_SCHEDULE`, `MANAGE_RESIDENT_SCHEDULE`
+- Implementados 10 endpoints REST:
+  - **Configurações:** POST/GET/PATCH/DELETE `/resident-schedule/configs`
+  - **Agendamentos:** POST/GET/PATCH/DELETE `/resident-schedule/events`
+  - **Tarefas do dia:** GET `/resident-schedule/tasks/resident/:id/daily` e `/resident-schedule/tasks/daily`
+- Serviço `ResidentScheduleTasksService` com lógica de geração de tarefas:
+  - Método `getDailyTasksByResident()` filtra tarefas por residente e data
+  - Método `shouldGenerateTask()` valida frequências (DAILY sempre, WEEKLY por dia da semana, MONTHLY por dia do mês)
+  - Edge case tratado: dia 31 em meses curtos não gera tarefa
+- Validações de negócio:
+  - Previne configurações duplicadas (mesmo residente + recordType + frequência)
+  - Valida campos obrigatórios por frequência (dayOfWeek para WEEKLY, dayOfMonth para MONTHLY)
+  - Soft delete e auditoria completa (createdBy, updatedBy, deletedAt)
+
+**Frontend - Aba "Agenda do Residente":**
+
+- Adicionada 8ª aba no prontuário médico (ResidentMedicalRecord.tsx)
+- Hook `useResidentSchedule` com 3 queries e 6 mutations usando React Query
+- Componente `ResidentScheduleTab` com 2 sub-tabs:
+  - **"Registros Obrigatórios":** gerenciar configurações recorrentes
+  - **"Agendamentos Pontuais":** gerenciar eventos futuros
+- Componente `ScheduleConfigList`:
+  - Lista configurações com badges de tipo de registro
+  - Formatação de frequência ("Diariamente", "Toda segunda-feira", "Todo dia 15")
+  - Exibição de horários sugeridos e observações
+  - Botões de editar e deletar (apenas para MANAGE_RESIDENT_SCHEDULE)
+  - Modal de confirmação antes de deletar
+- Componente `ScheduledEventsList`:
+  - Lista agendamentos ordenados cronologicamente
+  - Filtro de status (Todos, Agendados, Concluídos, Cancelados, Perdidos)
+  - Badges visuais coloridos por status
+  - Botão "Marcar como Concluído" para eventos agendados
+  - Formatação de datas em português brasileiro
+- Componente `CreateScheduleConfigModal`:
+  - Formulário com validação Zod + react-hook-form
+  - Campos condicionais baseados em frequência (dia da semana para WEEKLY, dia do mês para MONTHLY)
+  - Interface de chips para horários sugeridos (adicionar/remover com tecla Enter)
+  - Validações: formato HH:mm, mínimo 1 horário, campos obrigatórios por frequência
+- Componente `CreateScheduledEventModal`:
+  - Formulário completo com DatePicker (locale pt-BR)
+  - 5 tipos de evento: Vacinação, Consulta, Exame, Procedimento, Outro
+  - **Dados de vacina são registrados posteriormente no módulo de Vacinação existente**
+
+**Frontend - DailyRecordsPage:**
+
+- Componente `DailyTasksPanel` na coluna "Tarefas do Dia":
+  - Busca tarefas do residente selecionado via `useDailyTasksByResident(residentId, date)`
+  - Agrupamento em 2 seções visuais:
+    - **Registros Obrigatórios** (ícone Repeat, cor azul) com horários sugeridos
+    - **Agendamentos** (ícone Calendar, cor verde) com título, horário e status
+  - Query reativa: atualiza automaticamente ao trocar residente ou data
+  - 3 estados tratados: sem residente, loading, sem tarefas (com dica para configurar)
+  - Ícone CheckCircle2 verde para agendamentos concluídos
+
+**Frontend - Sistema de Permissões:**
+
+- Adicionado grupo `residentSchedule` em `PERMISSION_GROUPS`
+- Permissões integradas aos perfis de cargo (RT/Admin podem gerenciar, demais podem visualizar)
+- Controle de UI: botões de ação aparecem apenas com `MANAGE_RESIDENT_SCHEDULE`
+
+### 📝 Alterado
+
+**Backend:**
+
+- Atualizado `app.module.ts` para registrar `ResidentScheduleModule`
+- Atualizado `position-profiles.config.ts` para incluir permissões de agenda nos perfis VIEWER, STAFF, MANAGER, ADMIN
+- Schema Prisma expandido com relações nos models Tenant, Resident e User
+
+**Frontend:**
+
+- ResidentMedicalRecord.tsx: TabsList alterado de 7 para 8 colunas
+- DailyRecordsPage.tsx: substituído placeholder "Em breve" por DailyTasksPanel funcional
+- permissions.ts: adicionado enum VIEW_RESIDENT_SCHEDULE e MANAGE_RESIDENT_SCHEDULE
+
+### 🔧 Corrigido
+
+- Corrigido tipos TypeScript: `completedAt` adicionado em `UpdateScheduledEventInput`
+- Corrigido acesso a `RECORD_TYPE_LABELS` usando `.label` (objeto com label/color/bgColor)
+- Corrigido problemas de null vs undefined em campos opcionais do backend
+- Corrigido cast de vaccineData para JSON no Prisma (usando `as any`)
+- **Script de permissões**: criado `add-schedule-permissions.ts` para adicionar VIEW_RESIDENT_SCHEDULE a usuários existentes (9 usuários atualizados)
+- **Status de conclusão de tarefas**:
+  - Backend: `getDailyTasksByResident()` agora consulta DailyRecord para marcar tarefas concluídas
+  - Adicionados campos `isCompleted`, `completedAt`, `completedBy` na interface DailyTask
+  - Frontend: tarefas concluídas exibem check verde, opacidade reduzida, fundo colorido
+  - Tarefas são ordenadas (pendentes primeiro, concluídas depois)
+  - Botão "Registrar" oculto para tarefas concluídas
+  - Exibição de "Registrado por {nome}" para auditoria em ambiente multi-cuidador
+- Removidos logs de debug do backend (resident-schedule-tasks.service.ts)
+- Removidos console.log de debug do frontend (DailyTasksPanel.tsx)
+- **Removidos campos de dados de vacina dos modais de agendamento** (CreateScheduledEventModal e EditScheduledEventModal):
+  - Campos vaccineData foram removidos do schema Zod e formulários
+  - Dados de vacina devem ser registrados posteriormente no módulo de Vacinação existente
+  - Simplifica fluxo: agendamento apenas marca data/hora/tipo, registro detalhado vem depois
+- **Backend: Campo vaccineData tornado completamente opcional**:
+  - Removida validação condicional `@ValidateIf` no DTO que causava erro "vaccineData must be an object"
+  - Removida validação no service que lançava BadRequestException "Dados da vacina são obrigatórios para eventos de vacinação"
+  - Campo marcado como DEPRECATED na documentação da API
+  - Agora é possível criar agendamento de vacinação sem preencher dados da vacina
+
+---
+
 ## [2025-12-16] - Reorganização Layout e Permissões de Cuidadores 📊
 
 ### 📝 Alterado

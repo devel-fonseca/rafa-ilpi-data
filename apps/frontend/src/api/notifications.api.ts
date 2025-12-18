@@ -29,6 +29,10 @@ export enum SystemNotificationType {
   SYSTEM_UPDATE = 'SYSTEM_UPDATE',
   SYSTEM_MAINTENANCE = 'SYSTEM_MAINTENANCE',
   USER_MENTION = 'USER_MENTION',
+
+  // Agendamentos
+  SCHEDULED_EVENT_DUE = 'SCHEDULED_EVENT_DUE',
+  SCHEDULED_EVENT_MISSED = 'SCHEDULED_EVENT_MISSED',
 }
 
 export enum NotificationCategory {
@@ -37,6 +41,7 @@ export enum NotificationCategory {
   DOCUMENT = 'DOCUMENT',
   DAILY_RECORD = 'DAILY_RECORD',
   MEDICATION = 'MEDICATION',
+  SCHEDULED_EVENT = 'SCHEDULED_EVENT',
   SYSTEM = 'SYSTEM',
 }
 

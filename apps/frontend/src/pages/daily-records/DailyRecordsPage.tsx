@@ -40,6 +40,7 @@ import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionG
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
+import { DailyTasksPanel } from '@/components/daily-records/DailyTasksPanel'
 import { getErrorMessage } from '@/utils/errorHandling'
 import {
   ViewHigieneModal,
@@ -378,10 +379,11 @@ export function DailyRecordsPage() {
           <Card className="h-full">
             <CardContent className="p-6">
               <h2 className="font-semibold text-lg mb-4">Tarefas do Dia</h2>
-              <div className="text-center py-12 text-muted-foreground">
-                <p className="text-sm">Em breve</p>
-                <p className="text-xs mt-1">Lista de tarefas aparecerá aqui</p>
-              </div>
+              <DailyTasksPanel
+                residentId={residentId}
+                selectedDate={selectedDate}
+                onRegisterRecord={(recordType) => setActiveModal(recordType)}
+              />
             </CardContent>
           </Card>
         </div>

@@ -33,6 +33,7 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_MEDICATIONS,
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.VIEW_POPS,
+    PermissionType.VIEW_RESIDENT_SCHEDULE,
   ] as PermissionType[],
 
   // STAFF: Operações básicas de cuidado
@@ -58,6 +59,8 @@ const BASE_PERMISSIONS = {
     // POPs
     PermissionType.VIEW_POPS,
     PermissionType.CREATE_POPS, // Enfermeiros podem criar sugestões (DRAFT)
+    // Agenda do Residente
+    PermissionType.VIEW_RESIDENT_SCHEDULE,
   ] as PermissionType[],
 
   // MANAGER: Gerenciamento clínico e operacional
@@ -108,6 +111,9 @@ const BASE_PERMISSIONS = {
     PermissionType.DELETE_POPS,
     PermissionType.PUBLISH_POPS,
     PermissionType.MANAGE_POPS, // RT tem controle total sobre POPs
+    // Agenda do Residente
+    PermissionType.VIEW_RESIDENT_SCHEDULE,
+    PermissionType.MANAGE_RESIDENT_SCHEDULE,
   ] as PermissionType[],
 
   // ADMIN: Controle total
@@ -184,6 +190,9 @@ const BASE_PERMISSIONS = {
     PermissionType.DELETE_POPS,
     PermissionType.PUBLISH_POPS,
     PermissionType.MANAGE_POPS, // Admin tem controle total sobre POPs
+    // Agenda do Residente
+    PermissionType.VIEW_RESIDENT_SCHEDULE,
+    PermissionType.MANAGE_RESIDENT_SCHEDULE,
   ] as PermissionType[],
 };
 

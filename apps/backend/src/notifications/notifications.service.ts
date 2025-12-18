@@ -415,4 +415,52 @@ export class NotificationsService {
       metadata: { popTitle, daysUntilReview },
     })
   }
+
+  /**
+   * Criar notificação de evento agendado (hoje)
+   */
+  async createScheduledEventDueNotification(
+    tenantId: string,
+    eventId: string,
+    residentName: string,
+    eventTitle: string,
+    scheduledTime: string,
+  ) {
+    return this.create(tenantId, {
+      type: SystemNotificationType.SCHEDULED_EVENT_DUE,
+      category: NotificationCategory.SCHEDULED_EVENT,
+      severity: NotificationSeverity.INFO,
+      title: 'Evento Agendado Hoje',
+      message: `${residentName} tem um agendamento hoje às ${scheduledTime}: ${eventTitle}`,
+      actionUrl: `/dashboard/residentes/${residentName}/agenda`,
+      entityType: 'SCHEDULED_EVENT',
+      entityId: eventId,
+      metadata: { residentName, eventTitle, scheduledTime },
+    })
+  }
+
+  /**
+   * Criar notificação de evento perdido (não concluído)
+   */
+  async createScheduledEventMissedNotification(
+    tenantId: string,
+    eventId: string,
+    residentName: string,
+    eventTitle: string,
+    scheduledDate: Date,
+  ) {
+    const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
+
+    return this.create(tenantId, {
+      type: SystemNotificationType.SCHEDULED_EVENT_MISSED,
+      category: NotificationCategory.SCHEDULED_EVENT,
+      severity: NotificationSeverity.WARNING,
+      title: 'Evento Não Concluído',
+      message: `O agendamento "${eventTitle}" de ${residentName} em ${dateStr} não foi marcado como concluído.`,
+      actionUrl: `/dashboard/residentes/${residentName}/agenda`,
+      entityType: 'SCHEDULED_EVENT',
+      entityId: eventId,
+      metadata: { residentName, eventTitle, scheduledDate: dateStr },
+    })
+  }
 }

@@ -1,7 +1,7 @@
 # Documentação Técnica - Rafa ILPI Data
 
 **Versão do Projeto:** 1.0.0
-**Última atualização:** 11/12/2025
+**Última atualização:** 17/12/2025
 
 Bem-vindo à documentação técnica completa do sistema Rafa ILPI Data - plataforma de gestão para Instituições de Longa Permanência para Idosos (ILPIs).
 
@@ -16,6 +16,7 @@ Documentação detalhada de cada módulo do sistema:
 | Módulo | Status | Versão | Descrição |
 |--------|--------|--------|-----------|
 | [Registros Diários](modules/daily-records.md) | ✅ | 1.0.0 | Sistema completo com 10 tipos de registros, versionamento e auditoria |
+| [Agenda do Residente](modules/resident-schedule.md) | ✅ | 1.0.0 | Registros obrigatórios recorrentes e agendamentos pontuais |
 | [POPs](modules/pops.md) | ✅ | 1.1.0 | Procedimentos Operacionais Padrão com categorias editáveis |
 | [Documentos Institucionais](modules/documents.md) | ✅ | 2.0.0 | Upload S3, versionamento e alertas configuráveis |
 | [Evoluções Clínicas](modules/clinical-notes.md) | ✅ | 1.1.0 | SOAP + Documentos Tiptap com PDF |
@@ -97,8 +98,8 @@ Documentação de arquitetura e infraestrutura:
 
 ### Módulos Implementados
 
-- ✅ **10 módulos** principais completamente funcionais
-- ✅ **24 features** documentadas no CHANGELOG
+- ✅ **11 módulos** principais completamente funcionais
+- ✅ **25+ features** documentadas no CHANGELOG
 - ✅ **3.048 linhas** de histórico de implementação (agora organizado)
 - ✅ **50+ arquivos** de documentação técnica
 
@@ -168,4 +169,4 @@ Propriedade de Rafa Labs Desenvolvimento e Tecnologia.
 ---
 
 **Desenvolvedor:** Emanuel (Dr. E.) + Claude Sonnet 4.5
-**Última revisão:** 11/12/2025
+**Última revisão:** 17/12/2025

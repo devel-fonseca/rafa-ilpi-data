@@ -12,6 +12,7 @@ import {
   Info,
   CheckCircle2,
   ExternalLink,
+  Calendar,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -27,12 +28,14 @@ import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } fro
 import {
   NotificationCategory,
   NotificationSeverity,
+  SystemNotificationType,
   type Notification,
 } from '@/api/notifications.api'
 import {
   getNotificationSeverityColors,
   getNotificationCategoryConfig,
 } from '@/design-system/tokens/colors'
+import { MissedEventActionsModal } from '@/components/resident-schedule/MissedEventActionsModal'
 
 const CATEGORY_CONFIG = {
   [NotificationCategory.PRESCRIPTION]: {
@@ -55,6 +58,10 @@ const CATEGORY_CONFIG = {
     label: 'Registros',
     icon: FileText,
   },
+  [NotificationCategory.SCHEDULED_EVENT]: {
+    label: 'Agendamentos',
+    icon: Calendar,
+  },
   [NotificationCategory.SYSTEM]: {
     label: 'Sistema',
     icon: Info,
@@ -71,17 +78,24 @@ const SEVERITY_ICONS = {
 interface NotificationItemProps {
   notification: Notification
   onMarkAsRead: (id: string) => void
+  onOpenMissedEventModal: (notification: Notification) => void
 }
 
-function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps) {
+function NotificationItem({ notification, onMarkAsRead, onOpenMissedEventModal }: NotificationItemProps) {
   const navigate = useNavigate()
   const categoryConfig = CATEGORY_CONFIG[notification.category]
   const severityColors = getNotificationSeverityColors(notification.severity)
-  const categoryColors = getNotificationCategoryConfig(notification.category)
+  const categoryColors = getNotificationCategoryConfig(notification.category as any)
   const CategoryIcon = categoryConfig.icon
   const SeverityIcon = SEVERITY_ICONS[notification.severity]
 
   const handleClick = () => {
+    // Se for notificação de evento perdido, abrir modal específico
+    if (notification.type === SystemNotificationType.SCHEDULED_EVENT_MISSED) {
+      onOpenMissedEventModal(notification)
+      return
+    }
+
     // Marcar como lida
     if (!notification.read) {
       onMarkAsRead(notification.id)
@@ -145,6 +159,8 @@ function NotificationItem({ notification, onMarkAsRead }: NotificationItemProps)
 export function NotificationsDropdown() {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategory | 'all'>('all')
+  const [missedEventModalOpen, setMissedEventModalOpen] = useState(false)
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
 
   const { data: unreadCount } = useUnreadCount()
   const { data: allNotifications } = useNotifications({
@@ -186,6 +202,12 @@ export function NotificationsDropdown() {
   const handleViewAll = () => {
     setIsOpen(false)
     navigate('/dashboard/notificacoes')
+  }
+
+  const handleOpenMissedEventModal = (notification: Notification) => {
+    setSelectedNotification(notification)
+    setMissedEventModalOpen(true)
+    setIsOpen(false) // Fechar dropdown
   }
 
   const getNotificationsByCategory = () => {
@@ -268,6 +290,7 @@ export function NotificationsDropdown() {
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={handleMarkAsRead}
+                  onOpenMissedEventModal={handleOpenMissedEventModal}
                 />
               ))
             )}
@@ -286,6 +309,20 @@ export function NotificationsDropdown() {
           </Button>
         </div>
       </DropdownMenuContent>
+
+      {/* Modal de Ações para Evento Perdido */}
+      {selectedNotification && (
+        <MissedEventActionsModal
+          open={missedEventModalOpen}
+          onOpenChange={setMissedEventModalOpen}
+          eventId={selectedNotification.entityId || ''}
+          eventTitle={selectedNotification.metadata?.eventTitle || selectedNotification.title}
+          scheduledDate={selectedNotification.metadata?.scheduledDate || ''}
+          scheduledTime={selectedNotification.metadata?.scheduledTime || ''}
+          residentName={selectedNotification.metadata?.residentName || 'Residente'}
+          notificationId={selectedNotification.id}
+        />
+      )}
     </DropdownMenu>
   )
 }

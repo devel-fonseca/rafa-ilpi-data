@@ -268,6 +268,10 @@ export const NOTIFICATION_CATEGORY_COLORS: Record<
     icon: 'text-purple-600',
     color: 'text-purple-600',
   },
+  SCHEDULED_EVENT: {
+    icon: 'text-green-600',
+    color: 'text-green-600',
+  },
   SYSTEM: {
     icon: 'text-gray-600',
     color: 'text-gray-600',
