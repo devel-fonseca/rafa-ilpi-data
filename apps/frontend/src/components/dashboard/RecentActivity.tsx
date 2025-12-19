@@ -34,6 +34,8 @@ const entityTypeLabels: Record<string, string> = {
   USER_PROFILE: 'perfil de usuário',
   USER: 'usuário',
   TENANT: 'organização',
+  RESIDENT_SCHEDULE_CONFIG: 'configuração de agenda',
+  RESIDENT_SCHEDULED_EVENT: 'evento agendado',
 }
 
 const actionLabels: Record<string, string> = {

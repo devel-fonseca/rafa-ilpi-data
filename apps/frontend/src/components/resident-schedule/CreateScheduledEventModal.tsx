@@ -183,9 +183,7 @@ export function CreateScheduledEventModal({
                     <FormLabel>Horário *</FormLabel>
                     <FormControl>
                       <Input
-                        type="text"
-                        placeholder="HH:mm (ex: 14:30)"
-                        maxLength={5}
+                        type="time"
                         {...field}
                       />
                     </FormControl>

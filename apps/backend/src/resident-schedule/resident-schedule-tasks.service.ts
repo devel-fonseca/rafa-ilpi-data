@@ -17,6 +17,7 @@ export interface DailyTask {
   isCompleted?: boolean;
   completedAt?: Date;
   completedBy?: string;
+  mealType?: string; // Tipo de refeição (apenas para ALIMENTACAO)
 
   // Para eventos agendados
   eventId?: string;
@@ -101,6 +102,8 @@ export class ResidentScheduleTasksService {
     // Mapear tarefas incluindo status de conclusão
     const recurringTasks: DailyTask[] = filteredConfigs.map((config) => {
       const recordData = existingRecordTypesMap.get(config.recordType);
+      const metadata = config.metadata as { mealType?: string } | null;
+
       return {
         type: 'RECURRING' as const,
         residentId: config.residentId,
@@ -111,6 +114,7 @@ export class ResidentScheduleTasksService {
         isCompleted: !!recordData,
         completedAt: recordData?.createdAt,
         completedBy: recordData?.createdBy,
+        mealType: metadata?.mealType, // Incluir tipo de refeição se disponível
       };
     });
 
@@ -181,14 +185,19 @@ export class ResidentScheduleTasksService {
     // 2. Filtrar configurações que devem gerar tarefa na data
     const recurringTasks: DailyTask[] = configs
       .filter((config) => this.shouldGenerateTask(config, targetDate))
-      .map((config) => ({
-        type: 'RECURRING' as const,
-        residentId: config.residentId,
-        residentName: config.resident.fullName,
-        recordType: config.recordType,
-        suggestedTimes: config.suggestedTimes as string[],
-        configId: config.id,
-      }));
+      .map((config) => {
+        const metadata = config.metadata as { mealType?: string } | null;
+
+        return {
+          type: 'RECURRING' as const,
+          residentId: config.residentId,
+          residentName: config.resident.fullName,
+          recordType: config.recordType,
+          suggestedTimes: config.suggestedTimes as string[],
+          configId: config.id,
+          mealType: metadata?.mealType, // Incluir tipo de refeição se disponível
+        };
+      });
 
     // 3. Buscar todos eventos agendados para a data
     const events = await this.prisma.residentScheduledEvent.findMany({
@@ -244,18 +253,21 @@ export class ResidentScheduleTasksService {
         return config.dayOfWeek === dayOfWeek;
 
       case ScheduleFrequency.MONTHLY:
-        // Edge case: dia 31 em fevereiro não deve gerar tarefa
+        // Obter o último dia do mês atual
         const daysInMonth = new Date(
           targetDate.getFullYear(),
           targetDate.getMonth() + 1,
           0,
         ).getDate();
 
-        // Se config pede dia que não existe no mês, não gera
+        // Se config pede dia que não existe no mês (ex: dia 31 em fevereiro),
+        // usa o último dia do mês como fallback
         if (config.dayOfMonth! > daysInMonth) {
-          return false;
+          // Gera tarefa apenas se hoje for o último dia do mês
+          return dayOfMonth === daysInMonth;
         }
 
+        // Caso normal: gera se for exatamente o dia configurado
         return config.dayOfMonth === dayOfMonth;
 
       default:

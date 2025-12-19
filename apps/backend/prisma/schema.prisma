@@ -1382,6 +1382,10 @@ model ResidentScheduleConfig {
   // Observações
   notes String? @db.Text
 
+  // Metadados extras (JSON) - usado para armazenar informações específicas por tipo
+  // Ex: para ALIMENTACAO: { "mealType": "Café da Manhã" }
+  metadata Json? @default("{}")
+
   // Auditoria
   createdBy String    @db.Uuid
   updatedBy String?   @db.Uuid

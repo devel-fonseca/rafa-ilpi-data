@@ -31,7 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useCreateScheduleConfig, RecordType } from '@/hooks/useResidentSchedule';
 import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 interface CreateScheduleConfigModalProps {
@@ -39,6 +39,8 @@ interface CreateScheduleConfigModalProps {
   onOpenChange: (open: boolean) => void;
   residentId: string;
   residentName: string;
+  preselectedRecordType?: RecordType; // Tipo pré-selecionado via drag-and-drop
+  preselectedFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY'; // Frequência pré-selecionada via drag-and-drop
 }
 
 const WEEKDAY_OPTIONS = [
@@ -77,6 +79,8 @@ export function CreateScheduleConfigModal({
   onOpenChange,
   residentId,
   residentName,
+  preselectedRecordType,
+  preselectedFrequency,
 }: CreateScheduleConfigModalProps) {
   const [suggestedTimes, setSuggestedTimes] = useState<string[]>([]);
   const [newTimeInput, setNewTimeInput] = useState('');
@@ -93,6 +97,17 @@ export function CreateScheduleConfigModal({
   });
 
   const frequency = form.watch('frequency');
+
+  // Atualizar form quando o modal abrir com tipo e/ou frequência pré-selecionados
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        recordType: preselectedRecordType || '',
+        frequency: preselectedFrequency || 'DAILY',
+        notes: '',
+      });
+    }
+  }, [open, preselectedRecordType, preselectedFrequency, form]);
 
   const handleAddTime = () => {
     const trimmed = newTimeInput.trim();
@@ -169,20 +184,31 @@ export function CreateScheduleConfigModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo de Registro *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!!preselectedRecordType}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(RECORD_TYPE_LABELS).map(([key, value]) => (
-                        <SelectItem key={key} value={key}>
-                          {value.label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(RECORD_TYPE_LABELS)
+                        .filter(([key]) => !['VISITA', 'INTERCORRENCIA', 'OUTROS'].includes(key))
+                        .map(([key, value]) => (
+                          <SelectItem key={key} value={key}>
+                            {value.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
+                  {preselectedRecordType && (
+                    <p className="text-xs text-muted-foreground">
+                      Tipo selecionado via arraste do card
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -195,7 +221,11 @@ export function CreateScheduleConfigModal({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Frequência *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!!preselectedFrequency}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
@@ -207,6 +237,11 @@ export function CreateScheduleConfigModal({
                       <SelectItem value="MONTHLY">Mensalmente</SelectItem>
                     </SelectContent>
                   </Select>
+                  {preselectedFrequency && (
+                    <p className="text-xs text-muted-foreground">
+                      Frequência selecionada ao arrastar para a área específica
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -264,7 +299,7 @@ export function CreateScheduleConfigModal({
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Se o mês tiver menos dias, o registro não será gerado naquele mês
+                      Se o mês tiver menos dias (ex: dia 31 em fevereiro), o registro será gerado no último dia do mês
                     </p>
                   </FormItem>
                 )}
@@ -276,8 +311,7 @@ export function CreateScheduleConfigModal({
               <FormLabel>Horários Sugeridos *</FormLabel>
               <div className="flex gap-2">
                 <Input
-                  type="text"
-                  placeholder="HH:mm (ex: 08:00)"
+                  type="time"
                   value={newTimeInput}
                   onChange={(e) => setNewTimeInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -286,7 +320,6 @@ export function CreateScheduleConfigModal({
                       handleAddTime();
                     }
                   }}
-                  maxLength={5}
                 />
                 <Button type="button" onClick={handleAddTime} variant="outline" size="icon">
                   <Plus className="h-4 w-4" />

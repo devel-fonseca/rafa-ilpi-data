@@ -301,8 +301,7 @@ export function EditScheduleConfigModal({
                     </FormControl>
                     <FormMessage />
                     <p className="text-xs text-muted-foreground">
-                      Se o mês tiver menos dias, o registro não será gerado
-                      naquele mês
+                      Se o mês tiver menos dias (ex: dia 31 em fevereiro), o registro será gerado no último dia do mês
                     </p>
                   </FormItem>
                 )}
@@ -314,8 +313,7 @@ export function EditScheduleConfigModal({
               <FormLabel>Horários Sugeridos *</FormLabel>
               <div className="flex gap-2">
                 <Input
-                  type="text"
-                  placeholder="HH:mm (ex: 08:00)"
+                  type="time"
                   value={newTimeInput}
                   onChange={(e) => setNewTimeInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -324,7 +322,6 @@ export function EditScheduleConfigModal({
                       handleAddTime();
                     }
                   }}
-                  maxLength={5}
                 />
                 <Button
                   type="button"

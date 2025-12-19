@@ -8,7 +8,17 @@ import { api } from '@/services/api';
 export type ScheduleFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 export type ScheduledEventType = 'VACCINATION' | 'CONSULTATION' | 'EXAM' | 'PROCEDURE' | 'OTHER';
 export type ScheduledEventStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'MISSED';
-export type RecordType = 'HIGIENE' | 'ALIMENTACAO' | 'HIDRATACAO' | 'ELIMINACAO' | 'SONO' | 'HUMOR' | 'PESO' | 'GLICEMIA' | 'PRESSAO' | 'TEMPERATURA' | 'BANHO' | 'EXERCICIO' | 'LAZER';
+export type RecordType =
+  | 'HIGIENE'
+  | 'ALIMENTACAO'
+  | 'HIDRATACAO'
+  | 'MONITORAMENTO'
+  | 'ELIMINACAO'
+  | 'COMPORTAMENTO'
+  | 'HUMOR'
+  | 'SONO'
+  | 'PESO'
+  | 'ATIVIDADES';
 
 export interface ResidentScheduleConfig {
   id: string;
@@ -20,6 +30,9 @@ export interface ResidentScheduleConfig {
   suggestedTimes: string[];
   isActive: boolean;
   notes?: string;
+  metadata?: {
+    mealType?: string; // Tipo de refeição (para ALIMENTACAO)
+  };
   createdAt: string;
   updatedAt: string;
   resident?: {
@@ -73,6 +86,7 @@ export interface DailyTask {
   isCompleted?: boolean;
   completedAt?: string;
   completedBy?: string;
+  mealType?: string; // Tipo de refeição (apenas para ALIMENTACAO)
   // Event fields
   eventId?: string;
   eventType?: string;
@@ -372,6 +386,114 @@ export function useDeleteScheduledEvent() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ['scheduled-events', data.residentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['daily-tasks', data.residentId],
+      });
+    },
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// ALIMENTACAO (Batch operations for 6 meal configs)
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface MealTimesInput {
+  cafeDaManha: string;
+  colacao: string;
+  almoco: string;
+  lanche: string;
+  jantar: string;
+  ceia: string;
+}
+
+export interface CreateAlimentacaoConfigInput {
+  residentId: string;
+  mealTimes: MealTimesInput;
+  isActive?: boolean;
+  notes?: string;
+}
+
+export interface UpdateAlimentacaoConfigInput {
+  mealTimes: MealTimesInput;
+  isActive?: boolean;
+  notes?: string;
+}
+
+/**
+ * Hook para criar 6 configurações de alimentação em batch
+ */
+export function useCreateAlimentacaoConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CreateAlimentacaoConfigInput) => {
+      const response = await api.post<ResidentScheduleConfig[]>(
+        '/resident-schedule/configs/alimentacao',
+        input,
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        queryClient.invalidateQueries({
+          queryKey: ['schedule-configs', data[0].residentId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['daily-tasks', data[0].residentId],
+        });
+      }
+    },
+  });
+}
+
+/**
+ * Hook para atualizar as 6 configurações de alimentação em batch
+ */
+export function useUpdateAlimentacaoConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      residentId,
+      data,
+    }: {
+      residentId: string;
+      data: UpdateAlimentacaoConfigInput;
+    }) => {
+      const response = await api.patch<ResidentScheduleConfig[]>(
+        `/resident-schedule/configs/alimentacao/${residentId}`,
+        data,
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        queryClient.invalidateQueries({
+          queryKey: ['schedule-configs', data[0].residentId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['daily-tasks', data[0].residentId],
+        });
+      }
+    },
+  });
+}
+
+/**
+ * Hook para deletar todas as 6 configurações de alimentação
+ */
+export function useDeleteAlimentacaoConfig() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ residentId }: { residentId: string }) => {
+      await api.delete(`/resident-schedule/configs/alimentacao/${residentId}`);
+      return { residentId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: ['schedule-configs', data.residentId],
       });
       queryClient.invalidateQueries({
         queryKey: ['daily-tasks', data.residentId],

@@ -29,6 +29,8 @@ import {
   UpdateScheduledEventDto,
   QueryDailyTasksDto,
 } from './dto';
+import { CreateAlimentacaoConfigDto } from './dto/create-alimentacao-config.dto';
+import { UpdateAlimentacaoConfigDto } from './dto/update-alimentacao-config.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
@@ -108,6 +110,91 @@ export class ResidentScheduleController {
     @CurrentUser() user: any,
   ) {
     return this.scheduleService.deleteConfig(id, user.tenantId, user.id);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ALIMENTACAO (Batch operations for 6 meal configs)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @Post('configs/alimentacao')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('CREATE')
+  @ApiOperation({
+    summary: 'Criar 6 configurações de alimentação em batch',
+    description:
+      'Cria 6 configurações (uma para cada refeição obrigatória: Café da Manhã, Colação, Almoço, Lanche, Jantar, Ceia)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: '6 configurações criadas com sucesso',
+  })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiResponse({
+    status: 409,
+    description: 'Já existem configurações de alimentação para este residente',
+  })
+  createAlimentacaoConfigs(
+    @Body() dto: CreateAlimentacaoConfigDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.createAlimentacaoConfigs(
+      dto,
+      user.tenantId,
+      user.id,
+    );
+  }
+
+  @Patch('configs/alimentacao/:residentId')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('UPDATE')
+  @ApiOperation({
+    summary: 'Atualizar as 6 configurações de alimentação em batch',
+    description:
+      'Atualiza todas as 6 configurações de refeições do residente',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '6 configurações atualizadas com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Configurações não encontradas' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  updateAlimentacaoConfigs(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Body() dto: UpdateAlimentacaoConfigDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.updateAlimentacaoConfigs(
+      residentId,
+      dto,
+      user.tenantId,
+      user.id,
+    );
+  }
+
+  @Delete('configs/alimentacao/:residentId')
+  @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+  @AuditAction('DELETE')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Deletar todas as 6 configurações de alimentação',
+    description: 'Remove (soft delete) todas as 6 configurações de refeições',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configurações removidas com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Configurações não encontradas' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  deleteAlimentacaoConfigs(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.scheduleService.deleteAlimentacaoConfigs(
+      residentId,
+      user.tenantId,
+      user.id,
+    );
   }
 
   // ──────────────────────────────────────────────────────────────────────────

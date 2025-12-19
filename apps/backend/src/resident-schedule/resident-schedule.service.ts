@@ -17,6 +17,9 @@ import {
   CreateScheduledEventDto,
   UpdateScheduledEventDto,
 } from './dto';
+import { CreateAlimentacaoConfigDto } from './dto/create-alimentacao-config.dto';
+import { UpdateAlimentacaoConfigDto } from './dto/update-alimentacao-config.dto';
+import { MEAL_TYPES } from './constants/meal-types.constant';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
@@ -115,6 +118,251 @@ export class ResidentScheduleService {
     });
 
     return config;
+  }
+
+  /**
+   * Criar 6 configurações de alimentação em batch (uma para cada refeição obrigatória)
+   */
+  async createAlimentacaoConfigs(
+    dto: CreateAlimentacaoConfigDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: dto.residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Verificar se já existem configs de alimentação para este residente
+    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+      where: {
+        tenantId,
+        residentId: dto.residentId,
+        recordType: 'ALIMENTACAO',
+        frequency: 'DAILY',
+        deletedAt: null,
+      },
+    });
+
+    if (existingConfigs.length > 0) {
+      throw new ConflictException(
+        'Já existem configurações de alimentação para este residente. Use a edição para alterar os horários.',
+      );
+    }
+
+    // Mapear os horários para os tipos de refeição
+    const mealTimesMap = {
+      'Café da Manhã': dto.mealTimes.cafeDaManha,
+      'Colação': dto.mealTimes.colacao,
+      'Almoço': dto.mealTimes.almoco,
+      'Lanche': dto.mealTimes.lanche,
+      'Jantar': dto.mealTimes.jantar,
+      'Ceia': dto.mealTimes.ceia,
+    };
+
+    // Criar as 6 configs em batch usando transaction
+    const configs = await this.prisma.$transaction(
+      MEAL_TYPES.map((mealType) => {
+        return this.prisma.residentScheduleConfig.create({
+          data: {
+            tenantId,
+            residentId: dto.residentId,
+            recordType: 'ALIMENTACAO',
+            frequency: 'DAILY',
+            suggestedTimes: [mealTimesMap[mealType.value]],
+            isActive: dto.isActive ?? true,
+            notes: dto.notes,
+            metadata: {
+              mealType: mealType.value,
+            },
+            createdBy: userId,
+          },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+            createdByUser: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    this.logger.info('6 ResidentScheduleConfigs created for ALIMENTACAO', {
+      residentId: dto.residentId,
+      userId,
+      tenantId,
+    });
+
+    return configs;
+  }
+
+  /**
+   * Atualizar as 6 configurações de alimentação em batch
+   */
+  async updateAlimentacaoConfigs(
+    residentId: string,
+    dto: UpdateAlimentacaoConfigDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Buscar todas as configs de alimentação atuais
+    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+      where: {
+        tenantId,
+        residentId,
+        recordType: 'ALIMENTACAO',
+        frequency: 'DAILY',
+        deletedAt: null,
+      },
+    });
+
+    if (existingConfigs.length === 0) {
+      throw new NotFoundException(
+        'Nenhuma configuração de alimentação encontrada para este residente',
+      );
+    }
+
+    // Mapear os horários para os tipos de refeição
+    const mealTimesMap = {
+      'Café da Manhã': dto.mealTimes.cafeDaManha,
+      'Colação': dto.mealTimes.colacao,
+      'Almoço': dto.mealTimes.almoco,
+      'Lanche': dto.mealTimes.lanche,
+      'Jantar': dto.mealTimes.jantar,
+      'Ceia': dto.mealTimes.ceia,
+    };
+
+    // Atualizar todas as 6 configs em transaction
+    const updatedConfigs = await this.prisma.$transaction(
+      existingConfigs.map((config) => {
+        const metadata = config.metadata as { mealType: string };
+        const mealType = metadata.mealType;
+        const newTime = mealTimesMap[mealType];
+
+        return this.prisma.residentScheduleConfig.update({
+          where: { id: config.id },
+          data: {
+            suggestedTimes: [newTime],
+            isActive: dto.isActive ?? config.isActive,
+            notes: dto.notes ?? config.notes,
+            updatedBy: userId,
+          },
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+            updatedByUser: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    this.logger.info('6 ResidentScheduleConfigs updated for ALIMENTACAO', {
+      residentId,
+      userId,
+      tenantId,
+    });
+
+    return updatedConfigs;
+  }
+
+  /**
+   * Deletar todas as 6 configurações de alimentação em batch
+   */
+  async deleteAlimentacaoConfigs(
+    residentId: string,
+    tenantId: string,
+    userId: string,
+  ) {
+    // Verificar se residente existe
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Buscar todas as configs de alimentação
+    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+      where: {
+        tenantId,
+        residentId,
+        recordType: 'ALIMENTACAO',
+        frequency: 'DAILY',
+        deletedAt: null,
+      },
+    });
+
+    if (existingConfigs.length === 0) {
+      throw new NotFoundException(
+        'Nenhuma configuração de alimentação encontrada para este residente',
+      );
+    }
+
+    // Soft delete de todas as 6 configs
+    await this.prisma.residentScheduleConfig.updateMany({
+      where: {
+        tenantId,
+        residentId,
+        recordType: 'ALIMENTACAO',
+        frequency: 'DAILY',
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: new Date(),
+        updatedBy: userId,
+      },
+    });
+
+    this.logger.info('6 ResidentScheduleConfigs deleted for ALIMENTACAO', {
+      residentId,
+      userId,
+      tenantId,
+    });
+
+    return { message: 'Configurações de alimentação removidas com sucesso' };
   }
 
   /**
