@@ -24,10 +24,10 @@ interface BedsMapVisualizationProps {
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
-  'Disponível': 'bg-green-100 text-green-900 border-green-500',
-  'Ocupado': 'bg-red-100 text-red-900 border-red-500',
-  'Manutenção': 'bg-yellow-100 text-yellow-900 border-yellow-500',
-  'Reservado': 'bg-blue-100 text-blue-900 border-blue-500',
+  'Disponível': 'bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/50',
+  'Ocupado': 'bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/50',
+  'Manutenção': 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/50',
+  'Reservado': 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/50',
 }
 
 const BED_STATUS_LABELS: Record<string, string> = {
@@ -282,9 +282,9 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
             }}
           >
             <AccordionItem value={building.id} className="border-none">
-              <AccordionTrigger className="px-6 hover:no-underline hover:bg-slate-50">
+              <AccordionTrigger className="px-6 hover:no-underline hover:bg-accent/50">
                 <div className="flex items-center gap-3 flex-1">
-                  <Building2 className="h-5 w-5 text-blue-600" />
+                  <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   <div className="flex-1 text-left">
                     <div className="font-semibold">{building.name}</div>
                     <div className="text-xs text-muted-foreground">
@@ -299,7 +299,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                 <div className="px-6 pb-4 space-y-3">
                   {building.floors && building.floors.length > 0 ? (
                     building.floors.map((floor) => (
-                      <Card key={floor.id} className="bg-slate-50">
+                      <Card key={floor.id} className="bg-muted/30">
                         <Accordion
                           type="multiple"
                           className="w-full"
@@ -315,7 +315,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                           <AccordionItem value={floor.id} className="border-none">
                             <AccordionTrigger className="px-4 hover:no-underline">
                               <div className="flex items-center gap-3 flex-1">
-                                <Layers className="h-4 w-4 text-purple-600" />
+                                <Layers className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                                 <div className="flex-1 text-left">
                                   <div className="font-medium text-sm">{floor.name}</div>
                                   <div className="text-xs text-muted-foreground">
@@ -350,7 +350,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                         >
                                           <AccordionTrigger className="px-3 hover:no-underline">
                                             <div className="flex items-center gap-2 flex-1">
-                                              <DoorOpen className="h-4 w-4 text-orange-600" />
+                                              <DoorOpen className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                                               <div className="flex-1 text-left">
                                                 <div className="font-medium text-sm">
                                                   {room.name}
@@ -381,25 +381,25 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                                                       onDragLeave={(e) => handleDragLeave(e, bed.id)}
                                                       onDrop={(e) => handleDrop(e, bed, room, floor, building)}
                                                       className={`border-2 transition-all ${
-                                                        BED_STATUS_COLORS[bed.status] || 'bg-gray-100'
+                                                        BED_STATUS_COLORS[bed.status] || 'bg-muted/20'
                                                       } ${
                                                         draggedResident?.fromBedId === bed.id
                                                           ? 'opacity-50 cursor-grabbing'
                                                           : bed.resident
                                                           ? 'cursor-grab hover:shadow-md active:cursor-grabbing'
                                                           : draggedResident && bed.status === 'Disponível'
-                                                          ? 'ring-2 ring-dashed ring-blue-400 bg-blue-50 cursor-copy'
+                                                          ? 'ring-2 ring-dashed ring-blue-400 dark:ring-blue-600 bg-blue-500/10 dark:bg-blue-500/20 cursor-copy'
                                                           : ''
                                                       } ${
                                                         dropTargetBed === bed.id
-                                                          ? 'ring-4 ring-blue-600 shadow-2xl scale-110 bg-blue-100'
+                                                          ? 'ring-4 ring-blue-600 dark:ring-blue-400 shadow-2xl scale-110 bg-blue-500/20 dark:bg-blue-500/30'
                                                           : ''
                                                       }`}
                                                     >
                                                       <CardContent className="p-3 relative">
                                                         {draggedResident && bed.status === 'Disponível' && bed.id !== draggedResident.fromBedId && (
-                                                          <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded pointer-events-none">
-                                                            <span className="text-xs font-semibold text-blue-700 bg-white px-2 py-1 rounded shadow">
+                                                          <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 rounded pointer-events-none">
+                                                            <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 bg-background px-2 py-1 rounded shadow-md border border-blue-500/30">
                                                               ⬇ Solte aqui
                                                             </span>
                                                           </div>

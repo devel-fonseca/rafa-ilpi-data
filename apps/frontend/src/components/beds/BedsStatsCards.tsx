@@ -21,36 +21,36 @@ export function BedsStatsCards({
       title: 'Prédios',
       value: buildingsCount,
       icon: Building,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      valueColor: 'text-blue-600',
+      bgColor: 'bg-blue-500/10 dark:bg-blue-500/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      valueColor: 'text-blue-700 dark:text-blue-300',
       tabValue: 'buildings',
     },
     {
       title: 'Andares',
       value: floorsCount,
       icon: Home,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600',
-      valueColor: 'text-green-600',
+      bgColor: 'bg-green-500/10 dark:bg-green-500/20',
+      iconColor: 'text-green-600 dark:text-green-400',
+      valueColor: 'text-green-700 dark:text-green-300',
       tabValue: 'floors',
     },
     {
       title: 'Quartos',
       value: roomsCount,
       icon: Square,
-      bgColor: 'bg-orange-100',
-      iconColor: 'text-orange-600',
-      valueColor: 'text-orange-600',
+      bgColor: 'bg-orange-500/10 dark:bg-orange-500/20',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      valueColor: 'text-orange-700 dark:text-orange-300',
       tabValue: 'rooms',
     },
     {
       title: 'Leitos',
       value: bedsCount,
       icon: Bed,
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      valueColor: 'text-purple-600',
+      bgColor: 'bg-purple-500/10 dark:bg-purple-500/20',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      valueColor: 'text-purple-700 dark:text-purple-300',
       tabValue: 'beds',
     },
   ]
@@ -66,7 +66,7 @@ export function BedsStatsCards({
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-600">
+                <h3 className="text-sm font-medium text-muted-foreground">
                   {card.title}
                 </h3>
                 <p className={`text-2xl font-bold ${card.valueColor} mt-1`}>

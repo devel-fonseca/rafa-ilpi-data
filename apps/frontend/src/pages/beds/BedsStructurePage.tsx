@@ -249,7 +249,8 @@ export function BedsStructurePage() {
           <div className="flex gap-2">
             <Button
               onClick={() => setGeneratorOpen(true)}
-              className="bg-amber-600 hover:bg-amber-700"
+              variant="secondary"
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30"
             >
               <Zap className="h-4 w-4 mr-2" />
               Gerador Automático de Estrutura
