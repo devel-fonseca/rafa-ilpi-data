@@ -331,7 +331,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
                               <div className="px-4 pb-3 space-y-2">
                                 {floor.rooms && floor.rooms.length > 0 ? (
                                   floor.rooms.map((room) => (
-                                    <Card key={room.id} className="bg-white">
+                                    <Card key={room.id} className="bg-background">
                                       <Accordion
                                         type="multiple"
                                         className="w-full"
