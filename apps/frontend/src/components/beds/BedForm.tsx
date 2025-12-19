@@ -28,14 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCreateBed, useUpdateBed } from '@/hooks/useBeds'
+import { useCreateBed, useUpdateBed, useBeds } from '@/hooks/useBeds'
 import { useRooms } from '@/hooks/useRooms'
 import { useToast } from '@/components/ui/use-toast'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { generateBedCode } from '@/utils/codeGenerator'
+import { Badge } from '@/components/ui/badge'
 
 const bedSchema = z.object({
   roomId: z.string().min(1, 'Quarto é obrigatório'),
-  code: z.string().min(1, 'Código do leito é obrigatório'),
   status: z.enum(['DISPONIVEL', 'OCUPADO', 'MANUTENCAO', 'RESERVADO']).optional(),
   observations: z.string().optional(),
 })
@@ -55,17 +56,35 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
   const createMutation = useCreateBed()
   const updateMutation = useUpdateBed()
   const { data: rooms, isLoading: isLoadingRooms } = useRooms()
+  const { data: allBeds } = useBeds()
+  const [generatedCode, setGeneratedCode] = useState<string>('')
 
   const form = useForm<BedFormData>({
     resolver: zodResolver(bedSchema),
     defaultValues: {
       roomId: defaultRoomId || '',
-      code: '',
       status: 'DISPONIVEL',
       observations: '',
     },
   })
 
+
+  // Gera código automaticamente quando o roomId muda
+  useEffect(() => {
+    const roomId = form.watch('roomId')
+
+    if (roomId && !bed) {
+      // Só gera novo código se estiver criando (não editando)
+      // Filtra os códigos dos leitos do mesmo quarto
+      const existingCodes = allBeds
+        ?.filter(b => b.roomId === roomId)
+        ?.map(b => b.code) || []
+
+      // Gera código sequencial (A, B, C... ou 01, 02, 03...)
+      const newCode = generateBedCode('', existingCodes)
+      setGeneratedCode(newCode)
+    }
+  }, [form.watch('roomId'), allBeds, bed])
 
   // Popula form quando editar
   useEffect(() => {
@@ -74,28 +93,33 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
     if (bed) {
       form.reset({
         roomId: bed.roomId,
-        code: bed.code,
         status: bed.status,
         observations: bed.observations || '',
       })
+      setGeneratedCode(bed.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         roomId: defaultRoomId || '',
-        code: '',
         status: 'DISPONIVEL',
         observations: '',
       })
+      setGeneratedCode('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bed, defaultRoomId, open])
 
   const onSubmit = async (data: BedFormData) => {
     try {
+      const submitData = {
+        ...data,
+        code: generatedCode, // Adiciona o código gerado
+      }
+
       if (bed) {
         await updateMutation.mutateAsync({
           id: bed.id,
           data: {
-            code: data.code,
+            code: generatedCode,
             status: data.status,
             observations: data.observations,
           } as UpdateBedDto,
@@ -105,7 +129,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
           description: 'O leito foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(data as CreateBedDto)
+        await createMutation.mutateAsync(submitData as CreateBedDto)
         toast({
           title: 'Leito criado',
           description: 'O leito foi criado com sucesso.',
@@ -172,19 +196,13 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Código do Leito *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: 101-A, 201-B, Leito 1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Código gerado automaticamente */}
+            {generatedCode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Código:</span>
+                <Badge variant="outline">{generatedCode}</Badge>
+              </div>
+            )}
 
             <FormField
               control={form.control}
