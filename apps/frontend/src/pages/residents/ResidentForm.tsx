@@ -2013,14 +2013,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           </Card>
         )}
 
-        {/* ========== DEBUG INFO (temporário) ========== */}
-        {!readOnly && isEditMode && (
-          <div className="mb-4 p-3 bg-muted/50 rounded text-xs">
-            <p>Debug: isLoading={String(isLoading)} | isUploading={String(isUploading)} | isEditMode={String(isEditMode)}</p>
-            <p>Errors: {JSON.stringify(Object.keys(errors))}</p>
-          </div>
-        )}
-
         {/* ========== BOTÕES DE AÇÃO ========== */}
         {!readOnly && (
           <div className="text-center space-x-4">
