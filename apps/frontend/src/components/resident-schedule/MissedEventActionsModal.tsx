@@ -121,7 +121,12 @@ export function MissedEventActionsModal({
   };
 
   const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), 'dd/MM/yyyy');
+    if (!dateStr) return 'Data inválida';
+    try {
+      return format(new Date(dateStr), 'dd/MM/yyyy');
+    } catch {
+      return 'Data inválida';
+    }
   };
 
   return (

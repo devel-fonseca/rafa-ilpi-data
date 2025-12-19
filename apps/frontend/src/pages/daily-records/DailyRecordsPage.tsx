@@ -246,8 +246,8 @@ export function DailyRecordsPage() {
       {/* Header */}
       <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registros Diários</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Registros Diários</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             {resident?.fullName} |{' '}
             {formatDateLong(selectedDate + 'T00:00:00')}
           </p>
@@ -275,7 +275,7 @@ export function DailyRecordsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  ⚠️ Alergias
+                  Alergias
                 </h3>
                 {allergies && allergies.length > 0 ? (
                   <div className="space-y-1">
@@ -378,7 +378,7 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Coluna 1: Tarefas do Dia (1/3) */}
         <div className="lg:col-span-1">
           <Card className="h-full">
@@ -514,13 +514,13 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Grid de Cards de Resumo (Sinais Vitais, Alimentação e Hidratação) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Card de Sinais Vitais e Antropometria */}
-        <Card className="border-purple-500/20">
+        <Card className="border-purple-500/20 dark:border-purple-500/30">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 rounded-lg shrink-0">
-                <Heart className="h-6 w-6 text-purple-500" />
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 dark:bg-purple-500/20 rounded-lg shrink-0">
+                <Heart className="h-6 w-6 text-purple-500 dark:text-purple-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -562,13 +562,13 @@ export function DailyRecordsPage() {
                     imc = pesoNum / (alturaMetros * alturaMetros)
 
                     if (imc < 18.5) {
-                      imcClassificacao = { texto: 'Baixo peso', cor: 'text-yellow-600' }
+                      imcClassificacao = { texto: 'Baixo peso', cor: 'text-yellow-600 dark:text-yellow-400' }
                     } else if (imc < 25) {
-                      imcClassificacao = { texto: 'Peso normal', cor: 'text-green-600' }
+                      imcClassificacao = { texto: 'Peso normal', cor: 'text-green-600 dark:text-green-400' }
                     } else if (imc < 30) {
-                      imcClassificacao = { texto: 'Sobrepeso', cor: 'text-orange-600' }
+                      imcClassificacao = { texto: 'Sobrepeso', cor: 'text-orange-600 dark:text-orange-400' }
                     } else {
-                      imcClassificacao = { texto: 'Obesidade', cor: 'text-danger' }
+                      imcClassificacao = { texto: 'Obesidade', cor: 'text-red-600 dark:text-red-400' }
                     }
                   }
 
@@ -699,17 +699,17 @@ export function DailyRecordsPage() {
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
 
           return (
-            <Card className="border-orange-500/20">
+            <Card className="border-orange-500/20 dark:border-orange-500/30">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 rounded-lg shrink-0">
-                    <Utensils className="h-6 w-6 text-orange-500" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg shrink-0">
+                    <Utensils className="h-6 w-6 text-orange-500 dark:text-orange-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Aceitação Alimentar Total
                     </h3>
-                    <p className="text-3xl font-bold text-orange-500">
+                    <p className="text-3xl font-bold text-orange-500 dark:text-orange-400">
                       {percentualTotal}%
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -738,17 +738,17 @@ export function DailyRecordsPage() {
           if (totalGeral === 0) return null
 
           return (
-            <Card className="border-info/20">
+            <Card className="border-info/20 dark:border-info/30">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 bg-info/10 rounded-lg shrink-0">
-                    <Droplets className="h-6 w-6 text-info" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-info/10 dark:bg-info/20 rounded-lg shrink-0">
+                    <Droplets className="h-6 w-6 text-info dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Total de Líquidos Ingeridos
                     </h3>
-                    <p className="text-3xl font-bold text-info">
+                    <p className="text-3xl font-bold text-info dark:text-blue-400">
                       {totalGeral} ml
                     </p>
                     <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
