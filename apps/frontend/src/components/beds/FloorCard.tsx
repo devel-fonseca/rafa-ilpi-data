@@ -37,7 +37,7 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-purple-600" />
+          <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           <CardTitle className="text-lg font-bold">{floor.name}</CardTitle>
         </div>
         {canManage && (
@@ -95,14 +95,14 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
           )}
 
           <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="bg-slate-100 rounded-lg p-2">
-              <div className="text-2xl font-bold text-slate-700">
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-2xl font-bold">
                 {floor.roomsCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">Quartos</div>
             </div>
-            <div className="bg-slate-100 rounded-lg p-2">
-              <div className="text-2xl font-bold text-slate-700">
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-2xl font-bold">
                 {floor.bedsCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">Leitos</div>
@@ -115,7 +115,7 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
               <span className="text-muted-foreground">Ocupação</span>
               <span className="font-semibold">{occupancyRate}%</span>
             </div>
-            <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
               <div
                 className={`h-full ${getOccupancyColor(occupancyRate)} transition-all`}
                 style={{ width: `${occupancyRate}%` }}

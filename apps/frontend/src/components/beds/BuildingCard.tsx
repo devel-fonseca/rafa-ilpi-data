@@ -40,7 +40,7 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600" />
+          <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           <CardTitle className="text-lg font-bold">{building.name}</CardTitle>
         </div>
         {canManage && (
@@ -91,9 +91,9 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
                 e.stopPropagation()
                 onNavigateFloors?.(building)
               }}
-              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+              className="bg-muted/50 hover:bg-muted/70 rounded-lg p-2 transition-colors cursor-pointer"
             >
-              <div className="text-2xl font-bold text-slate-700">
+              <div className="text-2xl font-bold">
                 {building.totalFloors || 0}
               </div>
               <div className="text-xs text-muted-foreground">Andares</div>
@@ -103,9 +103,9 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
                 e.stopPropagation()
                 onNavigateRooms?.(building)
               }}
-              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+              className="bg-muted/50 hover:bg-muted/70 rounded-lg p-2 transition-colors cursor-pointer"
             >
-              <div className="text-2xl font-bold text-slate-700">
+              <div className="text-2xl font-bold">
                 {building.totalRooms || 0}
               </div>
               <div className="text-xs text-muted-foreground">Quartos</div>
@@ -115,9 +115,9 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
                 e.stopPropagation()
                 onNavigateBeds?.(building)
               }}
-              className="bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition-colors cursor-pointer"
+              className="bg-muted/50 hover:bg-muted/70 rounded-lg p-2 transition-colors cursor-pointer"
             >
-              <div className="text-2xl font-bold text-slate-700">
+              <div className="text-2xl font-bold">
                 {building.totalBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Leitos</div>
@@ -130,7 +130,7 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
               <span className="text-muted-foreground">Ocupação</span>
               <span className="font-semibold">{occupancyRate}%</span>
             </div>
-            <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
               <div
                 className={`h-full ${getOccupancyColor(occupancyRate)} transition-all`}
                 style={{ width: `${occupancyRate}%` }}
