@@ -33,13 +33,13 @@ import {
 import { useCreateRoom, useUpdateRoom, useRooms } from '@/hooks/useRooms'
 import { useFloors } from '@/hooks/useFloors'
 import { useToast } from '@/components/ui/use-toast'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { generateRoomCode } from '@/utils/codeGenerator'
-import { Badge } from '@/components/ui/badge'
 
 const roomSchema = z.object({
   floorId: z.string().min(1, 'Andar é obrigatório'),
   name: z.string().min(1, 'Nome é obrigatório'),
+  code: z.string().min(1, 'Código é obrigatório'),
   roomNumber: z.string().min(1, 'Número do quarto é obrigatório'),
   roomType: z.enum(['INDIVIDUAL', 'DUPLO', 'TRIPLO', 'COLETIVO']),
   capacity: z.number().min(1, 'Capacidade deve ser no mínimo 1'),
@@ -70,13 +70,13 @@ export function RoomForm({
   const updateMutation = useUpdateRoom()
   const { data: floors, isLoading: isLoadingFloors } = useFloors()
   const { data: allRooms } = useRooms()
-  const [generatedCode, setGeneratedCode] = useState<string>('')
 
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
     defaultValues: {
       floorId: defaultFloorId || '',
       name: '',
+      code: '',
       roomNumber: '',
       roomType: 'INDIVIDUAL',
       capacity: 1,
@@ -86,13 +86,14 @@ export function RoomForm({
     },
   })
 
-  // Gera código automaticamente quando o nome ou número mudam
+  // Gera código automaticamente quando o nome ou número mudam (apenas se code estiver vazio)
   useEffect(() => {
     const name = form.watch('name')
     const roomNumber = form.watch('roomNumber')
+    const code = form.watch('code')
 
-    if ((name || roomNumber) && !room) {
-      // Só gera novo código se estiver criando (não editando)
+    if ((name || roomNumber) && !room && !code) {
+      // Só gera novo código se estiver criando (não editando) e se code estiver vazio
       const floorId = form.watch('floorId')
       // Filtra os códigos dos quartos do mesmo andar
       const existingCodes = allRooms
@@ -101,9 +102,9 @@ export function RoomForm({
 
       const roomNumberInt = roomNumber ? parseInt(roomNumber) : undefined
       const newCode = generateRoomCode(name || roomNumber, existingCodes, roomNumberInt)
-      setGeneratedCode(newCode)
+      form.setValue('code', newCode)
     }
-  }, [form.watch('name'), form.watch('roomNumber'), form.watch('floorId'), allRooms, room])
+  }, [form.watch('name'), form.watch('roomNumber'), form.watch('floorId'), allRooms, room, form])
 
   // Popula form quando editar
   useEffect(() => {
@@ -111,6 +112,7 @@ export function RoomForm({
       form.reset({
         floorId: room.floorId,
         name: room.name,
+        code: room.code,
         roomNumber: room.roomNumber,
         roomType: room.roomType,
         capacity: room.capacity,
@@ -118,11 +120,11 @@ export function RoomForm({
         accessible: room.accessible || false,
         observations: room.observations || '',
       })
-      setGeneratedCode(room.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         floorId: defaultFloorId || '',
         name: '',
+        code: '',
         roomNumber: '',
         roomType: 'INDIVIDUAL',
         capacity: 1,
@@ -130,37 +132,22 @@ export function RoomForm({
         accessible: false,
         observations: '',
       })
-      setGeneratedCode('')
     }
   }, [room, defaultFloorId, form])
 
   const onSubmit = async (data: RoomFormData) => {
     try {
-      const submitData = {
-        ...data,
-        code: generatedCode, // Adiciona o código gerado
-      }
-
       if (room) {
         await updateMutation.mutateAsync({
           id: room.id,
-          data: {
-            name: data.name,
-            code: generatedCode,
-            roomNumber: data.roomNumber,
-            roomType: data.roomType,
-            capacity: data.capacity,
-            hasPrivateBathroom: data.hasPrivateBathroom,
-            accessible: data.accessible,
-            observations: data.observations,
-          } as UpdateRoomDto,
+          data: data as UpdateRoomDto,
         })
         toast({
           title: 'Quarto atualizado',
           description: 'O quarto foi atualizado com sucesso.',
         })
       } else {
-        await createMutation.mutateAsync(submitData as CreateRoomDto)
+        await createMutation.mutateAsync(data as CreateRoomDto)
         toast({
           title: 'Quarto criado',
           description: 'O quarto foi criado com sucesso.',
@@ -257,13 +244,26 @@ export function RoomForm({
               />
             </div>
 
-            {/* Código gerado automaticamente */}
-            {generatedCode && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Código:</span>
-                <Badge variant="outline">{generatedCode}</Badge>
-              </div>
-            )}
+            <FormField
+              control={form.control}
+              name="code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Código do Quarto *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: 001, 002, 101, 823"
+                      className="font-mono"
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Código numérico do quarto (geralmente 3 dígitos).
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-2 gap-4">
 

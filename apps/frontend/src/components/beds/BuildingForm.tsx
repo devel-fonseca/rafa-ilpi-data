@@ -25,12 +25,12 @@ import { useCreateBuilding, useUpdateBuilding, useBuildings } from '@/hooks/useB
 import { useToast } from '@/components/ui/use-toast'
 import { useEffect, useState } from 'react'
 import { generateBuildingCode } from '@/utils/codeGenerator'
-import { Badge } from '@/components/ui/badge'
 import { ContinueCreationDialog } from './ContinueCreationDialog'
 import { FloorForm } from './FloorForm'
 
 const buildingSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
+  code: z.string().min(1, 'Código é obrigatório'),
   description: z.string().optional(),
 })
 
@@ -48,7 +48,6 @@ export function BuildingForm({ open, onOpenChange, building, onSuccess }: Buildi
   const createMutation = useCreateBuilding()
   const updateMutation = useUpdateBuilding()
   const { data: buildings } = useBuildings()
-  const [generatedCode, setGeneratedCode] = useState<string>('')
   const [showContinueDialog, setShowContinueDialog] = useState(false)
   const [showFloorForm, setShowFloorForm] = useState(false)
   const [newBuildingId, setNewBuildingId] = useState<string>('')
@@ -57,56 +56,54 @@ export function BuildingForm({ open, onOpenChange, building, onSuccess }: Buildi
     resolver: zodResolver(buildingSchema),
     defaultValues: {
       name: '',
+      code: '',
       description: '',
     },
   })
 
-  // Gera código automaticamente quando o nome muda
+  // Gera código automaticamente quando o nome muda (apenas se code estiver vazio)
   useEffect(() => {
     const name = form.watch('name')
-    if (name && !building) {
-      // Só gera novo código se estiver criando (não editando)
+    const code = form.watch('code')
+
+    if (name && !building && !code) {
+      // Só gera novo código se estiver criando (não editando) e se code estiver vazio
       const existingCodes = buildings?.map(b => b.code) || []
       const newCode = generateBuildingCode(name, existingCodes)
-      setGeneratedCode(newCode)
+      form.setValue('code', newCode)
     }
-  }, [form.watch('name'), buildings, building])
+  }, [form.watch('name'), buildings, building, form])
 
   // Popula form quando editar
   useEffect(() => {
     if (building) {
       form.reset({
         name: building.name,
+        code: building.code,
         description: building.description || '',
       })
-      setGeneratedCode(building.code) // Mantém o código existente ao editar
     } else {
       form.reset({
         name: '',
+        code: '',
         description: '',
       })
-      setGeneratedCode('')
     }
   }, [building, form])
 
   const onSubmit = async (data: BuildingFormData) => {
     try {
-      const submitData = {
-        ...data,
-        code: generatedCode, // Adiciona o código gerado
-      }
-
       if (building) {
         await updateMutation.mutateAsync({
           id: building.id,
-          data: submitData as UpdateBuildingDto,
+          data: data as UpdateBuildingDto,
         })
         toast({
           title: 'Prédio atualizado',
           description: 'O prédio foi atualizado com sucesso.',
         })
       } else {
-        const result = await createMutation.mutateAsync(submitData as CreateBuildingDto)
+        const result = await createMutation.mutateAsync(data as CreateBuildingDto)
         toast({
           title: 'Prédio criado',
           description: 'O prédio foi criado com sucesso.',
@@ -154,20 +151,34 @@ export function BuildingForm({ open, onOpenChange, building, onSuccess }: Buildi
                   <FormItem>
                     <FormLabel>Nome *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Bloco A" {...field} />
+                      <Input placeholder="Ex: Casa Principal, Bloco A, Ala Norte" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Código gerado automaticamente */}
-              {generatedCode && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Código:</span>
-                  <Badge variant="outline">{generatedCode}</Badge>
-                </div>
-              )}
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código do Prédio *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: CLI, PP, ANEXO"
+                        className="font-mono uppercase"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-muted-foreground">
+                      Código alfanumérico curto (2-6 caracteres). Será usado na identificação dos leitos.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
