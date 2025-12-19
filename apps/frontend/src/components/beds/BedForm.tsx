@@ -83,6 +83,9 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
       // Gera código sequencial (A, B, C... ou 01, 02, 03...)
       const newCode = generateBedCode('', existingCodes)
       setGeneratedCode(newCode)
+    } else if (!roomId && !bed) {
+      // Limpa código se desselecionar o quarto
+      setGeneratedCode('')
     }
   }, [form.watch('roomId'), allBeds, bed])
 
@@ -197,7 +200,40 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
             />
 
             {/* Código gerado automaticamente */}
-            {generatedCode && (
+            {!bed && (
+              <div className="p-3 bg-muted/50 rounded-lg border space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Código do Leito:</span>
+                  {generatedCode ? (
+                    <Badge variant="outline" className="font-mono text-base">
+                      {generatedCode}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground italic">
+                      Aguardando seleção do quarto
+                    </span>
+                  )}
+                </div>
+                {form.watch('roomId') && rooms && (
+                  <div className="text-xs text-muted-foreground pt-1 border-t">
+                    {(() => {
+                      const selectedRoom = rooms.find(r => r.id === form.watch('roomId'))
+                      if (!selectedRoom) return null
+                      const building = selectedRoom.floor?.building?.name || '?'
+                      const floor = selectedRoom.floor?.name || '?'
+                      const room = selectedRoom.name || '?'
+                      return (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Localização:</span>
+                          <span>{building} → {floor} → {room}</span>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+            {bed && generatedCode && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Código:</span>
                 <Badge variant="outline">{generatedCode}</Badge>
