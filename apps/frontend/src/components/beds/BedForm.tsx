@@ -19,7 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -56,8 +55,11 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
   const createMutation = useCreateBed()
   const updateMutation = useUpdateBed()
   const { data: rooms, isLoading: isLoadingRooms } = useRooms()
-  const { data: allBeds } = useBeds()
   const [generatedCode, setGeneratedCode] = useState<string>('')
+  const [selectedRoomId, setSelectedRoomId] = useState<string | undefined>(defaultRoomId)
+
+  // Busca leitos do quarto selecionado em tempo real
+  const { data: roomBeds } = useBeds(selectedRoomId)
 
   const form = useForm<BedFormData>({
     resolver: zodResolver(bedSchema),
@@ -72,13 +74,16 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
   // Gera código automaticamente quando o roomId muda
   useEffect(() => {
     const roomId = form.watch('roomId')
+    setSelectedRoomId(roomId || undefined)
 
-    if (roomId && !bed) {
+    if (roomId && !bed && roomBeds !== undefined) {
       // Só gera novo código se estiver criando (não editando)
-      // Filtra os códigos dos leitos do mesmo quarto
-      const existingCodes = allBeds
-        ?.filter(b => b.roomId === roomId)
-        ?.map(b => b.code) || []
+      // Extrai apenas a última parte do código (após o último hífen)
+      // Exemplo: "CT-003-A" -> "A", "BA-TR-01-B" -> "B"
+      const existingCodes = roomBeds?.map(b => {
+        const parts = b.code.split('-')
+        return parts[parts.length - 1] // Última parte
+      }) || []
 
       // Gera código sequencial (A, B, C... ou 01, 02, 03...)
       const newCode = generateBedCode('', existingCodes)
@@ -87,7 +92,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
       // Limpa código se desselecionar o quarto
       setGeneratedCode('')
     }
-  }, [form.watch('roomId'), allBeds, bed])
+  }, [form.watch('roomId'), roomBeds, bed])
 
   // Popula form quando editar
   useEffect(() => {
