@@ -1022,7 +1022,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         <Tabs defaultValue="tab1" className="mb-8">
             {/* ========== NAVEGAÇÃO DE ABAS ========== */}
             <div className="overflow-x-auto mb-6">
-              <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
+              <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
                 <TabsTrigger value="tab1" className="whitespace-nowrap">
                   1. Dados & Contatos
                 </TabsTrigger>
