@@ -83,6 +83,7 @@ export class ResidentScheduleTasksService {
       },
       select: {
         type: true,
+        data: true, // ✅ Buscar data para comparar mealType em ALIMENTACAO
         createdAt: true,
         user: {
           select: {
@@ -92,17 +93,41 @@ export class ResidentScheduleTasksService {
       },
     });
 
-    const existingRecordTypesMap = new Map(
-      existingRecords.map((record) => [
-        record.type,
-        { createdAt: record.createdAt, createdBy: record.user.name },
-      ]),
-    );
-
+    // ✅ CORREÇÃO: Para ALIMENTACAO, precisamos comparar type + mealType
     // Mapear tarefas incluindo status de conclusão
     const recurringTasks: DailyTask[] = filteredConfigs.map((config) => {
-      const recordData = existingRecordTypesMap.get(config.recordType);
       const metadata = config.metadata as { mealType?: string } | null;
+
+      // Buscar registro correspondente
+      let recordData: { createdAt: Date; createdBy: string } | undefined;
+
+      if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
+        // Para ALIMENTACAO, verificar se existe registro com mesmo mealType
+        const matchingRecord = existingRecords.find(
+          (record) =>
+            record.type === 'ALIMENTACAO' &&
+            (record.data as any)?.mealType === metadata.mealType,
+        );
+
+        if (matchingRecord) {
+          recordData = {
+            createdAt: matchingRecord.createdAt,
+            createdBy: matchingRecord.user.name,
+          };
+        }
+      } else {
+        // Para outros tipos, basta verificar o tipo
+        const matchingRecord = existingRecords.find(
+          (record) => record.type === config.recordType,
+        );
+
+        if (matchingRecord) {
+          recordData = {
+            createdAt: matchingRecord.createdAt,
+            createdBy: matchingRecord.user.name,
+          };
+        }
+      }
 
       return {
         type: 'RECURRING' as const,

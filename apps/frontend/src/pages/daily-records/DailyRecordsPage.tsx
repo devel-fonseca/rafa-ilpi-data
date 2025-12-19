@@ -8,6 +8,7 @@ import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft,
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
+import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -68,6 +69,7 @@ export function DailyRecordsPage() {
   const selectedDate = searchParams.get('date') || getCurrentDateLocal()
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
+  const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined)
   const [viewingRecord, setViewingRecord] = useState<any>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
@@ -107,12 +109,15 @@ export function DailyRecordsPage() {
     mutationFn: async (data: any) => {
       return await api.post('/daily-records', data)
     },
-    onSuccess: () => {
-      // Invalidar todas as queries relacionadas a daily-records
-      queryClient.invalidateQueries({ queryKey: ['daily-records'] })
-      // Invalidar queries específicas para atualizar os cards de estatísticas
-      queryClient.invalidateQueries({ queryKey: ['daily-records', 'latest-by-residents'] })
-      queryClient.invalidateQueries({ queryKey: ['daily-records', 'by-date'] })
+    onSuccess: (response) => {
+      // ✅ NOVO PADRÃO: Helper centralizado de invalidação
+      // Invalida: daily-records, daily-tasks, audit, notifications
+      const recordData = response.data
+      invalidateAfterDailyRecordMutation(
+        queryClient,
+        recordData.residentId || residentId,
+        recordData.date || selectedDate
+      )
       setActiveModal(null)
       toast.success('Registro adicionado com sucesso!')
     },
@@ -382,7 +387,10 @@ export function DailyRecordsPage() {
               <DailyTasksPanel
                 residentId={residentId}
                 selectedDate={selectedDate}
-                onRegisterRecord={(recordType) => setActiveModal(recordType)}
+                onRegisterRecord={(recordType, mealType) => {
+                  setActiveModal(recordType)
+                  setSelectedMealType(mealType)
+                }}
               />
             </CardContent>
           </Card>
@@ -774,13 +782,17 @@ export function DailyRecordsPage() {
       {activeModal === 'ALIMENTACAO' && (
         <AlimentacaoModal
           open={true}
-          onClose={() => setActiveModal(null)}
+          onClose={() => {
+            setActiveModal(null)
+            setSelectedMealType(undefined) // ✅ Limpar seleção ao fechar
+          }}
           onSubmit={handleCreateRecord}
           residentId={residentId}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
           existingRecords={records.filter((r) => r.type === 'ALIMENTACAO')}
+          defaultMealType={selectedMealType} // ✅ Passar mealType pré-selecionado
         />
       )}
       {activeModal === 'HIDRATACAO' && (

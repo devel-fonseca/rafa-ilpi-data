@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ReactNode, useEffect } from 'react'
 
+// ✅ Criar instância do QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,15 +18,22 @@ const queryClient = new QueryClient({
   },
 })
 
+// ✅ Declarar tipo global para TypeScript
+declare global {
+  interface Window {
+    queryClient: QueryClient
+  }
+}
+
 interface QueryProviderProps {
   children: ReactNode
 }
 
 export function QueryProvider({ children }: QueryProviderProps) {
-  // Expor queryClient globalmente para que auth.store possa limpar cache no logout
+  // ✅ Expor queryClient globalmente para que auth.store possa limpar cache no logout
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).queryClient = queryClient
+      window.queryClient = queryClient
     }
   }, [])
 

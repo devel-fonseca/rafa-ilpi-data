@@ -61,6 +61,7 @@ interface AlimentacaoModalProps {
   date: string
   currentUserName: string
   existingRecords?: Array<{ data: { refeicao: string } }>
+  defaultMealType?: string // ✅ Pré-seleção de refeição quando vem das tarefas
 }
 
 export function AlimentacaoModal({
@@ -72,6 +73,7 @@ export function AlimentacaoModal({
   date,
   currentUserName,
   existingRecords = [],
+  defaultMealType,
 }: AlimentacaoModalProps) {
   const [currentStep, setCurrentStep] = useState(1)
 
@@ -110,6 +112,7 @@ export function AlimentacaoModal({
     resolver: zodResolver(alimentacaoSchema),
     defaultValues: {
       time: getCurrentTimeLocal(),
+      refeicao: defaultMealType as any, // ✅ Pré-selecionar refeição se vier das tarefas
       cardapio: 'Refeição institucional',
       consistencia: 'Geral',
       ingeriu: '100%',
@@ -129,6 +132,7 @@ export function AlimentacaoModal({
       recordedBy: currentUserName,
       data: {
         refeicao: data.refeicao,
+        mealType: data.refeicao, // ✅ Incluir mealType para verificação de tarefas
         cardapio: data.cardapio,
         consistencia: data.consistencia,
         ingeriu: data.ingeriu,

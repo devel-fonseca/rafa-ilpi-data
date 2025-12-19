@@ -128,6 +128,14 @@ export const useAuthStore = create<AuthState>()(
           })
 
           const { user, accessToken, refreshToken } = response.data
+
+          // ✅ CRÍTICO: Limpar TODO o cache do React Query ANTES de setar novo user
+          // Isso garante que dados do tenant anterior não apareçam para o novo tenant
+          if (typeof window !== 'undefined' && window.queryClient) {
+            console.log('🧹 Auth Store - Limpando cache ao trocar tenant...')
+            window.queryClient.clear()
+          }
+
           set({
             user,
             accessToken,
@@ -214,9 +222,9 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             console.log('🧹 Auth Store - Limpando cache no logout...')
             // Limpar cache do React Query
-            if ((window as any).queryClient) {
+            if (window.queryClient) {
               console.log('🧹 Limpando React Query cache...')
-              (window as any).queryClient.clear()
+              window.queryClient.clear()
             } else {
               console.warn('⚠️ queryClient não encontrado no window!')
             }

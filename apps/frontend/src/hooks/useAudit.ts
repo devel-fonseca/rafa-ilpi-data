@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { QUERY_KEYS } from '@/constants/queryKeys'
 
 export interface AuditLog {
   id: number
@@ -17,15 +18,21 @@ export interface AuditLog {
 
 /**
  * Hook para buscar atividades recentes
+ *
+ * ✅ NOVO PADRÃO: Sem polling! Usa invalidação inteligente.
+ * Queries são invalidadas automaticamente quando:
+ * - Criar/editar/deletar qualquer registro
+ * - Helpers invalidateGlobalQueries() cuidam disso
  */
 export function useRecentActivity(limit: number = 10) {
   return useQuery({
-    queryKey: ['audit', 'recent', limit],
+    queryKey: QUERY_KEYS.audit.recent(limit),
     queryFn: async () => {
       const response = await api.get<AuditLog[]>(`/audit/recent?limit=${limit}`)
       return response.data
     },
-    refetchInterval: 30000, // Atualiza a cada 30 segundos
+    // ✅ Removido refetchInterval - invalidação via mutations é mais eficiente
+    staleTime: 5 * 60 * 1000, // 5 minutos - dados ficam frescos
   })
 }
 
@@ -52,7 +59,7 @@ export function useAuditLogs(filters?: {
   if (filters?.limit) queryParams.append('limit', String(filters.limit))
 
   return useQuery({
-    queryKey: ['audit', 'logs', filters],
+    queryKey: QUERY_KEYS.audit.logs(filters),
     queryFn: async () => {
       const response = await api.get<AuditLog[]>(`/audit/logs?${queryParams.toString()}`)
       return response.data
@@ -70,7 +77,7 @@ export function useAuditStats(startDate?: string, endDate?: string) {
   if (endDate) queryParams.append('endDate', endDate)
 
   return useQuery({
-    queryKey: ['audit', 'stats', startDate, endDate],
+    queryKey: QUERY_KEYS.audit.stats(startDate, endDate),
     queryFn: async () => {
       const response = await api.get(`/audit/stats?${queryParams.toString()}`)
       return response.data

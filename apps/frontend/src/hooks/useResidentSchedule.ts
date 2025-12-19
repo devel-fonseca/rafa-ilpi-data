@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { QUERY_KEYS } from '@/constants/queryKeys';
+import { invalidateAfterScheduleMutation } from '@/utils/queryInvalidation';
 
 // ──────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -247,14 +249,8 @@ export function useCreateScheduleConfig() {
       return response.data;
     },
     onSuccess: (data) => {
-      // Invalidar lista de configurações do residente
-      queryClient.invalidateQueries({
-        queryKey: ['schedule-configs', data.residentId],
-      });
-      // Invalidar tarefas do dia
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -280,12 +276,8 @@ export function useUpdateScheduleConfig() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['schedule-configs', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -302,12 +294,8 @@ export function useDeleteScheduleConfig() {
       return { id, residentId };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['schedule-configs', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -331,12 +319,8 @@ export function useCreateScheduledEvent() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['scheduled-events', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -362,12 +346,8 @@ export function useUpdateScheduledEvent() {
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['scheduled-events', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -384,12 +364,8 @@ export function useDeleteScheduledEvent() {
       return { id, residentId };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['scheduled-events', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }
@@ -435,13 +411,9 @@ export function useCreateAlimentacaoConfig() {
       return response.data;
     },
     onSuccess: (data) => {
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
       if (data.length > 0) {
-        queryClient.invalidateQueries({
-          queryKey: ['schedule-configs', data[0].residentId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['daily-tasks', data[0].residentId],
-        });
+        invalidateAfterScheduleMutation(queryClient, data[0].residentId);
       }
     },
   });
@@ -468,13 +440,9 @@ export function useUpdateAlimentacaoConfig() {
       return response.data;
     },
     onSuccess: (data) => {
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
       if (data.length > 0) {
-        queryClient.invalidateQueries({
-          queryKey: ['schedule-configs', data[0].residentId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ['daily-tasks', data[0].residentId],
-        });
+        invalidateAfterScheduleMutation(queryClient, data[0].residentId);
       }
     },
   });
@@ -492,12 +460,8 @@ export function useDeleteAlimentacaoConfig() {
       return { residentId };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ['schedule-configs', data.residentId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['daily-tasks', data.residentId],
-      });
+      // ✅ NOVO PADRÃO: Um helper cuida de TODA a invalidação
+      invalidateAfterScheduleMutation(queryClient, data.residentId);
     },
   });
 }

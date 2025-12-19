@@ -7,7 +7,7 @@ import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
 interface DailyTasksPanelProps {
   residentId: string | null;
   selectedDate: string;
-  onRegisterRecord?: (recordType: string) => void;
+  onRegisterRecord?: (recordType: string, mealType?: string) => void;
 }
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -127,7 +127,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                       size="sm"
                       variant="ghost"
                       className="h-7 px-2 text-xs"
-                      onClick={() => onRegisterRecord(task.recordType!)}
+                      onClick={() => onRegisterRecord(task.recordType!, task.mealType)}
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Registrar
