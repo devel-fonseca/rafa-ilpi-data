@@ -226,13 +226,13 @@ export function ResidentHistoryDrawer({
               </div>
 
               {/* Nota de Conformidade */}
-              <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <Card className="bg-info/10 border-info/30">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <AlertCircle className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
                       <p className="font-semibold mb-1">Conformidade Regulatória</p>
-                      <p className="text-xs">
+                      <p className="text-xs text-muted-foreground">
                         Este histórico é imutável e está em conformidade com a RDC 502/2021 Art. 39 (ANVISA)
                         e LGPD Art. 48, garantindo rastreabilidade completa de todas as alterações no prontuário.
                       </p>
