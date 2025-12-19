@@ -31,8 +31,8 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 
-# Limpar cache do Prisma e regenerar para Alpine com OpenSSL 3.0
-RUN rm -rf node_modules/.prisma && npx prisma generate
+# Gerar Prisma client (já vem gerado do host)
+RUN npx prisma generate
 
 # Build da aplicação
 RUN npm run build

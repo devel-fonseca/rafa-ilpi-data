@@ -159,7 +159,7 @@ export class ResidentScheduleService {
     }
 
     // Mapear os horários para os tipos de refeição
-    const mealTimesMap = {
+    const mealTimesMap: Record<string, string> = {
       'Café da Manhã': dto.mealTimes.cafeDaManha,
       'Colação': dto.mealTimes.colacao,
       'Almoço': dto.mealTimes.almoco,
@@ -252,7 +252,7 @@ export class ResidentScheduleService {
     }
 
     // Mapear os horários para os tipos de refeição
-    const mealTimesMap = {
+    const mealTimesMap: Record<string, string> = {
       'Café da Manhã': dto.mealTimes.cafeDaManha,
       'Colação': dto.mealTimes.colacao,
       'Almoço': dto.mealTimes.almoco,

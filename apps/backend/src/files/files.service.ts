@@ -76,7 +76,7 @@ export class FilesService {
    * Usa master key do .env + tenantId para isolamento total
    */
   private generateEncryptionKey(tenantId: string): Buffer {
-    const masterKey = this.configService.get<string>('ENCRYPTION_KEY')!;
+    const masterKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY')!;
 
     // Derivar chave única por tenant usando HMAC-SHA256
     const derivedKey = createHash('sha256')
@@ -294,7 +294,15 @@ export class FilesService {
       };
     } catch (error) {
       this.logger.error(`Error uploading file: ${error.message}`, error.stack);
-      throw new BadRequestException('Erro ao fazer upload do arquivo');
+
+      // Em produção, logar erro detalhado mas retornar mensagem genérica
+      // Em desenvolvimento, retornar erro específico para debug
+      const isDev = this.configService.get<string>('NODE_ENV') !== 'production';
+      const errorMessage = isDev
+        ? `Erro ao fazer upload: ${error.message}`
+        : 'Erro ao fazer upload do arquivo';
+
+      throw new BadRequestException(errorMessage);
     }
   }
 

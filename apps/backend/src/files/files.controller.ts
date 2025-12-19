@@ -9,6 +9,8 @@ import {
   UploadedFile,
   UseGuards,
   BadRequestException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -61,6 +63,7 @@ export class FilesController {
     description: 'Arquivo inválido ou muito grande',
   })
   @Post('upload')
+  @UsePipes(new ValidationPipe({ forbidNonWhitelisted: false }))
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
@@ -81,6 +84,13 @@ export class FilesController {
 
     if (!category) {
       throw new BadRequestException('Categoria é obrigatória');
+    }
+
+    // Validar que o usuário tem tenantId
+    if (!user || !user.tenantId) {
+      throw new BadRequestException(
+        'Usuário não possui tenant associado. User: ' + JSON.stringify(user),
+      );
     }
 
     // Usar tenantId do usuário logado
