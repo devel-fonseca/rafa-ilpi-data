@@ -2015,7 +2015,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         {/* ========== DEBUG INFO (temporário) ========== */}
         {!readOnly && isEditMode && (
-          <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
+          <div className="mb-4 p-3 bg-muted/50 rounded text-xs">
             <p>Debug: isLoading={String(isLoading)} | isUploading={String(isUploading)} | isEditMode={String(isEditMode)}</p>
             <p>Errors: {JSON.stringify(Object.keys(errors))}</p>
           </div>
