@@ -51,7 +51,14 @@ export class RoomsService {
         where,
         include: {
           floor: {
-            select: { id: true, name: true, buildingId: true },
+            select: {
+              id: true,
+              name: true,
+              buildingId: true,
+              building: {
+                select: { id: true, name: true, code: true },
+              },
+            },
           },
           _count: {
             select: { beds: true },
@@ -96,7 +103,14 @@ export class RoomsService {
       where: { id, tenantId, deletedAt: null },
       include: {
         floor: {
-          select: { id: true, name: true, buildingId: true },
+          select: {
+            id: true,
+            name: true,
+            buildingId: true,
+            building: {
+              select: { id: true, name: true, code: true },
+            },
+          },
         },
         beds: {
           where: { deletedAt: null },

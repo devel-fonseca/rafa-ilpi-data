@@ -186,11 +186,15 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
                           Carregando...
                         </SelectItem>
                       ) : (
-                        rooms?.map((room) => (
-                          <SelectItem key={room.id} value={room.id}>
-                            {room.name} ({room.code})
-                          </SelectItem>
-                        ))
+                        rooms?.map((room) => {
+                          const building = room.floor?.building?.name || '?'
+                          const floor = room.floor?.name || '?'
+                          return (
+                            <SelectItem key={room.id} value={room.id}>
+                              {building} → {floor} → {room.name}
+                            </SelectItem>
+                          )
+                        })
                       )}
                     </SelectContent>
                   </Select>
