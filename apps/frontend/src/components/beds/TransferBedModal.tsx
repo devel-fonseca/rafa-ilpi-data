@@ -85,7 +85,7 @@ export function TransferBedModal({
           </div>
 
           {/* Transferência */}
-          <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-lg">
+          <div className="flex items-center gap-3 bg-muted/50 p-4 rounded-lg">
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground">De</Label>
               <div className="space-y-1">
@@ -96,12 +96,12 @@ export function TransferBedModal({
               </div>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-blue-600 shrink-0" />
+            <ArrowRight className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
 
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground">Para</Label>
               <div className="space-y-1">
-                <Badge variant="outline" className="font-mono text-base bg-blue-50 border-blue-300">
+                <Badge variant="outline" className="font-mono text-base bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/50">
                   {toBedCode}
                 </Badge>
                 <p className="text-xs text-muted-foreground">{toLocation}</p>
