@@ -130,24 +130,24 @@ export function ResidentHistoryDrawer({
           {data && data.history && data.history.length > 0 && (
             <div className="space-y-4">
               {/* Informação do Residente */}
-              <Card className="bg-muted/50 border-muted">
+              <Card className="bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/30">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Nome Completo</p>
-                      <p className="font-semibold">{data.resident.fullName}</p>
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.resident.fullName}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">CPF</p>
-                      <p className="font-semibold">{data.resident.cpf || 'Não informado'}</p>
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.resident.cpf || 'Não informado'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Versão Atual</p>
-                      <p className="font-semibold">v{data.resident.currentVersion}</p>
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">v{data.resident.currentVersion}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total de Versões</p>
-                      <p className="font-semibold">{data.totalVersions}</p>
+                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.totalVersions}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -159,7 +159,7 @@ export function ResidentHistoryDrawer({
                   <Card
                     key={entry.id}
                     className={`
-                      relative border-l-4 transition-all hover:shadow-md
+                      relative border-l-4 transition-all hover:shadow-md bg-muted/30
                       ${entry.changeType === 'CREATE' ? 'border-l-success' : ''}
                       ${entry.changeType === 'UPDATE' ? 'border-l-info' : ''}
                       ${entry.changeType === 'DELETE' ? 'border-l-danger' : ''}
@@ -181,7 +181,7 @@ export function ResidentHistoryDrawer({
                       </div>
 
                       {/* Motivo da Alteração */}
-                      <div className="mb-3 p-3 bg-muted/50 rounded-md">
+                      <div className="mb-3 p-3 bg-muted/70 rounded-md">
                         <p className="text-xs text-muted-foreground mb-1 font-semibold">
                           Motivo da Alteração
                         </p>
@@ -198,8 +198,7 @@ export function ResidentHistoryDrawer({
                             {entry.changedFields.map((field: string, idx: number) => (
                               <Badge
                                 key={idx}
-                                variant="secondary"
-                                className="text-xs font-mono"
+                                className="text-xs font-mono bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
                               >
                                 {field}
                               </Badge>
