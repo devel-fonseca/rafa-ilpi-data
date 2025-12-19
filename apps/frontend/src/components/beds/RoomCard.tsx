@@ -26,10 +26,10 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 }
 
 const ROOM_TYPE_COLORS: Record<string, string> = {
-  INDIVIDUAL: 'bg-blue-100 text-blue-800',
-  DUPLO: 'bg-green-100 text-green-800',
-  TRIPLO: 'bg-yellow-100 text-yellow-800',
-  COLETIVO: 'bg-purple-100 text-purple-800',
+  INDIVIDUAL: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
+  DUPLO: 'bg-green-500/10 text-green-700 dark:text-green-300',
+  TRIPLO: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+  COLETIVO: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
 }
 
 export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: RoomCardProps) {
@@ -49,7 +49,7 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <DoorOpen className="h-5 w-5 text-orange-600" />
+          <DoorOpen className="h-5 w-5 text-orange-600 dark:text-orange-400" />
           <CardTitle className="text-lg font-bold">{room.name}</CardTitle>
         </div>
         {canManage && (
@@ -135,20 +135,20 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
 
           {/* Estatísticas de leitos */}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-green-100 rounded-lg p-2">
-              <div className="text-xl font-bold text-green-700">
+            <div className="bg-green-500/10 dark:bg-green-500/20 rounded-lg p-2">
+              <div className="text-xl font-bold text-green-700 dark:text-green-300">
                 {room.availableBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Disponíveis</div>
             </div>
-            <div className="bg-red-100 rounded-lg p-2">
-              <div className="text-xl font-bold text-red-700">
+            <div className="bg-red-500/10 dark:bg-red-500/20 rounded-lg p-2">
+              <div className="text-xl font-bold text-red-700 dark:text-red-300">
                 {room.occupiedBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Ocupados</div>
             </div>
-            <div className="bg-slate-100 rounded-lg p-2">
-              <div className="text-xl font-bold text-slate-700">{room.totalBeds || 0}</div>
+            <div className="bg-muted/50 rounded-lg p-2">
+              <div className="text-xl font-bold">{room.totalBeds || 0}</div>
               <div className="text-xs text-muted-foreground">Total</div>
             </div>
           </div>
@@ -159,7 +159,7 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
               <span className="text-muted-foreground">Ocupação</span>
               <span className="font-semibold">{occupancyRate}%</span>
             </div>
-            <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
               <div
                 className={`h-full ${getOccupancyColor(occupancyRate)} transition-all`}
                 style={{ width: `${occupancyRate}%` }}
