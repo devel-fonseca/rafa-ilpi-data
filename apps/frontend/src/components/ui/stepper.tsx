@@ -40,7 +40,7 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
                     <div
                       className={cn(
                         'h-full w-full',
-                        isCompleted ? 'bg-primary' : 'bg-gray-200'
+                        isCompleted ? 'bg-primary' : 'bg-muted'
                       )}
                     />
                   </div>
@@ -52,10 +52,10 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
                       className={cn(
                         'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors',
                         isCompleted &&
-                          'border-primary bg-primary text-white',
+                          'border-primary bg-primary text-primary-foreground',
                         isCurrent &&
-                          'border-primary bg-white text-primary',
-                        isUpcoming && 'border-gray-300 bg-white text-gray-500'
+                          'border-primary bg-background text-primary',
+                        isUpcoming && 'border-muted-foreground/30 bg-background text-muted-foreground'
                       )}
                     >
                       {isCompleted ? (
@@ -72,13 +72,13 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
                       className={cn(
                         'text-sm font-medium',
                         isCurrent && 'text-primary',
-                        (isCompleted || isUpcoming) && 'text-gray-500'
+                        (isCompleted || isUpcoming) && 'text-muted-foreground'
                       )}
                     >
                       {step.title}
                     </span>
                     {step.description && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         {step.description}
                       </span>
                     )}
