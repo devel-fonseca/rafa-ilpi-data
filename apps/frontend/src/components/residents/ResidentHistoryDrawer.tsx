@@ -42,27 +42,27 @@ export function ResidentHistoryDrawer({
     switch (changeType) {
       case 'CREATE':
         return (
-          <Badge className="bg-success/10 text-success border-success/30">
+          <Badge className="bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30">
             <CheckCircle className="w-3 h-3 mr-1" />
             Criação
           </Badge>
         )
       case 'UPDATE':
         return (
-          <Badge className="bg-info/10 text-info border-info/30">
+          <Badge className="bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30">
             <FileText className="w-3 h-3 mr-1" />
             Atualização
           </Badge>
         )
       case 'DELETE':
         return (
-          <Badge className="bg-danger/10 text-danger border-danger/30">
+          <Badge className="bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30">
             <XCircle className="w-3 h-3 mr-1" />
             Remoção
           </Badge>
         )
       default:
-        return <Badge>{changeType}</Badge>
+        return <Badge variant="outline">{changeType}</Badge>
     }
   }
 
@@ -103,13 +103,13 @@ export function ResidentHistoryDrawer({
           )}
 
           {error && (
-            <Card className="border-danger/50 bg-danger/5">
+            <Card className="border-red-500/50 bg-red-500/10 dark:bg-red-500/20">
               <CardContent className="p-6">
-                <div className="flex items-center gap-3 text-danger">
-                  <AlertCircle className="w-5 h-5" />
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <div>
-                    <p className="font-semibold">Erro ao carregar histórico</p>
-                    <p className="text-sm mt-1">
+                    <p className="font-semibold text-red-700 dark:text-red-300">Erro ao carregar histórico</p>
+                    <p className="text-sm mt-1 text-muted-foreground">
                       Não foi possível buscar o histórico de alterações.
                     </p>
                   </div>
@@ -159,10 +159,10 @@ export function ResidentHistoryDrawer({
                   <Card
                     key={entry.id}
                     className={`
-                      relative border-l-4 transition-all hover:shadow-md bg-muted/30
-                      ${entry.changeType === 'CREATE' ? 'border-l-success' : ''}
-                      ${entry.changeType === 'UPDATE' ? 'border-l-info' : ''}
-                      ${entry.changeType === 'DELETE' ? 'border-l-danger' : ''}
+                      relative border-l-4 transition-all hover:shadow-md bg-card
+                      ${entry.changeType === 'CREATE' ? 'border-l-green-500' : ''}
+                      ${entry.changeType === 'UPDATE' ? 'border-l-blue-500' : ''}
+                      ${entry.changeType === 'DELETE' ? 'border-l-red-500' : ''}
                     `}
                   >
                     <CardContent className="p-4">
@@ -225,12 +225,12 @@ export function ResidentHistoryDrawer({
               </div>
 
               {/* Nota de Conformidade */}
-              <Card className="bg-info/10 border-info/30">
+              <Card className="bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/30">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-info flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-semibold mb-1">Conformidade Regulatória</p>
+                      <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">Conformidade Regulatória</p>
                       <p className="text-xs text-muted-foreground">
                         Este histórico é imutável e está em conformidade com a RDC 502/2021 Art. 39 (ANVISA)
                         e LGPD Art. 48, garantindo rastreabilidade completa de todas as alterações no prontuário.
