@@ -81,7 +81,9 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.RECORD_VITAL_SIGNS,
     PermissionType.VIEW_VACCINATIONS,
-    PermissionType.RECORD_VACCINATIONS,
+    PermissionType.CREATE_VACCINATIONS,
+    PermissionType.UPDATE_VACCINATIONS,
+    PermissionType.DELETE_VACCINATIONS,
     PermissionType.VIEW_CLINICAL_NOTES,
     PermissionType.CREATE_CLINICAL_NOTES,
     PermissionType.UPDATE_CLINICAL_NOTES,
@@ -142,7 +144,9 @@ const BASE_PERMISSIONS = {
     PermissionType.RECORD_VITAL_SIGNS,
     // Vacinações
     PermissionType.VIEW_VACCINATIONS,
-    PermissionType.RECORD_VACCINATIONS,
+    PermissionType.CREATE_VACCINATIONS,
+    PermissionType.UPDATE_VACCINATIONS,
+    PermissionType.DELETE_VACCINATIONS,
     // Evoluções Clínicas
     PermissionType.VIEW_CLINICAL_NOTES,
     PermissionType.CREATE_CLINICAL_NOTES,
@@ -309,7 +313,7 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     permissions: [
       ...BASE_PERMISSIONS.STAFF,
       PermissionType.ADMINISTER_MEDICATIONS,
-      PermissionType.RECORD_VACCINATIONS,
+      PermissionType.CREATE_VACCINATIONS,
       PermissionType.UPDATE_RESIDENTS, // Atualizar dados de saúde
     ],
   },
@@ -323,7 +327,7 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     permissions: [
       ...BASE_PERMISSIONS.STAFF,
       PermissionType.ADMINISTER_MEDICATIONS,
-      PermissionType.RECORD_VACCINATIONS,
+      PermissionType.CREATE_VACCINATIONS,
     ],
   },
 
