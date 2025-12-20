@@ -422,6 +422,7 @@ export class NotificationsService {
   async createScheduledEventDueNotification(
     tenantId: string,
     eventId: string,
+    residentId: string,
     residentName: string,
     eventTitle: string,
     scheduledTime: string,
@@ -432,10 +433,10 @@ export class NotificationsService {
       severity: NotificationSeverity.INFO,
       title: 'Evento Agendado Hoje',
       message: `${residentName} tem um agendamento hoje às ${scheduledTime}: ${eventTitle}`,
-      actionUrl: `/dashboard/residentes/${residentName}/agenda`,
+      actionUrl: `/dashboard/residentes/${residentId}`,
       entityType: 'SCHEDULED_EVENT',
       entityId: eventId,
-      metadata: { residentName, eventTitle, scheduledTime },
+      metadata: { residentId, residentName, eventTitle, scheduledTime },
     })
   }
 
@@ -445,6 +446,7 @@ export class NotificationsService {
   async createScheduledEventMissedNotification(
     tenantId: string,
     eventId: string,
+    residentId: string,
     residentName: string,
     eventTitle: string,
     scheduledDate: Date,
@@ -457,10 +459,10 @@ export class NotificationsService {
       severity: NotificationSeverity.WARNING,
       title: 'Evento Não Concluído',
       message: `O agendamento "${eventTitle}" de ${residentName} em ${dateStr} não foi marcado como concluído.`,
-      actionUrl: `/dashboard/residentes/${residentName}/agenda`,
+      actionUrl: `/dashboard/residentes/${residentId}`,
       entityType: 'SCHEDULED_EVENT',
       entityId: eventId,
-      metadata: { residentName, eventTitle, scheduledDate: dateStr },
+      metadata: { residentId, residentName, eventTitle, scheduledDate: dateStr },
     })
   }
 }

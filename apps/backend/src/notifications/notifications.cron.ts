@@ -80,6 +80,7 @@ export class NotificationsCronService {
             await this.notificationsService.createScheduledEventDueNotification(
               tenant.id,
               event.id,
+              event.resident?.id || '',
               event.resident?.fullName || 'Residente',
               event.title,
               event.scheduledTime,
@@ -128,6 +129,7 @@ export class NotificationsCronService {
             await this.notificationsService.createScheduledEventMissedNotification(
               tenant.id,
               event.id,
+              event.resident?.id || '',
               event.resident?.fullName || 'Residente',
               event.title,
               event.scheduledDate,
