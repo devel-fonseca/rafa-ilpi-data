@@ -606,6 +606,7 @@ export class ResidentScheduleService {
       await this.notificationsService.createScheduledEventDueNotification(
         tenantId,
         event.id,
+        resident.id,
         resident.fullName,
         event.title,
         event.scheduledTime,
@@ -733,6 +734,7 @@ export class ResidentScheduleService {
         await this.notificationsService.createScheduledEventDueNotification(
           tenantId,
           updated.id,
+          updated.resident.id,
           updated.resident.fullName,
           updated.title,
           updated.scheduledTime,
