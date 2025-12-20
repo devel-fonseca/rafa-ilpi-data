@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Accessibility } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -48,6 +48,7 @@ interface Resident {
   status: string
   cpf?: string
   cns?: string
+  mobilityAid?: boolean
 }
 
 interface ResidentSelectionGridProps {
@@ -265,6 +266,14 @@ export function ResidentSelectionGrid({
                       {resident.fullName}
                     </h3>
                   </div>
+
+                  {/* Badge de Auxílio para Mobilidade */}
+                  {resident.mobilityAid && (
+                    <Badge variant="outline" className="flex items-center gap-1 border-blue-500 text-blue-500">
+                      <Accessibility className="h-3 w-3" />
+                      <span className="text-xs">Necessita auxílio</span>
+                    </Badge>
+                  )}
 
                   {/* Acomodação */}
                   {resident.bed && (
