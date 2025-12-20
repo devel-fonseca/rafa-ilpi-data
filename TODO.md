@@ -1,6 +1,6 @@
 # TODO - Tarefas Ativas
 
-**Última atualização:** 17/12/2025
+**Última atualização:** 20/12/2025
 
 > **Nota:** Este arquivo contém APENAS tarefas ativas e pendentes.
 > Histórico completo de implementações está em [CHANGELOG.md](CHANGELOG.md).
@@ -10,11 +10,18 @@
 
 ## 🔄 Em Andamento
 
-_(Nenhuma tarefa em andamento no momento)_
+- [ ] **Fase 5: Sistema de Alertas** - Implementação iniciando agora
 
 ---
 
 ## 📋 Pendentes
+
+### 💳 Portal SuperAdmin - Melhorias Pós-Fase 4
+
+- [ ] Adicionar gráficos visuais com Recharts em FinancialAnalytics (POSTPONED - baixa prioridade)
+  - Gráfico de pizza para MRR breakdown
+  - Gráfico de barras para conversão por método de pagamento
+- [ ] Configurar webhook URL no servidor de produção (após deploy)
 
 ### 🔐 Versionamento e Auditoria Completa
 
@@ -215,4 +222,4 @@ _(Nenhuma tarefa em andamento no momento)_
 
 ---
 
-**Última revisão:** 17/12/2025 por Claude Sonnet 4.5
+**Última revisão:** 20/12/2025 por Claude Sonnet 4.5
