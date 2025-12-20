@@ -1,0 +1,334 @@
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Building2,
+  Users,
+  Calendar,
+  CreditCard,
+  Activity,
+  Ban,
+  Play,
+  Trash2,
+} from 'lucide-react'
+import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
+import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
+import { SuspendTenantDialog } from '@/components/superadmin/SuspendTenantDialog'
+import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
+import {
+  useTenant,
+  useTenantStats,
+  useSubscriptionHistory,
+  useSuspendTenant,
+  useReactivateTenant,
+  useChangePlan,
+} from '@/hooks/useSuperAdmin'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { useToast } from '@/components/ui/use-toast'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
+const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  ACTIVE: { label: 'Ativo', variant: 'default' },
+  TRIAL: { label: 'Trial', variant: 'secondary' },
+  SUSPENDED: { label: 'Suspenso', variant: 'destructive' },
+  CANCELLED: { label: 'Cancelado', variant: 'outline' },
+}
+
+const SUBSCRIPTION_STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  active: { label: 'Ativa', variant: 'default' },
+  trialing: { label: 'Trial', variant: 'secondary' },
+  past_due: { label: 'Vencida', variant: 'destructive' },
+  canceled: { label: 'Cancelada', variant: 'outline' },
+  cancelled: { label: 'Cancelada', variant: 'outline' },
+  unpaid: { label: 'Não paga', variant: 'destructive' },
+  incomplete: { label: 'Incompleta', variant: 'outline' },
+}
+
+export function TenantDetails() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { toast } = useToast()
+
+  const { data: tenant, isLoading } = useTenant(id!)
+  const { data: stats } = useTenantStats(id!)
+  const { data: subscriptions } = useSubscriptionHistory(id!)
+
+  const reactivateMutation = useReactivateTenant()
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-purple-300">Carregando...</div>
+      </div>
+    )
+  }
+
+  if (!tenant) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <div className="text-purple-300">Tenant não encontrado</div>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/superadmin/tenants')}
+          className="bg-purple-900 border-purple-700 text-purple-300"
+        >
+          Voltar
+        </Button>
+      </div>
+    )
+  }
+
+  const statusInfo = STATUS_LABELS[tenant.status] || {
+    label: tenant.status,
+    variant: 'outline' as const,
+  }
+
+  const activeSub = tenant.subscriptions.find((s) => s.status === 'active')
+
+  const handleReactivate = async () => {
+    if (!confirm(`Confirma a reativação de "${tenant.name}"? O acesso será restaurado imediatamente.`)) return
+
+    try {
+      await reactivateMutation.mutateAsync(tenant.id)
+      toast({
+        title: '✓ Tenant reativado',
+        description: `"${tenant.name}" foi reativado. Todos os usuários recuperaram acesso à plataforma.`,
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Falha ao reativar tenant',
+        description: err.response?.data?.message || 'Ocorreu um erro ao reativar o tenant. Verifique o status e tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/superadmin/tenants')}
+            className="text-purple-300 hover:text-purple-50 hover:bg-purple-800"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-purple-50">{tenant.name}</h1>
+            <p className="text-purple-300 mt-1">{tenant.email}</p>
+          </div>
+          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+        </div>
+
+        <div className="flex gap-2">
+          <EditTenantDialog tenant={tenant} />
+          <ChangePlanDialog tenant={tenant} />
+          {tenant.status === 'ACTIVE' && (
+            <SuspendTenantDialog
+              tenantId={tenant.id}
+              tenantName={tenant.name}
+              variant="button"
+            />
+          )}
+          {tenant.status === 'SUSPENDED' && (
+            <Button
+              variant="default"
+              onClick={handleReactivate}
+              disabled={reactivateMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Reativar
+            </Button>
+          )}
+          <DeleteTenantDialog
+            tenantId={tenant.id}
+            tenantName={tenant.name}
+            variant="button"
+          />
+        </div>
+      </div>
+
+      {/* Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-purple-900 border-purple-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-purple-300">
+              Usuários
+            </CardTitle>
+            <Users className="h-4 w-4 text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-50">
+              {tenant._count.users}
+            </div>
+            {stats && (
+              <p className="text-xs text-purple-400 mt-1">
+                {stats.activeUsers} ativos
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-purple-900 border-purple-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-purple-300">
+              Residentes
+            </CardTitle>
+            <Building2 className="h-4 w-4 text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-50">
+              {tenant._count.residents}
+            </div>
+            {stats && (
+              <p className="text-xs text-purple-400 mt-1">
+                {stats.activeResidents} ativos
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-purple-900 border-purple-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-purple-300">
+              Plano Atual
+            </CardTitle>
+            <CreditCard className="h-4 w-4 text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-50">
+              {activeSub?.plan.displayName || 'Sem plano'}
+            </div>
+            {activeSub?.plan.price && (
+              <p className="text-xs text-purple-400 mt-1">
+                R$ {activeSub.plan.price.toLocaleString('pt-BR')} / mês
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Informações Gerais */}
+      <Card className="bg-purple-900 border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-purple-50">Informações Gerais</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-purple-400">CNPJ</p>
+              <p className="text-purple-50">{tenant.cnpj || 'Não informado'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-purple-400">Telefone</p>
+              <p className="text-purple-50">{tenant.phone || 'Não informado'}</p>
+            </div>
+          </div>
+
+          <Separator className="bg-purple-800" />
+
+          <div>
+            <p className="text-sm text-purple-400">Endereço</p>
+            <p className="text-purple-50">
+              {tenant.addressStreet
+                ? `${tenant.addressStreet}, ${tenant.addressCity || ''} - ${tenant.addressState || ''}`
+                : 'Não informado'}
+            </p>
+          </div>
+
+          <Separator className="bg-purple-800" />
+
+          <div className="flex items-center gap-2 text-sm text-purple-400">
+            <Calendar className="h-4 w-4" />
+            Criado em {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Histórico de Subscriptions */}
+      <Card className="bg-purple-900 border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-purple-50 flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Histórico de Assinaturas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {subscriptions && subscriptions.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-purple-800">
+                  <TableHead className="text-purple-300">Plano</TableHead>
+                  <TableHead className="text-purple-300">Status</TableHead>
+                  <TableHead className="text-purple-300">Início</TableHead>
+                  <TableHead className="text-purple-300">Término</TableHead>
+                  <TableHead className="text-purple-300 text-right">
+                    Valor
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {subscriptions.map((sub) => {
+                  const subStatus = SUBSCRIPTION_STATUS[sub.status] || {
+                    label: sub.status,
+                    variant: 'outline' as const,
+                  }
+
+                  return (
+                    <TableRow key={sub.id} className="border-purple-800">
+                      <TableCell className="text-purple-50">
+                        {sub.plan.displayName}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={subStatus.variant}>
+                          {subStatus.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-purple-300">
+                        {sub.currentPeriodStart
+                          ? new Date(sub.currentPeriodStart).toLocaleDateString(
+                              'pt-BR'
+                            )
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-purple-300">
+                        {sub.currentPeriodEnd
+                          ? new Date(sub.currentPeriodEnd).toLocaleDateString(
+                              'pt-BR'
+                            )
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right text-purple-300">
+                        {sub.plan.price
+                          ? `R$ ${sub.plan.price.toLocaleString('pt-BR')}`
+                          : 'Gratuito'}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-purple-400 py-8">
+              Nenhum histórico de assinatura
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

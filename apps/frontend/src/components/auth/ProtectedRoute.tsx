@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
+  requiredRole?: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
@@ -56,7 +56,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       VIEWER: 1,
       USER: 2,
       MANAGER: 3,
-      ADMIN: 4
+      ADMIN: 4,
+      SUPERADMIN: 5
     }
 
     const userRoleLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy] || 0

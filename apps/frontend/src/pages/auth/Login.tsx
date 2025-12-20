@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, selectTenant, isLoading, error, clearError, availableTenants, isAuthenticated } = useAuthStore()
+  const { login, selectTenant, isLoading, error, clearError, availableTenants, isAuthenticated, user } = useAuthStore()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -22,10 +22,15 @@ export default function Login() {
   const [showTenantSelection, setShowTenantSelection] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard')
+    if (isAuthenticated && user) {
+      // Redirecionar SUPERADMIN para portal específico
+      if (user.role === 'SUPERADMIN') {
+        navigate('/superadmin')
+      } else {
+        navigate('/dashboard')
+      }
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, user, navigate])
 
   useEffect(() => {
     clearError()

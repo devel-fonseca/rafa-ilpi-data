@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
+import { SuperAdminLayout } from '@/layouts/SuperAdminLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 // Auth Pages
@@ -51,6 +52,11 @@ import PopsList from '@/pages/pops/PopsList'
 import PopEditor from '@/pages/pops/PopEditor'
 import PopViewer from '@/pages/pops/PopViewer'
 import PopHistoryPage from '@/pages/pops/PopHistoryPage'
+
+// SuperAdmin Pages
+import { SuperAdminDashboard } from '@/pages/superadmin/Dashboard'
+import { TenantsList } from '@/pages/superadmin/TenantsList'
+import { TenantDetails } from '@/pages/superadmin/TenantDetails'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -199,6 +205,28 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+    ],
+  },
+  {
+    path: '/superadmin',
+    element: (
+      <ProtectedRoute requiredRole="SUPERADMIN">
+        <SuperAdminLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <SuperAdminDashboard />,
+      },
+      {
+        path: 'tenants',
+        element: <TenantsList />,
+      },
+      {
+        path: 'tenants/:id',
+        element: <TenantDetails />,
       },
     ],
   },

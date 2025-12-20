@@ -88,18 +88,20 @@ export class AuthService {
       },
     });
 
-    // Criar perfil vazio automaticamente para o usuário
-    try {
-      await this.prisma.userProfile.create({
-        data: {
-          userId: user.id,
-          tenantId: user.tenantId,
-          createdBy: user.id, // O próprio usuário é o criador do perfil
-        },
-      });
-    } catch (error) {
-      // Se falhar ao criar perfil, apenas loga mas não interrompe o registro
-      console.error('Erro ao criar perfil de usuário:', error);
+    // Criar perfil vazio automaticamente para o usuário (exceto SUPERADMIN)
+    if (user.tenantId) {
+      try {
+        await this.prisma.userProfile.create({
+          data: {
+            userId: user.id,
+            tenantId: user.tenantId,
+            createdBy: user.id, // O próprio usuário é o criador do perfil
+          },
+        });
+      } catch (error) {
+        // Se falhar ao criar perfil, apenas loga mas não interrompe o registro
+        console.error('Erro ao criar perfil de usuário:', error);
+      }
     }
 
     return {
@@ -114,7 +116,7 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
-    // Buscar todos os cadastros do usuário (pode ter múltiplos tenants)
+    // Buscar todos os cadastros do usuário (pode ter múltiplos tenants ou SUPERADMIN)
     const users = await this.prisma.user.findMany({
       where: {
         email,
@@ -189,14 +191,17 @@ export class AuthService {
     }
 
     // Se usuário tem múltiplos tenants, retornar lista para seleção
+    // Filtrar apenas usuários com tenant (excluir SUPERADMIN se estiver na lista)
+    const usersWithTenant = users.filter(u => u.tenant !== null);
+
     return {
       requiresTenantSelection: true,
-      tenants: users.map((user) => ({
-        id: user.tenant.id,
-        name: user.tenant.name,
+      tenants: usersWithTenant.map((user) => ({
+        id: user.tenant!.id,
+        name: user.tenant!.name,
         role: user.role,
-        status: user.tenant.status,
-        plan: user.tenant.subscriptions[0]?.plan?.name || 'Free',
+        status: user.tenant!.status,
+        plan: user.tenant!.subscriptions[0]?.plan?.name || 'Free',
       })),
     };
   }

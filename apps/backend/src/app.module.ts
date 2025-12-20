@@ -38,6 +38,7 @@ import { PopsModule } from './pops/pops.module';
 import { MedicationsModule } from './medications/medications.module';
 import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
 import { ResidentScheduleModule } from './resident-schedule/resident-schedule.module';
+import { SuperAdminModule } from './superadmin/superadmin.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { ResidentScheduleModule } from './resident-schedule/resident-schedule.mo
     NotificationsModule,
     PopsModule,
     ResidentScheduleModule,
+    SuperAdminModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
