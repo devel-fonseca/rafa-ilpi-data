@@ -313,12 +313,14 @@ export function DailyRecordsPage() {
                     {allergies.slice(0, 3).map((allergy: any) => (
                       <Tooltip key={allergy.id}>
                         <TooltipTrigger asChild>
-                          <Badge
-                            variant="outline"
-                            className="border-danger text-danger cursor-help"
-                          >
-                            {allergy.substance}
-                          </Badge>
+                          <span className="inline-block">
+                            <Badge
+                              variant="outline"
+                              className="border-danger text-danger cursor-help"
+                            >
+                              {allergy.substance}
+                            </Badge>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
@@ -374,12 +376,14 @@ export function DailyRecordsPage() {
                     {conditions.slice(0, 3).map((condition: any) => (
                       <Tooltip key={condition.id}>
                         <TooltipTrigger asChild>
-                          <Badge
-                            variant="outline"
-                            className="border-warning text-warning cursor-help"
-                          >
-                            {condition.condition}
-                          </Badge>
+                          <span className="inline-block">
+                            <Badge
+                              variant="outline"
+                              className="border-warning text-warning cursor-help"
+                            >
+                              {condition.condition}
+                            </Badge>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
@@ -430,12 +434,14 @@ export function DailyRecordsPage() {
                     {dietaryRestrictions.slice(0, 3).map((restriction: any) => (
                       <Tooltip key={restriction.id}>
                         <TooltipTrigger asChild>
-                          <Badge
-                            variant="outline"
-                            className="border-blue-500 text-blue-500 cursor-help"
-                          >
-                            {restriction.description}
-                          </Badge>
+                          <span className="inline-block">
+                            <Badge
+                              variant="outline"
+                              className="border-blue-500 text-blue-500 cursor-help"
+                            >
+                              {restriction.description}
+                            </Badge>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
