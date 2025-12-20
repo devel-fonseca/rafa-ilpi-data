@@ -346,7 +346,7 @@ export function DailyRecordsPage() {
           </CardContent>
         </Card>
 
-        {/* Card de Restrições Alimentares - Segunda linha, 1 coluna */}
+        {/* Card de Restrições Alimentares */}
         <Card className="border-blue-500/20">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -358,14 +358,22 @@ export function DailyRecordsPage() {
                   Restrições Alimentares
                 </h3>
                 {dietaryRestrictions && dietaryRestrictions.length > 0 ? (
-                  <>
-                    <p className="text-2xl font-bold text-blue-500">
-                      {dietaryRestrictions.length}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {dietaryRestrictions.length === 1 ? 'restrição registrada' : 'restrições registradas'}
-                    </p>
-                  </>
+                  <div className="flex flex-wrap gap-2">
+                    {dietaryRestrictions.slice(0, 3).map((restriction: any) => (
+                      <Badge
+                        key={restriction.id}
+                        variant="outline"
+                        className="border-blue-500 text-blue-500"
+                      >
+                        {restriction.description}
+                      </Badge>
+                    ))}
+                    {dietaryRestrictions.length > 3 && (
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{dietaryRestrictions.length - 3}
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma restrição alimentar registrada
