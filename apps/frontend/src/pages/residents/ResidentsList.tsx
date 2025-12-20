@@ -247,76 +247,75 @@ export default function ResidentsList() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Total</CardDescription>
-                  <CardTitle className="text-2xl font-bold">{stats.total}</CardTitle>
+                  <h3 className="text-sm font-medium text-gray-600">Total</h3>
+                  <p className="text-2xl font-bold text-blue-600 mt-1">{stats.total}</p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-muted rounded-lg">
-                  <Users className="h-6 w-6 text-muted-foreground" />
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Ativos</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-success">
+                  <h3 className="text-sm font-medium text-gray-600">Ativos</h3>
+                  <p className="text-2xl font-bold text-green-600 mt-1">
                     {stats.ativos}
-                  </CardTitle>
+                  </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-success" />
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
+                  <UserCheck className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Inativos</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-warning">
+                  <h3 className="text-sm font-medium text-gray-600">Inativos</h3>
+                  <p className="text-2xl font-bold text-orange-600 mt-1">
                     {stats.inativos}
-                  </CardTitle>
+                  </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-warning/10 rounded-lg">
-                  <UserX className="h-6 w-6 text-warning" />
+                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+                  <UserX className="h-6 w-6 text-orange-600" />
                 </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start mb-3">
-                <CardDescription className="text-xs">Grau de Dependência</CardDescription>
-                <div className="flex items-center justify-center w-12 h-12 bg-accent/10 rounded-lg">
-                  <Accessibility className="h-6 w-6 text-accent" />
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600">Grau de Dependência</h3>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs px-2 py-0.5">
+                      I - {stats.grauI}
+                    </Badge>
+                    <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-xs px-2 py-0.5">
+                      II - {stats.grauII}
+                    </Badge>
+                    <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs px-2 py-0.5">
+                      III - {stats.grauIII}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
+                  <Accessibility className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
-              <div className="flex justify-between items-center gap-6">
-                <div className="flex-1 text-center">
-                  <CardDescription className="text-xs">Grau I</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-info">{stats.grauI}</CardTitle>
-                </div>
-                <div className="flex-1 text-center">
-                  <CardDescription className="text-xs">Grau II</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-warning">{stats.grauII}</CardTitle>
-                </div>
-                <div className="flex-1 text-center">
-                  <CardDescription className="text-xs">Grau III</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-danger">{stats.grauIII}</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
+            </CardContent>
           </Card>
         </div>
       )}

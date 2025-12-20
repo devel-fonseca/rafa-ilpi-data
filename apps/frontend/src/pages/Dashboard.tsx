@@ -41,32 +41,36 @@ export default function Dashboard() {
       value: String(totalResidents),
       description: 'Total de residentes cadastrados',
       icon: Users,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-100',
+      valueColor: 'text-blue-600',
     },
     {
       title: 'Funcionários',
       value: '1',
       description: 'Usuários ativos',
       icon: UserPlus,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
+      iconColor: 'text-green-600',
+      iconBg: 'bg-green-100',
+      valueColor: 'text-green-600',
     },
     {
       title: 'Registros Hoje',
       value: String(totalRecordsToday),
       description: 'Atividades registradas',
       icon: Activity,
-      color: 'text-accent',
-      bgColor: 'bg-accent/10',
+      iconColor: 'text-purple-600',
+      iconBg: 'bg-purple-100',
+      valueColor: 'text-purple-600',
     },
     {
       title: 'Prescrições',
       value: String(totalPrescriptions),
       description: 'Prescrições ativas',
       icon: Pill,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10',
+      iconColor: 'text-orange-600',
+      iconBg: 'bg-orange-100',
+      valueColor: 'text-orange-600',
     },
   ]
 
@@ -115,24 +119,21 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader className="pb-3">
+          <Card key={stat.title}>
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">{stat.title}</CardDescription>
-                  <CardTitle className="text-3xl font-bold mt-1">
+                  <h3 className="text-sm font-medium text-gray-600">{stat.title}</h3>
+                  <p className={`text-2xl font-bold ${stat.valueColor} mt-1`}>
                     {stat.value}
-                  </CardTitle>
+                  </p>
                 </div>
-                <div className={`${stat.bgColor} p-3 rounded-lg`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                <div className={`flex items-center justify-center w-12 h-12 ${stat.iconBg} rounded-lg`}>
+                  <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
             </CardContent>
           </Card>
         ))}

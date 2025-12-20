@@ -259,59 +259,67 @@ export default function PrescriptionsList() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Total</CardDescription>
-                  <CardTitle className="text-2xl font-bold">{stats.totalActive}</CardTitle>
+                  <h3 className="text-sm font-medium text-gray-600">Total</h3>
+                  <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalActive}</p>
                 </div>
-                <FileText className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Vencendo em 5 dias</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-orange-600">
+                  <h3 className="text-sm font-medium text-gray-600">Vencendo em 5 dias</h3>
+                  <p className="text-2xl font-bold text-orange-600 mt-1">
                     {stats.expiringIn5Days}
-                  </CardTitle>
+                  </p>
                 </div>
-                <AlertTriangle className="h-5 w-5 text-orange-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Antibióticos</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-blue-600">
+                  <h3 className="text-sm font-medium text-gray-600">Antibióticos</h3>
+                  <p className="text-2xl font-bold text-green-600 mt-1">
                     {stats.activeAntibiotics}
-                  </CardTitle>
+                  </p>
                 </div>
-                <Pill className="h-5 w-5 text-blue-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
+                  <Pill className="h-6 w-6 text-green-600" />
+                </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <CardDescription className="text-xs">Controlados</CardDescription>
-                  <CardTitle className="text-2xl font-bold text-purple-600">
+                  <h3 className="text-sm font-medium text-gray-600">Controlados</h3>
+                  <p className="text-2xl font-bold text-purple-600 mt-1">
                     {stats.activeControlled}
-                  </CardTitle>
+                  </p>
                 </div>
-                <CheckCircle2 className="h-5 w-5 text-purple-400" />
+                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
+                  <CheckCircle2 className="h-6 w-6 text-purple-600" />
+                </div>
               </div>
-            </CardHeader>
+            </CardContent>
           </Card>
         </div>
       )}
