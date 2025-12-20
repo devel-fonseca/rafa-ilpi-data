@@ -503,6 +503,23 @@ export function DashboardLayout() {
                   )}
                 </Tooltip>
               )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleLogout}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-danger hover:bg-accent rounded-lg transition-colors w-full ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <LogOut className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Sair'}
+                  </button>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Sair</TooltipContent>
+                )}
+              </Tooltip>
             </TooltipProvider>
           </nav>
         </aside>
@@ -606,6 +623,17 @@ export function DashboardLayout() {
                   Gerenciar Usuários
                 </Link>
               )}
+
+              <button
+                onClick={() => {
+                  setIsSidebarOpen(false)
+                  handleLogout()
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger hover:bg-accent rounded-lg transition-colors w-full"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </button>
             </nav>
           </SheetContent>
         </Sheet>
