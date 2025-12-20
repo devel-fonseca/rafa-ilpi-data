@@ -278,24 +278,20 @@ export function DailyRecordsPage() {
                   Alergias
                 </h3>
                 {allergies && allergies.length > 0 ? (
-                  <div className="space-y-1">
+                  <div className="flex flex-wrap gap-2">
                     {allergies.slice(0, 3).map((allergy: any) => (
-                      <div key={allergy.id} className="flex items-start gap-2">
-                        <Badge
-                          variant="destructive"
-                          className="text-xs shrink-0"
-                        >
-                          {allergy.severity || 'LEVE'}
-                        </Badge>
-                        <p className="text-sm font-medium text-danger truncate">
-                          {allergy.substance}
-                        </p>
-                      </div>
+                      <Badge
+                        key={allergy.id}
+                        variant="outline"
+                        className="border-danger text-danger"
+                      >
+                        {allergy.substance}
+                      </Badge>
                     ))}
                     {allergies.length > 3 && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        +{allergies.length - 3} outras alergias
-                      </p>
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{allergies.length - 3}
+                      </Badge>
                     )}
                   </div>
                 ) : (
