@@ -118,6 +118,20 @@ export function ResidentScheduleTab({
     }
   };
 
+  // Handler para botões de ação rápida (mobile)
+  const handleQuickAdd = (recordType: RecordType, frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    if (recordType === 'ALIMENTACAO') {
+      if (frequency === 'DAILY') {
+        setCreateAlimentacaoModalOpen(true);
+      }
+      // Não permitir ALIMENTACAO em outras frequências
+    } else {
+      setDroppedRecordType(recordType);
+      setDroppedFrequency(frequency);
+      setCreateConfigModalOpen(true);
+    }
+  };
+
   return (
     <DndContext
       onDragStart={handleDragStart}
@@ -150,13 +164,17 @@ export function ResidentScheduleTab({
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Tipos de Registro Disponíveis</CardTitle>
                   <CardDescription>
-                    Arraste um card para a lista abaixo para adicionar uma configuração
+                    Arraste um card para a lista abaixo ou use os botões para adicionar uma configuração
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {ALLOWED_RECORD_TYPES.map((recordType) => (
-                      <DraggableRecordTypeCard key={recordType} recordType={recordType} />
+                      <DraggableRecordTypeCard
+                        key={recordType}
+                        recordType={recordType}
+                        onQuickAdd={handleQuickAdd}
+                      />
                     ))}
                   </div>
                 </CardContent>

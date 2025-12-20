@@ -1,20 +1,25 @@
 import { useDraggable } from '@dnd-kit/core';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { GripVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { GripVertical, Plus } from 'lucide-react';
 import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
-import { RecordType } from '@/hooks/useResidentSchedule';
+import { RecordType, ScheduleFrequency } from '@/hooks/useResidentSchedule';
+import { useIsTouchDevice } from '@/hooks/useIsTouchDevice';
 
 // Re-exportar RecordType para uso em outros componentes
 export type { RecordType };
 
 interface DraggableRecordTypeCardProps {
   recordType: RecordType;
+  onQuickAdd?: (recordType: RecordType, frequency: ScheduleFrequency) => void;
 }
 
 export function DraggableRecordTypeCard({
   recordType,
+  onQuickAdd,
 }: DraggableRecordTypeCardProps) {
+  const isTouchDevice = useIsTouchDevice();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `draggable-${recordType}`,
     data: { recordType },
@@ -24,6 +29,61 @@ export function DraggableRecordTypeCard({
 
   if (!typeInfo) return null;
 
+  // Para dispositivos touch, mostrar botões de ação rápida
+  if (isTouchDevice && onQuickAdd) {
+    return (
+      <Card className="transition-all hover:shadow-md">
+        <CardContent className="p-3">
+          <div className="space-y-2">
+            <Badge
+              variant="secondary"
+              className={`${typeInfo.color} ${typeInfo.bgColor} border-2 w-full justify-center`}
+            >
+              {typeInfo.label}
+            </Badge>
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 h-7 text-xs"
+                onClick={() => onQuickAdd(recordType, 'DAILY')}
+                title="Adicionar como registro diário"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Diário
+              </Button>
+              {recordType !== 'ALIMENTACAO' && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs"
+                    onClick={() => onQuickAdd(recordType, 'WEEKLY')}
+                    title="Adicionar como registro semanal"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Semanal
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-7 text-xs"
+                    onClick={() => onQuickAdd(recordType, 'MONTHLY')}
+                    title="Adicionar como registro mensal"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Mensal
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Para desktop, manter drag-and-drop
   return (
     <Card
       ref={setNodeRef}
