@@ -34,13 +34,21 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
     !!residentId, // enabled apenas se houver residentId
   );
 
-  // Agrupar tarefas por tipo e ordenar (pendentes primeiro, depois concluídas)
+  // Agrupar tarefas por tipo e ordenar (pendentes primeiro por horário, depois concluídas)
   const recurringTasks = tasks
     .filter((task) => task.type === 'RECURRING')
     .sort((a, b) => {
       // Pendentes primeiro
       if (a.isCompleted && !b.isCompleted) return 1;
       if (!a.isCompleted && b.isCompleted) return -1;
+
+      // Se ambas pendentes, ordenar pelo primeiro horário sugerido
+      if (!a.isCompleted && !b.isCompleted) {
+        const timeA = a.suggestedTimes?.[0] || '23:59';
+        const timeB = b.suggestedTimes?.[0] || '23:59';
+        return timeA.localeCompare(timeB);
+      }
+
       return 0;
     });
   const eventTasks = tasks.filter((task) => task.type === 'EVENT');

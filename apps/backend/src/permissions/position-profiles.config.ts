@@ -460,6 +460,8 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_ALLERGIES, // CRÍTICO: Evitar reações alérgicas
       PermissionType.VIEW_CONDITIONS, // IMPORTANTE: Conhecer condições crônicas
       PermissionType.VIEW_DIETARY_RESTRICTIONS, // ESSENCIAL: Respeitar restrições alimentares
+      // Agenda do Residente
+      PermissionType.VIEW_RESIDENT_SCHEDULE, // Ver tarefas diárias obrigatórias
     ],
   },
 
