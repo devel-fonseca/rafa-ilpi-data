@@ -9,6 +9,8 @@ import {
   Ban,
   Play,
   Trash2,
+  Receipt,
+  ExternalLink,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
@@ -22,6 +24,7 @@ import {
   useReactivateTenant,
   useChangePlan,
 } from '@/hooks/useSuperAdmin'
+import { useTenantInvoices } from '@/hooks/useInvoices'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +64,7 @@ export function TenantDetails() {
   const { data: tenant, isLoading } = useTenant(id!)
   const { data: stats } = useTenantStats(id!)
   const { data: subscriptions } = useSubscriptionHistory(id!)
+  const { data: invoicesData } = useTenantInvoices(id!)
 
   const reactivateMutation = useReactivateTenant()
 
@@ -325,6 +329,97 @@ export function TenantDetails() {
           ) : (
             <p className="text-center text-purple-400 py-8">
               Nenhum histórico de assinatura
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Faturas */}
+      <Card className="bg-purple-900 border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-purple-50 flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            Faturas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {invoicesData && invoicesData.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-purple-800">
+                  <TableHead className="text-purple-300">Número</TableHead>
+                  <TableHead className="text-purple-300">Status</TableHead>
+                  <TableHead className="text-purple-300">Valor</TableHead>
+                  <TableHead className="text-purple-300">Vencimento</TableHead>
+                  <TableHead className="text-purple-300">Criada em</TableHead>
+                  <TableHead className="text-purple-300">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoicesData.map((invoice: any) => {
+                  const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+                    DRAFT: { label: 'Rascunho', variant: 'outline' },
+                    OPEN: { label: 'Pendente', variant: 'secondary' },
+                    PAID: { label: 'Pago', variant: 'default' },
+                    VOID: { label: 'Cancelado', variant: 'destructive' },
+                    UNCOLLECTIBLE: { label: 'Incobrável', variant: 'destructive' },
+                  }
+                  const statusInfo = statusLabels[invoice.status] || {
+                    label: invoice.status,
+                    variant: 'outline' as const,
+                  }
+
+                  const isOverdue =
+                    invoice.status === 'OPEN' &&
+                    new Date(invoice.dueDate) < new Date()
+
+                  return (
+                    <TableRow key={invoice.id} className="border-purple-800">
+                      <TableCell className="text-purple-50 font-mono text-sm">
+                        {invoice.invoiceNumber}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={statusInfo.variant}>
+                            {statusInfo.label}
+                          </Badge>
+                          {isOverdue && (
+                            <Badge variant="destructive" className="text-xs">
+                              Vencida
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-purple-300">
+                        R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-purple-300">
+                        {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-purple-300">
+                        {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.paymentUrl && (
+                          <a
+                            href={invoice.paymentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-300 hover:text-purple-50 inline-flex items-center gap-1 text-sm"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Ver no Asaas
+                          </a>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-purple-400 py-8">
+              Nenhuma fatura encontrada
             </p>
           )}
         </CardContent>

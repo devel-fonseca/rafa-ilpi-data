@@ -5,6 +5,8 @@ import {
   Building2,
   CreditCard,
   Bell,
+  Receipt,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +32,16 @@ export function SuperAdminLayout() {
       to: '/superadmin/tenants',
       label: 'Tenants',
       icon: Building2,
+    },
+    {
+      to: '/superadmin/invoices',
+      label: 'Faturas',
+      icon: Receipt,
+    },
+    {
+      to: '/superadmin/analytics',
+      label: 'Analytics',
+      icon: BarChart3,
     },
     {
       to: '/superadmin/subscriptions',

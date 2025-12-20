@@ -80,6 +80,7 @@ export interface Plan {
   displayName: string
   type: string
   price: number | null
+  billingCycle: 'MONTHLY' | 'ANNUAL'
   maxResidents: number
   maxUsers: number
 }

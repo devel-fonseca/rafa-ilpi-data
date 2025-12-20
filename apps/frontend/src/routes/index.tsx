@@ -57,6 +57,8 @@ import PopHistoryPage from '@/pages/pops/PopHistoryPage'
 import { SuperAdminDashboard } from '@/pages/superadmin/Dashboard'
 import { TenantsList } from '@/pages/superadmin/TenantsList'
 import { TenantDetails } from '@/pages/superadmin/TenantDetails'
+import { InvoicesList } from '@/pages/superadmin/InvoicesList'
+import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -227,6 +229,14 @@ export const router = createBrowserRouter([
       {
         path: 'tenants/:id',
         element: <TenantDetails />,
+      },
+      {
+        path: 'invoices',
+        element: <InvoicesList />,
+      },
+      {
+        path: 'analytics',
+        element: <FinancialAnalytics />,
       },
     ],
   },

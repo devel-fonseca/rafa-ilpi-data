@@ -9,6 +9,9 @@ import { SuspendTenantDto } from './dto/suspend-tenant.dto'
 import { ChangePlanDto } from './dto/change-plan.dto'
 import { ExtendPeriodDto } from './dto/extend-period.dto'
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto'
+import { InvoiceService } from '../payments/services/invoice.service'
+import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
+import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
 
 /**
  * SuperAdminController
@@ -34,6 +37,8 @@ export class SuperAdminController {
     private readonly metricsService: MetricsService,
     private readonly tenantAdminService: TenantAdminService,
     private readonly subscriptionAdminService: SubscriptionAdminService,
+    private readonly invoiceService: InvoiceService,
+    private readonly analyticsService: PaymentAnalyticsService,
   ) {}
 
   /**
@@ -232,5 +237,120 @@ export class SuperAdminController {
   @Get('subscriptions/:id')
   async getSubscription(@Param('id') id: string) {
     return this.subscriptionAdminService.findOne(id)
+  }
+
+  // ========================================
+  // INVOICE MANAGEMENT
+  // ========================================
+
+  /**
+   * GET /superadmin/invoices
+   * Listar todas as faturas com filtros
+   */
+  @Get('invoices')
+  async listInvoices(
+    @Query('tenantId') tenantId?: string,
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.invoiceService.findAll({
+      tenantId,
+      status: status as any,
+      limit: limit ? parseInt(limit, 10) : 20,
+      offset: offset ? parseInt(offset, 10) : 0,
+    })
+  }
+
+  /**
+   * GET /superadmin/invoices/:id
+   * Buscar detalhes de uma fatura
+   */
+  @Get('invoices/:id')
+  async getInvoice(@Param('id') id: string) {
+    return this.invoiceService.findOne(id)
+  }
+
+  /**
+   * POST /superadmin/invoices
+   * Gerar fatura manualmente para um tenant/subscription
+   */
+  @Post('invoices')
+  async createInvoice(@Body() createInvoiceDto: CreateInvoiceDto) {
+    return this.invoiceService.generateInvoice(createInvoiceDto)
+  }
+
+  /**
+   * POST /superadmin/invoices/:id/sync
+   * Sincronizar status da fatura com Asaas
+   */
+  @Post('invoices/:id/sync')
+  async syncInvoice(@Param('id') id: string) {
+    return this.invoiceService.syncInvoiceStatus(id)
+  }
+
+  /**
+   * DELETE /superadmin/invoices/:id
+   * Cancelar uma fatura
+   */
+  @Delete('invoices/:id')
+  async cancelInvoice(@Param('id') id: string) {
+    return this.invoiceService.cancelInvoice(id)
+  }
+
+  /**
+   * GET /superadmin/tenants/:tenantId/invoices
+   * Listar todas as faturas de um tenant
+   */
+  @Get('tenants/:tenantId/invoices')
+  async getTenantInvoices(@Param('tenantId') tenantId: string) {
+    return this.invoiceService.findAll({ tenantId })
+  }
+
+  // ============================================
+  // PAYMENT ANALYTICS ROUTES
+  // ============================================
+
+  /**
+   * GET /superadmin/analytics/financial
+   * Métricas financeiras consolidadas
+   *
+   * Retorna:
+   * - Overview: total invoices, paid, pending, overdue, revenue
+   * - Breakdown por método de pagamento (PIX, Boleto, Cartão)
+   * - Método com melhor taxa de conversão
+   *
+   * Query params:
+   * - startDate: filtrar por data inicial (ISO 8601)
+   * - endDate: filtrar por data final (ISO 8601)
+   * - tenantId: filtrar por tenant específico
+   */
+  @Get('analytics/financial')
+  async getFinancialMetrics(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const filters = {
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      tenantId,
+    }
+
+    return this.analyticsService.getFinancialMetrics(filters)
+  }
+
+  /**
+   * GET /superadmin/analytics/mrr-breakdown
+   * MRR breakdown por método de pagamento
+   *
+   * Retorna o MRR do mês atual dividido por:
+   * - Total MRR
+   * - MRR por billing type (PIX, Boleto, Cartão)
+   * - Percentual de cada método
+   */
+  @Get('analytics/mrr-breakdown')
+  async getMrrBreakdown() {
+    return this.analyticsService.getMrrByPaymentMethod()
   }
 }

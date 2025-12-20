@@ -39,6 +39,7 @@ import { MedicationsModule } from './medications/medications.module';
 import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
 import { ResidentScheduleModule } from './resident-schedule/resident-schedule.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { SuperAdminModule } from './superadmin/superadmin.module';
     PopsModule,
     ResidentScheduleModule,
     SuperAdminModule,
+    PaymentsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

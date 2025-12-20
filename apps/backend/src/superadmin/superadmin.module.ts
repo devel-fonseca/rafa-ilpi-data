@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { PrismaModule } from '../prisma/prisma.module'
+import { PaymentsModule } from '../payments/payments.module'
 import { MetricsService } from './services/metrics.service'
 import { TenantAdminService } from './services/tenant-admin.service'
 import { SubscriptionAdminService } from './services/subscription-admin.service'
@@ -25,7 +26,7 @@ import { SuperAdminController } from './superadmin.controller'
  * - Fase 5: Sistema de alertas
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, PaymentsModule],
   controllers: [SuperAdminController],
   providers: [MetricsService, TenantAdminService, SubscriptionAdminService],
   exports: [MetricsService, TenantAdminService, SubscriptionAdminService],

@@ -27,6 +27,13 @@ enum PlanType {
   @@map("PlanType")
 }
 
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+
+  @@map("BillingCycle")
+}
+
 // ENUM: Tipos de Permissões do Sistema
 enum PermissionType {
   // Residentes
@@ -397,18 +404,19 @@ enum ChangeType {
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
 model Plan {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String   @unique
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String       @unique
   displayName  String
   type         PlanType
   maxResidents Int
   maxUsers     Int
-  price        Decimal? @db.Decimal(10, 2)
-  trialDays    Int      @default(0)
-  isPopular    Boolean  @default(false)
-  features     Json     @default("{}")
-  createdAt    DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  price        Decimal?     @db.Decimal(10, 2)
+  trialDays    Int          @default(0)
+  isPopular    Boolean      @default(false)
+  features     Json         @default("{}")
+  billingCycle BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
 
   subscriptions Subscription[]
 
@@ -427,6 +435,9 @@ model Tenant {
   phone      String?
   status     TenantStatus @default(TRIAL)
   schemaName String       @unique
+
+  // Asaas Integration
+  asaasCustomerId String? @unique @db.VarChar(255) // ID do cliente no Asaas
 
   // Endereço detalhado
   addressStreet     String?
@@ -507,6 +518,9 @@ model Subscription {
   currentPeriodEnd   DateTime? @db.Timestamptz(3)
   trialEndDate       DateTime? @db.Timestamptz(3)
   status             String // trialing | active | past_due | canceled | unpaid | incomplete
+
+  // Asaas Integration
+  asaasSubscriptionId String? @unique @db.VarChar(255) // ID da assinatura no Asaas
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
