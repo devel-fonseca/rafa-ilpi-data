@@ -295,7 +295,8 @@ export function DailyRecordsPage() {
       </div>
 
       {/* Cards de Resumo Clínico em Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <TooltipProvider delayDuration={300}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Card de Alergias */}
         <Card className="border-danger/20">
           <CardContent className="p-6">
@@ -308,47 +309,45 @@ export function DailyRecordsPage() {
                   Alergias
                 </h3>
                 {allergies && allergies.length > 0 ? (
-                  <TooltipProvider>
-                    <div className="flex flex-wrap gap-2">
-                      {allergies.slice(0, 3).map((allergy: any) => (
-                        <Tooltip key={allergy.id}>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="border-danger text-danger cursor-help"
-                            >
-                              {allergy.substance}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="space-y-1.5">
-                              <p className="font-semibold">{allergy.substance}</p>
-                              {allergy.severity && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity)}
-                                </p>
-                              )}
-                              {allergy.reaction && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Reação:</span> {allergy.reaction}
-                                </p>
-                              )}
-                              {allergy.notes && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Observações:</span> {allergy.notes}
-                                </p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                      {allergies.length > 3 && (
-                        <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                          +{allergies.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TooltipProvider>
+                  <div className="flex flex-wrap gap-2">
+                    {allergies.slice(0, 3).map((allergy: any) => (
+                      <Tooltip key={allergy.id}>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="border-danger text-danger cursor-help"
+                          >
+                            {allergy.substance}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold">{allergy.substance}</p>
+                            {allergy.severity && (
+                              <p className="text-xs">
+                                <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity)}
+                              </p>
+                            )}
+                            {allergy.reaction && (
+                              <p className="text-xs">
+                                <span className="font-medium">Reação:</span> {allergy.reaction}
+                              </p>
+                            )}
+                            {allergy.notes && (
+                              <p className="text-xs">
+                                <span className="font-medium">Observações:</span> {allergy.notes}
+                              </p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {allergies.length > 3 && (
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{allergies.length - 3}
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma alergia registrada
@@ -371,42 +370,40 @@ export function DailyRecordsPage() {
                   Condições Crônicas
                 </h3>
                 {conditions && conditions.length > 0 ? (
-                  <TooltipProvider>
-                    <div className="flex flex-wrap gap-2">
-                      {conditions.slice(0, 3).map((condition: any) => (
-                        <Tooltip key={condition.id}>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="border-warning text-warning cursor-help"
-                            >
-                              {condition.condition}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="space-y-1.5">
-                              <p className="font-semibold">{condition.condition}</p>
-                              {condition.icdCode && (
-                                <p className="text-xs">
-                                  <span className="font-medium">CID:</span> {condition.icdCode}
-                                </p>
-                              )}
-                              {condition.notes && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Observações Clínicas:</span> {condition.notes}
-                                </p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                      {conditions.length > 3 && (
-                        <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                          +{conditions.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TooltipProvider>
+                  <div className="flex flex-wrap gap-2">
+                    {conditions.slice(0, 3).map((condition: any) => (
+                      <Tooltip key={condition.id}>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="border-warning text-warning cursor-help"
+                          >
+                            {condition.condition}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold">{condition.condition}</p>
+                            {condition.icdCode && (
+                              <p className="text-xs">
+                                <span className="font-medium">CID:</span> {condition.icdCode}
+                              </p>
+                            )}
+                            {condition.notes && (
+                              <p className="text-xs">
+                                <span className="font-medium">Observações Clínicas:</span> {condition.notes}
+                              </p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {conditions.length > 3 && (
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{conditions.length - 3}
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma condição crônica registrada
@@ -429,42 +426,40 @@ export function DailyRecordsPage() {
                   Restrições Alimentares
                 </h3>
                 {dietaryRestrictions && dietaryRestrictions.length > 0 ? (
-                  <TooltipProvider>
-                    <div className="flex flex-wrap gap-2">
-                      {dietaryRestrictions.slice(0, 3).map((restriction: any) => (
-                        <Tooltip key={restriction.id}>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="border-blue-500 text-blue-500 cursor-help"
-                            >
-                              {restriction.description}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="space-y-1.5">
-                              <p className="font-semibold">{restriction.description}</p>
-                              {restriction.restrictionType && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType)}
-                                </p>
-                              )}
-                              {restriction.notes && (
-                                <p className="text-xs">
-                                  <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes}
-                                </p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                      {dietaryRestrictions.length > 3 && (
-                        <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                          +{dietaryRestrictions.length - 3}
-                        </Badge>
-                      )}
-                    </div>
-                  </TooltipProvider>
+                  <div className="flex flex-wrap gap-2">
+                    {dietaryRestrictions.slice(0, 3).map((restriction: any) => (
+                      <Tooltip key={restriction.id}>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="border-blue-500 text-blue-500 cursor-help"
+                          >
+                            {restriction.description}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold">{restriction.description}</p>
+                            {restriction.restrictionType && (
+                              <p className="text-xs">
+                                <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType)}
+                              </p>
+                            )}
+                            {restriction.notes && (
+                              <p className="text-xs">
+                                <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes}
+                              </p>
+                            )}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {dietaryRestrictions.length > 3 && (
+                      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+                        +{dietaryRestrictions.length - 3}
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Nenhuma restrição alimentar registrada
@@ -474,7 +469,8 @@ export function DailyRecordsPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </TooltipProvider>
 
       {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
