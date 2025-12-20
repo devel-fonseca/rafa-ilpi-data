@@ -235,21 +235,33 @@ export function ResidentSelectionGrid({
                 className="relative overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
                 onClick={() => onSelectResident(resident.id)}
               >
-                {/* Badge de Status */}
-                <div className="absolute top-3 right-3 z-10">
+                {/* Badges de Alerta no Topo */}
+                <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-2">
+                  {/* Badge de Auxílio (esquerda) - Prioridade máxima */}
+                  {resident.mobilityAid && (
+                    <Badge
+                      variant="default"
+                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 border-0 shadow-md"
+                    >
+                      <Accessibility className="h-3 w-3 mr-1" />
+                      <span className="text-xs font-semibold">Auxílio</span>
+                    </Badge>
+                  )}
+
+                  {/* Badge de Status (direita) */}
                   <Badge
                     variant={resident.status === 'Ativo' ? 'default' : 'secondary'}
                     className={
                       resident.status === 'Ativo'
-                        ? 'bg-success hover:bg-success/90'
-                        : ''
+                        ? 'bg-success hover:bg-success/90 ml-auto'
+                        : 'ml-auto'
                     }
                   >
                     {resident.status}
                   </Badge>
                 </div>
 
-                <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                <CardContent className="p-6 pt-12 flex flex-col items-center text-center space-y-3">
                   {/* Foto */}
                   <div className="relative group-hover:scale-110 transition-transform duration-200">
                     <PhotoViewer
@@ -266,14 +278,6 @@ export function ResidentSelectionGrid({
                       {resident.fullName}
                     </h3>
                   </div>
-
-                  {/* Badge de Auxílio para Mobilidade */}
-                  {resident.mobilityAid && (
-                    <Badge variant="outline" className="flex items-center gap-1 border-blue-500 text-blue-500">
-                      <Accessibility className="h-3 w-3" />
-                      <span className="text-xs">Necessita auxílio</span>
-                    </Badge>
-                  )}
 
                   {/* Acomodação */}
                   {resident.bed && (

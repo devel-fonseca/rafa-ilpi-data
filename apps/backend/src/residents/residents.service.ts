@@ -532,6 +532,7 @@ export class ResidentsService {
             roomId: true,
             bedId: true,
             cns: true,
+            mobilityAid: true,
             createdAt: true,
             updatedAt: true,
           },
