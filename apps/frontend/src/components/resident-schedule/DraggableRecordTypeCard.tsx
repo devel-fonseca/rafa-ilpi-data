@@ -33,19 +33,19 @@ export function DraggableRecordTypeCard({
   if (isTouchDevice && onQuickAdd) {
     return (
       <Card className="transition-all hover:shadow-md">
-        <CardContent className="p-3">
-          <div className="space-y-2">
+        <CardContent className="p-2">
+          <div className="space-y-1.5">
             <Badge
               variant="secondary"
-              className={`${typeInfo.color} ${typeInfo.bgColor} border-2 w-full justify-center`}
+              className={`${typeInfo.color} ${typeInfo.bgColor} border-2 w-full justify-center text-xs py-1`}
             >
               {typeInfo.label}
             </Badge>
-            <div className="flex gap-1">
+            <div className="flex flex-col gap-1">
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 h-7 text-xs"
+                className="w-full h-6 text-[10px] px-2"
                 onClick={() => onQuickAdd(recordType, 'DAILY')}
                 title="Adicionar como registro diário"
               >
@@ -57,7 +57,7 @@ export function DraggableRecordTypeCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-7 text-xs"
+                    className="w-full h-6 text-[10px] px-2"
                     onClick={() => onQuickAdd(recordType, 'WEEKLY')}
                     title="Adicionar como registro semanal"
                   >
@@ -67,7 +67,7 @@ export function DraggableRecordTypeCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-7 text-xs"
+                    className="w-full h-6 text-[10px] px-2"
                     onClick={() => onQuickAdd(recordType, 'MONTHLY')}
                     title="Adicionar como registro mensal"
                   >
