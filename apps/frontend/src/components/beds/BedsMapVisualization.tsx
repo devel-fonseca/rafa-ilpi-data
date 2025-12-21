@@ -15,7 +15,6 @@ import { formatBedFromObject } from '@/utils/formatters'
 import { TransferBedModal } from './TransferBedModal'
 import { SelectBedModal } from './SelectBedModal'
 import { residentsAPI } from '@/api/residents.api'
-import { bedsAPI } from '@/api/beds.api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 

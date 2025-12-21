@@ -4,14 +4,20 @@ import { SuperAdminGuard } from './guards/superadmin.guard'
 import { MetricsService } from './services/metrics.service'
 import { TenantAdminService } from './services/tenant-admin.service'
 import { SubscriptionAdminService } from './services/subscription-admin.service'
+import { PlansAdminService } from './services/plans-admin.service'
+import { AlertsService } from './services/alerts.service'
 import { UpdateTenantDto } from './dto/update-tenant.dto'
 import { SuspendTenantDto } from './dto/suspend-tenant.dto'
 import { ChangePlanDto } from './dto/change-plan.dto'
 import { ExtendPeriodDto } from './dto/extend-period.dto'
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto'
+import { UpdatePlanDto } from './dto/update-plan.dto'
+import { ApplyDiscountDto } from './dto/apply-discount.dto'
+import { ApplyCustomPriceDto } from './dto/apply-custom-price.dto'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
 import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
+import { AlertType, AlertSeverity } from '@prisma/client'
 
 /**
  * SuperAdminController
@@ -37,8 +43,10 @@ export class SuperAdminController {
     private readonly metricsService: MetricsService,
     private readonly tenantAdminService: TenantAdminService,
     private readonly subscriptionAdminService: SubscriptionAdminService,
+    private readonly plansAdminService: PlansAdminService,
     private readonly invoiceService: InvoiceService,
     private readonly analyticsService: PaymentAnalyticsService,
+    private readonly alertsService: AlertsService,
   ) {}
 
   /**
@@ -239,6 +247,82 @@ export class SuperAdminController {
     return this.subscriptionAdminService.findOne(id)
   }
 
+  /**
+   * POST /superadmin/subscriptions/:id/apply-discount
+   * Aplicar desconto percentual a uma subscription
+   */
+  @Post('subscriptions/:id/apply-discount')
+  async applyDiscount(@Param('id') id: string, @Body() dto: ApplyDiscountDto) {
+    return this.subscriptionAdminService.applyDiscount(id, dto.discountPercent, dto.reason)
+  }
+
+  /**
+   * POST /superadmin/subscriptions/:id/apply-custom-price
+   * Aplicar preço customizado a uma subscription
+   */
+  @Post('subscriptions/:id/apply-custom-price')
+  async applyCustomPrice(@Param('id') id: string, @Body() dto: ApplyCustomPriceDto) {
+    return this.subscriptionAdminService.applyCustomPrice(id, dto.customPrice, dto.reason)
+  }
+
+  /**
+   * DELETE /superadmin/subscriptions/:id/discount
+   * Remover desconto/preço customizado de uma subscription
+   */
+  @Delete('subscriptions/:id/discount')
+  async removeDiscount(@Param('id') id: string) {
+    return this.subscriptionAdminService.removeDiscount(id)
+  }
+
+  // ========================================
+  // PLAN MANAGEMENT
+  // ========================================
+
+  /**
+   * GET /superadmin/plans
+   * Listar todos os planos (templates globais)
+   */
+  @Get('plans')
+  async listPlans() {
+    return this.plansAdminService.findAll()
+  }
+
+  /**
+   * GET /superadmin/plans/:id
+   * Buscar detalhes de um plano
+   */
+  @Get('plans/:id')
+  async getPlan(@Param('id') id: string) {
+    return this.plansAdminService.findOne(id)
+  }
+
+  /**
+   * PATCH /superadmin/plans/:id
+   * Atualizar plano (preço, limites, features)
+   */
+  @Patch('plans/:id')
+  async updatePlan(@Param('id') id: string, @Body() updateDto: UpdatePlanDto) {
+    return this.plansAdminService.update(id, updateDto)
+  }
+
+  /**
+   * POST /superadmin/plans/:id/toggle-popular
+   * Toggle flag isPopular de um plano
+   */
+  @Post('plans/:id/toggle-popular')
+  async togglePopular(@Param('id') id: string) {
+    return this.plansAdminService.togglePopular(id)
+  }
+
+  /**
+   * GET /superadmin/plans/:id/stats
+   * Buscar estatísticas de um plano
+   */
+  @Get('plans/:id/stats')
+  async getPlanStats(@Param('id') id: string) {
+    return this.plansAdminService.getStats(id)
+  }
+
   // ========================================
   // INVOICE MANAGEMENT
   // ========================================
@@ -352,5 +436,84 @@ export class SuperAdminController {
   @Get('analytics/mrr-breakdown')
   async getMrrBreakdown() {
     return this.analyticsService.getMrrByPaymentMethod()
+  }
+
+  // ============================================
+  // ALERTS ENDPOINTS (Fase 5)
+  // ============================================
+
+  /**
+   * GET /superadmin/alerts
+   * Lista todos os alertas com filtros e paginação
+   *
+   * Query params:
+   * - read?: boolean - Filtrar por lidos/não lidos
+   * - type?: AlertType - Filtrar por tipo
+   * - severity?: AlertSeverity - Filtrar por severidade
+   * - tenantId?: string - Filtrar por tenant
+   * - limit?: number - Limite de resultados (default: 50)
+   * - offset?: number - Offset para paginação (default: 0)
+   */
+  @Get('alerts')
+  async getAlerts(
+    @Query('read') read?: string,
+    @Query('type') type?: AlertType,
+    @Query('severity') severity?: AlertSeverity,
+    @Query('tenantId') tenantId?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.alertsService.findAll({
+      read: read ? read === 'true' : undefined,
+      type,
+      severity,
+      tenantId,
+      limit: limit ? parseInt(limit) : undefined,
+      offset: offset ? parseInt(offset) : undefined,
+    })
+  }
+
+  /**
+   * GET /superadmin/alerts/unread-count
+   * Conta alertas não lidos
+   *
+   * Query params:
+   * - type?: AlertType - Filtrar por tipo
+   * - severity?: AlertSeverity - Filtrar por severidade
+   */
+  @Get('alerts/unread-count')
+  async getUnreadCount(
+    @Query('type') type?: AlertType,
+    @Query('severity') severity?: AlertSeverity,
+  ) {
+    const count = await this.alertsService.countUnread({ type, severity })
+    return { count }
+  }
+
+  /**
+   * PATCH /superadmin/alerts/:id/read
+   * Marca um alerta como lido
+   */
+  @Patch('alerts/:id/read')
+  async markAlertAsRead(@Param('id') id: string) {
+    return this.alertsService.markAsRead(id)
+  }
+
+  /**
+   * POST /superadmin/alerts/mark-all-read
+   * Marca todos os alertas como lidos
+   */
+  @Post('alerts/mark-all-read')
+  async markAllAlertsAsRead() {
+    return this.alertsService.markAllAsRead()
+  }
+
+  /**
+   * DELETE /superadmin/alerts/:id
+   * Deleta um alerta
+   */
+  @Delete('alerts/:id')
+  async deleteAlert(@Param('id') id: string) {
+    return this.alertsService.delete(id)
   }
 }

@@ -102,12 +102,12 @@ export function CreateInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-purple-900 border-purple-700 text-purple-50 max-w-2xl">
+      <DialogContent className="bg-white border-slate-200 text-slate-900 max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-purple-50">
+          <DialogTitle className="text-slate-900">
             Gerar Fatura Manual
           </DialogTitle>
-          <DialogDescription className="text-purple-300">
+          <DialogDescription className="text-slate-400">
             Crie uma fatura manualmente para um tenant com subscription ativa.
           </DialogDescription>
         </DialogHeader>
@@ -116,17 +116,17 @@ export function CreateInvoiceDialog({
           <div className="space-y-4">
             {/* Tenant Selection */}
             <div className="space-y-2">
-              <Label htmlFor="tenant" className="text-purple-200">
+              <Label htmlFor="tenant" className="text-slate-600">
                 Tenant *
               </Label>
               <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
                 <SelectTrigger
                   id="tenant"
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 >
                   <SelectValue placeholder="Selecione um tenant" />
                 </SelectTrigger>
-                <SelectContent className="bg-purple-950 border-purple-700">
+                <SelectContent className="bg-white border-slate-200">
                   {tenantsData?.data
                     ?.filter((tenant: any) =>
                       tenant.subscriptions.some((s: any) => s.status === 'active')
@@ -142,31 +142,31 @@ export function CreateInvoiceDialog({
 
             {/* Subscription Info (read-only) */}
             {activeSubscription && (
-              <div className="p-4 bg-purple-950/50 rounded-lg border border-purple-700">
+              <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-purple-400">Plano:</span>
-                    <span className="ml-2 text-purple-50">
+                    <span className="text-slate-500">Plano:</span>
+                    <span className="ml-2 text-slate-900">
                       {activeSubscription.plan.displayName}
                     </span>
                   </div>
                   <div>
-                    <span className="text-purple-400">Ciclo:</span>
-                    <span className="ml-2 text-purple-50">
+                    <span className="text-slate-500">Ciclo:</span>
+                    <span className="ml-2 text-slate-900">
                       {activeSubscription.plan.billingCycle === 'MONTHLY'
                         ? 'Mensal'
                         : 'Anual'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-purple-400">Status:</span>
-                    <span className="ml-2 text-purple-50">
+                    <span className="text-slate-500">Status:</span>
+                    <span className="ml-2 text-slate-900">
                       {activeSubscription.status}
                     </span>
                   </div>
                   <div>
-                    <span className="text-purple-400">Preço do plano:</span>
-                    <span className="ml-2 text-purple-50">
+                    <span className="text-slate-500">Preço do plano:</span>
+                    <span className="ml-2 text-slate-900">
                       R${' '}
                       {Number(activeSubscription.plan.price).toLocaleString(
                         'pt-BR',
@@ -180,7 +180,7 @@ export function CreateInvoiceDialog({
 
             {/* Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount" className="text-purple-200">
+              <Label htmlFor="amount" className="text-slate-600">
                 Valor (R$) *
               </Label>
               <Input
@@ -191,13 +191,13 @@ export function CreateInvoiceDialog({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="299.90"
-                className="bg-purple-950 border-purple-700 text-purple-50"
+                className="bg-white border-slate-200 text-slate-900"
               />
             </div>
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-purple-200">
+              <Label htmlFor="description" className="text-slate-600">
                 Descrição (opcional)
               </Label>
               <Textarea
@@ -205,7 +205,7 @@ export function CreateInvoiceDialog({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ex: Mensalidade Plano Profissional - Janeiro/2024"
-                className="bg-purple-950 border-purple-700 text-purple-50"
+                className="bg-white border-slate-200 text-slate-900"
                 rows={3}
               />
             </div>
@@ -225,7 +225,7 @@ export function CreateInvoiceDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="bg-purple-950 border-purple-700 text-purple-300 hover:bg-purple-800"
+              className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
             >
               Cancelar
             </Button>

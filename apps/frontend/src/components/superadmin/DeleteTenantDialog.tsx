@@ -81,10 +81,10 @@ export function DeleteTenantDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{TriggerComponent}</DialogTrigger>
-      <DialogContent className="bg-purple-900 border-purple-700 text-purple-50">
+      <DialogContent className="bg-white border-slate-200 text-slate-900">
         <DialogHeader>
-          <DialogTitle className="text-purple-50">Deletar Tenant</DialogTitle>
-          <DialogDescription className="text-purple-300">
+          <DialogTitle className="text-slate-900">Deletar Tenant</DialogTitle>
+          <DialogDescription className="text-slate-400">
             Esta ação é <strong>irreversível</strong>. Todos os dados serão
             permanentemente removidos.
           </DialogDescription>
@@ -123,8 +123,8 @@ export function DeleteTenantDialog({
 
           {/* Confirmation Input */}
           <div className="space-y-2">
-            <Label htmlFor="confirmation" className="text-purple-200">
-              Digite <strong className="text-purple-50">{tenantName}</strong>{' '}
+            <Label htmlFor="confirmation" className="text-slate-600">
+              Digite <strong className="text-slate-900">{tenantName}</strong>{' '}
               para confirmar:
             </Label>
             <Input
@@ -132,7 +132,7 @@ export function DeleteTenantDialog({
               value={confirmation}
               onChange={(e) => setConfirmation(e.target.value)}
               placeholder={tenantName}
-              className="bg-purple-950 border-purple-700 text-purple-50"
+              className="bg-white border-slate-200 text-slate-900"
               autoComplete="off"
             />
             {confirmation && !isConfirmed && (
@@ -154,7 +154,7 @@ export function DeleteTenantDialog({
               setOpen(false)
               setConfirmation('')
             }}
-            className="bg-purple-950 border-purple-700 text-purple-300 hover:bg-purple-800"
+            className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
           >
             Cancelar
           </Button>

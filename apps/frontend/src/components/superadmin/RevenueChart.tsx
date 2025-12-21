@@ -52,46 +52,46 @@ export function RevenueChart({
   }))
 
   return (
-    <Card className="bg-purple-900 border-purple-800">
+    <Card className="bg-white border-slate-200">
       <CardHeader>
-        <CardTitle className="text-base font-medium text-purple-50">
+        <CardTitle className="text-base font-medium text-slate-900">
           {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={height}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#6b21a8" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis
               dataKey="month"
-              stroke="#c4b5fd"
+              stroke="#64748b"
               style={{ fontSize: '12px' }}
             />
             <YAxis
-              stroke="#c4b5fd"
+              stroke="#64748b"
               style={{ fontSize: '12px' }}
               tickFormatter={(value) => `R$ ${value}`}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#581c87',
-                border: '1px solid #6b21a8',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
                 borderRadius: '8px',
-                color: '#f3e8ff',
+                color: '#0f172a',
               }}
               formatter={(value: number) => [formatCurrency(value), 'MRR']}
-              labelStyle={{ color: '#e9d5ff' }}
+              labelStyle={{ color: '#475569' }}
             />
             <Legend
-              wrapperStyle={{ color: '#e9d5ff', fontSize: '14px' }}
+              wrapperStyle={{ color: '#475569', fontSize: '14px' }}
               iconType="line"
             />
             <Line
               type="monotone"
               dataKey="mrr"
-              stroke="#a78bfa"
+              stroke="#059669"
               strokeWidth={3}
-              dot={{ fill: '#a78bfa', r: 4 }}
+              dot={{ fill: '#059669', r: 4 }}
               activeDot={{ r: 6 }}
               name="MRR"
             />

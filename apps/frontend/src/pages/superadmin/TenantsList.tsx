@@ -112,15 +112,15 @@ export function TenantsList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-purple-50">Tenants</h1>
-          <p className="text-purple-300 mt-1">
+          <h1 className="text-3xl font-bold text-slate-900">Tenants</h1>
+          <p className="text-slate-400 mt-1">
             Gerencie todos os tenants da plataforma
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Building2 className="h-8 w-8 text-purple-400" />
+          <Building2 className="h-8 w-8 text-slate-500" />
           {data && (
-            <span className="text-2xl font-bold text-purple-50">
+            <span className="text-2xl font-bold text-slate-900">
               {data.meta.total}
             </span>
           )}
@@ -128,15 +128,15 @@ export function TenantsList() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardContent className="p-4">
           <div className="flex gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
                 placeholder="Buscar por nome, email ou CNPJ..."
-                className="pl-10 bg-purple-950 border-purple-700 text-purple-50"
+                className="pl-10 bg-white border-slate-200 text-slate-900"
                 value={filters.search || ''}
                 onChange={(e) => handleSearch(e.target.value)}
               />
@@ -147,11 +147,11 @@ export function TenantsList() {
               value={filters.status || 'ALL'}
               onValueChange={handleStatusFilter}
             >
-              <SelectTrigger className="w-[180px] bg-purple-950 border-purple-700 text-purple-50">
+              <SelectTrigger className="w-[180px] bg-white border-slate-200 text-slate-900">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-purple-950 border-purple-700">
+              <SelectContent className="bg-white border-slate-200">
                 <SelectItem value="ALL">Todos</SelectItem>
                 <SelectItem value="ACTIVE">Ativos</SelectItem>
                 <SelectItem value="TRIAL">Trial</SelectItem>
@@ -165,11 +165,11 @@ export function TenantsList() {
               value={filters.planId || 'ALL'}
               onValueChange={handlePlanFilter}
             >
-              <SelectTrigger className="w-[200px] bg-purple-950 border-purple-700 text-purple-50">
+              <SelectTrigger className="w-[200px] bg-white border-slate-200 text-slate-900">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Plano" />
               </SelectTrigger>
-              <SelectContent className="bg-purple-950 border-purple-700">
+              <SelectContent className="bg-white border-slate-200">
                 <SelectItem value="ALL">Todos os planos</SelectItem>
                 {plans?.map((plan) => (
                   <SelectItem key={plan.id} value={plan.id}>
@@ -183,10 +183,10 @@ export function TenantsList() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardContent className="p-0">
           {isLoading && (
-            <div className="p-8 text-center text-purple-300">
+            <div className="p-8 text-center text-slate-400">
               Carregando tenants...
             </div>
           )}
@@ -198,7 +198,7 @@ export function TenantsList() {
           )}
 
           {data && data.data.length === 0 && (
-            <div className="p-8 text-center text-purple-300">
+            <div className="p-8 text-center text-slate-400">
               Nenhum tenant encontrado
             </div>
           )}
@@ -206,18 +206,18 @@ export function TenantsList() {
           {data && data.data.length > 0 && (
             <Table>
               <TableHeader>
-                <TableRow className="border-purple-800 hover:bg-purple-800/50">
-                  <TableHead className="text-purple-300">Tenant</TableHead>
-                  <TableHead className="text-purple-300">Status</TableHead>
-                  <TableHead className="text-purple-300">Plano</TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                <TableRow className="border-slate-200 hover:bg-slate-100/50">
+                  <TableHead className="text-slate-400">Tenant</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Plano</TableHead>
+                  <TableHead className="text-slate-400 text-right">
                     Usuários
                   </TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                  <TableHead className="text-slate-400 text-right">
                     Residentes
                   </TableHead>
-                  <TableHead className="text-purple-300">Criado em</TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                  <TableHead className="text-slate-400">Criado em</TableHead>
+                  <TableHead className="text-slate-400 text-right">
                     Ações
                   </TableHead>
                 </TableRow>
@@ -235,14 +235,14 @@ export function TenantsList() {
                   return (
                     <TableRow
                       key={tenant.id}
-                      className="border-purple-800 hover:bg-purple-800/30"
+                      className="border-slate-200 hover:bg-slate-100/30"
                     >
                       <TableCell>
                         <div>
-                          <div className="font-medium text-purple-50">
+                          <div className="font-medium text-slate-900">
                             {tenant.name}
                           </div>
-                          <div className="text-sm text-purple-400">
+                          <div className="text-sm text-slate-500">
                             {tenant.email}
                           </div>
                         </div>
@@ -252,16 +252,16 @@ export function TenantsList() {
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {activeSub?.plan.displayName || 'Sem plano'}
                       </TableCell>
-                      <TableCell className="text-right text-purple-300">
+                      <TableCell className="text-right text-slate-400">
                         {tenant._count.users}
                       </TableCell>
-                      <TableCell className="text-right text-purple-300">
+                      <TableCell className="text-right text-slate-400">
                         {tenant._count.residents}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-right">
@@ -270,19 +270,19 @@ export function TenantsList() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-purple-300 hover:text-purple-50 hover:bg-purple-800"
+                              className="text-slate-400 hover:text-slate-900 hover:bg-slate-100"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="bg-purple-900 border-purple-700"
+                            className="bg-white border-slate-200"
                           >
                             <DropdownMenuItem asChild>
                               <Link
                                 to={`/superadmin/tenants/${tenant.id}`}
-                                className="cursor-pointer text-purple-300 hover:text-purple-50"
+                                className="cursor-pointer text-slate-400 hover:text-slate-900"
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver detalhes
@@ -305,7 +305,7 @@ export function TenantsList() {
                             {tenant.status === 'SUSPENDED' && (
                               <DropdownMenuItem
                                 onClick={() => handleReactivate(tenant.id, tenant.name)}
-                                className="cursor-pointer text-purple-300 hover:text-purple-50"
+                                className="cursor-pointer text-slate-400 hover:text-slate-900"
                               >
                                 <Play className="h-4 w-4 mr-2" />
                                 Reativar
@@ -337,7 +337,7 @@ export function TenantsList() {
       {/* Pagination */}
       {data && data.meta.totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-purple-300">
+          <div className="text-sm text-slate-400">
             Página {data.meta.page} de {data.meta.totalPages} ({data.meta.total}{' '}
             tenants)
           </div>
@@ -347,7 +347,7 @@ export function TenantsList() {
               size="sm"
               onClick={() => handlePageChange(data.meta.page - 1)}
               disabled={data.meta.page === 1}
-              className="bg-purple-900 border-purple-700 text-purple-300 hover:bg-purple-800"
+              className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
             >
               Anterior
             </Button>
@@ -356,7 +356,7 @@ export function TenantsList() {
               size="sm"
               onClick={() => handlePageChange(data.meta.page + 1)}
               disabled={data.meta.page === data.meta.totalPages}
-              className="bg-purple-900 border-purple-700 text-purple-300 hover:bg-purple-800"
+              className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
             >
               Próxima
             </Button>

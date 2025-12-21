@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { addDays } from 'date-fns'
+import { Decimal } from '@prisma/client/runtime/library'
 
 /**
  * SubscriptionAdminService
@@ -10,6 +11,7 @@ import { addDays } from 'date-fns'
  * - Estender período de trial
  * - Cancelar subscription
  * - Reativar subscription
+ * - Aplicar descontos e preços personalizados
  * - Histórico de subscriptions
  */
 @Injectable()
@@ -277,5 +279,129 @@ export class SubscriptionAdminService {
     }
 
     return subscription
+  }
+
+  /**
+   * Aplicar desconto percentual a uma subscription
+   *
+   * @param subscriptionId ID da subscription
+   * @param discountPercent Desconto de 0 a 100 (ex: 20 = 20% de desconto)
+   * @param reason Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
+   */
+  async applyDiscount(subscriptionId: string, discountPercent: number, reason: string) {
+    // Validações
+    if (discountPercent < 0 || discountPercent > 100) {
+      throw new BadRequestException('Desconto deve estar entre 0 e 100')
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      throw new BadRequestException('Razão do desconto é obrigatória')
+    }
+
+    // Buscar subscription
+    const subscription = await this.findOne(subscriptionId)
+
+    // Atualizar com desconto
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        discountPercent: new Decimal(discountPercent),
+        discountReason: reason,
+        customPrice: null, // Limpar customPrice se existir
+      },
+      include: { plan: true, tenant: true },
+    })
+
+    // Criar alerta
+    await this.prisma.systemAlert.create({
+      data: {
+        tenantId: subscription.tenantId,
+        type: 'SYSTEM_ERROR',
+        severity: 'INFO',
+        title: 'Desconto Aplicado',
+        message: `Desconto de ${discountPercent}% aplicado à subscription. Motivo: ${reason}`,
+        metadata: { subscriptionId, discountPercent, reason },
+      },
+    })
+
+    return updated
+  }
+
+  /**
+   * Aplicar preço customizado a uma subscription (override total do plan.price)
+   *
+   * @param subscriptionId ID da subscription
+   * @param customPrice Novo preço fixo (substitui plan.price completamente)
+   * @param reason Razão do preço customizado
+   */
+  async applyCustomPrice(subscriptionId: string, customPrice: number, reason: string) {
+    // Validações
+    if (customPrice < 0) {
+      throw new BadRequestException('Preço customizado não pode ser negativo')
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      throw new BadRequestException('Razão do preço customizado é obrigatória')
+    }
+
+    // Buscar subscription
+    const subscription = await this.findOne(subscriptionId)
+
+    // Atualizar com preço customizado
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        customPrice: new Decimal(customPrice),
+        discountPercent: null, // Limpar desconto se existir
+        discountReason: reason,
+      },
+      include: { plan: true, tenant: true },
+    })
+
+    // Criar alerta
+    await this.prisma.systemAlert.create({
+      data: {
+        tenantId: subscription.tenantId,
+        type: 'SYSTEM_ERROR',
+        severity: 'INFO',
+        title: 'Preço Customizado Aplicado',
+        message: `Preço customizado de R$ ${customPrice.toFixed(2)} aplicado à subscription. Motivo: ${reason}`,
+        metadata: { subscriptionId, customPrice, reason },
+      },
+    })
+
+    return updated
+  }
+
+  /**
+   * Remover desconto/preço customizado de uma subscription
+   * Volta a usar o preço base do plano
+   */
+  async removeDiscount(subscriptionId: string) {
+    const subscription = await this.findOne(subscriptionId)
+
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        discountPercent: null,
+        discountReason: null,
+        customPrice: null,
+      },
+      include: { plan: true, tenant: true },
+    })
+
+    // Criar alerta
+    await this.prisma.systemAlert.create({
+      data: {
+        tenantId: subscription.tenantId,
+        type: 'SYSTEM_ERROR',
+        severity: 'INFO',
+        title: 'Desconto Removido',
+        message: 'Subscription voltou a usar o preço base do plano',
+        metadata: { subscriptionId },
+      },
+    })
+
+    return updated
   }
 }

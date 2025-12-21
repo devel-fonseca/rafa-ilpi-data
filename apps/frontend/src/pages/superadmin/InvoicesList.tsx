@@ -81,8 +81,8 @@ export function InvoicesList() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-purple-50">Faturas</h1>
-          <p className="text-purple-300 mt-1">
+          <h1 className="text-3xl font-bold text-slate-900">Faturas</h1>
+          <p className="text-slate-400 mt-1">
             Gerencie todas as faturas da plataforma
           </p>
         </div>
@@ -95,9 +95,9 @@ export function InvoicesList() {
             Gerar Fatura Manual
           </Button>
           <div className="flex items-center gap-2">
-            <Receipt className="h-8 w-8 text-purple-400" />
+            <Receipt className="h-8 w-8 text-slate-500" />
             {data && (
-              <span className="text-2xl font-bold text-purple-50">
+              <span className="text-2xl font-bold text-slate-900">
                 {data.meta.total}
               </span>
             )}
@@ -106,15 +106,15 @@ export function InvoicesList() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardContent className="p-4">
           <div className="flex gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input
                 placeholder="Buscar por tenant ou número da fatura..."
-                className="pl-10 bg-purple-950 border-purple-700 text-purple-50"
+                className="pl-10 bg-white border-slate-200 text-slate-900"
                 value={filters.search || ''}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, search: e.target.value }))
@@ -127,11 +127,11 @@ export function InvoicesList() {
               value={filters.status || 'ALL'}
               onValueChange={handleStatusFilter}
             >
-              <SelectTrigger className="w-[180px] bg-purple-950 border-purple-700 text-purple-50">
+              <SelectTrigger className="w-[180px] bg-white border-slate-200 text-slate-900">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent className="bg-purple-950 border-purple-700">
+              <SelectContent className="bg-white border-slate-200">
                 <SelectItem value="ALL">Todos</SelectItem>
                 <SelectItem value="OPEN">Pendentes</SelectItem>
                 <SelectItem value="PAID">Pagas</SelectItem>
@@ -144,10 +144,10 @@ export function InvoicesList() {
       </Card>
 
       {/* Table */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardContent className="p-0">
           {isLoading && (
-            <div className="p-8 text-center text-purple-300">
+            <div className="p-8 text-center text-slate-400">
               Carregando faturas...
             </div>
           )}
@@ -159,7 +159,7 @@ export function InvoicesList() {
           )}
 
           {filteredInvoices && filteredInvoices.length === 0 && (
-            <div className="p-8 text-center text-purple-300">
+            <div className="p-8 text-center text-slate-400">
               Nenhuma fatura encontrada
             </div>
           )}
@@ -167,17 +167,17 @@ export function InvoicesList() {
           {filteredInvoices && filteredInvoices.length > 0 && (
             <Table>
               <TableHeader>
-                <TableRow className="border-purple-800 hover:bg-purple-800/50">
-                  <TableHead className="text-purple-300">Número</TableHead>
-                  <TableHead className="text-purple-300">Tenant</TableHead>
-                  <TableHead className="text-purple-300">Status</TableHead>
-                  <TableHead className="text-purple-300">Plano</TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                <TableRow className="border-slate-200 hover:bg-slate-100/50">
+                  <TableHead className="text-slate-400">Número</TableHead>
+                  <TableHead className="text-slate-400">Tenant</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Plano</TableHead>
+                  <TableHead className="text-slate-400 text-right">
                     Valor
                   </TableHead>
-                  <TableHead className="text-purple-300">Vencimento</TableHead>
-                  <TableHead className="text-purple-300">Criado em</TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                  <TableHead className="text-slate-400">Vencimento</TableHead>
+                  <TableHead className="text-slate-400">Criado em</TableHead>
+                  <TableHead className="text-slate-400 text-right">
                     Ações
                   </TableHead>
                 </TableRow>
@@ -196,19 +196,19 @@ export function InvoicesList() {
                   return (
                     <TableRow
                       key={invoice.id}
-                      className="border-purple-800 hover:bg-purple-800/30"
+                      className="border-slate-200 hover:bg-slate-100/30"
                     >
                       <TableCell>
-                        <div className="font-mono text-sm text-purple-50">
+                        <div className="font-mono text-sm text-slate-900">
                           {invoice.invoiceNumber}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-purple-50">
+                          <div className="font-medium text-slate-900">
                             {invoice.tenant.name}
                           </div>
-                          <div className="text-sm text-purple-400">
+                          <div className="text-sm text-slate-500">
                             {invoice.tenant.email}
                           </div>
                         </div>
@@ -225,16 +225,16 @@ export function InvoicesList() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {invoice.subscription.plan.displayName}
                       </TableCell>
-                      <TableCell className="text-right text-purple-50 font-medium">
+                      <TableCell className="text-right text-slate-900 font-medium">
                         R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-right">
@@ -243,14 +243,14 @@ export function InvoicesList() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-purple-300 hover:text-purple-50 hover:bg-purple-800"
+                              className="text-slate-400 hover:text-slate-900 hover:bg-slate-100"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="bg-purple-900 border-purple-700"
+                            className="bg-white border-slate-200"
                           >
                             {invoice.paymentUrl && (
                               <DropdownMenuItem asChild>
@@ -258,7 +258,7 @@ export function InvoicesList() {
                                   href={invoice.paymentUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="cursor-pointer text-purple-300 hover:text-purple-50"
+                                  className="cursor-pointer text-slate-400 hover:text-slate-900"
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />
                                   Ver no Asaas
@@ -269,7 +269,7 @@ export function InvoicesList() {
                             <DropdownMenuItem asChild>
                               <Link
                                 to={`/superadmin/invoices/${invoice.id}`}
-                                className="cursor-pointer text-purple-300 hover:text-purple-50"
+                                className="cursor-pointer text-slate-400 hover:text-slate-900"
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver detalhes

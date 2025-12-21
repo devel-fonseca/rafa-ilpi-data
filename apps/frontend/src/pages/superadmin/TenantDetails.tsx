@@ -71,7 +71,7 @@ export function TenantDetails() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-purple-300">Carregando...</div>
+        <div className="text-slate-400">Carregando...</div>
       </div>
     )
   }
@@ -79,11 +79,11 @@ export function TenantDetails() {
   if (!tenant) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
-        <div className="text-purple-300">Tenant não encontrado</div>
+        <div className="text-slate-400">Tenant não encontrado</div>
         <Button
           variant="outline"
           onClick={() => navigate('/superadmin/tenants')}
-          className="bg-purple-900 border-purple-700 text-purple-300"
+          className="bg-white border-slate-200 text-slate-400"
         >
           Voltar
         </Button>
@@ -125,14 +125,14 @@ export function TenantDetails() {
             variant="ghost"
             size="sm"
             onClick={() => navigate('/superadmin/tenants')}
-            className="text-purple-300 hover:text-purple-50 hover:bg-purple-800"
+            className="text-slate-400 hover:text-slate-900 hover:bg-slate-100"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-purple-50">{tenant.name}</h1>
-            <p className="text-purple-300 mt-1">{tenant.email}</p>
+            <h1 className="text-3xl font-bold text-slate-900">{tenant.name}</h1>
+            <p className="text-slate-400 mt-1">{tenant.email}</p>
           </div>
           <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
         </div>
@@ -168,57 +168,57 @@ export function TenantDetails() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-purple-900 border-purple-800">
+        <Card className="bg-white border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-purple-300">
+            <CardTitle className="text-sm font-medium text-slate-400">
               Usuários
             </CardTitle>
-            <Users className="h-4 w-4 text-purple-400" />
+            <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-50">
+            <div className="text-2xl font-bold text-slate-900">
               {tenant._count.users}
             </div>
             {stats && (
-              <p className="text-xs text-purple-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {stats.activeUsers} ativos
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-purple-900 border-purple-800">
+        <Card className="bg-white border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-purple-300">
+            <CardTitle className="text-sm font-medium text-slate-400">
               Residentes
             </CardTitle>
-            <Building2 className="h-4 w-4 text-purple-400" />
+            <Building2 className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-50">
+            <div className="text-2xl font-bold text-slate-900">
               {tenant._count.residents}
             </div>
             {stats && (
-              <p className="text-xs text-purple-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 {stats.activeResidents} ativos
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-purple-900 border-purple-800">
+        <Card className="bg-white border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-purple-300">
+            <CardTitle className="text-sm font-medium text-slate-400">
               Plano Atual
             </CardTitle>
-            <CreditCard className="h-4 w-4 text-purple-400" />
+            <CreditCard className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-50">
+            <div className="text-2xl font-bold text-slate-900">
               {activeSub?.plan.displayName || 'Sem plano'}
             </div>
             {activeSub?.plan.price && (
-              <p className="text-xs text-purple-400 mt-1">
+              <p className="text-xs text-slate-500 mt-1">
                 R$ {activeSub.plan.price.toLocaleString('pt-BR')} / mês
               </p>
             )}
@@ -227,36 +227,36 @@ export function TenantDetails() {
       </div>
 
       {/* Informações Gerais */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle className="text-purple-50">Informações Gerais</CardTitle>
+          <CardTitle className="text-slate-900">Informações Gerais</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-purple-400">CNPJ</p>
-              <p className="text-purple-50">{tenant.cnpj || 'Não informado'}</p>
+              <p className="text-sm text-slate-500">CNPJ</p>
+              <p className="text-slate-900">{tenant.cnpj || 'Não informado'}</p>
             </div>
             <div>
-              <p className="text-sm text-purple-400">Telefone</p>
-              <p className="text-purple-50">{tenant.phone || 'Não informado'}</p>
+              <p className="text-sm text-slate-500">Telefone</p>
+              <p className="text-slate-900">{tenant.phone || 'Não informado'}</p>
             </div>
           </div>
 
-          <Separator className="bg-purple-800" />
+          <Separator className="bg-slate-200" />
 
           <div>
-            <p className="text-sm text-purple-400">Endereço</p>
-            <p className="text-purple-50">
+            <p className="text-sm text-slate-500">Endereço</p>
+            <p className="text-slate-900">
               {tenant.addressStreet
                 ? `${tenant.addressStreet}, ${tenant.addressCity || ''} - ${tenant.addressState || ''}`
                 : 'Não informado'}
             </p>
           </div>
 
-          <Separator className="bg-purple-800" />
+          <Separator className="bg-slate-200" />
 
-          <div className="flex items-center gap-2 text-sm text-purple-400">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
             <Calendar className="h-4 w-4" />
             Criado em {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
           </div>
@@ -264,9 +264,9 @@ export function TenantDetails() {
       </Card>
 
       {/* Histórico de Subscriptions */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle className="text-purple-50 flex items-center gap-2">
+          <CardTitle className="text-slate-900 flex items-center gap-2">
             <Activity className="h-5 w-5" />
             Histórico de Assinaturas
           </CardTitle>
@@ -275,12 +275,12 @@ export function TenantDetails() {
           {subscriptions && subscriptions.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow className="border-purple-800">
-                  <TableHead className="text-purple-300">Plano</TableHead>
-                  <TableHead className="text-purple-300">Status</TableHead>
-                  <TableHead className="text-purple-300">Início</TableHead>
-                  <TableHead className="text-purple-300">Término</TableHead>
-                  <TableHead className="text-purple-300 text-right">
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-400">Plano</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Início</TableHead>
+                  <TableHead className="text-slate-400">Término</TableHead>
+                  <TableHead className="text-slate-400 text-right">
                     Valor
                   </TableHead>
                 </TableRow>
@@ -293,8 +293,8 @@ export function TenantDetails() {
                   }
 
                   return (
-                    <TableRow key={sub.id} className="border-purple-800">
-                      <TableCell className="text-purple-50">
+                    <TableRow key={sub.id} className="border-slate-200">
+                      <TableCell className="text-slate-900">
                         {sub.plan.displayName}
                       </TableCell>
                       <TableCell>
@@ -302,21 +302,21 @@ export function TenantDetails() {
                           {subStatus.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {sub.currentPeriodStart
                           ? new Date(sub.currentPeriodStart).toLocaleDateString(
                               'pt-BR'
                             )
                           : '-'}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {sub.currentPeriodEnd
                           ? new Date(sub.currentPeriodEnd).toLocaleDateString(
                               'pt-BR'
                             )
                           : '-'}
                       </TableCell>
-                      <TableCell className="text-right text-purple-300">
+                      <TableCell className="text-right text-slate-400">
                         {sub.plan.price
                           ? `R$ ${sub.plan.price.toLocaleString('pt-BR')}`
                           : 'Gratuito'}
@@ -327,7 +327,7 @@ export function TenantDetails() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center text-purple-400 py-8">
+            <p className="text-center text-slate-500 py-8">
               Nenhum histórico de assinatura
             </p>
           )}
@@ -335,9 +335,9 @@ export function TenantDetails() {
       </Card>
 
       {/* Faturas */}
-      <Card className="bg-purple-900 border-purple-800">
+      <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle className="text-purple-50 flex items-center gap-2">
+          <CardTitle className="text-slate-900 flex items-center gap-2">
             <Receipt className="h-5 w-5" />
             Faturas
           </CardTitle>
@@ -346,13 +346,13 @@ export function TenantDetails() {
           {invoicesData && invoicesData.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow className="border-purple-800">
-                  <TableHead className="text-purple-300">Número</TableHead>
-                  <TableHead className="text-purple-300">Status</TableHead>
-                  <TableHead className="text-purple-300">Valor</TableHead>
-                  <TableHead className="text-purple-300">Vencimento</TableHead>
-                  <TableHead className="text-purple-300">Criada em</TableHead>
-                  <TableHead className="text-purple-300">Ações</TableHead>
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-400">Número</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Valor</TableHead>
+                  <TableHead className="text-slate-400">Vencimento</TableHead>
+                  <TableHead className="text-slate-400">Criada em</TableHead>
+                  <TableHead className="text-slate-400">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -374,8 +374,8 @@ export function TenantDetails() {
                     new Date(invoice.dueDate) < new Date()
 
                   return (
-                    <TableRow key={invoice.id} className="border-purple-800">
-                      <TableCell className="text-purple-50 font-mono text-sm">
+                    <TableRow key={invoice.id} className="border-slate-200">
+                      <TableCell className="text-slate-900 font-mono text-sm">
                         {invoice.invoiceNumber}
                       </TableCell>
                       <TableCell>
@@ -390,13 +390,13 @@ export function TenantDetails() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
                       </TableCell>
-                      <TableCell className="text-purple-300">
+                      <TableCell className="text-slate-400">
                         {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell>
@@ -405,7 +405,7 @@ export function TenantDetails() {
                             href={invoice.paymentUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-purple-300 hover:text-purple-50 inline-flex items-center gap-1 text-sm"
+                            className="text-slate-400 hover:text-slate-900 inline-flex items-center gap-1 text-sm"
                           >
                             <ExternalLink className="h-4 w-4" />
                             Ver no Asaas
@@ -418,7 +418,7 @@ export function TenantDetails() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-center text-purple-400 py-8">
+            <p className="text-center text-slate-500 py-8">
               Nenhuma fatura encontrada
             </p>
           )}

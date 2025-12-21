@@ -96,29 +96,29 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
         <Button
           variant="outline"
           size="sm"
-          className="bg-purple-900 border-purple-700 text-purple-300 hover:bg-purple-800"
+          className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           Mudar Plano
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-purple-900 border-purple-700 text-purple-50">
+      <DialogContent className="bg-white border-slate-200 text-slate-900">
         <DialogHeader>
-          <DialogTitle className="text-purple-50">Mudar Plano</DialogTitle>
-          <DialogDescription className="text-purple-300">
+          <DialogTitle className="text-slate-900">Mudar Plano</DialogTitle>
+          <DialogDescription className="text-slate-400">
             Altere o plano de assinatura de {tenant.name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Plano Atual */}
-          <div className="p-4 bg-purple-950 rounded-lg border border-purple-800">
-            <div className="text-sm text-purple-400 mb-1">Plano Atual</div>
-            <div className="font-semibold text-purple-50">
+          <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
+            <div className="text-sm text-slate-500 mb-1">Plano Atual</div>
+            <div className="font-semibold text-slate-900">
               {currentPlan?.displayName || 'Nenhum plano ativo'}
             </div>
             {currentPlan?.price && (
-              <div className="text-sm text-purple-300">
+              <div className="text-sm text-slate-400">
                 R$ {currentPlan.price.toLocaleString('pt-BR')} / mês
               </div>
             )}
@@ -126,16 +126,16 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
 
           {/* Novo Plano */}
           <div className="space-y-2">
-            <Label htmlFor="plan" className="text-purple-200">
+            <Label htmlFor="plan" className="text-slate-600">
               Novo Plano *
             </Label>
             <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-              <SelectTrigger className="bg-purple-950 border-purple-700 text-purple-50">
+              <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                 <SelectValue placeholder="Selecione um plano" />
               </SelectTrigger>
-              <SelectContent className="bg-purple-950 border-purple-700">
+              <SelectContent className="bg-white border-slate-200">
                 {loadingPlans ? (
-                  <div className="p-2 text-center text-purple-400">
+                  <div className="p-2 text-center text-slate-500">
                     Carregando planos...
                   </div>
                 ) : (
@@ -143,7 +143,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
                     <SelectItem
                       key={plan.id}
                       value={plan.id}
-                      className="text-purple-300"
+                      className="text-slate-900"
                     >
                       {plan.displayName}
                       {plan.price && ` - R$ ${plan.price.toLocaleString('pt-BR')}/mês`}
@@ -156,16 +156,16 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
 
           {/* Comparação */}
           {selectedPlan && currentPlan && (
-            <div className="p-4 bg-purple-950 rounded-lg border border-purple-700">
-              <div className="text-sm text-purple-400 mb-2">Mudança:</div>
+            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
+              <div className="text-sm text-slate-500 mb-2">Mudança:</div>
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-purple-300">{currentPlan.displayName}</span>
-                <span className="text-purple-500">→</span>
-                <span className="text-green-400 font-medium">
+                <span className="text-slate-600">{currentPlan.displayName}</span>
+                <span className="text-slate-500">→</span>
+                <span className="text-green-600 font-medium">
                   {selectedPlan.displayName}
                 </span>
               </div>
-              <div className="text-xs text-purple-400 mt-1">
+              <div className="text-xs text-slate-500 mt-1">
                 Residentes: {currentPlan.maxResidents} → {selectedPlan.maxResidents} | Usuários: {currentPlan.maxUsers} → {selectedPlan.maxUsers}
               </div>
             </div>
@@ -173,7 +173,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
 
           {/* Motivo */}
           <div className="space-y-2">
-            <Label htmlFor="reason" className="text-purple-200">
+            <Label htmlFor="reason" className="text-slate-600">
               Motivo (opcional)
             </Label>
             <Textarea
@@ -181,7 +181,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex: Upgrade por crescimento do cliente..."
-              className="bg-purple-950 border-purple-700 text-purple-50"
+              className="bg-white border-slate-200 text-slate-900"
               rows={3}
             />
           </div>
@@ -196,7 +196,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
               setSelectedPlanId('')
               setReason('')
             }}
-            className="bg-purple-950 border-purple-700 text-purple-300 hover:bg-purple-800"
+            className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
           >
             Cancelar
           </Button>
@@ -204,7 +204,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
             type="button"
             onClick={handleSubmit}
             disabled={changePlanMutation.isPending || !selectedPlanId}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-[#059669] hover:bg-slate-600 text-slate-900"
           >
             {changePlanMutation.isPending ? 'Alterando...' : 'Confirmar Mudança'}
           </Button>

@@ -53,7 +53,7 @@ export function MetricCard({
     } else if (trend.value < 0) {
       return <TrendingDown className="h-4 w-4 text-red-400" />
     } else {
-      return <Minus className="h-4 w-4 text-purple-400" />
+      return <Minus className="h-4 w-4 text-slate-500" />
     }
   }
 
@@ -65,25 +65,25 @@ export function MetricCard({
     } else if (trend.value < 0) {
       return 'text-red-400'
     } else {
-      return 'text-purple-400'
+      return 'text-slate-500'
     }
   }
 
   return (
-    <Card className="bg-purple-900 border-purple-800">
+    <Card className="bg-white border-slate-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-purple-200">
+        <CardTitle className="text-sm font-medium text-slate-600">
           {title}
         </CardTitle>
-        <Icon className="h-5 w-5 text-purple-400" />
+        <Icon className="h-5 w-5 text-slate-500" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-purple-50">
+        <div className="text-2xl font-bold text-slate-900">
           {formatValue(value)}
         </div>
 
         {description && (
-          <p className="text-xs text-purple-300 mt-1">{description}</p>
+          <p className="text-xs text-slate-400 mt-1">{description}</p>
         )}
 
         {trend && (
@@ -93,7 +93,7 @@ export function MetricCard({
               {trend.value > 0 && '+'}
               {trend.value.toFixed(2)}%
             </span>
-            <span className="text-xs text-purple-400">{trend.label}</span>
+            <span className="text-xs text-slate-500">{trend.label}</span>
           </div>
         )}
       </CardContent>

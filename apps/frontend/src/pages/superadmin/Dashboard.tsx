@@ -37,7 +37,7 @@ export function SuperAdminDashboard() {
   if (isLoadingOverview || isLoadingTrends) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
       </div>
     )
   }
@@ -60,10 +60,10 @@ export function SuperAdminDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-purple-50">
+        <h2 className="text-2xl font-bold text-slate-900">
           Dashboard do Super Administrador
         </h2>
-        <p className="text-purple-300 text-sm mt-1">
+        <p className="text-slate-400 text-sm mt-1">
           Visão geral de métricas e tendências de negócio
         </p>
       </div>
@@ -110,20 +110,20 @@ export function SuperAdminDashboard() {
       </div>
 
       {/* Additional Info Card */}
-      <div className="bg-purple-900 rounded-lg border border-purple-800 p-6">
-        <h3 className="text-lg font-semibold text-purple-50 mb-3">
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">
           Lifetime Value (LTV)
         </h3>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-purple-50">
+          <span className="text-3xl font-bold text-slate-900">
             {new Intl.NumberFormat('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             }).format(overview?.ltv || 0)}
           </span>
-          <span className="text-sm text-purple-300">por cliente</span>
+          <span className="text-sm text-slate-400">por cliente</span>
         </div>
-        <p className="text-xs text-purple-400 mt-2">
+        <p className="text-xs text-slate-500 mt-2">
           LTV = MRR médio / (Churn Rate / 100)
         </p>
       </div>

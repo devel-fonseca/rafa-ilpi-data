@@ -612,11 +612,11 @@ export async function generateDailyRecordsPDF(data: PDFData): Promise<void> {
 
     // Desenhar seções
     let currentY = drawHeader(doc, data)
-    currentY = drawFoodHydration(doc, data.records, currentY)
-    currentY = drawVitals(doc, data.records, currentY)
-    currentY = drawHygieneElimination(doc, data.records, currentY)
-    currentY = drawActivitiesBehavior(doc, data.records, currentY)
-    currentY = drawIncidents(doc, data.records, currentY)
+    drawFoodHydration(doc, data.records, currentY)
+    drawVitals(doc, data.records, currentY)
+    drawHygieneElimination(doc, data.records, currentY)
+    drawActivitiesBehavior(doc, data.records, currentY)
+    drawIncidents(doc, data.records, currentY)
 
     // Rodapé sempre na mesma posição
     drawFooter(doc, data.records)

@@ -69,7 +69,7 @@ export function SuspendTenantDialog({
         Suspender
       </Button>
     ) : (
-      <div className="flex items-center cursor-pointer text-purple-300 hover:text-purple-50 w-full px-2 py-1.5">
+      <div className="flex items-center cursor-pointer text-slate-400 hover:text-slate-900 w-full px-2 py-1.5">
         <Ban className="h-4 w-4 mr-2" />
         Suspender
       </div>
@@ -78,10 +78,10 @@ export function SuspendTenantDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{TriggerComponent}</DialogTrigger>
-      <DialogContent className="bg-purple-900 border-purple-700 text-purple-50">
+      <DialogContent className="bg-white border-slate-200 text-slate-900">
         <DialogHeader>
-          <DialogTitle className="text-purple-50">Suspender Tenant</DialogTitle>
-          <DialogDescription className="text-purple-300">
+          <DialogTitle className="text-slate-900">Suspender Tenant</DialogTitle>
+          <DialogDescription className="text-slate-400">
             Suspender o acesso de <strong>{tenantName}</strong> à plataforma
           </DialogDescription>
         </DialogHeader>
@@ -97,7 +97,7 @@ export function SuspendTenantDialog({
 
           {/* Reason */}
           <div className="space-y-2">
-            <Label htmlFor="reason" className="text-purple-200">
+            <Label htmlFor="reason" className="text-slate-600">
               Motivo da suspensão *
             </Label>
             <Textarea
@@ -105,11 +105,11 @@ export function SuspendTenantDialog({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Ex: Inadimplência de 3 faturas consecutivas..."
-              className="bg-purple-950 border-purple-700 text-purple-50"
+              className="bg-white border-slate-200 text-slate-900"
               rows={4}
               minLength={10}
             />
-            <p className="text-xs text-purple-400">
+            <p className="text-xs text-slate-500">
               Mínimo 10 caracteres ({reason.length}/10)
             </p>
           </div>
@@ -123,7 +123,7 @@ export function SuspendTenantDialog({
               setOpen(false)
               setReason('')
             }}
-            className="bg-purple-950 border-purple-700 text-purple-300 hover:bg-purple-800"
+            className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
           >
             Cancelar
           </Button>

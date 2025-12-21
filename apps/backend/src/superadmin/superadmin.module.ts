@@ -4,6 +4,10 @@ import { PaymentsModule } from '../payments/payments.module'
 import { MetricsService } from './services/metrics.service'
 import { TenantAdminService } from './services/tenant-admin.service'
 import { SubscriptionAdminService } from './services/subscription-admin.service'
+import { PlansAdminService } from './services/plans-admin.service'
+import { AlertsService } from './services/alerts.service'
+import { SubscriptionAlertsJob } from './jobs/subscription-alerts.job'
+import { PaymentAlertsJob } from './jobs/payment-alerts.job'
 import { SuperAdminController } from './superadmin.controller'
 
 /**
@@ -28,7 +32,15 @@ import { SuperAdminController } from './superadmin.controller'
 @Module({
   imports: [PrismaModule, PaymentsModule],
   controllers: [SuperAdminController],
-  providers: [MetricsService, TenantAdminService, SubscriptionAdminService],
-  exports: [MetricsService, TenantAdminService, SubscriptionAdminService],
+  providers: [
+    MetricsService,
+    TenantAdminService,
+    SubscriptionAdminService,
+    PlansAdminService,
+    AlertsService,
+    SubscriptionAlertsJob,
+    PaymentAlertsJob,
+  ],
+  exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService],
 })
 export class SuperAdminModule {}

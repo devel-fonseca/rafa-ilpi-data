@@ -57,8 +57,8 @@ export function FinancialAnalytics() {
     <div className="space-y-8 p-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-purple-50">Analytics Financeiros</h1>
-        <p className="text-purple-300 mt-2">
+        <h1 className="text-3xl font-bold text-slate-900">Analytics Financeiros</h1>
+        <p className="text-slate-400 mt-2">
           Visão detalhada das métricas de pagamento e conversão
         </p>
       </div>
@@ -66,72 +66,72 @@ export function FinancialAnalytics() {
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Total Revenue */}
-        <Card className="bg-gradient-to-br from-green-900 to-green-950 border-green-700">
+        <Card className="bg-white border-l-4 border-l-[#059669] border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-100">
+            <CardTitle className="text-sm font-medium text-slate-600">
               Receita Total
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-green-300" />
+            <DollarSign className="h-4 w-4 text-[#059669]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-50">
+            <div className="text-2xl font-bold text-slate-900">
               R$ {overview.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-green-300 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {overview.paidInvoices} faturas pagas
             </p>
           </CardContent>
         </Card>
 
         {/* Pending Revenue */}
-        <Card className="bg-gradient-to-br from-yellow-900 to-yellow-950 border-yellow-700">
+        <Card className="bg-white border-l-4 border-l-yellow-500 border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-100">
+            <CardTitle className="text-sm font-medium text-slate-600">
               Receita Pendente
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-300" />
+            <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-50">
+            <div className="text-2xl font-bold text-slate-900">
               R$ {overview.pendingRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-xs text-yellow-300 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {overview.pendingInvoices} faturas abertas
             </p>
           </CardContent>
         </Card>
 
         {/* Conversion Rate */}
-        <Card className="bg-gradient-to-br from-blue-900 to-blue-950 border-blue-700">
+        <Card className="bg-white border-l-4 border-l-blue-500 border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-100">
+            <CardTitle className="text-sm font-medium text-slate-600">
               Taxa de Conversão
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-300" />
+            <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-50">
+            <div className="text-2xl font-bold text-slate-900">
               {overallConversionRate.toFixed(1)}%
             </div>
-            <p className="text-xs text-blue-300 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {overview.paidInvoices} / {overview.totalInvoices} faturas
             </p>
           </CardContent>
         </Card>
 
         {/* Overdue */}
-        <Card className="bg-gradient-to-br from-red-900 to-red-950 border-red-700">
+        <Card className="bg-white border-l-4 border-l-red-500 border-slate-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-100">
+            <CardTitle className="text-sm font-medium text-slate-600">
               Faturas Vencidas
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-300" />
+            <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-50">
+            <div className="text-2xl font-bold text-slate-900">
               {overview.overdueInvoices}
             </div>
-            <p className="text-xs text-red-300 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {overview.totalInvoices > 0
                 ? ((overview.overdueInvoices / overview.totalInvoices) * 100).toFixed(1)
                 : 0}% do total
@@ -141,38 +141,38 @@ export function FinancialAnalytics() {
       </div>
 
       {/* MRR Breakdown */}
-      <Card className="bg-purple-950 border-purple-700">
+      <Card className="bg-white border-slate-200">
         <CardHeader>
-          <CardTitle className="text-purple-50">MRR por Método de Pagamento</CardTitle>
-          <CardDescription className="text-purple-300">
+          <CardTitle className="text-slate-900">MRR por Método de Pagamento</CardTitle>
+          <CardDescription className="text-slate-400">
             Receita Recorrente Mensal dividida por billing type
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="text-3xl font-bold text-purple-50">
+            <div className="text-3xl font-bold text-slate-900">
               R$ {mrrData.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              <span className="text-sm font-normal text-purple-300 ml-2">MRR Total</span>
+              <span className="text-sm font-normal text-slate-400 ml-2">MRR Total</span>
             </div>
 
             <div className="space-y-3">
               {mrrData.byMethod.map((method) => (
                 <div
                   key={method.billingType}
-                  className="flex items-center justify-between p-3 bg-purple-900/50 rounded-lg border border-purple-800"
+                  className="flex items-center justify-between p-3 bg-slate-100 rounded-lg border border-slate-200"
                 >
                   <div className="flex items-center gap-3">
-                    <CreditCard className="h-5 w-5 text-purple-300" />
+                    <CreditCard className="h-5 w-5 text-slate-400" />
                     <div>
-                      <p className="font-medium text-purple-50">
+                      <p className="font-medium text-slate-900">
                         {method.billingType === 'UNDEFINED' ? 'Cliente Escolhe' : method.billingType}
                       </p>
-                      <p className="text-sm text-purple-400">
+                      <p className="text-sm text-slate-500">
                         R$ {method.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="bg-purple-800 text-purple-100 border-purple-600">
+                  <Badge variant="outline" className="bg-white text-slate-900 border-slate-300">
                     {method.percentage.toFixed(1)}%
                   </Badge>
                 </div>
@@ -185,33 +185,33 @@ export function FinancialAnalytics() {
       {/* Payment Methods Performance */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Top Performing Method */}
-        <Card className="bg-gradient-to-br from-amber-900 to-amber-950 border-amber-700">
+        <Card className="bg-white border-l-4 border-l-[#059669] border-slate-200">
           <CardHeader>
-            <CardTitle className="text-amber-50 flex items-center gap-2">
-              <Trophy className="h-5 w-5" />
+            <CardTitle className="text-slate-900 flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-[#059669]" />
               Melhor Método
             </CardTitle>
-            <CardDescription className="text-amber-300">
+            <CardDescription className="text-slate-500">
               Maior taxa de conversão
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-50">
+            <div className="text-2xl font-bold text-slate-900">
               {topPerformingMethod.billingType === 'UNDEFINED'
                 ? 'Cliente Escolhe'
                 : topPerformingMethod.billingType}
             </div>
-            <p className="text-amber-200 mt-2">
+            <p className="text-[#059669] font-medium mt-2">
               {topPerformingMethod.conversionRate.toFixed(1)}% de conversão
             </p>
           </CardContent>
         </Card>
 
         {/* Methods Comparison */}
-        <Card className="bg-purple-950 border-purple-700">
+        <Card className="bg-white border-slate-200">
           <CardHeader>
-            <CardTitle className="text-purple-50">Comparativo de Métodos</CardTitle>
-            <CardDescription className="text-purple-300">
+            <CardTitle className="text-slate-900">Comparativo de Métodos</CardTitle>
+            <CardDescription className="text-slate-400">
               Performance detalhada por billing type
             </CardDescription>
           </CardHeader>
@@ -222,13 +222,13 @@ export function FinancialAnalytics() {
                 .map((method) => (
                   <div
                     key={method.billingType}
-                    className="flex items-center justify-between p-2 bg-purple-900/30 rounded border border-purple-800/50"
+                    className="flex items-center justify-between p-2 bg-slate-100 rounded border border-slate-200"
                   >
                     <div>
-                      <p className="font-medium text-purple-50 text-sm">
+                      <p className="font-medium text-slate-900 text-sm">
                         {method.billingType === 'UNDEFINED' ? 'Cliente Escolhe' : method.billingType}
                       </p>
-                      <p className="text-xs text-purple-400">
+                      <p className="text-xs text-slate-500">
                         {method.paidInvoices}/{method.totalInvoices} pagas
                       </p>
                     </div>

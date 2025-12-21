@@ -59,6 +59,9 @@ import { TenantsList } from '@/pages/superadmin/TenantsList'
 import { TenantDetails } from '@/pages/superadmin/TenantDetails'
 import { InvoicesList } from '@/pages/superadmin/InvoicesList'
 import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
+import { AlertCenter } from '@/pages/superadmin/AlertCenter'
+import { PlansList } from '@/pages/superadmin/PlansList'
+import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -235,8 +238,20 @@ export const router = createBrowserRouter([
         element: <InvoicesList />,
       },
       {
+        path: 'invoices/:id',
+        element: <InvoiceDetails />,
+      },
+      {
         path: 'analytics',
         element: <FinancialAnalytics />,
+      },
+      {
+        path: 'alerts',
+        element: <AlertCenter />,
+      },
+      {
+        path: 'plans',
+        element: <PlansList />,
       },
     ],
   },

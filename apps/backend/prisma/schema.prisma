@@ -522,6 +522,11 @@ model Subscription {
   // Asaas Integration
   asaasSubscriptionId String? @unique @db.VarChar(255) // ID da assinatura no Asaas
 
+  // Pricing Overrides (Descontos e Preços Personalizados)
+  discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)
+  discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
+  customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 

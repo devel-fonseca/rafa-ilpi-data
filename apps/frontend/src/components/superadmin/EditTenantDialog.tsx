@@ -67,16 +67,16 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
         <Button
           variant="outline"
           size="sm"
-          className="bg-purple-900 border-purple-700 text-purple-300 hover:bg-purple-800"
+          className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
         >
           <Pencil className="h-4 w-4 mr-2" />
           Editar
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-purple-900 border-purple-700 text-purple-50 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-white border-slate-200 text-slate-900 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-purple-50">Editar Tenant</DialogTitle>
-          <DialogDescription className="text-purple-300">
+          <DialogTitle className="text-slate-900">Editar Tenant</DialogTitle>
+          <DialogDescription className="text-slate-400">
             Atualize as informações básicas do tenant {tenant.name}
           </DialogDescription>
         </DialogHeader>
@@ -84,16 +84,16 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Dados Básicos */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-purple-200">Dados Básicos</h3>
+            <h3 className="text-sm font-medium text-slate-600">Dados Básicos</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-purple-200">
+                <Label htmlFor="name" className="text-slate-600">
                   Nome *
                 </Label>
                 <Input
                   id="name"
                   {...register('name', { required: 'Nome é obrigatório' })}
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 />
                 {errors.name && (
                   <p className="text-xs text-red-400">{errors.name.message}</p>
@@ -101,7 +101,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-purple-200">
+                <Label htmlFor="email" className="text-slate-600">
                   Email *
                 </Label>
                 <Input
@@ -114,7 +114,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
                       message: 'Email inválido',
                     },
                   })}
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 />
                 {errors.email && (
                   <p className="text-xs text-red-400">{errors.email.message}</p>
@@ -122,14 +122,14 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-purple-200">
+                <Label htmlFor="phone" className="text-slate-600">
                   Telefone
                 </Label>
                 <Input
                   id="phone"
                   {...register('phone')}
                   placeholder="(00) 00000-0000"
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 />
               </div>
             </div>
@@ -137,33 +137,33 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
 
           {/* Endereço */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-purple-200">Endereço</h3>
+            <h3 className="text-sm font-medium text-slate-600">Endereço</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="addressStreet" className="text-purple-200">
+                <Label htmlFor="addressStreet" className="text-slate-600">
                   Logradouro
                 </Label>
                 <Input
                   id="addressStreet"
                   {...register('addressStreet')}
                   placeholder="Rua, Avenida..."
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="addressCity" className="text-purple-200">
+                <Label htmlFor="addressCity" className="text-slate-600">
                   Cidade
                 </Label>
                 <Input
                   id="addressCity"
                   {...register('addressCity')}
-                  className="bg-purple-950 border-purple-700 text-purple-50"
+                  className="bg-white border-slate-200 text-slate-900"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="addressState" className="text-purple-200">
+                <Label htmlFor="addressState" className="text-slate-600">
                   Estado
                 </Label>
                 <Input
@@ -171,7 +171,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
                   {...register('addressState')}
                   placeholder="UF"
                   maxLength={2}
-                  className="bg-purple-950 border-purple-700 text-purple-50 uppercase"
+                  className="bg-white border-slate-200 text-slate-900 uppercase"
                 />
               </div>
             </div>
@@ -185,14 +185,14 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
                 setOpen(false)
                 reset()
               }}
-              className="bg-purple-950 border-purple-700 text-purple-300 hover:bg-purple-800"
+              className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={updateMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-[#059669] hover:bg-slate-600 text-slate-900"
             >
               {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
