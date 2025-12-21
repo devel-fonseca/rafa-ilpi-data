@@ -1,7 +1,7 @@
 # Documentação Técnica - Rafa ILPI Data
 
 **Versão do Projeto:** 1.0.0
-**Última atualização:** 17/12/2025
+**Última atualização:** 20/12/2024
 
 Bem-vindo à documentação técnica completa do sistema Rafa ILPI Data - plataforma de gestão para Instituições de Longa Permanência para Idosos (ILPIs).
 
@@ -26,6 +26,7 @@ Documentação detalhada de cada módulo do sistema:
 | [Vacinação](modules/vaccinations.md) | ✅ | 1.0.0 | Registro com upload de comprovantes |
 | [Residentes](modules/residents.md) | ✅ | 1.0.0 | Cadastro completo com prontuário |
 | [Sinais Vitais](modules/vital-signs.md) | ✅ | 1.0.0 | PA, FC, Temp, SpO2, Glicemia |
+| [Portal SuperAdmin](modules/portal-superadmin.md) | ✅ | 1.0.0 | Gestão de tenants, planos, faturas e analytics |
 
 ### 🏗️ Arquitetura
 
@@ -98,7 +99,7 @@ Documentação de arquitetura e infraestrutura:
 
 ### Módulos Implementados
 
-- ✅ **11 módulos** principais completamente funcionais
+- ✅ **12 módulos** principais completamente funcionais
 - ✅ **25+ features** documentadas no CHANGELOG
 - ✅ **3.048 linhas** de histórico de implementação (agora organizado)
 - ✅ **50+ arquivos** de documentação técnica
@@ -169,4 +170,4 @@ Propriedade de Rafa Labs Desenvolvimento e Tecnologia.
 ---
 
 **Desenvolvedor:** Emanuel (Dr. E.) + Claude Sonnet 4.5
-**Última revisão:** 17/12/2025
+**Última revisão:** 20/12/2024
