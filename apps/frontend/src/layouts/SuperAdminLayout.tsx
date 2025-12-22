@@ -7,6 +7,7 @@ import {
   Receipt,
   BarChart3,
   Package,
+  FileText,
   LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -61,6 +62,11 @@ export function SuperAdminLayout() {
       to: '/superadmin/plans',
       label: 'Planos',
       icon: Package,
+    },
+    {
+      to: '/superadmin/contracts',
+      label: 'Contratos',
+      icon: FileText,
     },
     {
       to: '/superadmin/alerts',

@@ -62,6 +62,10 @@ import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
 import { AlertCenter } from '@/pages/superadmin/AlertCenter'
 import { PlansList } from '@/pages/superadmin/PlansList'
 import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
+import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
+import { ContractDetails } from '@/pages/superadmin/contracts/ContractDetails'
+import { ContractNew } from '@/pages/superadmin/contracts/ContractNew'
+import { ContractEdit } from '@/pages/superadmin/contracts/ContractEdit'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -252,6 +256,22 @@ export const router = createBrowserRouter([
       {
         path: 'plans',
         element: <PlansList />,
+      },
+      {
+        path: 'contracts',
+        element: <ContractsList />,
+      },
+      {
+        path: 'contracts/new',
+        element: <ContractNew />,
+      },
+      {
+        path: 'contracts/:id/edit',
+        element: <ContractEdit />,
+      },
+      {
+        path: 'contracts/:id',
+        element: <ContractDetails />,
       },
     ],
   },

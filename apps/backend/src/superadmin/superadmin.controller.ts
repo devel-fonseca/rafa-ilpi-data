@@ -17,7 +17,12 @@ import { ApplyCustomPriceDto } from './dto/apply-custom-price.dto'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
 import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
-import { AlertType, AlertSeverity } from '@prisma/client'
+import { AlertType, AlertSeverity, ContractStatus } from '@prisma/client'
+import { ContractsService } from '../contracts/contracts.service'
+import { CreateContractDto } from '../contracts/dto/create-contract.dto'
+import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
+import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
+import { CurrentUser } from '../auth/decorators/current-user.decorator'
 
 /**
  * SuperAdminController
@@ -47,6 +52,7 @@ export class SuperAdminController {
     private readonly invoiceService: InvoiceService,
     private readonly analyticsService: PaymentAnalyticsService,
     private readonly alertsService: AlertsService,
+    private readonly contractsService: ContractsService,
   ) {}
 
   /**
@@ -515,5 +521,94 @@ export class SuperAdminController {
   @Delete('alerts/:id')
   async deleteAlert(@Param('id') id: string) {
     return this.alertsService.delete(id)
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // CONTRATOS DE SERVIÇO
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * GET /superadmin/contracts
+   * Lista contratos com filtros opcionais
+   */
+  @Get('contracts')
+  async listContracts(
+    @Query('status') status?: ContractStatus,
+    @Query('planId') planId?: string,
+  ) {
+    return this.contractsService.findAll({ status, planId })
+  }
+
+  /**
+   * GET /superadmin/contracts/:id
+   * Busca detalhes de um contrato específico
+   */
+  @Get('contracts/:id')
+  async getContract(@Param('id') id: string) {
+    return this.contractsService.findOne(id)
+  }
+
+  /**
+   * POST /superadmin/contracts
+   * Cria novo contrato DRAFT
+   */
+  @Post('contracts')
+  async createContract(
+    @Body() dto: CreateContractDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.contractsService.create(dto, user.sub)
+  }
+
+  /**
+   * PATCH /superadmin/contracts/:id
+   * Atualiza contrato DRAFT
+   */
+  @Patch('contracts/:id')
+  async updateContract(
+    @Param('id') id: string,
+    @Body() dto: UpdateContractDto,
+  ) {
+    return this.contractsService.update(id, dto)
+  }
+
+  /**
+   * POST /superadmin/contracts/:id/publish
+   * Publica contrato (DRAFT → ACTIVE)
+   */
+  @Post('contracts/:id/publish')
+  async publishContract(
+    @Param('id') id: string,
+    @Body() dto: PublishContractDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.contractsService.publish(id, dto, user.sub)
+  }
+
+  /**
+   * DELETE /superadmin/contracts/:id
+   * Deleta contrato DRAFT sem aceites
+   */
+  @Delete('contracts/:id')
+  async deleteContract(@Param('id') id: string) {
+    return this.contractsService.delete(id)
+  }
+
+  /**
+   * GET /superadmin/contracts/:id/acceptances
+   * Lista aceites de um contrato
+   */
+  @Get('contracts/:id/acceptances')
+  async getContractAcceptances(@Param('id') id: string) {
+    return this.contractsService.getAcceptances(id)
+  }
+
+  /**
+   * GET /superadmin/tenants/:id/contract-acceptance
+   * Busca aceite de contrato de um tenant específico
+   */
+  @Get('tenants/:id/contract-acceptance')
+  async getTenantContractAcceptance(@Param('id') tenantId: string) {
+    return this.contractsService.getTenantAcceptance(tenantId)
   }
 }

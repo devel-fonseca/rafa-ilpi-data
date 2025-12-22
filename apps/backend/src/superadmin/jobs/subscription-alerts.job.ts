@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { AlertsService } from '../services/alerts.service'
-import { SubscriptionStatus } from '@prisma/client'
 
 /**
  * SubscriptionAlertsJob
@@ -39,7 +38,7 @@ export class SubscriptionAlertsJob {
       // Buscar subscriptions ativas
       const subscriptions = await this.prisma.subscription.findMany({
         where: {
-          status: SubscriptionStatus.ACTIVE,
+          status: 'active',
         },
         include: {
           tenant: {
@@ -62,6 +61,8 @@ export class SubscriptionAlertsJob {
       let alertsCreated = 0
 
       for (const subscription of subscriptions) {
+        if (!subscription.currentPeriodEnd) continue
+
         const endsAt = new Date(subscription.currentPeriodEnd)
         const daysUntilExpiration = Math.ceil(
           (endsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),

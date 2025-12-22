@@ -38,6 +38,7 @@ import { PopsModule } from './pops/pops.module';
 import { MedicationsModule } from './medications/medications.module';
 import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
 import { ResidentScheduleModule } from './resident-schedule/resident-schedule.module';
+import { ContractsModule } from './contracts/contracts.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { PaymentsModule } from './payments/payments.module';
 
@@ -100,6 +101,7 @@ import { PaymentsModule } from './payments/payments.module';
     NotificationsModule,
     PopsModule,
     ResidentScheduleModule,
+    ContractsModule,
     SuperAdminModule,
     PaymentsModule,
   ],

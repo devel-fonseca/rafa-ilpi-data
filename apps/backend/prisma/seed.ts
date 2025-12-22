@@ -105,6 +105,49 @@ async function main() {
 
   console.log("✅ Plans seeded!");
 
+  // Seed SuperAdmin User
+  const superAdminEmail = "admin@rafalabs.com.br";
+  const superAdminPassword = "SuperAdmin@2025";
+  const hashedPassword = await bcrypt.hash(superAdminPassword, 10);
+
+  // Verificar se SuperAdmin já existe
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: {
+      email: superAdminEmail,
+      tenantId: null,
+    },
+  });
+
+  let superAdmin;
+  if (existingSuperAdmin) {
+    // Atualizar senha se já existe
+    superAdmin = await prisma.user.update({
+      where: { id: existingSuperAdmin.id },
+      data: {
+        password: hashedPassword,
+        name: "Super Administrador",
+        role: "SUPERADMIN",
+        isActive: true,
+      },
+    });
+    console.log(`✓ SuperAdmin updated: ${superAdmin.email}`);
+  } else {
+    // Criar novo SuperAdmin
+    superAdmin = await prisma.user.create({
+      data: {
+        email: superAdminEmail,
+        password: hashedPassword,
+        name: "Super Administrador",
+        role: "SUPERADMIN",
+        isActive: true,
+        tenantId: null,
+      },
+    });
+    console.log(`✓ SuperAdmin created: ${superAdmin.email}`);
+  }
+
+  console.log("✅ SuperAdmin seeded!");
+
   console.log("✅ Seeding completed!");
 }
 

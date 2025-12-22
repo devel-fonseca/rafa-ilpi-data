@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { Prisma, Decimal } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 /**
  * PlansAdminService
@@ -110,7 +110,7 @@ export class PlansAdminService {
     const updateData: Prisma.PlanUpdateInput = {}
 
     if (data.price !== undefined) {
-      updateData.price = new Decimal(data.price)
+      updateData.price = new Prisma.Decimal(data.price)
     }
     if (data.maxUsers !== undefined) {
       updateData.maxUsers = data.maxUsers

@@ -401,6 +401,70 @@ enum ChangeType {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  CONTRATOS DE SERVIÇO SaaS
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum ContractStatus {
+  DRAFT // Edição (não afeta ninguém)
+  ACTIVE // Publicado (novos cadastros usam)
+  REVOKED // Revogado (não aceita mais)
+
+  @@map("ContractStatus")
+}
+
+// Contratos de Serviço (Templates Versionados)
+model ServiceContract {
+  id            String         @id @default(uuid()) @db.Uuid
+  version       String // "v1.0", "v1.1", "v2.0"
+  planId        String?        @db.Uuid // NULL = genérico para todos planos
+  status        ContractStatus @default(DRAFT)
+  effectiveFrom DateTime?      @db.Timestamptz(3)
+  title         String         @db.VarChar(255)
+  content       String // HTML/Markdown
+  contentHash   String         @db.VarChar(64) // SHA-256
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  revokedAt     DateTime?      @db.Timestamptz(3)
+  revokedBy     String?        @db.Uuid
+
+  // Relações
+  plan        Plan?                @relation(fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                 @relation("ContractCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                @relation("ContractRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  acceptances ContractAcceptance[]
+
+  @@unique([version, planId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@map("service_contracts")
+}
+
+// Registros de Aceite (Prova Jurídica)
+model ContractAcceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  contractId      String   @db.Uuid
+  tenantId        String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId          String   @db.Uuid
+  acceptedAt      DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress       String   @db.VarChar(45)
+  userAgent       String
+  contractVersion String   @db.VarChar(50) // Snapshot imutável
+  contractHash    String   @db.VarChar(64) // Snapshot imutável
+  contractContent String // Snapshot imutável
+
+  // Relações
+  contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([contractId])
+  @@index([acceptedAt])
+  @@map("contract_acceptances")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
 model Plan {
@@ -419,6 +483,7 @@ model Plan {
   updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
 
   subscriptions Subscription[]
+  contracts     ServiceContract[]
 
   @@map("plans")
 }
@@ -501,6 +566,7 @@ model Tenant {
   invoices                  Invoice[] // SuperAdmin - Faturas
   usageMetrics              UsageMetrics[] // SuperAdmin - Métricas de uso
   systemAlerts              SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance        ContractAcceptance?
 
   @@map("tenants")
 }
@@ -633,6 +699,11 @@ model User {
   // Relações de versionamento (ResidentScheduledEvent)
   scheduledEventsCreated ResidentScheduledEvent[] @relation("ScheduledEventCreatedBy")
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
+
+  // Relações de contratos
+  createdContracts    ServiceContract[]    @relation("ContractCreator")
+  revokedContracts    ServiceContract[]    @relation("ContractRevoker")
+  contractAcceptances ContractAcceptance[]
 
   @@unique([tenantId, email])
   @@index([createdBy])
