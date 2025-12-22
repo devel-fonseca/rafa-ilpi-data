@@ -101,7 +101,7 @@ interface Resident {
   fullName: string
   socialName?: string | null
   birthDate: string
-  sex: string
+  gender: string
   fotoUrl?: string | null
   fotoUrlSmall?: string | null
   fotoUrlMedium?: string | null
@@ -267,7 +267,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister }: Prop
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground">
-                  {age} anos • {resident?.sex === 'M' ? 'Masculino' : 'Feminino'}
+                  {age} anos • {resident?.gender === 'MASCULINO' ? 'Masculino' : resident?.gender === 'FEMININO' ? 'Feminino' : 'Outro'}
                 </p>
 
                 {resident?.bed && (
