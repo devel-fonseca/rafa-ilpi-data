@@ -824,6 +824,59 @@ export class ResidentsService {
         },
       });
 
+      // Buscar restrições alimentares da tabela DietaryRestriction
+      const dietaryRestrictions = await this.prisma.dietaryRestriction.findMany({
+        where: {
+          residentId: id,
+          tenantId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          restrictionType: true,
+          description: true,
+          notes: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      // Buscar condições crônicas da tabela Condition
+      const conditions = await this.prisma.condition.findMany({
+        where: {
+          residentId: id,
+          tenantId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          condition: true,
+          icdCode: true,
+          notes: true,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      // Verificar se possui medicações controladas ativas
+      const hasControlledMedication = await this.prisma.medication.findFirst({
+        where: {
+          prescription: {
+            residentId: id,
+            tenantId,
+            isActive: true,
+            deletedAt: null,
+          },
+          isControlled: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
       // Retornar dados do residente com URLs assinadas e datas formatadas
       return this.formatDateOnlyFields({
         ...resident,
@@ -834,6 +887,9 @@ export class ResidentsService {
         floor,
         building,
         allergies, // Substituir campo allergies do Resident pelas alergias da tabela Allergy
+        dietaryRestrictions, // Adicionar restrições alimentares
+        conditions, // Adicionar condições crônicas
+        hasControlledMedication: !!hasControlledMedication, // Retornar boolean
       });
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {

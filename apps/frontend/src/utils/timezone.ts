@@ -11,7 +11,7 @@
  * - Suporta expansão futura para multi-timezone
  */
 
-import { format as formatDateFns, parse, parseISO } from 'date-fns'
+import { format as formatDateFns, parseISO } from 'date-fns'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { ptBR } from 'date-fns/locale'
 

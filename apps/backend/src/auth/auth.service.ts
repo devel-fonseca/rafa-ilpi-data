@@ -123,6 +123,7 @@ export class AuthService {
         isActive: true,
       },
       include: {
+        profile: true, // Incluir perfil do usuário (positionCode, etc)
         tenant: {
           include: {
             profile: {
@@ -221,6 +222,7 @@ export class AuthService {
         },
       },
       include: {
+        profile: true, // Incluir perfil do usuário (positionCode, etc)
         tenant: {
           include: {
             profile: {
