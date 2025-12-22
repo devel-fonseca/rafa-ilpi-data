@@ -12,6 +12,7 @@ import { format } from 'date-fns'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
+import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
 import { ResidentQuickSearch } from '@/components/caregiver/ResidentQuickSearch'
 import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
 
@@ -20,9 +21,13 @@ export default function Dashboard() {
   const { user } = useAuthStore()
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
 
-  // Detectar se é cuidador e renderizar dashboard específico
+  // Detectar cargo e renderizar dashboard específico
   if (user?.profile?.positionCode === 'CAREGIVER') {
     return <CaregiverDashboard />
+  }
+
+  if (user?.profile?.positionCode === 'ADMINISTRATOR') {
+    return <AdminDashboard />
   }
 
   // Buscar estatísticas reais

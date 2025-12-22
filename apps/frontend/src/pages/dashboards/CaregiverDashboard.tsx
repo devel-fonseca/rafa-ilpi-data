@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
@@ -12,6 +12,7 @@ import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
 import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
+import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { getCurrentDateLocal } from '@/utils/timezone'
@@ -187,9 +188,9 @@ export function CaregiverDashboard() {
         onSelectResident={(residentId) => setSelectedResidentId(residentId)}
       />
 
-      {/* Grid principal: Registros (50%) + Medicações (50%) */}
+      {/* Grid principal: Tarefas (50%) + Medicações (50%) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Coluna 1: Tarefas (50%) */}
+        {/* Coluna 1: Tarefas */}
         <div>
           <TasksSection
             title="Tarefas"
@@ -207,7 +208,7 @@ export function CaregiverDashboard() {
           />
         </div>
 
-        {/* Coluna 2: Medicações (50%) */}
+        {/* Coluna 2: Medicações */}
         <div>
           <MedicationsSection
             title="Medicações"
@@ -218,13 +219,18 @@ export function CaregiverDashboard() {
         </div>
       </div>
 
-      {/* Seção 3: Agendamentos Pontuais (full width) */}
+      {/* Seção: Agendamentos Pontuais (full width) */}
       <EventsSection
         title="Agendamentos de Hoje"
         events={data.scheduledEvents}
         onViewResident={(residentId) => setSelectedResidentId(residentId)}
         isLoading={isLoading}
       />
+
+      {/* Seção: Atividades Recentes (full width) */}
+      <div className="mt-6">
+        <RecentActivity />
+      </div>
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (

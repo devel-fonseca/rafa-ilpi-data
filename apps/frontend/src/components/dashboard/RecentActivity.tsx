@@ -1,5 +1,5 @@
 import { useRecentActivity, type AuditLog } from '@/hooks/useAudit'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, UserPlus, Edit, Trash2, FileText, Users, Calendar } from 'lucide-react'
 import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -195,6 +195,9 @@ export function RecentActivity() {
   if (isLoading) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Atividades Recentes</CardTitle>
+        </CardHeader>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <Activity className="h-12 w-12 mx-auto mb-3 text-muted animate-pulse" />
@@ -208,6 +211,9 @@ export function RecentActivity() {
   if (!activities || activities.length === 0) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Atividades Recentes</CardTitle>
+        </CardHeader>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <Activity className="h-12 w-12 mx-auto mb-3 text-muted" />
@@ -239,6 +245,9 @@ export function RecentActivity() {
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle>Atividades Recentes</CardTitle>
+      </CardHeader>
       <CardContent className="py-4">
         <div className="space-y-1">
           {groupedActivities.map((group, groupIndex) => (
