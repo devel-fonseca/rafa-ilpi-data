@@ -102,6 +102,7 @@ interface Resident {
   socialName?: string | null
   birthDate: string
   gender: string
+  bloodType?: string
   fotoUrl?: string | null
   fotoUrlSmall?: string | null
   fotoUrlMedium?: string | null
@@ -111,6 +112,17 @@ interface Resident {
   hasControlledMedication?: boolean
   bed?: Bed | null
   room?: Room | null
+}
+
+interface VitalSign {
+  id: string
+  timestamp: string
+  systolicBloodPressure?: number
+  diastolicBloodPressure?: number
+  temperature?: number
+  heartRate?: number
+  oxygenSaturation?: number
+  bloodGlucose?: number
 }
 
 interface DailyRecord {
@@ -205,6 +217,36 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister }: Prop
     (prescription) => prescription.medications || [],
   ) || []
 
+  // Buscar último sinal vital
+  const { data: lastVitalSign } = useQuery<VitalSign | null>({
+    queryKey: ['resident-last-vital-sign', residentId],
+    queryFn: async () => {
+      try {
+        const response = await api.get(`/daily-records/resident/${residentId}/last-vital-sign`)
+        return response.data || null
+      } catch {
+        return null
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  })
+
+  // Função para traduzir tipo sanguíneo
+  const translateBloodType = (bloodType?: string) => {
+    if (!bloodType || bloodType === 'NAO_INFORMADO') return 'Não informado'
+    const map: Record<string, string> = {
+      A_POSITIVO: 'A+',
+      A_NEGATIVO: 'A-',
+      B_POSITIVO: 'B+',
+      B_NEGATIVO: 'B-',
+      AB_POSITIVO: 'AB+',
+      AB_NEGATIVO: 'AB-',
+      O_POSITIVO: 'O+',
+      O_NEGATIVO: 'O-',
+    }
+    return map[bloodType] || bloodType
+  }
+
   // Carregar foto se existir
   useEffect(() => {
     // Backend retorna URLs assinadas diretamente (fotoUrl, fotoUrlSmall, fotoUrlMedium)
@@ -279,16 +321,66 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister }: Prop
               </div>
             </div>
 
-            {/* Atenção */}
+            {/* Informações de Saúde */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  Atenção
+                  <Activity className="w-4 h-4 text-primary" />
+                  Informações de Saúde
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
+                  {/* Tipo Sanguíneo */}
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Tipo Sanguíneo
+                    </p>
+                    <Badge variant="outline">
+                      {translateBloodType(resident?.bloodType)}
+                    </Badge>
+                  </div>
+
+                  {/* Sinais Vitais */}
+                  {lastVitalSign && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">
+                        Sinais Vitais em{' '}
+                        {format(new Date(lastVitalSign.timestamp), 'dd/MM/yyyy')} às{' '}
+                        {format(new Date(lastVitalSign.timestamp), 'HH:mm')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {lastVitalSign.systolicBloodPressure &&
+                          lastVitalSign.diastolicBloodPressure && (
+                            <Badge variant="outline">
+                              PA: {lastVitalSign.systolicBloodPressure}/
+                              {lastVitalSign.diastolicBloodPressure} mmHg
+                            </Badge>
+                          )}
+                        {lastVitalSign.temperature && (
+                          <Badge variant="outline">
+                            Temp: {lastVitalSign.temperature}°C
+                          </Badge>
+                        )}
+                        {lastVitalSign.heartRate && (
+                          <Badge variant="outline">
+                            FC: {lastVitalSign.heartRate} bpm
+                          </Badge>
+                        )}
+                        {lastVitalSign.oxygenSaturation && (
+                          <Badge variant="outline">
+                            SpO2: {lastVitalSign.oxygenSaturation}%
+                          </Badge>
+                        )}
+                        {lastVitalSign.bloodGlucose && (
+                          <Badge variant="outline">
+                            Glicemia: {lastVitalSign.bloodGlucose} mg/dL
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Alergias */}
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-1">
