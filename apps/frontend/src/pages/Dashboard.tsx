@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,10 +12,13 @@ import { format } from 'date-fns'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
+import { ResidentQuickSearch } from '@/components/caregiver/ResidentQuickSearch'
+import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
 
   // Detectar se é cuidador e renderizar dashboard específico
   if (user?.profile?.positionCode === 'CAREGIVER') {
@@ -124,6 +128,11 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Busca Rápida de Residentes */}
+      <ResidentQuickSearch
+        onSelectResident={(residentId) => setSelectedResidentId(residentId)}
+      />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat) => (
@@ -213,6 +222,14 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Mini Prontuário Modal */}
+      {selectedResidentId && (
+        <ResidentQuickViewModal
+          residentId={selectedResidentId}
+          onClose={() => setSelectedResidentId(null)}
+        />
       )}
     </div>
   )
