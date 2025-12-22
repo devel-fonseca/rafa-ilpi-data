@@ -10,10 +10,16 @@ import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
 import { format } from 'date-fns'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
+import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+
+  // Detectar se é cuidador e renderizar dashboard específico
+  if (user?.profile?.positionCode === 'CAREGIVER') {
+    return <CaregiverDashboard />
+  }
 
   // Buscar estatísticas reais
   const { data: residentsStats } = useResidentStats()

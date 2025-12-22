@@ -96,6 +96,26 @@ export class DailyRecordsController {
     return this.dailyRecordsService.findLatestByResidents(user.tenantId);
   }
 
+  @Get('resident/:residentId/latest')
+  @ApiOperation({
+    summary: 'Buscar últimos N registros de um residente',
+    description: 'Retorna os últimos registros de um residente ordenados por data/hora (mais recentes primeiro).',
+  })
+  @ApiResponse({ status: 200, description: 'Lista dos últimos registros' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  async findLatestByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @Query('limit') limit: string = '3',
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.findLatestByResident(
+      residentId,
+      user.tenantId,
+      parseInt(limit, 10),
+    );
+  }
+
   @Get('resident/:residentId/last-vital-sign')
   @ApiOperation({
     summary: 'Buscar o último Sinal Vital de um residente',

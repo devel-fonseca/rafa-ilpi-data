@@ -93,6 +93,19 @@ export class ResidentScheduleTasksService {
       },
     });
 
+    // 🔍 DEBUG: Log para verificar se registros estão sendo encontrados
+    console.log(
+      `[getDailyTasksByResident] Buscando existingRecords para residentId=${residentId}, date=${targetDate}`,
+    );
+    console.log(
+      `[getDailyTasksByResident] Encontrados ${existingRecords.length} registros existentes`,
+    );
+    if (existingRecords.length > 0) {
+      console.log(
+        `[getDailyTasksByResident] Tipos encontrados: ${existingRecords.map((r) => r.type).join(', ')}`,
+      );
+    }
+
     // ✅ CORREÇÃO: Para ALIMENTACAO, precisamos comparar type + mealType
     // Mapear tarefas incluindo status de conclusão
     const recurringTasks: DailyTask[] = filteredConfigs.map((config) => {
@@ -109,6 +122,11 @@ export class ResidentScheduleTasksService {
             (record.data as any)?.mealType === metadata.mealType,
         );
 
+        // 🔍 DEBUG
+        console.log(
+          `[getDailyTasksByResident] Verificando ALIMENTACAO - mealType=${metadata.mealType}, encontrado=${!!matchingRecord}`,
+        );
+
         if (matchingRecord) {
           recordData = {
             createdAt: matchingRecord.createdAt,
@@ -119,6 +137,11 @@ export class ResidentScheduleTasksService {
         // Para outros tipos, basta verificar o tipo
         const matchingRecord = existingRecords.find(
           (record) => record.type === config.recordType,
+        );
+
+        // 🔍 DEBUG
+        console.log(
+          `[getDailyTasksByResident] Verificando ${config.recordType}, encontrado=${!!matchingRecord}`,
         );
 
         if (matchingRecord) {
@@ -207,11 +230,79 @@ export class ResidentScheduleTasksService {
       },
     });
 
-    // 2. Filtrar configurações que devem gerar tarefa na data
+    // 2. Buscar TODOS os registros existentes na data para verificar conclusão
+    const existingRecords = await this.prisma.dailyRecord.findMany({
+      where: {
+        tenantId,
+        date: targetDate,
+        deletedAt: null,
+      },
+      select: {
+        residentId: true,
+        type: true,
+        data: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    console.log(
+      `[getDailyTasks] Buscando registros para data=${dateStr}, targetDate=${targetDate.toISOString()}, encontrados=${existingRecords.length}`,
+    );
+    if (existingRecords.length > 0) {
+      console.log(
+        `[getDailyTasks] Registros encontrados:`,
+        existingRecords.map((r) => ({
+          residentId: r.residentId,
+          type: r.type,
+          mealType: (r.data as any)?.mealType,
+        })),
+      );
+    }
+
+    // 3. Filtrar configurações que devem gerar tarefa na data
     const recurringTasks: DailyTask[] = configs
       .filter((config) => this.shouldGenerateTask(config, targetDate))
       .map((config) => {
         const metadata = config.metadata as { mealType?: string } | null;
+
+        // Verificar se existe registro correspondente para este residente
+        let recordData: { createdAt: Date; createdBy: string } | undefined;
+
+        if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
+          // Para ALIMENTACAO, verificar residentId + type + mealType
+          const matchingRecord = existingRecords.find(
+            (record) =>
+              record.residentId === config.residentId &&
+              record.type === 'ALIMENTACAO' &&
+              (record.data as any)?.mealType === metadata.mealType,
+          );
+
+          if (matchingRecord) {
+            recordData = {
+              createdAt: matchingRecord.createdAt,
+              createdBy: matchingRecord.user.name,
+            };
+          }
+        } else {
+          // Para outros tipos, verificar residentId + type
+          const matchingRecord = existingRecords.find(
+            (record) =>
+              record.residentId === config.residentId &&
+              record.type === config.recordType,
+          );
+
+          if (matchingRecord) {
+            recordData = {
+              createdAt: matchingRecord.createdAt,
+              createdBy: matchingRecord.user.name,
+            };
+          }
+        }
 
         return {
           type: 'RECURRING' as const,
@@ -220,9 +311,17 @@ export class ResidentScheduleTasksService {
           recordType: config.recordType,
           suggestedTimes: config.suggestedTimes as string[],
           configId: config.id,
-          mealType: metadata?.mealType, // Incluir tipo de refeição se disponível
+          isCompleted: !!recordData,
+          completedAt: recordData?.createdAt,
+          completedBy: recordData?.createdBy,
+          mealType: metadata?.mealType,
         };
       });
+
+    // Log das tarefas retornadas
+    console.log(
+      `[getDailyTasks] Retornando ${recurringTasks.length} tarefas. Completas: ${recurringTasks.filter((t) => t.isCompleted).length}, Pendentes: ${recurringTasks.filter((t) => !t.isCompleted).length}`,
+    );
 
     // 3. Buscar todos eventos agendados para a data
     const events = await this.prisma.residentScheduledEvent.findMany({

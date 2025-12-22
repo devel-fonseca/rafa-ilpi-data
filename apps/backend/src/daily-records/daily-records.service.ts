@@ -751,6 +751,54 @@ export class DailyRecordsService {
   }
 
   /**
+   * Busca os últimos N registros de um residente específico
+   * Retorna registros ordenados por data/hora (mais recentes primeiro)
+   */
+  async findLatestByResident(
+    residentId: string,
+    tenantId: string,
+    limit: number = 3,
+  ) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Buscar últimos N registros ordenados por data DESC, time DESC
+    const latestRecords = await this.prisma.dailyRecord.findMany({
+      where: {
+        residentId,
+        tenantId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        type: true,
+        date: true,
+        time: true,
+        recordedBy: true,
+        createdAt: true,
+      },
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: limit,
+    });
+
+    return latestRecords;
+  }
+
+  /**
    * Busca todas as datas que possuem registros para um residente em um período (mês)
    * Usado para indicadores no calendário
    */

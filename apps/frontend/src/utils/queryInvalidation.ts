@@ -171,6 +171,20 @@ export function invalidateAfterDailyRecordMutation(
     })
   }
 
+  // Dashboard do cuidador (tarefas agregadas)
+  // Invalida todas as queries que começam com 'caregiver-tasks' (independente da data)
+  console.log('🔄 Invalidando queries caregiver-tasks')
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const shouldInvalidate = Array.isArray(query.queryKey) &&
+        query.queryKey[0] === 'caregiver-tasks'
+      if (shouldInvalidate) {
+        console.log('✅ Invalidando query:', query.queryKey)
+      }
+      return shouldInvalidate
+    },
+  })
+
   // Queries globais
   invalidateGlobalQueries(queryClient)
 }
