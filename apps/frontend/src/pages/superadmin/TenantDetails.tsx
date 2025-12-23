@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -17,6 +18,7 @@ import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
 import { SuspendTenantDialog } from '@/components/superadmin/SuspendTenantDialog'
 import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
+import { ContractAcceptanceModal } from '@/components/superadmin/ContractAcceptanceModal'
 import {
   useTenant,
   useTenantStats,
@@ -62,6 +64,8 @@ export function TenantDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  const [contractModalOpen, setContractModalOpen] = useState(false)
 
   const { data: tenant, isLoading } = useTenant(id!)
   const { data: stats } = useTenantStats(id!)
@@ -346,69 +350,59 @@ export function TenantDetails() {
               Contrato de Prestação de Serviços
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-slate-500 mb-1">Versão do Contrato</p>
-                <p className="text-slate-900 font-medium">
-                  {contractAcceptance.contractVersion}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Data de Aceite</p>
-                <p className="text-slate-900 font-medium">
-                  {new Date(contractAcceptance.acceptedAt).toLocaleString('pt-BR')}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Aceito por</p>
-                <p className="text-slate-900 font-medium">
-                  {contractAcceptance.user?.name || 'N/A'}
-                </p>
-                <p className="text-slate-500 text-xs">
-                  {contractAcceptance.user?.email || ''}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-500 mb-1">Endereço IP</p>
-                <p className="text-slate-900 font-mono text-xs">
-                  {contractAcceptance.ipAddress}
-                </p>
-              </div>
-            </div>
-
-            <Separator className="bg-slate-200" />
-
-            <div>
-              <p className="text-slate-500 text-sm mb-2">Título do Contrato</p>
-              <p className="text-slate-900 font-medium mb-4">
-                {contractAcceptance.contract?.title || 'Contrato de Prestação de Serviços'}
-              </p>
-
-              <details className="group">
-                <summary className="cursor-pointer text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-2">
-                  <span className="group-open:rotate-90 transition-transform">▶</span>
-                  Ver conteúdo completo do contrato aceito
-                </summary>
-                <div
-                  className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 max-h-96 overflow-y-auto prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: contractAcceptance.contractContent }}
-                />
-              </details>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs text-blue-900">
-                <strong>Hash SHA-256:</strong>{' '}
-                <span className="font-mono break-all">{contractAcceptance.contractHash}</span>
-              </p>
-              <p className="text-xs text-blue-700 mt-1">
-                Este hash garante a integridade e autenticidade do contrato aceito.
-              </p>
-            </div>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-400">Versão</TableHead>
+                  <TableHead className="text-slate-400">Data de Aceite</TableHead>
+                  <TableHead className="text-slate-400">Aceito por</TableHead>
+                  <TableHead className="text-slate-400">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="border-slate-200">
+                  <TableCell className="text-slate-900 font-medium">
+                    {contractAcceptance.contractVersion}
+                  </TableCell>
+                  <TableCell className="text-slate-400">
+                    {new Date(contractAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
+                    <span className="text-xs ml-2">
+                      {new Date(contractAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-slate-400">
+                    <div>
+                      <p className="text-slate-900">{contractAcceptance.user?.name || 'N/A'}</p>
+                      <p className="text-xs text-slate-500">{contractAcceptance.user?.email || ''}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setContractModalOpen(true)}
+                      className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de Detalhes do Contrato */}
+      <ContractAcceptanceModal
+        acceptance={contractAcceptance || null}
+        open={contractModalOpen}
+        onClose={() => setContractModalOpen(false)}
+      />
 
       {/* Faturas */}
       <Card className="bg-white border-slate-200">
