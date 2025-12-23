@@ -381,13 +381,19 @@ export class ContractsService {
       throw new BadRequestException('Apenas contratos ACTIVE podem ser aceitos');
     }
 
-    // Criar token JWT com snapshot imutável do contrato
+    // Renderizar conteúdo com variáveis substituídas
+    const renderedContent = renderTemplate(contract.content, dto.variables || {});
+
+    // Gerar hash do conteúdo RENDERIZADO (com valores reais)
+    const renderedHash = generateContractHash(renderedContent);
+
+    // Criar token JWT com snapshot imutável do contrato RENDERIZADO
     const token = this.jwtService.sign(
       {
         contractId: contract.id,
         contractVersion: contract.version,
-        contractHash: contract.contentHash,
-        contractContent: contract.content,
+        contractHash: renderedHash, // Hash do conteúdo renderizado
+        contractContent: renderedContent, // Conteúdo com variáveis substituídas
         ipAddress: dto.ipAddress,
         userAgent: dto.userAgent,
       },
