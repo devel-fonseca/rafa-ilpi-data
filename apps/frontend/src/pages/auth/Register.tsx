@@ -169,7 +169,7 @@ export default function Register() {
         content: renderResponse.data.content
       })
       setFormData(prev => ({ ...prev, contractId: contract.id }))
-    } catch (err: any) {
+    } catch (err) {
       // Sem contrato disponível - bloquear cadastro
       setErrors({ contract: 'Nenhum contrato disponível no momento. Entre em contato com o suporte.' })
     } finally {
@@ -861,9 +861,9 @@ export default function Register() {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mt-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {[1, 2, 3, 4].map((step) => (
-                <div key={step} className="flex items-center gap-2">
+                <div key={step} className="flex items-center gap-3">
                   <div
                     className={cn(
                       "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
@@ -874,7 +874,7 @@ export default function Register() {
                   >
                     {step}
                   </div>
-                  {step < 3 && (
+                  {step < 4 && (
                     <div
                       className={cn(
                         "w-16 h-1",
