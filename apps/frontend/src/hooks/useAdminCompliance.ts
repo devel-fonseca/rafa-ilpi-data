@@ -1,0 +1,27 @@
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/services/api'
+
+interface ComplianceStats {
+  activeResidents: number
+  medications: {
+    scheduled: number
+    administered: number
+    total: number
+  }
+  mandatoryRecords: {
+    expected: number
+    completed: number
+  }
+}
+
+export function useAdminCompliance() {
+  return useQuery<ComplianceStats>({
+    queryKey: ['admin-compliance'],
+    queryFn: async () => {
+      const response = await api.get('/admin/compliance/today')
+      return response.data
+    },
+    refetchInterval: 60000, // Atualiza a cada 1 minuto
+    staleTime: 30000, // Considera dados frescos por 30 segundos
+  })
+}

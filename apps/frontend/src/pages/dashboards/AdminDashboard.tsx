@@ -2,12 +2,16 @@ import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { ResidentQuickSearch } from '@/components/caregiver/ResidentQuickSearch'
 import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
+import { OperationalComplianceSection } from '@/components/admin/OperationalComplianceSection'
+import { useAdminCompliance } from '@/hooks/useAdminCompliance'
 
 export function AdminDashboard() {
   const { user } = useAuthStore()
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(
     null,
   )
+
+  const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
 
   return (
     <div>
@@ -25,6 +29,14 @@ export function AdminDashboard() {
       <ResidentQuickSearch
         onSelectResident={(residentId) => setSelectedResidentId(residentId)}
       />
+
+      {/* Seção de Compliance Operacional */}
+      <div className="mt-6">
+        <OperationalComplianceSection
+          stats={complianceStats}
+          isLoading={isLoadingCompliance}
+        />
+      </div>
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (

@@ -41,6 +41,7 @@ import { ResidentScheduleModule } from './resident-schedule/resident-schedule.mo
 import { ContractsModule } from './contracts/contracts.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { PaymentsModule } from './payments/payments.module';
     ContractsModule,
     SuperAdminModule,
     PaymentsModule,
+    AdminModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
