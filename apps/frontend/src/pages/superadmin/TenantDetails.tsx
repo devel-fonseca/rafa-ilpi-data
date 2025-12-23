@@ -11,6 +11,7 @@ import {
   Trash2,
   Receipt,
   ExternalLink,
+  FileText,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
@@ -25,6 +26,7 @@ import {
   useChangePlan,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
+import { useTenantContractAcceptance } from '@/hooks/useContracts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -65,6 +67,7 @@ export function TenantDetails() {
   const { data: stats } = useTenantStats(id!)
   const { data: subscriptions } = useSubscriptionHistory(id!)
   const { data: invoicesData } = useTenantInvoices(id!)
+  const { data: contractAcceptance } = useTenantContractAcceptance(id!)
 
   const reactivateMutation = useReactivateTenant()
 
@@ -333,6 +336,79 @@ export function TenantDetails() {
           )}
         </CardContent>
       </Card>
+
+      {/* Contrato Aceito */}
+      {contractAcceptance && (
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Contrato de Prestação de Serviços
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-slate-500 mb-1">Versão do Contrato</p>
+                <p className="text-slate-900 font-medium">
+                  {contractAcceptance.contractVersion}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 mb-1">Data de Aceite</p>
+                <p className="text-slate-900 font-medium">
+                  {new Date(contractAcceptance.acceptedAt).toLocaleString('pt-BR')}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 mb-1">Aceito por</p>
+                <p className="text-slate-900 font-medium">
+                  {contractAcceptance.user?.name || 'N/A'}
+                </p>
+                <p className="text-slate-500 text-xs">
+                  {contractAcceptance.user?.email || ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 mb-1">Endereço IP</p>
+                <p className="text-slate-900 font-mono text-xs">
+                  {contractAcceptance.ipAddress}
+                </p>
+              </div>
+            </div>
+
+            <Separator className="bg-slate-200" />
+
+            <div>
+              <p className="text-slate-500 text-sm mb-2">Título do Contrato</p>
+              <p className="text-slate-900 font-medium mb-4">
+                {contractAcceptance.contract?.title || 'Contrato de Prestação de Serviços'}
+              </p>
+
+              <details className="group">
+                <summary className="cursor-pointer text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-2">
+                  <span className="group-open:rotate-90 transition-transform">▶</span>
+                  Ver conteúdo completo do contrato aceito
+                </summary>
+                <div
+                  className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 max-h-96 overflow-y-auto prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: contractAcceptance.contractContent }}
+                />
+              </details>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-900">
+                <strong>Hash SHA-256:</strong>{' '}
+                <span className="font-mono break-all">{contractAcceptance.contractHash}</span>
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Este hash garante a integridade e autenticidade do contrato aceito.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Faturas */}
       <Card className="bg-white border-slate-200">
