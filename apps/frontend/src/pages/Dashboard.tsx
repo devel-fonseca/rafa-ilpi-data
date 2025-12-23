@@ -205,30 +205,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Plan Info */}
-      {user?.tenant && (
-        <div className="mt-8 p-4 bg-info/10 rounded-lg border border-info/20">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                Plano Atual: <span className="font-bold">{'plan' in user.tenant ? (user.tenant as any).plan : 'Free'}</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Status: <span className="font-medium">{user.tenant.status === 'ACTIVE' ? 'Ativo' : user.tenant.status}</span>
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-info/30 hover:bg-info/10"
-              onClick={() => navigate('/dashboard/settings/billing')}
-            >
-              Gerenciar Plano
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (
         <ResidentQuickViewModal
