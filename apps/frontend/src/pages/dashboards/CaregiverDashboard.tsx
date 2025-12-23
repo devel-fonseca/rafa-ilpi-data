@@ -180,13 +180,15 @@ export function CaregiverDashboard() {
         </p>
       </div>
 
-      {/* Cards de estatísticas */}
-      <CaregiverStatsCards stats={data.stats} isLoading={isLoading} />
-
       {/* Busca Rápida de Residentes */}
       <ResidentQuickSearch
         onSelectResident={(residentId) => setSelectedResidentId(residentId)}
       />
+
+      {/* Cards de estatísticas */}
+      <div className="mt-6">
+        <CaregiverStatsCards stats={data.stats} isLoading={isLoading} />
+      </div>
 
       {/* Grid principal: Tarefas (50%) + Medicações (50%) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
