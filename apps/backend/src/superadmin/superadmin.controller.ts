@@ -321,6 +321,15 @@ export class SuperAdminController {
   }
 
   /**
+   * POST /superadmin/plans/:id/toggle-active
+   * Toggle flag isActive de um plano (desativação visual apenas)
+   */
+  @Post('plans/:id/toggle-active')
+  async toggleActive(@Param('id') id: string) {
+    return this.plansAdminService.toggleActive(id)
+  }
+
+  /**
    * GET /superadmin/plans/:id/stats
    * Buscar estatísticas de um plano
    */

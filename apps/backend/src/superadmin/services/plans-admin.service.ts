@@ -156,6 +156,23 @@ export class PlansAdminService {
   }
 
   /**
+   * Toggle isActive flag
+   * Permite ativar/desativar planos (exibição visual apenas)
+   */
+  async toggleActive(id: string) {
+    const plan = await this.findOne(id)
+
+    const updatedPlan = await this.prisma.plan.update({
+      where: { id },
+      data: {
+        isActive: !plan.isActive,
+      },
+    })
+
+    return updatedPlan
+  }
+
+  /**
    * Buscar estatísticas de um plano
    */
   async getStats(id: string) {

@@ -23,6 +23,7 @@ export interface Plan {
   price: string | null // Decimal as string
   trialDays: number
   isPopular: boolean
+  isActive: boolean
   features: Record<string, any>
   billingCycle: BillingCycle
   createdAt: string
@@ -38,6 +39,7 @@ export interface UpdatePlanDto {
   displayName?: string
   features?: Record<string, any>
   isPopular?: boolean
+  isActive?: boolean
   trialDays?: number
 }
 
@@ -96,6 +98,15 @@ export const updatePlan = async (id: string, data: UpdatePlanDto): Promise<Plan>
  */
 export const togglePlanPopular = async (id: string): Promise<Plan> => {
   const response = await api.post<Plan>(`/superadmin/plans/${id}/toggle-popular`)
+  return response.data
+}
+
+/**
+ * Toggle flag isActive de um plano
+ * Endpoint: POST /superadmin/plans/:id/toggle-active
+ */
+export const togglePlanActive = async (id: string): Promise<Plan> => {
+  const response = await api.post<Plan>(`/superadmin/plans/${id}/toggle-active`)
   return response.data
 }
 

@@ -477,6 +477,7 @@ model Plan {
   price        Decimal?     @db.Decimal(10, 2)
   trialDays    Int          @default(0)
   isPopular    Boolean      @default(false)
+  isActive     Boolean      @default(true)
   features     Json         @default("{}")
   billingCycle BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
   createdAt    DateTime     @default(now()) @db.Timestamptz(3)

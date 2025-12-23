@@ -4,6 +4,7 @@ import {
   getPlan,
   updatePlan,
   togglePlanPopular,
+  togglePlanActive,
   getPlanStats,
   applySubscriptionDiscount,
   applySubscriptionCustomPrice,
@@ -81,6 +82,29 @@ export function useTogglePlanPopular() {
     onSuccess: (data) => {
       toast.success(
         data.isPopular ? 'Plano marcado como popular' : 'Plano desmarcado como popular',
+      )
+      queryClient.invalidateQueries({ queryKey: ['plans'] })
+      queryClient.invalidateQueries({ queryKey: ['plans', data.id] })
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar plano', {
+        description: error?.response?.data?.message || 'Tente novamente',
+      })
+    },
+  })
+}
+
+/**
+ * Hook para toggle isActive de um plano
+ */
+export function useTogglePlanActive() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: togglePlanActive,
+    onSuccess: (data) => {
+      toast.success(
+        data.isActive ? 'Plano ativado com sucesso' : 'Plano desativado com sucesso',
       )
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       queryClient.invalidateQueries({ queryKey: ['plans', data.id] })

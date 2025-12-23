@@ -1,4 +1,3 @@
-import { X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,15 +24,7 @@ export function ContractAcceptanceModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Detalhes do Contrato Aceito</span>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-900 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </DialogTitle>
+          <DialogTitle>Detalhes do Contrato Aceito</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">

@@ -14,9 +14,10 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { usePlans, useUpdatePlan, useTogglePlanPopular } from '@/hooks/usePlans'
-import { Edit2, Star, Users, Home, Calendar, Check, X } from 'lucide-react'
+import { usePlans, useUpdatePlan, useTogglePlanPopular, useTogglePlanActive } from '@/hooks/usePlans'
+import { Edit2, Star, Users, Home, Calendar, Check, X, Power, Plus } from 'lucide-react'
 import type { Plan, UpdatePlanDto } from '@/api/plans.api'
+import { AVAILABLE_FEATURES, featuresToArray, arrayToFeatures } from '@/constants/features'
 
 /**
  * PlansList Page
@@ -32,9 +33,12 @@ export function PlansList() {
   const { data: plans, isLoading } = usePlans()
   const updatePlanMutation = useUpdatePlan()
   const togglePopularMutation = useTogglePlanPopular()
+  const toggleActiveMutation = useTogglePlanActive()
 
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [formData, setFormData] = useState<UpdatePlanDto>({})
+  const [features, setFeatures] = useState<string[]>([])
+  const [newFeature, setNewFeature] = useState('')
 
   const handleEdit = (plan: Plan) => {
     setEditingPlan(plan)
@@ -45,17 +49,38 @@ export function PlansList() {
       displayName: plan.displayName,
       trialDays: plan.trialDays,
     })
+    setFeatures(featuresToArray(plan.features))
+    setNewFeature('')
+  }
+
+  const handleAddFeature = () => {
+    if (newFeature.trim() && !features.includes(newFeature.trim())) {
+      setFeatures([...features, newFeature.trim()])
+      setNewFeature('')
+    }
+  }
+
+  const handleRemoveFeature = (featureToRemove: string) => {
+    setFeatures(features.filter(f => f !== featureToRemove))
   }
 
   const handleSave = () => {
     if (!editingPlan) return
 
+    // Incluir features convertidas no formData
+    const dataToSave = {
+      ...formData,
+      features: arrayToFeatures(features),
+    }
+
     updatePlanMutation.mutate(
-      { id: editingPlan.id, data: formData },
+      { id: editingPlan.id, data: dataToSave },
       {
         onSuccess: () => {
           setEditingPlan(null)
           setFormData({})
+          setFeatures([])
+          setNewFeature('')
         },
       },
     )
@@ -63,6 +88,10 @@ export function PlansList() {
 
   const handleTogglePopular = (planId: string) => {
     togglePopularMutation.mutate(planId)
+  }
+
+  const handleToggleActive = (planId: string) => {
+    toggleActiveMutation.mutate(planId)
   }
 
   const getPlanTypeColor = (type: string) => {
@@ -112,6 +141,15 @@ export function PlansList() {
                 <Badge className="bg-yellow-500 text-yellow-900 border-0 shadow-lg">
                   <Star className="h-3 w-3 mr-1" fill="currentColor" />
                   Popular
+                </Badge>
+              </div>
+            )}
+
+            {/* Inactive Badge */}
+            {!plan.isActive && (
+              <div className="absolute -top-3 -left-3">
+                <Badge variant="destructive" className="border-0 shadow-lg">
+                  Inativo
                 </Badge>
               </div>
             )}
@@ -187,7 +225,7 @@ export function PlansList() {
                       Editar
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-white border-slate-200">
+                  <DialogContent className="bg-white border-slate-200 max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="text-slate-900">
                         Editar Plano: {editingPlan?.displayName}
@@ -197,7 +235,7 @@ export function PlansList() {
                       </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4 pr-2">
                       {/* Preço */}
                       <div className="space-y-2">
                         <Label htmlFor="price" className="text-slate-600">
@@ -284,6 +322,82 @@ export function PlansList() {
                           className="bg-white border-slate-200 text-slate-900"
                         />
                       </div>
+
+                      {/* Features */}
+                      <div className="space-y-3">
+                        <Label className="text-slate-600">Features do Plano</Label>
+
+                        {/* Features selecionadas */}
+                        {features.length > 0 && (
+                          <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
+                            <p className="text-xs font-medium text-emerald-900 mb-2">Features Ativas:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {features.map((feature, idx) => (
+                                <Badge
+                                  key={idx}
+                                  className="bg-emerald-600 text-white hover:bg-emerald-700 pr-1"
+                                >
+                                  {feature}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFeature(feature)}
+                                    className="ml-2 hover:text-red-200"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Features sugeridas (disponíveis para adicionar) */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-slate-600">Clique para adicionar:</p>
+                          <div className="flex flex-wrap gap-2 p-3 bg-blue-50 rounded-md border border-blue-200 max-h-48 overflow-y-auto">
+                            {AVAILABLE_FEATURES.filter(f => !features.includes(f)).map((feature, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="cursor-pointer bg-white border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400"
+                                onClick={() => {
+                                  setFeatures([...features, feature])
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                {feature}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Input para feature customizada */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-slate-600">Ou adicione uma feature customizada:</p>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Digite uma feature customizada..."
+                              value={newFeature}
+                              onChange={(e) => setNewFeature(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleAddFeature()
+                                }
+                              }}
+                              className="bg-white border-slate-200 text-slate-900"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAddFeature}
+                              className="bg-[#059669] hover:bg-[#048558]"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <DialogFooter>
@@ -320,6 +434,19 @@ export function PlansList() {
                     className="h-4 w-4"
                     fill={plan.isPopular ? 'currentColor' : 'none'}
                   />
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleToggleActive(plan.id)}
+                  disabled={toggleActiveMutation.isPending}
+                  className={`border-slate-300 hover:bg-slate-100 ${
+                    plan.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                  }`}
+                  title={plan.isActive ? 'Desativar plano' : 'Ativar plano'}
+                >
+                  <Power className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>

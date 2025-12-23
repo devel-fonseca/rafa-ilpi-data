@@ -22,6 +22,7 @@ import {
 import { cn } from '../../lib/utils'
 import { validarCPF } from '../../utils/validators'
 import { getClientIP } from '../../utils/client-info'
+import { featuresToArray } from '../../constants/features'
 
 interface Plan {
   id: string
@@ -33,26 +34,7 @@ interface Plan {
   features: Record<string, boolean>
   trialDays: number
   isPopular?: boolean
-}
-
-// Mapa de features: flags booleanas → labels humanizadas
-const FEATURE_LABELS: Record<string, string> = {
-  residentes: 'Gestão de residentes',
-  registrosDiarios: 'Registros diários',
-  medicacoes: 'Módulo de medicações',
-  contratos: 'Contratos automatizados',
-  escalas: 'Escalas de trabalho',
-  financeiro: 'Financeiro',
-  relatoriosAnvisa: 'Relatórios ANVISA',
-  rh: 'Recursos Humanos',
-  suporte24h: 'Suporte 24h'
-}
-
-// Converte features do backend (JSON booleano) para array de strings
-function convertFeatures(features: Record<string, boolean>): string[] {
-  return Object.entries(features)
-    .filter(([_, enabled]) => enabled)
-    .map(([key]) => FEATURE_LABELS[key] || key)
+  isActive?: boolean
 }
 
 export default function Register() {
@@ -295,11 +277,43 @@ export default function Register() {
       const ipAddress = await getClientIP()
       const userAgent = navigator.userAgent
 
-      // Preparar aceite do contrato
+      // Buscar dados do plano selecionado para substituição de variáveis
+      const selectedPlan = plans.find(p => p.id === formData.planId)
+      if (!selectedPlan) {
+        throw new Error('Plano não encontrado')
+      }
+
+      // Preparar variáveis para substituição no template do contrato
+      const variables = {
+        tenant: {
+          name: formData.name,
+          cnpj: formData.cnpj,
+          email: formData.email,
+        },
+        user: {
+          name: formData.adminName,
+          cpf: formData.adminCpf,
+          email: formData.adminEmail,
+        },
+        plan: {
+          name: selectedPlan.name,
+          displayName: selectedPlan.displayName,
+          price: selectedPlan.price ? parseFloat(selectedPlan.price) : 0,
+          maxUsers: selectedPlan.maxUsers,
+          maxResidents: selectedPlan.maxResidents,
+        },
+        trial: {
+          days: selectedPlan.trialDays || 0,
+        },
+        today: new Date().toLocaleDateString('pt-BR'),
+      }
+
+      // Preparar aceite do contrato com variáveis
       const acceptanceResponse = await api.post('/contracts/accept/prepare', {
         contractId: formData.contractId,
         ipAddress,
-        userAgent
+        userAgent,
+        variables,
       })
 
       const acceptanceToken = acceptanceResponse.data.acceptanceToken
@@ -764,13 +778,34 @@ export default function Register() {
               <div
                 key={plan.id}
                 className={cn(
-                  "relative rounded-lg border p-4 cursor-pointer hover:shadow-md transition-shadow",
+                  "relative rounded-lg border p-4 transition-shadow",
+                  plan.isActive ? "cursor-pointer hover:shadow-md" : "cursor-not-allowed",
                   formData.planId === plan.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
-                  plan.isPopular && "ring-2 ring-blue-500"
+                  plan.isPopular && plan.isActive && "ring-2 ring-blue-500"
                 )}
               >
-                <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" />
-                <Label htmlFor={plan.id} className="cursor-pointer">
+                {/* Overlay para planos inativos */}
+                {!plan.isActive && (
+                  <div className="absolute inset-0 bg-white/80 rounded-lg flex items-center justify-center z-10 backdrop-blur-[1px]">
+                    <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg font-semibold">
+                      Temporariamente Indisponível
+                    </div>
+                  </div>
+                )}
+
+                <RadioGroupItem
+                  value={plan.id}
+                  id={plan.id}
+                  className="sr-only"
+                  disabled={!plan.isActive}
+                />
+                <Label
+                  htmlFor={plan.id}
+                  className={cn(
+                    "cursor-pointer",
+                    !plan.isActive && "cursor-not-allowed"
+                  )}
+                >
                   {plan.isPopular && (
                     <span className="absolute -top-3 left-4 bg-blue-500 text-white text-xs px-2 py-1 rounded">
                       Mais Popular
@@ -804,7 +839,7 @@ export default function Register() {
                   </div>
 
                   <div className="space-y-2 mt-3">
-                    {convertFeatures(plan.features).map((feature, idx) => (
+                    {featuresToArray(plan.features).map((feature, idx) => (
                       <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                         <span>{feature}</span>
