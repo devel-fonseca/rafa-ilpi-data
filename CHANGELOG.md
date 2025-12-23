@@ -6,6 +6,94 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-22] - Sistema de Contratos SaaS com Prova Jurídica 📜
+
+### ✨ Adicionado
+
+**Módulo de Contratos com Versionamento e Prova Jurídica:**
+
+- **Database Schema** (`prisma/schema.prisma`):
+  - Enum `ContractStatus` (DRAFT, ACTIVE, REVOKED)
+  - Model `ServiceContract`: templates versionados de contratos
+    - Suporte a contratos específicos por plano ou genéricos
+    - Versionamento semântico (v1.0, v1.1, v2.0)
+    - Hash SHA-256 para integridade
+    - Template engine com variáveis dinâmicas
+  - Model `ContractAcceptance`: registro de aceites com prova jurídica
+    - IP address do cliente
+    - User agent do navegador
+    - Timestamp de aceite
+    - Snapshot imutável do contrato (conteúdo, versão, hash)
+    - Relação única por tenant (1 aceite por tenant)
+
+- **Backend - Contracts Module** (`contracts/`):
+  - `ContractsService`: gestão completa de contratos
+    - CRUD de contratos (create, update, delete apenas DRAFT)
+    - Publicação de contratos (DRAFT → ACTIVE, revoga versão anterior)
+    - Busca de contrato ativo (específico do plano ou genérico)
+    - Renderização de template com substituição de variáveis
+    - Geração automática de próxima versão
+    - Registro de aceite com validação JWT
+  - `ContractsController`: endpoints SuperAdmin e públicos
+    - SuperAdmin: gestão completa de contratos
+    - Público: busca de contrato ativo e renderização
+  - Template Engine (`utils/template-engine.ts`):
+    - Variáveis suportadas: `{{tenant.name}}`, `{{user.cpf}}`, `{{plan.displayName}}`, `{{plan.price}}`, `{{trial.days}}`, `{{today}}`
+    - Formatação automática de valores (preço em reais, datas em PT-BR)
+    - Suporte robusto para tipos (string/number)
+  - DTOs validados com class-validator
+
+- **Integração no Fluxo de Cadastro** (`tenants/`):
+  - `CreateTenantDto`: campo `acceptanceToken` obrigatório
+  - `TenantsService`: validação de token JWT e criação de `ContractAcceptance` em transação atômica
+  - `TenantsModule`: integração com JwtModule
+
+- **Frontend - Step 4 no Wizard de Registro** (`pages/auth/Register.tsx`):
+  - Novo step obrigatório para aceite de contrato
+  - Busca automática de contrato ACTIVE (específico ou genérico)
+  - Renderização dinâmica com dados do formulário
+  - Validação obrigatória via checkbox
+  - Captura de IP via API externa (ipify.org)
+  - Geração de token JWT com prova de aceite
+  - Utility `client-info.ts` para captura de informações do cliente
+
+- **Frontend - Portal SuperAdmin** (`pages/superadmin/contracts/`):
+  - `ContractsList.tsx`: listagem com filtros (status, plano)
+  - `ContractDetails.tsx`: visualização completa + lista de aceites
+  - `ContractNew.tsx`: criação de novo contrato
+  - `ContractEdit.tsx`: edição de contratos DRAFT
+  - Componentes:
+    - `CreateContractDialog.tsx`: formulário de criação
+    - `EditContractDialog.tsx`: formulário de edição
+    - `PublishContractDialog.tsx`: confirmação de publicação
+  - React Query hooks (`useContracts.ts`): cache e invalidação automática
+  - API layer completa (`contracts.api.ts`)
+  - Link no menu lateral do SuperAdmin
+
+### 🔧 Corrigido
+
+- **Portal SuperAdmin**: Exibição de plano no `TenantDetails.tsx`
+  - Problema: Filtro buscava `status === 'active'` (lowercase), mas banco usa UPPERCASE
+  - Solução: Ajustado para aceitar `'ACTIVE'` e `'TRIAL'`
+  - Impacto: Plano agora aparece corretamente para todos os tenants
+
+### 📝 Melhorias Técnicas
+
+- Template engine aceita `price` como string ou number (compatível com Prisma Decimal)
+- Validação `@IsOptional()` no `RenderContractDto` para compatibilidade com ValidationPipe
+- Transação atômica preservada no registro de tenant
+- Logs removidos após debugging
+
+### ✅ Testado
+
+- Tenant YIELD INFORMATICA LTDA criado com sucesso
+- Aceite registrado com IP 179.159.1.54
+- Contrato v1.0 versionado e armazenado
+- Login funcionando corretamente
+- Portal SuperAdmin exibindo plano
+
+---
+
 ## [2025-12-20] - Fase 4: Integração Completa com Asaas Payment Gateway 💳
 
 ### ✨ Adicionado
