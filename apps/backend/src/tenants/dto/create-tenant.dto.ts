@@ -160,4 +160,13 @@ export class CreateTenantDto {
   @IsUUID()
   @IsNotEmpty()
   planId: string;
+
+  // Token de aceite do contrato
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'Token de aceite do contrato gerado no passo anterior',
+  })
+  @IsString()
+  @IsNotEmpty()
+  acceptanceToken: string;
 }

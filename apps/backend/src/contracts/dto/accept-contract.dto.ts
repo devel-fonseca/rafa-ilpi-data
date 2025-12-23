@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
 
 /**
  * DTO para preparar o token de aceite do contrato
@@ -48,5 +48,6 @@ export class RenderContractDto {
     description: 'Variáveis para substituição no template',
     required: false,
   })
+  @IsOptional()
   variables?: Record<string, any>;
 }

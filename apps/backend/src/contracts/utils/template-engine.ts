@@ -104,7 +104,7 @@ export function renderTemplate(
       const priceFormatted =
         variables.plan.price === null
           ? 'sob consulta'
-          : `R$ ${variables.plan.price.toFixed(2)}`;
+          : `R$ ${Number(variables.plan.price).toFixed(2)}`;
       rendered = rendered.replace(/\{\{plan\.price\}\}/g, priceFormatted);
     }
     if (variables.plan.maxUsers !== undefined) {

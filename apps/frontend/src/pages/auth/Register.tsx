@@ -9,8 +9,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
+import { Checkbox } from '../../components/ui/checkbox'
 import { cn } from '../../lib/utils'
 import { validarCPF } from '../../utils/validators'
+import { getClientIP } from '../../utils/client-info'
 
 interface Plan {
   id: string
@@ -53,6 +55,8 @@ export default function Register() {
   const [loadingCNPJ, setLoadingCNPJ] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
+  const [currentContract, setCurrentContract] = useState<any>(null)
+  const [loadingContract, setLoadingContract] = useState(false)
 
   const [formData, setFormData] = useState({
     // ILPI Data
@@ -78,7 +82,11 @@ export default function Register() {
     adminPasswordConfirm: '',
 
     // Plan
-    planId: ''
+    planId: '',
+
+    // Contract
+    contractId: '',
+    contractAccepted: false
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -107,6 +115,65 @@ export default function Register() {
       console.error('Erro ao carregar planos:', err)
     } finally {
       setLoadingPlans(false)
+    }
+  }
+
+  // Carregar contrato quando chegar no step 4
+  useEffect(() => {
+    if (currentStep === 4 && formData.planId && !currentContract) {
+      loadActiveContract()
+    }
+  }, [currentStep, formData.planId])
+
+  const loadActiveContract = async () => {
+    setLoadingContract(true)
+    try {
+      // 1. Buscar contrato ativo
+      const contractResponse = await api.get(`/contracts/active?planId=${formData.planId}`)
+      const contract = contractResponse.data
+
+      // 2. Buscar dados do plano para renderizar
+      const plan = plans.find(p => p.id === formData.planId)
+
+      // 3. Renderizar contrato com variáveis
+      const variables = {
+        tenant: {
+          name: formData.name,
+          cnpj: formData.cnpj,
+          email: formData.email
+        },
+        user: {
+          name: formData.adminName,
+          cpf: formData.adminCpf,
+          email: formData.adminEmail
+        },
+        plan: {
+          name: plan?.name || '',
+          displayName: plan?.displayName || '',
+          price: plan?.price || null,
+          maxUsers: plan?.maxUsers || 0,
+          maxResidents: plan?.maxResidents || 0
+        },
+        trial: {
+          days: plan?.trialDays || 0
+        }
+      }
+
+      const renderResponse = await api.post('/contracts/render', {
+        contractId: contract.id,
+        variables
+      })
+
+      setCurrentContract({
+        ...contract,
+        content: renderResponse.data.content
+      })
+      setFormData(prev => ({ ...prev, contractId: contract.id }))
+    } catch (err: any) {
+      // Sem contrato disponível - bloquear cadastro
+      setErrors({ contract: 'Nenhum contrato disponível no momento. Entre em contato com o suporte.' })
+    } finally {
+      setLoadingContract(false)
     }
   }
 
@@ -171,6 +238,12 @@ export default function Register() {
       case 3: // Plan
         if (!formData.planId) newErrors.planId = 'Selecione um plano'
         break
+
+      case 4: // Contract
+        if (!formData.contractAccepted) {
+          newErrors.contractAccepted = 'Você deve aceitar o contrato para continuar'
+        }
+        break
     }
 
     setErrors(newErrors)
@@ -179,7 +252,12 @@ export default function Register() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1)
+      if (currentStep === 3) {
+        // Step 3 → 4 (ir para contrato)
+        setCurrentStep(4)
+      } else {
+        setCurrentStep(currentStep + 1)
+      }
     }
   }
 
@@ -196,10 +274,25 @@ export default function Register() {
     clearError()
 
     try {
-      const { adminPasswordConfirm, addressZip, ...rest } = formData
+      // Capturar informações do cliente
+      const ipAddress = await getClientIP()
+      const userAgent = navigator.userAgent
+
+      // Preparar aceite do contrato
+      const acceptanceResponse = await api.post('/contracts/accept/prepare', {
+        contractId: formData.contractId,
+        ipAddress,
+        userAgent
+      })
+
+      const acceptanceToken = acceptanceResponse.data.acceptanceToken
+
+      // Enviar dados de registro com token
+      const { adminPasswordConfirm, addressZip, contractId, contractAccepted, ...rest } = formData
       const dataToSubmit = {
         ...rest,
-        addressZipCode: addressZip  // Backend espera addressZipCode, não addressZip
+        addressZipCode: addressZip,
+        acceptanceToken
       }
 
       // Salvar dados necessários antes de fazer logout
@@ -712,6 +805,49 @@ export default function Register() {
     </div>
   )
 
+  // Step 4: Aceite do Contrato
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertDescription>
+          Leia atentamente o contrato de prestação de serviços antes de continuar.
+        </AlertDescription>
+      </Alert>
+
+      {loadingContract ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        </div>
+      ) : currentContract ? (
+        <Card className="p-6 max-h-96 overflow-y-auto border-2">
+          <div dangerouslySetInnerHTML={{ __html: currentContract.content }} />
+        </Card>
+      ) : null}
+
+      {errors.contract && (
+        <Alert variant="destructive">
+          <AlertDescription>{errors.contract}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-start space-x-2 p-4 bg-gray-50 rounded-lg">
+        <Checkbox
+          id="contractAccepted"
+          checked={formData.contractAccepted}
+          onCheckedChange={(checked) =>
+            setFormData(prev => ({ ...prev, contractAccepted: !!checked }))
+          }
+        />
+        <label htmlFor="contractAccepted" className="text-sm leading-relaxed cursor-pointer">
+          Li e aceito os termos do contrato de prestação de serviços da plataforma RAFA ILPI
+        </label>
+      </div>
+      {errors.contractAccepted && (
+        <p className="text-sm text-red-500">{errors.contractAccepted}</p>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-2xl">
@@ -726,7 +862,7 @@ export default function Register() {
           {/* Progress Steps */}
           <div className="flex items-center justify-center mt-6">
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map((step) => (
+              {[1, 2, 3, 4].map((step) => (
                 <div key={step} className="flex items-center gap-2">
                   <div
                     className={cn(
@@ -755,6 +891,7 @@ export default function Register() {
             {currentStep === 1 && "Dados da ILPI"}
             {currentStep === 2 && "Administrador"}
             {currentStep === 3 && "Escolha o Plano"}
+            {currentStep === 4 && "Aceite do Contrato"}
           </div>
         </CardHeader>
 
@@ -763,6 +900,7 @@ export default function Register() {
             {currentStep === 1 && renderStep1()}
             {currentStep === 2 && renderStep2()}
             {currentStep === 3 && renderStep3()}
+            {currentStep === 4 && renderStep4()}
 
             {error && (
               <Alert variant="destructive" className="mt-4">
@@ -789,7 +927,7 @@ export default function Register() {
               </Link>
             )}
 
-            {currentStep < 3 ? (
+            {currentStep < 4 ? (
               <Button type="button" onClick={handleNext}>
                 Próximo
               </Button>

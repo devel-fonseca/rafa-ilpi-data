@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
   ForbiddenException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -22,6 +23,7 @@ export class TenantsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
     private readonly emailService?: EmailService,
   ) {}
 
@@ -47,7 +49,18 @@ export class TenantsService {
       adminEmail,
       adminPassword,
       planId,
+      acceptanceToken,
     } = createTenantDto;
+
+    // Decodificar e validar token de aceite do contrato
+    let acceptanceData: any;
+    try {
+      acceptanceData = this.jwtService.verify(acceptanceToken);
+    } catch (error) {
+      throw new BadRequestException(
+        'Token de aceite do contrato inválido ou expirado',
+      );
+    }
 
     // Validar se CNPJ já existe
     if (cnpj) {
@@ -142,6 +155,20 @@ export class TenantsService {
           },
         });
 
+        // 5. Registrar aceite do contrato
+        const contractAcceptance = await prisma.contractAcceptance.create({
+          data: {
+            contractId: acceptanceData.contractId,
+            tenantId: tenant.id,
+            userId: user.id,
+            ipAddress: acceptanceData.ipAddress,
+            userAgent: acceptanceData.userAgent,
+            contractVersion: acceptanceData.contractVersion,
+            contractHash: acceptanceData.contractHash,
+            contractContent: acceptanceData.contractContent,
+          },
+        });
+
         return {
           tenant,
           subscription,
@@ -152,6 +179,7 @@ export class TenantsService {
             role: user.role,
           },
           userProfile,
+          contractAcceptance,
         };
       });
 
