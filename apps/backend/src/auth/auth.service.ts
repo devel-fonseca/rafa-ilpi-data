@@ -182,11 +182,20 @@ export class AuthService {
       // Salvar refresh token no banco
       await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-      // Remover senha do retorno
-      const { password: _, ...userWithoutPassword } = user;
+      // Remover senha do retorno e adicionar plan no tenant
+      const { password: _, tenant, ...userWithoutPassword } = user;
+
+      // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
+      const tenantWithPlan = tenant ? {
+        ...tenant,
+        plan: tenant.subscriptions[0]?.plan?.name || 'Free',
+      } : null;
 
       return {
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          tenant: tenantWithPlan,
+        },
         ...tokens,
       };
     }
@@ -274,11 +283,20 @@ export class AuthService {
     // Salvar refresh token no banco
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    // Remover senha do retorno
-    const { password: _, ...userWithoutPassword } = user;
+    // Remover senha do retorno e adicionar plan no tenant
+    const { password: _, tenant, ...userWithoutPassword } = user;
+
+    // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
+    const tenantWithPlan = tenant ? {
+      ...tenant,
+      plan: tenant.subscriptions[0]?.plan?.name || 'Free',
+    } : null;
 
     return {
-      user: userWithoutPassword,
+      user: {
+        ...userWithoutPassword,
+        tenant: tenantWithPlan,
+      },
       ...tokens,
     };
   }

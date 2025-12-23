@@ -13,12 +13,14 @@ interface User {
     id: string
     name: string
     status: string
+    plan?: string
     profile?: {
       tradeName?: string | null
     }
   }
   profile?: {
     profilePhoto?: string | null
+    positionCode?: string | null
   }
 }
 
