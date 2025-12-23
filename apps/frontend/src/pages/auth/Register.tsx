@@ -7,9 +7,18 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/card'
 import { Alert, AlertDescription } from '../../components/ui/alert'
-import { Eye, EyeOff, Loader2, Check } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Check, AlertCircle } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
 import { Checkbox } from '../../components/ui/checkbox'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog'
 import { cn } from '../../lib/utils'
 import { validarCPF } from '../../utils/validators'
 import { getClientIP } from '../../utils/client-info'
@@ -88,6 +97,8 @@ export default function Register() {
     contractId: '',
     contractAccepted: false
   })
+
+  const [showContractAlert, setShowContractAlert] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -268,6 +279,12 @@ export default function Register() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
+
+    // Verificar aceite do contrato ANTES da validação completa
+    if (!formData.contractAccepted) {
+      setShowContractAlert(true)
+      return
+    }
 
     if (!validateStep(currentStep)) return
 
@@ -946,6 +963,28 @@ export default function Register() {
           </CardFooter>
         </form>
       </Card>
+
+      {/* Alert Dialog: Aceite Obrigatório */}
+      <AlertDialog open={showContractAlert} onOpenChange={setShowContractAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertCircle className="h-5 w-5" />
+              Aceite do Contrato Necessário
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Para prosseguir com a criação da conta, você precisa ler e aceitar o Contrato de Prestação de Serviços.
+              <br /><br />
+              Por favor, marque a caixa de seleção <strong>"Li e aceito os termos do contrato"</strong> antes de clicar em "Criar conta".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowContractAlert(false)}>
+              Entendi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
