@@ -47,7 +47,11 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">
-                Plano Atual: <span className="font-bold">{user.tenant.plan || 'Free'}</span>
+                Plano Atual: <span className="font-bold">
+                  {user.tenant.plan
+                    ? user.tenant.plan.charAt(0).toUpperCase() + user.tenant.plan.slice(1).toLowerCase()
+                    : 'Free'}
+                </span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Status: <span className="font-medium">{user.tenant.status === 'ACTIVE' ? 'Ativo' : user.tenant.status}</span>
