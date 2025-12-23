@@ -135,7 +135,7 @@ export class AuthService {
               include: { plan: true },
               where: {
                 status: {
-                  in: ['active', 'trialing'],
+                  in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
                 },
               },
               orderBy: {
@@ -243,7 +243,7 @@ export class AuthService {
               include: { plan: true },
               where: {
                 status: {
-                  in: ['active', 'trialing'],
+                  in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
                 },
               },
               orderBy: {
