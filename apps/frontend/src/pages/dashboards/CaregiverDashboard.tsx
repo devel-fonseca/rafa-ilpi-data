@@ -186,12 +186,12 @@ export function CaregiverDashboard() {
       />
 
       {/* Cards de estatísticas */}
-      <div className="mt-6">
+      <div className="mt-6 mb-8">
         <CaregiverStatsCards stats={data.stats} isLoading={isLoading} />
       </div>
 
       {/* Grid principal: Tarefas (50%) + Medicações (50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 mt-8">
         {/* Coluna 1: Tarefas */}
         <div>
           <TasksSection
