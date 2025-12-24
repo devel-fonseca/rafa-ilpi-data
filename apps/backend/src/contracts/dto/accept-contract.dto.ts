@@ -29,6 +29,14 @@ export class PrepareAcceptanceDto {
   @IsString()
   @IsNotEmpty()
   userAgent: string;
+
+  @ApiProperty({
+    example: { tenant: { name: 'ILPI Exemplo' }, plan: { price: 299 } },
+    description: 'Variáveis para substituição no template',
+    required: false,
+  })
+  @IsOptional()
+  variables?: Record<string, any>;
 }
 
 /**

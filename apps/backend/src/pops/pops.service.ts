@@ -11,6 +11,7 @@ import {
   PopHistory,
   PopAttachment,
   PopCategory,
+  PermissionType,
   Prisma,
 } from '@prisma/client'
 import {
@@ -21,6 +22,7 @@ import {
   AddAttachmentDto,
 } from './dto'
 import { addMonths } from 'date-fns'
+import { getPositionProfile } from '../permissions/position-profiles.config'
 
 /**
  * Service responsável pela lógica de negócio de POPs
@@ -243,6 +245,114 @@ export class PopsService {
 
     if (!pop) {
       throw new NotFoundException('POP não encontrado')
+    }
+
+    return pop
+  }
+
+  /**
+   * Busca um POP por ID com validação de acesso público
+   * - POPs PUBLISHED: Todos podem visualizar
+   * - POPs DRAFT/OBSOLETE: Apenas usuários com VIEW_POPS
+   */
+  async findOnePublic(
+    tenantId: string,
+    popId: string,
+    userId: string,
+  ): Promise<Pop> {
+    const pop = await this.prisma.pop.findFirst({
+      where: {
+        id: popId,
+        tenantId,
+        deletedAt: null,
+      },
+      include: {
+        attachments: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+        },
+        replacedBy: {
+          select: {
+            id: true,
+            title: true,
+            version: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+        replaces: {
+          select: {
+            id: true,
+            title: true,
+            version: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { version: 'desc' },
+        },
+      },
+    })
+
+    if (!pop) {
+      throw new NotFoundException('POP não encontrado')
+    }
+
+    // Se o POP não está publicado, bloqueia acesso de usuários comuns
+    if (pop.status !== PopStatus.PUBLISHED) {
+      // Verificar se usuário tem permissão VIEW_POPS ou role=admin
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          role: true,
+          profile: {
+            select: {
+              positionCode: true,
+              customPermissions: {
+                select: {
+                  permission: true,
+                  isGranted: true,
+                },
+              },
+            },
+          },
+        },
+      })
+
+      // Se é ADMIN, permite acesso (bypass)
+      if (user?.role === 'admin') {
+        return pop
+      }
+
+      // Verificar permissões do cargo + customizações
+      if (user?.profile) {
+        const { positionCode, customPermissions } = user.profile
+
+        // Buscar permissões do cargo
+        let hasViewPops = false
+        if (positionCode) {
+          const positionProfile = getPositionProfile(positionCode)
+          hasViewPops = positionProfile?.permissions.includes(
+            PermissionType.VIEW_POPS,
+          ) || false
+        }
+
+        // Aplicar customizações (override)
+        for (const customPerm of customPermissions) {
+          if (customPerm.permission === PermissionType.VIEW_POPS) {
+            hasViewPops = customPerm.isGranted
+          }
+        }
+
+        // Se tem VIEW_POPS, permite acesso
+        if (hasViewPops) {
+          return pop
+        }
+      }
+
+      // Caso contrário, bloqueia
+      throw new BadRequestException(
+        'Este POP está em rascunho e não está disponível para visualização',
+      )
     }
 
     return pop

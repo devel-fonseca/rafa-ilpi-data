@@ -39,6 +39,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import PopVersionModal from './PopVersionModal'
 import PopObsoleteModal from './PopObsoleteModal'
+import { usePermissions } from '../../hooks/usePermissions'
+import { PermissionType } from '../../types/permissions'
 
 export default function PopViewer() {
   const navigate = useNavigate()
@@ -51,6 +53,10 @@ export default function PopViewer() {
   const { data: pop, isLoading } = usePop(id)
   const markReviewed = useMarkPopReviewed()
   const publishPop = usePublishPop()
+  const { hasPermission } = usePermissions()
+
+  // Apenas RT (Responsável Técnico) pode publicar POPs
+  const canPublishPops = hasPermission(PermissionType.PUBLISH_POPS)
 
   const handleMarkAsReviewed = async () => {
     if (id) {
@@ -150,24 +156,24 @@ export default function PopViewer() {
               </Button>
             )}
 
-            {/* Publish (only DRAFT) - TODO: Add permission check */}
-            {pop.status === PopStatus.DRAFT && (
+            {/* Publish (only DRAFT, requires PUBLISH_POPS) */}
+            {pop.status === PopStatus.DRAFT && canPublishPops && (
               <Button onClick={handlePublish}>
                 <Send className="mr-2 h-4 w-4" />
                 Publicar
               </Button>
             )}
 
-            {/* New Version (only PUBLISHED) - TODO: Add permission check */}
-            {pop.status === PopStatus.PUBLISHED && (
+            {/* New Version (only PUBLISHED, requires PUBLISH_POPS) */}
+            {pop.status === PopStatus.PUBLISHED && canPublishPops && (
               <Button onClick={() => setShowVersionModal(true)}>
                 <GitBranch className="mr-2 h-4 w-4" />
                 Nova Versão
               </Button>
             )}
 
-            {/* Mark Obsolete (only PUBLISHED) - TODO: Add permission check */}
-            {pop.status === PopStatus.PUBLISHED && (
+            {/* Mark Obsolete (only PUBLISHED, requires PUBLISH_POPS) */}
+            {pop.status === PopStatus.PUBLISHED && canPublishPops && (
               <Button
                 variant="destructive"
                 onClick={() => setShowObsoleteModal(true)}
@@ -177,8 +183,8 @@ export default function PopViewer() {
               </Button>
             )}
 
-            {/* Mark as Reviewed (only if requiresReview) - TODO: Add permission check */}
-            {pop.requiresReview && pop.status === PopStatus.PUBLISHED && (
+            {/* Mark as Reviewed (only if requiresReview, requires PUBLISH_POPS) */}
+            {pop.requiresReview && pop.status === PopStatus.PUBLISHED && canPublishPops && (
               <Button
                 variant="outline"
                 onClick={() => setShowReviewDialog(true)}

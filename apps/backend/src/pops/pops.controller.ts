@@ -82,9 +82,10 @@ export class PopsController {
   /**
    * GET /pops/published
    * Listar apenas POPs publicados (vigentes)
+   * ⚠️ ROTA PÚBLICA: Todos os usuários autenticados podem visualizar POPs publicados
+   * POPs são documentos institucionais obrigatórios (RDC 502/2021)
    */
   @Get('published')
-  @RequirePermissions(PermissionType.VIEW_POPS)
   async findPublished(@Req() req: any) {
     return this.popsService.findPublished(req.user.tenantId)
   }
@@ -96,9 +97,9 @@ export class PopsController {
   /**
    * GET /pops/categories
    * Listar categorias únicas usadas no tenant
+   * ⚠️ ROTA PÚBLICA: Necessário para filtros de visualização
    */
   @Get('categories')
-  @RequirePermissions(PermissionType.VIEW_POPS)
   async getCategories(@Req() req: any) {
     return this.popsService.getUniqueCategories(req.user.tenantId)
   }
@@ -154,11 +155,12 @@ export class PopsController {
   /**
    * GET /pops/:id
    * Buscar POP específico
+   * ⚠️ ROTA PÚBLICA: Todos podem ver POPs publicados
+   * Validação: Bloqueia DRAFT para usuários sem VIEW_POPS
    */
   @Get(':id')
-  @RequirePermissions(PermissionType.VIEW_POPS)
   async findOne(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.findOne(req.user.tenantId, id)
+    return this.popsService.findOnePublic(req.user.tenantId, id, req.user.id)
   }
 
   /**

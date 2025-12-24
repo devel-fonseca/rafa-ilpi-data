@@ -93,6 +93,16 @@ enum PermissionType {
   UPDATE_CLINICAL_NOTES
   DELETE_CLINICAL_NOTES
 
+  // POPs (Procedimentos Operacionais Padrão)
+  // ⚠️ ATENÇÃO: POPs publicados são PÚBLICOS para todos os usuários (RDC 502/2021)
+  // VIEW_POPS permite ver DRAFT e acessar templates/histórico
+  VIEW_POPS          // Ver POPs em rascunho, templates, histórico de versões
+  CREATE_POPS        // Criar novos POPs (rascunho)
+  UPDATE_POPS        // Editar POPs, adicionar/remover anexos
+  DELETE_POPS        // Deletar POPs em rascunho
+  PUBLISH_POPS       // Publicar, versionar, marcar obsoleto (apenas RT)
+  MANAGE_POPS        // Controle total sobre POPs
+
   // Auditoria
   VIEW_AUDIT_LOGS
 
@@ -870,6 +880,112 @@ export const POSITION_PROFILES: Record<PositionCode, PermissionType[]> = {
 const queryClient = useQueryClient();
 queryClient.invalidateQueries({ queryKey: ['permissions'] });
 ```
+
+---
+
+## Caso Especial: POPs (Procedimentos Operacionais Padrão)
+
+### Contexto Regulatório
+
+Conforme **RDC 502/2021 da ANVISA**, POPs são **documentos institucionais obrigatórios** que devem estar disponíveis para toda a equipe da ILPI. Por isso, o módulo de POPs implementa um modelo de acesso híbrido:
+
+### Rotas Públicas (Todos os Usuários Autenticados)
+
+Estas rotas **NÃO exigem** `@RequirePermissions()`:
+
+1. **GET /pops/published** - Listar POPs publicados (vigentes)
+2. **GET /pops/:id** - Visualizar POP específico
+   - ⚠️ **Validação**: Apenas POPs com `status=PUBLISHED` são acessíveis
+   - POPs `DRAFT` ou `OBSOLETE` retornam erro 400 para usuários sem VIEW_POPS
+3. **GET /pops/categories** - Listar categorias (para filtros)
+4. **Anexos**: URLs de download incluídas no response do POP
+
+### Rotas Restritas (Requerem Permissões)
+
+| Rota | Permissão | Descrição |
+|------|-----------|-----------|
+| GET /pops | VIEW_POPS | Listar TODOS (incluindo DRAFT) |
+| GET /pops/templates/* | VIEW_POPS | Acessar templates |
+| GET /pops/:id/versions | VIEW_POPS | Histórico de versões |
+| GET /pops/:id/history | VIEW_POPS | Auditoria completa |
+| POST /pops | CREATE_POPS | Criar novo POP |
+| PATCH /pops/:id | UPDATE_POPS | Editar POP |
+| DELETE /pops/:id | DELETE_POPS | Deletar POP (DRAFT) |
+| POST /pops/:id/publish | PUBLISH_POPS | Publicar (RT apenas) |
+| POST /pops/:id/version | PUBLISH_POPS | Versionar (RT apenas) |
+| POST /pops/:id/obsolete | PUBLISH_POPS | Marcar obsoleto (RT apenas) |
+| POST /pops/:id/mark-reviewed | PUBLISH_POPS | Marcar revisado (RT apenas) |
+| POST /pops/:id/attachments | UPDATE_POPS | Adicionar anexo |
+| DELETE /pops/attachments/:id | UPDATE_POPS | Remover anexo |
+
+### Implementação da Segurança
+
+```typescript
+// pops.controller.ts
+@Get('published')
+// ⚠️ SEM @RequirePermissions - Rota pública
+async findPublished(@Req() req: any) {
+  return this.popsService.findPublished(req.user.tenantId)
+}
+
+@Get(':id')
+// ⚠️ SEM @RequirePermissions - Validação no service
+async findOne(@Req() req: any, @Param('id') id: string) {
+  // findOnePublic valida se POP está PUBLISHED
+  return this.popsService.findOnePublic(req.user.tenantId, id, req.user.id)
+}
+```
+
+```typescript
+// pops.service.ts
+async findOnePublic(tenantId: string, popId: string, userId: string) {
+  const pop = await this.prisma.pop.findFirst({ ... })
+
+  // Se não está publicado, bloqueia usuários comuns
+  if (pop.status !== PopStatus.PUBLISHED) {
+    const user = await this.prisma.user.findUnique({ ... })
+
+    // Admin sempre tem acesso
+    if (user?.role === 'admin') return pop
+
+    // Outros usuários: bloqueado
+    throw new BadRequestException(
+      'Este POP está em rascunho e não está disponível para visualização'
+    )
+  }
+
+  return pop
+}
+```
+
+### Distribuição de Permissões por Cargo
+
+```typescript
+// position-profiles.config.ts
+BASE_PERMISSIONS.VIEWER = [
+  PermissionType.VIEW_POPS, // ❌ REMOVIDO - POPs publicados são públicos
+  // ... outras permissões
+]
+
+// Apenas cargos que criam/gerenciam POPs têm VIEW_POPS
+ILPI_POSITION_PROFILES.TECHNICAL_MANAGER = {
+  permissions: [
+    PermissionType.VIEW_POPS,      // Ver DRAFT
+    PermissionType.CREATE_POPS,    // Criar
+    PermissionType.UPDATE_POPS,    // Editar
+    PermissionType.DELETE_POPS,    // Deletar
+    PermissionType.PUBLISH_POPS,   // Publicar (RT)
+    PermissionType.MANAGE_POPS,    // Controle total
+  ]
+}
+```
+
+### Por Que Este Modelo?
+
+✅ **Compliance RDC 502/2021**: POPs devem estar acessíveis a todos
+✅ **Segurança**: DRAFT não vaza para usuários comuns
+✅ **Auditoria**: Histórico e versões apenas para gestores
+✅ **Simplicidade**: Usuários comuns não veem opções de gestão
 
 ---
 

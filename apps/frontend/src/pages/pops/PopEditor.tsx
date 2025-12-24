@@ -38,6 +38,8 @@ import {
 } from '../../types/pop.types'
 import { toast } from 'sonner'
 import PopTemplatesModal from './PopTemplatesModal'
+import { usePermissions } from '../../hooks/usePermissions'
+import { PermissionType } from '../../types/permissions'
 
 export default function PopEditor() {
   const navigate = useNavigate()
@@ -61,6 +63,10 @@ export default function PopEditor() {
   const createPop = useCreatePop()
   const updatePop = useUpdatePop()
   const publishPop = usePublishPop()
+  const { hasPermission } = usePermissions()
+
+  // Apenas RT (Responsável Técnico) pode publicar POPs
+  const canPublishPops = hasPermission(PermissionType.PUBLISH_POPS)
 
   // Load existing POP data
   useEffect(() => {
@@ -242,14 +248,16 @@ export default function PopEditor() {
               <Save className="mr-2 h-4 w-4" />
               Salvar Rascunho
             </Button>
-            {/* TODO: Adicionar verificação de permissão PUBLISH_POPS */}
-            <Button
-              onClick={handlePublish}
-              disabled={publishPop.isPending || !id}
-            >
-              <Send className="mr-2 h-4 w-4" />
-              Publicar
-            </Button>
+            {/* Publicar (apenas RT tem PUBLISH_POPS) */}
+            {canPublishPops && (
+              <Button
+                onClick={handlePublish}
+                disabled={publishPop.isPending || !id}
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Publicar
+              </Button>
+            )}
           </div>
         </div>
 

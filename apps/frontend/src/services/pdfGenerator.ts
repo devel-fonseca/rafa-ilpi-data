@@ -611,7 +611,7 @@ export async function generateDailyRecordsPDF(data: PDFData): Promise<void> {
     })
 
     // Desenhar seções
-    let currentY = drawHeader(doc, data)
+    const currentY = drawHeader(doc, data)
     drawFoodHydration(doc, data.records, currentY)
     drawVitals(doc, data.records, currentY)
     drawHygieneElimination(doc, data.records, currentY)

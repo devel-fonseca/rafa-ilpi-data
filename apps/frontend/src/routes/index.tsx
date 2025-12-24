@@ -44,6 +44,7 @@ import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalPro
 import MyProfile from '@/pages/profile/MyProfile'
 import UsersList from '@/pages/users/UsersList'
 import UserCreatePage from '@/pages/users/UserCreatePage'
+import UserEditPage from '@/pages/users/UserEditPage'
 
 // Notifications Pages
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
@@ -193,6 +194,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredRole="ADMIN">
             <UserCreatePage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'usuarios/:userId/edit',
+        element: (
+          <ProtectedRoute requiredRole="ADMIN">
+            <UserEditPage />
           </ProtectedRoute>
         ),
       },

@@ -249,6 +249,12 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_REPORTS,
       PermissionType.EXPORT_DATA,
       PermissionType.VIEW_AUDIT_LOGS,
+      // POPs - Gestão Administrativa
+      PermissionType.VIEW_POPS,      // Ver POPs em rascunho e templates
+      PermissionType.CREATE_POPS,    // Criar POPs administrativos/operacionais
+      PermissionType.UPDATE_POPS,    // Editar POPs em rascunho
+      PermissionType.DELETE_POPS,    // Deletar POPs em rascunho
+      // ⚠️ ADMINISTRATOR NÃO tem PUBLISH_POPS (apenas RT publica)
     ],
   },
 
