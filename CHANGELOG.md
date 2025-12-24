@@ -6,6 +6,200 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-23] - Sistema Inteligente de Gestão de Usuários 👥
+
+### ✨ Adicionado
+
+**Nova Página Dedicada de Criação de Usuários:**
+
+- **Frontend - UserCreatePage** (`pages/users/UserCreatePage.tsx`):
+  - Página dedicada de 530+ linhas substituindo modal de 1300 linhas
+  - 4 seções organizadas: Dados Básicos, Permissões e Cargo, Registro Profissional, Dados Administrativos
+  - Progressive disclosure: seções condicionais aparecem baseadas em seleções
+  - Validações client-side com feedback imediato
+  - Suporte completo a campos ILPI: positionCode, registrationType, isTechnicalManager, isNursingCoordinator
+  - Rota protegida: `/dashboard/usuarios/new` (apenas ADMIN)
+
+**Sistema de Recomendação Inteligente de Roles:**
+
+- **Frontend - Role Recommendation** (`utils/roleRecommendation.ts`):
+  - Lógica contextual de sugestão de roles baseada em cargo + flags especiais
+  - Regras implementadas:
+    - **RT (Responsável Técnico)** → `admin` (bloqueado, não pode ser alterado)
+    - **Coordenador de Enfermagem** → mínimo `manager` (pode sobrescrever para admin)
+    - **Outros cargos** → role baseada em `POSITION_DEFAULT_ROLES` (pode sobrescrever)
+  - Interface `RoleRecommendation` com `suggestedRole`, `reason`, `allowOverride`, `warning`
+
+- **Frontend - RoleSelectorWithSuggestion** (`components/users/RoleSelectorWithSuggestion.tsx`):
+  - Componente visual com feedback colorido:
+    - 🔵 **Azul**: role bloqueada (RT sempre admin por exigência regulatória)
+    - 🟡 **Amarelo**: usuário escolheu role diferente da sugerida
+    - 🟢 **Verde**: recomendação seguida corretamente
+  - Tooltips explicativos sobre hierarquia administrativa
+  - Checkmark visual na role sugerida
+  - Bloqueio automático quando `allowOverride = false`
+
+**Melhorias de UX e Tratamento de Erros:**
+
+- **Mensagens Contextuais de Erro:**
+  - Detecção de limite do plano com toast aprimorado
+  - Ação "Ver Planos" com link para WhatsApp comercial
+  - Descrição adicional sugerindo upgrade
+  - Duração estendida (10s) para mensagens de plano
+
+- **Navegação Aprimorada:**
+  - Botão "Adicionar Usuário" em `UsersList` navega para página dedicada
+  - Breadcrumb com botão "Voltar" para navegação consistente
+  - Botões duplicados (header + rodapé fixo) para facilitar submissão em formulários longos
+
+### 🔧 Corrigido
+
+**Bugs Críticos Resolvidos:**
+
+1. **Role Mapping Mismatch:**
+   - **Problema**: Frontend enviava `role: 'STAFF'` mas backend só aceita `ADMIN | MANAGER | USER | VIEWER`
+   - **Solução**: Criado objeto `roleMapping` convertendo `staff → USER` antes da API call
+   - **Arquivo**: `pages/users/UserCreatePage.tsx:97-102`
+
+2. **Perfil ILPI Incompleto:**
+   - **Problema**: Usuários criados sem `positionCode`, `isTechnicalManager`, campos de registro profissional
+   - **Causa Raiz**: `UserProfilesService.create()` não salvava campos ILPI
+   - **Solução**: Adicionados 6 campos ao `.create()`: positionCode, registrationType, registrationNumber, registrationState, isTechnicalManager, isNursingCoordinator
+   - **Arquivo**: `apps/backend/src/user-profiles/user-profiles.service.ts:72-78`
+
+3. **Erro de Validação UUID (birthDate):**
+   - **Problema**: Backend rejeitava `birthDate` com erro de tipo
+   - **Causa Raiz**: Frontend enviava `Date` object, backend esperava ISO string
+   - **Solução**: Enviar `birthDate.trim()` como string ISO diretamente
+   - **Arquivo**: `pages/users/UserCreatePage.tsx:127`
+
+4. **`newUser.id` undefined:**
+   - **Problema**: Usuário criado mas ID não acessível, causando falha na criação do perfil
+   - **Causa Raiz**: Backend retorna `{ user: {...}, temporaryPassword?: ... }` aninhado
+   - **Solução**: Extrair `response.data.user` na função `addUserToTenant()`
+   - **Arquivo**: `services/api.ts:251`
+
+5. **Mensagem Genérica de Limite do Plano:**
+   - **Problema**: Erro genérico sem orientação sobre próximos passos
+   - **Solução**: Toast contextual com descrição e CTA "Ver Planos" para WhatsApp
+   - **Arquivo**: `pages/users/UserCreatePage.tsx:142-153`
+
+### 📝 Arquitetura
+
+**Padrões de Design Aplicados:**
+
+- **Progressive Disclosure**: Seção de Registro Profissional só aparece se cargo selecionado
+- **Defense in Depth**: Validações no frontend (UX) + backend (segurança)
+- **Smart Defaults**: Role auto-sugerida reduz erros de configuração
+- **Guided UX**: Alertas coloridos orientam usuário nas melhores práticas
+- **Separation of Concerns**: Lógica em utils/, componentes reutilizáveis, serviços isolados
+
+**Fluxo de Criação de Usuário:**
+
+1. Admin preenche dados básicos (nome, email, CPF, senha temporária)
+2. Seleciona cargo ILPI + flags especiais (RT, Coordenador)
+3. Sistema auto-sugere role apropriada (pode sobrescrever se permitido)
+4. Preenche registro profissional (COREN, CRM, etc.) se aplicável
+5. Adiciona dados administrativos opcionais (departamento, telefone, nascimento)
+6. Backend cria `User` + `UserProfile` em operações sequenciais
+7. Email de convite enviado (opcional)
+
+---
+
+## [2025-12-23] - Acesso Público aos POPs Publicados 📋
+
+### 📝 Alterado
+
+**POPs agora são acessíveis a todos os colaboradores (RDC 502/2021):**
+
+- **Backend - POPs Controller** (`pops/pops.controller.ts`):
+  - Removido `@RequirePermissions` de `GET /pops/published` (rota pública)
+  - Removido `@RequirePermissions` de `GET /pops/:id` (rota pública com validação)
+  - Removido `@RequirePermissions` de `GET /pops/categories` (rota pública)
+  - POPs publicados agora acessíveis a todos os usuários autenticados
+  - Anexos incluídos no response (fileUrl) - download público para POPs PUBLISHED
+
+- **Backend - POPs Service** (`pops/pops.service.ts`):
+  - Novo método `findOnePublic()`: valida acesso baseado em status
+  - POPs com `status=PUBLISHED`: acesso liberado para todos
+  - POPs com `status=DRAFT` ou `OBSOLETE`: bloqueados para usuários sem VIEW_POPS
+  - Usuários com `role=admin`: sempre têm acesso (bypass de validação)
+
+- **Permissões por Cargo** (`permissions/position-profiles.config.ts`):
+  - **ADMINISTRATOR**: agora tem VIEW_POPS, CREATE_POPS, UPDATE_POPS, DELETE_POPS
+    - Pode criar e gerenciar POPs administrativos/operacionais
+    - NÃO tem PUBLISH_POPS (apenas RT publica)
+  - **VIEW_POPS**: removido de BASE_PERMISSIONS.VIEWER (POPs publicados são públicos)
+  - Cargos com gestão de POPs mantidos: RT, Coordenador Enfermagem, Enfermeiro
+
+- **Documentação** (`docs/PERMISSIONS_GUIDE.md`):
+  - Nova seção: "Caso Especial: POPs (Procedimentos Operacionais Padrão)"
+  - Contexto regulatório (RDC 502/2021)
+  - Tabela de rotas públicas vs restritas
+  - Exemplos de implementação de segurança
+  - Distribuição de permissões por cargo
+  - Justificativa do modelo híbrido
+
+### 🔐 Segurança
+
+**Modelo Híbrido de Acesso:**
+- ✅ Rotas públicas: `GET /pops/published`, `GET /pops/:id` (PUBLISHED), `GET /pops/categories`
+- 🔒 Rotas restritas: templates, histórico, versionamento, criação/edição (VIEW_POPS+)
+- 🛡️ Validação no service bloqueia DRAFT para usuários comuns
+- 📜 Compliance RDC 502/2021: POPs acessíveis a toda equipe
+
+### ✅ Testes E2E
+
+- **Criado teste completo** (`test/e2e/pops-public-access.e2e-spec.ts`):
+  - 25 testes cobrindo todas as funcionalidades de acesso público
+  - ✅ 25/25 testes passando (100% de sucesso)
+  - Cobertura: rotas públicas, permissões, validação de status, gestão e publicação
+  - Validação de compliance RDC 502/2021
+
+**Nota sobre ADMINISTRATOR**: Por ter `role='admin'`, recebe bypass automático no backend para publicar POPs. Isso está alinhado com a hierarquia de permissões atual onde role='admin' tem acesso total.
+
+### 🎨 Frontend
+
+**Validação de Permissões na UI (Blocking de Publicação):**
+
+- **PopViewer** (`apps/frontend/src/pages/pops/PopViewer.tsx`):
+  - Adicionado hook `usePermissions()` para validação de PUBLISH_POPS
+  - **4 botões agora validam permissão** antes de renderizar:
+    - "Publicar" (DRAFT → PUBLISHED): apenas RT
+    - "Nova Versão" (criar versão de POP publicado): apenas RT
+    - "Marcar Obsoleto" (PUBLISHED → OBSOLETE): apenas RT
+    - "Marcar como Revisado" (atualizar lastReviewedAt): apenas RT
+  - Usuários sem PUBLISH_POPS (ADMINISTRATOR, CAREGIVER, etc.) **não veem os botões**
+  - Backend ainda permite se `role=admin` (defense in depth)
+
+- **PopEditor** (`apps/frontend/src/pages/pops/PopEditor.tsx`):
+  - Adicionado hook `usePermissions()` para validação de PUBLISH_POPS
+  - Botão "Publicar" **condicional**: apenas visível para usuários com PUBLISH_POPS
+  - Usuários sem permissão veem apenas "Salvar Rascunho"
+  - ADMINISTRATOR pode criar/editar POPs mas não vê opção de publicar na UI
+
+**Impacto UX:**
+
+- ✅ ADMINISTRATOR: Vê POPs publicados, cria/edita rascunhos, mas não vê botões de publicação
+- ✅ CAREGIVER: Vê apenas POPs publicados, interface clean sem opções de gestão
+- ✅ RT (Responsável Técnico): Vê todos os botões, controle total de workflow
+- 🛡️ **Defense in Depth**: Frontend bloqueia UI, backend valida permissões como última camada
+
+### 🐛 Correção
+
+**Bug corrigido: RT não conseguia visualizar POPs em DRAFT**
+
+- **Problema**: Método `findOnePublic()` verificava apenas `role='admin'`, bloqueando RT/gestores com `VIEW_POPS`
+- **Causa**: Query não buscava permissões do cargo (`positionCode` → `getPositionProfile()`)
+- **Solução** (`pops.service.ts` linhas 300-357):
+  - Adicionado import de `PermissionType` e `getPositionProfile()`
+  - Query agora busca `User.profile.positionCode` e `User.profile.customPermissions`
+  - Lógica completa: `role=admin` (bypass) → permissões do cargo → customizações (grants/revokes)
+  - RT/gestores com `VIEW_POPS` podem acessar POPs em DRAFT/OBSOLETE
+- **Teste**: ✅ 25/25 testes E2E passando (100%)
+
+---
+
 ## [2025-12-22] - Sistema de Contratos SaaS com Prova Jurídica 📜
 
 ### ✨ Adicionado

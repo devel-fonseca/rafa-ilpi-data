@@ -22,6 +22,7 @@ Documentação detalhada de cada módulo do sistema:
 | [Evoluções Clínicas](modules/clinical-notes.md) | ✅ | 1.1.0 | SOAP + Documentos Tiptap com PDF |
 | [Notificações](modules/notifications.md) | ✅ | 1.0.0 | Sistema completo com cron job automático |
 | [Permissões RBAC](modules/permissions.md) | ✅ | 1.0.0 | 45 permissões por cargo |
+| [Gestão de Usuários](modules/user-management.md) | ✅ | 2.0.0 | Criação inteligente com recomendação de roles e validações contextuais |
 | [Prescrições Médicas](modules/prescriptions.md) | ✅ | 1.0.0 | Gerenciamento de prescrições |
 | [Vacinação](modules/vaccinations.md) | ✅ | 1.0.0 | Registro com upload de comprovantes |
 | [Residentes](modules/residents.md) | ✅ | 1.0.0 | Cadastro completo com prontuário |
@@ -100,9 +101,9 @@ Documentação de arquitetura e infraestrutura:
 
 ### Módulos Implementados
 
-- ✅ **13 módulos** principais completamente funcionais
-- ✅ **25+ features** documentadas no CHANGELOG
-- ✅ **3.048 linhas** de histórico de implementação (agora organizado)
+- ✅ **14 módulos** principais completamente funcionais
+- ✅ **30+ features** documentadas no CHANGELOG
+- ✅ **3.200+ linhas** de histórico de implementação (agora organizado)
 - ✅ **50+ arquivos** de documentação técnica
 
 ### Stack Tecnológico

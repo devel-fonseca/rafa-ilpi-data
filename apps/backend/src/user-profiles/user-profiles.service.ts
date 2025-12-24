@@ -69,6 +69,13 @@ export class UserProfilesService {
             : null,
           notes: createUserProfileDto.notes,
           preferences: (createUserProfileDto.preferences || {}) as any,
+          // Campos ILPI
+          positionCode: createUserProfileDto.positionCode,
+          registrationType: createUserProfileDto.registrationType,
+          registrationNumber: createUserProfileDto.registrationNumber,
+          registrationState: createUserProfileDto.registrationState,
+          isTechnicalManager: createUserProfileDto.isTechnicalManager ?? false,
+          isNursingCoordinator: createUserProfileDto.isNursingCoordinator ?? false,
           createdBy,
         },
         include: {

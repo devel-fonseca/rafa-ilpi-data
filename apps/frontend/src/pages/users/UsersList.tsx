@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth.store";
 import { MaskedInput } from "@/components/form/MaskedInput";
 import { getMensagemValidacaoCPF } from "@/utils/validators";
@@ -93,6 +94,7 @@ import { PermissionsManager } from "@/components/users/PermissionsManager";
 import { getErrorMessage } from '@/utils/errorHandling'
 
 export default function UsersList() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const { toast } = useToast();
   const deleteUser = useDeleteUser();
@@ -463,7 +465,7 @@ export default function UsersList() {
             Gerencie usuários, cargos e permissões customizadas
           </p>
         </div>
-        <Button onClick={() => setAddUserModal(true)}>
+        <Button onClick={() => navigate('/dashboard/usuarios/new')}>
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Usuário
         </Button>
@@ -588,6 +590,7 @@ export default function UsersList() {
                           onClick={() => {
                             setEditFormData({
                               name: user?.name || "",
+                              cpf: user?.cpf || profile?.cpf || "",
                               positionCode: profile?.positionCode || "",
                               registrationType: profile?.registrationType || "",
                               registrationNumber:

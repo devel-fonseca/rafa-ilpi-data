@@ -246,7 +246,9 @@ export async function addUserToTenant(tenantId: string, data: {
   temporaryPassword?: string
 }) {
   const response = await api.post(`/tenants/${tenantId}/users`, data)
-  return response.data
+  // Backend retorna { user: {...}, temporaryPassword?: ... }
+  // Extraímos apenas o objeto user
+  return response.data.user
 }
 
 /**

@@ -43,6 +43,7 @@ import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalPro
 // User Profile & Management Pages
 import MyProfile from '@/pages/profile/MyProfile'
 import UsersList from '@/pages/users/UsersList'
+import UserCreatePage from '@/pages/users/UserCreatePage'
 
 // Notifications Pages
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
@@ -184,6 +185,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredRole="ADMIN">
             <UsersList />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'usuarios/new',
+        element: (
+          <ProtectedRoute requiredRole="ADMIN">
+            <UserCreatePage />
           </ProtectedRoute>
         ),
       },
