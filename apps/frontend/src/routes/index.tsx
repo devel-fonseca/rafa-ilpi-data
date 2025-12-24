@@ -9,6 +9,9 @@ import Register from '@/pages/auth/Register'
 import Welcome from '@/pages/auth/Welcome'
 import SessionExpired from '@/pages/auth/SessionExpired'
 
+// Public Pages
+import { PrivacyPolicyPage } from '@/pages/public/PrivacyPolicyPage'
+
 // Dashboard Pages
 import Dashboard from '@/pages/Dashboard'
 
@@ -92,6 +95,10 @@ export const router = createBrowserRouter([
   {
     path: '/session-expired',
     element: <SessionExpired />,
+  },
+  {
+    path: '/privacy-policy',
+    element: <PrivacyPolicyPage />,
   },
   {
     path: '/dashboard',
