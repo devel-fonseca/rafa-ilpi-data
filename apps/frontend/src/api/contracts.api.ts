@@ -180,3 +180,37 @@ export async function getNextVersion(planId?: string, isMajor = false): Promise<
   const response = await api.get(`/contracts/next-version?${params.toString()}`)
   return response.data.version
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PRIVACY POLICY ACCEPTANCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PrivacyPolicyAcceptance {
+  id: string
+  tenantId: string
+  userId: string
+  acceptedAt: string
+  ipAddress: string
+  userAgent: string
+  policyVersion: string
+  policyEffectiveDate: string
+  policyContent: string
+  lgpdIsDataController: boolean
+  lgpdHasLegalBasis: boolean
+  lgpdAcknowledgesResponsibility: boolean
+  user?: {
+    id: string
+    name: string
+    email: string
+  }
+}
+
+/**
+ * Busca aceite da Política de Privacidade de um tenant (SuperAdmin)
+ */
+export async function getTenantPrivacyPolicyAcceptance(
+  tenantId: string,
+): Promise<PrivacyPolicyAcceptance> {
+  const response = await api.get(`/superadmin/tenants/${tenantId}/privacy-policy-acceptance`)
+  return response.data
+}

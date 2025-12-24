@@ -19,6 +19,7 @@ import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
 import { SuspendTenantDialog } from '@/components/superadmin/SuspendTenantDialog'
 import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
 import { ContractAcceptanceModal } from '@/components/superadmin/ContractAcceptanceModal'
+import { PrivacyPolicyAcceptanceModal } from '@/components/superadmin/PrivacyPolicyAcceptanceModal'
 import {
   useTenant,
   useTenantStats,
@@ -28,7 +29,7 @@ import {
   useChangePlan,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
-import { useTenantContractAcceptance } from '@/hooks/useContracts'
+import { useTenantContractAcceptance, useTenantPrivacyPolicyAcceptance } from '@/hooks/useContracts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -66,12 +67,14 @@ export function TenantDetails() {
   const { toast } = useToast()
 
   const [contractModalOpen, setContractModalOpen] = useState(false)
+  const [privacyPolicyModalOpen, setPrivacyPolicyModalOpen] = useState(false)
 
   const { data: tenant, isLoading } = useTenant(id!)
   const { data: stats } = useTenantStats(id!)
   const { data: subscriptions } = useSubscriptionHistory(id!)
   const { data: invoicesData } = useTenantInvoices(id!)
   const { data: contractAcceptance } = useTenantContractAcceptance(id!)
+  const { data: privacyPolicyAcceptance } = useTenantPrivacyPolicyAcceptance(id!)
 
   const reactivateMutation = useReactivateTenant()
 
@@ -397,11 +400,74 @@ export function TenantDetails() {
         </Card>
       )}
 
+      {/* Política de Privacidade Aceita */}
+      {privacyPolicyAcceptance && (
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Política de Privacidade
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-400">Versão</TableHead>
+                  <TableHead className="text-slate-400">Data de Aceite</TableHead>
+                  <TableHead className="text-slate-400">Aceito por</TableHead>
+                  <TableHead className="text-slate-400">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="border-slate-200">
+                  <TableCell className="text-slate-900 font-medium">
+                    {privacyPolicyAcceptance.policyVersion}
+                  </TableCell>
+                  <TableCell className="text-slate-400">
+                    {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
+                    <span className="text-xs ml-2">
+                      {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-slate-400">
+                    <div>
+                      <p className="text-slate-900">{privacyPolicyAcceptance.user?.name || 'N/A'}</p>
+                      <p className="text-xs text-slate-500">{privacyPolicyAcceptance.user?.email || ''}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPrivacyPolicyModalOpen(true)}
+                      className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Modal de Detalhes do Contrato */}
       <ContractAcceptanceModal
         acceptance={contractAcceptance || null}
         open={contractModalOpen}
         onClose={() => setContractModalOpen(false)}
+      />
+
+      {/* Modal de Detalhes da Política de Privacidade */}
+      <PrivacyPolicyAcceptanceModal
+        acceptance={privacyPolicyAcceptance || null}
+        open={privacyPolicyModalOpen}
+        onClose={() => setPrivacyPolicyModalOpen(false)}
       />
 
       {/* Faturas */}

@@ -23,6 +23,7 @@ import { CreateContractDto } from '../contracts/dto/create-contract.dto'
 import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
 import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { PrismaService } from '../prisma/prisma.service'
 
 /**
  * SuperAdminController
@@ -53,6 +54,7 @@ export class SuperAdminController {
     private readonly analyticsService: PaymentAnalyticsService,
     private readonly alertsService: AlertsService,
     private readonly contractsService: ContractsService,
+    private readonly prismaService: PrismaService,
   ) {}
 
   /**
@@ -619,5 +621,27 @@ export class SuperAdminController {
   @Get('tenants/:id/contract-acceptance')
   async getTenantContractAcceptance(@Param('id') tenantId: string) {
     return this.contractsService.getTenantAcceptance(tenantId)
+  }
+
+  /**
+   * GET /superadmin/tenants/:id/privacy-policy-acceptance
+   * Busca aceite da Política de Privacidade de um tenant específico
+   */
+  @Get('tenants/:id/privacy-policy-acceptance')
+  async getTenantPrivacyPolicyAcceptance(@Param('id') tenantId: string) {
+    const acceptance = await this.prismaService.privacyPolicyAcceptance.findUnique({
+      where: { tenantId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return acceptance
   }
 }

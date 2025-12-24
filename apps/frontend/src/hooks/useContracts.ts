@@ -130,6 +130,17 @@ export function useTenantContractAcceptance(tenantId: string) {
 }
 
 /**
+ * Hook para buscar aceite da Política de Privacidade de um tenant
+ */
+export function useTenantPrivacyPolicyAcceptance(tenantId: string) {
+  return useQuery({
+    queryKey: ['tenants', tenantId, 'privacy-policy-acceptance'],
+    queryFn: () => contractsApi.getTenantPrivacyPolicyAcceptance(tenantId),
+    enabled: !!tenantId,
+  })
+}
+
+/**
  * Hook para buscar contrato ACTIVE (público)
  */
 export function useActiveContract(planId?: string) {

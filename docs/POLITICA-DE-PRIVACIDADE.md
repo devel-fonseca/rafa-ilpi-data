@@ -227,8 +227,8 @@ CNPJ: **63.409.303/0001-82**
 ---
 
 **Última atualização:** 24/12/2025 às 10:45 (Brasília)
-**Responsável pela atualização:** Emanuel (Dr. E.) - CEO Rafa Labs
-**Versão:** 2.2 - Alinhamento Contratual e Eliminação de SLAs Implícitos
+**Responsável pela atualização:** Emanuel Fonseca (Dr. E.) - CEO Rafa Labs
+**Versão:** 2.2 - Alinhamento Contratual
 
 ---
 
