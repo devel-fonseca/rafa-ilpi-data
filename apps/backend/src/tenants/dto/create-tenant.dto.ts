@@ -8,6 +8,7 @@ import {
   Matches,
   MaxLength,
   IsUUID,
+  IsBoolean,
 } from 'class-validator';
 import { IsCPF } from '../../common/validators/cpf.validator';
 
@@ -169,4 +170,38 @@ export class CreateTenantDto {
   @IsString()
   @IsNotEmpty()
   acceptanceToken: string;
+
+  // Declarações LGPD (Step 4)
+  @ApiProperty({
+    example: true,
+    description: 'Declaração de que a ILPI é Controladora de Dados',
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  lgpdIsDataController: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: 'Declaração de que possui base legal para tratamento de dados',
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  lgpdHasLegalBasis: boolean;
+
+  @ApiProperty({
+    example: true,
+    description: 'Reconhecimento das responsabilidades LGPD',
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  lgpdAcknowledgesResponsibility: boolean;
+
+  // Aceite da Política de Privacidade (Step 5)
+  @ApiProperty({
+    example: true,
+    description: 'Aceite da Política de Privacidade',
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  privacyPolicyAccepted: boolean;
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 @Injectable()
 export class PrivacyPolicyService {
@@ -8,17 +8,30 @@ export class PrivacyPolicyService {
    * Retorna a Política de Privacidade atual do arquivo Markdown
    */
   async getCurrentPolicy() {
-    const policyPath = join(
+    // Em desenvolvimento, usar caminho do source; em produção, do dist
+    // Como usamos Webpack, o arquivo precisa estar no src/assets
+    const policyPath = resolve(
       __dirname,
       '..',
-      '..',
-      '..',
-      '..',
-      'docs',
+      'assets',
+      'legal',
       'POLITICA-DE-PRIVACIDADE.md',
     );
 
-    const content = readFileSync(policyPath, 'utf8');
+    let content: string;
+    try {
+      content = readFileSync(policyPath, 'utf8');
+    } catch (error) {
+      // Fallback: tentar caminho do source em desenvolvimento
+      const devPath = resolve(
+        process.cwd(),
+        'src',
+        'assets',
+        'legal',
+        'POLITICA-DE-PRIVACIDADE.md',
+      );
+      content = readFileSync(devPath, 'utf8');
+    }
 
     // Extrair metadados do cabeçalho
     const versionMatch = content.match(/\*\*Versão:\*\* (.+)/);

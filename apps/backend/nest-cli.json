@@ -6,6 +6,12 @@
     "deleteOutDir": true,
     "webpack": true,
     "tsConfigPath": "tsconfig.json",
-    "typeCheck": false
+    "typeCheck": false,
+    "assets": [
+      {
+        "include": "assets/**/*",
+        "watchAssets": true
+      }
+    ]
   }
 }

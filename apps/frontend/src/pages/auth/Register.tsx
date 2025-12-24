@@ -23,6 +23,7 @@ import { cn } from '../../lib/utils'
 import { validarCPF } from '../../utils/validators'
 import { getClientIP } from '../../utils/client-info'
 import { featuresToArray } from '../../constants/features'
+import ReactMarkdown from 'react-markdown'
 
 interface Plan {
   id: string
@@ -48,6 +49,13 @@ export default function Register() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [currentContract, setCurrentContract] = useState<any>(null)
   const [loadingContract, setLoadingContract] = useState(false)
+  const [privacyPolicy, setPrivacyPolicy] = useState<any>(null)
+  const [loadingPrivacyPolicy, setLoadingPrivacyPolicy] = useState(false)
+
+  // Timers de leitura
+  const [privacyReadTime, setPrivacyReadTime] = useState(0)
+  const [contractReadTime, setContractReadTime] = useState(0)
+  const [readingStarted, setReadingStarted] = useState(false)
 
   const [formData, setFormData] = useState({
     // ILPI Data
@@ -75,7 +83,15 @@ export default function Register() {
     // Plan
     planId: '',
 
-    // Contract
+    // LGPD Declarations (Step 4)
+    lgpdIsDataController: false,
+    lgpdHasLegalBasis: false,
+    lgpdAcknowledgesResponsibility: false,
+
+    // Privacy Policy (Step 5)
+    privacyPolicyAccepted: false,
+
+    // Contract (Step 6)
     contractId: '',
     contractAccepted: false
   })
@@ -111,12 +127,54 @@ export default function Register() {
     }
   }
 
-  // Carregar contrato quando chegar no step 4
+  // Carregar Política de Privacidade quando chegar no step 5
   useEffect(() => {
-    if (currentStep === 4 && formData.planId && !currentContract) {
+    if (currentStep === 5 && !privacyPolicy) {
+      loadPrivacyPolicy()
+    }
+  }, [currentStep])
+
+  // Carregar contrato quando chegar no step 6 (antes era step 4)
+  useEffect(() => {
+    if (currentStep === 6 && formData.planId && !currentContract) {
       loadActiveContract()
     }
   }, [currentStep, formData.planId])
+
+  // Timer de leitura da Política de Privacidade (step 5)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (currentStep === 5 && readingStarted) {
+      interval = setInterval(() => {
+        setPrivacyReadTime(prev => prev + 1)
+      }, 1000)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [currentStep, readingStarted])
+
+  // Timer de leitura do Contrato (step 6)
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (currentStep === 6 && readingStarted) {
+      interval = setInterval(() => {
+        setContractReadTime(prev => prev + 1)
+      }, 1000)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [currentStep, readingStarted])
+
+  // Iniciar timer ao entrar nos steps 5 ou 6
+  useEffect(() => {
+    if (currentStep === 5 || currentStep === 6) {
+      setReadingStarted(true)
+    } else {
+      setReadingStarted(false)
+    }
+  }, [currentStep])
 
   const loadActiveContract = async () => {
     setLoadingContract(true)
@@ -167,6 +225,19 @@ export default function Register() {
       setErrors({ contract: 'Nenhum contrato disponível no momento. Entre em contato com o suporte.' })
     } finally {
       setLoadingContract(false)
+    }
+  }
+
+  const loadPrivacyPolicy = async () => {
+    setLoadingPrivacyPolicy(true)
+    try {
+      const response = await api.get('/privacy-policy')
+      setPrivacyPolicy(response.data)
+    } catch (err) {
+      console.error('Erro ao carregar política de privacidade:', err)
+      setErrors({ privacyPolicy: 'Não foi possível carregar a Política de Privacidade. Entre em contato com o suporte.' })
+    } finally {
+      setLoadingPrivacyPolicy(false)
     }
   }
 
@@ -232,7 +303,31 @@ export default function Register() {
         if (!formData.planId) newErrors.planId = 'Selecione um plano'
         break
 
-      case 4: // Contract
+      case 4: // LGPD Declarations
+        if (!formData.lgpdIsDataController) {
+          newErrors.lgpdIsDataController = 'Você deve confirmar que a ILPI é controladora dos dados'
+        }
+        if (!formData.lgpdHasLegalBasis) {
+          newErrors.lgpdHasLegalBasis = 'Você deve confirmar que possui base legal para tratamento de dados'
+        }
+        if (!formData.lgpdAcknowledgesResponsibility) {
+          newErrors.lgpdAcknowledgesResponsibility = 'Você deve reconhecer as responsabilidades LGPD'
+        }
+        break
+
+      case 5: // Privacy Policy
+        if (privacyReadTime < 30) {
+          newErrors.privacyPolicy = 'Você deve ler a Política de Privacidade por pelo menos 30 segundos antes de aceitar'
+        }
+        if (!formData.privacyPolicyAccepted) {
+          newErrors.privacyPolicyAccepted = 'Você deve aceitar a Política de Privacidade para continuar'
+        }
+        break
+
+      case 6: // Contract
+        if (contractReadTime < 60) {
+          newErrors.contract = 'Você deve ler o Contrato por pelo menos 60 segundos antes de aceitar'
+        }
         if (!formData.contractAccepted) {
           newErrors.contractAccepted = 'Você deve aceitar o contrato para continuar'
         }
@@ -245,12 +340,7 @@ export default function Register() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep === 3) {
-        // Step 3 → 4 (ir para contrato)
-        setCurrentStep(4)
-      } else {
-        setCurrentStep(currentStep + 1)
-      }
+      setCurrentStep(currentStep + 1)
     }
   }
 
@@ -857,14 +947,194 @@ export default function Register() {
     </div>
   )
 
-  // Step 4: Aceite do Contrato
+  // Step 4: Declarações LGPD
   const renderStep4 = () => (
     <div className="space-y-6">
       <Alert className="bg-blue-50 border-blue-200">
         <AlertDescription>
-          Leia atentamente o contrato de prestação de serviços antes de continuar.
+          <strong>Contexto Legal LGPD:</strong> Antes de prosseguir, é importante esclarecer os papéis e responsabilidades conforme a Lei Geral de Proteção de Dados (LGPD).
         </AlertDescription>
       </Alert>
+
+      <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+        <div className="space-y-4 text-sm">
+          <p className="font-medium text-blue-900">
+            <strong>Entenda os papéis LGPD:</strong>
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-blue-800">
+            <li><strong>ILPI (você)</strong> = <strong>Controladora de Dados:</strong> Define finalidades e toma decisões sobre tratamento de dados dos residentes</li>
+            <li><strong>Rafa Labs</strong> = <strong>Operadora de Dados:</strong> Apenas processa dados conforme suas instruções, fornecendo infraestrutura tecnológica</li>
+          </ul>
+        </div>
+      </Card>
+
+      <div className="space-y-4">
+        {/* Declaração 1 */}
+        <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border-2">
+          <Checkbox
+            id="lgpdIsDataController"
+            checked={formData.lgpdIsDataController}
+            onCheckedChange={(checked) =>
+              setFormData(prev => ({ ...prev, lgpdIsDataController: !!checked }))
+            }
+          />
+          <div className="flex-1">
+            <label htmlFor="lgpdIsDataController" className="text-sm font-medium cursor-pointer block">
+              Declaro que a ILPI é <strong>Controladora dos Dados Pessoais</strong> dos residentes
+            </label>
+            <p className="text-xs text-gray-600 mt-1">
+              A ILPI define as finalidades e é responsável pela coleta, uso e armazenamento dos dados de saúde e pessoais dos residentes.
+            </p>
+          </div>
+        </div>
+        {errors.lgpdIsDataController && (
+          <p className="text-sm text-red-500">{errors.lgpdIsDataController}</p>
+        )}
+
+        {/* Declaração 2 */}
+        <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border-2">
+          <Checkbox
+            id="lgpdHasLegalBasis"
+            checked={formData.lgpdHasLegalBasis}
+            onCheckedChange={(checked) =>
+              setFormData(prev => ({ ...prev, lgpdHasLegalBasis: !!checked }))
+            }
+          />
+          <div className="flex-1">
+            <label htmlFor="lgpdHasLegalBasis" className="text-sm font-medium cursor-pointer block">
+              Declaro que possuo <strong>base legal</strong> para tratamento de dados dos residentes
+            </label>
+            <p className="text-xs text-gray-600 mt-1">
+              A ILPI possui autorização legal (contrato de prestação de serviços com responsáveis legais, tutela, curatela ou consentimento) para coletar e tratar dados pessoais sensíveis de saúde.
+            </p>
+          </div>
+        </div>
+        {errors.lgpdHasLegalBasis && (
+          <p className="text-sm text-red-500">{errors.lgpdHasLegalBasis}</p>
+        )}
+
+        {/* Declaração 3 */}
+        <div className="flex items-start space-x-3 p-4 bg-white rounded-lg border-2">
+          <Checkbox
+            id="lgpdAcknowledgesResponsibility"
+            checked={formData.lgpdAcknowledgesResponsibility}
+            onCheckedChange={(checked) =>
+              setFormData(prev => ({ ...prev, lgpdAcknowledgesResponsibility: !!checked }))
+            }
+          />
+          <div className="flex-1">
+            <label htmlFor="lgpdAcknowledgesResponsibility" className="text-sm font-medium cursor-pointer block">
+              Reconheço as <strong>responsabilidades da ILPI</strong> como Controladora de Dados
+            </label>
+            <p className="text-xs text-gray-600 mt-1">
+              A ILPI é responsável por: obter consentimento dos titulares/responsáveis legais, garantir exatidão dos dados, comunicar incidentes à ANPD, atender solicitações de titulares (acesso, retificação, exclusão), e manter conformidade com LGPD, RDC 502/2021 ANVISA e CFM 1.821/2007.
+            </p>
+          </div>
+        </div>
+        {errors.lgpdAcknowledgesResponsibility && (
+          <p className="text-sm text-red-500">{errors.lgpdAcknowledgesResponsibility}</p>
+        )}
+      </div>
+    </div>
+  )
+
+  // Step 5: Política de Privacidade
+  const renderStep5 = () => (
+    <div className="space-y-6">
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertDescription>
+          Leia atentamente a Política de Privacidade antes de continuar. <strong>Tempo mínimo de leitura: 30 segundos.</strong>
+        </AlertDescription>
+      </Alert>
+
+      {/* Timer de leitura */}
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-300">
+        <span className="text-sm font-medium text-blue-900">
+          {privacyReadTime >= 30 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Política de Privacidade...'}
+        </span>
+        <span className={cn(
+          "text-lg font-bold",
+          privacyReadTime >= 30 ? "text-green-600" : "text-blue-600"
+        )}>
+          {privacyReadTime}s / 30s
+        </span>
+      </div>
+
+      {loadingPrivacyPolicy ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        </div>
+      ) : privacyPolicy ? (
+        <Card className="p-6 max-h-96 overflow-y-auto border-2">
+          <div className="prose prose-sm max-w-none">
+            <ReactMarkdown>{privacyPolicy.content}</ReactMarkdown>
+          </div>
+        </Card>
+      ) : null}
+
+      {errors.privacyPolicy && (
+        <Alert variant="destructive">
+          <AlertDescription>{errors.privacyPolicy}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-start space-x-2 p-4 bg-gray-50 rounded-lg">
+        <Checkbox
+          id="privacyPolicyAccepted"
+          checked={formData.privacyPolicyAccepted}
+          disabled={privacyReadTime < 30}
+          onCheckedChange={(checked) =>
+            setFormData(prev => ({ ...prev, privacyPolicyAccepted: !!checked }))
+          }
+        />
+        <label
+          htmlFor="privacyPolicyAccepted"
+          className={cn(
+            "text-sm leading-relaxed cursor-pointer",
+            privacyReadTime < 30 && "text-gray-400 cursor-not-allowed"
+          )}
+        >
+          Li e aceito a Política de Privacidade da plataforma RAFA ILPI
+        </label>
+      </div>
+      {errors.privacyPolicyAccepted && (
+        <p className="text-sm text-red-500">{errors.privacyPolicyAccepted}</p>
+      )}
+
+      <div className="text-center">
+        <a
+          href="/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 hover:text-blue-800 underline"
+        >
+          Abrir Política de Privacidade em nova aba
+        </a>
+      </div>
+    </div>
+  )
+
+  // Step 6: Aceite do Contrato (antes era Step 4)
+  const renderStep6 = () => (
+    <div className="space-y-6">
+      <Alert className="bg-blue-50 border-blue-200">
+        <AlertDescription>
+          Leia atentamente o contrato de prestação de serviços antes de continuar. <strong>Tempo mínimo de leitura: 60 segundos.</strong>
+        </AlertDescription>
+      </Alert>
+
+      {/* Timer de leitura */}
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-300">
+        <span className="text-sm font-medium text-blue-900">
+          {contractReadTime >= 60 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Contrato de Serviço...'}
+        </span>
+        <span className={cn(
+          "text-lg font-bold",
+          contractReadTime >= 60 ? "text-green-600" : "text-blue-600"
+        )}>
+          {contractReadTime}s / 60s
+        </span>
+      </div>
 
       {loadingContract ? (
         <div className="flex justify-center py-8">
@@ -886,11 +1156,18 @@ export default function Register() {
         <Checkbox
           id="contractAccepted"
           checked={formData.contractAccepted}
+          disabled={contractReadTime < 60}
           onCheckedChange={(checked) =>
             setFormData(prev => ({ ...prev, contractAccepted: !!checked }))
           }
         />
-        <label htmlFor="contractAccepted" className="text-sm leading-relaxed cursor-pointer">
+        <label
+          htmlFor="contractAccepted"
+          className={cn(
+            "text-sm leading-relaxed cursor-pointer",
+            contractReadTime < 60 && "text-gray-400 cursor-not-allowed"
+          )}
+        >
           Li e aceito os termos do contrato de prestação de serviços da plataforma RAFA ILPI
         </label>
       </div>
@@ -913,12 +1190,12 @@ export default function Register() {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mt-6">
-            <div className="flex items-center gap-3">
-              {[1, 2, 3, 4].map((step) => (
-                <div key={step} className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5, 6].map((step) => (
+                <div key={step} className="flex items-center gap-2">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium",
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
                       currentStep >= step
                         ? "bg-blue-600 text-white"
                         : "bg-gray-200 text-gray-500"
@@ -926,10 +1203,10 @@ export default function Register() {
                   >
                     {step}
                   </div>
-                  {step < 4 && (
+                  {step < 6 && (
                     <div
                       className={cn(
-                        "w-16 h-1",
+                        "w-8 h-1",
                         currentStep > step ? "bg-blue-600" : "bg-gray-200"
                       )}
                     />
@@ -943,7 +1220,9 @@ export default function Register() {
             {currentStep === 1 && "Dados da ILPI"}
             {currentStep === 2 && "Administrador"}
             {currentStep === 3 && "Escolha o Plano"}
-            {currentStep === 4 && "Aceite do Contrato"}
+            {currentStep === 4 && "Declarações LGPD"}
+            {currentStep === 5 && "Política de Privacidade"}
+            {currentStep === 6 && "Contrato de Serviço"}
           </div>
         </CardHeader>
 
@@ -953,6 +1232,8 @@ export default function Register() {
             {currentStep === 2 && renderStep2()}
             {currentStep === 3 && renderStep3()}
             {currentStep === 4 && renderStep4()}
+            {currentStep === 5 && renderStep5()}
+            {currentStep === 6 && renderStep6()}
 
             {error && (
               <Alert variant="destructive" className="mt-4">
@@ -979,7 +1260,7 @@ export default function Register() {
               </Link>
             )}
 
-            {currentStep < 4 ? (
+            {currentStep < 6 ? (
               <Button type="button" onClick={handleNext}>
                 Próximo
               </Button>
