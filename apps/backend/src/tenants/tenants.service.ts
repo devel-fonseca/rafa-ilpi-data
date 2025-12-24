@@ -10,6 +10,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { PrivacyPolicyService } from '../privacy-policy/privacy-policy.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
@@ -24,6 +25,7 @@ export class TenantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly privacyPolicyService: PrivacyPolicyService,
     private readonly emailService?: EmailService,
   ) {}
 
@@ -50,6 +52,10 @@ export class TenantsService {
       adminPassword,
       planId,
       acceptanceToken,
+      lgpdIsDataController,
+      lgpdHasLegalBasis,
+      lgpdAcknowledgesResponsibility,
+      privacyPolicyAccepted,
     } = createTenantDto;
 
     // Decodificar e validar token de aceite do contrato
@@ -61,6 +67,9 @@ export class TenantsService {
         'Token de aceite do contrato inválido ou expirado',
       );
     }
+
+    // Buscar Política de Privacidade atual para snapshot
+    const privacyPolicyData = await this.privacyPolicyService.getCurrentPolicy();
 
     // Validar se CNPJ já existe
     if (cnpj) {
@@ -169,6 +178,22 @@ export class TenantsService {
           },
         });
 
+        // 6. Registrar aceite da Política de Privacidade
+        const privacyPolicyAcceptance = await prisma.privacyPolicyAcceptance.create({
+          data: {
+            tenantId: tenant.id,
+            userId: user.id,
+            ipAddress: acceptanceData.ipAddress, // Mesmo IP do aceite do contrato
+            userAgent: acceptanceData.userAgent, // Mesmo User-Agent
+            policyVersion: privacyPolicyData.version,
+            policyEffectiveDate: privacyPolicyData.effectiveDate,
+            policyContent: privacyPolicyData.content, // Snapshot completo Markdown
+            lgpdIsDataController,
+            lgpdHasLegalBasis,
+            lgpdAcknowledgesResponsibility,
+          },
+        });
+
         return {
           tenant,
           subscription,
@@ -180,6 +205,7 @@ export class TenantsService {
           },
           userProfile,
           contractAcceptance,
+          privacyPolicyAcceptance,
         };
       });
 

@@ -464,6 +464,32 @@ model ContractAcceptance {
   @@map("contract_acceptances")
 }
 
+// Registros de Aceite da Política de Privacidade (Prova Jurídica LGPD)
+model PrivacyPolicyAcceptance {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId              String   @db.Uuid
+  acceptedAt          DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress           String   @db.VarChar(45)
+  userAgent           String
+  policyVersion       String   @db.VarChar(50) // ex: "2.2"
+  policyEffectiveDate String   @db.VarChar(50) // ex: "24/12/2025"
+  policyContent       String   @db.Text // Snapshot completo Markdown
+
+  // Declarações LGPD registradas no onboarding
+  lgpdIsDataController           Boolean @default(false)
+  lgpdHasLegalBasis              Boolean @default(false)
+  lgpdAcknowledgesResponsibility Boolean @default(false)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([acceptedAt])
+  @@map("privacy_policy_acceptances")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -568,6 +594,7 @@ model Tenant {
   usageMetrics              UsageMetrics[] // SuperAdmin - Métricas de uso
   systemAlerts              SystemAlert[] // SuperAdmin - Alertas
   contractAcceptance        ContractAcceptance?
+  privacyPolicyAcceptance   PrivacyPolicyAcceptance?
 
   @@map("tenants")
 }
@@ -701,10 +728,11 @@ model User {
   scheduledEventsCreated ResidentScheduledEvent[] @relation("ScheduledEventCreatedBy")
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
-  // Relações de contratos
-  createdContracts    ServiceContract[]    @relation("ContractCreator")
-  revokedContracts    ServiceContract[]    @relation("ContractRevoker")
-  contractAcceptances ContractAcceptance[]
+  // Relações de contratos e políticas
+  createdContracts         ServiceContract[]         @relation("ContractCreator")
+  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
+  contractAcceptances      ContractAcceptance[]
+  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
 
   @@unique([tenantId, email])
   @@index([createdBy])
