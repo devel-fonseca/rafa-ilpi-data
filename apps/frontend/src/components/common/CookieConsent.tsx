@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Cookie } from 'lucide-react'
+import { Cookie, ExternalLink } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
 
 /**
@@ -86,8 +86,18 @@ export function CookieConsent() {
               Ao continuar utilizando o sistema, você declara ciência do uso desses mecanismos essenciais.
             </p>
 
-            <p className="text-xs text-muted-foreground">
-              📄 Para mais informações, consulte a <strong>Política de Privacidade</strong>.
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              📄 Para mais informações, consulte a{' '}
+              <a
+                href="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold underline hover:text-primary inline-flex items-center gap-1"
+              >
+                Política de Privacidade
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              .
             </p>
           </div>
 
