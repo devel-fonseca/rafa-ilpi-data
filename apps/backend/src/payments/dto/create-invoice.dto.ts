@@ -58,4 +58,40 @@ export class CreateInvoiceDto {
   @IsOptional()
   @IsEnum(AsaasBillingType)
   billingType?: AsaasBillingType
+
+  @ApiProperty({
+    description: 'Valor original antes do desconto',
+    example: 399.9,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  originalAmount?: number
+
+  @ApiProperty({
+    description: 'Percentual de desconto aplicado (0-100)',
+    example: 10,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  discountPercent?: number
+
+  @ApiProperty({
+    description: 'Motivo do desconto aplicado',
+    example: 'Desconto anual do plano (10%)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  discountReason?: string
+
+  @ApiProperty({
+    description: 'Ciclo de cobrança (MONTHLY ou ANNUAL)',
+    example: 'MONTHLY',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  billingCycle?: string
 }

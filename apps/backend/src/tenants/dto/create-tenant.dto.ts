@@ -9,8 +9,20 @@ import {
   MaxLength,
   IsUUID,
   IsBoolean,
+  IsEnum,
 } from 'class-validator';
 import { IsCPF } from '../../common/validators/cpf.validator';
+
+export enum BillingCycle {
+  MONTHLY = 'MONTHLY',
+  ANNUAL = 'ANNUAL',
+}
+
+export enum PaymentMethod {
+  PIX = 'PIX',
+  BOLETO = 'BOLETO',
+  CREDIT_CARD = 'CREDIT_CARD',
+}
 
 export class CreateTenantDto {
   // Dados da ILPI
@@ -204,4 +216,27 @@ export class CreateTenantDto {
   @IsBoolean()
   @IsNotEmpty()
   privacyPolicyAccepted: boolean;
+
+  // Billing Preferences (Step 3 e Step 7)
+  @ApiProperty({
+    enum: BillingCycle,
+    example: BillingCycle.MONTHLY,
+    description: 'Ciclo de cobrança escolhido',
+  })
+  @IsEnum(BillingCycle, {
+    message: 'Ciclo de cobrança deve ser MONTHLY ou ANNUAL',
+  })
+  @IsNotEmpty()
+  billingCycle: BillingCycle;
+
+  @ApiProperty({
+    enum: PaymentMethod,
+    example: PaymentMethod.PIX,
+    description: 'Método de pagamento preferido',
+  })
+  @IsEnum(PaymentMethod, {
+    message: 'Método de pagamento deve ser PIX, BOLETO ou CREDIT_CARD',
+  })
+  @IsNotEmpty()
+  paymentMethod: PaymentMethod;
 }

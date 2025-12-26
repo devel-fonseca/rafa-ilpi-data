@@ -172,6 +172,8 @@ export function InvoicesList() {
                   <TableHead className="text-slate-400">Tenant</TableHead>
                   <TableHead className="text-slate-400">Status</TableHead>
                   <TableHead className="text-slate-400">Plano</TableHead>
+                  <TableHead className="text-slate-400">Ciclo</TableHead>
+                  <TableHead className="text-slate-400">Desconto</TableHead>
                   <TableHead className="text-slate-400 text-right">
                     Valor
                   </TableHead>
@@ -227,6 +229,24 @@ export function InvoicesList() {
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {invoice.subscription.plan.displayName}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.billingCycle === 'ANNUAL' ? (
+                          <Badge variant="default" className="bg-green-600">
+                            📅 Anual
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">📅 Mensal</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.discountPercent ? (
+                          <span className="text-green-600 font-medium">
+                            -{invoice.discountPercent}%
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right text-slate-900 font-medium">
                         R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

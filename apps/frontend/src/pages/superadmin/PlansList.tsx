@@ -44,6 +44,7 @@ export function PlansList() {
     setEditingPlan(plan)
     setFormData({
       price: plan.price ? parseFloat(plan.price) : undefined,
+      annualDiscountPercent: plan.annualDiscountPercent ? parseFloat(plan.annualDiscountPercent) : 0,
       maxUsers: plan.maxUsers,
       maxResidents: plan.maxResidents,
       displayName: plan.displayName,
@@ -252,6 +253,36 @@ export function PlansList() {
                           }
                           className="bg-white border-slate-200 text-slate-900"
                         />
+                      </div>
+
+                      {/* Desconto Anual */}
+                      <div className="space-y-2">
+                        <Label htmlFor="annualDiscountPercent" className="text-slate-600">
+                          Desconto Anual (%) 🎉
+                        </Label>
+                        <Input
+                          id="annualDiscountPercent"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={formData.annualDiscountPercent || 0}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              annualDiscountPercent: parseFloat(e.target.value) || 0
+                            })
+                          }
+                          className="bg-white border-slate-200 text-slate-900"
+                        />
+                        <p className="text-xs text-slate-500">
+                          Desconto percentual aplicado automaticamente a assinaturas anuais
+                        </p>
+                        {formData.annualDiscountPercent && formData.annualDiscountPercent > 0 && (
+                          <p className="text-xs text-blue-600 font-medium">
+                            💰 Economia de {formData.annualDiscountPercent}% para clientes anuais
+                          </p>
+                        )}
                       </div>
 
                       {/* Max Users */}

@@ -84,6 +84,7 @@ export class PlansAdminService {
     id: string,
     data: {
       price?: number
+      annualDiscountPercent?: number
       maxUsers?: number
       maxResidents?: number
       displayName?: string
@@ -95,6 +96,11 @@ export class PlansAdminService {
     // Validações
     if (data.price !== undefined && data.price < 0) {
       throw new BadRequestException('Preço não pode ser negativo')
+    }
+    if (data.annualDiscountPercent !== undefined) {
+      if (data.annualDiscountPercent < 0 || data.annualDiscountPercent > 100) {
+        throw new BadRequestException('Desconto anual deve estar entre 0 e 100%')
+      }
     }
     if (data.maxUsers !== undefined && data.maxUsers < 1) {
       throw new BadRequestException('maxUsers deve ser no mínimo 1')
@@ -111,6 +117,9 @@ export class PlansAdminService {
 
     if (data.price !== undefined) {
       updateData.price = new Prisma.Decimal(data.price)
+    }
+    if (data.annualDiscountPercent !== undefined) {
+      updateData.annualDiscountPercent = new Prisma.Decimal(data.annualDiscountPercent)
     }
     if (data.maxUsers !== undefined) {
       updateData.maxUsers = data.maxUsers

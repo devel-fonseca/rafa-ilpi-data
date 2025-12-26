@@ -19,6 +19,11 @@ export interface Invoice {
   subscriptionId: string
   invoiceNumber: string
   amount: number
+  originalAmount?: number
+  discountPercent?: number
+  discountReason?: string
+  billingCycle?: string
+  description?: string
   currency: string
   status: InvoiceStatus
   dueDate: string

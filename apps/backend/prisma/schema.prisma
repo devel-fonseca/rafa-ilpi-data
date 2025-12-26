@@ -494,20 +494,21 @@ model PrivacyPolicyAcceptance {
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
 model Plan {
-  id           String       @id @default(uuid()) @db.Uuid
-  name         String       @unique
-  displayName  String
-  type         PlanType
-  maxResidents Int
-  maxUsers     Int
-  price        Decimal?     @db.Decimal(10, 2)
-  trialDays    Int          @default(0)
-  isPopular    Boolean      @default(false)
-  isActive     Boolean      @default(true)
-  features     Json         @default("{}")
-  billingCycle BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
-  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  id                    String       @id @default(uuid()) @db.Uuid
+  name                  String       @unique
+  displayName           String
+  type                  PlanType
+  maxResidents          Int
+  maxUsers              Int
+  price                 Decimal?     @db.Decimal(10, 2)
+  annualDiscountPercent Decimal?     @db.Decimal(5, 2) @default(0) @map("annual_discount_percent") // Desconto para assinaturas anuais (0-100%)
+  trialDays             Int          @default(0)
+  isPopular             Boolean      @default(false)
+  isActive              Boolean      @default(true)
+  features              Json         @default("{}")
+  billingCycle          BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
+  createdAt             DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
 
   subscriptions Subscription[]
   contracts     ServiceContract[]
@@ -620,6 +621,10 @@ model Subscription {
   discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)
   discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
   customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
+
+  // Billing Preferences (Onboarding)
+  billingCycle           String? @db.VarChar(20) @map("billing_cycle") // MONTHLY | ANNUAL
+  preferredPaymentMethod String? @db.VarChar(50) @map("preferred_payment_method") // PIX | BOLETO | CREDIT_CARD
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -2906,6 +2911,11 @@ model Invoice {
   subscriptionId String        @db.Uuid
   invoiceNumber  String        @unique @db.VarChar(50) // INV-2024-0001
   amount         Decimal       @db.Decimal(10, 2)
+  originalAmount Decimal?      @db.Decimal(10, 2) @map("original_amount") // Valor antes do desconto
+  discountPercent Decimal?     @db.Decimal(5, 2) @map("discount_percent")  // Desconto aplicado (0-100%)
+  discountReason String?       @db.VarChar(255) @map("discount_reason")   // Motivo do desconto
+  billingCycle   String?       @db.VarChar(20) @map("billing_cycle")    // MONTHLY | ANNUAL
+  description    String?       @db.Text           // Descrição da fatura
   currency       String        @default("BRL") @db.VarChar(3)
   status         InvoiceStatus
   dueDate        DateTime      @db.Timestamptz(3)

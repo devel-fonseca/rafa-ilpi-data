@@ -70,8 +70,30 @@ export class InvoiceGenerationJob {
             continue
           }
 
-          // Calcular valor baseado no ciclo de cobrança
-          let amount = subscription.plan.price?.toNumber() || 0
+          // Calcular valor com prioridade: customPrice > discountPercent > plan.price
+          const basePrice = subscription.plan.price?.toNumber() || 0
+          let amount: number
+          let originalAmount: number | null = null
+          let discountPercent: number | null = null
+          let discountReason: string | null = null
+
+          // Prioridade 1: Preço customizado
+          if (subscription.customPrice) {
+            amount = subscription.customPrice.toNumber()
+            originalAmount = basePrice
+            discountReason = subscription.discountReason || 'Preço customizado'
+          }
+          // Prioridade 2: Desconto percentual da subscription
+          else if (subscription.discountPercent) {
+            discountPercent = subscription.discountPercent.toNumber()
+            originalAmount = basePrice
+            amount = basePrice * (1 - discountPercent / 100)
+            discountReason = subscription.discountReason || `Desconto de ${discountPercent}%`
+          }
+          // Prioridade 3: Preço do plano
+          else {
+            amount = basePrice
+          }
 
           // Se o plano for anual, cobrar apenas se for o mês de aniversário da subscription
           if (subscription.plan.billingCycle === 'ANNUAL') {
@@ -85,15 +107,25 @@ export class InvoiceGenerationJob {
               continue
             }
 
-            // Para planos anuais, multiplicar por 12 (ou usar o preço já configurado)
-            // Assumindo que o price do plano anual já está correto
+            // Aplicar desconto anual do plano SE não houver desconto customizado
+            if (!subscription.customPrice && !subscription.discountPercent && subscription.plan.annualDiscountPercent) {
+              const annualDiscount = subscription.plan.annualDiscountPercent.toNumber()
+              originalAmount = basePrice
+              discountPercent = annualDiscount
+              amount = basePrice * (1 - annualDiscount / 100)
+              discountReason = `Desconto anual do plano (${annualDiscount}%)`
+            }
           }
 
-          // Gerar fatura
+          // Gerar fatura com informações de desconto
           await this.invoiceService.generateInvoice({
             tenantId: subscription.tenantId,
             subscriptionId: subscription.id,
             amount,
+            originalAmount: originalAmount ?? undefined,
+            discountPercent: discountPercent ?? undefined,
+            discountReason: discountReason ?? undefined,
+            billingCycle: subscription.plan.billingCycle ?? undefined,
             description: `Mensalidade ${subscription.plan.displayName} - ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`,
             mode: InvoiceCreationMode.AUTOMATIC,
           })

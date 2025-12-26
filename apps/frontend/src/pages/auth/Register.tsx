@@ -30,6 +30,7 @@ interface Plan {
   name: string
   displayName: string
   price: string | null  // Prisma retorna Decimal como string no JSON
+  annualDiscountPercent?: string | null  // Prisma retorna Decimal como string
   maxUsers: number
   maxResidents: number
   features: Record<string, boolean>
@@ -80,8 +81,10 @@ export default function Register() {
     adminPassword: '',
     adminPasswordConfirm: '',
 
-    // Plan
+    // Plan & Billing
     planId: '',
+    billingCycle: 'MONTHLY' as 'MONTHLY' | 'ANNUAL',
+    paymentMethod: '' as '' | 'PIX' | 'BOLETO' | 'CREDIT_CARD',
 
     // LGPD Declarations (Step 4)
     lgpdIsDataController: false,
@@ -330,6 +333,12 @@ export default function Register() {
         }
         if (!formData.contractAccepted) {
           newErrors.contractAccepted = 'Você deve aceitar o contrato para continuar'
+        }
+        break
+
+      case 7: // Payment Method
+        if (!formData.paymentMethod) {
+          newErrors.paymentMethod = 'Selecione um método de pagamento'
         }
         break
     }
@@ -944,6 +953,82 @@ export default function Register() {
       )}
 
       {errors.planId && <p className="text-sm text-red-500">{errors.planId}</p>}
+
+      {/* Seção: Ciclo de Cobrança (aparece após selecionar plano) */}
+      {formData.planId && (() => {
+        const selectedPlan = plans.find(p => p.id === formData.planId)
+        if (!selectedPlan || !selectedPlan.price || Number(selectedPlan.price) === 0) return null
+
+        const monthlyPrice = Number(selectedPlan.price)
+        const annualDiscount = selectedPlan.annualDiscountPercent ? Number(selectedPlan.annualDiscountPercent) : 0
+        const annualPriceMonthly = monthlyPrice * 12
+        const annualPriceWithDiscount = annualPriceMonthly * (1 - annualDiscount / 100)
+        const savings = annualPriceMonthly - annualPriceWithDiscount
+
+        return (
+          <div className="mt-6 space-y-3 pt-6 border-t border-gray-200">
+            <Label className="text-base font-semibold">Ciclo de Cobrança</Label>
+            <RadioGroup
+              value={formData.billingCycle}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, billingCycle: value as 'MONTHLY' | 'ANNUAL' }))}
+            >
+              {/* Opção Mensal */}
+              <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                <RadioGroupItem value="MONTHLY" id="monthly" />
+                <Label htmlFor="monthly" className="flex-1 cursor-pointer">
+                  <div>
+                    <p className="font-medium">💳 Mensal</p>
+                    <p className="text-sm text-gray-600">
+                      R$ {monthlyPrice.toFixed(2)}/mês
+                    </p>
+                  </div>
+                </Label>
+              </div>
+
+              {/* Opção Anual (se houver desconto configurado) */}
+              {annualDiscount > 0 ? (
+                <div className="flex items-center space-x-2 border-2 border-green-500 rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer">
+                  <RadioGroupItem value="ANNUAL" id="annual" />
+                  <Label htmlFor="annual" className="flex-1 cursor-pointer">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">🎉 Anual</p>
+                        <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                          Economize {annualDiscount}%
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        R$ {annualPriceWithDiscount.toFixed(2)}/ano
+                        <span className="ml-2 line-through text-gray-400">
+                          R$ {annualPriceMonthly.toFixed(2)}
+                        </span>
+                      </p>
+                      <p className="text-xs text-green-700 font-medium mt-1">
+                        💰 Você economiza R$ {savings.toFixed(2)} por ano
+                      </p>
+                    </div>
+                  </Label>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <RadioGroupItem value="ANNUAL" id="annual" />
+                  <Label htmlFor="annual" className="flex-1 cursor-pointer">
+                    <div>
+                      <p className="font-medium">📅 Anual</p>
+                      <p className="text-sm text-gray-600">
+                        R$ {annualPriceMonthly.toFixed(2)}/ano
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Pagamento único anual
+                      </p>
+                    </div>
+                  </Label>
+                </div>
+              )}
+            </RadioGroup>
+          </div>
+        )
+      })()}
     </div>
   )
 
@@ -1177,6 +1262,124 @@ export default function Register() {
     </div>
   )
 
+  // Step 7: Seleção de Método de Pagamento
+  const renderStep7 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-slate-900">💳 Dados de Cobrança</h2>
+        <p className="text-slate-600 mt-2">
+          Complete as informações para finalizar seu cadastro
+        </p>
+      </div>
+
+      {/* Seção 1: Dados da ILPI (resumo readonly) */}
+      <Card className="p-4 bg-blue-50 border-blue-200">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-blue-900 mb-2">
+              📋 Dados de Cobrança (ILPI)
+            </p>
+            <div className="space-y-1 text-sm text-blue-800">
+              <p><strong>Nome:</strong> {formData.name}</p>
+              <p><strong>CNPJ:</strong> {formData.cnpj}</p>
+              <p><strong>Email:</strong> {formData.email}</p>
+              <p><strong>Telefone:</strong> {formData.phone}</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentStep(1)}
+            className="text-blue-600 hover:text-blue-700"
+          >
+            ✏️ Editar
+          </Button>
+        </div>
+      </Card>
+
+      {/* Seção 2: Método de Pagamento */}
+      <div className="space-y-3">
+        <Label className="text-base font-semibold">Escolha o Método de Pagamento Preferido</Label>
+        <p className="text-xs text-gray-600">
+          Você poderá alterar esta preferência posteriormente no painel de configurações.
+        </p>
+
+        <RadioGroup
+          value={formData.paymentMethod}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'PIX' | 'BOLETO' | 'CREDIT_CARD' }))}
+        >
+          {/* PIX */}
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+            <RadioGroupItem value="PIX" id="pix" />
+            <Label htmlFor="pix" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">💰</span>
+                </div>
+                <div>
+                  <p className="font-medium">PIX</p>
+                  <p className="text-sm text-gray-600">
+                    Confirmação instantânea
+                  </p>
+                </div>
+              </div>
+            </Label>
+          </div>
+
+          {/* Boleto */}
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+            <RadioGroupItem value="BOLETO" id="boleto" />
+            <Label htmlFor="boleto" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">🧾</span>
+                </div>
+                <div>
+                  <p className="font-medium">Boleto Bancário</p>
+                  <p className="text-sm text-gray-600">
+                    Confirmação em até 3 dias úteis
+                  </p>
+                </div>
+              </div>
+            </Label>
+          </div>
+
+          {/* Cartão de Crédito */}
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+            <RadioGroupItem value="CREDIT_CARD" id="credit-card" />
+            <Label htmlFor="credit-card" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">💳</span>
+                </div>
+                <div>
+                  <p className="font-medium">Cartão de Crédito</p>
+                  <p className="text-sm text-gray-600">
+                    Renovação automática mensal
+                  </p>
+                </div>
+              </div>
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {/* Disclaimer LGPD sobre Asaas */}
+      <Card className="p-4 bg-gray-50 border-gray-200">
+        <p className="text-xs text-gray-600">
+          🔒 <strong>Segurança e Privacidade:</strong> Os dados de pagamento são processados
+          exclusivamente pela <strong>Asaas Gestão Financeira</strong>, operadora de pagamentos
+          certificada PCI-DSS nível 1. A Rafa Labs não armazena dados de cartão de crédito.
+        </p>
+      </Card>
+
+      {/* Validação */}
+      {errors.paymentMethod && (
+        <p className="text-sm text-red-500">{errors.paymentMethod}</p>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-2xl">
@@ -1191,7 +1394,7 @@ export default function Register() {
           {/* Progress Steps */}
           <div className="flex items-center justify-center mt-6">
             <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {[1, 2, 3, 4, 5, 6, 7].map((step) => (
                 <div key={step} className="flex items-center gap-2">
                   <div
                     className={cn(
@@ -1203,7 +1406,7 @@ export default function Register() {
                   >
                     {step}
                   </div>
-                  {step < 6 && (
+                  {step < 7 && (
                     <div
                       className={cn(
                         "w-8 h-1",
@@ -1223,6 +1426,7 @@ export default function Register() {
             {currentStep === 4 && "Declarações LGPD"}
             {currentStep === 5 && "Política de Privacidade"}
             {currentStep === 6 && "Contrato de Serviço"}
+            {currentStep === 7 && "Dados de Cobrança"}
           </div>
         </CardHeader>
 
@@ -1234,6 +1438,7 @@ export default function Register() {
             {currentStep === 4 && renderStep4()}
             {currentStep === 5 && renderStep5()}
             {currentStep === 6 && renderStep6()}
+            {currentStep === 7 && renderStep7()}
 
             {error && (
               <Alert variant="destructive" className="mt-4">
@@ -1260,7 +1465,7 @@ export default function Register() {
               </Link>
             )}
 
-            {currentStep < 6 ? (
+            {currentStep < 7 ? (
               <Button type="button" onClick={handleNext}>
                 Próximo
               </Button>

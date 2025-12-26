@@ -11,12 +11,13 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { PrivacyPolicyService } from '../privacy-policy/privacy-policy.service';
+import { AsaasService } from '../payments/services/asaas.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
-import { TenantStatus } from '@prisma/client';
+import { TenantStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class TenantsService {
@@ -26,6 +27,7 @@ export class TenantsService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly privacyPolicyService: PrivacyPolicyService,
+    private readonly asaasService: AsaasService,
     private readonly emailService?: EmailService,
   ) {}
 
@@ -56,6 +58,8 @@ export class TenantsService {
       lgpdHasLegalBasis,
       lgpdAcknowledgesResponsibility,
       privacyPolicyAccepted,
+      billingCycle,
+      paymentMethod,
     } = createTenantDto;
 
     // Decodificar e validar token de aceite do contrato
@@ -101,6 +105,45 @@ export class TenantsService {
     // Gerar nome do schema
     const schemaName = `tenant_${slug.replace(/-/g, '_')}_${randomBytes(3).toString('hex')}`;
 
+    // ==============================================================================
+    // PASSO 1: Criar customer no Asaas ANTES da transação
+    // ==============================================================================
+    let asaasCustomerId: string | null = null;
+    try {
+      this.logger.log(`Criando customer no Asaas para: ${email}`);
+
+      const asaasCustomer = await this.asaasService.createCustomer({
+        name,
+        cpfCnpj: cnpj?.replace(/\D/g, '') || '',
+        email,
+        phone: phone?.replace(/\D/g, ''),
+        address: addressStreet,
+        addressNumber,
+        complement: addressComplement,
+        province: addressDistrict,
+        city: addressCity,
+        state: addressState,
+        postalCode: addressZipCode?.replace(/\D/g, ''),
+      });
+
+      asaasCustomerId = asaasCustomer.id;
+      this.logger.log(`✓ Customer Asaas criado: ${asaasCustomerId}`);
+    } catch (error) {
+      this.logger.error('Falha ao criar customer no Asaas:', error.message);
+      throw new InternalServerErrorException(
+        'Gateway de pagamento temporariamente indisponível. Tente novamente em instantes.',
+      );
+    }
+
+    // ==============================================================================
+    // PASSO 2: Calcular desconto se ANNUAL
+    // ==============================================================================
+    let discountPercent: number | null = null;
+    if (billingCycle === 'ANNUAL' && plan.annualDiscountPercent) {
+      discountPercent = Number(plan.annualDiscountPercent);
+      this.logger.log(`Aplicando desconto anual de ${discountPercent}% ao plano ${plan.displayName}`);
+    }
+
     try {
       // Iniciar transação para criar tenant, subscription e usuário
       const result = await this.prisma.$transaction(async (prisma) => {
@@ -121,6 +164,7 @@ export class TenantsService {
             addressZipCode,
             schemaName,
             status: TenantStatus.TRIAL, // Iniciar com trial
+            asaasCustomerId, // ID do customer criado no Asaas
           },
         });
 
@@ -129,11 +173,15 @@ export class TenantsService {
           data: {
             tenantId: tenant.id,
             planId,
-            status: 'TRIAL',
+            status: 'trialing',
             startDate: new Date(),
             trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias de trial
             currentPeriodStart: new Date(),
             currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            // Novos campos de billing
+            billingCycle,
+            preferredPaymentMethod: paymentMethod,
+            discountPercent: discountPercent ? new Prisma.Decimal(discountPercent) : null,
           },
         });
 

@@ -111,13 +111,18 @@ export class InvoiceService {
       externalReference: invoiceNumber,
     })
 
-    // Criar invoice no banco
+    // Criar invoice no banco com informações de desconto
     const invoice = await this.prisma.invoice.create({
       data: {
         tenantId: dto.tenantId,
         subscriptionId: dto.subscriptionId,
         invoiceNumber,
         amount: new Prisma.Decimal(dto.amount),
+        originalAmount: dto.originalAmount ? new Prisma.Decimal(dto.originalAmount) : null,
+        discountPercent: dto.discountPercent ? new Prisma.Decimal(dto.discountPercent) : null,
+        discountReason: dto.discountReason || null,
+        billingCycle: dto.billingCycle || null,
+        description: dto.description || null,
         currency: 'BRL',
         status: this.mapAsaasStatusToInvoiceStatus(payment.status),
         dueDate,

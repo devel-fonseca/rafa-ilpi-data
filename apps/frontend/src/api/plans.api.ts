@@ -21,6 +21,7 @@ export interface Plan {
   maxResidents: number
   maxUsers: number
   price: string | null // Decimal as string
+  annualDiscountPercent?: string | null // Decimal as string (0-100)
   trialDays: number
   isPopular: boolean
   isActive: boolean
@@ -34,6 +35,7 @@ export interface Plan {
 
 export interface UpdatePlanDto {
   price?: number
+  annualDiscountPercent?: number // 0-100
   maxUsers?: number
   maxResidents?: number
   displayName?: string

@@ -213,6 +213,81 @@ export function InvoiceDetails() {
         </Card>
       </div>
 
+      {/* Billing & Discount Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Billing Cycle Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-slate-500">
+              Ciclo de Cobrança
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              {invoice.billingCycle === 'ANNUAL' ? (
+                <>
+                  <Calendar className="h-5 w-5 text-green-600" />
+                  <span className="text-lg font-semibold">Anual</span>
+                  <Badge variant="default" className="ml-2 bg-green-600">
+                    12 meses
+                  </Badge>
+                </>
+              ) : (
+                <>
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <span className="text-lg font-semibold">Mensal</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Discount Card (conditional) */}
+        {(invoice.discountPercent || invoice.originalAmount) && (
+          <Card className="bg-green-50 border-green-200">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium text-green-900">
+                💰 Desconto Aplicado
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {invoice.originalAmount && (
+                <div>
+                  <p className="text-xs text-green-700">Valor Original:</p>
+                  <p className="text-lg font-semibold line-through text-slate-500">
+                    R$ {Number(invoice.originalAmount).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2
+                    })}
+                  </p>
+                </div>
+              )}
+              {invoice.discountPercent && (
+                <div>
+                  <p className="text-xs text-green-700">Desconto:</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    -{invoice.discountPercent}%
+                  </p>
+                </div>
+              )}
+              {invoice.discountReason && (
+                <div>
+                  <p className="text-xs text-green-700">Motivo:</p>
+                  <p className="text-sm text-green-900">{invoice.discountReason}</p>
+                </div>
+              )}
+              <div className="pt-2 border-t border-green-300">
+                <p className="text-xs text-green-700">Valor Final:</p>
+                <p className="text-2xl font-bold text-green-900">
+                  R$ {Number(invoice.amount).toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2
+                  })}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* Tenant Info */}
       <Card className="bg-white border-slate-200">
         <CardHeader>
