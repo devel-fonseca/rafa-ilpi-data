@@ -58,21 +58,36 @@ export function CookieConsent() {
           </div>
 
           {/* Conteúdo */}
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-3">
             <h3 className="font-semibold text-lg">Aviso sobre Cookies e Armazenamento Local</h3>
+
             <p className="text-sm text-muted-foreground">
-              Este sistema utiliza <strong>cookies essenciais</strong> e <strong>armazenamento local</strong> para:
+              Este sistema utiliza <strong>cookies e armazenamento local estritamente necessários</strong> para o seu funcionamento, incluindo:
             </p>
+
             <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1 ml-2">
-              <li>Manter sua sessão de login ativa e segura (token JWT)</li>
-              <li>Armazenar suas preferências de interface</li>
-              <li>Melhorar a performance com cache de dados</li>
-              <li>Garantir o funcionamento correto do sistema</li>
+              <li>Manter sua sessão de login ativa e segura</li>
+              <li>Armazenar preferências básicas de interface</li>
+              <li>Garantir a performance e estabilidade do sistema</li>
+              <li>Assegurar o correto funcionamento das funcionalidades essenciais</li>
             </ul>
-            <p className="text-xs text-muted-foreground mt-2">
-              <strong>LGPD:</strong> Não coletamos dados pessoais através de cookies de terceiros.
-              Os dados são armazenados apenas localmente no seu navegador.
-              <strong> Ao continuar usando o sistema, você concorda com o uso desses recursos essenciais.</strong>
+
+            <div className="text-sm text-muted-foreground space-y-2 mt-3 pt-2 border-t">
+              <p className="font-semibold">🔒 Privacidade e LGPD</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Não utilizamos cookies de terceiros</li>
+                <li>Não realizamos rastreamento para fins de marketing ou publicidade</li>
+                <li>Os dados são armazenados exclusivamente no seu navegador</li>
+                <li>O uso desses recursos é fundamentado na <strong>execução do contrato</strong> e na <strong>segurança do sistema</strong>, nos termos da LGPD</li>
+              </ul>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-3">
+              Ao continuar utilizando o sistema, você declara ciência do uso desses mecanismos essenciais.
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              📄 Para mais informações, consulte a <strong>Política de Privacidade</strong>.
             </p>
           </div>
 
