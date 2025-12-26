@@ -1,13 +1,24 @@
-import { TrendingUp, Users, DollarSign, Target } from 'lucide-react'
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Target,
+  AlertTriangle,
+  ArrowRight,
+} from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { MetricCard } from '@/components/superadmin/MetricCard'
 import { RevenueChart } from '@/components/superadmin/RevenueChart'
 import {
   useOverviewMetrics,
   useTrendsMetrics,
 } from '@/hooks/useSuperAdminMetrics'
+import { useOverdueMetrics } from '@/hooks/useOverdueMetrics'
 import { Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 /**
  * SuperAdminDashboard
@@ -32,6 +43,7 @@ export function SuperAdminDashboard() {
     isLoading: isLoadingTrends,
     error: errorTrends,
   } = useTrendsMetrics(12)
+  const { data: overdueMetrics } = useOverdueMetrics()
 
   // Loading state
   if (isLoadingOverview || isLoadingTrends) {
@@ -100,6 +112,73 @@ export function SuperAdminDashboard() {
         />
       </div>
 
+      {/* Overdue Alert Card */}
+      {overdueMetrics && overdueMetrics.totalOverdueInvoices > 0 && (
+        <Link to="/superadmin/overdue" className="block">
+          <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 hover:border-red-300 transition-all">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <AlertTriangle className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-red-900">
+                        Atenção: Inadimplência Detectada
+                      </h3>
+                      <p className="text-sm text-red-700">
+                        Existem faturas vencidas que requerem ação
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4 mt-4">
+                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
+                      <p className="text-xs text-red-600 font-medium mb-1">
+                        VALOR EM ATRASO
+                      </p>
+                      <p className="text-2xl font-bold text-red-900">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(overdueMetrics.totalOverdueAmount)}
+                      </p>
+                    </div>
+
+                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
+                      <p className="text-xs text-red-600 font-medium mb-1">
+                        FATURAS VENCIDAS
+                      </p>
+                      <p className="text-2xl font-bold text-red-900">
+                        {overdueMetrics.totalOverdueInvoices}
+                      </p>
+                    </div>
+
+                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
+                      <p className="text-xs text-red-600 font-medium mb-1">
+                        TAXA DE INADIMPLÊNCIA
+                      </p>
+                      <p className="text-2xl font-bold text-red-900">
+                        {overdueMetrics.overdueRate.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  variant="default"
+                  className="bg-red-600 hover:bg-red-700 text-white ml-4"
+                >
+                  Ver Dashboard
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
       {/* Revenue Chart */}
       <div className="grid gap-4">
         <RevenueChart
@@ -116,15 +195,21 @@ export function SuperAdminDashboard() {
         </h3>
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-bold text-slate-900">
-            {new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }).format(overview?.ltv || 0)}
+            {overview?.ltv !== null && overview?.ltv !== undefined
+              ? new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(overview.ltv)
+              : 'N/A'}
           </span>
-          <span className="text-sm text-slate-400">por cliente</span>
+          {overview?.ltv !== null && overview?.ltv !== undefined && (
+            <span className="text-sm text-slate-400">por cliente</span>
+          )}
         </div>
         <p className="text-xs text-slate-500 mt-2">
-          LTV = MRR médio / (Churn Rate / 100)
+          {overview?.ltv !== null && overview?.ltv !== undefined
+            ? 'LTV = MRR médio / (Churn Rate / 100)'
+            : 'Dados insuficientes (sem churn registrado)'}
         </p>
       </div>
     </div>

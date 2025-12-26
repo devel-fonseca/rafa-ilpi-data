@@ -52,7 +52,9 @@ export class TenantAdminService {
       where.subscriptions = {
         some: {
           planId,
-          status: 'active',
+          status: {
+            in: ['ACTIVE', 'active', 'TRIAL', 'trialing']
+          },
         },
       }
     }
@@ -66,7 +68,11 @@ export class TenantAdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           subscriptions: {
-            where: { status: 'active' },
+            where: {
+              status: {
+                in: ['ACTIVE', 'active', 'TRIAL', 'trialing']
+              }
+            },
             include: { plan: true },
             orderBy: { createdAt: 'desc' },
             take: 1,

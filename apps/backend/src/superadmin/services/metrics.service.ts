@@ -21,41 +21,53 @@ export class MetricsService {
    * Retorna visão geral das métricas principais
    */
   async getOverview() {
-    // Buscar todos os tenants e suas subscriptions ativas
-    const tenants = await this.prisma.tenant.findMany({
+    // Buscar todos os tenants e suas subscriptions ativas (incluindo TRIAL)
+    const subscriptions = await this.prisma.subscription.findMany({
       where: {
-        deletedAt: null,
+        status: {
+          in: ['ACTIVE', 'active', 'TRIAL', 'trialing'],
+        },
       },
       include: {
-        subscriptions: {
-          where: {
-            status: 'active',
-          },
-          include: {
-            plan: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1, // Apenas a subscription mais recente
-        },
+        plan: true,
+        tenant: true,
       },
     })
 
-    const totalTenants = tenants.length
-    const activeTenants = tenants.filter(
-      (t) => t.status === 'ACTIVE' && t.subscriptions.length > 0,
+    const totalTenants = await this.prisma.tenant.count({
+      where: { deletedAt: null },
+    })
+
+    const activeTenants = subscriptions.filter(
+      (s) => s.tenant.status === 'ACTIVE' || s.tenant.status === 'TRIAL',
     ).length
 
-    // Calcular MRR (soma dos preços dos planos ativos)
+    // Calcular MRR com lógica correta (customPrice, descontos, normalização anual)
     let mrr = 0
-    tenants.forEach((tenant) => {
-      if (tenant.subscriptions.length > 0) {
-        const subscription = tenant.subscriptions[0]
-        if (subscription.plan?.price) {
-          mrr += subscription.plan.price.toNumber()
-        }
+    subscriptions.forEach((subscription) => {
+      let monthlyValue = 0
+
+      // Preço base (customPrice ou plan.price)
+      const basePrice = subscription.customPrice
+        ? subscription.customPrice.toNumber()
+        : subscription.plan.price
+        ? subscription.plan.price.toNumber()
+        : 0
+
+      // Aplicar desconto
+      const discount = subscription.discountPercent
+        ? subscription.discountPercent.toNumber()
+        : 0
+      const priceWithDiscount = basePrice * (1 - discount / 100)
+
+      // Normalizar para mensal (se anual, divide por 12)
+      if (subscription.billing_cycle === 'ANNUAL') {
+        monthlyValue = priceWithDiscount / 12
+      } else {
+        monthlyValue = priceWithDiscount
       }
+
+      mrr += monthlyValue
     })
 
     // ARR = MRR × 12
@@ -66,7 +78,8 @@ export class MetricsService {
 
     // LTV = MRR médio / Churn Rate
     const avgMrr = activeTenants > 0 ? mrr / activeTenants : 0
-    const ltv = churn > 0 ? avgMrr / (churn / 100) : 0
+    // Se churn = 0, retornar null (dados insuficientes para calcular LTV)
+    const ltv = churn > 0 ? avgMrr / (churn / 100) : null
 
     return {
       totalTenants,
@@ -74,7 +87,7 @@ export class MetricsService {
       mrr: Math.round(mrr * 100) / 100, // Arredondar para 2 casas decimais
       arr: Math.round(arr * 100) / 100,
       churn: Math.round(churn * 100) / 100,
-      ltv: Math.round(ltv * 100) / 100,
+      ltv: ltv !== null ? Math.round(ltv * 100) / 100 : null,
     }
   }
 
@@ -178,68 +191,64 @@ export class MetricsService {
 
   /**
    * HELPER: Calcula MRR para um período específico
+   *
+   * Considera subscriptions que estavam ativas naquele período,
+   * incluindo customPrice, descontos e normalização de planos anuais.
    */
   private async calculateMrrForPeriod(
     startDate: Date,
     endDate?: Date,
   ): Promise<number> {
-    const whereClause: any = {
-      deletedAt: null,
-      subscriptions: {
-        some: {
-          status: 'active',
-          startDate: {
-            lte: endDate || new Date(),
-          },
-          OR: [
-            { endDate: null },
-            {
-              endDate: {
-                gte: startDate,
-              },
-            },
-          ],
-        },
-      },
-    }
+    const targetDate = endDate || new Date()
 
-    const tenants = await this.prisma.tenant.findMany({
-      where: whereClause,
-      include: {
-        subscriptions: {
-          where: {
-            status: 'active',
-            startDate: {
-              lte: endDate || new Date(),
-            },
-            OR: [
-              { endDate: null },
-              {
-                endDate: {
-                  gte: startDate,
-                },
-              },
-            ],
-          },
-          include: {
-            plan: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
+    // Buscar subscriptions que estavam ativas no período
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        status: {
+          in: ['ACTIVE', 'active', 'TRIAL', 'trialing'],
         },
+        startDate: {
+          lte: targetDate,
+        },
+        OR: [
+          { endDate: null },
+          {
+            endDate: {
+              gte: startDate,
+            },
+          },
+        ],
+      },
+      include: {
+        plan: true,
+        tenant: true,
       },
     })
 
     let mrr = 0
-    tenants.forEach((tenant) => {
-      if (tenant.subscriptions.length > 0) {
-        const subscription = tenant.subscriptions[0]
-        if (subscription.plan?.price) {
-          mrr += subscription.plan.price.toNumber()
-        }
+    subscriptions.forEach((subscription) => {
+      // Preço base (customPrice ou plan.price)
+      const basePrice = subscription.customPrice
+        ? subscription.customPrice.toNumber()
+        : subscription.plan.price
+        ? subscription.plan.price.toNumber()
+        : 0
+
+      // Aplicar desconto
+      const discount = subscription.discountPercent
+        ? subscription.discountPercent.toNumber()
+        : 0
+      const priceWithDiscount = basePrice * (1 - discount / 100)
+
+      // Normalizar para mensal (se anual, divide por 12)
+      let monthlyValue = 0
+      if (subscription.billing_cycle === 'ANNUAL') {
+        monthlyValue = priceWithDiscount / 12
+      } else {
+        monthlyValue = priceWithDiscount
       }
+
+      mrr += monthlyValue
     })
 
     return mrr

@@ -14,11 +14,13 @@ import { CancelSubscriptionDto } from './dto/cancel-subscription.dto'
 import { UpdatePlanDto } from './dto/update-plan.dto'
 import { ApplyDiscountDto } from './dto/apply-discount.dto'
 import { ApplyCustomPriceDto } from './dto/apply-custom-price.dto'
+import { SendReminderDto, SuspendTenantForNonPaymentDto, RenegotiateDto } from './dto/collections.dto'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
 import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
 import { AlertType, AlertSeverity, ContractStatus } from '@prisma/client'
 import { ContractsService } from '../contracts/contracts.service'
+import { CollectionsService } from './services/collections.service'
 import { CreateContractDto } from '../contracts/dto/create-contract.dto'
 import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
 import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
@@ -54,6 +56,7 @@ export class SuperAdminController {
     private readonly analyticsService: PaymentAnalyticsService,
     private readonly alertsService: AlertsService,
     private readonly contractsService: ContractsService,
+    private readonly collectionsService: CollectionsService,
     private readonly prismaService: PrismaService,
   ) {}
 
@@ -455,6 +458,83 @@ export class SuperAdminController {
     return this.analyticsService.getMrrByPaymentMethod()
   }
 
+  /**
+   * GET /superadmin/analytics/overdue/summary
+   * Métricas consolidadas de inadimplência
+   *
+   * Retorna:
+   * - Total de faturas vencidas (quantidade + valor)
+   * - Taxa de inadimplência (%)
+   * - Média de dias de atraso
+   * - Aging breakdown (0-30, 30-60, 60+ dias)
+   *
+   * Query params:
+   * - startDate: filtrar por data inicial (ISO 8601)
+   * - endDate: filtrar por data final (ISO 8601)
+   */
+  @Get('analytics/overdue/summary')
+  async getOverdueSummary(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const filters = {
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    }
+
+    return this.analyticsService.getOverdueMetrics(filters)
+  }
+
+  /**
+   * GET /superadmin/analytics/overdue/tenants
+   * Lista de tenants inadimplentes
+   *
+   * Retorna lista ordenada de tenants com faturas vencidas, incluindo:
+   * - Nome e email do tenant
+   * - Plano contratado
+   * - Quantidade de faturas vencidas
+   * - Valor total em atraso
+   * - Maior número de dias de atraso
+   * - Lista detalhada de cada fatura vencida
+   *
+   * Query params:
+   * - limit: número máximo de resultados (default: 100)
+   * - sortBy: ordenação - 'amount' (default), 'days', ou 'count'
+   */
+  @Get('analytics/overdue/tenants')
+  async getOverdueTenants(
+    @Query('limit') limit?: string,
+    @Query('sortBy') sortBy?: 'amount' | 'days' | 'count',
+  ) {
+    const options = {
+      limit: limit ? parseInt(limit, 10) : undefined,
+      sortBy,
+    }
+
+    return this.analyticsService.getOverdueTenants(options)
+  }
+
+  /**
+   * GET /superadmin/analytics/overdue/trends
+   * Evolução temporal de inadimplência
+   *
+   * Retorna série temporal com dados mensais de inadimplência:
+   * - Quantidade de faturas vencidas por mês
+   * - Valor total em atraso por mês
+   * - Taxa de inadimplência (%) por mês
+   *
+   * Query params:
+   * - months: número de meses retroativos (default: 6)
+   */
+  @Get('analytics/overdue/trends')
+  async getOverdueTrends(@Query('months') months?: string) {
+    const options = {
+      months: months ? parseInt(months, 10) : undefined,
+    }
+
+    return this.analyticsService.getOverdueTrends(options)
+  }
+
   // ============================================
   // ALERTS ENDPOINTS (Fase 5)
   // ============================================
@@ -643,5 +723,56 @@ export class SuperAdminController {
     })
 
     return acceptance
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // COLLECTIONS / COBRANÇA
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /superadmin/collections/send-reminder
+   * Envia lembrete de pagamento por email
+   *
+   * Body: { invoiceId: string }
+   */
+  @Post('collections/send-reminder')
+  async sendPaymentReminder(@Body() dto: SendReminderDto) {
+    return this.collectionsService.sendReminder(dto.invoiceId)
+  }
+
+  /**
+   * POST /superadmin/collections/suspend-tenant
+   * Suspende tenant por inadimplência
+   *
+   * Body: { tenantId: string, invoiceIds: string[], reason?: string }
+   */
+  @Post('collections/suspend-tenant')
+  async suspendTenantForNonPayment(@Body() dto: SuspendTenantForNonPaymentDto) {
+    return this.collectionsService.suspendTenantForNonPayment(
+      dto.tenantId,
+      dto.invoiceIds,
+      dto.reason,
+    )
+  }
+
+  /**
+   * POST /superadmin/collections/renegotiate
+   * Renegocia fatura aplicando desconto e/ou extensão de prazo
+   *
+   * Body: {
+   *   invoiceId: string
+   *   discountPercent?: number (0-100)
+   *   extensionDays?: number (>= 1)
+   *   reason?: string
+   * }
+   */
+  @Post('collections/renegotiate')
+  async renegotiateInvoice(@Body() dto: RenegotiateDto) {
+    return this.collectionsService.renegotiate(
+      dto.invoiceId,
+      dto.discountPercent,
+      dto.extensionDays,
+      dto.reason,
+    )
   }
 }

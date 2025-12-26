@@ -67,6 +67,7 @@ import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
 import { AlertCenter } from '@/pages/superadmin/AlertCenter'
 import { PlansList } from '@/pages/superadmin/PlansList'
 import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
+import { OverdueDashboard } from '@/pages/superadmin/OverdueDashboard'
 import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
 import { ContractDetails } from '@/pages/superadmin/contracts/ContractDetails'
 import { ContractNew } from '@/pages/superadmin/contracts/ContractNew'
@@ -273,6 +274,10 @@ export const router = createBrowserRouter([
       {
         path: 'analytics',
         element: <FinancialAnalytics />,
+      },
+      {
+        path: 'overdue',
+        element: <OverdueDashboard />,
       },
       {
         path: 'alerts',

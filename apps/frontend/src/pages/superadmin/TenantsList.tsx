@@ -225,7 +225,7 @@ export function TenantsList() {
               <TableBody>
                 {data.data.map((tenant) => {
                   const activeSub = tenant.subscriptions.find(
-                    (s) => s.status === 'active'
+                    (s) => s.status === 'ACTIVE' || s.status === 'TRIAL' || s.status === 'active' || s.status === 'trialing'
                   )
                   const statusInfo = STATUS_LABELS[tenant.status] || {
                     label: tenant.status,

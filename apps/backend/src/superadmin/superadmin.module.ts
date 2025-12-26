@@ -2,13 +2,16 @@ import { Module } from '@nestjs/common'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PaymentsModule } from '../payments/payments.module'
 import { ContractsModule } from '../contracts/contracts.module'
+import { EmailModule } from '../email/email.module'
 import { MetricsService } from './services/metrics.service'
 import { TenantAdminService } from './services/tenant-admin.service'
 import { SubscriptionAdminService } from './services/subscription-admin.service'
 import { PlansAdminService } from './services/plans-admin.service'
 import { AlertsService } from './services/alerts.service'
+import { CollectionsService } from './services/collections.service'
 import { SubscriptionAlertsJob } from './jobs/subscription-alerts.job'
 import { PaymentAlertsJob } from './jobs/payment-alerts.job'
+import { OverdueReportsJob } from './jobs/overdue-reports.job'
 import { SuperAdminController } from './superadmin.controller'
 
 /**
@@ -31,7 +34,7 @@ import { SuperAdminController } from './superadmin.controller'
  * - Fase 5: Sistema de alertas
  */
 @Module({
-  imports: [PrismaModule, PaymentsModule, ContractsModule],
+  imports: [PrismaModule, PaymentsModule, ContractsModule, EmailModule],
   controllers: [SuperAdminController],
   providers: [
     MetricsService,
@@ -39,9 +42,11 @@ import { SuperAdminController } from './superadmin.controller'
     SubscriptionAdminService,
     PlansAdminService,
     AlertsService,
+    CollectionsService,
     SubscriptionAlertsJob,
     PaymentAlertsJob,
+    OverdueReportsJob,
   ],
-  exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService],
+  exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService, CollectionsService],
 })
 export class SuperAdminModule {}

@@ -139,6 +139,6 @@ export const cancelInvoice = async (id: string): Promise<Invoice> => {
  * Busca todas as invoices de um tenant
  */
 export const getTenantInvoices = async (tenantId: string): Promise<Invoice[]> => {
-  const response = await api.get<Invoice[]>(`/superadmin/tenants/${tenantId}/invoices`)
-  return response.data
+  const response = await api.get<InvoicesListResponse>(`/superadmin/tenants/${tenantId}/invoices`)
+  return response.data.data // Backend retorna { data: Invoice[], meta: {...} }
 }

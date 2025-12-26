@@ -116,6 +116,102 @@ export class PaymentAlertsJob {
   }
 
   /**
+   * Verifica invoices vencidas e cria alertas progressivos
+   * Executa diariamente às 08:00
+   *
+   * Marcos de alerta: 1, 7, 15, 30, 60 dias de atraso
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  async checkOverdueInvoices() {
+    this.logger.log('Running checkOverdueInvoices job...')
+
+    try {
+      const now = new Date()
+      const yesterday = new Date(now)
+      yesterday.setDate(yesterday.getDate() - 1)
+
+      // Buscar todas as faturas vencidas e ainda abertas
+      const overdueInvoices = await this.prisma.invoice.findMany({
+        where: {
+          status: InvoiceStatus.OPEN,
+          dueDate: {
+            lt: now,
+          },
+        },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      })
+
+      this.logger.log(`Found ${overdueInvoices.length} overdue invoices`)
+
+      let alertsCreated = 0
+      const milestones = [1, 7, 15, 30, 60] // Marcos em dias
+
+      for (const invoice of overdueInvoices) {
+        const daysOverdue = Math.floor(
+          (now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+        )
+
+        // Verificar se hoje é um marco de alerta
+        const isMilestone = milestones.includes(daysOverdue)
+
+        if (isMilestone) {
+          // Verificar se já existe alerta para este marco específico
+          const existingAlert = await this.prisma.systemAlert.findFirst({
+            where: {
+              tenantId: invoice.tenantId,
+              type: 'PAYMENT_OVERDUE',
+              metadata: {
+                path: ['invoiceId'],
+                equals: invoice.id,
+              },
+              createdAt: {
+                gte: yesterday, // Criado nas últimas 24h
+              },
+            },
+          })
+
+          if (!existingAlert) {
+            await this.alertsService.createPaymentOverdueAlert({
+              tenantId: invoice.tenantId,
+              invoiceId: invoice.id,
+              amount: Number(invoice.amount),
+              daysOverdue,
+            })
+
+            this.logger.log(
+              `Created PAYMENT_OVERDUE alert for tenant ${invoice.tenant.name}, invoice ${invoice.invoiceNumber}, ${daysOverdue} days overdue`,
+            )
+            alertsCreated++
+          }
+        }
+      }
+
+      this.logger.log(`✓ checkOverdueInvoices completed. Alerts created: ${alertsCreated}`)
+    } catch (error) {
+      this.logger.error('Error in checkOverdueInvoices job:', error)
+
+      // Criar alerta de erro do sistema
+      await this.alertsService.createSystemErrorAlert({
+        title: 'Erro no Job de Faturas Vencidas',
+        message: 'Falha ao verificar faturas vencidas',
+        error,
+        metadata: {
+          job: 'checkOverdueInvoices',
+          timestamp: new Date().toISOString(),
+        },
+      })
+    }
+  }
+
+  /**
    * Verifica invoices próximas do vencimento (ainda abertas)
    * Executa diariamente às 10:00
    */

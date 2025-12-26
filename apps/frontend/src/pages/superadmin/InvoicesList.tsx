@@ -13,6 +13,8 @@ import { useInvoices, type InvoiceStatus } from '@/hooks/useInvoices'
 import { CreateInvoiceDialog } from '@/components/superadmin/CreateInvoiceDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -48,6 +50,7 @@ const STATUS_LABELS: Record<InvoiceStatus, { label: string; variant: 'default' |
 interface InvoiceFilters {
   status?: InvoiceStatus
   search?: string
+  onlyOverdue?: boolean
 }
 
 export function InvoicesList() {
@@ -66,14 +69,25 @@ export function InvoicesList() {
     }))
   }
 
-  // Filtrar no frontend por search (nome do tenant)
+  // Filtrar no frontend por search e overdue
   const filteredInvoices = data?.data?.filter((invoice: any) => {
-    if (!filters.search) return true
-    const searchLower = filters.search.toLowerCase()
-    return (
-      invoice.tenant.name.toLowerCase().includes(searchLower) ||
-      invoice.invoiceNumber.toLowerCase().includes(searchLower)
-    )
+    // Filtro de search
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      const matchesSearch =
+        invoice.tenant.name.toLowerCase().includes(searchLower) ||
+        invoice.invoiceNumber.toLowerCase().includes(searchLower)
+      if (!matchesSearch) return false
+    }
+
+    // Filtro de apenas vencidas
+    if (filters.onlyOverdue) {
+      const isOverdue =
+        invoice.status === 'OPEN' && new Date(invoice.dueDate) < new Date()
+      if (!isOverdue) return false
+    }
+
+    return true
   })
 
   return (
@@ -108,7 +122,7 @@ export function InvoicesList() {
       {/* Filters */}
       <Card className="bg-white border-slate-200">
         <CardContent className="p-4">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -139,6 +153,23 @@ export function InvoicesList() {
                 <SelectItem value="UNCOLLECTIBLE">Incobráveis</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Overdue Toggle */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+              <Switch
+                id="only-overdue"
+                checked={filters.onlyOverdue || false}
+                onCheckedChange={(checked) =>
+                  setFilters((prev) => ({ ...prev, onlyOverdue: checked }))
+                }
+              />
+              <Label
+                htmlFor="only-overdue"
+                className="text-sm font-medium text-red-900 cursor-pointer whitespace-nowrap"
+              >
+                Apenas Vencidas
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -165,25 +196,19 @@ export function InvoicesList() {
           )}
 
           {filteredInvoices && filteredInvoices.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200 hover:bg-slate-100/50">
-                  <TableHead className="text-slate-400">Número</TableHead>
-                  <TableHead className="text-slate-400">Tenant</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Plano</TableHead>
-                  <TableHead className="text-slate-400">Ciclo</TableHead>
-                  <TableHead className="text-slate-400">Desconto</TableHead>
-                  <TableHead className="text-slate-400 text-right">
-                    Valor
-                  </TableHead>
-                  <TableHead className="text-slate-400">Vencimento</TableHead>
-                  <TableHead className="text-slate-400">Criado em</TableHead>
-                  <TableHead className="text-slate-400 text-right">
-                    Ações
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-200 hover:bg-slate-100/50">
+                    <TableHead className="text-slate-400 min-w-[140px]">Número</TableHead>
+                    <TableHead className="text-slate-400 min-w-[200px]">Tenant</TableHead>
+                    <TableHead className="text-slate-400 min-w-[150px]">Status / Atraso</TableHead>
+                    <TableHead className="text-slate-400 min-w-[140px]">Plano</TableHead>
+                    <TableHead className="text-slate-400 text-right min-w-[120px]">Valor</TableHead>
+                    <TableHead className="text-slate-400 min-w-[110px]">Vencimento</TableHead>
+                    <TableHead className="text-slate-400 text-right min-w-[80px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredInvoices.map((invoice: any) => {
                   const statusInfo = STATUS_LABELS[invoice.status as InvoiceStatus] || {
@@ -195,68 +220,98 @@ export function InvoicesList() {
                     invoice.status === 'OPEN' &&
                     new Date(invoice.dueDate) < new Date()
 
+                  const daysOverdue = isOverdue
+                    ? Math.floor(
+                        (new Date().getTime() - new Date(invoice.dueDate).getTime()) /
+                          (1000 * 60 * 60 * 24),
+                      )
+                    : 0
+
+                  const isCritical = daysOverdue >= 30
+
                   return (
                     <TableRow
                       key={invoice.id}
                       className="border-slate-200 hover:bg-slate-100/30"
                     >
+                      {/* Número */}
                       <TableCell>
-                        <div className="font-mono text-sm text-slate-900">
+                        <div className="font-mono text-xs text-slate-900">
                           {invoice.invoiceNumber}
                         </div>
                       </TableCell>
+
+                      {/* Tenant */}
                       <TableCell>
                         <div>
-                          <div className="font-medium text-slate-900">
+                          <div className="font-medium text-sm text-slate-900 truncate max-w-[180px]">
                             {invoice.tenant.name}
                           </div>
-                          <div className="text-sm text-slate-500">
+                          <div className="text-xs text-slate-500 truncate max-w-[180px]">
                             {invoice.tenant.email}
                           </div>
                         </div>
                       </TableCell>
+
+                      {/* Status / Atraso */}
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <Badge variant={statusInfo.variant}>
+                          <Badge variant={statusInfo.variant} className="w-fit text-xs">
                             {statusInfo.label}
                           </Badge>
                           {isOverdue && (
-                            <Badge variant="destructive" className="text-xs">
-                              Vencida
+                            <Badge
+                              variant={isCritical ? 'destructive' : 'secondary'}
+                              className={`w-fit text-xs ${
+                                isCritical
+                                  ? 'bg-red-600 text-white'
+                                  : 'bg-orange-100 text-orange-800'
+                              }`}
+                            >
+                              {daysOverdue}d atraso
                             </Badge>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-400">
-                        {invoice.subscription.plan.displayName}
-                      </TableCell>
+
+                      {/* Plano */}
                       <TableCell>
-                        {invoice.billingCycle === 'ANNUAL' ? (
-                          <Badge variant="default" className="bg-green-600">
-                            📅 Anual
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">📅 Mensal</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.discountPercent ? (
-                          <span className="text-green-600 font-medium">
-                            -{invoice.discountPercent}%
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm text-slate-900">
+                            {invoice.subscription.plan.displayName}
                           </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
+                          <div className="flex gap-1">
+                            {invoice.billingCycle === 'ANNUAL' && (
+                              <span className="text-xs text-green-600">Anual</span>
+                            )}
+                            {invoice.discountPercent && (
+                              <span className="text-xs text-green-600">
+                                -{invoice.discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right text-slate-900 font-medium">
-                        R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+
+                      {/* Valor */}
+                      <TableCell className="text-right">
+                        <span className="text-slate-900 font-medium text-sm">
+                          R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-slate-400">
-                        {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+
+                      {/* Vencimento */}
+                      <TableCell>
+                        <span className="text-sm text-slate-700">
+                          {new Date(invoice.dueDate).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                          })}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-slate-400">
-                        {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
-                      </TableCell>
+
+                      {/* Ações */}
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -303,6 +358,7 @@ export function InvoicesList() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

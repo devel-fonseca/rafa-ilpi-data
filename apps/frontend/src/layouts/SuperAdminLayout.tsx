@@ -9,9 +9,11 @@ import {
   Package,
   FileText,
   LogOut,
+  AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/hooks/useAlerts'
+import { useOverdueMetrics } from '@/hooks/useOverdueMetrics'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth.store'
@@ -29,6 +31,7 @@ import { useAuthStore } from '@/stores/auth.store'
  */
 export function SuperAdminLayout() {
   const { data: unreadCount } = useUnreadCount()
+  const { data: overdueMetrics } = useOverdueMetrics()
   const navigate = useNavigate()
   const logout = useAuthStore((state) => state.logout)
 
@@ -52,6 +55,12 @@ export function SuperAdminLayout() {
       to: '/superadmin/invoices',
       label: 'Faturas',
       icon: Receipt,
+    },
+    {
+      to: '/superadmin/overdue',
+      label: 'Inadimplência',
+      icon: AlertTriangle,
+      badge: overdueMetrics?.totalOverdueInvoices,
     },
     {
       to: '/superadmin/analytics',
@@ -117,7 +126,7 @@ export function SuperAdminLayout() {
               >
                 <item.icon className="h-5 w-5" />
                 <span className="flex-1">{item.label}</span>
-                {item.badge !== undefined && item.badge > 0 && (
+                {typeof item.badge === 'number' && item.badge > 0 && (
                   <Badge className="bg-red-500 text-white border-0 h-5 min-w-5 flex items-center justify-center px-1.5">
                     {item.badge > 99 ? '99+' : item.badge}
                   </Badge>

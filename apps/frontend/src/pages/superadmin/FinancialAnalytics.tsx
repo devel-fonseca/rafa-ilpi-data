@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useFinancialMetrics, useMrrBreakdown } from '@/hooks/useAnalytics'
 import {
   TrendingUp,
@@ -11,6 +15,8 @@ import {
   CheckCircle2,
   Clock,
   Trophy,
+  Calendar,
+  X,
 } from 'lucide-react'
 
 /**
@@ -21,10 +27,25 @@ import {
  * - Breakdown por método de pagamento
  * - MRR por billing type
  * - Top performing method
+ * - Filtros de período (startDate, endDate)
  */
 export function FinancialAnalytics() {
-  const { data: metrics, isLoading: isLoadingMetrics } = useFinancialMetrics()
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+
+  // Passar filtros para o hook
+  const filters = {
+    startDate: startDate ? new Date(startDate).toISOString() : undefined,
+    endDate: endDate ? new Date(endDate).toISOString() : undefined,
+  }
+
+  const { data: metrics, isLoading: isLoadingMetrics } = useFinancialMetrics(filters)
   const { data: mrrData, isLoading: isLoadingMrr } = useMrrBreakdown()
+
+  const handleClearFilters = () => {
+    setStartDate('')
+    setEndDate('')
+  }
 
   if (isLoadingMetrics || isLoadingMrr) {
     return (
@@ -62,6 +83,66 @@ export function FinancialAnalytics() {
           Visão detalhada das métricas de pagamento e conversão
         </p>
       </div>
+
+      {/* Date Range Filters */}
+      <Card className="bg-white border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-slate-900 flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Filtros de Período
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="startDate" className="text-slate-600 text-sm mb-2 block">
+                Data Inicial
+              </Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-white border-slate-200 text-slate-900"
+              />
+            </div>
+
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="endDate" className="text-slate-600 text-sm mb-2 block">
+                Data Final
+              </Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-white border-slate-200 text-slate-900"
+              />
+            </div>
+
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                onClick={handleClearFilters}
+                className="border-slate-200 text-slate-700 hover:bg-slate-100"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+
+          {(startDate || endDate) && (
+            <p className="text-xs text-slate-500 mt-3">
+              {startDate && endDate
+                ? `Exibindo dados de ${new Date(startDate).toLocaleDateString('pt-BR')} até ${new Date(endDate).toLocaleDateString('pt-BR')}`
+                : startDate
+                  ? `Exibindo dados a partir de ${new Date(startDate).toLocaleDateString('pt-BR')}`
+                  : `Exibindo dados até ${new Date(endDate).toLocaleDateString('pt-BR')}`}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

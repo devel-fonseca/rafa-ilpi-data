@@ -17,7 +17,7 @@ export interface OverviewMetrics {
   mrr: number // Monthly Recurring Revenue
   arr: number // Annual Recurring Revenue
   churn: number // Taxa de cancelamento (%)
-  ltv: number // Lifetime Value
+  ltv: number | null // Lifetime Value (null quando churn = 0)
 }
 
 export interface RevenueMetrics {

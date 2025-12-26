@@ -45,6 +45,46 @@ export class AlertsService {
   }
 
   /**
+   * Cria um alerta de pagamento em atraso
+   */
+  async createPaymentOverdueAlert(data: {
+    tenantId: string
+    invoiceId: string
+    amount: number
+    daysOverdue: number
+  }) {
+    this.logger.log(
+      `Creating PAYMENT_OVERDUE alert for tenant ${data.tenantId}, invoice ${data.invoiceId}, ${data.daysOverdue} days overdue`,
+    )
+
+    // Determinar severidade progressiva
+    let severity: AlertSeverity
+    if (data.daysOverdue >= 30) {
+      severity = AlertSeverity.CRITICAL
+    } else if (data.daysOverdue >= 7) {
+      severity = AlertSeverity.WARNING
+    } else {
+      severity = AlertSeverity.INFO
+    }
+
+    return this.prisma.systemAlert.create({
+      data: {
+        type: AlertType.PAYMENT_OVERDUE,
+        severity,
+        title: 'Fatura Vencida',
+        message: `Fatura de R$ ${data.amount.toFixed(2)} está vencida há ${data.daysOverdue} ${data.daysOverdue === 1 ? 'dia' : 'dias'}`,
+        metadata: {
+          tenantId: data.tenantId,
+          invoiceId: data.invoiceId,
+          amount: data.amount,
+          daysOverdue: data.daysOverdue,
+        },
+        tenantId: data.tenantId,
+      },
+    })
+  }
+
+  /**
    * Cria um alerta de subscription expirando
    */
   async createSubscriptionExpiringAlert(data: {
