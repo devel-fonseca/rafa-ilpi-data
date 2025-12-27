@@ -52,6 +52,11 @@ import UserEditPage from '@/pages/users/UserEditPage'
 // Notifications Pages
 import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 
+// Messages Pages
+import MessagesListPage from '@/pages/messages/MessagesListPage'
+import ComposeMessagePage from '@/pages/messages/ComposeMessagePage'
+import MessageDetailPage from '@/pages/messages/MessageDetailPage'
+
 // POPs Pages
 import PopsList from '@/pages/pops/PopsList'
 import PopEditor from '@/pages/pops/PopEditor'
@@ -217,6 +222,18 @@ export const router = createBrowserRouter([
       {
         path: 'notificacoes',
         element: <NotificationsPage />,
+      },
+      {
+        path: 'mensagens',
+        element: <MessagesListPage />,
+      },
+      {
+        path: 'mensagens/nova',
+        element: <ComposeMessagePage />,
+      },
+      {
+        path: 'mensagens/:id',
+        element: <MessageDetailPage />,
       },
       {
         path: 'pops',

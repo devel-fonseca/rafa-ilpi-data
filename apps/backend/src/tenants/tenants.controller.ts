@@ -116,7 +116,7 @@ export class TenantsController {
     @Body() updateTenantDto: UpdateTenantDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.tenantsService.update(id, updateTenantDto, user.userId);
+    return this.tenantsService.update(id, updateTenantDto, user.id);
   }
 
   @Delete(':id')
@@ -132,7 +132,7 @@ export class TenantsController {
   @ApiResponse({ status: 403, description: 'Acesso negado' })
   @ApiResponse({ status: 404, description: 'ILPI não encontrada' })
   remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.tenantsService.remove(id, user.userId);
+    return this.tenantsService.remove(id, user.id);
   }
 
   // Endpoints para gerenciar usuários do tenant
@@ -155,7 +155,7 @@ export class TenantsController {
     @Body() addUserDto: AddUserToTenantDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.tenantsService.addUser(tenantId, addUserDto, user.userId);
+    return this.tenantsService.addUser(tenantId, addUserDto, user.id);
   }
 
   @Get(':tenantId/users')
@@ -171,7 +171,7 @@ export class TenantsController {
     @Param('tenantId') tenantId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.tenantsService.listUsers(tenantId, user.userId);
+    return this.tenantsService.listUsers(tenantId, user.id);
   }
 
   @Delete(':tenantId/users/:userId')
@@ -192,6 +192,6 @@ export class TenantsController {
     @Param('userId') userId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.tenantsService.removeUser(tenantId, userId, user.userId);
+    return this.tenantsService.removeUser(tenantId, userId, user.id);
   }
 }

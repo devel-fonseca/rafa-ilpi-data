@@ -34,6 +34,9 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.VIEW_POPS,
     PermissionType.VIEW_RESIDENT_SCHEDULE,
+    // Mensagens Internas
+    PermissionType.VIEW_MESSAGES,
+    PermissionType.SEND_MESSAGES,
   ] as PermissionType[],
 
   // STAFF: Operações básicas de cuidado
@@ -61,6 +64,9 @@ const BASE_PERMISSIONS = {
     PermissionType.CREATE_POPS, // Enfermeiros podem criar sugestões (DRAFT)
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
+    // Mensagens Internas
+    PermissionType.VIEW_MESSAGES,
+    PermissionType.SEND_MESSAGES,
   ] as PermissionType[],
 
   // MANAGER: Gerenciamento clínico e operacional
@@ -116,6 +122,10 @@ const BASE_PERMISSIONS = {
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
     PermissionType.MANAGE_RESIDENT_SCHEDULE,
+    // Mensagens Internas
+    PermissionType.VIEW_MESSAGES,
+    PermissionType.SEND_MESSAGES,
+    PermissionType.DELETE_MESSAGES,
   ] as PermissionType[],
 
   // ADMIN: Controle total
@@ -197,6 +207,11 @@ const BASE_PERMISSIONS = {
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
     PermissionType.MANAGE_RESIDENT_SCHEDULE,
+    // Mensagens Internas
+    PermissionType.VIEW_MESSAGES,
+    PermissionType.SEND_MESSAGES,
+    PermissionType.DELETE_MESSAGES,
+    PermissionType.BROADCAST_MESSAGES,
   ] as PermissionType[],
 };
 
@@ -255,6 +270,11 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_POPS,    // Editar POPs em rascunho
       PermissionType.DELETE_POPS,    // Deletar POPs em rascunho
       // ⚠️ ADMINISTRATOR NÃO tem PUBLISH_POPS (apenas RT publica)
+      // Mensagens Internas
+      PermissionType.VIEW_MESSAGES,
+      PermissionType.SEND_MESSAGES,
+      PermissionType.DELETE_MESSAGES,
+      PermissionType.BROADCAST_MESSAGES, // Admin pode enviar mensagens para todos
     ],
   },
 

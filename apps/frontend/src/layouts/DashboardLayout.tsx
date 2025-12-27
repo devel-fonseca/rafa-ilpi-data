@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -29,6 +29,7 @@ import { CookieConsent } from '@/components/common/CookieConsent'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { PositionCode, POSITION_CODE_LABELS } from '@/types/permissions'
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown'
+import { MessagesDropdown } from '@/components/messages/MessagesDropdown'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -47,6 +48,7 @@ export function DashboardLayout() {
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
   const canViewPops = hasPermission(PermissionType.VIEW_POPS)
+  const canViewMessages = hasPermission(PermissionType.VIEW_MESSAGES)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -152,10 +154,13 @@ export function DashboardLayout() {
               </div>
             </div>
 
-            {/* Desktop: Notifications + Theme + User Avatar + Dropdown */}
+            {/* Desktop: Notifications + Messages + Theme + User Avatar + Dropdown */}
             <div className="hidden md:flex items-center gap-2">
               {/* Dropdown de Notificações */}
               <NotificationsDropdown />
+
+              {/* Dropdown de Mensagens */}
+              <MessagesDropdown />
 
               {/* Botão de Toggle Tema */}
               <TooltipProvider>
@@ -226,10 +231,13 @@ export function DashboardLayout() {
               </DropdownMenu>
             </div>
 
-            {/* Mobile: Notifications + Theme + Avatar + Dropdown */}
+            {/* Mobile: Notifications + Messages + Theme + Avatar + Dropdown */}
             <div className="md:hidden flex items-center gap-1">
               {/* Dropdown de Notificações Mobile */}
               <NotificationsDropdown />
+
+              {/* Dropdown de Mensagens Mobile */}
+              <MessagesDropdown />
 
               {/* Botão de Toggle Tema Mobile */}
               <Button
@@ -410,6 +418,25 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
+              {canViewMessages && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/mensagens"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Mensagens'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Mensagens</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {canManageInfrastructure && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -570,6 +597,16 @@ export function DashboardLayout() {
                 >
                   <FileText className="h-4 w-4" />
                   POPs
+                </Link>
+              )}
+              {canViewMessages && (
+                <Link
+                  to="/dashboard/mensagens"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  Mensagens
                 </Link>
               )}
               {canManageInfrastructure && (

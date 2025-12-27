@@ -453,7 +453,7 @@ export class SubscriptionAdminService {
       // Mantém lógica temporal consistente (não `now`)
       const cycleStart = subscription.trialEndDate
       const cycleEnd =
-        subscription.billing_cycle === 'ANNUAL'
+        subscription.billingCycle === 'ANNUAL'
           ? addYears(cycleStart, 1)
           : addMonths(cycleStart, 1)
 
@@ -486,7 +486,7 @@ export class SubscriptionAdminService {
             planId: subscription.planId,
             cycleStart: cycleStart.toISOString(),
             cycleEnd: cycleEnd.toISOString(),
-            billingCycle: subscription.billing_cycle,
+            billingCycle: subscription.billingCycle,
           },
         },
       })

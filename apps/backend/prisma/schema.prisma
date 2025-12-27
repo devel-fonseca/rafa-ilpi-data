@@ -141,6 +141,12 @@ enum PermissionType {
   VIEW_RESIDENT_SCHEDULE
   MANAGE_RESIDENT_SCHEDULE
 
+  // Mensagens Internas
+  VIEW_MESSAGES
+  SEND_MESSAGES
+  DELETE_MESSAGES
+  BROADCAST_MESSAGES
+
   @@map("PermissionType")
 }
 
@@ -596,6 +602,9 @@ model Tenant {
   systemAlerts              SystemAlert[] // SuperAdmin - Alertas
   contractAcceptance        ContractAcceptance?
   privacyPolicyAcceptance   PrivacyPolicyAcceptance?
+  messages                  Message[]
+  messageRecipients         MessageRecipient[]
+  messageAttachments        MessageAttachment[]
 
   @@map("tenants")
 }
@@ -743,6 +752,11 @@ model User {
   revokedContracts         ServiceContract[]         @relation("ContractRevoker")
   contractAcceptances      ContractAcceptance[]
   privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+
+  // Mensagens Internas
+  sentMessages         Message[]            @relation("SentMessages")
+  receivedMessages     MessageRecipient[]   @relation("ReceivedMessages")
+  uploadedAttachments  MessageAttachment[]  @relation("UploadedAttachments")
 
   @@unique([tenantId, email])
   @@index([createdBy])
@@ -2603,6 +2617,25 @@ enum NotificationSeverity {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS - Mensagens Internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum MessageType {
+  DIRECT // Mensagem 1:1 entre usuários
+  BROADCAST // Admin/RT → todos os usuários do tenant
+
+  @@map("MessageType")
+}
+
+enum MessageStatus {
+  SENT // Enviada
+  DELIVERED // Entregue (visualizada na lista)
+  READ // Lida (aberta pelo usuário)
+
+  @@map("MessageStatus")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  ENUMS - POPs (Procedimentos Operacionais Padrão)
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -3075,6 +3108,103 @@ model EmailTemplateVersion {
   @@index([templateId])
   @@index([versionNumber])
   @@map("email_template_versions")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MODELS - Sistema de Mensagens Internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Message {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @db.Uuid
+  senderId    String      @db.Uuid
+
+  // Tipo e conteúdo
+  type        MessageType
+  subject     String      @db.VarChar(255)
+  body        String      @db.Text
+
+  // Thread/Conversação (opcional - para respostas)
+  threadId    String?     @db.Uuid  // Se é resposta, aponta para mensagem original
+  isReply     Boolean     @default(false)
+
+  // Metadata
+  metadata    Json?       @db.JsonB  // Informações extras
+
+  // Auditoria
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime?   @db.Timestamptz(3)
+  deletedBy   String?     @db.Uuid
+
+  // Relações
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sender      User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  parentThread Message?   @relation("MessageThread", fields: [threadId], references: [id], onDelete: SetNull)
+  replies     Message[]   @relation("MessageThread")
+  recipients  MessageRecipient[]
+  attachments MessageAttachment[]
+
+  // Índices
+  @@index([tenantId, senderId, createdAt(sort: Desc)])
+  @@index([tenantId, threadId])
+  @@index([deletedAt])
+
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id          String        @id @default(uuid()) @db.Uuid
+  messageId   String        @db.Uuid
+  userId      String        @db.Uuid
+  tenantId    String        @db.Uuid
+
+  // Status individual
+  status      MessageStatus @default(SENT)
+  readAt      DateTime?     @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  message     Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user        User          @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([messageId, userId])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([tenantId, userId, status])
+
+  @@map("message_recipients")
+}
+
+model MessageAttachment {
+  id          String    @id @default(uuid()) @db.Uuid
+  messageId   String    @db.Uuid
+  tenantId    String    @db.Uuid
+
+  // Dados do arquivo
+  fileName    String    @db.VarChar(255)
+  fileSize    Int       // Bytes
+  mimeType    String    @db.VarChar(100)
+  fileUrl     String    @db.Text  // URL no MinIO
+  s3Key       String    @db.Text  // Chave no S3/MinIO
+
+  // Auditoria
+  uploadedBy  String    @db.Uuid
+  uploadedAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  message     Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploader    User      @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([messageId])
+  @@index([tenantId])
+
+  @@map("message_attachments")
 }
 
 // Enum: EmailTemplateCategory

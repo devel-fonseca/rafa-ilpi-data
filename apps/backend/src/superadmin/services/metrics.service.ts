@@ -61,7 +61,7 @@ export class MetricsService {
       const priceWithDiscount = basePrice * (1 - discount / 100)
 
       // Normalizar para mensal (se anual, divide por 12)
-      if (subscription.billing_cycle === 'ANNUAL') {
+      if (subscription.billingCycle === 'ANNUAL') {
         monthlyValue = priceWithDiscount / 12
       } else {
         monthlyValue = priceWithDiscount
@@ -242,7 +242,7 @@ export class MetricsService {
 
       // Normalizar para mensal (se anual, divide por 12)
       let monthlyValue = 0
-      if (subscription.billing_cycle === 'ANNUAL') {
+      if (subscription.billingCycle === 'ANNUAL') {
         monthlyValue = priceWithDiscount / 12
       } else {
         monthlyValue = priceWithDiscount

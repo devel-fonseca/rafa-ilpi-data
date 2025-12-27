@@ -44,6 +44,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { PrivacyPolicyModule } from './privacy-policy/privacy-policy.module';
 import { EmailTemplatesModule } from './email-templates/email-templates.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -110,6 +111,7 @@ import { EmailTemplatesModule } from './email-templates/email-templates.module';
     AdminModule,
     PrivacyPolicyModule,
     EmailTemplatesModule,
+    MessagesModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
