@@ -72,6 +72,7 @@ import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
 import { ContractDetails } from '@/pages/superadmin/contracts/ContractDetails'
 import { ContractNew } from '@/pages/superadmin/contracts/ContractNew'
 import { ContractEdit } from '@/pages/superadmin/contracts/ContractEdit'
+import { EmailTemplatesList, EmailTemplateEditor, EmailTemplatePreview, EmailTemplateVersions } from '@/pages/superadmin/email-templates'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -302,6 +303,22 @@ export const router = createBrowserRouter([
       {
         path: 'contracts/:id',
         element: <ContractDetails />,
+      },
+      {
+        path: 'email-templates',
+        element: <EmailTemplatesList />,
+      },
+      {
+        path: 'email-templates/:id/edit',
+        element: <EmailTemplateEditor />,
+      },
+      {
+        path: 'email-templates/:id/preview',
+        element: <EmailTemplatePreview />,
+      },
+      {
+        path: 'email-templates/:id/versions',
+        element: <EmailTemplateVersions />,
       },
     ],
   },

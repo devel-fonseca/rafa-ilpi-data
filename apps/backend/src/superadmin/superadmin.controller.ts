@@ -26,6 +26,8 @@ import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
 import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { PrismaService } from '../prisma/prisma.service'
+import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
+import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
 
 /**
  * SuperAdminController
@@ -58,6 +60,8 @@ export class SuperAdminController {
     private readonly contractsService: ContractsService,
     private readonly collectionsService: CollectionsService,
     private readonly prismaService: PrismaService,
+    private readonly trialAlertsJob: TrialExpirationAlertsJob,
+    private readonly trialConversionJob: TrialToActiveConversionJob,
   ) {}
 
   /**
@@ -774,5 +778,61 @@ export class SuperAdminController {
       dto.extensionDays,
       dto.reason,
     )
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // JOBS MANUAIS (TRIAL)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /superadmin/jobs/trial-expiration-alerts
+   *
+   * Dispara manualmente o job de avisos de expiração de trial.
+   * Envia emails para trials que expiram em 7, 3 ou 1 dia.
+   *
+   * ⚠️  Uso: Testes, correção de falhas, ou disparo emergencial
+   *
+   * Retorna: { success: boolean, message: string }
+   */
+  @Post('jobs/trial-expiration-alerts')
+  async triggerTrialExpirationAlerts() {
+    try {
+      await this.trialAlertsJob.handleTrialExpirationAlerts()
+      return {
+        success: true,
+        message: 'Trial expiration alerts job executado com sucesso',
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erro ao executar job: ${error.message}`,
+      }
+    }
+  }
+
+  /**
+   * POST /superadmin/jobs/trial-conversion
+   *
+   * Dispara manualmente o job de conversão de trials expirados.
+   * Converte trials vencidos para active, gera fatura e envia email.
+   *
+   * ⚠️  Uso: Testes, correção de falhas, ou disparo emergencial
+   *
+   * Retorna: { success: boolean, message: string }
+   */
+  @Post('jobs/trial-conversion')
+  async triggerTrialConversion() {
+    try {
+      await this.trialConversionJob.handleTrialConversion()
+      return {
+        success: true,
+        message: 'Trial conversion job executado com sucesso',
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erro ao executar job: ${error.message}`,
+      }
+    }
   }
 }

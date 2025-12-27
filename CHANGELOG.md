@@ -6,6 +6,143 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-27] - Sistema de Histórico e Rollback de Templates de Email 🔄
+
+### ✨ Adicionado
+
+**Sistema Completo de Versionamento de Templates:**
+
+- **Backend - Versionamento** (já implementado anteriormente):
+  - `EmailTemplatesService.getVersionHistory()`: retorna todas as versões anteriores de um template
+  - `EmailTemplatesService.rollbackToVersion()`: restaura template para versão anterior
+  - Endpoints REST: `GET /api/email-templates/:id/versions` e `POST /api/email-templates/:id/rollback/:versionId`
+  - Cada atualização incrementa versão e salva anterior em `EmailTemplateVersion`
+
+- **Frontend - Componente VersionHistory** ([components/superadmin/VersionHistory.tsx](apps/frontend/src/components/superadmin/VersionHistory.tsx)):
+  - Lista completa de versões anteriores com cards detalhados
+  - Exibe: número da versão, data/hora, subject, nota de alteração, ID do autor
+  - Botão de restauração para cada versão
+  - Dialog de confirmação com preview dos dados da versão
+  - Invalidação automática de cache após rollback
+  - Design com border-left azul e badges de versão
+
+- **Frontend - Páginas SuperAdmin**:
+  - **EmailTemplatesList** ([pages/superadmin/EmailTemplatesList.tsx](apps/frontend/src/pages/superadmin/EmailTemplatesList.tsx)): listagem completa com tabela, badges de categoria/status/versão, dropdown de ações
+  - **EmailTemplateEditor** ([pages/superadmin/EmailTemplateEditor.tsx](apps/frontend/src/pages/superadmin/EmailTemplateEditor.tsx)): editor integrado com VersionHistory na sidebar (layout 2/3 + 1/3)
+  - **EmailTemplatePreview** ([pages/superadmin/EmailTemplatePreview.tsx](apps/frontend/src/pages/superadmin/EmailTemplatePreview.tsx)): preview com dados mockados, tabs (Renderizado | HTML)
+  - **EmailTemplateVersions** ([pages/superadmin/EmailTemplateVersions.tsx](apps/frontend/src/pages/superadmin/EmailTemplateVersions.tsx)): página dedicada ao histórico de versões
+
+- **Frontend - Rotas**:
+  - `/superadmin/email-templates` - Lista de templates
+  - `/superadmin/email-templates/:id/edit` - Editor com histórico
+  - `/superadmin/email-templates/:id/preview` - Preview com dados mockados
+  - `/superadmin/email-templates/:id/versions` - Histórico completo
+
+### 📝 Alterado
+
+- **Templates resetados para versão 1**:
+  - Banco de dados limpo (DELETE em `email_template_versions` e `email_templates`)
+  - Seed executado novamente criando templates na versão 1
+  - Subject corrigido: "Rafa ILPI Data" → "Rafa ILPI"
+  - Todos os 6 templates agora incluem rodapé com link para Rafa Labs
+
+- **Rodapé Rafa Labs adicionado em todos os templates**:
+  - HTML: `<p style="text-align:center;...">Rafa ILPI é desenvolvido por <a href="https://rafalabs.com.br">Rafa Labs</a></p>`
+  - Estilo: centralizado, borda superior, texto pequeno (11px), cor cinza (#9ca3af)
+  - Link azul (#2563eb) sem sublinhado
+
+- **Configurações de produção atualizadas** ([.env.production.example](/.env.production.example)):
+  - `FRONTEND_URL=https://rafa-ilpi.rafalabs.com.br`
+  - `COMPANY_SUPPORT_EMAIL=suporte@rafalabs.com.br`
+  - `VITE_API_URL=https://rafa-ilpi.rafalabs.com.br/api` (path-based routing, não subdomain)
+  - Arquitetura confirmada: Nginx proxy reverso de `/api` → `localhost:3000`
+
+### 🔧 Corrigido
+
+- Arquitetura de URLs corrigida:
+  - Backend usa `APP_URL=http://localhost:3000` (escuta localmente)
+  - Frontend usa `FRONTEND_URL` para links em emails (URL pública)
+  - Nginx faz proxy de `/api` → backend (mantém path, não reescreve)
+  - Backend já tem prefixo global `/api` configurado em `main.ts`
+
+---
+
+## [2025-12-26] - Editor WYSIWYG de Templates de Email 📧
+
+### ✨ Adicionado
+
+**Sistema Completo de Gerenciamento de Templates de Email:**
+
+- **Backend - Database Schema** (`schema.prisma`):
+  - Model `EmailTemplate`: armazena templates com versionamento, JSON MJML, variáveis dinâmicas
+  - Model `EmailTemplateVersion`: histórico completo de versões com rollback
+  - Enum `EmailTemplateCategory`: ONBOARDING, BILLING, LIFECYCLE, SYSTEM
+  - Migration aplicada com sucesso
+
+- **Backend - EmailTemplates Module** (`email-templates/`):
+  - `EmailTemplatesService`: CRUD completo + renderização MJML + versionamento
+  - `EmailTemplatesController`: 9 endpoints REST protegidos por guards (superadmin-only)
+  - DTOs validados: CreateEmailTemplate, UpdateEmailTemplate, PreviewEmailTemplate, SendTestEmail
+  - Seed script com 5 templates padrão: user-invite, payment-reminder, overdue-report, trial-expiring, trial-converted
+
+- **Backend - Renderização MJML**:
+  - Integração com `mjml2html` para converter Easy Email JSON → HTML responsivo
+  - Sistema de fallback com 3 níveis: MJML → placeholder → error HTML
+  - Substituição inteligente de variáveis com formatação pt-BR (datas, números)
+  - Suporte a variáveis dinâmicas: `{{tenantName}}`, `{{planName}}`, `{{amount}}`, etc.
+
+- **Frontend - EmailEditor Component** (`components/EmailEditor.tsx`):
+  - Editor visual drag-and-drop usando Easy Email Editor
+  - 3 painéis: BlockManager (blocos MJML) | Canvas (editor) | Variáveis (documentação)
+  - Subject editável com preview de variáveis
+  - Nota de mudança para versionamento
+  - Copy-to-clipboard para variáveis disponíveis
+
+- **Frontend - Páginas SuperAdmin** (`pages/superadmin/email-templates/`):
+  - **EmailTemplatesList**: listagem em cards com ações (editar, preview, teste, histórico, deletar)
+  - **EmailTemplateEditor**: integração completa com Easy Email Editor + save com versionamento
+  - **EmailTemplatePreview**: preview dinâmico com dados mockados editáveis + envio de teste
+
+- **Frontend - API & Hooks**:
+  - `email-templates.api.ts`: 8 funções de API client
+  - `useEmailTemplates.ts`: 8 React Query hooks com invalidação de cache
+  - Rotas protegidas: `/superadmin/email-templates` + `:id/edit` + `:id/preview`
+
+### 📝 Alterado
+
+- **EmailService Refatorado** (`email/email.service.ts`):
+  - Todos os 5 métodos de envio agora usam templates do banco de dados
+  - Substituição de HTML hardcoded por `emailTemplatesService.renderTemplate()`
+  - Zero breaking changes na interface pública
+  - Substituição de variáveis no subject e body
+
+- **Módulos Backend**:
+  - `EmailModule`: importa EmailTemplatesModule para injeção de dependência
+  - `AppModule`: registra EmailTemplatesModule globalmente
+
+### 🔧 Detalhes Técnicos
+
+**Dependências Instaladas:**
+
+- Backend: `mjml`, `easy-email-core`
+- Frontend: `easy-email-editor`, `easy-email-core`, `easy-email-extensions`, `mjml-react`
+
+**Arquitetura:**
+
+- Templates armazenados como JSON (Easy Email format) no PostgreSQL
+- Renderização server-side com MJML garante compatibilidade com todos email clients
+- Versionamento automático: toda atualização cria nova versão com rollback
+- Preview dinâmico: mock data editável + renderização real via API
+- Test email: envio via Resend com marcação `[TESTE]` no subject
+
+**Segurança:**
+
+- Acesso restrito ao superadministrador via guards
+- Validação de DTOs com class-validator
+- Transações Prisma para atomicidade do versionamento
+
+---
+
 ## [2025-12-23] - Sistema Inteligente de Gestão de Usuários 👥
 
 ### ✨ Adicionado

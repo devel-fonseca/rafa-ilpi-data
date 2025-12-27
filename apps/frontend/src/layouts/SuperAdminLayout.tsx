@@ -10,6 +10,7 @@ import {
   FileText,
   LogOut,
   AlertTriangle,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/hooks/useAlerts'
@@ -76,6 +77,11 @@ export function SuperAdminLayout() {
       to: '/superadmin/contracts',
       label: 'Contratos',
       icon: FileText,
+    },
+    {
+      to: '/superadmin/email-templates',
+      label: 'Templates de Email',
+      icon: Mail,
     },
     {
       to: '/superadmin/alerts',

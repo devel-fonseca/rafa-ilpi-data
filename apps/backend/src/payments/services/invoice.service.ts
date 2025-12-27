@@ -4,6 +4,7 @@ import { AsaasService } from './asaas.service'
 import { CreateInvoiceDto, InvoiceCreationMode } from '../dto/create-invoice.dto'
 import { Invoice, InvoiceStatus, Prisma } from '@prisma/client'
 import { AsaasBillingType } from '../gateways/payment-gateway.interface'
+import { addDays, format } from 'date-fns'
 
 /**
  * Service para gerenciar faturas (invoices)
@@ -349,5 +350,166 @@ export class InvoiceService {
         status: InvoiceStatus.VOID,
       },
     })
+  }
+
+  /**
+   * Criar primeira fatura após conversão de trial para active
+   *
+   * ✅ AJUSTE 4: Usa preferredPaymentMethod já escolhido no onboarding
+   * Reduz fricção, melhora UX e fortalece juridicamente (método já foi escolhido pelo cliente)
+   *
+   * FLUXO:
+   * 1. Busca subscription com tenant e plano
+   * 2. Calcula valor considerando customPrice, desconto e billing_cycle
+   * 3. Define data de vencimento (hoje + 7 dias para boleto/PIX)
+   * 4. Mapeia método de pagamento (apenas BOLETO e CREDIT_CARD)
+   * 5. Cria invoice no DB
+   * 6. Envia ao Asaas
+   * 7. Atualiza invoice com dados do Asaas (paymentUrl, asaasInvoiceId)
+   *
+   * @param subscriptionId ID da subscription recém-convertida
+   * @returns Invoice criada com paymentUrl
+   */
+  async createFirstInvoiceAfterTrial(subscriptionId: string): Promise<Invoice> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { tenant: true, plan: true },
+    })
+
+    if (!subscription) {
+      throw new NotFoundException(
+        `Subscription ${subscriptionId} não encontrada`,
+      )
+    }
+
+    // Calcular valor considerando customPrice, desconto, billing_cycle
+    const basePrice = subscription.customPrice
+      ? Number(subscription.customPrice)
+      : subscription.plan.price
+      ? Number(subscription.plan.price)
+      : 0
+
+    const discount = subscription.discountPercent
+      ? Number(subscription.discountPercent)
+      : 0
+
+    const amount = basePrice * (1 - discount / 100)
+
+    // Data de vencimento: hoje + 7 dias (padrão boleto/PIX)
+    const dueDate = addDays(new Date(), 7)
+
+    // ✅ AJUSTE 4: Mapear método escolhido no onboarding
+    // Evita fricção e melhora conversão de pagamento
+    const billingType = this.mapPaymentMethod(
+      subscription.preferredPaymentMethod,
+    )
+
+    // Gerar número da fatura
+    const invoiceNumber = await this.generateInvoiceNumber()
+
+    // Garantir que tenant tem asaasCustomerId
+    let asaasCustomerId = subscription.tenant.asaasCustomerId
+
+    if (!asaasCustomerId) {
+      // Criar customer no Asaas se não existir
+      const cpfCnpj = subscription.tenant.cnpj || '00000000000000'
+      const existingCustomer = await this.asaasService.findCustomerByCpfCnpj(
+        cpfCnpj,
+      )
+
+      if (existingCustomer) {
+        asaasCustomerId = existingCustomer.id
+        await this.prisma.tenant.update({
+          where: { id: subscription.tenantId },
+          data: { asaasCustomerId: existingCustomer.id },
+        })
+      } else {
+        const customer = await this.asaasService.createCustomer({
+          name: subscription.tenant.name,
+          email: subscription.tenant.email,
+          cpfCnpj,
+          phone: subscription.tenant.phone || undefined,
+          address: subscription.tenant.addressStreet || undefined,
+          addressNumber: subscription.tenant.addressNumber || undefined,
+          complement: subscription.tenant.addressComplement || undefined,
+          province: subscription.tenant.addressDistrict || undefined,
+          city: subscription.tenant.addressCity || undefined,
+          state: subscription.tenant.addressState || undefined,
+          postalCode: subscription.tenant.addressZipCode || undefined,
+        })
+
+        asaasCustomerId = customer.id
+        await this.prisma.tenant.update({
+          where: { id: subscription.tenantId },
+          data: { asaasCustomerId: customer.id },
+        })
+      }
+    }
+
+    // Criar invoice no DB
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        tenantId: subscription.tenantId,
+        subscriptionId: subscription.id,
+        invoiceNumber,
+        amount: new Prisma.Decimal(amount),
+        originalAmount: new Prisma.Decimal(basePrice),
+        discountPercent: discount > 0 ? new Prisma.Decimal(discount) : null,
+        billingCycle: subscription.billing_cycle,
+        currency: 'BRL',
+        status: InvoiceStatus.OPEN,
+        dueDate,
+        description: `Primeira fatura - ${subscription.plan.displayName}`,
+      },
+    })
+
+    // Enviar ao Asaas com método definido
+    const asaasPayment = await this.asaasService.createPayment({
+      customerId: asaasCustomerId,
+      billingType, // ✅ BOLETO | CREDIT_CARD (não UNDEFINED!)
+      value: amount,
+      dueDate,
+      description: invoice.description || 'Primeira fatura',
+      externalReference: invoiceNumber,
+    })
+
+    // Atualizar invoice com dados do Asaas
+    const updatedInvoice = await this.prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        asaasInvoiceId: asaasPayment.id,
+        paymentUrl: asaasPayment.invoiceUrl || asaasPayment.bankSlipUrl,
+      },
+      include: {
+        tenant: true,
+        subscription: {
+          include: {
+            plan: true,
+          },
+        },
+      },
+    })
+
+    this.logger.log(
+      `✓ Primeira fatura criada: ${invoiceNumber} (${asaasPayment.id}) - ${billingType}`,
+    )
+
+    return updatedInvoice
+  }
+
+  /**
+   * ✅ Helper para mapear nome do método de pagamento
+   * NOTA: PIX foi removido - apenas BOLETO e CREDIT_CARD são permitidos
+   */
+  private mapPaymentMethod(method?: string): AsaasBillingType {
+    switch (method) {
+      case 'BOLETO':
+        return AsaasBillingType.BOLETO
+      case 'CREDIT_CARD':
+        return AsaasBillingType.CREDIT_CARD
+      default:
+        // Fallback para BOLETO se não definido ou se for PIX (legacy)
+        return AsaasBillingType.BOLETO
+    }
   }
 }

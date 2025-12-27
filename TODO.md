@@ -1,6 +1,6 @@
 # TODO - Tarefas Ativas
 
-**Última atualização:** 20/12/2025
+**Última atualização:** 26/12/2025
 
 > **Nota:** Este arquivo contém APENAS tarefas ativas e pendentes.
 > Histórico completo de implementações está em [CHANGELOG.md](CHANGELOG.md).
@@ -10,13 +10,18 @@
 
 ## 🔄 Em Andamento
 
-- [ ] **Fase 5: Sistema de Alertas** - Implementação iniciando agora
+_Nenhuma tarefa em andamento no momento._
 
 ---
 
 ## 📋 Pendentes
 
-### 💳 Portal SuperAdmin - Melhorias Pós-Fase 4
+### 💳 Portal SuperAdmin - Melhorias Pendentes
+
+- [ ] **Templates de Email - Funcionalidades Adicionais:**
+  - [ ] Implementar envio de email de teste com dialog customizado
+  - [ ] Adicionar filtros e busca na lista de templates
+  - [ ] Implementar criação de novos templates via interface (atualmente só seed)
 
 - [ ] Adicionar gráficos visuais com Recharts em FinancialAnalytics (POSTPONED - baixa prioridade)
   - Gráfico de pizza para MRR breakdown
@@ -222,4 +227,4 @@
 
 ---
 
-**Última revisão:** 20/12/2025 por Claude Sonnet 4.5
+**Última revisão:** 26/12/2025 por Claude Sonnet 4.5

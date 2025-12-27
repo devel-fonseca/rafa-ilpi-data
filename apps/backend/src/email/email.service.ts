@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { EmailTemplatesService } from '../email-templates/email-templates.service';
 
 @Injectable()
 export class EmailService {
@@ -10,7 +11,10 @@ export class EmailService {
   private readonly emailFromName: string;
   private readonly emailReplyTo: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly emailTemplatesService: EmailTemplatesService,
+  ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
 
     if (!apiKey) {
@@ -53,12 +57,23 @@ export class EmailService {
     try {
       const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
-      const htmlContent = this.getUserInviteTemplate(userData, frontendUrl);
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('user-invite');
+
+      // Renderizar template com variáveis
+      const variables = {
+        ...userData,
+        loginUrl: frontendUrl,
+      };
+      const htmlContent = await this.emailTemplatesService.renderTemplate('user-invite', variables);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, variables);
 
       const { data, error } = await this.resend.emails.send({
         from: this.emailFrom,
         to: [to],
-        subject: `Acesso liberado ao sistema da ${userData.tenantName}`,
+        subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
       });
@@ -95,12 +110,19 @@ export class EmailService {
     }
 
     try {
-      const htmlContent = this.getPaymentReminderTemplate(reminderData);
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('payment-reminder');
+
+      // Renderizar template com variáveis
+      const htmlContent = await this.emailTemplatesService.renderTemplate('payment-reminder', reminderData);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, reminderData);
 
       const { data, error } = await this.resend.emails.send({
         from: this.emailFrom,
         to: [to],
-        subject: `⚠️ Lembrete: Fatura ${reminderData.invoiceNumber} vencida há ${reminderData.daysOverdue} ${reminderData.daysOverdue === 1 ? 'dia' : 'dias'}`,
+        subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
       });
@@ -143,13 +165,29 @@ export class EmailService {
     }
 
     try {
-      const htmlContent = this.getOverdueReportTemplate(reportData);
-      const subjectPrefix = reportData.period === 'daily' ? '📊 Relatório Diário' : '📈 Relatório Semanal';
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('overdue-report');
+
+      // Preparar variáveis para o template
+      const variables = {
+        period: reportData.period === 'daily' ? 'Diário' : 'Semanal',
+        startDate: reportData.startDate,
+        endDate: reportData.endDate,
+        totalOverdue: reportData.totalOverdue,
+        totalOverdueAmount: reportData.totalOverdueAmount,
+        tenants: reportData.tenants,
+      };
+
+      // Renderizar template com variáveis
+      const htmlContent = await this.emailTemplatesService.renderTemplate('overdue-report', variables);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, variables);
 
       const { data, error } = await this.resend.emails.send({
         from: this.emailFrom,
         to: ['financeiro@rafalabs.com.br'],
-        subject: `${subjectPrefix} de Inadimplência - ${new Date().toLocaleDateString('pt-BR')}`,
+        subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
       });
@@ -571,5 +609,444 @@ export class EmailService {
 </body>
 </html>
     `;
+  }
+
+  /**
+   * Enviar alerta de expiração de trial (D-7, D-3, D-1)
+   *
+   * ✅ AJUSTE 5: Email D-1 com CTA Explícito de Cancelamento (Blindagem Jurídica LGPD)
+   */
+  async sendTrialExpiringAlert(
+    to: string,
+    data: {
+      tenantName: string;
+      planName: string;
+      expiresAt: Date;
+      daysRemaining: number;
+      alertLevel: 'info' | 'warning' | 'critical';
+      billingType?: string; // ✅ Método escolhido (para D-1)
+      cancelUrl?: string; // ✅ Link de cancelamento (para D-1)
+    },
+  ): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn('Tentativa de envio de email sem API Key configurada');
+      return false;
+    }
+
+    try {
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('trial-expiring');
+
+      // Renderizar template com variáveis
+      const htmlContent = await this.emailTemplatesService.renderTemplate('trial-expiring', data);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, data);
+
+      const { data: resendData, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: [to],
+        subject,
+        html: htmlContent,
+        replyTo: this.emailReplyTo,
+      });
+
+      if (error) {
+        this.logger.error(
+          `Erro ao enviar alerta de trial: ${error.message}`,
+          error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `Alerta de trial ${data.alertLevel} enviado para ${to} (ID: ${resendData.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Erro inesperado ao enviar alerta de trial: ${error.message}`,
+        error.stack,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Enviar notificação de conversão trial → active
+   */
+  async sendTrialConvertedNotification(
+    to: string,
+    data: {
+      tenantName: string;
+      planName: string;
+      invoiceAmount: number;
+      dueDate: Date;
+      paymentUrl: string;
+      billingType?: string; // ✅ Informar método escolhido
+    },
+  ): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn('Tentativa de envio de email sem API Key configurada');
+      return false;
+    }
+
+    try {
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('trial-converted');
+
+      // Renderizar template com variáveis
+      const htmlContent = await this.emailTemplatesService.renderTemplate('trial-converted', data);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, data);
+
+      const { data: resendData, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: [to],
+        subject,
+        html: htmlContent,
+        replyTo: this.emailReplyTo,
+      });
+
+      if (error) {
+        this.logger.error(
+          `Erro ao enviar notificação de conversão: ${error.message}`,
+          error,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `Notificação de conversão enviada para ${to} (ID: ${resendData.id})`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Erro inesperado ao enviar notificação: ${error.message}`,
+        error.stack,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Template HTML para alerta de expiração de trial
+   */
+  private getTrialExpiringAlertTemplate(data: {
+    tenantName: string;
+    planName: string;
+    expiresAt: Date;
+    daysRemaining: number;
+    alertLevel: 'info' | 'warning' | 'critical';
+    billingType?: string;
+    cancelUrl?: string;
+  }): string {
+    const severityColor =
+      data.alertLevel === 'critical'
+        ? '#dc2626'
+        : data.alertLevel === 'warning'
+        ? '#ea580c'
+        : '#3b82f6';
+    const severityBg =
+      data.alertLevel === 'critical'
+        ? '#fef2f2'
+        : data.alertLevel === 'warning'
+        ? '#fff7ed'
+        : '#eff6ff';
+    const emoji =
+      data.alertLevel === 'critical'
+        ? '🚨'
+        : data.alertLevel === 'warning'
+        ? '⚠️'
+        : '📅';
+
+    // ✅ Mapear nome amigável do método (PIX removido)
+    const paymentMethodLabel = data.billingType
+      ? {
+          BOLETO: '📄 Boleto Bancário',
+          CREDIT_CARD: '💳 Cartão de Crédito',
+        }[data.billingType] || 'Não definido'
+      : 'Não definido';
+
+    return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerta de Trial</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: ${severityColor}; padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
+                ${emoji} Trial Expirando
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 20px;">
+                Olá, ${data.tenantName}!
+              </h2>
+
+              <p style="margin: 0 0 16px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                Seu período de teste do <strong>${data.planName}</strong> está chegando ao fim.
+              </p>
+
+              <p style="margin: 0 0 24px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                Dias restantes: <strong>${data.daysRemaining}</strong><br/>
+                Data de expiração: <strong>${new Date(data.expiresAt).toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}</strong>
+              </p>
+
+              ${
+                data.alertLevel === 'critical'
+                  ? `
+              <div style="background-color: #fee; padding: 20px; border-left: 4px solid #f00; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0 0 12px; color: #991b1b; font-size: 16px; font-weight: 600;">
+                  ⚠️ ATENÇÃO - ATIVAÇÃO AUTOMÁTICA
+                </p>
+                <p style="margin: 0 0 12px; color: #991b1b; font-size: 14px; line-height: 1.6;">
+                  Após a expiração do período de teste, seu plano será <strong>ativado automaticamente</strong>
+                  e a <strong>primeira cobrança será gerada</strong>.
+                </p>
+                <p style="margin: 0 0 12px; color: #991b1b; font-size: 14px; line-height: 1.6;">
+                  <strong>Método de pagamento escolhido:</strong> ${paymentMethodLabel}
+                </p>
+                <p style="margin: 0 0 16px; color: #991b1b; font-size: 14px; line-height: 1.6;">
+                  <strong>Caso não deseje a ativação automática</strong>, o cancelamento pode ser realizado até
+                  <strong>${new Date(data.expiresAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}</strong> através do painel.
+                </p>
+                ${
+                  data.cancelUrl
+                    ? `
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="padding: 10px 0;">
+                      <a href="${data.cancelUrl}" style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+                        🚫 Cancelar Assinatura
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                `
+                    : ''
+                }
+              </div>
+              `
+                  : ''
+              }
+
+              <p style="margin: 24px 0 16px; color: #4b5563; font-size: 16px; font-weight: 600;">
+                Prepare-se para a transição:
+              </p>
+
+              <ul style="margin: 0 0 24px; color: #4b5563; font-size: 16px; line-height: 1.8; padding-left: 20px;">
+                <li>✅ Método de pagamento configurado</li>
+                <li>✅ Dados cadastrais atualizados</li>
+                <li>✅ Time preparado para continuar</li>
+              </ul>
+
+              <p style="margin: 24px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Qualquer dúvida, estamos à disposição através do email
+                <a href="mailto:${this.emailReplyTo}" style="color: #3b82f6; text-decoration: none;">${this.emailReplyTo}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+                <strong>Rafa ILPI</strong> - Sistema de Gestão para ILPIs
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                © ${new Date().getFullYear()} Rafa Labs Desenvolvimento e Tecnologia
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Template HTML para notificação de conversão trial → active
+   */
+  private getTrialConvertedNotificationTemplate(data: {
+    tenantName: string;
+    planName: string;
+    invoiceAmount: number;
+    dueDate: Date;
+    paymentUrl: string;
+    billingType?: string;
+  }): string {
+    // ✅ Mapear nome amigável do método (PIX removido)
+    const paymentMethodLabel = data.billingType
+      ? {
+          BOLETO: '📄 Boleto Bancário',
+          CREDIT_CARD: '💳 Cartão de Crédito',
+        }[data.billingType] || 'Boleto Bancário'
+      : 'Boleto Bancário';
+
+    return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano Ativado</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
+                🎉 Bem-vindo ao Plano Ativo!
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #1f2937; font-size: 20px;">
+                Olá, ${data.tenantName}!
+              </h2>
+
+              <p style="margin: 0 0 24px; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                Seu período de teste terminou e seu plano foi ativado automaticamente!
+              </p>
+
+              <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-left: 4px solid #10b981; margin-bottom: 24px; border-radius: 4px;">
+                <p style="margin: 0 0 8px; color: #065f46; font-size: 14px; font-weight: 600;">
+                  Plano Ativo: <span style="font-size: 16px;">${data.planName}</span>
+                </p>
+                <p style="margin: 0; color: #065f46; font-size: 14px;">
+                  Status: <strong>✅ Ativo</strong>
+                </p>
+              </div>
+
+              <h3 style="margin: 24px 0 16px; color: #1f2937; font-size: 18px; font-weight: 600;">
+                Primeira Fatura Gerada
+              </h3>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="margin: 0 0 8px; color: #1f2937; font-size: 16px;">
+                      <strong>Valor:</strong> <span style="color: #10b981; font-size: 20px; font-weight: 600;">R$ ${data.invoiceAmount.toFixed(2)}</span>
+                    </p>
+                    <p style="margin: 0 0 8px; color: #1f2937; font-size: 16px;">
+                      <strong>Vencimento:</strong> ${new Date(data.dueDate).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
+                    <p style="margin: 0; color: #1f2937; font-size: 16px;">
+                      <strong>Método de Pagamento:</strong> ${paymentMethodLabel}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 20px 0;">
+                    <a href="${data.paymentUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 40px; border-radius: 6px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+                      💳 Pagar Agora
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 24px; color: #6b7280; font-size: 14px; line-height: 1.6; font-style: italic; text-align: center;">
+                A cobrança será processada automaticamente via <strong>${data.billingType}</strong> conforme escolhido no cadastro.
+              </p>
+
+              <p style="margin: 24px 0 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
+                Continue aproveitando todos os recursos do seu plano!
+              </p>
+
+              <p style="margin: 16px 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+                Em caso de dúvidas, entre em contato através do email
+                <a href="mailto:${this.emailReplyTo}" style="color: #3b82f6; text-decoration: none;">${this.emailReplyTo}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-radius: 0 0 8px 8px; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+                <strong>Rafa ILPI</strong> - Sistema de Gestão para ILPIs
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                © ${new Date().getFullYear()} Rafa Labs Desenvolvimento e Tecnologia
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+    `;
+  }
+
+  /**
+   * Substituir variáveis em strings de template
+   * Exemplo: "Olá {{name}}" com {name: "João"} → "Olá João"
+   */
+  private replaceVariables(text: string, variables: Record<string, any>): string {
+    let result = text;
+
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+
+      // Formatar valor baseado no tipo
+      let formattedValue = value;
+
+      if (value instanceof Date) {
+        formattedValue = value.toLocaleDateString('pt-BR');
+      } else if (typeof value === 'number') {
+        formattedValue = value.toLocaleString('pt-BR');
+      } else if (typeof value === 'boolean') {
+        formattedValue = value ? 'Sim' : 'Não';
+      }
+
+      result = result.replace(regex, String(formattedValue));
+    });
+
+    return result;
   }
 }

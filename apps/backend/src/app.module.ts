@@ -43,6 +43,7 @@ import { SuperAdminModule } from './superadmin/superadmin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { PrivacyPolicyModule } from './privacy-policy/privacy-policy.module';
+import { EmailTemplatesModule } from './email-templates/email-templates.module';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { PrivacyPolicyModule } from './privacy-policy/privacy-policy.module';
     PaymentsModule,
     AdminModule,
     PrivacyPolicyModule,
+    EmailTemplatesModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

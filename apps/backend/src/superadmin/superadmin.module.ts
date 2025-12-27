@@ -12,6 +12,8 @@ import { CollectionsService } from './services/collections.service'
 import { SubscriptionAlertsJob } from './jobs/subscription-alerts.job'
 import { PaymentAlertsJob } from './jobs/payment-alerts.job'
 import { OverdueReportsJob } from './jobs/overdue-reports.job'
+import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
+import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
 import { SuperAdminController } from './superadmin.controller'
 
 /**
@@ -46,6 +48,8 @@ import { SuperAdminController } from './superadmin.controller'
     SubscriptionAlertsJob,
     PaymentAlertsJob,
     OverdueReportsJob,
+    TrialExpirationAlertsJob,
+    TrialToActiveConversionJob,
   ],
   exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService, CollectionsService],
 })

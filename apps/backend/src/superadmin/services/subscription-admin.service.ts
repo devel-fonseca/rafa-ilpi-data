@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { addDays } from 'date-fns'
+import { addDays, addMonths, addYears } from 'date-fns'
 import { Decimal } from '@prisma/client/runtime/library'
 
 /**
@@ -403,5 +403,95 @@ export class SubscriptionAdminService {
     })
 
     return updated
+  }
+
+  /**
+   * Converter trial para plano ativo
+   *
+   * ✅ AJUSTE 3: Usa trialEndDate como cycleStart (NÃO now)
+   * Mantém lógica temporal consistente e previsível para billing.
+   *
+   * FLUXO:
+   * 1. Valida que subscription está em status 'trialing'
+   * 2. Calcula cycleStart = trialEndDate (coerência temporal)
+   * 3. Calcula cycleEnd baseado em billing_cycle (MONTHLY ou ANNUAL)
+   * 4. Atualiza subscription: trialing → active
+   * 5. Atualiza tenant: TRIAL → ACTIVE
+   *
+   * @param subscriptionId ID da subscription em trial
+   * @returns Subscription atualizada com status 'active'
+   * @throws NotFoundException se subscription não existir
+   * @throws BadRequestException se subscription não estiver em trial
+   */
+  async convertTrialToActive(subscriptionId: string) {
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Buscar subscription
+      const subscription = await tx.subscription.findUnique({
+        where: { id: subscriptionId },
+        include: { tenant: true, plan: true },
+      })
+
+      if (!subscription) {
+        throw new NotFoundException(
+          `Subscription com ID ${subscriptionId} não encontrada`,
+        )
+      }
+
+      if (subscription.status !== 'trialing') {
+        throw new BadRequestException(
+          'Subscription não está em trial. Status atual: ' + subscription.status,
+        )
+      }
+
+      if (!subscription.trialEndDate) {
+        throw new BadRequestException(
+          'Subscription em trial deve ter trialEndDate definido',
+        )
+      }
+
+      // ✅ AJUSTE 3: Usar trialEndDate como início do período pago
+      // Mantém lógica temporal consistente (não `now`)
+      const cycleStart = subscription.trialEndDate
+      const cycleEnd =
+        subscription.billing_cycle === 'ANNUAL'
+          ? addYears(cycleStart, 1)
+          : addMonths(cycleStart, 1)
+
+      // 2. Atualizar subscription
+      const updated = await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: 'active', // trialing → active
+          currentPeriodStart: cycleStart,
+          currentPeriodEnd: cycleEnd,
+        },
+      })
+
+      // 3. Atualizar tenant status
+      await tx.tenant.update({
+        where: { id: subscription.tenantId },
+        data: { status: 'ACTIVE' }, // TRIAL → ACTIVE
+      })
+
+      // 4. Criar alerta de conversão
+      await tx.systemAlert.create({
+        data: {
+          tenantId: subscription.tenantId,
+          type: 'SYSTEM_ERROR', // TODO: Adicionar tipo TRIAL_CONVERTED
+          severity: 'INFO',
+          title: 'Trial Convertido para Plano Ativo',
+          message: `Período de teste finalizado. Plano "${subscription.plan.name}" ativado com sucesso.`,
+          metadata: {
+            subscriptionId,
+            planId: subscription.planId,
+            cycleStart: cycleStart.toISOString(),
+            cycleEnd: cycleEnd.toISOString(),
+            billingCycle: subscription.billing_cycle,
+          },
+        },
+      })
+
+      return updated
+    })
   }
 }

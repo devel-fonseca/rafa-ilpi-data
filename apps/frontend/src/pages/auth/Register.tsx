@@ -85,7 +85,7 @@ export default function Register() {
     // Plan & Billing
     planId: '',
     billingCycle: 'MONTHLY' as 'MONTHLY' | 'ANNUAL',
-    paymentMethod: '' as '' | 'PIX' | 'BOLETO' | 'CREDIT_CARD',
+    paymentMethod: '' as '' | 'BOLETO' | 'CREDIT_CARD',
 
     // LGPD Declarations (Step 4)
     lgpdIsDataController: false,
@@ -180,12 +180,6 @@ export default function Register() {
     }
   }, [currentStep])
 
-  // Resetar PIX se mudar de ANNUAL para MONTHLY
-  useEffect(() => {
-    if (formData.billingCycle === 'MONTHLY' && formData.paymentMethod === 'PIX') {
-      setFormData(prev => ({ ...prev, paymentMethod: '' }))
-    }
-  }, [formData.billingCycle])
 
   const loadActiveContract = async () => {
     setLoadingContract(true)
@@ -1314,55 +1308,8 @@ export default function Register() {
 
         <RadioGroup
           value={formData.paymentMethod}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'PIX' | 'BOLETO' | 'CREDIT_CARD' }))}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'BOLETO' | 'CREDIT_CARD' }))}
         >
-          {/* PIX - Apenas para Plano Anual */}
-          {formData.billingCycle === 'ANNUAL' ? (
-            <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer relative">
-              <RadioGroupItem value="PIX" id="pix" />
-              <Label htmlFor="pix" className="flex-1 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">💰</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">PIX</p>
-                      <Badge variant="default" className="bg-green-600 text-xs">
-                        Apenas Anual
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Confirmação instantânea
-                    </p>
-                  </div>
-                </div>
-              </Label>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2 border border-gray-200 rounded-lg p-4 bg-gray-100 opacity-60 cursor-not-allowed relative">
-              <RadioGroupItem value="PIX" id="pix" disabled />
-              <Label htmlFor="pix" className="flex-1 cursor-not-allowed">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl grayscale opacity-50">💰</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-500">PIX</p>
-                      <Badge variant="outline" className="text-xs text-gray-500 border-gray-400">
-                        Disponível apenas no plano anual
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Selecione o ciclo anual no Step 3 para habilitar
-                    </p>
-                  </div>
-                </div>
-              </Label>
-            </div>
-          )}
-
           {/* Boleto */}
           <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
             <RadioGroupItem value="BOLETO" id="boleto" />

@@ -626,6 +626,11 @@ model Subscription {
   billingCycle           String? @db.VarChar(20) @map("billing_cycle") // MONTHLY | ANNUAL
   preferredPaymentMethod String? @db.VarChar(50) @map("preferred_payment_method") // PIX | BOLETO | CREDIT_CARD
 
+  // Trial Alerts Control (Idempotência - evitar emails duplicados)
+  trialAlert7Sent Boolean @default(false) @map("trial_alert_7_sent") // Email D-7 enviado
+  trialAlert3Sent Boolean @default(false) @map("trial_alert_3_sent") // Email D-3 enviado
+  trialAlert1Sent Boolean @default(false) @map("trial_alert_1_sent") // Email D-1 enviado
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -3025,4 +3030,59 @@ model SystemAlert {
   @@index([tenantId])
   @@index([createdAt(sort: Desc)])
   @@map("system_alerts")
+}
+
+// Model: EmailTemplate (Templates de Email Globais - Sistema)
+model EmailTemplate {
+  id          String                @id @default(uuid()) @db.Uuid
+  key         String                @unique @db.VarChar(100) // "user-invite", "payment-reminder", etc.
+  name        String                @db.VarChar(255) // "Convite de Usuário"
+  subject     String                @db.VarChar(500) // "Acesso liberado ao sistema da {{tenantName}}"
+  description String?               @db.Text
+  jsonContent Json                  @db.JsonB // Easy Email JSON structure
+  variables   Json                  @db.JsonB // [{name: "tenantName", type: "string", required: true, description: "Nome da ILPI"}]
+  version     Int                   @default(1)
+  isActive    Boolean               @default(true)
+  category    EmailTemplateCategory
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  versions EmailTemplateVersion[]
+
+  // Índices
+  @@index([key])
+  @@index([category])
+  @@index([isActive])
+  @@map("email_templates")
+}
+
+// Model: EmailTemplateVersion (Histórico de Versões de Templates)
+model EmailTemplateVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  templateId    String   @db.Uuid
+  versionNumber Int
+  jsonContent   Json     @db.JsonB
+  subject       String   @db.VarChar(500)
+  createdBy     String   @db.Uuid // User ID do superadmin
+  changeNote    String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([templateId])
+  @@index([versionNumber])
+  @@map("email_template_versions")
+}
+
+// Enum: EmailTemplateCategory
+enum EmailTemplateCategory {
+  ONBOARDING // user-invite
+  BILLING    // payment-reminder, overdue-report
+  LIFECYCLE  // trial-expiring, trial-converted
+  SYSTEM     // outros
+
+  @@map("EmailTemplateCategory")
 }
