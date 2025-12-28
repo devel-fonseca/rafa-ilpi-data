@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PhotoViewer } from '@/components/form/PhotoViewer';
 import { useMessage } from '@/hooks/useMessages';
 import { MessageType } from '@/api/messages.api';
 import { format } from 'date-fns';
@@ -60,7 +61,7 @@ export default function MessageDetailPage() {
             você não tem permissão para visualizá-la.
           </AlertDescription>
         </Alert>
-        <Button onClick={() => navigate('/mensagens')}>
+        <Button onClick={() => navigate('/dashboard/mensagens')}>
           Voltar para Mensagens
         </Button>
       </div>
@@ -74,7 +75,7 @@ export default function MessageDetailPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/mensagens')}
+          onClick={() => navigate('/dashboard/mensagens')}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -99,33 +100,27 @@ export default function MessageDetailPage() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              {message.sender.profile?.profilePhoto ? (
-                <img
-                  src={message.sender.profile.profilePhoto}
-                  alt={message.sender.name}
-                  className="w-12 h-12 rounded-full"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-medium">
-                    {message.sender.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <PhotoViewer
+                photoUrl={message.sender.profile?.profilePhoto || undefined}
+                altText={message.sender.name}
+                size="sm"
+                rounded={true}
+              />
               <div>
                 <CardTitle className="text-lg">{message.sender.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   {message.sender.email}
                 </p>
-                {message.type === MessageType.BROADCAST && (
+                {message.type === MessageType.BROADCAST ? (
                   <p className="text-xs text-muted-foreground mt-1">
                     Para: Todos os usuários do tenant
                   </p>
-                )}
-                {message.recipients && message.recipients.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Para: {message.recipients.map((r) => r.user.name).join(', ')}
-                  </p>
+                ) : (
+                  message.recipients && message.recipients.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Para: {message.recipients.map((r) => r.user.name).join(', ')}
+                    </p>
+                  )
                 )}
               </div>
             </div>
@@ -141,7 +136,7 @@ export default function MessageDetailPage() {
 
       {/* Ações */}
       <div className="flex gap-4">
-        <Button variant="outline" onClick={() => navigate('/mensagens')}>
+        <Button variant="outline" onClick={() => navigate('/dashboard/mensagens')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>

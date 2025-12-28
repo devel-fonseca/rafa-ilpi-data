@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PhotoViewer } from '@/components/form/PhotoViewer';
 import {
   useInbox,
   useUnreadMessagesCount,
@@ -98,19 +99,12 @@ export function MessagesDropdown() {
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
-                      {message.sender.profile?.profilePhoto ? (
-                        <img
-                          src={message.sender.profile.profilePhoto}
-                          alt={message.sender.name}
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-xs font-medium">
-                            {message.sender.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <PhotoViewer
+                        photoUrl={message.sender.profile?.profilePhoto || undefined}
+                        altText={message.sender.name}
+                        size="xs"
+                        rounded={true}
+                      />
                     </div>
 
                     <div className="flex-1 min-w-0">

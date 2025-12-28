@@ -184,8 +184,9 @@ export default function MessagesListPage() {
           </CardHeader>
 
           <TabsContent value="inbox">
-            <Table>
-              <TableHeader>
+            <CardContent className="pt-0">
+              <Table>
+                <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]"></TableHead>
                   <TableHead>De</TableHead>
@@ -227,42 +228,45 @@ export default function MessagesListPage() {
               </TableBody>
             </Table>
 
-            {/* Pagination */}
-            {inboxMeta && inboxMeta.totalPages > 1 && (
-              <div className="flex justify-between items-center p-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Página {inboxMeta.page} de {inboxMeta.totalPages}
+              {/* Pagination */}
+              {inboxMeta && inboxMeta.totalPages > 1 && (
+                <div className="flex justify-between items-center p-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Página {inboxMeta.page} de {inboxMeta.totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setInboxQuery({ ...inboxQuery, page: inboxQuery.page! - 1 })
+                      }
+                      disabled={inboxMeta.page === 1}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setInboxQuery({ ...inboxQuery, page: inboxQuery.page! + 1 })
+                      }
+                      disabled={inboxMeta.page === inboxMeta.totalPages}
+                    >
+                      Próximo
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setInboxQuery({ ...inboxQuery, page: inboxQuery.page! - 1 })
-                    }
-                    disabled={inboxMeta.page === 1}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setInboxQuery({ ...inboxQuery, page: inboxQuery.page! + 1 })
-                    }
-                    disabled={inboxMeta.page === inboxMeta.totalPages}
-                  >
-                    Próximo
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
+            </CardContent>
           </TabsContent>
 
           <TabsContent value="sent">
-            <Table>
-              <TableHeader>
+            <CardContent className="pt-0">
+              <Table>
+                <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
                   <TableHead>Para</TableHead>
                   <TableHead>Assunto</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -276,6 +280,7 @@ export default function MessagesListPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}
                   >
+                    <TableCell></TableCell>
                     <TableCell>
                       {message.type === MessageType.BROADCAST
                         ? 'Todos os usuários'
@@ -295,36 +300,37 @@ export default function MessagesListPage() {
               </TableBody>
             </Table>
 
-            {/* Pagination */}
-            {sentMeta && sentMeta.totalPages > 1 && (
-              <div className="flex justify-between items-center p-4 border-t">
-                <div className="text-sm text-muted-foreground">
-                  Página {sentMeta.page} de {sentMeta.totalPages}
+              {/* Pagination */}
+              {sentMeta && sentMeta.totalPages > 1 && (
+                <div className="flex justify-between items-center p-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Página {sentMeta.page} de {sentMeta.totalPages}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setSentQuery({ ...sentQuery, page: sentQuery.page! - 1 })
+                      }
+                      disabled={sentMeta.page === 1}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setSentQuery({ ...sentQuery, page: sentQuery.page! + 1 })
+                      }
+                      disabled={sentMeta.page === sentMeta.totalPages}
+                    >
+                      Próximo
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setSentQuery({ ...sentQuery, page: sentQuery.page! - 1 })
-                    }
-                    disabled={sentMeta.page === 1}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setSentQuery({ ...sentQuery, page: sentQuery.page! + 1 })
-                    }
-                    disabled={sentMeta.page === sentMeta.totalPages}
-                  >
-                    Próximo
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
+            </CardContent>
           </TabsContent>
         </Tabs>
       </Card>
