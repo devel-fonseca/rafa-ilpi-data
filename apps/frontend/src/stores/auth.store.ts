@@ -9,6 +9,7 @@ interface User {
   role: string
   tenantId: string
   photoUrl?: string | null
+  passwordResetRequired?: boolean
   tenant?: {
     id: string
     name: string

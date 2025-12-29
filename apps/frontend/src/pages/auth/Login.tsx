@@ -23,6 +23,12 @@ export default function Login() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
+      // ✅ Verificar se precisa trocar senha obrigatoriamente (primeiro login)
+      if (user.passwordResetRequired) {
+        navigate('/force-password-change')
+        return
+      }
+
       // Redirecionar SUPERADMIN para portal específico
       if (user.role === 'SUPERADMIN') {
         navigate('/superadmin')

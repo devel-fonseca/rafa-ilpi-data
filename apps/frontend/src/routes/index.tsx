@@ -8,6 +8,7 @@ import Login from '@/pages/auth/Login'
 import Register from '@/pages/auth/Register'
 import Welcome from '@/pages/auth/Welcome'
 import SessionExpired from '@/pages/auth/SessionExpired'
+import ForcePasswordChange from '@/pages/auth/ForcePasswordChange'
 
 // Public Pages
 import { PrivacyPolicyPage } from '@/pages/public/PrivacyPolicyPage'
@@ -106,6 +107,10 @@ export const router = createBrowserRouter([
   {
     path: '/session-expired',
     element: <SessionExpired />,
+  },
+  {
+    path: '/force-password-change',
+    element: <ForcePasswordChange />,
   },
   {
     path: '/privacy-policy',
