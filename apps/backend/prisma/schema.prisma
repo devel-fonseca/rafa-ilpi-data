@@ -605,6 +605,7 @@ model Tenant {
   messages                  Message[]
   messageRecipients         MessageRecipient[]
   messageAttachments        MessageAttachment[]
+  emailLogs                 EmailLog[] // Auditoria de emails enviados
 
   @@map("tenants")
 }
@@ -757,6 +758,9 @@ model User {
   sentMessages         Message[]            @relation("SentMessages")
   receivedMessages     MessageRecipient[]   @relation("ReceivedMessages")
   uploadedAttachments  MessageAttachment[]  @relation("UploadedAttachments")
+
+  // Mensagens para Tenants (SuperAdmin)
+  tenantMessagesCreated TenantMessage[]
 
   @@unique([tenantId, email])
   @@index([createdBy])
@@ -2890,6 +2894,7 @@ enum InvoiceStatus {
   DRAFT
   OPEN
   PAID
+  OVERDUE
   VOID
   UNCOLLECTIBLE
 
@@ -3110,6 +3115,59 @@ model EmailTemplateVersion {
   @@map("email_template_versions")
 }
 
+// Model: EmailLog (Auditoria de Emails Enviados)
+model EmailLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  templateKey    String?     @db.VarChar(100) // "user-invite", "payment-reminder", etc. (null se não for de template)
+  recipientEmail String      @db.VarChar(255)
+  recipientName  String?     @db.VarChar(255)
+  subject        String      @db.VarChar(500)
+  tenantId       String?     @db.Uuid // Para emails vinculados a tenant
+  resendId       String?     @db.VarChar(255) // ID retornado pela Resend API
+  status         EmailStatus
+  errorMessage   String?     @db.Text
+  sentAt         DateTime    @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([templateKey])
+  @@index([tenantId])
+  @@index([sentAt(sort: Desc)])
+  @@index([status])
+  @@index([recipientEmail])
+  @@map("email_logs")
+}
+
+// Model: TenantMessage (Mensagens/Newsletters para Tenants)
+model TenantMessage {
+  id                String                  @id @default(uuid()) @db.Uuid
+  title             String                  @db.VarChar(255) // "Nova funcionalidade: Relatórios"
+  subject           String                  @db.VarChar(500) // Subject do email
+  htmlContent       String                  @db.Text // HTML completo do email
+  recipientFilter   MessageRecipientFilter
+  specificTenantIds String[]                @db.Uuid // Array de IDs (se SPECIFIC_TENANTS)
+  scheduledFor      DateTime?               @db.Timestamptz(3) // null = enviar agora
+  sentAt            DateTime?               @db.Timestamptz(3)
+  status            TenantMessageStatus     @default(DRAFT)
+  sentCount         Int                     @default(0)
+  failedCount       Int                     @default(0)
+  createdBy         String                  @db.Uuid
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  creator User @relation(fields: [createdBy], references: [id])
+
+  // Índices
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdBy])
+  @@index([createdAt(sort: Desc)])
+  @@map("tenant_messages")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODELS - Sistema de Mensagens Internas
 // ──────────────────────────────────────────────────────────────────────────────
@@ -3215,4 +3273,34 @@ enum EmailTemplateCategory {
   SYSTEM     // outros
 
   @@map("EmailTemplateCategory")
+}
+
+// Enum: EmailStatus (Status de envio de email)
+enum EmailStatus {
+  SENT    // Email enviado com sucesso
+  FAILED  // Falha no envio
+  BOUNCED // Email retornou (bounce)
+
+  @@map("EmailStatus")
+}
+
+// Enum: MessageRecipientFilter (Filtro de destinatários para TenantMessage)
+enum MessageRecipientFilter {
+  ALL_TENANTS      // Todos os tenants
+  ACTIVE_ONLY      // Apenas tenants com subscription ativa
+  TRIAL_ONLY       // Apenas tenants em trial
+  OVERDUE_ONLY     // Apenas tenants inadimplentes
+  SPECIFIC_TENANTS // Lista específica de tenants
+
+  @@map("MessageRecipientFilter")
+}
+
+// Enum: TenantMessageStatus (Status da mensagem aos tenants)
+enum TenantMessageStatus {
+  DRAFT     // Rascunho (não enviado)
+  SCHEDULED // Agendado para envio futuro
+  SENDING   // Enviando (em progresso)
+  SENT      // Enviado com sucesso
+
+  @@map("TenantMessageStatus")
 }

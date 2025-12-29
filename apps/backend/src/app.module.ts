@@ -44,6 +44,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { PrivacyPolicyModule } from './privacy-policy/privacy-policy.module';
 import { EmailTemplatesModule } from './email-templates/email-templates.module';
+import { EmailLogsModule } from './email-logs/email-logs.module';
+import { TenantMessagesModule } from './tenant-messages/tenant-messages.module';
 import { MessagesModule } from './messages/messages.module';
 
 @Module({
@@ -111,6 +113,8 @@ import { MessagesModule } from './messages/messages.module';
     AdminModule,
     PrivacyPolicyModule,
     EmailTemplatesModule,
+    EmailLogsModule,
+    TenantMessagesModule,
     MessagesModule,
   ],
   providers: [

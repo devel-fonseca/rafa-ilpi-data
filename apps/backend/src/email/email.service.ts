@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { PrismaService } from '../prisma/prisma.service';
+import { EmailStatus } from '@prisma/client';
 import { EmailTemplatesService } from '../email-templates/email-templates.service';
 
 @Injectable()
@@ -13,6 +15,7 @@ export class EmailService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
     private readonly emailTemplatesService: EmailTemplatesService,
   ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
@@ -48,6 +51,7 @@ export class EmailService {
       temporaryPassword: string;
       tenantName: string;
     },
+    tenantId?: string,
   ): Promise<boolean> {
     if (!this.resend) {
       this.logger.warn('Tentativa de envio de email sem API Key configurada');
@@ -80,13 +84,43 @@ export class EmailService {
 
       if (error) {
         this.logger.error(`Erro ao enviar email de convite: ${error.message}`, error);
+        // Registrar falha no log
+        await this.logEmailSent({
+          templateKey: 'user-invite',
+          recipientEmail: to,
+          recipientName: userData.name,
+          subject,
+          tenantId,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
         return false;
       }
 
       this.logger.log(`Email de convite enviado com sucesso para ${to} (ID: ${data.id})`);
+      // Registrar sucesso no log
+      await this.logEmailSent({
+        templateKey: 'user-invite',
+        recipientEmail: to,
+        recipientName: userData.name,
+        subject,
+        tenantId,
+        resendId: data.id,
+        status: EmailStatus.SENT,
+      });
       return true;
     } catch (error) {
       this.logger.error(`Erro inesperado ao enviar email: ${error.message}`, error.stack);
+      // Registrar erro no log
+      await this.logEmailSent({
+        templateKey: 'user-invite',
+        recipientEmail: to,
+        recipientName: userData.name,
+        subject: 'Convite de Usuário', // fallback
+        tenantId,
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
       return false;
     }
   }
@@ -103,6 +137,7 @@ export class EmailService {
       dueDate: Date;
       daysOverdue: number;
     },
+    tenantId?: string,
   ): Promise<boolean> {
     if (!this.resend) {
       this.logger.warn('Tentativa de envio de email sem API Key configurada');
@@ -129,13 +164,40 @@ export class EmailService {
 
       if (error) {
         this.logger.error(`Erro ao enviar lembrete de pagamento: ${error.message}`, error);
+        await this.logEmailSent({
+          templateKey: 'payment-reminder',
+          recipientEmail: to,
+          recipientName: reminderData.tenantName,
+          subject,
+          tenantId,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
         return false;
       }
 
       this.logger.log(`Lembrete de pagamento enviado com sucesso para ${to} (ID: ${data.id})`);
+      await this.logEmailSent({
+        templateKey: 'payment-reminder',
+        recipientEmail: to,
+        recipientName: reminderData.tenantName,
+        subject,
+        tenantId,
+        resendId: data.id,
+        status: EmailStatus.SENT,
+      });
       return true;
     } catch (error) {
       this.logger.error(`Erro inesperado ao enviar lembrete: ${error.message}`, error.stack);
+      await this.logEmailSent({
+        templateKey: 'payment-reminder',
+        recipientEmail: to,
+        recipientName: reminderData.tenantName,
+        subject: 'Lembrete de Pagamento',
+        tenantId,
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
       return false;
     }
   }
@@ -164,6 +226,7 @@ export class EmailService {
       return false;
     }
 
+    let subject = 'Relatório de Inadimplência';
     try {
       // Buscar template do banco de dados
       const template = await this.emailTemplatesService.findByKey('overdue-report');
@@ -182,7 +245,7 @@ export class EmailService {
       const htmlContent = await this.emailTemplatesService.renderTemplate('overdue-report', variables);
 
       // Renderizar subject com variáveis
-      const subject = this.replaceVariables(template.subject, variables);
+      subject = this.replaceVariables(template.subject, variables);
 
       const { data, error } = await this.resend.emails.send({
         from: this.emailFrom,
@@ -194,13 +257,37 @@ export class EmailService {
 
       if (error) {
         this.logger.error(`Erro ao enviar relatório de inadimplência: ${error.message}`, error);
+        await this.logEmailSent({
+          templateKey: 'overdue-report',
+          recipientEmail: 'financeiro@rafalabs.com.br',
+          recipientName: 'Financeiro Rafa Labs',
+          subject,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
         return false;
       }
 
       this.logger.log(`Relatório de inadimplência ${reportData.period} enviado com sucesso (ID: ${data.id})`);
+      await this.logEmailSent({
+        templateKey: 'overdue-report',
+        recipientEmail: 'financeiro@rafalabs.com.br',
+        recipientName: 'Financeiro Rafa Labs',
+        subject,
+        resendId: data.id,
+        status: EmailStatus.SENT,
+      });
       return true;
     } catch (error) {
       this.logger.error(`Erro inesperado ao enviar relatório: ${error.message}`, error.stack);
+      await this.logEmailSent({
+        templateKey: 'overdue-report',
+        recipientEmail: 'financeiro@rafalabs.com.br',
+        recipientName: 'Financeiro Rafa Labs',
+        subject: subject || 'Relatório de Inadimplência',
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
       return false;
     }
   }
@@ -633,6 +720,7 @@ export class EmailService {
       return false;
     }
 
+    let subject = 'Alerta de Trial';
     try {
       // Buscar template do banco de dados
       const template = await this.emailTemplatesService.findByKey('trial-expiring');
@@ -641,7 +729,7 @@ export class EmailService {
       const htmlContent = await this.emailTemplatesService.renderTemplate('trial-expiring', data);
 
       // Renderizar subject com variáveis
-      const subject = this.replaceVariables(template.subject, data);
+      subject = this.replaceVariables(template.subject, data);
 
       const { data: resendData, error } = await this.resend.emails.send({
         from: this.emailFrom,
@@ -656,18 +744,42 @@ export class EmailService {
           `Erro ao enviar alerta de trial: ${error.message}`,
           error,
         );
+        await this.logEmailSent({
+          templateKey: 'trial-expiring',
+          recipientEmail: to,
+          recipientName: data.tenantName,
+          subject,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
         return false;
       }
 
       this.logger.log(
         `Alerta de trial ${data.alertLevel} enviado para ${to} (ID: ${resendData.id})`,
       );
+      await this.logEmailSent({
+        templateKey: 'trial-expiring',
+        recipientEmail: to,
+        recipientName: data.tenantName,
+        subject,
+        resendId: resendData.id,
+        status: EmailStatus.SENT,
+      });
       return true;
     } catch (error) {
       this.logger.error(
         `Erro inesperado ao enviar alerta de trial: ${error.message}`,
         error.stack,
       );
+      await this.logEmailSent({
+        templateKey: 'trial-expiring',
+        recipientEmail: to,
+        recipientName: data.tenantName,
+        subject: subject || 'Alerta de Trial',
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
       return false;
     }
   }
@@ -691,6 +803,7 @@ export class EmailService {
       return false;
     }
 
+    let subject = 'Trial Convertido';
     try {
       // Buscar template do banco de dados
       const template = await this.emailTemplatesService.findByKey('trial-converted');
@@ -699,7 +812,7 @@ export class EmailService {
       const htmlContent = await this.emailTemplatesService.renderTemplate('trial-converted', data);
 
       // Renderizar subject com variáveis
-      const subject = this.replaceVariables(template.subject, data);
+      subject = this.replaceVariables(template.subject, data);
 
       const { data: resendData, error } = await this.resend.emails.send({
         from: this.emailFrom,
@@ -714,18 +827,42 @@ export class EmailService {
           `Erro ao enviar notificação de conversão: ${error.message}`,
           error,
         );
+        await this.logEmailSent({
+          templateKey: 'trial-converted',
+          recipientEmail: to,
+          recipientName: data.tenantName,
+          subject,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
         return false;
       }
 
       this.logger.log(
         `Notificação de conversão enviada para ${to} (ID: ${resendData.id})`,
       );
+      await this.logEmailSent({
+        templateKey: 'trial-converted',
+        recipientEmail: to,
+        recipientName: data.tenantName,
+        subject,
+        resendId: resendData.id,
+        status: EmailStatus.SENT,
+      });
       return true;
     } catch (error) {
       this.logger.error(
         `Erro inesperado ao enviar notificação: ${error.message}`,
         error.stack,
       );
+      await this.logEmailSent({
+        templateKey: 'trial-converted',
+        recipientEmail: to,
+        recipientName: data.tenantName,
+        subject: subject || 'Trial Convertido',
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
       return false;
     }
   }
@@ -1021,6 +1158,98 @@ export class EmailService {
 </body>
 </html>
     `;
+  }
+
+  /**
+   * Registrar log de email enviado no banco de dados
+   */
+  private async logEmailSent(data: {
+    templateKey?: string;
+    recipientEmail: string;
+    recipientName?: string;
+    subject: string;
+    tenantId?: string;
+    resendId?: string;
+    status: EmailStatus;
+    errorMessage?: string;
+  }): Promise<void> {
+    try {
+      await this.prisma.emailLog.create({
+        data: {
+          templateKey: data.templateKey,
+          recipientEmail: data.recipientEmail,
+          recipientName: data.recipientName,
+          subject: data.subject,
+          tenantId: data.tenantId,
+          resendId: data.resendId,
+          status: data.status,
+          errorMessage: data.errorMessage,
+        },
+      });
+    } catch (error) {
+      // Não deixar erro de log quebrar o fluxo de envio
+      this.logger.error(`Erro ao registrar log de email: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * Enviar email genérico (para mensagens aos tenants, newsletters, etc)
+   */
+  async sendGenericEmail(
+    recipientEmail: string,
+    recipientName: string,
+    subject: string,
+    htmlContent: string,
+    tenantId?: string,
+  ): Promise<{ success: boolean; resendId?: string; error?: string }> {
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: recipientEmail,
+        subject,
+        html: htmlContent,
+        replyTo: this.emailReplyTo,
+      });
+
+      if (error) {
+        this.logger.error(`Erro ao enviar email genérico: ${error.message}`, error);
+        await this.logEmailSent({
+          recipientEmail,
+          recipientName,
+          subject,
+          tenantId,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
+        return { success: false, error: error.message };
+      }
+
+      this.logger.log(
+        `Email genérico enviado com sucesso para ${recipientEmail} (Resend ID: ${data.id})`,
+      );
+
+      await this.logEmailSent({
+        recipientEmail,
+        recipientName,
+        subject,
+        tenantId,
+        resendId: data.id,
+        status: EmailStatus.SENT,
+      });
+
+      return { success: true, resendId: data.id };
+    } catch (error) {
+      this.logger.error(`Exceção ao enviar email genérico: ${error.message}`, error.stack);
+      await this.logEmailSent({
+        recipientEmail,
+        recipientName,
+        subject,
+        tenantId,
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
+      return { success: false, error: error.message };
+    }
   }
 
   /**

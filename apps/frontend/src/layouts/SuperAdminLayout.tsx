@@ -84,6 +84,16 @@ export function SuperAdminLayout() {
       icon: Mail,
     },
     {
+      to: '/superadmin/email-logs',
+      label: 'Histórico de Emails',
+      icon: Mail,
+    },
+    {
+      to: '/superadmin/tenant-messages',
+      label: 'Mensagens para Tenants',
+      icon: Mail,
+    },
+    {
       to: '/superadmin/alerts',
       label: 'Alertas',
       icon: Bell,
