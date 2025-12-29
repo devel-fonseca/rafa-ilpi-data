@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Send, Save, Calendar } from 'lucide-react';
+import { ArrowLeft, Send, Save, Calendar, Search } from 'lucide-react';
 import { useTenants } from '@/hooks/useSuperAdmin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,8 @@ export default function TenantMessageForm() {
     scheduledFor: null,
   });
 
+  const [tenantSearch, setTenantSearch] = useState('');
+
   // Buscar mensagem existente (modo edição)
   const { data: existingMessage, isLoading: isLoadingMessage } = useQuery({
     queryKey: ['tenant-message', id],
@@ -61,6 +63,15 @@ export default function TenantMessageForm() {
 
   // Buscar lista de tenants (para SPECIFIC_TENANTS)
   const { data: tenantsData } = useTenants({ limit: 1000 });
+
+  // Filtrar tenants com base na busca
+  const filteredTenants = tenantSearch
+    ? tenantsData?.data?.filter(
+        (tenant) =>
+          tenant.name.toLowerCase().includes(tenantSearch.toLowerCase()) ||
+          tenant.email.toLowerCase().includes(tenantSearch.toLowerCase())
+      )
+    : tenantsData?.data;
 
   // Preencher formulário ao carregar mensagem existente
   useEffect(() => {
@@ -292,13 +303,48 @@ export default function TenantMessageForm() {
             {formData.recipientFilter === 'SPECIFIC_TENANTS' && (
               <div className="space-y-2">
                 <Label>Selecione os Tenants</Label>
+
+                {/* Campo de busca e ações */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nome ou email..."
+                      value={tenantSearch}
+                      onChange={(e) => setTenantSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const allIds = tenantsData?.data?.map((t) => t.id) || [];
+                      setFormData({ ...formData, specificTenantIds: allIds });
+                    }}
+                    disabled={!tenantsData?.data?.length}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData({ ...formData, specificTenantIds: [] })}
+                    disabled={formData.specificTenantIds.length === 0}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+
                 <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
                   {!tenantsData ? (
                     <div className="text-center py-4 text-muted-foreground">
                       Carregando tenants...
                     </div>
-                  ) : tenantsData.data && tenantsData.data.length > 0 ? (
-                    tenantsData.data.map((tenant) => (
+                  ) : filteredTenants && filteredTenants.length > 0 ? (
+                    filteredTenants.map((tenant) => (
                       <label
                         key={tenant.id}
                         className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
@@ -332,13 +378,22 @@ export default function TenantMessageForm() {
                     ))
                   ) : (
                     <div className="text-center py-4 text-muted-foreground">
-                      Nenhum tenant encontrado
+                      {tenantSearch
+                        ? 'Nenhum tenant encontrado com esse termo'
+                        : 'Nenhum tenant encontrado'}
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {formData.specificTenantIds.length} tenant(s) selecionado(s)
-                </p>
+
+                {/* Contador de selecionados e info */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{formData.specificTenantIds.length} tenant(s) selecionado(s)</span>
+                  {tenantSearch && filteredTenants && (
+                    <span>
+                      {filteredTenants.length} de {tenantsData?.data?.length || 0} na busca
+                    </span>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>
