@@ -342,9 +342,26 @@ export default function MyProfile() {
           </Card>
       </div>
 
-      {/* Autorização ILPI (Somente Leitura) */}
-      {(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) && (
-        <Card className="mb-6">
+      {/* Abas: Autorização ILPI, Dados Pessoais e Alterar Senha */}
+      <Tabs defaultValue={(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) ? "authorization" : "personal"} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)}>
+            <Shield className="h-4 w-4 mr-2" />
+            Autorização ILPI
+          </TabsTrigger>
+          <TabsTrigger value="personal">
+            <FileText className="h-4 w-4 mr-2" />
+            Dados Pessoais
+          </TabsTrigger>
+          <TabsTrigger value="password">
+            <KeyRound className="h-4 w-4 mr-2" />
+            Alterar Senha
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Aba: Autorização ILPI */}
+        <TabsContent value="authorization">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
@@ -434,21 +451,7 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-        )
-      }
-
-      {/* Abas: Dados Pessoais e Alterar Senha */}
-      <Tabs defaultValue="personal" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="personal">
-            <FileText className="h-4 w-4 mr-2" />
-            Dados Pessoais
-          </TabsTrigger>
-          <TabsTrigger value="password">
-            <KeyRound className="h-4 w-4 mr-2" />
-            Alterar Senha
-          </TabsTrigger>
-        </TabsList>
+        </TabsContent>
 
         {/* Aba: Dados Pessoais */}
         <TabsContent value="personal">
