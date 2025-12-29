@@ -305,38 +305,48 @@ export default function TenantMessageForm() {
               <div className="space-y-2">
                 <Label>Selecione os Tenants</Label>
                 <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
-                  {tenantsData?.tenants.map((tenant) => (
-                    <label
-                      key={tenant.id}
-                      className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.specificTenantIds.includes(tenant.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setFormData({
-                              ...formData,
-                              specificTenantIds: [...formData.specificTenantIds, tenant.id],
-                            });
-                          } else {
-                            setFormData({
-                              ...formData,
-                              specificTenantIds: formData.specificTenantIds.filter(
-                                (id) => id !== tenant.id
-                              ),
-                            });
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium">{tenant.name}</div>
-                        <div className="text-xs text-muted-foreground">{tenant.email}</div>
-                      </div>
-                      <div className="text-xs px-2 py-1 bg-muted rounded">{tenant.status}</div>
-                    </label>
-                  ))}
+                  {!tenantsData ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Carregando tenants...
+                    </div>
+                  ) : tenantsData.tenants && tenantsData.tenants.length > 0 ? (
+                    tenantsData.tenants.map((tenant) => (
+                      <label
+                        key={tenant.id}
+                        className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.specificTenantIds.includes(tenant.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                specificTenantIds: [...formData.specificTenantIds, tenant.id],
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                specificTenantIds: formData.specificTenantIds.filter(
+                                  (id) => id !== tenant.id
+                                ),
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{tenant.name}</div>
+                          <div className="text-xs text-muted-foreground">{tenant.email}</div>
+                        </div>
+                        <div className="text-xs px-2 py-1 bg-muted rounded">{tenant.status}</div>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Nenhum tenant encontrado
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {formData.specificTenantIds.length} tenant(s) selecionado(s)
