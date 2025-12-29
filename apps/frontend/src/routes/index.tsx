@@ -81,6 +81,7 @@ import { EmailTemplatesList, EmailTemplateEditor, EmailTemplatePreview, EmailTem
 import EmailLogs from '@/pages/superadmin/EmailLogs'
 import TenantMessages from '@/pages/superadmin/TenantMessages'
 import TenantMessageForm from '@/pages/superadmin/TenantMessageForm'
+import TenantMessageView from '@/pages/superadmin/TenantMessageView'
 
 // Placeholder Pages (serão implementados futuramente)
 const SettingsPage = () => <div>Configurações</div>
@@ -351,6 +352,10 @@ export const router = createBrowserRouter([
       {
         path: 'tenant-messages/new',
         element: <TenantMessageForm />,
+      },
+      {
+        path: 'tenant-messages/:id',
+        element: <TenantMessageView />,
       },
       {
         path: 'tenant-messages/:id/edit',
