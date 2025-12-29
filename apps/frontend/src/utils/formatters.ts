@@ -13,6 +13,16 @@ export function formatCPF(cpf: string | null | undefined): string {
 }
 
 /**
+ * Remove formatação do CPF: retorna apenas os 11 dígitos
+ * Usado para enviar dados ao backend
+ */
+export function cleanCPF(cpf: string | null | undefined): string | undefined {
+  if (!cpf) return undefined
+  const cleaned = cpf.replace(/\D/g, '')
+  return cleaned.length === 11 ? cleaned : undefined
+}
+
+/**
  * Formata CNS: 123 4567 8901 2345
  */
 export function formatCNS(cns: string | null | undefined): string {

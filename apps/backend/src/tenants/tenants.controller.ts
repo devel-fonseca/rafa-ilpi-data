@@ -30,6 +30,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 interface JwtPayload {
+  id: string; // ID do usuário (sub do JWT)
   userId: string;
   email: string;
   tenantId: string;

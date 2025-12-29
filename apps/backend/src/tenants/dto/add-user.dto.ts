@@ -9,6 +9,9 @@ import {
   IsBoolean,
   Matches,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsCPF } from '../../common/validators/cpf.validator';
+import { PositionCode } from '@prisma/client';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -34,6 +37,51 @@ export class AddUserToTenantDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @ApiProperty({
+    example: '123.456.789-00',
+    description: 'CPF do funcionário (obrigatório)',
+    required: true,
+  })
+  @Transform(({ value }) => {
+    // Se for string vazia, retorna undefined para gerar erro de validação
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+    return value;
+  })
+  @IsNotEmpty({ message: 'CPF é obrigatório' })
+  @IsString({ message: 'CPF deve ser uma string' })
+  @IsCPF()
+  cpf: string;
+
+  @ApiProperty({
+    example: '(11) 98765-4321',
+    description: 'Telefone do funcionário',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiProperty({
+    example: 'Enfermagem',
+    description: 'Departamento do funcionário',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @ApiProperty({
+    enum: PositionCode,
+    example: PositionCode.NURSE,
+    description: 'Cargo/função do funcionário na ILPI',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PositionCode)
+  positionCode?: PositionCode;
 
   @ApiProperty({
     enum: UserRole,

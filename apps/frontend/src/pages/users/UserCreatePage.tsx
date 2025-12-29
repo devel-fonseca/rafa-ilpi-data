@@ -20,6 +20,7 @@ import { MaskedInput } from '@/components/form/MaskedInput'
 import { PositionCode, RegistrationType } from '@/types/permissions'
 import { getRoleRecommendation, type UserRole } from '@/utils/roleRecommendation'
 import { getMensagemValidacaoCPF } from '@/utils/validators'
+import { cleanCPF } from '@/utils/formatters'
 import { addUserToTenant, createUserProfile } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
@@ -99,8 +100,13 @@ export default function UserCreatePage() {
       return
     }
 
-    // Validar CPF se foi preenchido
-    if (formData.cpf && !cpfValidation.valido) {
+    // Validar CPF (obrigatório)
+    if (!formData.cpf || !formData.cpf.trim()) {
+      toast.error('CPF é obrigatório')
+      return
+    }
+
+    if (!cpfValidation.valido) {
       toast.error('CPF inválido. Por favor, corrija antes de continuar.')
       return
     }
@@ -120,6 +126,10 @@ export default function UserCreatePage() {
       const newUser = await addUserToTenant(currentUser.tenantId, {
         name: formData.name,
         email: formData.email,
+        cpf: cleanCPF(formData.cpf), // Remove formatação (pontos e traços)
+        phone: formData.phone?.trim() || undefined,
+        department: formData.department?.trim() || undefined,
+        positionCode: formData.positionCode || undefined,
         role: roleMapping[formData.role],
         sendInviteEmail: formData.sendInviteEmail,
         temporaryPassword: formData.temporaryPassword || undefined,
@@ -130,22 +140,19 @@ export default function UserCreatePage() {
         throw new Error('Usuário criado mas ID não foi retornado')
       }
 
-      // 2. Criar perfil se cargo foi selecionado
-      if (formData.positionCode) {
-        const profileData = {
-          positionCode: formData.positionCode,
-          department: formData.department?.trim() || undefined,
+      // 2. Atualizar perfil com dados adicionais (se houver)
+      // CPF, phone, department e positionCode já foram criados na transação atômica do backend
+      if (formData.registrationType || formData.registrationNumber || formData.birthDate) {
+        const additionalProfileData = {
           registrationType: formData.registrationType || undefined,
           registrationNumber: formData.registrationNumber?.trim() || undefined,
           registrationState: formData.registrationState?.trim() || undefined,
-          phone: formData.phone?.trim() || undefined,
-          cpf: formData.cpf?.trim() || undefined,
           birthDate: formData.birthDate?.trim() || undefined,
           isTechnicalManager: formData.isTechnicalManager,
           isNursingCoordinator: formData.isNursingCoordinator,
         }
 
-        await createUserProfile(newUser.id, profileData)
+        await createUserProfile(newUser.id, additionalProfileData)
       }
 
       toast.success('Usuário criado com sucesso!')
@@ -254,7 +261,7 @@ export default function UserCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">CPF*</Label>
                 <MaskedInput
                   id="cpf"
                   mask="999.999.999-99"
@@ -264,6 +271,7 @@ export default function UserCreatePage() {
                   }
                   validation={cpfValidation}
                   placeholder="000.000.000-00"
+                  required
                 />
               </div>
 

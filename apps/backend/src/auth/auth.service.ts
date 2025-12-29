@@ -68,41 +68,41 @@ export class AuthService {
     // Hash da senha
     const hashedPassword = await this.hashPassword(password);
 
-    // Criar usuário
-    const user = await this.prisma.user.create({
-      data: {
-        tenantId,
-        name,
-        email,
-        password: hashedPassword,
-        role: userCount === 0 ? 'admin' : 'user', // Primeiro usuário é admin
-      },
-      select: {
-        id: true,
-        tenantId: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
+    // Criar usuário E perfil em transação atômica (tudo ou nada)
+    const user = await this.prisma.$transaction(async (prisma) => {
+      // 1. Criar usuário
+      const newUser = await prisma.user.create({
+        data: {
+          tenantId,
+          name,
+          email,
+          password: hashedPassword,
+          role: userCount === 0 ? 'admin' : 'user', // Primeiro usuário é admin
+        },
+        select: {
+          id: true,
+          tenantId: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
 
-    // Criar perfil vazio automaticamente para o usuário (exceto SUPERADMIN)
-    if (user.tenantId) {
-      try {
-        await this.prisma.userProfile.create({
+      // 2. Criar perfil automaticamente para o usuário (exceto SUPERADMIN)
+      if (newUser.tenantId) {
+        await prisma.userProfile.create({
           data: {
-            userId: user.id,
-            tenantId: user.tenantId,
-            createdBy: user.id, // O próprio usuário é o criador do perfil
+            userId: newUser.id,
+            tenantId: newUser.tenantId,
+            createdBy: newUser.id, // O próprio usuário é o criador do perfil
           },
         });
-      } catch (error) {
-        // Se falhar ao criar perfil, apenas loga mas não interrompe o registro
-        console.error('Erro ao criar perfil de usuário:', error);
       }
-    }
+
+      return newUser;
+    });
 
     return {
       message: 'Usuário criado com sucesso',

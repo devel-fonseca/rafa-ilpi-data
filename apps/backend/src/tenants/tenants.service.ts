@@ -505,40 +505,49 @@ export class TenantsService {
 
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    // Criar o usuário
-    const user = await this.prisma.user.create({
-      data: {
-        tenantId,
-        name: addUserDto.name,
-        email: addUserDto.email,
-        password: hashedPassword,
-        role: addUserDto.role,
-        isActive: true,
-        passwordResetRequired: true, // Forçar troca de senha no primeiro login
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
+    // Criar usuário E perfil em transação atômica (tudo ou nada)
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // 1. Criar o usuário
+      const user = await prisma.user.create({
+        data: {
+          tenantId,
+          name: addUserDto.name,
+          email: addUserDto.email,
+          cpf: addUserDto.cpf, // CPF agora obrigatório
+          password: hashedPassword,
+          role: addUserDto.role,
+          isActive: true,
+          passwordResetRequired: true, // Forçar troca de senha no primeiro login
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
 
-    // Criar perfil vazio automaticamente para o usuário
-    try {
-      await this.prisma.userProfile.create({
+      // 2. Criar perfil na MESMA transação (sincronizar CPF)
+      await prisma.userProfile.create({
         data: {
           userId: user.id,
           tenantId,
+          cpf: addUserDto.cpf, // Sincronizar CPF entre User e UserProfile
+          phone: addUserDto.phone,
+          department: addUserDto.department,
+          positionCode: addUserDto.positionCode,
           createdBy: currentUserId, // Admin que criou o usuário
         },
       });
-    } catch (error) {
-      // Se falhar ao criar perfil, apenas loga mas não interrompe
-      console.error('Erro ao criar perfil de usuário:', error);
-    }
+
+      return user;
+    });
+
+    // Se chegar aqui, ambos foram criados com sucesso
+    // Se qualquer um falhar, rollback automático
+    const user = result;
 
     // Enviar email de convite se solicitado
     if (addUserDto.sendInviteEmail && this.emailService) {
