@@ -596,6 +596,14 @@ export default function MyProfile() {
                     value={passwordData.confirmPassword}
                     onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     disabled={changingPassword}
+                    className={
+                      passwordData.confirmPassword &&
+                      passwordData.newPassword &&
+                      passwordData.confirmPassword.length >= passwordData.newPassword.length &&
+                      passwordData.confirmPassword !== passwordData.newPassword
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : ''
+                    }
                   />
                   <button
                     type="button"
@@ -610,6 +618,21 @@ export default function MyProfile() {
                     )}
                   </button>
                 </div>
+                {passwordData.confirmPassword &&
+                 passwordData.newPassword &&
+                 passwordData.confirmPassword.length >= passwordData.newPassword.length &&
+                 passwordData.confirmPassword !== passwordData.newPassword && (
+                  <p className="text-xs text-red-500 mt-1">
+                    As senhas não conferem
+                  </p>
+                )}
+                {passwordData.confirmPassword &&
+                 passwordData.newPassword &&
+                 passwordData.confirmPassword === passwordData.newPassword && (
+                  <p className="text-xs text-green-600 mt-1">
+                    ✓ As senhas conferem
+                  </p>
+                )}
               </div>
 
               {/* Botão */}
