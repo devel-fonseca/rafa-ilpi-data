@@ -80,6 +80,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
@@ -160,6 +164,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
@@ -253,6 +261,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
@@ -737,6 +749,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
@@ -820,6 +836,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
@@ -1202,6 +1222,11 @@ export class EmailService {
     htmlContent: string,
     tenantId?: string,
   ): Promise<{ success: boolean; resendId?: string; error?: string }> {
+    if (!this.resend) {
+      this.logger.warn('Tentativa de envio de email sem API Key configurada');
+      return { success: false, error: 'API Key não configurada' };
+    }
+
     try {
       const { data, error } = await this.resend.emails.send({
         from: this.emailFrom,
@@ -1209,6 +1234,10 @@ export class EmailService {
         subject,
         html: htmlContent,
         replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
       });
 
       if (error) {
