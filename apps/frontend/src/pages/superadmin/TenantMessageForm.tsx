@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Send, Save, Calendar } from 'lucide-react';
+import { useTenants } from '@/hooks/useSuperAdmin';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,13 +33,6 @@ interface TenantMessageFormData {
   scheduledFor: string | null;
 }
 
-interface Tenant {
-  id: string;
-  name: string;
-  email: string;
-  status: string;
-}
-
 export default function TenantMessageForm() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -66,13 +60,7 @@ export default function TenantMessageForm() {
   });
 
   // Buscar lista de tenants (para SPECIFIC_TENANTS)
-  const { data: tenantsData } = useQuery({
-    queryKey: ['tenants-list'],
-    queryFn: async () => {
-      const response = await api.get('/tenants');
-      return response.data as { tenants: Tenant[]; total: number };
-    },
-  });
+  const { data: tenantsData } = useTenants({ limit: 1000 });
 
   // Preencher formulário ao carregar mensagem existente
   useEffect(() => {
@@ -309,8 +297,8 @@ export default function TenantMessageForm() {
                     <div className="text-center py-4 text-muted-foreground">
                       Carregando tenants...
                     </div>
-                  ) : tenantsData.tenants && tenantsData.tenants.length > 0 ? (
-                    tenantsData.tenants.map((tenant) => (
+                  ) : tenantsData.data && tenantsData.data.length > 0 ? (
+                    tenantsData.data.map((tenant) => (
                       <label
                         key={tenant.id}
                         className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
