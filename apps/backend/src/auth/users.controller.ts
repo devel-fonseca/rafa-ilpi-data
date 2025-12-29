@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@ne
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Users - Versionamento')
@@ -94,6 +95,29 @@ export class UsersController {
     return this.usersService.getHistoryVersion(
       id,
       parseInt(version, 10),
+      req.user.tenantId,
+    );
+  }
+
+  @Patch(':id/change-password')
+  @ApiOperation({
+    summary: 'Trocar senha do usuário',
+    description: 'Permite ao usuário trocar sua própria senha fornecendo a senha atual',
+  })
+  @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Senha alterada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Senha atual incorreta' })
+  @ApiResponse({ status: 403, description: 'Você só pode alterar sua própria senha' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Request() req: any,
+  ) {
+    return this.usersService.changePassword(
+      id,
+      changePasswordDto,
+      req.user.sub,
       req.user.tenantId,
     );
   }

@@ -447,7 +447,7 @@ export class PaymentAnalyticsService {
     })
 
     // Converter para array e ordenar
-    let tenants = Array.from(tenantMap.values())
+    const tenants = Array.from(tenantMap.values())
 
     if (sortBy === 'amount') {
       tenants.sort((a, b) => b.totalOverdueAmount - a.totalOverdueAmount)

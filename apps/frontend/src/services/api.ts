@@ -183,6 +183,17 @@ export async function updateUserProfile(userId: string, data: {
 }
 
 /**
+ * Altera senha do usuário
+ */
+export async function changePassword(userId: string, data: {
+  currentPassword: string
+  newPassword: string
+}) {
+  const response = await api.patch(`/users/${userId}/change-password`, data)
+  return response.data
+}
+
+/**
  * Cria perfil para um usuário (ADMIN only)
  */
 export async function createUserProfile(userId: string, data: {

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeType } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -334,6 +335,104 @@ export class UsersService {
     });
 
     return historyVersion;
+  }
+
+  // ==================== CHANGE PASSWORD ====================
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+    currentUserId: string,
+    tenantId: string,
+  ) {
+    // Verificar se o usuário está alterando a própria senha
+    if (userId !== currentUserId) {
+      this.logger.error('Tentativa de alterar senha de outro usuário', {
+        userId,
+        currentUserId,
+        tenantId,
+      });
+      throw new ForbiddenException('Você só pode alterar sua própria senha');
+    }
+
+    // Buscar usuário
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId, deletedAt: null },
+    });
+
+    if (!user) {
+      this.logger.error('Usuário não encontrado ao alterar senha', {
+        userId,
+        tenantId,
+      });
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    // Verificar se a senha atual está correta
+    const isPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      this.logger.warn('Senha atual incorreta ao tentar alterar senha', {
+        userId,
+        tenantId,
+      });
+      throw new BadRequestException('Senha atual incorreta');
+    }
+
+    // Hash da nova senha
+    const hashedPassword = await this.hashPassword(changePasswordDto.newPassword);
+
+    // Incrementar versão
+    const newVersionNumber = user.versionNumber + 1;
+
+    // Atualizar senha em transação atômica com histórico
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Atualizar senha
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          password: hashedPassword,
+          passwordResetRequired: false, // Remove flag de reset se existir
+          versionNumber: newVersionNumber,
+          updatedBy: currentUserId,
+        },
+      });
+
+      // 2. Criar entrada no histórico
+      await tx.userHistory.create({
+        data: {
+          tenantId,
+          userId,
+          versionNumber: newVersionNumber,
+          changeType: ChangeType.UPDATE,
+          changeReason: 'Troca de senha pelo usuário',
+          previousData: {
+            password: { passwordMasked: true },
+            versionNumber: user.versionNumber,
+          } as any,
+          newData: {
+            password: { passwordChanged: true },
+            versionNumber: newVersionNumber,
+          } as any,
+          changedFields: ['password'],
+          changedAt: new Date(),
+          changedBy: currentUserId,
+          changedByName: user.name,
+        },
+      });
+
+      return updatedUser;
+    });
+
+    this.logger.log('Senha alterada com sucesso', {
+      userId,
+      versionNumber: newVersionNumber,
+      tenantId,
+    });
+
+    return { message: 'Senha alterada com sucesso' };
   }
 
   // ==================== HELPER: Hash Password ====================

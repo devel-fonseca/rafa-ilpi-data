@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useMyProfile, useUpdateProfile } from '@/hooks/queries/useUserProfile'
 import { uploadFile } from '@/services/upload'
+import { changePassword } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound } from 'lucide-react'
+import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff } from 'lucide-react'
 import { format } from 'date-fns'
 import { getErrorMessage } from '@/utils/errorHandling'
 import {
@@ -42,6 +43,16 @@ export default function MyProfile() {
     birthDate: '',
     notes: '',
   })
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
+  const [changingPassword, setChangingPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Preencher formulário quando dados do perfil carregarem ou mudarem
   useEffect(() => {
@@ -134,6 +145,80 @@ export default function MyProfile() {
         notes: profile.notes || '',
       })
       setPhotoFile(null)
+    }
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!user) return
+
+    // Validações
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Preencha todos os campos de senha',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: 'Senhas não conferem',
+        description: 'A nova senha e a confirmação devem ser iguais',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      toast({
+        title: 'Senha muito curta',
+        description: 'A nova senha deve ter no mínimo 8 caracteres',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validar complexidade da senha
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
+    if (!passwordRegex.test(passwordData.newPassword)) {
+      toast({
+        title: 'Senha fraca',
+        description: 'A senha deve conter pelo menos 1 letra maiúscula, 1 minúscula, 1 número e 1 caractere especial',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setChangingPassword(true)
+
+      await changePassword(user.id, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      })
+
+      toast({
+        title: 'Senha alterada',
+        description: 'Sua senha foi alterada com sucesso',
+      })
+
+      // Limpar campos
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao alterar senha',
+        description: getErrorMessage(error, 'Não foi possível alterar a senha'),
+        variant: 'destructive',
+      })
+    } finally {
+      setChangingPassword(false)
     }
   }
 
@@ -418,6 +503,100 @@ export default function MyProfile() {
                 <Button type="submit" disabled={isSaving}>
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {uploadingPhoto ? 'Enviando foto...' : 'Salvar Alterações'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+
+        {/* Trocar Senha */}
+        <form onSubmit={handlePasswordChange}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                Alterar Senha
+              </CardTitle>
+              <CardDescription>
+                Mantenha sua conta segura alterando sua senha regularmente
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Senha Atual */}
+              <div>
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  placeholder="Digite sua senha atual"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  disabled={changingPassword}
+                />
+              </div>
+
+              {/* Nova Senha */}
+              <div>
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Digite sua nova senha"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    disabled={changingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    tabIndex={-1}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial
+                </p>
+              </div>
+
+              {/* Confirmar Nova Senha */}
+              <div>
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Digite novamente sua nova senha"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    disabled={changingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Botão */}
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={changingPassword}>
+                  {changingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Alterar Senha
                 </Button>
               </div>
             </CardContent>
