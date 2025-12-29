@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff } from 'lucide-react'
@@ -274,9 +275,8 @@ export default function MyProfile() {
         </p>
       </div>
 
-      <div className="grid gap-6">
-        {/* Foto de Perfil + Informações da Conta */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Foto de Perfil + Informações da Conta */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Card de Foto (1/3) */}
           <Card>
             <CardHeader>
@@ -342,9 +342,11 @@ export default function MyProfile() {
           </Card>
         </div>
 
-        {/* Autorização ILPI (Somente Leitura) */}
-        {(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) && (
-          <Card>
+      </div>
+
+      {/* Autorização ILPI (Somente Leitura) */}
+      {(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) && (
+        <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
@@ -434,10 +436,25 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-        )}
+        )
+      }
 
-        {/* Dados Pessoais (Editáveis) */}
-        <form onSubmit={handleSubmit}>
+      {/* Abas: Dados Pessoais e Alterar Senha */}
+      <Tabs defaultValue="personal" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="personal">
+            <FileText className="h-4 w-4 mr-2" />
+            Dados Pessoais
+          </TabsTrigger>
+          <TabsTrigger value="password">
+            <KeyRound className="h-4 w-4 mr-2" />
+            Alterar Senha
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Aba: Dados Pessoais */}
+        <TabsContent value="personal">
+          <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -507,10 +524,12 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-        </form>
+          </form>
+        </TabsContent>
 
-        {/* Trocar Senha */}
-        <form onSubmit={handlePasswordChange}>
+        {/* Aba: Alterar Senha */}
+        <TabsContent value="password">
+          <form onSubmit={handlePasswordChange}>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -601,8 +620,9 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-        </form>
-      </div>
+          </form>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
