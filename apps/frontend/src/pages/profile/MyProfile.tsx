@@ -340,8 +340,6 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-        </div>
-
       </div>
 
       {/* Autorização ILPI (Somente Leitura) */}
