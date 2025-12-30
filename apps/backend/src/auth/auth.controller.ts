@@ -130,6 +130,30 @@ export class AuthController {
   }
 
   /**
+   * POST /auth/logout-expired
+   * Registrar logout de sessão expirada (endpoint público)
+   */
+  @ApiOperation({
+    summary: 'Registrar logout de sessão expirada',
+    description: 'Endpoint público para registrar logout quando accessToken expirou mas refreshToken ainda é válido. Usado pelo frontend no interceptor.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout registrado com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Refresh token inválido ou não encontrado',
+  })
+  @Post('logout-expired')
+  @HttpCode(HttpStatus.OK)
+  async logoutExpired(@Body() body: { refreshToken: string }, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.logoutExpired(body.refreshToken, ipAddress, userAgent);
+  }
+
+  /**
    * POST /auth/forgot-password
    * Solicitar recuperação de senha
    */

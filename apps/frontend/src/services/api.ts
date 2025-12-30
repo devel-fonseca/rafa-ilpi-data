@@ -92,26 +92,32 @@ api.interceptors.response.use(
 )
 
 /**
- * Tenta registrar logout automático quando sessão expira
- * (Best effort - não bloqueia nem lança erro se falhar)
+ * Registra logout de sessão expirada no backend
+ * Usa endpoint público /auth/logout-expired que aceita apenas refreshToken
+ * (não precisa de accessToken válido)
  */
 async function tryLogoutOnExpiration() {
   try {
-    const { accessToken, refreshToken } = useAuthStore.getState()
-    if (accessToken) {
-      // Criar instância separada para evitar interceptor recursivo
-      await axios.post(
-        `${API_URL}/auth/logout`,
-        { refreshToken },
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          timeout: 2000, // Timeout curto para não travar
-        }
-      )
+    const { refreshToken } = useAuthStore.getState()
+
+    if (!refreshToken) {
+      console.log('[LOGOUT-EXPIRED] Sem refreshToken para registrar logout')
+      return
     }
-  } catch (error) {
-    // Silencioso - não importa se falhar
-    console.log('[LOGOUT] Tentativa de logout automático falhou (esperado em expiração)')
+
+    // Usar endpoint público que não requer JWT
+    await axios.post(
+      `${API_URL}/auth/logout-expired`,
+      { refreshToken },
+      {
+        timeout: 3000, // 3 segundos de timeout
+      }
+    )
+
+    console.log('✅ [LOGOUT-EXPIRED] Logout de sessão expirada registrado com sucesso')
+  } catch (error: any) {
+    // Best effort - falha silenciosa, mas loga para debug
+    console.log('[LOGOUT-EXPIRED] Falha ao registrar logout (esperado se refresh também expirou):', error.message)
   }
 }
 

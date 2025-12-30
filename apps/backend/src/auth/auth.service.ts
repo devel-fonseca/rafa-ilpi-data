@@ -451,6 +451,49 @@ export class AuthService {
   }
 
   /**
+   * Logout de sessão expirada (endpoint público)
+   * Aceita apenas refreshToken, busca o userId associado, deleta o token e registra o log.
+   * Usado quando accessToken expirou mas refreshToken ainda é válido.
+   */
+  async logoutExpired(refreshToken: string, ipAddress?: string, userAgent?: string) {
+    // Buscar refresh token no banco para obter userId e tenantId
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: { select: { id: true, tenantId: true } } },
+    });
+
+    if (!storedToken) {
+      // Token não encontrado ou já foi revogado
+      // Não falhar - retornar sucesso silenciosamente (best effort)
+      console.log('[LOGOUT-EXPIRED] Refresh token não encontrado ou já revogado');
+      return { message: 'Logout registrado' };
+    }
+
+    const userId = storedToken.user.id;
+    const tenantId = storedToken.user.tenantId;
+
+    // Deletar o refresh token (revogar sessão)
+    await this.prisma.refreshToken.delete({
+      where: { id: storedToken.id },
+    });
+
+    // Registrar log de acesso (LOGOUT com reason SESSION_EXPIRED)
+    if (tenantId) {
+      await this.logAccess(
+        userId,
+        tenantId,
+        AccessAction.LOGOUT,
+        'SUCCESS',
+        ipAddress,
+        userAgent,
+        'SESSION_EXPIRED', // reason
+      );
+    }
+
+    return { message: 'Logout de sessão expirada registrado com sucesso' };
+  }
+
+  /**
    * Esqueci minha senha - Solicita recuperação de senha
    * Sempre retorna sucesso (mesmo se email não existe) para prevenir enumeração de usuários
    */
