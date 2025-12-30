@@ -88,12 +88,12 @@ export function AdministerMedicationModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1">
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-1">{medication.name}</h3>
-          <p className="text-sm text-blue-700">
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">{medication.name}</h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
             {medication.presentation} - {medication.concentration}
           </p>
-          <p className="text-sm text-blue-700 mt-1">
+          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
             <span className="font-medium">Dose:</span> {medication.dose} -{' '}
             <span className="font-medium">Via:</span> {medication.route}
           </p>
@@ -136,7 +136,7 @@ export function AdministerMedicationModal({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded">
+          <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
             <Checkbox
               id="wasAdministered"
               checked={wasAdministered}
@@ -158,7 +158,7 @@ export function AdministerMedicationModal({
                   type="time"
                   {...register('actualTime')}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Deixe em branco se foi no horário programado
                 </p>
               </div>
@@ -180,7 +180,7 @@ export function AdministerMedicationModal({
               </div>
 
               {medication.requiresDoubleCheck && (
-                <div className="p-3 bg-orange-50 border border-orange-200 rounded">
+                <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded">
                   <Label htmlFor="checkedBy">
                     Checado por (Dupla Checagem)
                   </Label>
@@ -189,7 +189,7 @@ export function AdministerMedicationModal({
                     {...register('checkedBy')}
                     placeholder="Nome do segundo profissional"
                   />
-                  <p className="text-xs text-orange-700 mt-1">
+                  <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
                     Este medicamento requer dupla checagem
                   </p>
                 </div>
