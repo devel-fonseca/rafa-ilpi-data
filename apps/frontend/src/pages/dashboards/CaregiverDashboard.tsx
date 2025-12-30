@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
@@ -276,6 +277,7 @@ export function CaregiverDashboard() {
             const residentName = task?.residentName || 'Residente'
             handleOpenModal(selectedResidentId, residentName, recordType, mealType)
           }}
+          onAdministerMedication={handleAdministerMedication}
         />
       )}
 

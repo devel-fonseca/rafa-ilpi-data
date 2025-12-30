@@ -34,6 +34,8 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { Check } from 'lucide-react'
 
 // ──────────────────────────────────────────────────────────────────────────
 // ÍCONES POR TIPO DE REGISTRO
@@ -133,6 +135,15 @@ interface DailyRecord {
   recordedBy: string
 }
 
+interface MedicationAdministration {
+  id: string
+  date: string
+  scheduledTime: string
+  wasAdministered: boolean
+  administeredBy?: string
+  actualTime?: string
+}
+
 interface Medication {
   id: string
   name: string
@@ -148,6 +159,7 @@ interface Medication {
   isHighRisk: boolean
   requiresDoubleCheck: boolean
   instructions?: string | null
+  administrations?: MedicationAdministration[]
 }
 
 interface Prescription {
@@ -163,15 +175,18 @@ interface Props {
   residentId: string
   onClose: () => void
   onRegister?: (recordType: string, mealType?: string) => void
+  onAdministerMedication?: (medicationId: string, residentId: string, scheduledTime: string) => void
 }
 
 // ──────────────────────────────────────────────────────────────────────────
 // COMPONENTE
 // ──────────────────────────────────────────────────────────────────────────
 
-export function ResidentQuickViewModal({ residentId, onClose, onRegister }: Props) {
+export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdministerMedication }: Props) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const today = format(new Date(), 'yyyy-MM-dd')
+  const { hasPermission } = usePermissions()
+  const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
 
   // Buscar dados básicos do residente (já retorna bed, room, allergies)
   const { data: resident, isLoading: isLoadingResident } = useQuery<Resident>({
@@ -611,19 +626,105 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister }: Prop
               </Card>
             )}
 
-            {/* Medicações Agendadas */}
-            {todayTasks && todayTasks.length > 0 && (
+            {/* Medicações Agendadas Hoje */}
+            {activeMedications.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Pill className="w-4 h-4 text-primary" />
                     Medicações Agendadas Hoje
                   </CardTitle>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {activeMedications.reduce((total, med) => total + (med.scheduledTimes?.length || 0), 0)} horários programados
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-xs text-muted-foreground">
-                    Informação de medicações deve ser consultada com enfermeiro/RT
-                  </p>
+                  <div className="space-y-3">
+                    {activeMedications.map((medication) => {
+                      // Para cada medicação, mostrar seus horários de hoje
+                      const todaySchedules = medication.scheduledTimes?.map((scheduledTime) => {
+                        // Verificar se já foi administrado hoje neste horário
+                        const todayAdmin = medication.administrations?.find(
+                          (admin) =>
+                            format(new Date(admin.date), 'yyyy-MM-dd') === today &&
+                            admin.scheduledTime === scheduledTime
+                        )
+
+                        return {
+                          scheduledTime,
+                          wasAdministered: todayAdmin?.wasAdministered || false,
+                          administeredBy: todayAdmin?.administeredBy,
+                          actualTime: todayAdmin?.actualTime,
+                        }
+                      }) || []
+
+                      return (
+                        <div key={medication.id} className="border rounded-lg p-3 space-y-2">
+                          {/* Cabeçalho da Medicação */}
+                          <div className="flex items-start gap-2">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 flex-shrink-0">
+                              <Pill className={`w-4 h-4 ${medication.isControlled ? 'text-primary' : 'text-muted-foreground'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-foreground">
+                                  {medication.name}
+                                </span>
+                                {medication.isControlled && (
+                                  <Badge variant="default" className="text-xs">
+                                    Controlado
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {medication.dose} • {medication.route}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Horários do Dia */}
+                          <div className="space-y-1.5 ml-10">
+                            {todaySchedules.map((schedule, idx) => (
+                              <div
+                                key={`${medication.id}-${schedule.scheduledTime}-${idx}`}
+                                className="flex items-center gap-2 text-xs"
+                              >
+                                <span className="font-medium text-muted-foreground min-w-[3rem]">
+                                  {schedule.scheduledTime}
+                                </span>
+
+                                {schedule.wasAdministered ? (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                                    <span>Administrado</span>
+                                    {schedule.actualTime && schedule.actualTime !== schedule.scheduledTime && (
+                                      <span className="text-muted-foreground">às {schedule.actualTime}</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    {canAdministerMedications && onAdministerMedication ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 px-2 text-xs"
+                                        onClick={() => onAdministerMedication(medication.id, residentId, schedule.scheduledTime)}
+                                      >
+                                        <Check className="w-3 h-3 mr-1" />
+                                        Administrar
+                                      </Button>
+                                    ) : (
+                                      <span className="text-muted-foreground">Pendente</span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             )}
