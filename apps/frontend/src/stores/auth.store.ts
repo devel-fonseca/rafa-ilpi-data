@@ -201,10 +201,11 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true })
         try {
-          const { accessToken } = get()
+          const { accessToken, refreshToken } = get()
           if (accessToken) {
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-            await api.post('/auth/logout')
+            // Enviar refreshToken para deletar apenas esta sessão específica
+            await api.post('/auth/logout', { refreshToken })
           }
         } catch (error) {
           console.error('Erro ao fazer logout:', error)

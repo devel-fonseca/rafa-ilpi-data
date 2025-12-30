@@ -123,10 +123,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@CurrentUser() user: any, @Req() req: Request) {
+  async logout(@CurrentUser() user: any, @Body() logoutDto: { refreshToken?: string }, @Req() req: Request) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
-    return this.authService.logout(user.id, ipAddress, userAgent);
+    return this.authService.logout(user.id, logoutDto.refreshToken, ipAddress, userAgent);
   }
 
   /**

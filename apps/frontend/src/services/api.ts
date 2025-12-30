@@ -54,6 +54,8 @@ api.interceptors.response.use(
         const refreshToken = useAuthStore.getState().refreshToken
 
         if (!refreshToken) {
+          // Tentar registrar logout automático (best effort)
+          await tryLogoutOnExpiration()
           useAuthStore.getState().clearAuth()
           window.location.href = '/session-expired'
           return Promise.reject(error)
@@ -77,6 +79,8 @@ api.interceptors.response.use(
         return api(originalRequest)
       } catch (refreshError) {
         // Refresh falhou - sessão expirada
+        // Tentar registrar logout automático (best effort)
+        await tryLogoutOnExpiration()
         useAuthStore.getState().clearAuth()
         window.location.href = '/session-expired'
         return Promise.reject(refreshError)
@@ -86,6 +90,30 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+/**
+ * Tenta registrar logout automático quando sessão expira
+ * (Best effort - não bloqueia nem lança erro se falhar)
+ */
+async function tryLogoutOnExpiration() {
+  try {
+    const { accessToken, refreshToken } = useAuthStore.getState()
+    if (accessToken) {
+      // Criar instância separada para evitar interceptor recursivo
+      await axios.post(
+        `${API_URL}/auth/logout`,
+        { refreshToken },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          timeout: 2000, // Timeout curto para não travar
+        }
+      )
+    }
+  } catch (error) {
+    // Silencioso - não importa se falhar
+    console.log('[LOGOUT] Tentativa de logout automático falhou (esperado em expiração)')
+  }
+}
 
 // ==================== API FUNCTIONS ====================
 

@@ -374,6 +374,24 @@ export class AuthService {
         userAgent || storedToken.userAgent || undefined,
       );
 
+      // Cleanup: remover tokens expirados deste usuário (evita acúmulo)
+      // Executar em background (não bloquear o refresh)
+      this.prisma.refreshToken
+        .deleteMany({
+          where: {
+            userId: storedToken.user.id,
+            expiresAt: {
+              lt: new Date(),
+            },
+          },
+        })
+        .catch((error) => {
+          console.error(
+            '[REFRESH] Erro ao limpar tokens expirados:',
+            error.message,
+          );
+        });
+
       return tokens;
     } catch (error) {
       throw new UnauthorizedException('Refresh token inválido');
@@ -382,8 +400,10 @@ export class AuthService {
 
   /**
    * Logout (remover refresh token)
+   * Se refreshToken for fornecido, remove apenas essa sessão específica.
+   * Se não for fornecido, remove todas as sessões (comportamento antigo, mantido para compatibilidade).
    */
-  async logout(userId: string, ipAddress?: string, userAgent?: string) {
+  async logout(userId: string, refreshToken?: string, ipAddress?: string, userAgent?: string) {
     // Buscar usuário para obter tenantId
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -394,10 +414,26 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
-    // Remover todos os refresh tokens do usuário
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId },
-    });
+    // Se refreshToken foi fornecido, deletar apenas essa sessão específica
+    if (refreshToken) {
+      const deletedToken = await this.prisma.refreshToken.deleteMany({
+        where: {
+          userId,
+          token: refreshToken,
+        },
+      });
+
+      // Se nenhum token foi deletado, significa que o token não existe ou já foi revogado
+      if (deletedToken.count === 0) {
+        // Não falhar silenciosamente - apenas logar e continuar
+        console.log(`[LOGOUT] Refresh token não encontrado para userId ${userId}`);
+      }
+    } else {
+      // Comportamento antigo: remover TODOS os refresh tokens do usuário
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId },
+      });
+    }
 
     // Registrar log de acesso (LOGOUT)
     if (user.tenantId) {
