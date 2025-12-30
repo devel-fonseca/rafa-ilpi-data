@@ -215,38 +215,61 @@ export class PermissionsService {
     permission: PermissionType,
     grantedBy: string,
   ): Promise<void> {
-    const userProfile = await this.prisma.userProfile.findUnique({
-      where: { userId },
-    });
+    try {
+      const userProfile = await this.prisma.userProfile.findUnique({
+        where: { userId },
+      });
 
-    if (!userProfile || userProfile.tenantId !== tenantId) {
-      throw new Error('Perfil de usuário não encontrado');
-    }
+      if (!userProfile) {
+        this.logger.error(`UserProfile não encontrado para userId: ${userId}`);
+        throw new Error('Perfil de usuário não encontrado');
+      }
 
-    await this.prisma.userPermission.upsert({
-      where: {
-        userProfileId_permission: {
-          userProfileId: userProfile.id,
-          permission,
+      if (userProfile.tenantId !== tenantId) {
+        this.logger.error(
+          `TenantId incompatível: userProfile.tenantId=${userProfile.tenantId}, tenantId=${tenantId}`,
+        );
+        throw new Error('Perfil de usuário não encontrado');
+      }
+
+      await this.prisma.userPermission.upsert({
+        where: {
+          userProfileId_permission: {
+            userProfileId: userProfile.id,
+            permission,
+          },
         },
-      },
-      create: {
-        userProfileId: userProfile.id,
-        tenantId,
-        permission,
-        isGranted: true,
-        grantedBy,
-      },
-      update: {
-        isGranted: true,
-        grantedBy,
-        grantedAt: new Date(),
-      },
-    });
+        create: {
+          userProfileId: userProfile.id,
+          tenantId,
+          permission,
+          isGranted: true,
+          grantedBy,
+        },
+        update: {
+          isGranted: true,
+          grantedBy,
+          grantedAt: new Date(),
+        },
+      });
 
-    this.logger.log(
-      `Permissão ${permission} CONCEDIDA para usuário ${userId} por ${grantedBy}`,
-    );
+      this.logger.log(
+        `Permissão ${permission} CONCEDIDA para usuário ${userId} por ${grantedBy}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erro ao conceder permissão ${permission} para userId ${userId}:`,
+        {
+          userId,
+          tenantId,
+          permission,
+          grantedBy,
+          error: error.message,
+          stack: error.stack,
+        },
+      );
+      throw error;
+    }
   }
 
   /**

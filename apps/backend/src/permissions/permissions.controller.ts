@@ -243,40 +243,52 @@ export class PermissionsController {
     @Body() body: { add?: PermissionType[]; remove?: PermissionType[] },
     @CurrentUser() user: any,
   ) {
-    const added: PermissionType[] = [];
-    const removed: PermissionType[] = [];
+    try {
+      const added: PermissionType[] = [];
+      const removed: PermissionType[] = [];
 
-    if (body.add && body.add.length > 0) {
-      for (const permission of body.add) {
-        await this.permissionsService.grantCustomPermission(
-          userId,
-          user.tenantId,
-          permission,
-          user.id,
-        );
-        added.push(permission);
+      if (body.add && body.add.length > 0) {
+        for (const permission of body.add) {
+          await this.permissionsService.grantCustomPermission(
+            userId,
+            user.tenantId,
+            permission,
+            user.id,
+          );
+          added.push(permission);
+        }
       }
-    }
 
-    if (body.remove && body.remove.length > 0) {
-      for (const permission of body.remove) {
-        await this.permissionsService.removeCustomPermission(
-          userId,
-          user.tenantId,
-          permission,
-        );
-        removed.push(permission);
+      if (body.remove && body.remove.length > 0) {
+        for (const permission of body.remove) {
+          await this.permissionsService.removeCustomPermission(
+            userId,
+            user.tenantId,
+            permission,
+          );
+          removed.push(permission);
+        }
       }
-    }
 
-    return {
-      message: 'Permissões gerenciadas com sucesso',
-      added,
-      removed,
-      summary: {
-        added: added.length,
-        removed: removed.length,
-      },
-    };
+      return {
+        message: 'Permissões gerenciadas com sucesso',
+        added,
+        removed,
+        summary: {
+          added: added.length,
+          removed: removed.length,
+        },
+      };
+    } catch (error) {
+      console.error('[PERMISSIONS] Erro ao gerenciar permissões:', {
+        userId,
+        tenantId: user?.tenantId,
+        grantedBy: user?.id,
+        body,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw error;
+    }
   }
 }

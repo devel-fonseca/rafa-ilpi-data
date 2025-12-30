@@ -49,8 +49,11 @@ export enum PermissionType {
   CREATE_PRESCRIPTIONS = 'CREATE_PRESCRIPTIONS',
   UPDATE_PRESCRIPTIONS = 'UPDATE_PRESCRIPTIONS',
   DELETE_PRESCRIPTIONS = 'DELETE_PRESCRIPTIONS',
-  ADMINISTER_PRESCRIPTIONS = 'ADMINISTER_PRESCRIPTIONS',
-  ADMINISTER_SOS_PRESCRIPTIONS = 'ADMINISTER_SOS_PRESCRIPTIONS',
+
+  // Medications Administration
+  VIEW_MEDICATIONS = 'VIEW_MEDICATIONS',
+  ADMINISTER_MEDICATIONS = 'ADMINISTER_MEDICATIONS',
+  ADMINISTER_CONTROLLED_MEDICATIONS = 'ADMINISTER_CONTROLLED_MEDICATIONS',
 
   // Vaccinations
   VIEW_VACCINATIONS = 'VIEW_VACCINATIONS',
@@ -166,8 +169,10 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.CREATE_PRESCRIPTIONS]: 'Criar prescrições',
   [PermissionType.UPDATE_PRESCRIPTIONS]: 'Editar prescrições',
   [PermissionType.DELETE_PRESCRIPTIONS]: 'Excluir prescrições',
-  [PermissionType.ADMINISTER_PRESCRIPTIONS]: 'Administrar medicações',
-  [PermissionType.ADMINISTER_SOS_PRESCRIPTIONS]: 'Administrar medicações SOS',
+
+  [PermissionType.VIEW_MEDICATIONS]: 'Visualizar medicações',
+  [PermissionType.ADMINISTER_MEDICATIONS]: 'Administrar medicações',
+  [PermissionType.ADMINISTER_CONTROLLED_MEDICATIONS]: 'Administrar medicações controladas',
 
   [PermissionType.VIEW_VACCINATIONS]: 'Visualizar vacinações',
   [PermissionType.CREATE_VACCINATIONS]: 'Registrar vacinações',
@@ -234,8 +239,14 @@ export const PERMISSION_GROUPS = {
       PermissionType.CREATE_PRESCRIPTIONS,
       PermissionType.UPDATE_PRESCRIPTIONS,
       PermissionType.DELETE_PRESCRIPTIONS,
-      PermissionType.ADMINISTER_PRESCRIPTIONS,
-      PermissionType.ADMINISTER_SOS_PRESCRIPTIONS,
+    ],
+  },
+  medications: {
+    label: 'Administração de Medicamentos',
+    permissions: [
+      PermissionType.VIEW_MEDICATIONS,
+      PermissionType.ADMINISTER_MEDICATIONS,
+      PermissionType.ADMINISTER_CONTROLLED_MEDICATIONS,
     ],
   },
   vaccinations: {
