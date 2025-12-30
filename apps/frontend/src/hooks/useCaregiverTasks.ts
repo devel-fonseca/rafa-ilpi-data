@@ -13,11 +13,16 @@ export interface MedicationTask {
   medicationId: string
   medicationName: string
   presentation: string
+  concentration: string
+  dose: string
+  route: string
   scheduledTime: string
   wasAdministered: boolean
   administeredBy?: string
   actualTime?: string
   prescriptionId: string
+  requiresDoubleCheck?: boolean
+  scheduledTimes?: string[] // Lista completa de horários programados
 }
 
 export interface CaregiverTasksStats {
@@ -45,7 +50,11 @@ interface Prescription {
     id: string
     name: string
     presentation: string
+    concentration: string
+    dose: string
+    route: string
     scheduledTimes: string[]
+    requiresDoubleCheck?: boolean
     administrations: Array<{
       id: string
       date: string
@@ -141,11 +150,16 @@ export function useCaregiverTasks(date?: string) {
               medicationId: medication.id,
               medicationName: medication.name,
               presentation: medication.presentation,
+              concentration: medication.concentration,
+              dose: medication.dose,
+              route: medication.route,
               scheduledTime,
               wasAdministered: todayAdmin?.wasAdministered || false,
               administeredBy: todayAdmin?.administeredBy,
               actualTime: todayAdmin?.actualTime,
               prescriptionId: prescription.id,
+              requiresDoubleCheck: medication.requiresDoubleCheck,
+              scheduledTimes: medication.scheduledTimes,
             })
           })
         })

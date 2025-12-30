@@ -9,13 +9,16 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from 'lucide-react'
 import type { MedicationTask } from '@/hooks/useCaregiverTasks'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 interface Props {
   title: string
   medications: MedicationTask[]
   onViewResident: (residentId: string) => void
+  onAdministerMedication?: (medicationId: string, residentId: string, scheduledTime: string) => void
   isLoading?: boolean
 }
 
@@ -23,8 +26,12 @@ export function MedicationsSection({
   title,
   medications,
   onViewResident,
+  onAdministerMedication,
   isLoading,
 }: Props) {
+  const { hasPermission } = usePermissions()
+  const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
+
   // Estado de paginação
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -140,13 +147,32 @@ export function MedicationsSection({
                 </p>
               </div>
 
-              {/* Action */}
-              <div className="flex-shrink-0">
+              {/* Actions */}
+              <div className="flex-shrink-0 flex items-center gap-1">
+                {/* Botão Administrar - apenas se: não foi administrado + usuário tem permissão + handler existe */}
+                {!medication.wasAdministered && canAdministerMedications && onAdministerMedication && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => onAdministerMedication(
+                      medication.medicationId,
+                      medication.residentId,
+                      medication.scheduledTime
+                    )}
+                    className="px-2"
+                    title="Administrar medicação"
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                )}
+
+                {/* Botão Visualizar */}
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => onViewResident(medication.residentId)}
                   className="px-2"
+                  title="Ver detalhes do residente"
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
@@ -195,8 +221,18 @@ export function MedicationsSection({
         <Alert className="mt-4">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            <strong>Visualização apenas.</strong> Apenas enfermeiros e
-            responsáveis técnicos podem administrar medicações.
+            {canAdministerMedications ? (
+              <>
+                <strong>Autorização concedida.</strong> Você possui autorização
+                para administrar medicações. Siga rigorosamente o POP de
+                Administração de Medicamentos da instituição.
+              </>
+            ) : (
+              <>
+                <strong>Visualização apenas.</strong> Apenas enfermeiros e
+                responsáveis técnicos podem administrar medicações.
+              </>
+            )}
           </AlertDescription>
         </Alert>
       </CardContent>

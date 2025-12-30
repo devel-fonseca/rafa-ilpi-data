@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
@@ -32,6 +31,7 @@ import { IntercorrenciaModal } from '@/pages/daily-records/modals/Intercorrencia
 import { AtividadesModal } from '@/pages/daily-records/modals/AtividadesModal'
 import { VisitaModal } from '@/pages/daily-records/modals/VisitaModal'
 import { OutrosModal } from '@/pages/daily-records/modals/OutrosModal'
+import { AdministerMedicationModal } from '@/pages/prescriptions/components/AdministerMedicationModal'
 
 export function CaregiverDashboard() {
   const { user } = useAuthStore()
@@ -49,6 +49,9 @@ export function CaregiverDashboard() {
   >(undefined)
   const [currentResidentId, setCurrentResidentId] = useState<string>('')
   const [currentResidentName, setCurrentResidentName] = useState<string>('')
+
+  // Estado para modal de administração de medicação
+  const [selectedMedication, setSelectedMedication] = useState<any>(null)
 
   // Mutation para criar registro
   const createMutation = useMutation({
@@ -89,6 +92,32 @@ export function CaregiverDashboard() {
     setCurrentResidentName(residentName)
     setActiveModal(recordType)
     setSelectedMealType(mealType)
+  }
+
+  const handleAdministerMedication = (
+    medicationId: string,
+    _residentId: string,
+    scheduledTime: string,
+  ) => {
+    // Buscar dados completos da medicação da lista
+    const medicationTask = data?.medications.find(
+      (m) => m.medicationId === medicationId && m.scheduledTime === scheduledTime
+    )
+
+    if (medicationTask) {
+      // Montar objeto no formato esperado pelo modal
+      setSelectedMedication({
+        id: medicationTask.medicationId,
+        name: medicationTask.medicationName,
+        presentation: medicationTask.presentation,
+        concentration: medicationTask.concentration,
+        dose: medicationTask.dose,
+        route: medicationTask.route,
+        requiresDoubleCheck: medicationTask.requiresDoubleCheck,
+        scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
+        preselectedScheduledTime: scheduledTime, // Pré-selecionar o horário clicado
+      })
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -216,6 +245,7 @@ export function CaregiverDashboard() {
             title="Medicações"
             medications={data.medications}
             onViewResident={(residentId) => setSelectedResidentId(residentId)}
+            onAdministerMedication={handleAdministerMedication}
             isLoading={isLoading}
           />
         </div>
@@ -396,6 +426,19 @@ export function CaregiverDashboard() {
           residentName={currentResidentName}
           date={today}
           currentUserName={user?.name || ''}
+        />
+      )}
+
+      {/* Modal de Administração de Medicação */}
+      {selectedMedication && (
+        <AdministerMedicationModal
+          open={true}
+          onClose={() => {
+            setSelectedMedication(null)
+            // Invalidar queries para atualizar a lista de medicações
+            refetch()
+          }}
+          medication={selectedMedication}
         />
       )}
     </div>
