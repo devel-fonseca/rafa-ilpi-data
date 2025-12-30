@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useMyProfile, useUpdateProfile } from '@/hooks/queries/useUserProfile'
+import { useActiveSessions, useRevokeSession, useRevokeAllOtherSessions } from '@/hooks/queries/useActiveSessions'
+import { useAccessLogs } from '@/hooks/queries/useAccessLogs'
 import { uploadFile } from '@/services/upload'
 import { changePassword } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff } from 'lucide-react'
+import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History } from 'lucide-react'
 import { format } from 'date-fns'
 import { getErrorMessage } from '@/utils/errorHandling'
 import {
@@ -342,9 +344,9 @@ export default function MyProfile() {
           </Card>
       </div>
 
-      {/* Abas: Autorização ILPI, Dados Pessoais e Alterar Senha */}
+      {/* Abas: Autorização ILPI, Dados Pessoais, Alterar Senha, Sessões Ativas e Logs de Acesso */}
       <Tabs defaultValue={(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) ? "authorization" : "personal"} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)}>
             <Shield className="h-4 w-4 mr-2" />
             Autorização ILPI
@@ -356,6 +358,14 @@ export default function MyProfile() {
           <TabsTrigger value="password">
             <KeyRound className="h-4 w-4 mr-2" />
             Alterar Senha
+          </TabsTrigger>
+          <TabsTrigger value="sessions">
+            <Wifi className="h-4 w-4 mr-2" />
+            Sessões Ativas
+          </TabsTrigger>
+          <TabsTrigger value="access-logs">
+            <History className="h-4 w-4 mr-2" />
+            Histórico de Acesso
           </TabsTrigger>
         </TabsList>
 
@@ -646,7 +656,342 @@ export default function MyProfile() {
           </Card>
           </form>
         </TabsContent>
+
+        {/* Aba: Sessões Ativas */}
+        <TabsContent value="sessions">
+          <SessionsTab userId={user?.id || ''} />
+        </TabsContent>
+
+        {/* Aba: Histórico de Acesso */}
+        <TabsContent value="access-logs">
+          <AccessLogsTab userId={user?.id || ''} />
+        </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+// ==================== COMPONENTE: Sessões Ativas ====================
+function SessionsTab({ userId }: { userId: string }) {
+  const { toast } = useToast()
+  const { data, isLoading } = useActiveSessions(userId)
+  const revokeSessionMutation = useRevokeSession(userId)
+  const revokeAllMutation = useRevokeAllOtherSessions(userId)
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await revokeSessionMutation.mutateAsync(sessionId)
+      toast({
+        title: 'Sessão encerrada',
+        description: 'A sessão foi encerrada com sucesso.',
+      })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao encerrar sessão',
+        description: error.response?.data?.message || 'Ocorreu um erro ao encerrar a sessão.',
+      })
+    }
+  }
+
+  const handleRevokeAll = async () => {
+    try {
+      const result = await revokeAllMutation.mutateAsync()
+      toast({
+        title: 'Sessões encerradas',
+        description: result.message || 'Todas as outras sessões foram encerradas.',
+      })
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao encerrar sessões',
+        description: error.response?.data?.message || 'Ocorreu um erro ao encerrar as sessões.',
+      })
+    }
+  }
+
+  const getDeviceIcon = (device: string) => {
+    const deviceLower = device.toLowerCase()
+    if (deviceLower.includes('mobile') || deviceLower.includes('android') || deviceLower.includes('ios')) {
+      return <Smartphone className="h-5 w-5" />
+    }
+    if (deviceLower.includes('tablet') || deviceLower.includes('ipad')) {
+      return <Tablet className="h-5 w-5" />
+    }
+    return <Monitor className="h-5 w-5" />
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const sessions = data?.sessions || []
+  const currentSession = sessions.find(s => s.isCurrent)
+  const otherSessions = sessions.filter(s => !s.isCurrent)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wifi className="h-5 w-5" />
+          Sessões Ativas
+        </CardTitle>
+        <CardDescription>
+          Gerencie os dispositivos conectados à sua conta
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {sessions.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            Nenhuma sessão ativa encontrada.
+          </p>
+        ) : (
+          <>
+            {/* Sessão Atual */}
+            {currentSession && (
+              <div className="border rounded-lg p-4 bg-primary/5">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    {getDeviceIcon(currentSession.device)}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{currentSession.device}</p>
+                        <Badge variant="default" className="text-xs">
+                          Sessão Atual
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        IP: {currentSession.ipAddress}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Login: {format(new Date(currentSession.loginAt), "dd/MM/yyyy 'às' HH:mm")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Última atividade: {format(new Date(currentSession.lastActivityAt), "dd/MM/yyyy 'às' HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Outras Sessões */}
+            {otherSessions.length > 0 && (
+              <>
+                <div className="space-y-3">
+                  {otherSessions.map((session) => (
+                    <div key={session.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          {getDeviceIcon(session.device)}
+                          <div className="flex-1">
+                            <p className="font-medium">{session.device}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              IP: {session.ipAddress}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Login: {format(new Date(session.loginAt), "dd/MM/yyyy 'às' HH:mm")}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Última atividade: {format(new Date(session.lastActivityAt), "dd/MM/yyyy 'às' HH:mm")}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRevokeSession(session.id)}
+                          disabled={revokeSessionMutation.isPending}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Botão Encerrar Todas */}
+                <div className="flex justify-end pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    onClick={handleRevokeAll}
+                    disabled={revokeAllMutation.isPending}
+                  >
+                    {revokeAllMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Encerrar Todas as Outras Sessões
+                  </Button>
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ==================== COMPONENTE: Histórico de Acesso ====================
+function AccessLogsTab({ userId }: { userId: string }) {
+  const [page, setPage] = useState(0)
+  const [actionFilter, setActionFilter] = useState<string | undefined>(undefined)
+  const limit = 30
+
+  const { data, isLoading } = useAccessLogs(userId, {
+    limit,
+    offset: page * limit,
+    action: actionFilter,
+  })
+
+  const ACTION_LABELS: Record<string, string> = {
+    LOGIN: 'Login',
+    LOGOUT: 'Logout',
+    PASSWORD_CHANGED: 'Senha Alterada',
+    SESSION_REVOKED: 'Sessão Revogada',
+    FORCE_PASSWORD_CHANGE: 'Troca Forçada de Senha',
+  }
+
+  const ACTION_COLORS: Record<string, string> = {
+    LOGIN: 'bg-blue-100 text-blue-800',
+    LOGOUT: 'bg-gray-100 text-gray-800',
+    PASSWORD_CHANGED: 'bg-yellow-100 text-yellow-800',
+    SESSION_REVOKED: 'bg-red-100 text-red-800',
+    FORCE_PASSWORD_CHANGE: 'bg-orange-100 text-orange-800',
+  }
+
+  const STATUS_COLORS: Record<string, string> = {
+    SUCCESS: 'bg-green-100 text-green-800',
+    FAILED: 'bg-red-100 text-red-800',
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <History className="h-5 w-5" />
+          Histórico de Acesso
+        </CardTitle>
+        <CardDescription>
+          Registro de logins, logouts, alterações de senha e sessões revogadas
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Filtro por Ação */}
+        <div className="mb-4 flex gap-2 flex-wrap">
+          <Button
+            variant={actionFilter === undefined ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setActionFilter(undefined)
+              setPage(0)
+            }}
+          >
+            Todas
+          </Button>
+          {Object.entries(ACTION_LABELS).map(([key, label]) => (
+            <Button
+              key={key}
+              variant={actionFilter === key ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setActionFilter(key)
+                setPage(0)
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !data || data.logs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhum log de acesso encontrado
+          </div>
+        ) : (
+          <>
+            {/* Tabela de Logs */}
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="text-left p-3 text-sm font-medium">Data/Hora</th>
+                    <th className="text-left p-3 text-sm font-medium">Ação</th>
+                    <th className="text-left p-3 text-sm font-medium">Status</th>
+                    <th className="text-left p-3 text-sm font-medium">IP</th>
+                    <th className="text-left p-3 text-sm font-medium">Dispositivo</th>
+                    <th className="text-left p-3 text-sm font-medium">Motivo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.logs.map((log, index) => (
+                    <tr
+                      key={log.id}
+                      className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
+                    >
+                      <td className="p-3 text-sm">
+                        {format(new Date(log.createdAt), 'dd/MM/yyyy HH:mm:ss')}
+                      </td>
+                      <td className="p-3 text-sm">
+                        <Badge className={ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-800'}>
+                          {ACTION_LABELS[log.action] || log.action}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm">
+                        <Badge className={STATUS_COLORS[log.status] || 'bg-gray-100 text-gray-800'}>
+                          {log.status}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {log.ipAddress}
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {log.device || '-'}
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {log.reason || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginação */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {page * limit + 1} a {Math.min((page + 1) * limit, data.total)} de {data.total} registros
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={!data.hasMore}
+                >
+                  Próximo
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

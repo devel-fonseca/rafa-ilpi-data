@@ -10,6 +10,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UserProfilesModule } from '../user-profiles/user-profiles.module';
     }),
     PrismaModule,
     UserProfilesModule,
+    EmailModule,
   ],
   controllers: [AuthController, UsersController],
   providers: [AuthService, UsersService, JwtStrategy, JwtRefreshStrategy],

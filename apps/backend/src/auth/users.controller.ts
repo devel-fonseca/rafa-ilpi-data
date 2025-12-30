@@ -7,6 +7,7 @@ import {
   Body,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -119,6 +120,99 @@ export class UsersController {
       changePasswordDto,
       req.user.sub,
       req.user.tenantId,
+    );
+  }
+
+  // ==================== ACTIVE SESSIONS ====================
+
+  @Get(':id/sessions')
+  @ApiOperation({
+    summary: 'Listar sessões ativas do usuário',
+    description: 'Retorna todas as sessões ativas (refresh tokens não expirados) do usuário',
+  })
+  @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Lista de sessões ativas retornada com sucesso' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async getActiveSessions(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    // Nota: não temos como pegar o currentTokenId do JWT payload diretamente
+    // Vamos retornar todas as sessões e o frontend identifica pela data/hora mais recente
+    return this.usersService.getActiveSessions(
+      id,
+      undefined,
+      req.user.tenantId,
+    );
+  }
+
+  @Delete(':id/sessions/:sessionId')
+  @ApiOperation({
+    summary: 'Revogar sessão específica',
+    description: 'Encerra uma sessão específica do usuário (deleta o refresh token)',
+  })
+  @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
+  @ApiParam({ name: 'sessionId', description: 'ID da sessão (refresh token)', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Sessão encerrada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Não é possível revogar a sessão atual' })
+  @ApiResponse({ status: 404, description: 'Sessão não encontrada' })
+  async revokeSession(
+    @Param('id') id: string,
+    @Param('sessionId') sessionId: string,
+    @Request() req: any,
+  ) {
+    return this.usersService.revokeSession(
+      id,
+      sessionId,
+      'current', // Placeholder - usuário não deve revogar sessão que está usando
+      req.user.tenantId,
+    );
+  }
+
+  @Delete(':id/sessions')
+  @ApiOperation({
+    summary: 'Revogar todas as outras sessões',
+    description: 'Encerra todas as sessões do usuário exceto a atual',
+  })
+  @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Sessões encerradas com sucesso' })
+  async revokeAllOtherSessions(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    return this.usersService.revokeAllOtherSessions(
+      id,
+      'current', // Placeholder
+      req.user.tenantId,
+    );
+  }
+
+  // ==================== ACCESS LOGS ====================
+
+  @Get(':id/access-logs')
+  @ApiOperation({
+    summary: 'Listar logs de acesso do usuário',
+    description: 'Retorna histórico de logins, logouts, alterações de senha e sessões revogadas',
+  })
+  @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Logs de acesso retornados com sucesso' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async getAccessLogs(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('action') action?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 30;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+
+    return this.usersService.getAccessLogs(
+      id,
+      req.user.tenantId,
+      limitNum,
+      offsetNum,
+      action,
     );
   }
 }

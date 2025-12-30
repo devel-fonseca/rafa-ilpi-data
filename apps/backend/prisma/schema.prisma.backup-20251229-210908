@@ -406,17 +406,6 @@ enum ChangeType {
   @@map("ChangeType")
 }
 
-// ENUM: Ações de Acesso para Logs de Auditoria
-enum AccessAction {
-  LOGIN                // Login bem-sucedido
-  LOGOUT               // Logout
-  PASSWORD_CHANGED     // Senha alterada pelo usuário
-  SESSION_REVOKED      // Sessão revogada manualmente
-  FORCE_PASSWORD_CHANGE // Troca forçada de senha (primeiro login)
-
-  @@map("AccessAction")
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 //  CONTRATOS DE SERVIÇO SaaS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -617,7 +606,6 @@ model Tenant {
   messageRecipients         MessageRecipient[]
   messageAttachments        MessageAttachment[]
   emailLogs                 EmailLog[] // Auditoria de emails enviados
-  accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
 
   @@map("tenants")
 }
@@ -774,10 +762,6 @@ model User {
   // Mensagens para Tenants (SuperAdmin)
   tenantMessagesCreated TenantMessage[]
 
-  // Segurança e Auditoria
-  passwordResetTokens PasswordResetToken[]
-  accessLogs          AccessLog[]
-
   @@unique([tenantId, email])
   @@index([createdBy])
   @@index([updatedBy])
@@ -788,68 +772,16 @@ model User {
 //  REFRESH TOKENS
 // ──────────────────────────────────────────────────────────────────────────────
 model RefreshToken {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  token          String   @unique
-  expiresAt      DateTime @db.Timestamptz(3)
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
 
-  // Campos para rastreamento de sessão
-  lastActivityAt DateTime @default(now()) @db.Timestamptz(3)
-  ipAddress      String?  @db.VarChar(45)
-  userAgent      String?  @db.Text
-  device         String?  @db.VarChar(100)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
-  @@index([expiresAt])
   @@map("refresh_tokens")
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-//  PASSWORD RESET TOKENS (Recuperação de Senha)
-// ──────────────────────────────────────────────────────────────────────────────
-model PasswordResetToken {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @db.Uuid
-  token     String    @unique // Hash SHA-256 do token original
-  expiresAt DateTime  @db.Timestamptz(3)
-  usedAt    DateTime? @db.Timestamptz(3) // Null enquanto não usado
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  ipAddress String?   @db.VarChar(45)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([token])
-  @@index([expiresAt])
-  @@map("password_reset_tokens")
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-//  ACCESS LOGS (Logs de Acesso e Auditoria)
-// ──────────────────────────────────────────────────────────────────────────────
-model AccessLog {
-  id        String       @id @default(uuid()) @db.Uuid
-  userId    String       @db.Uuid
-  tenantId  String       @db.Uuid
-  action    AccessAction // LOGIN | LOGOUT | PASSWORD_CHANGED | SESSION_REVOKED
-  status    String       @db.VarChar(20) // SUCCESS | FAILED
-  reason    String?      @db.VarChar(100) // Motivo de falha (ex: INVALID_PASSWORD)
-  ipAddress String       @db.VarChar(45)
-  userAgent String       @db.Text
-  device    String?      @db.VarChar(100) // Ex: "Chrome 120 on Windows"
-  metadata  Json?        @db.JsonB // Dados adicionais (opcional)
-  createdAt DateTime     @default(now()) @db.Timestamptz(3)
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([action])
-  @@index([createdAt])
-  @@map("access_logs")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

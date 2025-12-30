@@ -130,6 +130,92 @@ export class EmailService {
   }
 
   /**
+   * Enviar email de recuperação de senha
+   */
+  async sendPasswordResetEmail(
+    to: string,
+    userData: {
+      name: string;
+      resetUrl: string;
+      expiresAt: string;
+      tenantName: string;
+    },
+    tenantId?: string,
+  ): Promise<boolean> {
+    if (!this.resend) {
+      this.logger.warn('Tentativa de envio de email sem API Key configurada');
+      return false;
+    }
+
+    try {
+      // Buscar template do banco de dados
+      const template = await this.emailTemplatesService.findByKey('password-reset');
+
+      // Renderizar template com variáveis
+      const variables = {
+        ...userData,
+      };
+      const htmlContent = await this.emailTemplatesService.renderTemplate('password-reset', variables);
+
+      // Renderizar subject com variáveis
+      const subject = this.replaceVariables(template.subject, variables);
+
+      const { data, error } = await this.resend.emails.send({
+        from: this.emailFrom,
+        to: [to],
+        subject,
+        html: htmlContent,
+        replyTo: this.emailReplyTo,
+        headers: {
+          'Content-Language': 'pt-BR',
+          'X-Language': 'pt-BR',
+        },
+      });
+
+      if (error) {
+        this.logger.error(`Erro ao enviar email de recuperação de senha: ${error.message}`, error);
+        // Registrar falha no log
+        await this.logEmailSent({
+          templateKey: 'password-reset',
+          recipientEmail: to,
+          recipientName: userData.name,
+          subject,
+          tenantId,
+          status: EmailStatus.FAILED,
+          errorMessage: error.message,
+        });
+        return false;
+      }
+
+      this.logger.log(`Email de recuperação de senha enviado com sucesso para ${to} (ID: ${data.id})`);
+      // Registrar sucesso no log
+      await this.logEmailSent({
+        templateKey: 'password-reset',
+        recipientEmail: to,
+        recipientName: userData.name,
+        subject,
+        tenantId,
+        resendId: data.id,
+        status: EmailStatus.SENT,
+      });
+      return true;
+    } catch (error) {
+      this.logger.error(`Erro inesperado ao enviar email de recuperação: ${error.message}`, error.stack);
+      // Registrar erro no log
+      await this.logEmailSent({
+        templateKey: 'password-reset',
+        recipientEmail: to,
+        recipientName: userData.name,
+        subject: 'Recuperação de Senha', // fallback
+        tenantId,
+        status: EmailStatus.FAILED,
+        errorMessage: error.message,
+      });
+      return false;
+    }
+  }
+
+  /**
    * Enviar email de lembrete de pagamento
    */
   async sendPaymentReminder(

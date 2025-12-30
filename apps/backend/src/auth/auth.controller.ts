@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,9 +17,12 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Request } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -45,8 +49,10 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.login(loginDto, ipAddress, userAgent);
   }
 
   /**
@@ -72,8 +78,10 @@ export class AuthController {
   @Public()
   @Post('select-tenant')
   @HttpCode(HttpStatus.OK)
-  async selectTenant(@Body() selectTenantDto: SelectTenantDto) {
-    return this.authService.selectTenant(selectTenantDto);
+  async selectTenant(@Body() selectTenantDto: SelectTenantDto, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.selectTenant(selectTenantDto, ipAddress, userAgent);
   }
 
   /**
@@ -92,8 +100,10 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refresh(refreshTokenDto.refreshToken);
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.refresh(refreshTokenDto.refreshToken, ipAddress, userAgent);
   }
 
   /**
@@ -113,8 +123,59 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@CurrentUser() user: any) {
-    return this.authService.logout(user.id);
+  async logout(@CurrentUser() user: any, @Req() req: Request) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.logout(user.id, ipAddress, userAgent);
+  }
+
+  /**
+   * POST /auth/forgot-password
+   * Solicitar recuperação de senha
+   */
+  @ApiOperation({
+    summary: 'Esqueci minha senha',
+    description:
+      'Envia um email com link de recuperação de senha. Sempre retorna sucesso (mesmo se email não existir) por segurança.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Mensagem de confirmação enviada (sempre retorna sucesso por segurança)',
+  })
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(
+    @Body() forgotPasswordDto: ForgotPasswordDto,
+    @Req() req: Request,
+  ) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    return this.authService.forgotPassword(forgotPasswordDto, ipAddress);
+  }
+
+  /**
+   * POST /auth/reset-password
+   * Resetar senha com token de recuperação
+   */
+  @ApiOperation({
+    summary: 'Resetar senha',
+    description:
+      'Reseta a senha do usuário usando o token recebido por email',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Senha alterada com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido, expirado ou já utilizado',
+  })
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   /**

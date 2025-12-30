@@ -157,7 +157,76 @@ async function seed() {
       },
     },
 
-    // 2. PAYMENT REMINDER
+    // 2. PASSWORD RESET
+    {
+      key: 'password-reset',
+      name: 'Recuperação de Senha',
+      subject: 'Recuperação de senha - {{tenantName}}',
+      description: 'Email enviado quando o usuário solicita recuperação de senha',
+      category: EmailTemplateCategory.SYSTEM,
+      variables: [
+        { name: 'name', type: 'string', required: true, description: 'Nome do usuário' },
+        { name: 'resetUrl', type: 'string', required: true, description: 'URL para reset de senha' },
+        { name: 'expiresAt', type: 'string', required: true, description: 'Data/hora de expiração do link' },
+        { name: 'tenantName', type: 'string', required: true, description: 'Nome da ILPI' },
+      ],
+      jsonContent: {
+        content: `<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Recuperação de Senha</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table width="640" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:14px;padding:26px;">
+          <tr>
+            <td>
+              <h2 style="margin:0 0 12px 0;">Recuperação de Senha</h2>
+              <p>Olá, <strong>{{name}}</strong>.</p>
+
+              <p>
+                Recebemos uma solicitação para redefinir a senha da sua conta no sistema da ILPI <strong>{{tenantName}}</strong>.
+              </p>
+
+              <p>
+                Se você não fez esta solicitação, ignore este email. Sua senha permanecerá inalterada.
+              </p>
+
+              <p style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px;border-radius:6px;margin:20px 0;">
+                <strong>⚠️ Importante:</strong> Este link expira em <strong>1 hora</strong> ({{expiresAt}}).
+              </p>
+
+              <a href="{{resetUrl}}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">
+                Redefinir minha senha
+              </a>
+
+              <p style="margin-top:18px;font-size:12px;color:#6b7280;">
+                Se o botão não funcionar, copie e cole este link no seu navegador:<br>
+                <a href="{{resetUrl}}" style="color:#2563eb;word-break:break-all;">{{resetUrl}}</a>
+              </p>
+
+              <p style="margin-top:18px;font-size:12px;color:#6b7280;">
+                Por segurança, nunca compartilhe este link com outras pessoas.
+              </p>
+
+              <p style="text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;">
+                Rafa ILPI é desenvolvido por <a href="https://rafalabs.com.br" style="color:#2563eb;text-decoration:none;">Rafa Labs</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+      },
+    },
+
+    // 3. PAYMENT REMINDER
     {
       key: 'payment-reminder',
       name: 'Lembrete de Pagamento',

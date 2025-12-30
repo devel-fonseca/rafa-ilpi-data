@@ -8,11 +8,16 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserProfilesService } from '../user-profiles/user-profiles.service';
+import { EmailService } from '../email/email.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangeType, AccessAction } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -21,6 +26,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly userProfilesService: UserProfilesService,
+    private readonly emailService: EmailService,
   ) {}
 
   /**
@@ -113,7 +119,7 @@ export class AuthService {
   /**
    * Login do usuário - Verifica se tem múltiplos tenants
    */
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
     const { email, password } = loginDto;
 
     // Buscar todos os cadastros do usuário (pode ter múltiplos tenants ou SUPERADMIN)
@@ -180,7 +186,19 @@ export class AuthService {
       const tokens = await this.generateTokens(user);
 
       // Salvar refresh token no banco
-      await this.saveRefreshToken(user.id, tokens.refreshToken);
+      await this.saveRefreshToken(user.id, tokens.refreshToken, ipAddress, userAgent);
+
+      // Registrar log de acesso (LOGIN bem-sucedido)
+      if (user.tenantId) {
+        await this.logAccess(
+          user.id,
+          user.tenantId,
+          AccessAction.LOGIN,
+          'SUCCESS',
+          ipAddress,
+          userAgent,
+        );
+      }
 
       // Remover senha do retorno e adicionar plan no tenant
       const { password: _, tenant, ...userWithoutPassword } = user;
@@ -219,7 +237,7 @@ export class AuthService {
   /**
    * Login com tenant específico (quando usuário tem múltiplos)
    */
-  async selectTenant(selectTenantDto: SelectTenantDto) {
+  async selectTenant(selectTenantDto: SelectTenantDto, ipAddress?: string, userAgent?: string) {
     const { email, password, tenantId } = selectTenantDto;
 
     // Buscar usuário no tenant específico
@@ -281,7 +299,19 @@ export class AuthService {
     const tokens = await this.generateTokens(user);
 
     // Salvar refresh token no banco
-    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    await this.saveRefreshToken(user.id, tokens.refreshToken, ipAddress, userAgent);
+
+    // Registrar log de acesso (LOGIN bem-sucedido)
+    if (user.tenantId) {
+      await this.logAccess(
+        user.id,
+        user.tenantId,
+        AccessAction.LOGIN,
+        'SUCCESS',
+        ipAddress,
+        userAgent,
+      );
+    }
 
     // Remover senha do retorno e adicionar plan no tenant
     const { password: _, tenant, ...userWithoutPassword } = user;
@@ -304,7 +334,7 @@ export class AuthService {
   /**
    * Renovar access token usando refresh token
    */
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken: string, ipAddress?: string, userAgent?: string) {
     try {
       // Verificar se refresh token existe no banco
       const storedToken = await this.prisma.refreshToken.findUnique({
@@ -337,7 +367,12 @@ export class AuthService {
       await this.prisma.refreshToken.delete({
         where: { id: storedToken.id },
       });
-      await this.saveRefreshToken(storedToken.user.id, tokens.refreshToken);
+      await this.saveRefreshToken(
+        storedToken.user.id,
+        tokens.refreshToken,
+        ipAddress || storedToken.ipAddress || undefined,
+        userAgent || storedToken.userAgent || undefined,
+      );
 
       return tokens;
     } catch (error) {
@@ -348,12 +383,245 @@ export class AuthService {
   /**
    * Logout (remover refresh token)
    */
-  async logout(userId: string) {
+  async logout(userId: string, ipAddress?: string, userAgent?: string) {
+    // Buscar usuário para obter tenantId
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, tenantId: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    // Remover todos os refresh tokens do usuário
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
 
+    // Registrar log de acesso (LOGOUT)
+    if (user.tenantId) {
+      await this.logAccess(
+        user.id,
+        user.tenantId,
+        AccessAction.LOGOUT,
+        'SUCCESS',
+        ipAddress,
+        userAgent,
+      );
+    }
+
     return { message: 'Logout realizado com sucesso' };
+  }
+
+  /**
+   * Esqueci minha senha - Solicita recuperação de senha
+   * Sempre retorna sucesso (mesmo se email não existe) para prevenir enumeração de usuários
+   */
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto, ipAddress?: string) {
+    const { email } = forgotPasswordDto;
+
+    // Buscar usuário por email (qualquer tenant)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+        isActive: true,
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            profile: {
+              select: {
+                tradeName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // ✅ SEGURANÇA: SEMPRE retornar sucesso, mesmo se usuário não existe
+    // Isso previne que atacantes enumerem emails válidos no sistema
+    if (!user) {
+      return {
+        message:
+          'Se o email estiver cadastrado, você receberá um link de recuperação em breve.',
+      };
+    }
+
+    // Gerar token único (UUID v4 = 128-bit random)
+    const token = crypto.randomUUID();
+
+    // Hash SHA-256 do token (armazenar apenas o hash no banco)
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Expiração: 1 hora
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Invalidar tokens anteriores não utilizados deste usuário
+    await this.prisma.passwordResetToken.deleteMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+      },
+    });
+
+    // Criar novo token de reset
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: tokenHash,
+        expiresAt,
+        ipAddress: ipAddress || null,
+      },
+    });
+
+    // Enviar email com link de recuperação
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password/${token}`;
+    const tenantName = user.tenant?.profile?.tradeName || user.tenant?.name || 'Rafa ILPI';
+
+    // Formatar data de expiração
+    const expiresAtFormatted = new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(expiresAt);
+
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      {
+        name: user.name,
+        resetUrl,
+        expiresAt: expiresAtFormatted,
+        tenantName,
+      },
+      user.tenantId!,
+    );
+
+    console.log(`🔐 Token de recuperação gerado para ${email}:`, token);
+    console.log(`📧 Link de reset: ${resetUrl}`);
+
+    return {
+      message:
+        'Se o email estiver cadastrado, você receberá um link de recuperação em breve.',
+    };
+  }
+
+  /**
+   * Resetar senha com token
+   */
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword } = resetPasswordDto;
+
+    // Hash do token recebido para comparar com o banco
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Buscar token válido
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: {
+        token: tokenHash,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            tenantId: true,
+            versionNumber: true,
+          },
+        },
+      },
+    });
+
+    // Validações de segurança
+    if (!resetToken) {
+      throw new BadRequestException('Token inválido ou expirado');
+    }
+
+    if (resetToken.usedAt) {
+      throw new BadRequestException('Token já foi utilizado');
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Token expirado');
+    }
+
+    // Hash da nova senha
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Incrementar versão do usuário
+    const newVersionNumber = resetToken.user.versionNumber + 1;
+
+    // Atualizar em transação atômica
+    await this.prisma.$transaction(async (tx) => {
+      // 1. Atualizar senha do usuário
+      await tx.user.update({
+        where: { id: resetToken.user.id },
+        data: {
+          password: hashedPassword,
+          passwordResetRequired: false, // Remove flag de reset se existir
+          versionNumber: newVersionNumber,
+          updatedBy: resetToken.user.id, // Usuário atualiza a própria senha
+        },
+      });
+
+      // 2. Marcar token como usado
+      await tx.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: {
+          usedAt: new Date(),
+        },
+      });
+
+      // 3. Invalidar TODOS os refresh tokens (força novo login em todas sessões)
+      await tx.refreshToken.deleteMany({
+        where: { userId: resetToken.user.id },
+      });
+
+      // 4. Criar entrada no histórico de auditoria
+      await tx.userHistory.create({
+        data: {
+          tenantId: resetToken.user.tenantId!,
+          userId: resetToken.user.id,
+          versionNumber: newVersionNumber,
+          changeType: ChangeType.UPDATE,
+          changeReason: 'Senha resetada via recuperação de senha',
+          previousData: {
+            password: { passwordMasked: true },
+            versionNumber: resetToken.user.versionNumber,
+          } as any,
+          newData: {
+            password: { passwordChanged: true },
+            versionNumber: newVersionNumber,
+          } as any,
+          changedFields: ['password'],
+          changedAt: new Date(),
+          changedBy: resetToken.user.id,
+          changedByName: resetToken.user.name,
+        },
+      });
+
+      // 5. Registrar log de acesso (PASSWORD_CHANGED)
+      if (resetToken.user.tenantId) {
+        await tx.accessLog.create({
+          data: {
+            userId: resetToken.user.id,
+            tenantId: resetToken.user.tenantId,
+            action: AccessAction.PASSWORD_CHANGED,
+            status: 'SUCCESS',
+            reason: 'Senha resetada via recuperação de senha',
+            ipAddress: resetToken.ipAddress || 'IP Desconhecido',
+            userAgent: 'Password Reset',
+          },
+        });
+      }
+    });
+
+    return { message: 'Senha alterada com sucesso' };
   }
 
   /**
@@ -386,17 +654,28 @@ export class AuthService {
   /**
    * Salvar refresh token no banco
    */
-  private async saveRefreshToken(userId: string, token: string) {
+  private async saveRefreshToken(
+    userId: string,
+    token: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const expiresIn =
       this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
     const expiresInMs = this.parseTimeToMs(expiresIn);
     const expiresAt = new Date(Date.now() + expiresInMs);
+
+    const device = this.parseUserAgent(userAgent);
 
     await this.prisma.refreshToken.create({
       data: {
         userId,
         token,
         expiresAt,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+        device: device || null,
+        lastActivityAt: new Date(),
       },
     });
   }
@@ -438,5 +717,64 @@ export class AuthService {
     hashedPassword: string,
   ): Promise<boolean> {
     return bcrypt.compare(plainPassword, hashedPassword);
+  }
+
+  /**
+   * Registrar log de acesso (LOGIN, LOGOUT, PASSWORD_CHANGED, etc)
+   */
+  private async logAccess(
+    userId: string,
+    tenantId: string,
+    action: AccessAction,
+    status: 'SUCCESS' | 'FAILED',
+    ipAddress?: string,
+    userAgent?: string,
+    reason?: string,
+    metadata?: any,
+  ): Promise<void> {
+    try {
+      const device = this.parseUserAgent(userAgent);
+
+      await this.prisma.accessLog.create({
+        data: {
+          userId,
+          tenantId,
+          action,
+          status,
+          reason,
+          ipAddress: ipAddress || 'IP Desconhecido',
+          userAgent: userAgent || 'User-Agent Desconhecido',
+          device,
+          metadata,
+        },
+      });
+    } catch (error) {
+      // Não lançar erro se falhar o log, apenas registrar no console
+      console.error('Erro ao registrar log de acesso:', error);
+    }
+  }
+
+  /**
+   * Parsear User-Agent para extrair dispositivo e navegador
+   */
+  private parseUserAgent(userAgent?: string): string {
+    if (!userAgent) return 'Dispositivo Desconhecido';
+
+    // Detectar SO
+    let os = 'Unknown OS';
+    if (userAgent.includes('Windows')) os = 'Windows';
+    else if (userAgent.includes('Mac OS')) os = 'macOS';
+    else if (userAgent.includes('Linux')) os = 'Linux';
+    else if (userAgent.includes('Android')) os = 'Android';
+    else if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'iOS';
+
+    // Detectar navegador
+    let browser = 'Unknown';
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) browser = 'Chrome';
+    else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'Safari';
+    else if (userAgent.includes('Firefox')) browser = 'Firefox';
+    else if (userAgent.includes('Edg')) browser = 'Edge';
+
+    return `${browser} on ${os}`;
   }
 }

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Logger, BadRequestException, ForbiddenEx
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, AccessAction } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -423,6 +423,19 @@ export class UsersService {
         },
       });
 
+      // 3. Registrar log de acesso (PASSWORD_CHANGED)
+      await tx.accessLog.create({
+        data: {
+          userId,
+          tenantId,
+          action: AccessAction.PASSWORD_CHANGED,
+          status: 'SUCCESS',
+          reason: 'Troca de senha pelo usuário',
+          ipAddress: 'Sistema',
+          userAgent: 'Sistema',
+        },
+      });
+
       return updatedUser;
     });
 
@@ -433,6 +446,172 @@ export class UsersService {
     });
 
     return { message: 'Senha alterada com sucesso' };
+  }
+
+  // ==================== ACTIVE SESSIONS ====================
+
+  /**
+   * Listar sessões ativas do usuário
+   */
+  async getActiveSessions(userId: string, currentTokenId?: string, tenantId?: string) {
+    const sessions = await this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        expiresAt: {
+          gte: new Date(), // Não expirados
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      sessions: sessions.map((session) => ({
+        id: session.id,
+        device: session.device || 'Dispositivo Desconhecido',
+        ipAddress: session.ipAddress || 'IP Desconhecido',
+        loginAt: session.createdAt,
+        lastActivityAt: session.lastActivityAt,
+        expiresAt: session.expiresAt,
+        isCurrent: session.id === currentTokenId,
+      })),
+    };
+  }
+
+  /**
+   * Revogar sessão específica (deletar refresh token)
+   */
+  async revokeSession(userId: string, sessionId: string, currentTokenId: string, tenantId: string) {
+    // Não permitir revogar sessão atual
+    if (sessionId === currentTokenId) {
+      throw new BadRequestException('Não é possível revogar a sessão atual');
+    }
+
+    // Verificar se a sessão pertence ao usuário
+    const session = await this.prisma.refreshToken.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new NotFoundException('Sessão não encontrada');
+    }
+
+    // Deletar sessão
+    await this.prisma.refreshToken.delete({
+      where: { id: sessionId },
+    });
+
+    // Registrar log de acesso (SESSION_REVOKED)
+    await this.prisma.accessLog.create({
+      data: {
+        userId,
+        tenantId,
+        action: AccessAction.SESSION_REVOKED,
+        status: 'SUCCESS',
+        reason: 'Sessão revogada manualmente pelo usuário',
+        ipAddress: session.ipAddress || 'IP Desconhecido',
+        userAgent: session.userAgent || 'User-Agent Desconhecido',
+        device: session.device,
+        metadata: { sessionId },
+      },
+    });
+
+    return { message: 'Sessão encerrada com sucesso' };
+  }
+
+  /**
+   * Revogar todas as outras sessões (exceto a atual)
+   */
+  async revokeAllOtherSessions(userId: string, currentTokenId: string, tenantId: string) {
+    const result = await this.prisma.refreshToken.deleteMany({
+      where: {
+        userId,
+        id: {
+          not: currentTokenId,
+        },
+      },
+    });
+
+    // Registrar log de acesso (SESSION_REVOKED) se alguma sessão foi encerrada
+    if (result.count > 0) {
+      await this.prisma.accessLog.create({
+        data: {
+          userId,
+          tenantId,
+          action: AccessAction.SESSION_REVOKED,
+          status: 'SUCCESS',
+          reason: `${result.count} sessão(ões) revogada(s) - Encerrar todas as outras sessões`,
+          ipAddress: 'Sistema',
+          userAgent: 'Sistema',
+          metadata: { count: result.count },
+        },
+      });
+    }
+
+    return {
+      message: `${result.count} sessão(ões) encerrada(s) com sucesso`,
+      count: result.count,
+    };
+  }
+
+  // ==================== ACCESS LOGS ====================
+
+  /**
+   * Listar logs de acesso do usuário com paginação
+   */
+  async getAccessLogs(
+    userId: string,
+    tenantId: string,
+    limit: number = 30,
+    offset: number = 0,
+    action?: string,
+  ) {
+    // Verificar se usuário existe e pertence ao tenant
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, tenantId, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    // Filtros
+    const where: any = {
+      userId,
+      tenantId,
+    };
+
+    // Filtro por ação (opcional)
+    if (action && Object.values(AccessAction).includes(action as AccessAction)) {
+      where.action = action as AccessAction;
+    }
+
+    // Buscar logs com paginação
+    const [logs, total] = await Promise.all([
+      this.prisma.accessLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          action: true,
+          status: true,
+          reason: true,
+          ipAddress: true,
+          device: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.accessLog.count({ where }),
+    ]);
+
+    return {
+      logs,
+      total,
+      hasMore: offset + limit < total,
+    };
   }
 
   // ==================== HELPER: Hash Password ====================
