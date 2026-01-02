@@ -1,0 +1,161 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  NÚCLEO MULTI-TENANT
+//
+//  Plan, Tenant e Subscription - Hub central do sistema
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PLANOS
+// ──────────────────────────────────────────────────────────────────────────────
+model Plan {
+  id                    String       @id @default(uuid()) @db.Uuid
+  name                  String       @unique
+  displayName           String
+  type                  PlanType
+  maxResidents          Int
+  maxUsers              Int
+  price                 Decimal?     @db.Decimal(10, 2)
+  annualDiscountPercent Decimal?     @default(0) @map("annual_discount_percent") @db.Decimal(5, 2) // Desconto para assinaturas anuais (0-100%)
+  trialDays             Int          @default(0)
+  isPopular             Boolean      @default(false)
+  isActive              Boolean      @default(true)
+  features              Json         @default("{}")
+  billingCycle          BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
+  createdAt             DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+  contracts     ServiceContract[]
+
+  @@map("plans")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  TENANTS (Clínicas / Residências)
+// ──────────────────────────────────────────────────────────────────────────────
+model Tenant {
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String       @unique
+  cnpj       String?      @unique
+  email      String
+  phone      String?
+  status     TenantStatus @default(TRIAL)
+  schemaName String       @unique
+
+  // Asaas Integration
+  asaasCustomerId String? @unique @db.VarChar(255) // ID do cliente no Asaas
+
+  // Endereço detalhado
+  addressStreet     String?
+  addressNumber     String?
+  addressComplement String?
+  addressDistrict   String?
+  addressCity       String?
+  addressState      String?
+  addressZipCode    String?
+
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  subscriptions             Subscription[]
+  users                     User[]
+  userProfiles              UserProfile[]
+  userHistory               UserHistory[] // Histórico de usuários
+  residents                 Resident[]
+  residentHistory           ResidentHistory[] // Histórico de residentes
+  dailyRecords              DailyRecord[]
+  dailyRecordHistory        DailyRecordHistory[]
+  vitalSigns                VitalSign[]
+  prescriptions             Prescription[]
+  prescriptionHistory       PrescriptionHistory[] // Histórico de prescrições
+  medicationHistory         MedicationHistory[] // Histórico de medicamentos
+  sosMedicationHistory      SOSMedicationHistory[] // Histórico de medicamentos SOS
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
+  vaccinationHistory        VaccinationHistory[] // Histórico de vacinações
+  allergies                 Allergy[]
+  allergyHistory            AllergyHistory[] // Histórico de alergias
+  conditions                Condition[]
+  conditionHistory          ConditionHistory[] // Histórico de condições
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistory       ClinicalNoteHistory[]
+  clinicalProfiles          ClinicalProfile[]
+  clinicalProfileHistory    ClinicalProfileHistory[]
+  dietaryRestrictions       DietaryRestriction[]
+  dietaryRestrictionHistory DietaryRestrictionHistory[]
+  auditLogs                 AuditLog[]
+  buildings                 Building[]
+  floors                    Floor[]
+  rooms                     Room[]
+  beds                      Bed[]
+  profile                   TenantProfile?
+  documents                 TenantDocument[]
+  residentDocuments         ResidentDocument[]
+  notifications             Notification[]
+  clinicalNoteDocuments     ClinicalNoteDocument[]
+  documentHistory           DocumentHistory[]
+  pops                      Pop[]
+  popAttachments            PopAttachment[]
+  popHistory                PopHistory[]
+  VitalSignHistory          VitalSignHistory[]
+  bedTransferHistory        BedTransferHistory[]
+  residentScheduleConfigs   ResidentScheduleConfig[]
+  residentScheduledEvents   ResidentScheduledEvent[]
+  invoices                  Invoice[] // SuperAdmin - Faturas
+  usageMetrics              UsageMetrics[] // SuperAdmin - Métricas de uso
+  systemAlerts              SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance        ContractAcceptance?
+  privacyPolicyAcceptance   PrivacyPolicyAcceptance?
+  messages                  Message[]
+  messageRecipients         MessageRecipient[]
+  messageAttachments        MessageAttachment[]
+  emailLogs                 EmailLog[] // Auditoria de emails enviados
+  accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
+
+  @@map("tenants")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  SUBSCRIPTIONS (Stripe‑style)
+// ──────────────────────────────────────────────────────────────────────────────
+model Subscription {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @db.Uuid
+  planId             String    @db.Uuid
+  startDate          DateTime  @default(now()) @db.Timestamptz(3)
+  endDate            DateTime? @db.Timestamptz(3)
+  currentPeriodStart DateTime? @db.Timestamptz(3)
+  currentPeriodEnd   DateTime? @db.Timestamptz(3)
+  trialEndDate       DateTime? @db.Timestamptz(3)
+  status             String // trialing | active | past_due | canceled | unpaid | incomplete
+
+  // Asaas Integration
+  asaasSubscriptionId String? @unique @db.VarChar(255) // ID da assinatura no Asaas
+
+  // Pricing Overrides (Descontos e Preços Personalizados)
+  discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)
+  discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
+  customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
+
+  // Billing Preferences (Onboarding)
+  billingCycle           String? @map("billing_cycle") @db.VarChar(20) // MONTHLY | ANNUAL
+  preferredPaymentMethod String? @map("preferred_payment_method") @db.VarChar(50) // PIX | BOLETO | CREDIT_CARD
+
+  // Trial Alerts Control (Idempotência - evitar emails duplicados)
+  trialAlert7Sent Boolean @default(false) @map("trial_alert_7_sent") // Email D-7 enviado
+  trialAlert3Sent Boolean @default(false) @map("trial_alert_3_sent") // Email D-3 enviado
+  trialAlert1Sent Boolean @default(false) @map("trial_alert_1_sent") // Email D-1 enviado
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices Invoice[] // SuperAdmin - Faturas da assinatura
+
+  @@map("subscriptions")
+}

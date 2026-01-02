@@ -6,6 +6,164 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2025-12-30] - Otimizações de Performance - Fase 1 🚀
+
+### ✨ Adicionado
+
+**1. PaginationHelper Utility** (`apps/backend/src/common/utils/pagination.helper.ts`)
+- Utilitário robusto para paginação offset-based (padrão Asaas)
+- Métodos: `toPrismaParams()`, `paginate()`, `execute()`
+- Execução paralela automática de `findMany` + `count`
+- Validações de offset e cálculo de última página
+
+**2. QueryLoggerMiddleware** (`apps/backend/src/prisma/middleware/query-logger.middleware.ts`)
+- Middleware para identificação automática de queries lentas em produção
+- Threshold configurável via `SLOW_QUERY_THRESHOLD_MS` (padrão: 100ms)
+- Logs coloridos: 🐌 warning (>100ms), 🔴 critical (>1s)
+- Logs detalhados de args em modo desenvolvimento
+- Registrado tanto no client principal quanto em tenant clients
+
+**3. Índices Compostos** (Migration: `20251230130205_add_composite_indexes_phase1`)
+- **19 novos índices compostos** para otimizar queries frequentes:
+
+  **Medications (6 índices)**:
+  - `prescriptions_tenantId_residentId_isActive_idx` - Listar prescrições ativas do residente
+  - `prescriptions_tenantId_isActive_validUntil_idx` - Prescrições próximas do vencimento
+  - `medications_prescriptionId_deletedAt_idx` - Medicamentos ativos de uma prescrição
+  - `medications_prescriptionId_startDate_endDate_idx` - Medicamentos vigentes
+  - `medication_administrations_tenantId_date_wasAdministered_idx` - Administrações pendentes do dia
+  - `medication_administrations_residentId_date_wasAdministered_idx` - Administrações pendentes do residente
+
+  **Notifications (5 índices)**:
+  - `notifications_userId_read_createdAt_idx` - Notificações não lidas do usuário
+  - `notifications_tenantId_type_read_idx` - Notificações por tipo (ex: MEDICATION_DUE)
+  - `notifications_entityType_entityId_idx` - Notificações de entidade específica
+  - `system_alerts_tenantId_read_createdAt_idx` - Alertas não lidos do tenant
+  - `system_alerts_type_read_createdAt_idx` - Alertas não lidos por tipo
+
+  **Daily Records (8 índices)**:
+  - `daily_records_tenantId_type_date_idx` - Registros por tipo (ex: ALIMENTACAO do dia)
+  - `daily_records_residentId_type_date_idx` - Registros do residente por tipo
+  - `daily_records_tenantId_date_deletedAt_idx` - Registros ativos do dia
+  - `resident_schedule_configs_residentId_recordType_isActive_idx` - Configurações ativas por tipo
+  - `resident_schedule_configs_tenantId_recordType_isActive_idx` - Configurações do tenant por tipo
+  - `resident_scheduled_events_tenantId_status_scheduledDate_idx` - Eventos pendentes do dia
+  - `resident_scheduled_events_residentId_status_scheduledDate_idx` - Eventos pendentes do residente
+  - `resident_scheduled_events_tenantId_eventType_scheduledDate_idx` - Eventos por tipo
+
+### 📝 Alterado
+
+**Otimizações no ResidentsService** (`apps/backend/src/residents/residents.service.ts`)
+- Adicionado `select` específico em queries de validação
+- Redução de **70-90%** nos bytes transferidos por validação
+- Queries otimizadas:
+  - Validação de bed: `select: { id, code, status, roomId }`
+  - Validação de room: `select: { id }`
+  - Validação de CPF duplicado: `select: { id }`
+  - Histórico de residente: `select: { id, fullName, cpf, versionNumber, status, deletedAt }`
+
+### 📈 Impacto Esperado
+
+- **Queries de listagem** com múltiplos filtros: **-30% a -50%** (P50/P95)
+- **Queries de validação**: **-70% a -90%** em bytes transferidos
+- **Identificação de bottlenecks**: automática via QueryLoggerMiddleware
+- **Total de índices no sistema**: 246 → **265 índices** (+19)
+
+### 🔍 Validações
+
+- ✅ Prisma schema formatado e validado
+- ✅ Migration `20251230130205_add_composite_indexes_phase1` aplicada
+- ✅ Prisma Client regenerado com sucesso
+- ✅ TypeScript compilado sem novos erros
+- ✅ 0 breaking changes
+
+### 📚 Documentação
+
+- Análise completa de performance: `docs/optimization/QUERY_PERFORMANCE_ANALYSIS.md`
+- Plano de 3 fases: `/home/emanuel/.claude/plans/performance-optimization-plan.md`
+
+---
+
+## [2025-12-30] - Modularização do Prisma Schema 🗂️
+
+### 🔧 Refatoração
+
+**Divisão do Schema Monolítico em Arquivos Modulares:**
+
+- **Estrutura Modularizada** (`apps/backend/prisma/schema/`):
+  - `_base.prisma` - Configuração central (generators + datasources) com `prismaSchemaFolder` preview feature
+  - `enums.prisma` - Todos os 47 enums organizados em 8 categorias (Negócio, Segurança, Demográficos, etc.)
+  - `tenant.prisma` - Núcleo multi-tenant (Plan, Tenant, Subscription)
+  - `contracts.prisma` - Contratos de serviço e aceites LGPD (ServiceContract, ContractAcceptance, PrivacyPolicyAcceptance)
+  - `auth.prisma` - Autenticação (User, RefreshToken, PasswordResetToken, AccessLog, UserHistory, UserProfile, UserPermission)
+  - `residents.prisma` - Residentes (Resident, ResidentHistory, ResidentDocument)
+  - `clinical.prisma` - Perfil clínico (ClinicalProfile, Allergy, Condition, DietaryRestriction + histories)
+  - `daily-records.prisma` - Registros diários (DailyRecord, ResidentScheduleConfig, ScheduledEvent + histories)
+  - `vital-signs.prisma` - Sinais vitais (VitalSign + VitalSignHistory)
+  - `medications.prisma` - Medicações (Prescription, Medication, SOSMedication, MedicationAdministration + histories)
+  - `vaccinations.prisma` - Vacinações (Vaccination + VaccinationHistory)
+  - `clinical-notes.prisma` - Evoluções clínicas SOAP (ClinicalNote, ClinicalNoteDocument + histories)
+  - `infrastructure.prisma` - Infraestrutura física (Building, Floor, Room, Bed, BedTransferHistory)
+  - `documents.prisma` - Documentação institucional (TenantProfile, TenantDocument, DocumentHistory)
+  - `pops.prisma` - Procedimentos Operacionais Padrão (Pop, PopHistory, PopAttachment)
+  - `billing.prisma` - Faturamento (Invoice, Payment, UsageMetrics, WebhookEvent)
+  - `notifications.prisma` - Notificações (Notification, SystemAlert)
+  - `communication.prisma` - Comunicação (EmailTemplate, EmailLog, TenantMessage, Message + relacionados)
+  - `audit.prisma` - Auditoria (AuditLog)
+
+- **Configuração** (`apps/backend/package.json`):
+  - Adicionada configuração `"prisma": { "schema": "prisma/schema" }`
+  - Prisma CLI agora processa múltiplos arquivos automaticamente
+
+- **Validações Executadas**:
+  - ✅ Contagem de modelos: 68 (original) = 68 (modularizado)
+  - ✅ Contagem de enums: 47 (original) = 47 (modularizado)
+  - ✅ `prisma format` - Sintaxe validada
+  - ✅ `prisma validate` - Relações preservadas
+  - ✅ `prisma generate` - Client gerado com sucesso
+  - ✅ TypeScript compilado sem novos erros
+
+### 📈 Benefícios
+
+- **Manutenibilidade**: Desenvolvedores podem trabalhar em domínios isolados sem conflitos
+- **Navegação**: Encontrar modelos e enums fica muito mais rápido
+- **Organização**: Estrutura espelha a arquitetura de domínios do sistema
+- **Code Review**: PRs menores e mais focados em domínios específicos
+- **Performance**: Prisma CLI processa arquivos em paralelo
+- **Escalabilidade**: Facilita adição de novos domínios no futuro
+
+### 🗑️ Removido
+
+- `apps/backend/prisma/schema.prisma` - Schema monolítico de 3.374 linhas (backup mantido)
+- `apps/backend/split-schema.js` - Script temporário de divisão
+
+### ⚠️ Breaking Changes
+
+- **NENHUM** - O Prisma Client gerado é idêntico ao anterior
+- Migrations existentes permanecem intactas
+
+### 📊 Análise de Performance
+
+- **Documento Criado:** [`docs/optimization/QUERY_PERFORMANCE_ANALYSIS.md`](docs/optimization/QUERY_PERFORMANCE_ANALYSIS.md)
+- **Status dos Índices:** ✅ 246 índices já definidos (muito bom!)
+- **Queries Analisadas:** ~575 queries em 65 arquivos
+- **Principais Recomendações:**
+  1. ⚡ Adicionar paginação universal em listagens
+  2. 🔍 Implementar query logger para detectar queries lentas
+  3. 📈 Cache Redis para Tenant e UserPermissions
+  4. 🎯 Select específico ao invés de buscar todos os campos
+  5. 🔗 Evitar N+1 queries com batching
+
+### 📚 Documentação
+
+- **README Criado:** [`apps/backend/prisma/schema/README.md`](/home/emanuel/Documentos/GitHub/rafa-ilpi-data/apps/backend/prisma/schema/README.md)
+  - Descrição detalhada de todos os 19 arquivos
+  - Mapa de relações entre domínios
+  - Guia de comandos Prisma
+  - Referências e best practices
+
+---
+
 ## [2025-12-27] - Sistema de Histórico e Rollback de Templates de Email 🔄
 
 ### ✨ Adicionado

@@ -1,0 +1,86 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  VACINAÇÕES
+//
+//  Registro de vacinas administradas aos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Vaccination {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // 11 Campos obrigatórios (RDC 502/2021)
+  vaccine        String // 1) Vacina/Profilaxia (ex: "COVID-19", "Influenza")
+  dose           String // 3) Dose (ex: "1ª dose", "2ª dose", "Reforço")
+  date           DateTime @db.Timestamptz(3) // 2) Data da vacinação
+  batch          String // 4) Lote do imunizante
+  manufacturer   String // 5) Fabricante
+  cnes           String // 6) CNES (Código Nacional do Estabelecimento de Saúde)
+  healthUnit     String // 7) Estabelecimento de Saúde
+  municipality   String // 8) Município
+  state          String // 9) UF (2 caracteres)
+  certificateUrl String? // 10) URL do comprovante (file upload)
+  notes          String?  @db.Text // 11) Observações adicionais
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3) // Soft delete
+
+  // Relações
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident             @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User                 @relation("VaccinationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                @relation("VaccinationUpdatedBy", fields: [updatedBy], references: [id])
+  history       VaccinationHistory[]
+
+  // Índices para performance
+  @@index([tenantId, residentId])
+  @@index([residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("vaccinations")
+}
+
+model VaccinationHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  vaccinationId String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  // Snapshots dos dados (JSON)
+  previousData Json?
+  newData      Json
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([])
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+
+  // Metadados adicionais
+  metadata Json? @db.JsonB
+
+  // Relações
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vaccination Vaccination @relation(fields: [vaccinationId], references: [id], onDelete: Cascade)
+  user        User        @relation("VaccinationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, vaccinationId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("vaccination_history")
+}

@@ -1,0 +1,362 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  MEDICAÇÕES E PRESCRIÇÕES
+//
+//  Prescrições, medicamentos regulares, SOS e administração
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Prescription {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados do Prescritor
+  doctorName       String
+  doctorCrm        String
+  doctorCrmState   String // UF
+  prescriptionDate DateTime         @db.Timestamptz(3)
+  prescriptionType PrescriptionType
+  validUntil       DateTime?        @db.Timestamptz(3) // Obrigatório para ANTIBIOTICO e CONTROLADO
+  reviewDate       DateTime?        @db.Timestamptz(3) // Data estimada para revisão da prescrição
+
+  // Campos específicos para CONTROLADO
+  controlledClass    ControlledClass?
+  notificationNumber String?
+  notificationType   NotificationType?
+
+  // Anexos
+  prescriptionImageUrl String? // URL da receita médica (obrigatório para controlado)
+
+  // Observações gerais
+  notes String? @db.Text
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementado a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String    @db.Uuid // ID do usuário que criou
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident           Resident                   @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  medications        Medication[]
+  sosMedications     SOSMedication[]
+  administrations    MedicationAdministration[]
+  sosAdministrations SOSAdministration[]
+  history            PrescriptionHistory[] // Histórico de versões da prescrição
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, validUntil])
+  @@index([deletedAt])
+  // Índices compostos para queries frequentes
+  @@index([tenantId, residentId, isActive]) // Listar prescrições ativas do residente
+  @@index([tenantId, isActive, validUntil]) // Prescrições ativas próximas do vencimento
+  @@map("prescriptions")
+}
+
+model PrescriptionHistory {
+  id             String     @id @default(uuid()) @db.Uuid
+  tenantId       String     @db.Uuid
+  prescriptionId String     @db.Uuid
+  versionNumber  Int // Número da versão (1, 2, 3, ...)
+  changeType     ChangeType // CREATE | UPDATE | DELETE
+  changeReason   String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["doctorName", "validUntil", "medications.0.dose"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  user         User         @relation("PrescriptionHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, prescriptionId, versionNumber(sort: Desc)]) // Buscar histórico de uma prescrição
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("prescription_history")
+}
+
+model Medication {
+  id             String @id @default(uuid()) @db.Uuid
+  prescriptionId String @db.Uuid
+
+  // Dados do medicamento
+  name           String // DCB (Denominação Comum Brasileira)
+  presentation   MedicationPresentation
+  concentration  String // Ex: "500mg", "5mg/mL"
+  dose           String // Ex: "1 cp", "20 gotas"
+  route          AdministrationRoute
+  frequency      MedicationFrequency
+  scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
+
+  // Período
+  startDate DateTime  @db.Timestamptz(3)
+  endDate   DateTime? @db.Timestamptz(3) // null = uso contínuo
+
+  // Flags especiais
+  isControlled        Boolean @default(false)
+  isHighRisk          Boolean @default(false)
+  requiresDoubleCheck Boolean @default(false) // Exige dupla checagem
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription    Prescription               @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  administrations MedicationAdministration[]
+  history         MedicationHistory[]
+  createdByUser   User                       @relation("MedicationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?                      @relation("MedicationUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([isControlled])
+  @@index([startDate, endDate])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  // Índices compostos para queries frequentes
+  @@index([prescriptionId, deletedAt]) // Medicamentos ativos de uma prescrição
+  @@index([prescriptionId, startDate, endDate]) // Medicamentos vigentes de uma prescrição
+  @@map("medications")
+}
+
+model MedicationHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  medicationId  String     @db.Uuid
+  versionNumber Int // Número da versão (1, 2, 3, ...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["name", "dose", "frequency"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  user       User       @relation("MedicationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, medicationId, versionNumber(sort: Desc)]) // Buscar histórico de um medicamento
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("medication_history")
+}
+
+model SOSMedication {
+  id             String @id @default(uuid()) @db.Uuid
+  prescriptionId String @db.Uuid
+
+  // Dados do medicamento
+  name          String
+  presentation  MedicationPresentation
+  concentration String
+  dose          String
+  route         AdministrationRoute
+
+  // Indicação e limites
+  indication        SOSIndicationType
+  indicationDetails String? // Ex: "dor > 7", "febre > 38°C"
+  minInterval       String // Ex: "6 horas", "4 horas"
+  maxDailyDoses     Int // Limite diário (ex: 3)
+
+  // Período de validade
+  startDate DateTime  @db.Timestamptz(3)
+  endDate   DateTime? @db.Timestamptz(3)
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription       Prescription           @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosAdministrations SOSAdministration[]
+  history            SOSMedicationHistory[]
+  createdByUser      User                   @relation("SOSMedicationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser      User?                  @relation("SOSMedicationUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([indication])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("sos_medications")
+}
+
+model SOSMedicationHistory {
+  id              String     @id @default(uuid()) @db.Uuid
+  tenantId        String     @db.Uuid
+  sosMedicationId String     @db.Uuid
+  versionNumber   Int // Número da versão (1, 2, 3, ...)
+  changeType      ChangeType // CREATE | UPDATE | DELETE
+  changeReason    String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["name", "dose", "indication"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sosMedication SOSMedication @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  user          User          @relation("SOSMedicationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, sosMedicationId, versionNumber(sort: Desc)]) // Buscar histórico de um medicamento SOS
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("sos_medication_history")
+}
+
+model MedicationAdministration {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  prescriptionId String @db.Uuid
+  medicationId   String @db.Uuid
+  residentId     String @db.Uuid
+
+  // Data/hora da administração
+  date          DateTime @db.Timestamptz(3)
+  scheduledTime String // Horário programado (ex: "06:00")
+  actualTime    String? // Horário real de administração (se diferente)
+
+  // Status
+  wasAdministered Boolean @default(false)
+  reason          String? // Motivo de não administração
+
+  // Checagem
+  administeredBy  String // Nome do profissional
+  userId          String  @db.Uuid
+  checkedBy       String? // Para dupla checagem
+  checkedByUserId String? @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication   Medication   @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([medicationId, date])
+  @@index([wasAdministered])
+  // Índices compostos para queries frequentes
+  @@index([tenantId, date, wasAdministered]) // Administrações pendentes do dia
+  @@index([residentId, date, wasAdministered]) // Administrações pendentes do residente
+  @@map("medication_administrations")
+}
+
+model SOSAdministration {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @db.Uuid
+  prescriptionId  String @db.Uuid
+  sosMedicationId String @db.Uuid
+  residentId      String @db.Uuid
+
+  // Data/hora
+  date DateTime @db.Timestamptz(3)
+  time String // Horário da administração
+
+  // Motivo
+  indication String // Descrição do motivo (ex: "dor intensa no joelho")
+
+  // Checagem
+  administeredBy String
+  userId         String @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription  Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosMedication SOSMedication @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  resident      Resident      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([sosMedicationId, date])
+  @@map("sos_administrations")
+}

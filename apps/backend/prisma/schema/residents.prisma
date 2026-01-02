@@ -1,0 +1,223 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  RESIDENTES
+//
+//  Dados demográficos e documentos dos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Resident {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // 0 – Status
+  status String @default("Ativo") // Ativo | Inativo | Falecido
+
+  // 1 – Dados Pessoais
+  fullName    String
+  socialName  String?
+  cpf         String
+  rg          String?
+  rgIssuer    String?
+  education   String?
+  profession  String?
+  cns         String?
+  gender      Gender
+  civilStatus CivilStatus?
+  religion    String?
+  birthDate   DateTime     @db.Timestamptz(3)
+  nationality String       @default("Brasileira")
+  birthCity   String?
+  birthState  String? // UF (2 letras)
+  motherName  String?
+  fatherName  String?
+  fotoUrl     String? // URL da foto do residente no MinIO
+
+  // 2 – Endereços
+  // Atual
+  currentCep        String?
+  currentState      String?
+  currentCity       String?
+  currentStreet     String?
+  currentNumber     String?
+  currentComplement String?
+  currentDistrict   String?
+  currentPhone      String?
+
+  // Procedência
+  originCep        String?
+  originState      String?
+  originCity       String?
+  originStreet     String?
+  originNumber     String?
+  originComplement String?
+  originDistrict   String?
+  originPhone      String?
+
+  // 3 – Contatos de Emergência (array JSON)
+  emergencyContacts Json @default("[]")
+  // [{ "name": "...", "phone": "...", "relationship": "..." }]
+
+  // 4 – Responsável Legal
+  legalGuardianName       String?
+  legalGuardianCpf        String?
+  legalGuardianRg         String?
+  legalGuardianPhone      String?
+  legalGuardianType       String? // curador | procurador | responsável convencional
+  legalGuardianCep        String?
+  legalGuardianState      String?
+  legalGuardianCity       String?
+  legalGuardianStreet     String?
+  legalGuardianNumber     String?
+  legalGuardianComplement String?
+  legalGuardianDistrict   String?
+
+  // 5 – Admissão
+  admissionDate       DateTime  @db.Timestamptz(3)
+  admissionType       String? // Voluntária | Involuntária | Judicial | outro
+  admissionReason     String?
+  admissionConditions String?
+  dischargeDate       DateTime? @db.Timestamptz(3)
+  dischargeReason     String?
+
+  // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)
+  bloodType              BloodType @default(NAO_INFORMADO)
+  height                 Decimal?  @db.Decimal(5, 2) // metros
+  weight                 Decimal?  @db.Decimal(5, 1) // kg
+  dependencyLevel        String? // Grau I - Independente | Grau II - Semidependente | Grau III - Dependente
+  mobilityAid            Boolean?
+  medicationsOnAdmission String?
+
+  // 7 – Convênios / Planos de Saúde
+  healthPlans Json @default("[]")
+  // [{ "name": "...", "cardNumber": "...", "cardUrl": "..." }]
+
+  // 8 – Pertences
+  belongings Json @default("[]")
+  // ["Óculos", "Aparelho auditivo", ...]
+
+  // 9 – Acomodação
+  roomId String? @db.Uuid
+  bedId  String? @unique @db.Uuid
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String    @db.Uuid // ID do usuário que criou o registro
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator                   User                       @relation("ResidentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater                   User?                      @relation("ResidentUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history                   ResidentHistory[] // Histórico de alterações (imutável)
+  bed                       Bed?                       @relation(fields: [bedId], references: [id])
+  dailyRecords              DailyRecord[]
+  prescriptions             Prescription[]
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
+  vitalSigns                VitalSign[]
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistory       ClinicalNoteHistory[]
+  residentDocuments         ResidentDocument[]
+  clinicalProfile           ClinicalProfile?
+  allergies                 Allergy[]
+  conditions                Condition[]
+  dietaryRestrictions       DietaryRestriction[]
+  clinicalNoteDocuments     ClinicalNoteDocument[]
+  bedTransferHistory        BedTransferHistory[]
+  scheduleConfigs           ResidentScheduleConfig[]
+  scheduledEvents           ResidentScheduledEvent[]
+
+  // Índices
+  @@unique([tenantId, cpf])
+  @@index([tenantId, status])
+  @@index([tenantId, admissionDate(sort: Desc)])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("residents")
+}
+
+model ResidentHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Versionamento
+  versionNumber Int // Número da versão (1, 2, 3...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo da alteração (obrigatório, min 10 chars)
+
+  // Campos alterados (array de nomes de campos)
+  changedFields String[] @default([])
+
+  // Snapshot completo dos dados (ANTES e DEPOIS da alteração)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado novo
+
+  // Auditoria
+  changedAt DateTime @db.Timestamptz(3) // Data/hora da alteração
+  changedBy String   @db.Uuid // Usuário que fez a alteração
+
+  // Metadados opcionais (IP, User Agent, etc.)
+  metadata Json? @default("{}")
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation("ResidentHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices para consultas eficientes
+  @@index([tenantId, residentId, versionNumber(sort: Desc)]) // Listar histórico por residente
+  @@index([tenantId, changedAt(sort: Desc)]) // Auditoria geral por data
+  @@index([changedBy]) // Auditar por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("resident_history")
+}
+
+model ResidentDocument {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de documento
+  type String @db.VarChar(100)
+  // Tipos possíveis:
+  // - CARTAO_CONVENIO
+  // - COMPROVANTE_RESIDENCIA_RESIDENTE
+  // - DOCUMENTOS_RESPONSAVEL_LEGAL
+  // - COMPROVANTE_RESIDENCIA_RESPONSAVEL
+  // - DOCUMENTOS_PESSOAIS
+  // - LAUDO_MEDICO
+  // - TERMO_ADMISSAO
+  // - TERMO_CONSENTIMENTO_IMAGEM
+  // - TERMO_CONSENTIMENTO_LGPD
+
+  // Arquivo
+  fileUrl  String // URL completa do arquivo no S3/MinIO
+  fileKey  String? // Chave do arquivo no S3 para deleção
+  fileName String // Nome original do arquivo
+  fileSize Int? // Tamanho em bytes
+  mimeType String? @db.VarChar(100) // application/pdf, image/jpeg, etc.
+
+  // Detalhes opcionais (ex: "Unimed", "Laudo de entrada", etc.)
+  details String? @db.Text
+
+  // Auditoria
+  uploadedBy String    @db.Uuid // ID do usuário que fez upload
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, type])
+  @@index([deletedAt])
+  @@map("resident_documents")
+}

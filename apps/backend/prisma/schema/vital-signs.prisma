@@ -1,0 +1,71 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  SINAIS VITAIS
+//
+//  Monitoramento de sinais vitais dos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model VitalSign {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+  userId     String @db.Uuid // ID do usuário que registrou
+
+  // Timestamp do registro (data + hora completa)
+  timestamp DateTime @db.Timestamptz(3)
+
+  // Sinais Vitais (todos opcionais - registra apenas os que foram aferidos)
+  systolicBloodPressure  Float? // Pressão arterial sistólica (mmHg)
+  diastolicBloodPressure Float? // Pressão arterial diastólica (mmHg)
+  temperature            Float? // Temperatura corporal (°C)
+  heartRate              Int? // Frequência cardíaca (bpm)
+  oxygenSaturation       Float? // Saturação periférica de O₂ (%)
+  bloodGlucose           Float? // Glicemia (mg/dL)
+
+  // Versionamento (RDC 502/2021 + LGPD)
+  versionNumber Int     @default(1)
+  createdBy     String  @db.Uuid
+  updatedBy     String? @db.Uuid
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  creator  User               @relation("VitalSignCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater  User?              @relation("VitalSignUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
+  history  VitalSignHistory[]
+
+  // Índices para consultas otimizadas
+  @@index([tenantId, residentId, timestamp(sort: Desc)])
+  @@index([residentId, timestamp(sort: Desc)])
+  @@index([tenantId, timestamp(sort: Desc)])
+  @@index([deletedAt])
+  @@map("vital_signs")
+}
+
+model VitalSignHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  vitalSignId   String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+  previousData  Json?
+  newData       Json?
+  changedFields String[]
+  changedAt     DateTime   @db.Timestamptz(3)
+  changedBy     String     @db.Uuid
+
+  // Relações
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vitalSign VitalSign @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+  user      User      @relation("VitalSignHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@index([vitalSignId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@map("vital_sign_history")
+}

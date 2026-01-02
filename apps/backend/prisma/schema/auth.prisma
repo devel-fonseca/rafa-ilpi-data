@@ -1,0 +1,288 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  AUTENTICAÇÃO E CONTROLE DE ACESSO
+//
+//  Users, Tokens, Permissões e Logs de Acesso
+// ──────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String?   @db.Uuid // Optional: SUPERADMIN has NULL tenantId
+  name                  String
+  email                 String
+  password              String
+  cpf                   String? // CPF do usuário (identificação única nacional)
+  role                  String // admin | user | viewer (pode virar enum depois)
+  isActive              Boolean   @default(true)
+  lastLogin             DateTime? @db.Timestamptz(3)
+  passwordResetRequired Boolean   @default(false)
+  deletedAt             DateTime? @db.Timestamptz(3)
+
+  // Auditoria e Versionamento
+  versionNumber Int      @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  createdBy     String?  @db.Uuid // ID do usuário que criou (NULL para primeiro admin)
+  updatedBy     String?  @db.Uuid // ID do último usuário que alterou
+
+  tenant                       Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile                      UserProfile?
+  refreshTokens                RefreshToken[]
+  dailyRecords                 DailyRecord[]
+  medicationAdministrations    MedicationAdministration[]
+  sosAdministrations           SOSAdministration[]
+  vitalSigns                   VitalSign[]
+  clinicalNotes                ClinicalNote[]
+  clinicalNoteHistoryAuthor    ClinicalNoteHistory[]       @relation("ClinicalNoteHistoryProfessional")
+  clinicalNoteHistoryChanges   ClinicalNoteHistory[]       @relation("ClinicalNoteHistoryChangedBy")
+  clinicalProfilesCreated      ClinicalProfile[]           @relation("ClinicalProfileCreator")
+  clinicalProfilesUpdated      ClinicalProfile[]           @relation("ClinicalProfileUpdater")
+  clinicalProfileHistory       ClinicalProfileHistory[]    @relation("ClinicalProfileHistoryUser")
+  dietaryRestrictionsCreated   DietaryRestriction[]        @relation("DietaryRestrictionCreator")
+  dietaryRestrictionsUpdated   DietaryRestriction[]        @relation("DietaryRestrictionUpdater")
+  dietaryRestrictionHistory    DietaryRestrictionHistory[] @relation("DietaryRestrictionHistoryUser")
+  notifications                Notification[]
+  clinicalNoteDocumentsCreated ClinicalNoteDocument[]      @relation("ClinicalNoteDocumentCreator")
+
+  // Relações de versionamento (Resident)
+  residentsCreated Resident[]        @relation("ResidentCreator")
+  residentsUpdated Resident[]        @relation("ResidentUpdater")
+  residentHistory  ResidentHistory[] @relation("ResidentHistoryUser")
+
+  // Relações de versionamento (Prescription)
+  prescriptionHistory PrescriptionHistory[] @relation("PrescriptionHistoryUser")
+
+  // Relações de versionamento (Medication)
+  medicationsCreated Medication[]        @relation("MedicationCreatedBy")
+  medicationsUpdated Medication[]        @relation("MedicationUpdatedBy")
+  medicationHistory  MedicationHistory[] @relation("MedicationHistoryUser")
+
+  // Relações de versionamento (SOSMedication)
+  sosMedicationsCreated SOSMedication[]        @relation("SOSMedicationCreatedBy")
+  sosMedicationsUpdated SOSMedication[]        @relation("SOSMedicationUpdatedBy")
+  sosMedicationHistory  SOSMedicationHistory[] @relation("SOSMedicationHistoryUser")
+
+  // Relações de versionamento (Vaccination)
+  vaccinationsCreated Vaccination[]        @relation("VaccinationCreatedBy")
+  vaccinationsUpdated Vaccination[]        @relation("VaccinationUpdatedBy")
+  vaccinationHistory  VaccinationHistory[] @relation("VaccinationHistoryUser")
+
+  // Relações de versionamento (Allergy)
+  allergiesCreated Allergy[]        @relation("AllergyCreatedBy")
+  allergiesUpdated Allergy[]        @relation("AllergyUpdatedBy")
+  allergyHistory   AllergyHistory[] @relation("AllergyHistoryUser")
+
+  // Relações de versionamento (Condition)
+  conditionsCreated Condition[]        @relation("ConditionCreatedBy")
+  conditionsUpdated Condition[]        @relation("ConditionUpdatedBy")
+  conditionHistory  ConditionHistory[] @relation("ConditionHistoryUser")
+
+  // Relações de versionamento (VitalSign)
+  vitalSignsCreated VitalSign[]        @relation("VitalSignCreator")
+  vitalSignsUpdated VitalSign[]        @relation("VitalSignUpdater")
+  vitalSignHistory  VitalSignHistory[] @relation("VitalSignHistoryUser")
+
+  // Relações de versionamento (User) - Self-referencing
+  createdByUser      User?                @relation("UserCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser      User?                @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  usersCreated       User[]               @relation("UserCreatedBy")
+  usersUpdated       User[]               @relation("UserUpdatedBy")
+  userHistory        UserHistory[]        @relation("UserHistoryForUser")
+  userHistoryChanges UserHistory[]        @relation("UserHistoryUser")
+  bedTransfers       BedTransferHistory[]
+
+  // Relações de versionamento (ResidentScheduleConfig)
+  scheduleConfigsCreated ResidentScheduleConfig[] @relation("ScheduleConfigCreatedBy")
+  scheduleConfigsUpdated ResidentScheduleConfig[] @relation("ScheduleConfigUpdatedBy")
+
+  // Relações de versionamento (ResidentScheduledEvent)
+  scheduledEventsCreated ResidentScheduledEvent[] @relation("ScheduledEventCreatedBy")
+  scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
+
+  // Relações de contratos e políticas
+  createdContracts         ServiceContract[]         @relation("ContractCreator")
+  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
+  contractAcceptances      ContractAcceptance[]
+  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+
+  // Mensagens Internas
+  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    MessageRecipient[]  @relation("ReceivedMessages")
+  uploadedAttachments MessageAttachment[] @relation("UploadedAttachments")
+
+  // Mensagens para Tenants (SuperAdmin)
+  tenantMessagesCreated TenantMessage[]
+
+  // Segurança e Auditoria
+  passwordResetTokens PasswordResetToken[]
+  accessLogs          AccessLog[]
+
+  @@unique([tenantId, email])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Campos para rastreamento de sessão
+  lastActivityAt DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress      String?  @db.VarChar(45)
+  userAgent      String?  @db.Text
+  device         String?  @db.VarChar(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique // Hash SHA-256 do token original
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3) // Null enquanto não usado
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress String?   @db.VarChar(45)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model AccessLog {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  tenantId  String       @db.Uuid
+  action    AccessAction // LOGIN | LOGOUT | PASSWORD_CHANGED | SESSION_REVOKED
+  status    String       @db.VarChar(20) // SUCCESS | FAILED
+  reason    String?      @db.VarChar(100) // Motivo de falha (ex: INVALID_PASSWORD)
+  ipAddress String       @db.VarChar(45)
+  userAgent String       @db.Text
+  device    String?      @db.VarChar(100) // Ex: "Chrome 120 on Windows"
+  metadata  Json?        @db.JsonB // Dados adicionais (opcional)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("access_logs")
+}
+
+model UserHistory {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+
+  // Versionamento
+  versionNumber Int // Número da versão (1, 2, 3...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo da alteração (obrigatório, min 10 chars)
+
+  // Campos alterados (array de nomes de campos)
+  changedFields String[] @default([])
+
+  // Snapshot completo dos dados (ANTES e DEPOIS da alteração)
+  // IMPORTANTE: password sempre mascarado como { passwordChanged: true }
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado novo
+
+  // Auditoria
+  changedAt     DateTime @db.Timestamptz(3) // Data/hora da alteração
+  changedBy     String   @db.Uuid // Usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+
+  // Metadados opcionais (IP, User Agent, etc.)
+  ipAddress String? @db.VarChar(45)
+  userAgent String? @db.Text
+  metadata  Json?   @db.JsonB
+
+  // Relações
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User   @relation("UserHistoryForUser", fields: [userId], references: [id], onDelete: Cascade)
+  changedByUser User   @relation("UserHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices para consultas eficientes
+  @@index([tenantId, userId, versionNumber(sort: Desc)]) // Listar histórico por usuário
+  @@index([tenantId, changedAt(sort: Desc)]) // Auditoria geral por data
+  @@index([changedBy]) // Auditar por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("user_history")
+}
+
+model UserProfile {
+  id       String @id @default(uuid()) @db.Uuid
+  userId   String @unique @db.Uuid
+  tenantId String @db.Uuid
+
+  // Dados do Perfil
+  profilePhoto String? // URL ou path da foto de perfil
+  phone        String?
+  cpf          String? // CPF do usuário (sincronizado com User.cpf)
+  department   String? // Departamento
+  birthDate    DateTime? @db.Timestamptz(3)
+  notes        String?   @db.Text
+  preferences  Json?     @default("{}") // Preferências do usuário (tema, sidebar, etc)
+
+  // Sistema de Permissões ILPI
+  positionCode       PositionCode? // Cargo padronizado ILPI
+  registrationType   RegistrationType? // Tipo de registro profissional (COREN, CRM, etc)
+  registrationNumber String? // Número do registro no conselho
+  registrationState  String? // UF do registro (ex: "SP", "RJ")
+
+  // Flags especiais
+  isTechnicalManager   Boolean @default(false) // Se é Responsável Técnico da ILPI
+  isNursingCoordinator Boolean @default(false) // Se é Coordenador de Enfermagem
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  createdBy String   @db.Uuid
+  updatedBy String?  @db.Uuid
+
+  // Relações
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customPermissions UserPermission[] // Permissões customizadas/sobrepostas
+
+  @@map("user_profiles")
+}
+
+model UserPermission {
+  id            String @id @default(uuid()) @db.Uuid
+  userProfileId String @db.Uuid
+  tenantId      String @db.Uuid
+
+  // Permissão específica
+  permission PermissionType
+
+  // Tipo de customização
+  isGranted Boolean @default(true) // true = concedida, false = revogada
+
+  // Auditoria
+  grantedBy String   @db.Uuid // ID do usuário que concedeu/revogou
+  grantedAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@unique([userProfileId, permission]) // Evita duplicatas de permissão por usuário
+  @@index([tenantId, userProfileId])
+  @@index([permission])
+  @@map("user_permissions")
+}

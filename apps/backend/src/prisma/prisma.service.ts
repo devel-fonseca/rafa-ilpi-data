@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { createEncryptionMiddleware } from './middleware/encryption.middleware';
 import { createCpfSyncMiddleware } from './middleware/cpf-sync.middleware';
+import { queryLoggerMiddleware } from './middleware/query-logger.middleware';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -14,8 +15,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     });
 
     // Registrar middlewares
+    this.registerQueryLoggerMiddleware();
     this.registerEncryptionMiddleware();
     this.registerCpfSyncMiddleware();
+  }
+
+  /**
+   * Registrar middleware de logging de queries lentas
+   * Identifica automaticamente queries > 100ms para otimização
+   */
+  private registerQueryLoggerMiddleware(): void {
+    this.$use(queryLoggerMiddleware);
   }
 
   /**
@@ -80,6 +90,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       });
 
       // Registrar middlewares no tenant client também
+      tenantClient.$use(queryLoggerMiddleware);
       const encryptionKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY')!;
       tenantClient.$use(createEncryptionMiddleware(encryptionKey));
       tenantClient.$use(createCpfSyncMiddleware());

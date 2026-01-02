@@ -1,0 +1,138 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  INFRAESTRUTURA FÍSICA
+//
+//  Prédios, Andares, Quartos, Leitos e Transferências
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Building {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  name        String // "Casa Principal", "Bloco A"
+  code        String // "PRED-001", "BLOCO-A"
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floors Floor[]
+
+  @@index([tenantId, isActive])
+  @@map("buildings")
+}
+
+model Floor {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  buildingId  String    @db.Uuid
+  name        String // "Térreo", "1º Andar", "Ala Feminina"
+  code        String // "PISO-0", "PISO-1"
+  orderIndex  Int       @default(0) // Ordenação visual (crescente)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  rooms    Room[]
+
+  @@index([tenantId, buildingId])
+  @@index([buildingId, orderIndex])
+  @@index([deletedAt])
+  @@map("floors")
+}
+
+model Room {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @db.Uuid
+  floorId            String    @db.Uuid
+  name               String // "101", "Quarto 3"
+  code               String // "Q-101", "Q-102"
+  roomNumber         String // "101", "102"
+  capacity           Int       @default(1) // Número total de leitos (calculado automaticamente)
+  roomType           String? // "Coletivo", "Suíte", "Enfermaria", "Individual", "Duplo", "Triplo"
+  genderRestriction  String? // null, "M", "F"
+  hasBathroom        Boolean   @default(false) // Se o quarto tem banheiro
+  hasPrivateBathroom Boolean   @default(false) // Se tem banheiro privativo
+  accessible         Boolean   @default(false) // Se é acessível para PCD
+  observations       String?   @db.Text // Observações adicionais
+  notes              String?   @db.Text
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime? @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  beds   Bed[]
+
+  @@index([tenantId, floorId])
+  @@index([floorId, isActive])
+  @@index([deletedAt])
+  @@map("rooms")
+}
+
+model Bed {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  roomId    String    @db.Uuid
+  code      String // "101-A", "101-B", "Leito 1"
+  status    String    @default("Disponível") // "Disponível", "Ocupado", "Manutenção" (calculado dinamicamente)
+  notes     String?   @db.Text
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room          Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resident      Resident?
+  transfersFrom BedTransferHistory[] @relation("BedTransferFrom")
+  transfersTo   BedTransferHistory[] @relation("BedTransferTo")
+
+  @@unique([tenantId, code]) // Código do leito único por tenant
+  @@index([tenantId, roomId])
+  @@index([roomId, status])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("beds")
+}
+
+model BedTransferHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Leitos
+  fromBedId String @db.Uuid
+  toBedId   String @db.Uuid
+
+  // Motivo da transferência
+  reason String @db.Text // Obrigatório, min 10 chars
+
+  // Data e hora da transferência
+  transferredAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Auditoria
+  transferredBy String    @db.Uuid // ID do usuário que realizou a transferência
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  fromBed  Bed      @relation("BedTransferFrom", fields: [fromBedId], references: [id], onDelete: Restrict)
+  toBed    Bed      @relation("BedTransferTo", fields: [toBedId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [transferredBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, transferredAt(sort: Desc)])
+  @@index([fromBedId])
+  @@index([toBedId])
+  @@index([deletedAt])
+  @@map("bed_transfer_history")
+}

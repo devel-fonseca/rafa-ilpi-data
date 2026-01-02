@@ -141,6 +141,12 @@ enum PermissionType {
   VIEW_RESIDENT_SCHEDULE
   MANAGE_RESIDENT_SCHEDULE
 
+  // Mensagens Internas
+  VIEW_MESSAGES
+  SEND_MESSAGES
+  DELETE_MESSAGES
+  BROADCAST_MESSAGES
+
   @@map("PermissionType")
 }
 
@@ -400,25 +406,129 @@ enum ChangeType {
   @@map("ChangeType")
 }
 
+// ENUM: Ações de Acesso para Logs de Auditoria
+enum AccessAction {
+  LOGIN                // Login bem-sucedido
+  LOGOUT               // Logout
+  PASSWORD_CHANGED     // Senha alterada pelo usuário
+  SESSION_REVOKED      // Sessão revogada manualmente
+  FORCE_PASSWORD_CHANGE // Troca forçada de senha (primeiro login)
+
+  @@map("AccessAction")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  CONTRATOS DE SERVIÇO SaaS
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum ContractStatus {
+  DRAFT // Edição (não afeta ninguém)
+  ACTIVE // Publicado (novos cadastros usam)
+  REVOKED // Revogado (não aceita mais)
+
+  @@map("ContractStatus")
+}
+
+// Contratos de Serviço (Templates Versionados)
+model ServiceContract {
+  id            String         @id @default(uuid()) @db.Uuid
+  version       String // "v1.0", "v1.1", "v2.0"
+  planId        String?        @db.Uuid // NULL = genérico para todos planos
+  status        ContractStatus @default(DRAFT)
+  effectiveFrom DateTime?      @db.Timestamptz(3)
+  title         String         @db.VarChar(255)
+  content       String // HTML/Markdown
+  contentHash   String         @db.VarChar(64) // SHA-256
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  revokedAt     DateTime?      @db.Timestamptz(3)
+  revokedBy     String?        @db.Uuid
+
+  // Relações
+  plan        Plan?                @relation(fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                 @relation("ContractCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                @relation("ContractRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  acceptances ContractAcceptance[]
+
+  @@unique([version, planId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@map("service_contracts")
+}
+
+// Registros de Aceite (Prova Jurídica)
+model ContractAcceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  contractId      String   @db.Uuid
+  tenantId        String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId          String   @db.Uuid
+  acceptedAt      DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress       String   @db.VarChar(45)
+  userAgent       String
+  contractVersion String   @db.VarChar(50) // Snapshot imutável
+  contractHash    String   @db.VarChar(64) // Snapshot imutável
+  contractContent String // Snapshot imutável
+
+  // Relações
+  contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([contractId])
+  @@index([acceptedAt])
+  @@map("contract_acceptances")
+}
+
+// Registros de Aceite da Política de Privacidade (Prova Jurídica LGPD)
+model PrivacyPolicyAcceptance {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId              String   @db.Uuid
+  acceptedAt          DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress           String   @db.VarChar(45)
+  userAgent           String
+  policyVersion       String   @db.VarChar(50) // ex: "2.2"
+  policyEffectiveDate String   @db.VarChar(50) // ex: "24/12/2025"
+  policyContent       String   @db.Text // Snapshot completo Markdown
+
+  // Declarações LGPD registradas no onboarding
+  lgpdIsDataController           Boolean @default(false)
+  lgpdHasLegalBasis              Boolean @default(false)
+  lgpdAcknowledgesResponsibility Boolean @default(false)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([acceptedAt])
+  @@map("privacy_policy_acceptances")
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 //  PLANOS
 // ──────────────────────────────────────────────────────────────────────────────
 model Plan {
-  id           String       @id @default(uuid()) @db.Uuid
-  name         String       @unique
-  displayName  String
-  type         PlanType
-  maxResidents Int
-  maxUsers     Int
-  price        Decimal?     @db.Decimal(10, 2)
-  trialDays    Int          @default(0)
-  isPopular    Boolean      @default(false)
-  features     Json         @default("{}")
-  billingCycle BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
-  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+  id                    String       @id @default(uuid()) @db.Uuid
+  name                  String       @unique
+  displayName           String
+  type                  PlanType
+  maxResidents          Int
+  maxUsers              Int
+  price                 Decimal?     @db.Decimal(10, 2)
+  annualDiscountPercent Decimal?     @db.Decimal(5, 2) @default(0) @map("annual_discount_percent") // Desconto para assinaturas anuais (0-100%)
+  trialDays             Int          @default(0)
+  isPopular             Boolean      @default(false)
+  isActive              Boolean      @default(true)
+  features              Json         @default("{}")
+  billingCycle          BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
+  createdAt             DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
 
   subscriptions Subscription[]
+  contracts     ServiceContract[]
 
   @@map("plans")
 }
@@ -501,6 +611,13 @@ model Tenant {
   invoices                  Invoice[] // SuperAdmin - Faturas
   usageMetrics              UsageMetrics[] // SuperAdmin - Métricas de uso
   systemAlerts              SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance        ContractAcceptance?
+  privacyPolicyAcceptance   PrivacyPolicyAcceptance?
+  messages                  Message[]
+  messageRecipients         MessageRecipient[]
+  messageAttachments        MessageAttachment[]
+  emailLogs                 EmailLog[] // Auditoria de emails enviados
+  accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
 
   @@map("tenants")
 }
@@ -526,6 +643,15 @@ model Subscription {
   discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)
   discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
   customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
+
+  // Billing Preferences (Onboarding)
+  billingCycle           String? @db.VarChar(20) @map("billing_cycle") // MONTHLY | ANNUAL
+  preferredPaymentMethod String? @db.VarChar(50) @map("preferred_payment_method") // PIX | BOLETO | CREDIT_CARD
+
+  // Trial Alerts Control (Idempotência - evitar emails duplicados)
+  trialAlert7Sent Boolean @default(false) @map("trial_alert_7_sent") // Email D-7 enviado
+  trialAlert3Sent Boolean @default(false) @map("trial_alert_3_sent") // Email D-3 enviado
+  trialAlert1Sent Boolean @default(false) @map("trial_alert_1_sent") // Email D-1 enviado
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -634,6 +760,24 @@ model User {
   scheduledEventsCreated ResidentScheduledEvent[] @relation("ScheduledEventCreatedBy")
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
+  // Relações de contratos e políticas
+  createdContracts         ServiceContract[]         @relation("ContractCreator")
+  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
+  contractAcceptances      ContractAcceptance[]
+  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+
+  // Mensagens Internas
+  sentMessages         Message[]            @relation("SentMessages")
+  receivedMessages     MessageRecipient[]   @relation("ReceivedMessages")
+  uploadedAttachments  MessageAttachment[]  @relation("UploadedAttachments")
+
+  // Mensagens para Tenants (SuperAdmin)
+  tenantMessagesCreated TenantMessage[]
+
+  // Segurança e Auditoria
+  passwordResetTokens PasswordResetToken[]
+  accessLogs          AccessLog[]
+
   @@unique([tenantId, email])
   @@index([createdBy])
   @@index([updatedBy])
@@ -644,16 +788,68 @@ model User {
 //  REFRESH TOKENS
 // ──────────────────────────────────────────────────────────────────────────────
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  token     String   @unique
-  expiresAt DateTime @db.Timestamptz(3)
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  token          String   @unique
+  expiresAt      DateTime @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
 
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  // Campos para rastreamento de sessão
+  lastActivityAt DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress      String?  @db.VarChar(45)
+  userAgent      String?  @db.Text
+  device         String?  @db.VarChar(100)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([expiresAt])
   @@map("refresh_tokens")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PASSWORD RESET TOKENS (Recuperação de Senha)
+// ──────────────────────────────────────────────────────────────────────────────
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique // Hash SHA-256 do token original
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3) // Null enquanto não usado
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress String?   @db.VarChar(45)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ACCESS LOGS (Logs de Acesso e Auditoria)
+// ──────────────────────────────────────────────────────────────────────────────
+model AccessLog {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  tenantId  String       @db.Uuid
+  action    AccessAction // LOGIN | LOGOUT | PASSWORD_CHANGED | SESSION_REVOKED
+  status    String       @db.VarChar(20) // SUCCESS | FAILED
+  reason    String?      @db.VarChar(100) // Motivo de falha (ex: INVALID_PASSWORD)
+  ipAddress String       @db.VarChar(45)
+  userAgent String       @db.Text
+  device    String?      @db.VarChar(100) // Ex: "Chrome 120 on Windows"
+  metadata  Json?        @db.JsonB // Dados adicionais (opcional)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("access_logs")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -2493,6 +2689,25 @@ enum NotificationSeverity {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS - Mensagens Internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum MessageType {
+  DIRECT // Mensagem 1:1 entre usuários
+  BROADCAST // Admin/RT → todos os usuários do tenant
+
+  @@map("MessageType")
+}
+
+enum MessageStatus {
+  SENT // Enviada
+  DELIVERED // Entregue (visualizada na lista)
+  READ // Lida (aberta pelo usuário)
+
+  @@map("MessageStatus")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 //  ENUMS - POPs (Procedimentos Operacionais Padrão)
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -2747,6 +2962,7 @@ enum InvoiceStatus {
   DRAFT
   OPEN
   PAID
+  OVERDUE
   VOID
   UNCOLLECTIBLE
 
@@ -2782,6 +2998,7 @@ enum PaymentStatus {
 
 enum AlertType {
   PAYMENT_FAILED
+  PAYMENT_OVERDUE
   SUBSCRIPTION_EXPIRING
   SUBSCRIPTION_CANCELLED
   USAGE_LIMIT_EXCEEDED
@@ -2806,6 +3023,11 @@ model Invoice {
   subscriptionId String        @db.Uuid
   invoiceNumber  String        @unique @db.VarChar(50) // INV-2024-0001
   amount         Decimal       @db.Decimal(10, 2)
+  originalAmount Decimal?      @db.Decimal(10, 2) @map("original_amount") // Valor antes do desconto
+  discountPercent Decimal?     @db.Decimal(5, 2) @map("discount_percent")  // Desconto aplicado (0-100%)
+  discountReason String?       @db.VarChar(255) @map("discount_reason")   // Motivo do desconto
+  billingCycle   String?       @db.VarChar(20) @map("billing_cycle")    // MONTHLY | ANNUAL
+  description    String?       @db.Text           // Descrição da fatura
   currency       String        @default("BRL") @db.VarChar(3)
   status         InvoiceStatus
   dueDate        DateTime      @db.Timestamptz(3)
@@ -2914,4 +3136,239 @@ model SystemAlert {
   @@index([tenantId])
   @@index([createdAt(sort: Desc)])
   @@map("system_alerts")
+}
+
+// Model: EmailTemplate (Templates de Email Globais - Sistema)
+model EmailTemplate {
+  id          String                @id @default(uuid()) @db.Uuid
+  key         String                @unique @db.VarChar(100) // "user-invite", "payment-reminder", etc.
+  name        String                @db.VarChar(255) // "Convite de Usuário"
+  subject     String                @db.VarChar(500) // "Acesso liberado ao sistema da {{tenantName}}"
+  description String?               @db.Text
+  jsonContent Json                  @db.JsonB // Easy Email JSON structure
+  variables   Json                  @db.JsonB // [{name: "tenantName", type: "string", required: true, description: "Nome da ILPI"}]
+  version     Int                   @default(1)
+  isActive    Boolean               @default(true)
+  category    EmailTemplateCategory
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  versions EmailTemplateVersion[]
+
+  // Índices
+  @@index([key])
+  @@index([category])
+  @@index([isActive])
+  @@map("email_templates")
+}
+
+// Model: EmailTemplateVersion (Histórico de Versões de Templates)
+model EmailTemplateVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  templateId    String   @db.Uuid
+  versionNumber Int
+  jsonContent   Json     @db.JsonB
+  subject       String   @db.VarChar(500)
+  createdBy     String   @db.Uuid // User ID do superadmin
+  changeNote    String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([templateId])
+  @@index([versionNumber])
+  @@map("email_template_versions")
+}
+
+// Model: EmailLog (Auditoria de Emails Enviados)
+model EmailLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  templateKey    String?     @db.VarChar(100) // "user-invite", "payment-reminder", etc. (null se não for de template)
+  recipientEmail String      @db.VarChar(255)
+  recipientName  String?     @db.VarChar(255)
+  subject        String      @db.VarChar(500)
+  tenantId       String?     @db.Uuid // Para emails vinculados a tenant
+  resendId       String?     @db.VarChar(255) // ID retornado pela Resend API
+  status         EmailStatus
+  errorMessage   String?     @db.Text
+  sentAt         DateTime    @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([templateKey])
+  @@index([tenantId])
+  @@index([sentAt(sort: Desc)])
+  @@index([status])
+  @@index([recipientEmail])
+  @@map("email_logs")
+}
+
+// Model: TenantMessage (Mensagens/Newsletters para Tenants)
+model TenantMessage {
+  id                String                  @id @default(uuid()) @db.Uuid
+  title             String                  @db.VarChar(255) // "Nova funcionalidade: Relatórios"
+  subject           String                  @db.VarChar(500) // Subject do email
+  htmlContent       String                  @db.Text // HTML completo do email
+  recipientFilter   MessageRecipientFilter
+  specificTenantIds String[]                @db.Uuid // Array de IDs (se SPECIFIC_TENANTS)
+  scheduledFor      DateTime?               @db.Timestamptz(3) // null = enviar agora
+  sentAt            DateTime?               @db.Timestamptz(3)
+  status            TenantMessageStatus     @default(DRAFT)
+  sentCount         Int                     @default(0)
+  failedCount       Int                     @default(0)
+  createdBy         String                  @db.Uuid
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  creator User @relation(fields: [createdBy], references: [id])
+
+  // Índices
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdBy])
+  @@index([createdAt(sort: Desc)])
+  @@map("tenant_messages")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MODELS - Sistema de Mensagens Internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Message {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @db.Uuid
+  senderId    String      @db.Uuid
+
+  // Tipo e conteúdo
+  type        MessageType
+  subject     String      @db.VarChar(255)
+  body        String      @db.Text
+
+  // Thread/Conversação (opcional - para respostas)
+  threadId    String?     @db.Uuid  // Se é resposta, aponta para mensagem original
+  isReply     Boolean     @default(false)
+
+  // Metadata
+  metadata    Json?       @db.JsonB  // Informações extras
+
+  // Auditoria
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime?   @db.Timestamptz(3)
+  deletedBy   String?     @db.Uuid
+
+  // Relações
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sender      User        @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  parentThread Message?   @relation("MessageThread", fields: [threadId], references: [id], onDelete: SetNull)
+  replies     Message[]   @relation("MessageThread")
+  recipients  MessageRecipient[]
+  attachments MessageAttachment[]
+
+  // Índices
+  @@index([tenantId, senderId, createdAt(sort: Desc)])
+  @@index([tenantId, threadId])
+  @@index([deletedAt])
+
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id          String        @id @default(uuid()) @db.Uuid
+  messageId   String        @db.Uuid
+  userId      String        @db.Uuid
+  tenantId    String        @db.Uuid
+
+  // Status individual
+  status      MessageStatus @default(SENT)
+  readAt      DateTime?     @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  message     Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user        User          @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([messageId, userId])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([tenantId, userId, status])
+
+  @@map("message_recipients")
+}
+
+model MessageAttachment {
+  id          String    @id @default(uuid()) @db.Uuid
+  messageId   String    @db.Uuid
+  tenantId    String    @db.Uuid
+
+  // Dados do arquivo
+  fileName    String    @db.VarChar(255)
+  fileSize    Int       // Bytes
+  mimeType    String    @db.VarChar(100)
+  fileUrl     String    @db.Text  // URL no MinIO
+  s3Key       String    @db.Text  // Chave no S3/MinIO
+
+  // Auditoria
+  uploadedBy  String    @db.Uuid
+  uploadedAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  message     Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploader    User      @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([messageId])
+  @@index([tenantId])
+
+  @@map("message_attachments")
+}
+
+// Enum: EmailTemplateCategory
+enum EmailTemplateCategory {
+  ONBOARDING // user-invite
+  BILLING    // payment-reminder, overdue-report
+  LIFECYCLE  // trial-expiring, trial-converted
+  SYSTEM     // outros
+
+  @@map("EmailTemplateCategory")
+}
+
+// Enum: EmailStatus (Status de envio de email)
+enum EmailStatus {
+  SENT    // Email enviado com sucesso
+  FAILED  // Falha no envio
+  BOUNCED // Email retornou (bounce)
+
+  @@map("EmailStatus")
+}
+
+// Enum: MessageRecipientFilter (Filtro de destinatários para TenantMessage)
+enum MessageRecipientFilter {
+  ALL_TENANTS      // Todos os tenants
+  ACTIVE_ONLY      // Apenas tenants com subscription ativa
+  TRIAL_ONLY       // Apenas tenants em trial
+  OVERDUE_ONLY     // Apenas tenants inadimplentes
+  SPECIFIC_TENANTS // Lista específica de tenants
+
+  @@map("MessageRecipientFilter")
+}
+
+// Enum: TenantMessageStatus (Status da mensagem aos tenants)
+enum TenantMessageStatus {
+  DRAFT     // Rascunho (não enviado)
+  SCHEDULED // Agendado para envio futuro
+  SENDING   // Enviando (em progresso)
+  SENT      // Enviado com sucesso
+
+  @@map("TenantMessageStatus")
 }

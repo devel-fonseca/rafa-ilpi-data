@@ -1,6 +1,6 @@
 # TODO - Tarefas Ativas
 
-**Última atualização:** 26/12/2025
+**Última atualização:** 30/12/2025
 
 > **Nota:** Este arquivo contém APENAS tarefas ativas e pendentes.
 > Histórico completo de implementações está em [CHANGELOG.md](CHANGELOG.md).
@@ -183,10 +183,28 @@ _Nenhuma tarefa em andamento no momento._
 ## 🔧 Refatorações e Melhorias Técnicas
 
 **Performance**
+
+✅ **Fase 1 - Foundation (Concluída em 30/12/2025):**
+- [x] PaginationHelper utility com execução paralela de count
+- [x] QueryLoggerMiddleware para identificação automática de queries lentas
+- [x] 19 índices compostos para queries frequentes (medications, notifications, daily-records)
+- [x] Otimização de select em ResidentsService (redução 70-90% bytes)
+
+📋 **Fase 2 - Cache & Denormalization (Planejada):**
+- [ ] Implementar CacheService com Redis
+- [ ] Cache de Tenant lookups (usado em toda request JWT)
+- [ ] Cache de UserPermissions
+- [ ] Denormalizar bedNumber/roomName no model Resident
+- [ ] Criar bed-sync middleware
+
+📋 **Fase 3 - Advanced Optimizations (Futuro):**
+- [ ] Materializar UsageMetrics via cron job
+- [ ] Particionar tabelas *History por data (opcional)
+- [ ] Implementar read replicas (opcional)
+
+🔄 **Melhorias Contínuas:**
 - [ ] Implementar virtual scrolling em listas longas (>500 items)
-- [ ] Otimizar queries N+1 identificadas
-- [ ] Adicionar indices faltantes no banco
-- [ ] Implementar cache Redis para queries pesadas
+- [ ] Monitorar e otimizar queries lentas via QueryLoggerMiddleware
 
 **Testes**
 - [ ] Aumentar cobertura de testes backend (meta: 80%)
@@ -227,4 +245,4 @@ _Nenhuma tarefa em andamento no momento._
 
 ---
 
-**Última revisão:** 26/12/2025 por Claude Sonnet 4.5
+**Última revisão:** 30/12/2025 por Claude Sonnet 4.5

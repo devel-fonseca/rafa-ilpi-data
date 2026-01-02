@@ -1,0 +1,282 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERFIL CLÍNICO
+//
+//  Alergias, Condições Crônicas e Restrições Alimentares
+// ──────────────────────────────────────────────────────────────────────────────
+
+model ClinicalProfile {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @unique @db.Uuid
+
+  // Dados clínicos textuais
+  healthStatus      String? @db.Text
+  specialNeeds      String? @db.Text
+  functionalAspects String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String?   @db.Uuid // ID do usuário que criou (pode ser NULL se criado automaticamente)
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident                 @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator  User?                    @relation("ClinicalProfileCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater  User?                    @relation("ClinicalProfileUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history  ClinicalProfileHistory[] // Histórico de versões
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("clinical_profiles")
+}
+
+model ClinicalProfileHistory {
+  id                String     @id @default(uuid()) @db.Uuid
+  tenantId          String     @db.Uuid
+  clinicalProfileId String     @db.Uuid
+  versionNumber     Int // Número da versão (1, 2, 3, ...)
+  changeType        ChangeType // CREATE | UPDATE | DELETE
+  changeReason      String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["healthStatus", "specialNeeds", "functionalAspects"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clinicalProfile ClinicalProfile @relation(fields: [clinicalProfileId], references: [id], onDelete: Cascade)
+  user            User            @relation("ClinicalProfileHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, clinicalProfileId, versionNumber(sort: Desc)]) // Buscar histórico de um perfil
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("clinical_profile_history")
+}
+
+model Allergy {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados da alergia
+  substance String // Medicamento, alimento, látex, etc.
+  reaction  String?          @db.Text // Descrição da reação
+  severity  AllergySeverity?
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident         @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User             @relation("AllergyCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?            @relation("AllergyUpdatedBy", fields: [updatedBy], references: [id])
+  history       AllergyHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([substance])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("allergies")
+}
+
+model AllergyHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  allergyId     String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  allergy Allergy @relation(fields: [allergyId], references: [id], onDelete: Cascade)
+  user    User    @relation("AllergyHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, allergyId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("allergy_history")
+}
+
+model Condition {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados do diagnóstico
+  condition String // Nome da condição
+  icdCode   String? @db.VarChar(10) // CID-10 (opcional)
+  notes     String? @db.Text // Observações clínicas
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User               @relation("ConditionCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?              @relation("ConditionUpdatedBy", fields: [updatedBy], references: [id])
+  history       ConditionHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([condition])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("conditions")
+}
+
+model ConditionHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  conditionId   String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  condition Condition @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  user      User      @relation("ConditionHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, conditionId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("condition_history")
+}
+
+model DietaryRestriction {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados da restrição
+  restrictionType RestrictionType
+  description     String // Ex: "Sem glúten", "Dieta hipossódica"
+  notes           String?         @db.Text // Observações do nutricionista
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdBy     String    @db.Uuid // ID do usuário que criou o registro
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident                    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator  User                        @relation("DietaryRestrictionCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater  User?                       @relation("DietaryRestrictionUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history  DietaryRestrictionHistory[] // Histórico de versões
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([restrictionType])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("dietary_restrictions")
+}
+
+model DietaryRestrictionHistory {
+  id                   String     @id @default(uuid()) @db.Uuid
+  tenantId             String     @db.Uuid
+  dietaryRestrictionId String     @db.Uuid
+  versionNumber        Int // Número da versão (1, 2, 3, ...)
+  changeType           ChangeType // CREATE | UPDATE | DELETE
+  changeReason         String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["restrictionType", "description", "notes"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dietaryRestriction DietaryRestriction @relation(fields: [dietaryRestrictionId], references: [id], onDelete: Cascade)
+  user               User               @relation("DietaryRestrictionHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, dietaryRestrictionId, versionNumber(sort: Desc)]) // Buscar histórico de uma restrição
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("dietary_restriction_history")
+}

@@ -1,0 +1,189 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  COMUNICAÇÃO E TEMPLATES DE EMAIL
+//
+//  Templates de email, logs e sistema de mensagens internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+model EmailTemplate {
+  id          String                @id @default(uuid()) @db.Uuid
+  key         String                @unique @db.VarChar(100) // "user-invite", "payment-reminder", etc.
+  name        String                @db.VarChar(255) // "Convite de Usuário"
+  subject     String                @db.VarChar(500) // "Acesso liberado ao sistema da {{tenantName}}"
+  description String?               @db.Text
+  jsonContent Json                  @db.JsonB // Easy Email JSON structure
+  variables   Json                  @db.JsonB // [{name: "tenantName", type: "string", required: true, description: "Nome da ILPI"}]
+  version     Int                   @default(1)
+  isActive    Boolean               @default(true)
+  category    EmailTemplateCategory
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  versions EmailTemplateVersion[]
+
+  // Índices
+  @@index([key])
+  @@index([category])
+  @@index([isActive])
+  @@map("email_templates")
+}
+
+model EmailTemplateVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  templateId    String   @db.Uuid
+  versionNumber Int
+  jsonContent   Json     @db.JsonB
+  subject       String   @db.VarChar(500)
+  createdBy     String   @db.Uuid // User ID do superadmin
+  changeNote    String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([templateId])
+  @@index([versionNumber])
+  @@map("email_template_versions")
+}
+
+model EmailLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  templateKey    String?     @db.VarChar(100) // "user-invite", "payment-reminder", etc. (null se não for de template)
+  recipientEmail String      @db.VarChar(255)
+  recipientName  String?     @db.VarChar(255)
+  subject        String      @db.VarChar(500)
+  tenantId       String?     @db.Uuid // Para emails vinculados a tenant
+  resendId       String?     @db.VarChar(255) // ID retornado pela Resend API
+  status         EmailStatus
+  errorMessage   String?     @db.Text
+  sentAt         DateTime    @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([templateKey])
+  @@index([tenantId])
+  @@index([sentAt(sort: Desc)])
+  @@index([status])
+  @@index([recipientEmail])
+  @@map("email_logs")
+}
+
+model TenantMessage {
+  id                String                 @id @default(uuid()) @db.Uuid
+  title             String                 @db.VarChar(255) // "Nova funcionalidade: Relatórios"
+  subject           String                 @db.VarChar(500) // Subject do email
+  htmlContent       String                 @db.Text // HTML completo do email
+  recipientFilter   MessageRecipientFilter
+  specificTenantIds String[]               @db.Uuid // Array de IDs (se SPECIFIC_TENANTS)
+  scheduledFor      DateTime?              @db.Timestamptz(3) // null = enviar agora
+  sentAt            DateTime?              @db.Timestamptz(3)
+  status            TenantMessageStatus    @default(DRAFT)
+  sentCount         Int                    @default(0)
+  failedCount       Int                    @default(0)
+  createdBy         String                 @db.Uuid
+  createdAt         DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime               @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  creator User @relation(fields: [createdBy], references: [id])
+
+  // Índices
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdBy])
+  @@index([createdAt(sort: Desc)])
+  @@map("tenant_messages")
+}
+
+model Message {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  senderId String @db.Uuid
+
+  // Tipo e conteúdo
+  type    MessageType
+  subject String      @db.VarChar(255)
+  body    String      @db.Text
+
+  // Thread/Conversação (opcional - para respostas)
+  threadId String? @db.Uuid // Se é resposta, aponta para mensagem original
+  isReply  Boolean @default(false)
+
+  // Metadata
+  metadata Json? @db.JsonB // Informações extras
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  deletedBy String?   @db.Uuid
+
+  // Relações
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sender       User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  parentThread Message?            @relation("MessageThread", fields: [threadId], references: [id], onDelete: SetNull)
+  replies      Message[]           @relation("MessageThread")
+  recipients   MessageRecipient[]
+  attachments  MessageAttachment[]
+
+  // Índices
+  @@index([tenantId, senderId, createdAt(sort: Desc)])
+  @@index([tenantId, threadId])
+  @@index([deletedAt])
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @db.Uuid
+  userId    String @db.Uuid
+  tenantId  String @db.Uuid
+
+  // Status individual
+  status MessageStatus @default(SENT)
+  readAt DateTime?     @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([messageId, userId])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([tenantId, userId, status])
+  @@map("message_recipients")
+}
+
+model MessageAttachment {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @db.Uuid
+  tenantId  String @db.Uuid
+
+  // Dados do arquivo
+  fileName String @db.VarChar(255)
+  fileSize Int // Bytes
+  mimeType String @db.VarChar(100)
+  fileUrl  String @db.Text // URL no MinIO
+  s3Key    String @db.Text // Chave no S3/MinIO
+
+  // Auditoria
+  uploadedBy String   @db.Uuid
+  uploadedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  message  Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploader User    @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([messageId])
+  @@index([tenantId])
+  @@map("message_attachments")
+}

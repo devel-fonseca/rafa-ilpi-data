@@ -1,0 +1,19 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  Prisma Schema – Sistema Multi‑Tenant para Residências de Idosos
+//  Data: 15/11/2025
+//  Autor: @efonseca78 (BR)
+//
+//  CONFIGURAÇÃO BASE - Generators e Datasources
+//  Este arquivo deve ser processado primeiro (ordem alfabética garante isso)
+// ──────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "prismaSchemaFolder"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

@@ -148,6 +148,7 @@ export class ResidentsService {
           tenantId,
           deletedAt: null,
         },
+        select: { id: true, code: true, status: true, roomId: true }, // Otimização: trazer apenas campos necessários
       });
 
       if (!bed) {
@@ -161,6 +162,7 @@ export class ResidentsService {
           tenantId,
           deletedAt: null,
         },
+        select: { id: true }, // Otimização: trazer apenas ID para validação
       });
 
       // Se existe outro residente no leito (não é o mesmo que está sendo atualizado)
@@ -194,6 +196,7 @@ export class ResidentsService {
           tenantId,
           deletedAt: null,
         },
+        select: { id: true }, // Otimização: trazer apenas ID para validação
       });
 
       if (!room) {
@@ -301,6 +304,7 @@ export class ResidentsService {
             cpf: createResidentDto.cpf,
             deletedAt: null,
           },
+          select: { id: true }, // Otimização: trazer apenas ID para validação
         });
 
         if (existingCpf) {
@@ -917,6 +921,7 @@ export class ResidentsService {
       }
 
       // Verificar se residente existe
+      // Nota: Precisa buscar todos os campos pois são usados para criar o histórico de versões
       const existingResident = await this.prisma.resident.findFirst({
         where: {
           id,
@@ -938,6 +943,7 @@ export class ResidentsService {
             id: { not: id },
             deletedAt: null,
           },
+          select: { id: true }, // Otimização: trazer apenas ID para validação
         });
 
         if (existingCpf) {
@@ -1113,6 +1119,7 @@ export class ResidentsService {
       }
 
       // Verificar se residente existe
+      // Nota: Precisa buscar todos os campos pois são usados para criar o histórico de versões
       const existingResident = await this.prisma.resident.findFirst({
         where: {
           id,
@@ -1266,6 +1273,14 @@ export class ResidentsService {
           id: residentId,
           tenantId,
         },
+        select: {
+          id: true,
+          fullName: true,
+          cpf: true,
+          versionNumber: true,
+          status: true,
+          deletedAt: true
+        }, // Otimização: trazer apenas campos usados na resposta
       });
 
       if (!resident) {

@@ -1,0 +1,198 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  REGISTROS DIÁRIOS
+//
+//  Registros diários de cuidados e agenda do residente
+// ──────────────────────────────────────────────────────────────────────────────
+
+model DailyRecord {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo e metadados
+  type RecordType
+  date DateTime   @db.Timestamptz(3) // Data do registro (sem hora)
+  time String // Hora no formato "HH:mm" (ex: "07:00", "14:30")
+
+  // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
+  data Json @default("{}")
+
+  // Responsável pelo registro
+  recordedBy String // Nome do profissional
+  userId     String @db.Uuid // ID do usuário que fez o registro
+
+  // Observações gerais (opcional)
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Relação com histórico de versões
+  history DailyRecordHistory[]
+
+  // Índices para performance
+  @@index([tenantId, residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc), time])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([tenantId, type, date(sort: Desc)]) // Registros por tipo (ex: ALIMENTACAO do dia)
+  @@index([residentId, type, date(sort: Desc)]) // Registros do residente por tipo
+  @@index([tenantId, date, deletedAt]) // Registros ativos do dia
+  @@map("daily_records")
+}
+
+model DailyRecordHistory {
+  id            String @id @default(uuid()) @db.Uuid
+  recordId      String @db.Uuid // FK para DailyRecord
+  tenantId      String @db.Uuid
+  versionNumber Int // Número sequencial da versão (1, 2, 3...)
+
+  // Dados da versão anterior (snapshot completo)
+  previousData Json // Snapshot completo do estado anterior
+
+  // Dados da nova versão (para comparação)
+  newData Json // Snapshot completo do novo estado
+
+  // Campos alterados (array de nomes de campos: ["time", "data.pressao"])
+  changedFields Json @default("[]")
+
+  // Auditoria da mudança
+  changeType    String // "UPDATE" ou "DELETE"
+  changeReason  String   @db.Text // Motivo obrigatório da mudança
+  changedBy     String   @db.Uuid // ID do usuário que fez a mudança
+  changedByName String // Nome do usuário que fez a mudança
+  changedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // IP e User Agent para auditoria adicional
+  ipAddress String? @db.VarChar(45)
+  userAgent String? @db.Text
+
+  // Relações
+  record DailyRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([recordId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("daily_record_history")
+}
+
+model ResidentScheduleConfig {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de registro obrigatório (usa enum RecordType existente)
+  recordType RecordType
+
+  // Frequência de recorrência
+  frequency ScheduleFrequency
+
+  // Configurações específicas por frequência
+  // Para WEEKLY: 0-6 (0=Domingo, 1=Segunda, ..., 6=Sábado)
+  // Para MONTHLY: 1-31 (dia do mês)
+  // Para DAILY: null
+  dayOfWeek  Int? // 0-6 (apenas para WEEKLY)
+  dayOfMonth Int? // 1-31 (apenas para MONTHLY)
+
+  // Horários sugeridos - array de strings "HH:mm"
+  // Ex: ["08:00", "14:00"] para 2x ao dia
+  suggestedTimes Json @default("[]")
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Observações
+  notes String? @db.Text
+
+  // Metadados extras (JSON) - usado para armazenar informações específicas por tipo
+  // Ex: para ALIMENTACAO: { "mealType": "Café da Manhã" }
+  metadata Json? @default("{}")
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("ScheduleConfigCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?    @relation("ScheduleConfigUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, isActive])
+  @@index([recordType])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([residentId, recordType, isActive]) // Configurações ativas do residente por tipo
+  @@index([tenantId, recordType, isActive]) // Configurações ativas do tenant por tipo
+  @@map("resident_schedule_configs")
+}
+
+model ResidentScheduledEvent {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de evento
+  eventType ScheduledEventType
+
+  // Data e hora do agendamento
+  scheduledDate DateTime @db.Timestamptz(3)
+  scheduledTime String // HH:mm
+
+  // Detalhes do evento
+  title       String // Ex: "Vacina Influenza - 1ª dose"
+  description String? @db.Text
+
+  // Campos específicos para vacinas (quando eventType = VACCINATION)
+  vaccineData Json? // {vaccine, dose, manufacturer, etc}
+
+  // Status
+  status ScheduledEventStatus @default(SCHEDULED)
+
+  // Referência ao registro criado (quando status = COMPLETED)
+  completedRecordId String?   @db.Uuid
+  completedAt       DateTime? @db.Timestamptz(3)
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("ScheduledEventCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?    @relation("ScheduledEventUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([tenantId, scheduledDate])
+  @@index([residentId, scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([eventType])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([tenantId, status, scheduledDate]) // Eventos pendentes do dia
+  @@index([residentId, status, scheduledDate]) // Eventos pendentes do residente
+  @@index([tenantId, eventType, scheduledDate]) // Eventos por tipo (ex: VACINACAO)
+  @@map("resident_scheduled_events")
+}
