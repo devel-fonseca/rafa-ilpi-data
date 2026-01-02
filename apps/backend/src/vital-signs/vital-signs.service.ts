@@ -9,12 +9,14 @@ import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, SystemNotificationType, NotificationCategory, NotificationSeverity } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class VitalSignsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -81,6 +83,15 @@ export class VitalSignsService {
       tenantId,
       userId,
     });
+
+    // Detectar anomalias e criar notificações automaticamente
+    await this.detectAndNotifyAnomalies(
+      tenantId,
+      vitalSign.id,
+      resident.id,
+      resident.fullName,
+      createDto,
+    );
 
     return vitalSign;
   }
@@ -265,6 +276,22 @@ export class VitalSignsService {
       userId,
     });
 
+    // Detectar anomalias nos valores atualizados
+    const resident = await this.prisma.resident.findUnique({
+      where: { id: vitalSign.residentId },
+      select: { fullName: true },
+    });
+
+    if (resident) {
+      await this.detectAndNotifyAnomalies(
+        tenantId,
+        id,
+        vitalSign.residentId,
+        resident.fullName,
+        updateDto,
+      );
+    }
+
     return result;
   }
 
@@ -448,5 +475,182 @@ export class VitalSignsService {
     });
 
     return historyVersion;
+  }
+
+  /**
+   * Detectar anomalias nos sinais vitais e criar notificações
+   * PRIVADO - chamado automaticamente em create() e update()
+   */
+  private async detectAndNotifyAnomalies(
+    tenantId: string,
+    vitalSignId: string,
+    residentId: string,
+    residentName: string,
+    data: CreateVitalSignDto | UpdateVitalSignDto,
+  ) {
+    try {
+      // Pressão Arterial Sistólica
+      if (data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null) {
+        if (data.systolicBloodPressure >= 160 || data.systolicBloodPressure < 80) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.CRITICAL,
+            title: 'Pressão Arterial Crítica',
+            message: `Pressão arterial sistólica crítica detectada para ${residentName}: ${data.systolicBloodPressure} mmHg`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
+          });
+          this.logger.warn('Notificação criada: PA Crítica', { residentName, value: data.systolicBloodPressure });
+        } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.WARNING,
+            title: 'Pressão Arterial Anormal',
+            message: `Pressão arterial sistólica anormal detectada para ${residentName}: ${data.systolicBloodPressure} mmHg`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
+          });
+          this.logger.warn('Notificação criada: PA Anormal', { residentName, value: data.systolicBloodPressure });
+        }
+      }
+
+      // Glicemia
+      if (data.bloodGlucose !== undefined && data.bloodGlucose !== null) {
+        if (data.bloodGlucose >= 250 || data.bloodGlucose < 60) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.CRITICAL,
+            title: 'Glicemia Crítica',
+            message: `Glicemia crítica detectada para ${residentName}: ${data.bloodGlucose} mg/dL`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Glicemia', value: `${data.bloodGlucose} mg/dL` },
+          });
+          this.logger.warn('Notificação criada: Glicemia Crítica', { residentName, value: data.bloodGlucose });
+        } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.WARNING,
+            title: 'Glicemia Anormal',
+            message: `Glicemia anormal detectada para ${residentName}: ${data.bloodGlucose} mg/dL`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Glicemia', value: `${data.bloodGlucose} mg/dL` },
+          });
+          this.logger.warn('Notificação criada: Glicemia Anormal', { residentName, value: data.bloodGlucose });
+        }
+      }
+
+      // Temperatura
+      if (data.temperature !== undefined && data.temperature !== null) {
+        if (data.temperature >= 39 || data.temperature < 35) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.CRITICAL,
+            title: 'Temperatura Crítica',
+            message: `Temperatura crítica detectada para ${residentName}: ${data.temperature}°C`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Temperatura', value: `${data.temperature}°C` },
+          });
+          this.logger.warn('Notificação criada: Temperatura Crítica', { residentName, value: data.temperature });
+        } else if (data.temperature >= 38 || data.temperature < 35.5) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.WARNING,
+            title: 'Temperatura Anormal',
+            message: `Temperatura anormal detectada para ${residentName}: ${data.temperature}°C`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Temperatura', value: `${data.temperature}°C` },
+          });
+          this.logger.warn('Notificação criada: Temperatura Anormal', { residentName, value: data.temperature });
+        }
+      }
+
+      // Saturação de Oxigênio
+      if (data.oxygenSaturation !== undefined && data.oxygenSaturation !== null) {
+        if (data.oxygenSaturation < 90) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.CRITICAL,
+            title: 'Saturação de O₂ Crítica',
+            message: `Saturação de oxigênio crítica detectada para ${residentName}: ${data.oxygenSaturation}%`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Saturação O₂', value: `${data.oxygenSaturation}%` },
+          });
+          this.logger.warn('Notificação criada: SpO₂ Crítica', { residentName, value: data.oxygenSaturation });
+        } else if (data.oxygenSaturation < 92) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.WARNING,
+            title: 'Saturação de O₂ Baixa',
+            message: `Saturação de oxigênio baixa detectada para ${residentName}: ${data.oxygenSaturation}%`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Saturação O₂', value: `${data.oxygenSaturation}%` },
+          });
+          this.logger.warn('Notificação criada: SpO₂ Baixa', { residentName, value: data.oxygenSaturation });
+        }
+      }
+
+      // Frequência Cardíaca
+      if (data.heartRate !== undefined && data.heartRate !== null) {
+        if (data.heartRate > 120 || data.heartRate < 50) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.CRITICAL,
+            title: 'Frequência Cardíaca Crítica',
+            message: `Frequência cardíaca crítica detectada para ${residentName}: ${data.heartRate} bpm`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Frequência Cardíaca', value: `${data.heartRate} bpm` },
+          });
+          this.logger.warn('Notificação criada: FC Crítica', { residentName, value: data.heartRate });
+        } else if (data.heartRate > 100 || data.heartRate < 60) {
+          await this.notificationsService.create(tenantId, {
+            type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
+            category: NotificationCategory.VITAL_SIGN,
+            severity: NotificationSeverity.WARNING,
+            title: 'Frequência Cardíaca Anormal',
+            message: `Frequência cardíaca anormal detectada para ${residentName}: ${data.heartRate} bpm`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'VITAL_SIGN',
+            entityId: vitalSignId,
+            metadata: { residentName, vitalType: 'Frequência Cardíaca', value: `${data.heartRate} bpm` },
+          });
+          this.logger.warn('Notificação criada: FC Anormal', { residentName, value: data.heartRate });
+        }
+      }
+    } catch (error) {
+      // Não falhar a criação/atualização do sinal vital se notificação falhar
+      this.logger.error('Erro ao criar notificação de anomalia', {
+        error: error instanceof Error ? error.message : String(error),
+        vitalSignId,
+        residentId,
+        tenantId,
+      });
+    }
   }
 }

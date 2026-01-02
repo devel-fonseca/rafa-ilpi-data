@@ -80,7 +80,7 @@ export function MessagesDropdown() {
           )}
         </div>
 
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="max-h-[calc(100vh-200px)] min-h-[300px]">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               Carregando...

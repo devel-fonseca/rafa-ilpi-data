@@ -14,10 +14,6 @@ import {
 } from '@prisma/client'
 
 export class CreateNotificationDto {
-  @IsOptional()
-  @IsUUID()
-  userId?: string
-
   @IsEnum(SystemNotificationType)
   type: SystemNotificationType
 

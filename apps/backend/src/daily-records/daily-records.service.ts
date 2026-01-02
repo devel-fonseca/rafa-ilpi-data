@@ -10,13 +10,14 @@ import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import * as vitalSignsService from '../services/vitalSigns.service';
+import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 
 @Injectable()
 export class DailyRecordsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly vitalSignsService: VitalSignsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -86,8 +87,8 @@ export class DailyRecordsService {
         const vitalSignData = this.extractVitalSignsFromData(dto.data);
         const timestamp = this.buildTimestamp(dto.date, dto.time);
 
-        await vitalSignsService.createVitalSign({
-          tenantId,
+        // Usar VitalSignsService do NestJS que já tem detecção de anomalias integrada
+        await this.vitalSignsService.create(tenantId, userId, {
           residentId: dto.residentId,
           userId,
           timestamp,
@@ -101,7 +102,7 @@ export class DailyRecordsService {
       } catch (error) {
         this.logger.error('Erro ao criar sinal vital', {
           recordId: record.id,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
         // Não falhar a criação do registro se houver erro nos sinais vitais
       }
@@ -431,21 +432,40 @@ export class DailyRecordsService {
           result.time,
         );
 
-        await vitalSignsService.updateVitalSignByTimestamp(
-          tenantId,
-          result.residentId,
-          timestamp,
-          vitalSignData,
-        );
-
-        this.logger.info('Sinal vital atualizado automaticamente', {
-          recordId: id,
-          timestamp,
+        // Buscar VitalSign existente por timestamp
+        const existingVitalSign = await this.prisma.vitalSign.findFirst({
+          where: {
+            tenantId,
+            residentId: result.residentId,
+            timestamp,
+            deletedAt: null,
+          },
         });
+
+        if (existingVitalSign) {
+          // Atualizar usando VitalSignsService do NestJS (com detecção de anomalias)
+          await this.vitalSignsService.update(
+            tenantId,
+            userId,
+            existingVitalSign.id,
+            { ...vitalSignData, changeReason: dto.editReason || 'Atualização via Registro Diário' },
+          );
+
+          this.logger.info('Sinal vital atualizado automaticamente', {
+            recordId: id,
+            vitalSignId: existingVitalSign.id,
+            timestamp,
+          });
+        } else {
+          this.logger.warn('Sinal vital não encontrado para atualização', {
+            recordId: id,
+            timestamp,
+          });
+        }
       } catch (error) {
         this.logger.error('Erro ao atualizar sinal vital', {
           recordId: id,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
         // Não falhar a atualização do registro se houver erro nos sinais vitais
       }
@@ -536,20 +556,40 @@ export class DailyRecordsService {
           existing.time,
         );
 
-        await vitalSignsService.deleteVitalSignByTimestamp(
-          tenantId,
-          existing.residentId,
-          timestamp,
-        );
-
-        this.logger.info('Sinal vital deletado automaticamente', {
-          recordId: id,
-          timestamp,
+        // Buscar VitalSign existente por timestamp
+        const existingVitalSign = await this.prisma.vitalSign.findFirst({
+          where: {
+            tenantId,
+            residentId: existing.residentId,
+            timestamp,
+            deletedAt: null,
+          },
         });
+
+        if (existingVitalSign) {
+          // Deletar usando VitalSignsService do NestJS (com versionamento)
+          await this.vitalSignsService.remove(
+            tenantId,
+            userId,
+            existingVitalSign.id,
+            deleteDto.deleteReason || 'Remoção via Registro Diário',
+          );
+
+          this.logger.info('Sinal vital deletado automaticamente', {
+            recordId: id,
+            vitalSignId: existingVitalSign.id,
+            timestamp,
+          });
+        } else {
+          this.logger.warn('Sinal vital não encontrado para deleção', {
+            recordId: id,
+            timestamp,
+          });
+        }
       } catch (error) {
         this.logger.error('Erro ao deletar sinal vital', {
           recordId: id,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
         // Não falhar a deleção do registro se houver erro nos sinais vitais
       }

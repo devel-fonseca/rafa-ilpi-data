@@ -40,7 +40,7 @@ model User {
   dietaryRestrictionsCreated   DietaryRestriction[]        @relation("DietaryRestrictionCreator")
   dietaryRestrictionsUpdated   DietaryRestriction[]        @relation("DietaryRestrictionUpdater")
   dietaryRestrictionHistory    DietaryRestrictionHistory[] @relation("DietaryRestrictionHistoryUser")
-  notifications                Notification[]
+  notificationReads            NotificationRead[] // Rastreamento individual de leitura
   clinicalNoteDocumentsCreated ClinicalNoteDocument[]      @relation("ClinicalNoteDocumentCreator")
 
   // Relações de versionamento (Resident)

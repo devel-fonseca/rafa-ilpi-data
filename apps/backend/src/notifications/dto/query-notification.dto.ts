@@ -29,8 +29,12 @@ export class QueryNotificationDto {
 
   @IsOptional()
   @Transform(({ value }) => {
-    if (value === 'true') return true
-    if (value === 'false') return false
+    // enableImplicitConversion converte strings para boolean ANTES do Transform
+    // Precisamos tratar manualmente para evitar 'false' string → true boolean
+    if (typeof value === 'string') {
+      return value === 'true' ? true : value === 'false' ? false : undefined
+    }
+    // Se já for boolean ou undefined, retornar como está
     return value
   })
   @IsBoolean()

@@ -36,12 +36,8 @@ export class NotificationsController {
    */
   @Get()
   async findAll(@Request() req: any, @Query() query: QueryNotificationDto) {
-    // DEBUG: Log completo do req.user e query
-    console.log('🔍 [CONTROLLER] req.user:', JSON.stringify(req.user, null, 2))
-    console.log('🔍 [CONTROLLER] query.read:', query.read, 'typeof:', typeof query.read)
     const tenantId = req.user.tenantId
-    const userId = req.user.id // CORRIGIDO: usar 'id' em vez de 'sub'
-    console.log('🔍 [CONTROLLER] tenantId:', tenantId, 'userId:', userId)
+    const userId = req.user.id
     return this.notificationsService.findAll(tenantId, userId, query)
   }
 

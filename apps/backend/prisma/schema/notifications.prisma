@@ -7,7 +7,6 @@
 model Notification {
   id       String  @id @default(uuid()) @db.Uuid
   tenantId String  @db.Uuid
-  userId   String? @db.Uuid // null = broadcast para todos do tenant
 
   // Tipo e Categoria
   type     SystemNotificationType
@@ -26,10 +25,6 @@ model Notification {
   // Metadata flexível para informações adicionais
   metadata Json? @db.JsonB
 
-  // Status de leitura
-  read   Boolean   @default(false)
-  readAt DateTime? @db.Timestamptz(3)
-
   // Expiração automática
   expiresAt DateTime? @db.Timestamptz(3)
 
@@ -38,23 +33,38 @@ model Notification {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   // Relações
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reads  NotificationRead[] // Rastreamento individual de leitura
 
   // Índices para performance
-  @@index([tenantId, userId, read, createdAt(sort: Desc)])
-  @@index([tenantId, category, read, createdAt(sort: Desc)])
-  @@index([tenantId, severity, read, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, category, createdAt(sort: Desc)])
+  @@index([tenantId, severity, createdAt(sort: Desc)])
   @@index([type])
   @@index([category])
   @@index([severity])
   @@index([expiresAt])
-  @@index([read])
-  // Índices compostos adicionais para queries frequentes
-  @@index([userId, read, createdAt(sort: Desc)]) // Notificações não lidas do usuário
-  @@index([tenantId, type, read]) // Notificações por tipo (ex: MEDICATION_DUE)
+  @@index([tenantId, type]) // Notificações por tipo
   @@index([entityType, entityId]) // Buscar notificações de uma entidade específica
   @@map("notifications")
+}
+
+// Tabela de rastreamento individual de leitura de notificações
+model NotificationRead {
+  id             String   @id @default(uuid()) @db.Uuid
+  notificationId String   @db.Uuid
+  userId         String   @db.Uuid
+  readAt         DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@unique([notificationId, userId]) // Um usuário só pode marcar como lida uma vez
+  @@index([userId, readAt(sort: Desc)]) // Histórico de leituras do usuário
+  @@index([notificationId]) // Buscar leituras de uma notificação
+  @@map("notification_reads")
 }
 
 model SystemAlert {

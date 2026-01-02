@@ -16,6 +16,8 @@ export class NotificationsService {
 
   /**
    * Criar nova notificação
+   * NOTA: userId foi removido do schema - agora todas notificações são broadcast por padrão
+   *       e o rastreamento de leitura é feito via NotificationRead
    */
   async create(tenantId: string, dto: CreateNotificationDto) {
     this.logger.log(
@@ -25,7 +27,6 @@ export class NotificationsService {
     const notification = await this.prisma.notification.create({
       data: {
         tenantId,
-        userId: dto.userId || null,
         type: dto.type,
         category: dto.category,
         severity: dto.severity,
@@ -37,15 +38,6 @@ export class NotificationsService {
         metadata: dto.metadata || {},
         expiresAt: dto.expiresAt,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
     })
 
     this.logger.log(`Notification created: ${notification.id}`)
@@ -54,6 +46,7 @@ export class NotificationsService {
 
   /**
    * Buscar notificações com filtros e paginação
+   * Agora usa NotificationRead para determinar se usuário leu ou não
    */
   async findAll(tenantId: string, userId: string, query: QueryNotificationDto) {
     const {
@@ -68,10 +61,9 @@ export class NotificationsService {
 
     const skip = (page - 1) * limit
 
-    // Construir filtros
+    // Construir filtros base (todas notificações do tenant não expiradas)
     const where: any = {
       tenantId,
-      OR: [{ userId }, { userId: null }], // Notificações do usuário ou broadcast
       AND: [
         {
           OR: [
@@ -90,10 +82,6 @@ export class NotificationsService {
       where.severity = severity
     }
 
-    if (read !== undefined) {
-      where.read = read
-    }
-
     if (type) {
       where.type = type
     }
@@ -105,36 +93,52 @@ export class NotificationsService {
       ]
     }
 
-    // 🐛 DEBUG: Log dos filtros
-    console.log('🔍 [DEBUG] findAll - Filters:', JSON.stringify(where, null, 2))
-    console.log('🔍 [DEBUG] findAll - tenantId:', tenantId)
-    console.log('🔍 [DEBUG] findAll - userId:', userId)
-    console.log('🔍 [DEBUG] findAll - query:', query)
+    // Se filtro `read` foi especificado, aplicar ANTES na query do Prisma
+    if (read !== undefined) {
+      if (read === false) {
+        // Buscar apenas NÃO lidas: notifications SEM registro em NotificationRead
+        where.reads = {
+          none: {
+            userId,
+          },
+        }
+      } else {
+        // Buscar apenas lidas: notifications COM registro em NotificationRead
+        where.reads = {
+          some: {
+            userId,
+          },
+        }
+      }
+    }
 
-    // Buscar total e dados
-    const [total, data] = await Promise.all([
-      this.prisma.notification.count({ where }),
-      this.prisma.notification.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+    // Buscar notificações com LEFT JOIN para NotificationRead
+    const notifications = await this.prisma.notification.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        reads: {
+          where: { userId }, // Apenas reads deste usuário
+          select: {
+            readAt: true,
           },
         },
-      }),
-    ])
+      },
+    })
 
-    // 🐛 DEBUG: Log dos resultados
-    console.log('🔍 [DEBUG] findAll - Total found:', total)
-    console.log('🔍 [DEBUG] findAll - Data length:', data.length)
-    console.log('🔍 [DEBUG] findAll - First notification:', data[0])
+    // Mapear adicionando campo `read` baseado em NotificationRead
+    const data = notifications.map((n) => ({
+      ...n,
+      read: n.reads.length > 0, // Se tem registro em NotificationRead, foi lida
+      readAt: n.reads[0]?.readAt || null,
+    }))
+
+    // Contar total (sem paginação) - já filtrado pela query `where`
+    const total = await this.prisma.notification.count({
+      where,
+    })
 
     const totalPages = Math.ceil(total / limit)
 
@@ -150,17 +154,24 @@ export class NotificationsService {
   }
 
   /**
-   * Contar notificações não lidas
+   * Contar notificações não lidas (que NÃO têm registro em NotificationRead para este usuário)
    */
   async countUnread(tenantId: string, userId: string) {
+    // Buscar IDs de notificações que o usuário já leu
+    const readNotificationIds = await this.prisma.notificationRead.findMany({
+      where: { userId },
+      select: { notificationId: true },
+    })
+
+    const readIds = readNotificationIds.map((r) => r.notificationId)
+
+    // Contar notificações do tenant que NÃO estão na lista de lidas e não expiraram
     const count = await this.prisma.notification.count({
       where: {
         tenantId,
-        OR: [
-          { userId },
-          { userId: null },
-        ],
-        read: false,
+        id: {
+          notIn: readIds.length > 0 ? readIds : undefined, // Se não leu nada, não filtrar
+        },
         AND: [
           {
             OR: [
@@ -176,15 +187,14 @@ export class NotificationsService {
   }
 
   /**
-   * Marcar notificação como lida
+   * Marcar notificação como lida (criar registro em NotificationRead)
    */
   async markAsRead(tenantId: string, userId: string, id: string) {
-    // Verificar se a notificação existe e pertence ao tenant/user
+    // Verificar se a notificação existe e pertence ao tenant
     const notification = await this.prisma.notification.findFirst({
       where: {
         id,
         tenantId,
-        OR: [{ userId }, { userId: null }],
       },
     })
 
@@ -192,48 +202,93 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found')
     }
 
-    const updated = await this.prisma.notification.update({
-      where: { id },
-      data: {
-        read: true,
+    // Criar registro em NotificationRead (upsert para evitar duplicatas)
+    await this.prisma.notificationRead.upsert({
+      where: {
+        notificationId_userId: {
+          notificationId: id,
+          userId,
+        },
+      },
+      create: {
+        notificationId: id,
+        userId,
         readAt: new Date(),
+      },
+      update: {
+        readAt: new Date(), // Atualizar data de leitura se já existir
       },
     })
 
     this.logger.log(`Notification ${id} marked as read by user ${userId}`)
-    return updated
+
+    // Retornar notificação com campo read adicionado
+    return {
+      ...notification,
+      read: true,
+      readAt: new Date(),
+    }
   }
 
   /**
-   * Marcar todas as notificações como lidas
+   * Marcar todas as notificações como lidas (criar registros em NotificationRead para todas não lidas)
    */
   async markAllAsRead(tenantId: string, userId: string) {
-    const result = await this.prisma.notification.updateMany({
+    // Buscar IDs de notificações que o usuário já leu
+    const readNotificationIds = await this.prisma.notificationRead.findMany({
+      where: { userId },
+      select: { notificationId: true },
+    })
+
+    const readIds = readNotificationIds.map((r) => r.notificationId)
+
+    // Buscar todas notificações não lidas do tenant
+    const unreadNotifications = await this.prisma.notification.findMany({
       where: {
         tenantId,
-        OR: [{ userId }, { userId: null }],
-        read: false,
+        id: {
+          notIn: readIds.length > 0 ? readIds : undefined,
+        },
+        AND: [
+          {
+            OR: [
+              { expiresAt: { gt: new Date() } },
+              { expiresAt: null },
+            ],
+          },
+        ],
       },
-      data: {
-        read: true,
-        readAt: new Date(),
+      select: {
+        id: true,
       },
     })
 
-    this.logger.log(`${result.count} notifications marked as read for user ${userId}`)
-    return { count: result.count }
+    // Criar registros em NotificationRead para todas as não lidas
+    if (unreadNotifications.length > 0) {
+      await this.prisma.notificationRead.createMany({
+        data: unreadNotifications.map((n) => ({
+          notificationId: n.id,
+          userId,
+          readAt: new Date(),
+        })),
+        skipDuplicates: true, // Evitar erro se alguma já foi marcada
+      })
+    }
+
+    this.logger.log(`${unreadNotifications.length} notifications marked as read for user ${userId}`)
+    return { count: unreadNotifications.length }
   }
 
   /**
    * Deletar notificação
+   * NOTA: CASCADE irá deletar automaticamente os registros em NotificationRead
    */
   async delete(tenantId: string, userId: string, id: string) {
-    // Verificar se a notificação existe e pertence ao tenant/user
+    // Verificar se a notificação existe e pertence ao tenant
     const notification = await this.prisma.notification.findFirst({
       where: {
         id,
         tenantId,
-        OR: [{ userId }, { userId: null }],
       },
     })
 

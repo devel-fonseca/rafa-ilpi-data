@@ -166,25 +166,22 @@ export function NotificationsDropdown() {
   const { data: allNotifications } = useNotifications({
     page: 1,
     limit: 50,
-    read: false,
+    // Buscar TODAS as notificações (lidas + não lidas) e destacar visualmente no UI
   })
   const { data: prescriptionNotifications } = useNotifications({
     page: 1,
     limit: 50,
     category: NotificationCategory.PRESCRIPTION,
-    read: false,
   })
   const { data: vitalSignNotifications } = useNotifications({
     page: 1,
     limit: 50,
     category: NotificationCategory.VITAL_SIGN,
-    read: false,
   })
   const { data: documentNotifications } = useNotifications({
     page: 1,
     limit: 50,
     category: NotificationCategory.DOCUMENT,
-    read: false,
   })
 
   const markAsReadMutation = useMarkAsRead()
@@ -278,24 +275,24 @@ export function NotificationsDropdown() {
           </Tabs>
         </div>
 
-        <ScrollArea className="max-h-[60vh]">
-          <div className="p-3 space-y-2">
-            {notifications.length === 0 ? (
-              <div className="text-center py-8 text-sm text-muted-foreground">
-                Nenhuma notificação não lida
-              </div>
-            ) : (
-              notifications.map((notification) => (
+        <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">
+              Nenhuma notificação
+            </div>
+          ) : (
+            <div className="p-3 space-y-2">
+              {notifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={handleMarkAsRead}
                   onOpenMissedEventModal={handleOpenMissedEventModal}
                 />
-              ))
-            )}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Separator />
 

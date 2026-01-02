@@ -55,7 +55,6 @@ export enum NotificationSeverity {
 export interface Notification {
   id: string
   tenantId: string
-  userId: string | null
   type: SystemNotificationType
   category: NotificationCategory
   severity: NotificationSeverity
@@ -65,16 +64,11 @@ export interface Notification {
   entityType: string | null
   entityId: string | null
   metadata: Record<string, any> | null
-  read: boolean
-  readAt: string | null
+  read: boolean // Calculado pelo backend baseado em NotificationRead
+  readAt: string | null // Calculado pelo backend baseado em NotificationRead
   expiresAt: string | null
   createdAt: string
   updatedAt: string
-  user?: {
-    id: string
-    name: string
-    email: string
-  } | null
 }
 
 export interface NotificationsResponse {
@@ -98,7 +92,6 @@ export interface QueryNotificationsParams {
 }
 
 export interface CreateNotificationDto {
-  userId?: string
   type: SystemNotificationType
   category: NotificationCategory
   severity: NotificationSeverity
