@@ -6,6 +6,86 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-02] - Otimizações de Performance - Fase 2 💾
+
+### ✨ Adicionado
+
+**1. CacheService** (`apps/backend/src/cache/cache.service.ts`)
+- Serviço global de cache Redis com graceful degradation
+- Reconnection automática com exponential backoff (max 10 tentativas)
+- Métodos: `get()`, `set()`, `del()`, `clear()`, `exists()`, `ttl()`, `refresh()`
+- Logging detalhado de operações (HIT/MISS, invalidações)
+- Suporte a TTL customizado por chave
+- Pattern-based deletion para invalidação em massa
+
+**2. TenantCacheService** (`apps/backend/src/tenants/tenant-cache.service.ts`)
+- Cache específico para dados de tenant (100% das requests autenticadas)
+- TTL: 900s (15 minutos)
+- Padrão de chave: `tenant:{tenantId}`
+- Include: subscriptions + plan + profile
+- Métodos: `get()`, `invalidate()`, `invalidateMany()`, `warmup()`, `clearAll()`
+- Integrado ao JwtStrategy para eliminar JOIN em toda request
+
+**3. PermissionsCacheService** (`apps/backend/src/permissions/permissions-cache.service.ts`)
+- Cache específico para dados de permissões (~60% das requests)
+- TTL: 300s (5 minutos - menor que tenant pois permissões mudam mais)
+- Padrão de chave: `user-permissions:{userId}`
+- Include: role + profile + positionCode + customPermissions
+- Métodos: `get()`, `hasPermission()`, `calculateEffectivePermissions()`, `invalidate()`
+- Integrado ao PermissionsService (`hasPermission`, `getUserEffectivePermissions`, `getUserAllPermissions`)
+
+### 📝 Alterado
+
+**BullModule (Redis Authentication)**
+- Adicionado `password: configService.get('REDIS_PASSWORD')` para autenticação em produção
+- Corrige vulnerabilidade de segurança em ambientes com Redis protegido
+
+**JwtStrategy** (`apps/backend/src/auth/strategies/jwt.strategy.ts`)
+- Removido `include: { tenant: true }` da query de usuário
+- Busca tenant do cache via `TenantCacheService.get()`
+- Redução estimada de 95% nas queries de tenant
+
+**PermissionsService** (`apps/backend/src/permissions/permissions.service.ts`)
+- Refatorado `hasPermission()` para usar cache
+- Refatorado `getUserEffectivePermissions()` para usar cache
+- Refatorado `getUserAllPermissions()` para usar cache
+- Invalidação automática de cache em:
+  - `grantPermission()` - Após conceder permissão customizada
+  - `revokePermission()` - Após revogar permissão
+  - `removeCustomPermission()` - Após remover permissão
+  - `updateUserPosition()` - Após mudar positionCode (permissões herdadas mudam)
+
+**AuthModule** (`apps/backend/src/auth/auth.module.ts`)
+- Adicionado import de `TenantsModule` para acesso ao `TenantCacheService`
+
+**TenantsModule** (`apps/backend/src/tenants/tenants.module.ts`)
+- Adicionado provider e export de `TenantCacheService`
+
+**PermissionsModule** (`apps/backend/src/permissions/permissions.module.ts`)
+- Adicionado provider e export de `PermissionsCacheService`
+
+### 🔧 Corrigido
+
+- Type errors em `PermissionsCacheService` e `PermissionsService` (positionCode cast)
+
+### 📊 Impacto Esperado
+
+**Tenant Lookups**:
+- Antes: 1 query JOIN em 100% das requests autenticadas
+- Depois: Cache HIT em ~95% das requests (após warmup)
+- Redução: ~95% de queries de tenant
+
+**Permission Checks**:
+- Antes: 1 query JOIN em ~60% das requests (verificações de permissão)
+- Depois: Cache HIT em ~95% das verificações (após warmup)
+- Redução: ~57% de queries de permissões totais
+
+**Total**:
+- Redução estimada de ~76% nas queries de lookup (tenant + permissions)
+- Tempo de resposta médio reduzido em 20-40ms por request autenticada
+
+---
+
 ## [2025-12-30] - Otimizações de Performance - Fase 1 🚀
 
 ### ✨ Adicionado

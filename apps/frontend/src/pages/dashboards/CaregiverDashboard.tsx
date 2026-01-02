@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
-import { ResidentQuickSearch } from '@/components/caregiver/ResidentQuickSearch'
+import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
@@ -210,9 +210,11 @@ export function CaregiverDashboard() {
         </p>
       </div>
 
-      {/* Busca Rápida de Residentes */}
-      <ResidentQuickSearch
-        onSelectResident={(residentId) => setSelectedResidentId(residentId)}
+      {/* Busca Universal */}
+      <UniversalSearch
+        onAfterSelectResident={() => {
+          // Componente UniversalSearch já controla o modal internamente
+        }}
       />
 
       {/* Cards de estatísticas */}

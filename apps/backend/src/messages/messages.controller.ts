@@ -78,6 +78,18 @@ export class MessagesController {
     return this.messagesService.getStats(user.tenantId, user.id);
   }
 
+  @Get(':id/read-stats')
+  @RequirePermissions(PermissionType.VIEW_MESSAGES)
+  @ApiOperation({ summary: 'Estatísticas de leitura de uma mensagem (para remetentes)' })
+  @ApiResponse({ status: 200, description: 'Estatísticas retornadas com sucesso' })
+  @ApiResponse({ status: 404, description: 'Mensagem não encontrada ou sem permissão' })
+  getReadStats(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.messagesService.getReadStats(id, user.tenantId, user.id);
+  }
+
   @Get('thread/:threadId')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Buscar thread completo (mensagem + respostas)' })

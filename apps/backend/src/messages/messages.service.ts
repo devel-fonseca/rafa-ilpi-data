@@ -157,6 +157,84 @@ export class MessagesService {
   }
 
   /**
+   * Obter estatísticas de leitura de uma mensagem (para remetentes)
+   */
+  async getReadStats(messageId: string, tenantId: string, userId: string) {
+    // Buscar mensagem e validar que o usuário é o remetente
+    const message = await this.prisma.message.findFirst({
+      where: {
+        id: messageId,
+        tenantId,
+        senderId: userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Mensagem não encontrada ou sem permissão');
+    }
+
+    // Buscar todos os destinatários com status de leitura
+    const recipients = await this.prisma.messageRecipient.findMany({
+      where: {
+        messageId,
+        tenantId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: {
+              select: {
+                profilePhoto: true,
+                positionCode: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        { readAt: { sort: 'desc', nulls: 'last' } }, // Lidos primeiro, ordenados por data
+        { user: { name: 'asc' } }, // Depois por nome
+      ],
+    });
+
+    // Separar em lidos e não lidos
+    const read = recipients.filter((r) => r.readAt !== null);
+    const unread = recipients.filter((r) => r.readAt === null);
+
+    return {
+      messageId,
+      messageType: message.type,
+      total: recipients.length,
+      readCount: read.length,
+      unreadCount: unread.length,
+      readPercentage: recipients.length > 0
+        ? Math.round((read.length / recipients.length) * 100)
+        : 0,
+      recipients: {
+        read: read.map((r) => ({
+          userId: r.userId,
+          userName: r.user.name,
+          userEmail: r.user.email,
+          userPhoto: r.user.profile?.profilePhoto,
+          positionCode: r.user.profile?.positionCode,
+          readAt: r.readAt,
+        })),
+        unread: unread.map((r) => ({
+          userId: r.userId,
+          userName: r.user.name,
+          userEmail: r.user.email,
+          userPhoto: r.user.profile?.profilePhoto,
+          positionCode: r.user.profile?.positionCode,
+        })),
+      },
+    };
+  }
+
+  /**
    * Listar mensagens recebidas (inbox)
    */
   async findInbox(

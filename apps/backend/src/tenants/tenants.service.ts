@@ -858,4 +858,78 @@ export class TenantsService {
 
     this.logger.log(`Schema ${schemaName} criado com sucesso - tabelas: residents, audit_logs`);
   }
+
+  /**
+   * Busca subscription ativa do tenant com contagens de usuários e residentes
+   */
+  async getMySubscription(tenantId: string) {
+    // Buscar subscription ativa mais recente
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        tenantId,
+        status: {
+          in: ['trialing', 'active'],
+        },
+      },
+      include: {
+        plan: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Nenhuma subscription ativa encontrada');
+    }
+
+    // Contar usuários ativos
+    const activeUsersCount = await this.prisma.user.count({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+      },
+    });
+
+    // Contar residentes ativos
+    const activeResidentsCount = await this.prisma.resident.count({
+      where: {
+        tenantId,
+        status: 'Ativo',
+        deletedAt: null,
+      },
+    });
+
+    // Buscar tenant para pegar o status
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        status: true,
+      },
+    });
+
+    return {
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        trialEndDate: subscription.trialEndDate,
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      },
+      plan: {
+        id: subscription.plan.id,
+        name: subscription.plan.name,
+        displayName: subscription.plan.displayName,
+        type: subscription.plan.type,
+        maxUsers: subscription.plan.maxUsers,
+        maxResidents: subscription.plan.maxResidents,
+      },
+      usage: {
+        activeUsers: activeUsersCount,
+        activeResidents: activeResidentsCount,
+      },
+      tenantStatus: tenant?.status || 'TRIAL',
+    };
+  }
 }

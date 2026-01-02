@@ -23,6 +23,7 @@ import {
 import { MessageType, MessageStatus } from '@/api/messages.api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MessageReadStatsDialog } from '@/components/messages/MessageReadStatsDialog';
 
 export default function MessagesListPage() {
   const navigate = useNavigate();
@@ -271,6 +272,7 @@ export default function MessagesListPage() {
                   <TableHead>Assunto</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead className="w-[150px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -278,22 +280,38 @@ export default function MessagesListPage() {
                   <TableRow
                     key={message.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}
                   >
                     <TableCell></TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}>
                       {message.type === MessageType.BROADCAST
                         ? 'Todos os usuários'
                         : message.recipients
                             ?.map((r) => r.user.name)
                             .join(', ')}
                     </TableCell>
-                    <TableCell>{message.subject}</TableCell>
-                    <TableCell>{getTypeBadge(message.type)}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}>
+                      {message.subject}
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}>
+                      {getTypeBadge(message.type)}
+                    </TableCell>
+                    <TableCell onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}>
                       {format(new Date(message.createdAt), 'dd/MM/yyyy HH:mm', {
                         locale: ptBR,
                       })}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {(message.type === MessageType.BROADCAST ||
+                        (message.recipients && message.recipients.length > 1)) && (
+                        <MessageReadStatsDialog
+                          messageId={message.id}
+                          trigger={
+                            <Button variant="ghost" size="sm" className="gap-2">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -11,12 +11,18 @@ import { MessageType } from '@/api/messages.api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MessageReadStatsDialog } from '@/components/messages/MessageReadStatsDialog';
+import { useAuthStore } from '@/stores/auth.store';
 
 export default function MessageDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const { data: message, isLoading, isError } = useMessage(id);
+
+  // Verificar se o usuário é o remetente da mensagem
+  const isSender = message && user && message.senderId === user.id;
 
   if (isLoading) {
     return (
@@ -140,6 +146,15 @@ export default function MessageDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
+
+        {/* Botão de estatísticas de leitura - apenas para remetente */}
+        {isSender && message.type === MessageType.BROADCAST && (
+          <MessageReadStatsDialog messageId={message.id} />
+        )}
+
+        {isSender && message.type === MessageType.DIRECT && message.recipients && message.recipients.length > 1 && (
+          <MessageReadStatsDialog messageId={message.id} />
+        )}
       </div>
     </div>
   );

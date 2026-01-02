@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Calendar, Activity, Settings, UserPlus, Pill } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -13,13 +12,11 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
-import { ResidentQuickSearch } from '@/components/caregiver/ResidentQuickSearch'
-import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
+import { UniversalSearch } from '@/components/common/UniversalSearch'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
-  const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
 
   // Detectar cargo e renderizar dashboard específico
   if (user?.profile?.positionCode === 'CAREGIVER') {
@@ -133,10 +130,8 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Busca Rápida de Residentes */}
-      <ResidentQuickSearch
-        onSelectResident={(residentId) => setSelectedResidentId(residentId)}
-      />
+      {/* Busca Universal */}
+      <UniversalSearch />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -192,26 +187,12 @@ export default function Dashboard() {
       <div className="mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Activity */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">Atividades Recentes</h3>
-            <RecentActivity />
-          </div>
+          <RecentActivity />
 
           {/* Pending Activities */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-4">Atividades Pendentes</h3>
-            <PendingActivities />
-          </div>
+          <PendingActivities />
         </div>
       </div>
-
-      {/* Mini Prontuário Modal */}
-      {selectedResidentId && (
-        <ResidentQuickViewModal
-          residentId={selectedResidentId}
-          onClose={() => setSelectedResidentId(null)}
-        />
-      )}
     </div>
   )
 }

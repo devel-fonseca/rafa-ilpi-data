@@ -3,12 +3,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { TenantCacheService } from '../../tenants/tenant-cache.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly tenantCacheService: TenantCacheService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -24,13 +26,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         id: payload.sub,
         deletedAt: null,
       },
-      include: {
-        tenant: true,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tenantId: true,
+        isActive: true,
       },
     });
 
     if (!user || !user.isActive) {
       throw new UnauthorizedException('Usuário não autorizado');
+    }
+
+    // Buscar tenant do cache (otimização: evita JOIN e query pesada em toda request)
+    let tenant = null;
+    if (user.tenantId) {
+      tenant = await this.tenantCacheService.get(user.tenantId);
     }
 
     // Retorna o usuário que será adicionado ao request
@@ -42,7 +55,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       name: user.name,
       role: user.role,
       tenantId: user.tenantId,
-      tenant: user.tenant,
+      tenant,
     };
   }
 }

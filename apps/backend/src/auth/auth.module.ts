@@ -11,6 +11,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { EmailModule } from '../email/email.module';
+import { TenantsModule } from '../tenants/tenants.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { EmailModule } from '../email/email.module';
     PrismaModule,
     UserProfilesModule,
     EmailModule,
+    TenantsModule,
   ],
   controllers: [AuthController, UsersController],
   providers: [AuthService, UsersService, JwtStrategy, JwtRefreshStrategy],

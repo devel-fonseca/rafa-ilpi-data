@@ -69,6 +69,19 @@ export class TenantsController {
     return this.tenantsService.findOne(user.tenantId);
   }
 
+  @Get('me/subscription')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Buscar subscription ativa do tenant',
+    description: 'Retorna dados da subscription com limites do plano e contagens de uso',
+  })
+  @ApiResponse({ status: 200, description: 'Dados da subscription' })
+  @ApiResponse({ status: 404, description: 'Subscription não encontrada' })
+  getMySubscription(@CurrentUser() user: JwtPayload) {
+    return this.tenantsService.getMySubscription(user.tenantId);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPERADMIN')

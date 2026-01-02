@@ -12,12 +12,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionType, PositionCode } from '@prisma/client';
 import { getPositionPermissions } from './position-profiles.config';
+import { PermissionsCacheService } from './permissions-cache.service';
 
 @Injectable()
 export class PermissionsService {
   private readonly logger = new Logger(PermissionsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissionsCacheService: PermissionsCacheService,
+  ) {}
 
   /**
    * Verifica se um usuário tem uma permissão específica
@@ -28,6 +32,8 @@ export class PermissionsService {
    * 3. Permissões customizadas concedidas → permite
    * 4. Permissões do cargo (PositionCode) → permite se no perfil
    * 5. Caso contrário → nega
+   *
+   * OTIMIZAÇÃO: Usa cache para evitar query ao banco em ~60% das requests
    */
   async hasPermission(
     userId: string,
@@ -35,76 +41,14 @@ export class PermissionsService {
     permission: PermissionType,
   ): Promise<boolean> {
     try {
-      // Buscar usuário com profile e permissões customizadas
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          profile: {
-            include: {
-              customPermissions: true,
-            },
-          },
-        },
-      });
-
-      if (!user || user.tenantId !== tenantId) {
-        this.logger.warn(
-          `Usuário ${userId} não encontrado ou tenant incorreto`,
+      // Buscar do cache (otimização)
+      const hasPermCached =
+        await this.permissionsCacheService.hasPermission(
+          userId,
+          tenantId,
+          permission,
         );
-        return false;
-      }
-
-      // 1. ADMIN tem todas as permissões
-      if (user.role === 'admin') {
-        this.logger.debug(
-          `Usuário ${user.email} é ADMIN - permissão ${permission} concedida`,
-        );
-        return true;
-      }
-
-      // 2. Verificar permissões customizadas REVOGADAS
-      const revokedPermission = user.profile?.customPermissions?.find(
-        (p) => p.permission === permission && p.isGranted === false,
-      );
-
-      if (revokedPermission) {
-        this.logger.debug(
-          `Permissão ${permission} REVOGADA para usuário ${user.email}`,
-        );
-        return false;
-      }
-
-      // 3. Verificar permissões customizadas CONCEDIDAS
-      const grantedPermission = user.profile?.customPermissions?.find(
-        (p) => p.permission === permission && p.isGranted === true,
-      );
-
-      if (grantedPermission) {
-        this.logger.debug(
-          `Permissão ${permission} CONCEDIDA customizada para usuário ${user.email}`,
-        );
-        return true;
-      }
-
-      // 4. Verificar permissões do CARGO (PositionCode)
-      if (user.profile?.positionCode) {
-        const positionPermissions = getPositionPermissions(
-          user.profile.positionCode,
-        );
-
-        if (positionPermissions.includes(permission)) {
-          this.logger.debug(
-            `Usuário ${user.email} tem permissão ${permission} via cargo ${user.profile.positionCode}`,
-          );
-          return true;
-        }
-      }
-
-      // 5. Permissão negada
-      this.logger.debug(
-        `Usuário ${user.email} NÃO tem permissão ${permission}`,
-      );
-      return false;
+      return hasPermCached;
     } catch (error) {
       this.logger.error(
         `Erro ao verificar permissão ${permission} para usuário ${userId}:`,
@@ -144,59 +88,23 @@ export class PermissionsService {
 
   /**
    * Retorna todas as permissões efetivas de um usuário
+   *
+   * OTIMIZAÇÃO: Usa cache para evitar query ao banco
    */
   async getUserEffectivePermissions(
     userId: string,
     tenantId: string,
   ): Promise<PermissionType[]> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          profile: {
-            include: {
-              customPermissions: true,
-            },
-          },
-        },
-      });
+      const userPermData = await this.permissionsCacheService.get(userId);
 
-      if (!user || user.tenantId !== tenantId) {
+      if (!userPermData || userPermData.tenantId !== tenantId) {
         return [];
       }
 
-      // Se é ADMIN, retorna TODAS as permissões
-      if (user.role === 'admin') {
-        return Object.values(PermissionType);
-      }
-
-      // Começar com permissões do cargo
-      let effectivePermissions: PermissionType[] = [];
-
-      if (user.profile?.positionCode) {
-        effectivePermissions = getPositionPermissions(
-          user.profile.positionCode,
-        );
-      }
-
-      // Aplicar permissões customizadas
-      if (user.profile?.customPermissions) {
-        for (const customPerm of user.profile.customPermissions) {
-          if (customPerm.isGranted) {
-            // Adicionar permissão concedida
-            if (!effectivePermissions.includes(customPerm.permission)) {
-              effectivePermissions.push(customPerm.permission);
-            }
-          } else {
-            // Remover permissão revogada
-            effectivePermissions = effectivePermissions.filter(
-              (p) => p !== customPerm.permission,
-            );
-          }
-        }
-      }
-
-      return effectivePermissions;
+      return this.permissionsCacheService.calculateEffectivePermissions(
+        userPermData,
+      );
     } catch (error) {
       this.logger.error(
         `Erro ao buscar permissões efetivas do usuário ${userId}:`,
@@ -252,6 +160,9 @@ export class PermissionsService {
           grantedAt: new Date(),
         },
       });
+
+      // Invalidar cache
+      await this.permissionsCacheService.invalidate(userId);
 
       this.logger.log(
         `Permissão ${permission} CONCEDIDA para usuário ${userId} por ${grantedBy}`,
@@ -310,6 +221,9 @@ export class PermissionsService {
       },
     });
 
+    // Invalidar cache
+    await this.permissionsCacheService.invalidate(userId);
+
     this.logger.log(
       `Permissão ${permission} REVOGADA de usuário ${userId} por ${revokedBy}`,
     );
@@ -337,6 +251,9 @@ export class PermissionsService {
         permission,
       },
     });
+
+    // Invalidar cache
+    await this.permissionsCacheService.invalidate(userId);
 
     this.logger.log(
       `Permissão customizada ${permission} REMOVIDA de usuário ${userId} (volta ao padrão do cargo)`,
@@ -374,6 +291,9 @@ export class PermissionsService {
       },
     });
 
+    // Invalidar cache (positionCode mudou = permissões mudam)
+    await this.permissionsCacheService.invalidate(userId);
+
     this.logger.log(
       `Cargo do usuário ${userId} atualizado para ${positionCode}`,
     );
@@ -381,6 +301,8 @@ export class PermissionsService {
 
   /**
    * Retorna permissões separadas: herdadas do cargo, customizadas e todas
+   *
+   * OTIMIZAÇÃO: Usa cache para evitar query ao banco
    */
   async getUserAllPermissions(
     userId: string,
@@ -391,23 +313,14 @@ export class PermissionsService {
     all: PermissionType[];
   }> {
     try {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          profile: {
-            include: {
-              customPermissions: true,
-            },
-          },
-        },
-      });
+      const userPermData = await this.permissionsCacheService.get(userId);
 
-      if (!user || user.tenantId !== tenantId) {
+      if (!userPermData || userPermData.tenantId !== tenantId) {
         return { inherited: [], custom: [], all: [] };
       }
 
       // Se é ADMIN, retorna TODAS as permissões como herdadas
-      if (user.role === 'admin') {
+      if (userPermData.role === 'admin') {
         const allPermissions = Object.values(PermissionType);
         return {
           inherited: allPermissions,
@@ -418,16 +331,18 @@ export class PermissionsService {
 
       // Permissões herdadas do cargo (PositionCode)
       let inherited: PermissionType[] = [];
-      if (user.profile?.positionCode) {
-        inherited = getPositionPermissions(user.profile.positionCode);
+      if (userPermData.profile?.positionCode) {
+        inherited = getPositionPermissions(
+          userPermData.profile.positionCode as PositionCode,
+        );
       }
 
       // Permissões customizadas (concedidas)
       const customGranted: PermissionType[] = [];
       const customRevoked: PermissionType[] = [];
 
-      if (user.profile?.customPermissions) {
-        for (const customPerm of user.profile.customPermissions) {
+      if (userPermData.profile?.customPermissions) {
+        for (const customPerm of userPermData.profile.customPermissions) {
           if (customPerm.isGranted) {
             customGranted.push(customPerm.permission);
           } else {

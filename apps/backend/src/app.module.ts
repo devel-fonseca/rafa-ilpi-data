@@ -47,6 +47,7 @@ import { EmailTemplatesModule } from './email-templates/email-templates.module';
 import { EmailLogsModule } from './email-logs/email-logs.module';
 import { TenantMessagesModule } from './tenant-messages/tenant-messages.module';
 import { MessagesModule } from './messages/messages.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -69,12 +70,16 @@ import { MessagesModule } from './messages/messages.module';
         redis: {
           host: configService.get('REDIS_HOST') || 'localhost',
           port: configService.get('REDIS_PORT') || 6379,
+          password: configService.get('REDIS_PASSWORD') || undefined, // Segurança em produção
         },
       }),
     }),
 
     // Database
     PrismaModule,
+
+    // Cache (Redis)
+    CacheModule,
 
     // Módulos da aplicação
     AuthModule,

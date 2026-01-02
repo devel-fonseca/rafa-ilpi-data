@@ -302,7 +302,11 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     description: 'Responsável técnico da ILPI (nível superior, conforme RDC 502/2021)',
     requiredRegistration: 'Nível Superior com registro no conselho',
     defaultRole: 'admin',
-    permissions: [...BASE_PERMISSIONS.ADMIN],
+    permissions: [
+      ...BASE_PERMISSIONS.ADMIN,
+      // Responsável Técnico tem permissão adicional de broadcast
+      PermissionType.BROADCAST_MESSAGES,
+    ],
   },
 
   [PositionCode.NURSING_COORDINATOR]: {
@@ -488,6 +492,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_DIETARY_RESTRICTIONS, // ESSENCIAL: Respeitar restrições alimentares
       // Agenda do Residente
       PermissionType.VIEW_RESIDENT_SCHEDULE, // Ver tarefas diárias obrigatórias
+      // Mensagens Internas
+      PermissionType.VIEW_MESSAGES, // Ver mensagens recebidas
+      PermissionType.SEND_MESSAGES, // Enviar mensagens diretas
     ],
   },
 

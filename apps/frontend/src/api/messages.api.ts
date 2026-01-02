@@ -93,6 +93,32 @@ export interface MessageStats {
   sent: number;
 }
 
+export interface MessageReadStats {
+  messageId: string;
+  messageType: MessageType;
+  total: number;
+  readCount: number;
+  unreadCount: number;
+  readPercentage: number;
+  recipients: {
+    read: Array<{
+      userId: string;
+      userName: string;
+      userEmail: string;
+      userPhoto?: string;
+      positionCode?: string;
+      readAt: string;
+    }>;
+    unread: Array<{
+      userId: string;
+      userName: string;
+      userEmail: string;
+      userPhoto?: string;
+      positionCode?: string;
+    }>;
+  };
+}
+
 // API Class
 class MessagesAPI {
   async getInbox(query?: MessageQuery): Promise<MessagesResponse> {
@@ -147,6 +173,11 @@ class MessagesAPI {
 
   async getStats(): Promise<MessageStats> {
     const response = await api.get('/messages/stats');
+    return response.data;
+  }
+
+  async getReadStats(messageId: string): Promise<MessageReadStats> {
+    const response = await api.get(`/messages/${messageId}/read-stats`);
     return response.data;
   }
 

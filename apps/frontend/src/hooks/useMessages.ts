@@ -95,6 +95,18 @@ export function useMessagesStats() {
   });
 }
 
+// Hook para estatísticas de leitura de mensagem
+export function useMessageReadStats(messageId: string | undefined) {
+  return useQuery({
+    queryKey: ['messages', 'read-stats', messageId],
+    queryFn: () => {
+      if (!messageId) throw new Error('Message ID is required');
+      return messagesAPI.getReadStats(messageId);
+    },
+    enabled: !!messageId,
+  });
+}
+
 // Hook para enviar mensagem
 export function useSendMessage() {
   const queryClient = useQueryClient();

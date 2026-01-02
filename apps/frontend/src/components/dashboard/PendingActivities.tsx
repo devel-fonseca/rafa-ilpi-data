@@ -1,4 +1,4 @@
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, AlertCircle, Calendar, FileText, Bell } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
@@ -90,6 +90,9 @@ export function PendingActivities() {
   if (isLoading) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Atividades Pendentes</CardTitle>
+        </CardHeader>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-3 text-muted animate-pulse" />
@@ -103,6 +106,9 @@ export function PendingActivities() {
   if (!pendingItems || pendingItems.length === 0) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Atividades Pendentes</CardTitle>
+        </CardHeader>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
             <AlertCircle className="h-12 w-12 mx-auto mb-3 text-muted" />
@@ -118,6 +124,9 @@ export function PendingActivities() {
 
   return (
     <Card>
+      <CardHeader>
+        <CardTitle>Atividades Pendentes</CardTitle>
+      </CardHeader>
       <CardContent className="py-4">
         <div className="space-y-1">
           {pendingItems.map((item) => {
