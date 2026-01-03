@@ -46,7 +46,7 @@ export interface VitalSignAlert {
     threshold: string
     expectedRange: string
     detectedAt: Date
-    [key: string]: any
+    [key: string]: unknown
   }
   status: AlertStatus
   priority: number
@@ -100,7 +100,7 @@ export interface CreateVitalSignAlertDto {
   title: string
   description: string
   value: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   status?: AlertStatus
   priority?: number
   assignedTo?: string

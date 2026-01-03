@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { User } from '@/stores/auth.store'
 import {
   getVitalSignAlerts,
   getVitalSignAlert,
@@ -113,10 +114,13 @@ export function useUpdateAlert() {
 
       toast.success('Alerta atualizado com sucesso')
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Erro ao atualizar alerta',
-      )
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : (error as { response?: { data?: { message?: string } } })?.response
+              ?.data?.message || 'Erro ao atualizar alerta'
+      toast.error(message)
     },
   })
 }
@@ -157,7 +161,7 @@ export function useAlertHistory(alertId: string, enabled = true) {
  * - Enfermeiros (NURSE, NURSING_COORDINATOR)
  * - Responsável Técnico com COREN ou CRM (TECHNICAL_MANAGER)
  */
-export function canManageVitalSignAlerts(user: any): boolean {
+export function canManageVitalSignAlerts(user: User | null): boolean {
   if (!user) return false
 
   const medicalPositions = ['DOCTOR', 'NURSE', 'NURSING_COORDINATOR']
