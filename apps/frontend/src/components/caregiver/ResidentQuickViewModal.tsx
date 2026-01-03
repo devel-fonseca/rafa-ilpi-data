@@ -573,6 +573,12 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   <div className="space-y-2">
                     {todayTasks
                       .filter((task) => task.type === 'RECURRING' && !task.isCompleted)
+                      .sort((a, b) => {
+                        // Ordenar por horário (suggestedTimes[0])
+                        const timeA = a.suggestedTimes?.[0] || '23:59'
+                        const timeB = b.suggestedTimes?.[0] || '23:59'
+                        return timeA.localeCompare(timeB)
+                      })
                       .map((task, index) => {
                         const config = RECORD_TYPE_CONFIG[task.recordType || 'OUTROS'] || RECORD_TYPE_CONFIG.OUTROS
                         const Icon = config.icon
