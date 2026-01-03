@@ -130,6 +130,7 @@ export class ClinicalNotesService {
         assessment: createDto.assessment || null,
         plan: createDto.plan || null,
         tags: createDto.tags || [],
+        vitalSignAlertId: createDto.vitalSignAlertId || null,
         createdBy: userId,
         version: 1,
         isAmended: false,
@@ -690,5 +691,120 @@ export class ClinicalNotesService {
     )
 
     return documentsWithSignedUrls
+  }
+
+  /**
+   * Pré-preencher campos SOAP a partir de um alerta de sinal vital
+   *
+   * Retorna sugestões de preenchimento baseadas no alerta:
+   * - Objective (O): Dados objetivos do sinal vital anormal
+   * - Assessment (A): Análise do alerta e severidade
+   *
+   * O profissional pode editar/completar antes de salvar
+   */
+  async prefillFromAlert(
+    alertId: string,
+    tenantId: string,
+  ): Promise<{
+    objective: string
+    assessment: string
+    residentId: string
+    suggestedTags: string[]
+  }> {
+    // Buscar alerta com dados do sinal vital
+    const alert = await this.prisma.vitalSignAlert.findFirst({
+      where: {
+        id: alertId,
+        tenantId,
+      },
+      include: {
+        vitalSign: true,
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+    })
+
+    if (!alert) {
+      throw new NotFoundException(`Alerta ${alertId} não encontrado`)
+    }
+
+    // Construir texto objetivo (O) com dados do sinal vital
+    const vitalSign = alert.vitalSign
+    const objectiveParts: string[] = []
+
+    if (vitalSign.systolicBloodPressure || vitalSign.diastolicBloodPressure) {
+      objectiveParts.push(
+        `PA: ${vitalSign.systolicBloodPressure || '?'}/${vitalSign.diastolicBloodPressure || '?'} mmHg`,
+      )
+    }
+    if (vitalSign.heartRate) {
+      objectiveParts.push(`FC: ${vitalSign.heartRate} bpm`)
+    }
+    if (vitalSign.temperature) {
+      objectiveParts.push(`Tax: ${vitalSign.temperature}°C`)
+    }
+    if (vitalSign.oxygenSaturation) {
+      objectiveParts.push(`SpO₂: ${vitalSign.oxygenSaturation}%`)
+    }
+    if (vitalSign.bloodGlucose) {
+      objectiveParts.push(`Glicemia: ${vitalSign.bloodGlucose} mg/dL`)
+    }
+
+    const objective = `Sinais vitais aferidos em ${new Date(vitalSign.timestamp).toLocaleString('pt-BR')}:\n${objectiveParts.join('\n')}\n\nAlerta: ${alert.title}\n${alert.description}`
+
+    // Construir avaliação (A) baseada no tipo e severidade do alerta
+    let assessment = `${alert.title} - Severidade: ${alert.severity}\n\n`
+
+    // Adicionar contexto específico por tipo de alerta
+    const alertTypeMessages: Record<string, string> = {
+      PRESSURE_HIGH:
+        'Hipertensão arterial detectada. Avaliar sinais de cefaleia, tontura, visão turva.',
+      PRESSURE_LOW:
+        'Hipotensão arterial detectada. Avaliar sinais de tontura, fraqueza, confusão mental.',
+      GLUCOSE_HIGH:
+        'Hiperglicemia detectada. Avaliar poliúria, polidipsia, fadiga.',
+      GLUCOSE_LOW:
+        'Hipoglicemia detectada. Avaliar tremores, sudorese, confusão, taquicardia.',
+      TEMPERATURE_HIGH:
+        'Hipertermia/Febre detectada. Avaliar foco infeccioso, estado geral.',
+      TEMPERATURE_LOW: 'Hipotermia detectada. Avaliar exposição ao frio, sepse.',
+      OXYGEN_LOW:
+        'Hipóxia detectada. Avaliar dispneia, cianose, padrão respiratório.',
+      HEART_RATE_HIGH:
+        'Taquicardia detectada. Avaliar ansiedade, dor, febre, desidratação.',
+      HEART_RATE_LOW:
+        'Bradicardia detectada. Avaliar uso de medicações, sintomas associados.',
+    }
+
+    assessment += alertTypeMessages[alert.type] || 'Avaliar quadro clínico geral.'
+
+    // Sugerir tags baseadas no tipo de alerta
+    const suggestedTags: string[] = ['Sinais Vitais Anormais']
+    if (alert.severity === 'CRITICAL') {
+      suggestedTags.push('Urgente')
+    }
+    if (alert.type.includes('PRESSURE')) {
+      suggestedTags.push('Cardiovascular')
+    }
+    if (alert.type.includes('GLUCOSE')) {
+      suggestedTags.push('Diabetes')
+    }
+    if (alert.type.includes('TEMPERATURE')) {
+      suggestedTags.push('Infecção')
+    }
+    if (alert.type.includes('OXYGEN')) {
+      suggestedTags.push('Respiratório')
+    }
+
+    return {
+      objective,
+      assessment,
+      residentId: alert.residentId,
+      suggestedTags,
+    }
   }
 }

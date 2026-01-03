@@ -38,12 +38,16 @@ model ClinicalNote {
   // Janela de edição (12 horas)
   editableUntil DateTime @db.Timestamptz(3) // noteDate + 12h
 
+  // Vínculo com alerta de sinal vital (opcional)
+  vitalSignAlertId String? @db.Uuid
+
   // Relações
-  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  resident     Resident               @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  professional User                   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
-  history      ClinicalNoteHistory[]
-  documents    ClinicalNoteDocument[]
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident               @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  professional   User                   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  vitalSignAlert VitalSignAlert?        @relation(fields: [vitalSignAlertId], references: [id])
+  history        ClinicalNoteHistory[]
+  documents      ClinicalNoteDocument[]
 
   // Índices
   @@index([tenantId, residentId, noteDate(sort: Desc)])
@@ -52,6 +56,7 @@ model ClinicalNote {
   @@index([noteDate])
   @@index([tags])
   @@index([isAmended])
+  @@index([vitalSignAlertId])
   @@map("clinical_notes")
 }
 

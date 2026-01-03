@@ -85,7 +85,7 @@ export class TrialExpirationAlertsJob {
           {
             tenantName: subscription.tenant.name,
             planName: subscription.plan.displayName,
-            expiresAt: subscription.trialEndDate,
+            expiresAt: subscription.trialEndDate!,
             daysRemaining: 7,
             alertLevel: 'info',
           },
@@ -143,7 +143,7 @@ export class TrialExpirationAlertsJob {
           {
             tenantName: subscription.tenant.name,
             planName: subscription.plan.displayName,
-            expiresAt: subscription.trialEndDate,
+            expiresAt: subscription.trialEndDate!,
             daysRemaining: 3,
             alertLevel: 'warning',
           },
@@ -203,10 +203,10 @@ export class TrialExpirationAlertsJob {
           {
             tenantName: subscription.tenant.name,
             planName: subscription.plan.displayName,
-            expiresAt: subscription.trialEndDate,
+            expiresAt: subscription.trialEndDate!,
             daysRemaining: 1,
             alertLevel: 'critical',
-            billingType: subscription.preferredPaymentMethod, // ✅ Informar método escolhido
+            billingType: subscription.preferredPaymentMethod || undefined, // ✅ Informar método escolhido
             cancelUrl: `${process.env.APP_URL}/settings/subscription`, // ✅ Link para cancelar
           },
         )

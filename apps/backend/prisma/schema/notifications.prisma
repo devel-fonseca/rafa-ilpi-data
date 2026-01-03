@@ -33,8 +33,9 @@ model Notification {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   // Relações
-  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  reads  NotificationRead[] // Rastreamento individual de leitura
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reads           NotificationRead[] // Rastreamento individual de leitura
+  vitalSignAlerts VitalSignAlert[] // Alertas médicos vinculados a esta notificação
 
   // Índices para performance
   @@index([tenantId, createdAt(sort: Desc)])

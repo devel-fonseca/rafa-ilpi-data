@@ -38,6 +38,7 @@ model VitalSign {
   creator  User               @relation("VitalSignCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   updater  User?              @relation("VitalSignUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
   history  VitalSignHistory[]
+  alerts   VitalSignAlert[] // Alertas médicos gerados por este sinal vital
 
   // Índices para consultas otimizadas
   @@index([tenantId, residentId, timestamp(sort: Desc)])

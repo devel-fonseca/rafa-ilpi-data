@@ -22,6 +22,7 @@ interface User {
   profile?: {
     profilePhoto?: string | null
     positionCode?: string | null
+    registrationType?: string | null
   }
 }
 

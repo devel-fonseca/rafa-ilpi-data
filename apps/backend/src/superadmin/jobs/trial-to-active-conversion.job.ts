@@ -110,7 +110,7 @@ export class TrialToActiveConversionJob {
               invoiceAmount: Number(invoice.amount),
               dueDate: invoice.dueDate,
               paymentUrl: invoice.paymentUrl || '',
-              billingType: subscription.preferredPaymentMethod, // ✅ Informar método
+              billingType: subscription.preferredPaymentMethod || undefined, // ✅ Informar método
             },
           )
 

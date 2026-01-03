@@ -345,4 +345,27 @@ export class ClinicalNotesController {
   ) {
     await this.clinicalNotesService.softDelete(id, deleteDto, user.id, user.tenantId)
   }
+
+  /**
+   * GET /clinical-notes/prefill-from-alert/:alertId
+   * Pré-preencher evolução clínica a partir de alerta de sinal vital
+   */
+  @Get('prefill-from-alert/:alertId')
+  @ApiOperation({
+    summary: 'Pré-preencher evolução a partir de alerta',
+    description:
+      'Retorna sugestões de preenchimento dos campos SOAP (Objective e Assessment) baseadas em um alerta de sinal vital',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dados de preenchimento retornados com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Alerta não encontrado' })
+  @ApiParam({ name: 'alertId', description: 'ID do alerta de sinal vital (UUID)' })
+  async prefillFromAlert(
+    @Param('alertId', ParseUUIDPipe) alertId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.clinicalNotesService.prefillFromAlert(alertId, user.tenantId)
+  }
 }

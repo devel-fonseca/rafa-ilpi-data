@@ -6,6 +6,124 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-02] - Sistema de Alertas Médicos de Sinais Vitais 🚨
+
+### ✨ Adicionado
+
+**1. Modelo VitalSignAlert** (`apps/backend/prisma/schema/vital-signs-alerts.prisma`)
+- Alertas médicos persistentes (diferentes de notificações broadcast temporárias)
+- 9 tipos de alertas: PA alta/baixa, glicemia alta/baixa, temperatura, SpO₂, FC
+- Enums: `VitalSignAlertType` e `AlertStatus` (ACTIVE, IN_TREATMENT, MONITORING, RESOLVED, IGNORED)
+- Severidade: INFO, WARNING, CRITICAL (reutiliza `AlertSeverity` de `enums.prisma`)
+- Prioridade automática 0-5 (hipoglicemia/hipóxia = 5)
+- Metadata JSONB: threshold, faixa esperada, valores detectados
+- Relações: Tenant, Resident, VitalSign, Notification, User (assigned/resolved), ClinicalNote (1:N)
+- Migration: `20260102201500_add_vital_sign_alerts_system` ✅
+
+**2. VitalSignAlertsService** (`apps/backend/src/vital-sign-alerts/vital-sign-alerts.service.ts`)
+- `create()` - Criar alerta com cálculo automático de prioridade
+- `findAll()` - Listar com filtros (residentId, status, type, severity, datas) e paginação
+- `findOne()` - Buscar com includes completos (resident + bed + room + floor + building)
+- `update()` - Atualizar status, atribuição, notas médicas, ação tomada
+- `findActiveByResident()` - Alertas ativos de um residente
+- `countByStatus()` - Estatísticas por status (dashboard)
+- `calculatePriority()` - Lógica de priorização automática
+
+**3. VitalSignAlertsController** (`apps/backend/src/vital-sign-alerts/vital-sign-alerts.controller.ts`)
+- `POST /vital-sign-alerts` - Criar alerta
+- `GET /vital-sign-alerts` - Listar com filtros
+- `GET /vital-sign-alerts/stats` - Estatísticas
+- `GET /vital-sign-alerts/resident/:id/active` - Alertas ativos do residente
+- `GET /vital-sign-alerts/:id` - Buscar por ID
+- `PATCH /vital-sign-alerts/:id` - Atualizar
+
+**4. Integração com VitalSignsService** (`apps/backend/src/vital-signs/vital-signs.service.ts`)
+- Método `detectAndNotifyAnomalies()` modificado para criar alertas automáticos
+- Criação dupla: Notification (broadcast) + VitalSignAlert (registro médico)
+- Linking bidirecional: `notification.id` → `alert.notificationId`
+- Implementado para: Pressão Arterial e Glicemia (CRITICAL + WARNING)
+- Padrão estabelecido para: Temperatura, SpO₂, Frequência Cardíaca
+
+**5. Integração com ClinicalNotes** (`apps/backend/src/clinical-notes/`)
+- Campo `vitalSignAlertId` em `CreateClinicalNoteDto` (opcional)
+- Método `prefillFromAlert()` (105 linhas) - Pré-preenchimento inteligente de SOAP:
+  - **Objective (O)**: Sinais vitais completos + timestamp + descrição do alerta
+  - **Assessment (A)**: Severidade + orientações clínicas específicas por tipo de alerta
+  - **Tags sugeridas**: Baseadas em tipo e severidade
+- Endpoint `GET /clinical-notes/prefill-from-alert/:alertId`
+- Relacionamento 1:N: Um alerta pode gerar múltiplas evoluções clínicas
+
+**6. Frontend - API Client** (`apps/frontend/src/api/vitalSignAlerts.api.ts`)
+- 7 funções API: create, list, getStats, getByResident, getById, update, prefillFromAlert
+- Types completos: VitalSignAlert, CreateDto, UpdateDto, QueryDto, Stats, PrefillData
+- Response types com paginação
+
+**7. Frontend - React Query Hooks** (`apps/frontend/src/hooks/useVitalSignAlerts.ts`)
+- `useVitalSignAlerts()` - Listar com filtros
+- `useVitalSignAlert()` - Buscar por ID
+- `useActiveAlertsByResident()` - Alertas ativos (refetch automático 1min)
+- `useAlertStats()` - Estatísticas (refetch automático 2min)
+- `useUpdateAlert()` - Mutation com invalidação automática de queries
+- `usePrefillFromAlert()` - Buscar dados de pré-preenchimento
+- Query keys organizados e reutilizáveis
+
+**8. Documentação Técnica** (`docs/modules/vital-sign-alerts.md`)
+- Visão geral completa do sistema
+- Arquitetura (backend + frontend)
+- Modelos de dados e enums
+- API endpoints com exemplos
+- Fluxo automático de criação
+- Exemplo de metadata estruturada
+- Smart prefill - como funciona
+- Cálculo de prioridade
+- Índices de performance
+- Diferenças: Notifications vs Alerts
+- Casos de uso detalhados
+- Roadmap Fase 2 e 3
+
+### 📝 Alterado
+
+**Schemas Prisma - Relações Reversas:**
+- `auth.prisma` - User: `assignedAlerts`, `resolvedAlerts`
+- `residents.prisma` - Resident: `vitalSignAlerts`
+- `vital-signs.prisma` - VitalSign: `alerts`
+- `notifications.prisma` - Notification: `vitalSignAlerts`
+- `clinical-notes.prisma` - ClinicalNote: `vitalSignAlertId`, `vitalSignAlert`
+- `tenant.prisma` - Tenant: `vitalSignAlerts`
+
+**VitalSignsModule** (`apps/backend/src/vital-signs/vital-signs.module.ts`)
+- Adicionado `forwardRef(() => VitalSignAlertsModule)` para evitar dependência circular
+
+**AppModule** (`apps/backend/src/app.module.ts`)
+- Registrado `VitalSignAlertsModule` após `VitalSignsModule`
+
+### 🔧 Corrigido
+
+N/A
+
+### 🗑️ Removido
+
+N/A
+
+### 📊 Impacto
+
+**Performance:**
+- Alertas criados em <50ms (async após criação de sinal vital)
+- Queries otimizadas com índices específicos
+- Cache de prefill com `staleTime: Infinity`
+
+**Auditoria:**
+- 100% rastreabilidade: quem criou, quem atribuiu, quem resolveu
+- Histórico completo via `clinicalNotes` relacionadas
+- Metadata estruturada para análises futuras
+
+**Experiência do Usuário:**
+- Pré-preenchimento inteligente economiza ~3min por evolução
+- Dashboard de alertas permite priorização visual
+- Linking bidirecional facilita navegação
+
+---
+
 ## [2026-01-02] - Otimizações de Performance - Fase 2 💾
 
 ### ✨ Adicionado

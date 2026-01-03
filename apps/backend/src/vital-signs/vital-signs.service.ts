@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,14 +8,23 @@ import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType, SystemNotificationType, NotificationCategory, NotificationSeverity } from '@prisma/client';
+import {
+  ChangeType,
+  SystemNotificationType,
+  NotificationCategory,
+  NotificationSeverity,
+  VitalSignAlertType,
+  AlertSeverity,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
 
 @Injectable()
 export class VitalSignsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly vitalSignAlertsService: VitalSignAlertsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -492,7 +500,7 @@ export class VitalSignsService {
       // Pressão Arterial Sistólica
       if (data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null) {
         if (data.systolicBloodPressure >= 160 || data.systolicBloodPressure < 80) {
-          await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create(tenantId, {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -504,8 +512,34 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
           });
           this.logger.warn('Notificação criada: PA Crítica', { residentName, value: data.systolicBloodPressure });
+
+          // Criar alerta médico persistente
+          const alertType = data.systolicBloodPressure >= 160
+            ? VitalSignAlertType.PRESSURE_HIGH
+            : VitalSignAlertType.PRESSURE_LOW;
+          const valueStr = data.diastolicBloodPressure
+            ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
+            : `${data.systolicBloodPressure} mmHg`;
+
+          await this.vitalSignAlertsService.create(tenantId, {
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: alertType,
+            severity: AlertSeverity.CRITICAL,
+            title: 'Pressão Arterial Crítica',
+            description: `Pressão arterial sistólica crítica: ${valueStr}. Valores normais: 90-140 mmHg.`,
+            value: valueStr,
+            metadata: {
+              threshold: data.systolicBloodPressure >= 160 ? '≥160 mmHg' : '<80 mmHg',
+              expectedRange: '90-140 mmHg',
+              detectedAt: new Date(),
+              systolic: data.systolicBloodPressure,
+              diastolic: data.diastolicBloodPressure,
+            },
+          });
         } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
-          await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create(tenantId, {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -517,13 +551,39 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Pressão Arterial', value: `${data.systolicBloodPressure} mmHg` },
           });
           this.logger.warn('Notificação criada: PA Anormal', { residentName, value: data.systolicBloodPressure });
+
+          // Criar alerta médico persistente
+          const alertType = data.systolicBloodPressure >= 140
+            ? VitalSignAlertType.PRESSURE_HIGH
+            : VitalSignAlertType.PRESSURE_LOW;
+          const valueStr = data.diastolicBloodPressure
+            ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
+            : `${data.systolicBloodPressure} mmHg`;
+
+          await this.vitalSignAlertsService.create(tenantId, {
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: alertType,
+            severity: AlertSeverity.WARNING,
+            title: 'Pressão Arterial Anormal',
+            description: `Pressão arterial sistólica elevada/baixa: ${valueStr}. Valores normais: 90-140 mmHg.`,
+            value: valueStr,
+            metadata: {
+              threshold: data.systolicBloodPressure >= 140 ? '≥140 mmHg' : '<90 mmHg',
+              expectedRange: '90-140 mmHg',
+              detectedAt: new Date(),
+              systolic: data.systolicBloodPressure,
+              diastolic: data.diastolicBloodPressure,
+            },
+          });
         }
       }
 
       // Glicemia
       if (data.bloodGlucose !== undefined && data.bloodGlucose !== null) {
         if (data.bloodGlucose >= 250 || data.bloodGlucose < 60) {
-          await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create(tenantId, {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -535,8 +595,25 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Glicemia', value: `${data.bloodGlucose} mg/dL` },
           });
           this.logger.warn('Notificação criada: Glicemia Crítica', { residentName, value: data.bloodGlucose });
+
+          await this.vitalSignAlertsService.create(tenantId, {
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.bloodGlucose >= 250 ? VitalSignAlertType.GLUCOSE_HIGH : VitalSignAlertType.GLUCOSE_LOW,
+            severity: AlertSeverity.CRITICAL,
+            title: 'Glicemia Crítica',
+            description: `Glicemia ${data.bloodGlucose >= 250 ? 'muito alta (hiperglicemia)' : 'muito baixa (hipoglicemia)'}: ${data.bloodGlucose} mg/dL. Valores normais: 70-180 mg/dL.`,
+            value: `${data.bloodGlucose} mg/dL`,
+            metadata: {
+              threshold: data.bloodGlucose >= 250 ? '≥250 mg/dL' : '<60 mg/dL',
+              expectedRange: '70-180 mg/dL',
+              detectedAt: new Date(),
+              glucose: data.bloodGlucose,
+            },
+          });
         } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
-          await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create(tenantId, {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -548,6 +625,23 @@ export class VitalSignsService {
             metadata: { residentName, vitalType: 'Glicemia', value: `${data.bloodGlucose} mg/dL` },
           });
           this.logger.warn('Notificação criada: Glicemia Anormal', { residentName, value: data.bloodGlucose });
+
+          await this.vitalSignAlertsService.create(tenantId, {
+            residentId,
+            vitalSignId,
+            notificationId: notification.id,
+            type: data.bloodGlucose >= 180 ? VitalSignAlertType.GLUCOSE_HIGH : VitalSignAlertType.GLUCOSE_LOW,
+            severity: AlertSeverity.WARNING,
+            title: 'Glicemia Anormal',
+            description: `Glicemia ${data.bloodGlucose >= 180 ? 'elevada' : 'baixa'}: ${data.bloodGlucose} mg/dL. Valores normais: 70-180 mg/dL.`,
+            value: `${data.bloodGlucose} mg/dL`,
+            metadata: {
+              threshold: data.bloodGlucose >= 180 ? '≥180 mg/dL' : '<70 mg/dL',
+              expectedRange: '70-180 mg/dL',
+              detectedAt: new Date(),
+              glucose: data.bloodGlucose,
+            },
+          });
         }
       }
 

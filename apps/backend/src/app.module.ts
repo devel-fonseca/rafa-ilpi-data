@@ -24,6 +24,7 @@ import { FloorsModule } from './floors/floors.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { BedsModule } from './beds/beds.module';
 import { VitalSignsModule } from './vital-signs/vital-signs.module';
+import { VitalSignAlertsModule } from './vital-sign-alerts/vital-sign-alerts.module';
 import { InstitutionalProfileModule } from './institutional-profile/institutional-profile.module';
 import { ResidentDocumentsModule } from './resident-documents/resident-documents.module';
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
@@ -100,6 +101,7 @@ import { CacheModule } from './cache/cache.module';
     RoomsModule,
     BedsModule,
     VitalSignsModule,
+    VitalSignAlertsModule,
     InstitutionalProfileModule,
     ResidentDocumentsModule,
     UserProfilesModule,

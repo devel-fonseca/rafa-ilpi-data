@@ -1,24 +1,24 @@
 import { PositionCode } from '@prisma/client'
 
 /**
- * MATRIZ DE HABILITAÇÃO PROFISSIONAL PARA EVOLUÇÕES CLÍNICAS
+ * MATRIZ DE HABILITAï¿½ï¿½O PROFISSIONAL PARA EVOLUï¿½ï¿½ES CLï¿½NICAS
  *
- * Define quais cargos (PositionCode) podem registrar evoluções em cada área clínica.
+ * Define quais cargos (PositionCode) podem registrar evoluï¿½ï¿½es em cada ï¿½rea clï¿½nica.
  *
- * FUNDAMENTAÇÃO LEGAL:
+ * FUNDAMENTAï¿½ï¿½O LEGAL:
  * - CFM (Conselho Federal de Medicina): Medicina
  * - COFEN (Conselho Federal de Enfermagem): Enfermagem - ato privativo do Enfermeiro
- * - CFN (Conselho Federal de Nutricionistas): Nutrição
+ * - CFN (Conselho Federal de Nutricionistas): Nutriï¿½ï¿½o
  * - CREFITO (Conselho Regional de Fisioterapia e Terapia Ocupacional): Fisioterapia e Terapia Ocupacional
  * - CFP (Conselho Federal de Psicologia): Psicologia
- * - CFSS (Conselho Federal de Serviço Social): Serviço Social
+ * - CFSS (Conselho Federal de Serviï¿½o Social): Serviï¿½o Social
  * - CFFa (Conselho Federal de Fonoaudiologia): Fonoaudiologia
  *
  * REGRAS IMPORTANTES:
- * 1. Cargo gerencial NÃO cria competência clínica
- * 2. Técnicos e Auxiliares de Enfermagem NÃO podem registrar Enfermagem (ato privativo do Enfermeiro)
- * 3. Somente o profissional habilitado pode registrar evolução da sua área
- * 4. Administradores e cargos administrativos NÃO podem registrar evoluções clínicas
+ * 1. Cargo gerencial Nï¿½O cria competï¿½ncia clï¿½nica
+ * 2. Tï¿½cnicos e Auxiliares de Enfermagem Nï¿½O podem registrar Enfermagem (ato privativo do Enfermeiro)
+ * 3. Somente o profissional habilitado pode registrar evoluï¿½ï¿½o da sua ï¿½rea
+ * 4. Administradores e cargos administrativos Nï¿½O podem registrar evoluï¿½ï¿½es clï¿½nicas
  */
 
 export enum ClinicalProfession {
@@ -33,9 +33,9 @@ export enum ClinicalProfession {
 }
 
 /**
- * Mapeamento: ClinicalProfession ’ PositionCodes habilitados
+ * Mapeamento: ClinicalProfession ï¿½ PositionCodes habilitados
  *
- * Cada profissão clínica lista os cargos que podem criar/editar evoluções naquela área.
+ * Cada profissï¿½o clï¿½nica lista os cargos que podem criar/editar evoluï¿½ï¿½es naquela ï¿½rea.
  */
 export const PROFESSION_AUTHORIZATION: Record<
   ClinicalProfession,
@@ -43,73 +43,96 @@ export const PROFESSION_AUTHORIZATION: Record<
 > = {
   /**
    * MEDICINA
-   * Habilitados: Médico
-   * Fundamentação: Lei nº 12.842/2013 - Ato privativo do médico
+   * Habilitados: Mï¿½dico
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 12.842/2013 - Ato privativo do mï¿½dico
    */
-  [ClinicalProfession.MEDICINE]: [PositionCode.DOCTOR],
+  [ClinicalProfession.MEDICINE]: [
+    PositionCode.DOCTOR,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
    * ENFERMAGEM
    * Habilitados: Enfermeiro
-   * Fundamentação: Lei nº 7.498/1986, Decreto 94.406/1987
-   * - Diagnóstico de enfermagem: ato privativo do Enfermeiro (COFEN)
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 7.498/1986, Decreto 94.406/1987
+   * - Diagnï¿½stico de enfermagem: ato privativo do Enfermeiro (COFEN)
    * - Plano de cuidados: ato privativo do Enfermeiro (COFEN)
    *
-   * IMPORTANTE: Técnicos e Auxiliares NÃO podem registrar evolução clínica
+   * IMPORTANTE: Tï¿½cnicos e Auxiliares Nï¿½O podem registrar evoluï¿½ï¿½o clï¿½nica
    */
-  [ClinicalProfession.NURSING]: [PositionCode.NURSE],
+  [ClinicalProfession.NURSING]: [
+    PositionCode.NURSE,
+    PositionCode.NURSING_COORDINATOR,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
-   * NUTRIÇÃO
+   * NUTRIï¿½ï¿½O
    * Habilitados: Nutricionista
-   * Fundamentação: Lei nº 8.234/1991 - Ato privativo do nutricionista
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 8.234/1991 - Ato privativo do nutricionista
    */
-  [ClinicalProfession.NUTRITION]: [PositionCode.NUTRITIONIST],
+  [ClinicalProfession.NUTRITION]: [
+    PositionCode.NUTRITIONIST,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
    * FISIOTERAPIA
    * Habilitados: Fisioterapeuta
-   * Fundamentação: Decreto-Lei nº 938/1969, Lei nº 6.316/1975
+   * Fundamentaï¿½ï¿½o: Decreto-Lei nï¿½ 938/1969, Lei nï¿½ 6.316/1975
    */
-  [ClinicalProfession.PHYSIOTHERAPY]: [PositionCode.PHYSIOTHERAPIST],
+  [ClinicalProfession.PHYSIOTHERAPY]: [
+    PositionCode.PHYSIOTHERAPIST,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
    * PSICOLOGIA
-   * Habilitados: Psicólogo
-   * Fundamentação: Lei nº 4.119/1962 - Ato privativo do psicólogo
+   * Habilitados: Psicï¿½logo
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 4.119/1962 - Ato privativo do psicï¿½logo
    */
-  [ClinicalProfession.PSYCHOLOGY]: [PositionCode.PSYCHOLOGIST],
+  [ClinicalProfession.PSYCHOLOGY]: [
+    PositionCode.PSYCHOLOGIST,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
-   * SERVIÇO SOCIAL
+   * SERVIï¿½O SOCIAL
    * Habilitados: Assistente Social
-   * Fundamentação: Lei nº 8.662/1993 - Ato privativo do assistente social
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 8.662/1993 - Ato privativo do assistente social
    */
-  [ClinicalProfession.SOCIAL_WORK]: [PositionCode.SOCIAL_WORKER],
+  [ClinicalProfession.SOCIAL_WORK]: [
+    PositionCode.SOCIAL_WORKER,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
    * FONOAUDIOLOGIA
-   * Habilitados: Fonoaudiólogo
-   * Fundamentação: Lei nº 6.965/1981 - Ato privativo do fonoaudiólogo
+   * Habilitados: Fonoaudiï¿½logo
+   * Fundamentaï¿½ï¿½o: Lei nï¿½ 6.965/1981 - Ato privativo do fonoaudiï¿½logo
    */
-  [ClinicalProfession.SPEECH_THERAPY]: [PositionCode.SPEECH_THERAPIST],
+  [ClinicalProfession.SPEECH_THERAPY]: [
+    PositionCode.SPEECH_THERAPIST,
+    PositionCode.TECHNICAL_MANAGER,
+  ],
 
   /**
    * TERAPIA OCUPACIONAL
    * Habilitados: Terapeuta Ocupacional
-   * Fundamentação: Decreto-Lei nº 938/1969, Lei nº 6.316/1975
+   * Fundamentaï¿½ï¿½o: Decreto-Lei nï¿½ 938/1969, Lei nï¿½ 6.316/1975
    */
   [ClinicalProfession.OCCUPATIONAL_THERAPY]: [
     PositionCode.OCCUPATIONAL_THERAPIST,
+    PositionCode.TECHNICAL_MANAGER,
   ],
 }
 
 /**
- * Verifica se um cargo (PositionCode) está habilitado para registrar uma determinada profissão clínica
+ * Verifica se um cargo (PositionCode) estï¿½ habilitado para registrar uma determinada profissï¿½o clï¿½nica
  *
- * @param positionCode - Cargo do usuário
- * @param profession - Profissão clínica que deseja registrar
- * @returns true se habilitado, false caso contrário
+ * @param positionCode - Cargo do usuï¿½rio
+ * @param profession - Profissï¿½o clï¿½nica que deseja registrar
+ * @returns true se habilitado, false caso contrï¿½rio
  *
  * @example
  * isAuthorizedForProfession(PositionCode.DOCTOR, ClinicalProfession.MEDICINE) // true
@@ -126,9 +149,9 @@ export function isAuthorizedForProfession(
 }
 
 /**
- * Retorna lista de profissões clínicas que um cargo (PositionCode) pode registrar
+ * Retorna lista de profissï¿½es clï¿½nicas que um cargo (PositionCode) pode registrar
  *
- * @param positionCode - Cargo do usuário
+ * @param positionCode - Cargo do usuï¿½rio
  * @returns Array de ClinicalProfession habilitadas
  *
  * @example
@@ -153,10 +176,10 @@ export function getAuthorizedProfessions(
 }
 
 /**
- * Mensagem de erro amigável quando usuário tenta registrar evolução não autorizada
+ * Mensagem de erro amigï¿½vel quando usuï¿½rio tenta registrar evoluï¿½ï¿½o nï¿½o autorizada
  *
- * @param positionCode - Cargo do usuário
- * @param profession - Profissão clínica que tentou registrar
+ * @param positionCode - Cargo do usuï¿½rio
+ * @param profession - Profissï¿½o clï¿½nica que tentou registrar
  * @returns Mensagem de erro personalizada
  */
 export function getUnauthorizedMessage(
@@ -166,27 +189,27 @@ export function getUnauthorizedMessage(
   const professionLabels: Record<ClinicalProfession, string> = {
     [ClinicalProfession.MEDICINE]: 'Medicina',
     [ClinicalProfession.NURSING]: 'Enfermagem',
-    [ClinicalProfession.NUTRITION]: 'Nutrição',
+    [ClinicalProfession.NUTRITION]: 'Nutriï¿½ï¿½o',
     [ClinicalProfession.PHYSIOTHERAPY]: 'Fisioterapia',
     [ClinicalProfession.PSYCHOLOGY]: 'Psicologia',
-    [ClinicalProfession.SOCIAL_WORK]: 'Serviço Social',
+    [ClinicalProfession.SOCIAL_WORK]: 'Serviï¿½o Social',
     [ClinicalProfession.SPEECH_THERAPY]: 'Fonoaudiologia',
     [ClinicalProfession.OCCUPATIONAL_THERAPY]: 'Terapia Ocupacional',
   }
 
   const positionLabels: Record<PositionCode, string> = {
     [PositionCode.ADMINISTRATOR]: 'Administrador',
-    [PositionCode.TECHNICAL_MANAGER]: 'Responsável Técnico',
+    [PositionCode.TECHNICAL_MANAGER]: 'Responsï¿½vel Tï¿½cnico',
     [PositionCode.NURSING_COORDINATOR]: 'Coordenador de Enfermagem',
     [PositionCode.NURSE]: 'Enfermeiro',
-    [PositionCode.NURSING_TECHNICIAN]: 'Técnico de Enfermagem',
+    [PositionCode.NURSING_TECHNICIAN]: 'Tï¿½cnico de Enfermagem',
     [PositionCode.NURSING_ASSISTANT]: 'Auxiliar de Enfermagem',
-    [PositionCode.DOCTOR]: 'Médico',
-    [PositionCode.PSYCHOLOGIST]: 'Psicólogo',
+    [PositionCode.DOCTOR]: 'Mï¿½dico',
+    [PositionCode.PSYCHOLOGIST]: 'Psicï¿½logo',
     [PositionCode.SOCIAL_WORKER]: 'Assistente Social',
     [PositionCode.PHYSIOTHERAPIST]: 'Fisioterapeuta',
     [PositionCode.NUTRITIONIST]: 'Nutricionista',
-    [PositionCode.SPEECH_THERAPIST]: 'Fonoaudiólogo',
+    [PositionCode.SPEECH_THERAPIST]: 'Fonoaudiï¿½logo',
     [PositionCode.OCCUPATIONAL_THERAPIST]: 'Terapeuta Ocupacional',
     [PositionCode.CAREGIVER]: 'Cuidador',
     [PositionCode.ADMINISTRATIVE]: 'Administrativo',
@@ -202,5 +225,5 @@ export function getUnauthorizedMessage(
     .map((pos) => positionLabels[pos])
     .join(', ')
 
-  return `Você não está habilitado para registrar evoluções de ${professionLabel}. Seu cargo: ${positionLabel}. Profissionais habilitados: ${authorizedLabels}.`
+  return `Vocï¿½ nï¿½o estï¿½ habilitado para registrar evoluï¿½ï¿½es de ${professionLabel}. Seu cargo: ${positionLabel}. Profissionais habilitados: ${authorizedLabels}.`
 }

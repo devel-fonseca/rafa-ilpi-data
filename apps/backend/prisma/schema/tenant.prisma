@@ -115,6 +115,7 @@ model Tenant {
   messageAttachments        MessageAttachment[]
   emailLogs                 EmailLog[] // Auditoria de emails enviados
   accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
+  vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
 
   @@map("tenants")
 }

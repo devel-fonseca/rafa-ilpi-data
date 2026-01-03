@@ -77,6 +77,11 @@ export class CreateClinicalNoteDto {
   @IsString({ each: true })
   tags?: string[]
 
+  // Vínculo com alerta de sinal vital (opcional)
+  @IsOptional()
+  @IsUUID('4')
+  vitalSignAlertId?: string
+
   // Documento opcional anexado à evolução
   @IsOptional()
   @ValidateNested()

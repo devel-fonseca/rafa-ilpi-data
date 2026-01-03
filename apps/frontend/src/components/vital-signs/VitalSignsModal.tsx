@@ -355,7 +355,7 @@ export function VitalSignsModal({
 
             {/* Aba Alertas */}
             <TabsContent value="alerts">
-              <VitalSignsAlerts data={vitalSigns || []} residentId={residentId} />
+              <VitalSignsAlerts residentId={residentId} />
             </TabsContent>
           </Tabs>
         </div>

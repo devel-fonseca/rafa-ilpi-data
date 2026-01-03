@@ -112,6 +112,10 @@ model User {
   // Mensagens para Tenants (SuperAdmin)
   tenantMessagesCreated TenantMessage[]
 
+  // Alertas de Sinais Vitais
+  assignedAlerts VitalSignAlert[] @relation("AssignedAlerts")
+  resolvedAlerts VitalSignAlert[] @relation("ResolvedAlerts")
+
   // Segurança e Auditoria
   passwordResetTokens PasswordResetToken[]
   accessLogs          AccessLog[]

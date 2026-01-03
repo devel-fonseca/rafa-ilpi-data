@@ -129,6 +129,7 @@ model Resident {
   bedTransferHistory        BedTransferHistory[]
   scheduleConfigs           ResidentScheduleConfig[]
   scheduledEvents           ResidentScheduledEvent[]
+  vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
 
   // Índices
   @@unique([tenantId, cpf])
