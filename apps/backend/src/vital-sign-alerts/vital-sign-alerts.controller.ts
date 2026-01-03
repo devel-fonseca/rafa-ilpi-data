@@ -18,9 +18,11 @@ import {
   UpdateVitalSignAlertDto,
   QueryVitalSignAlertsDto,
 } from './dto'
+import { AuditEntity, AuditAction } from '../audit/audit.decorator'
 
 @Controller('vital-sign-alerts')
 @UseGuards(JwtAuthGuard)
+@AuditEntity('VITAL_SIGN_ALERT')
 export class VitalSignAlertsController {
   constructor(
     private readonly vitalSignAlertsService: VitalSignAlertsService,
@@ -31,6 +33,7 @@ export class VitalSignAlertsController {
    * Criar novo alerta médico
    */
   @Post()
+  @AuditAction('CREATE')
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req: any, @Body() dto: CreateVitalSignAlertDto) {
     const tenantId = req.user.tenantId
@@ -90,6 +93,7 @@ export class VitalSignAlertsController {
    * Atualizar alerta (status, atribuição, notas médicas)
    */
   @Patch(':id')
+  @AuditAction('UPDATE')
   async update(
     @Request() req: any,
     @Param('id') id: string,
@@ -99,5 +103,15 @@ export class VitalSignAlertsController {
     const userId = req.user.sub
 
     return this.vitalSignAlertsService.update(tenantId, id, dto, userId)
+  }
+
+  /**
+   * GET /vital-sign-alerts/:id/history
+   * Buscar histórico de alterações de um alerta
+   */
+  @Get(':id/history')
+  async getHistory(@Request() req: any, @Param('id') id: string) {
+    const tenantId = req.user.tenantId
+    return this.vitalSignAlertsService.getHistory(tenantId, id)
   }
 }

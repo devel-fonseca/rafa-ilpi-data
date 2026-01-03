@@ -151,6 +151,25 @@ export interface PrefillData {
   suggestedTags: string[]
 }
 
+export interface VitalSignAlertHistoryEntry {
+  id: string
+  changeType: string
+  status: string
+  assignedTo: {
+    id: string
+    name: string
+  } | null
+  medicalNotes: string | null
+  actionTaken: string | null
+  changedBy: {
+    id: string
+    name: string
+    positionCode?: string
+  }
+  changeReason: string | null
+  changedAt: Date
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // API FUNCTIONS
 // ──────────────────────────────────────────────────────────────────────────────
@@ -225,5 +244,15 @@ export const prefillFromAlert = async (
   const response = await api.get(
     `/clinical-notes/prefill-from-alert/${alertId}`,
   )
+  return response.data
+}
+
+/**
+ * Buscar histórico de alterações de um alerta
+ */
+export const getAlertHistory = async (
+  alertId: string,
+): Promise<VitalSignAlertHistoryEntry[]> => {
+  const response = await api.get(`/vital-sign-alerts/${alertId}/history`)
   return response.data
 }

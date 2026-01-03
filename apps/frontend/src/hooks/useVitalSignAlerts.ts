@@ -7,6 +7,7 @@ import {
   getAlertStats,
   updateVitalSignAlert,
   prefillFromAlert,
+  getAlertHistory,
   QueryVitalSignAlertsDto,
   UpdateVitalSignAlertDto,
 } from '@/api/vitalSignAlerts.api'
@@ -27,6 +28,8 @@ export const vitalSignAlertsKeys = {
   stats: () => [...vitalSignAlertsKeys.all, 'stats'] as const,
   prefill: (alertId: string) =>
     [...vitalSignAlertsKeys.all, 'prefill', alertId] as const,
+  history: (alertId: string) =>
+    [...vitalSignAlertsKeys.all, 'history', alertId] as const,
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -104,6 +107,9 @@ export function useUpdateAlert() {
       queryClient.invalidateQueries({
         queryKey: vitalSignAlertsKeys.stats(),
       })
+      queryClient.invalidateQueries({
+        queryKey: vitalSignAlertsKeys.history(updatedAlert.id),
+      })
 
       toast.success('Alerta atualizado com sucesso')
     },
@@ -124,6 +130,18 @@ export function usePrefillFromAlert(alertId: string, enabled = false) {
     queryFn: () => prefillFromAlert(alertId),
     enabled: enabled && !!alertId,
     staleTime: Infinity, // Não refazer automaticamente
+  })
+}
+
+/**
+ * Hook para buscar histórico de alterações de um alerta
+ */
+export function useAlertHistory(alertId: string, enabled = true) {
+  return useQuery({
+    queryKey: vitalSignAlertsKeys.history(alertId),
+    queryFn: () => getAlertHistory(alertId),
+    enabled: enabled && !!alertId,
+    staleTime: 30000, // 30 segundos
   })
 }
 

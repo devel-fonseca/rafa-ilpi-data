@@ -113,8 +113,10 @@ model User {
   tenantMessagesCreated TenantMessage[]
 
   // Alertas de Sinais Vitais
-  assignedAlerts VitalSignAlert[] @relation("AssignedAlerts")
-  resolvedAlerts VitalSignAlert[] @relation("ResolvedAlerts")
+  assignedAlerts           VitalSignAlert[]        @relation("AssignedAlerts")
+  resolvedAlerts           VitalSignAlert[]        @relation("ResolvedAlerts")
+  alertHistoryChanged      VitalSignAlertHistory[] @relation("AlertChangedBy")
+  alertHistoryAssignedUser VitalSignAlertHistory[] @relation("AlertAssignedUser")
 
   // Segurança e Auditoria
   passwordResetTokens PasswordResetToken[]

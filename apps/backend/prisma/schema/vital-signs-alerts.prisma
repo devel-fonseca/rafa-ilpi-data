@@ -39,13 +39,14 @@ model VitalSignAlert {
   createdBy  String?   @db.Uuid // NULL = criado automaticamente pelo sistema
 
   // Relacionamentos
-  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  resident       Resident         @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  vitalSign      VitalSign        @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
-  notification   Notification?    @relation(fields: [notificationId], references: [id], onDelete: SetNull)
-  clinicalNotes  ClinicalNote[]   // Um alerta pode gerar várias evoluções
-  assignedUser   User?            @relation("AssignedAlerts", fields: [assignedTo], references: [id], onDelete: SetNull)
-  resolvedUser   User?            @relation("ResolvedAlerts", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident                 @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  vitalSign      VitalSign                @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+  notification   Notification?            @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  clinicalNotes  ClinicalNote[]           // Um alerta pode gerar várias evoluções
+  assignedUser   User?                    @relation("AssignedAlerts", fields: [assignedTo], references: [id], onDelete: SetNull)
+  resolvedUser   User?                    @relation("ResolvedAlerts", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  history        VitalSignAlertHistory[]  // Histórico de alterações para exibição ao usuário
 
   // Índices para performance
   @@index([tenantId, residentId])

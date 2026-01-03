@@ -1,0 +1,32 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  HISTÓRICO DE ALERTAS DE SINAIS VITAIS
+//
+//  Rastreia todas as alterações feitas em alertas médicos para exibição ao usuário
+// ──────────────────────────────────────────────────────────────────────────────
+
+model VitalSignAlertHistory {
+  id      String @id @default(uuid()) @db.Uuid
+  alertId String @map("alert_id") @db.Uuid
+
+  // Dados históricos (snapshot)
+  status       String  @db.VarChar(50) // Status no momento da alteração
+  assignedTo   String? @map("assigned_to") @db.Uuid
+  medicalNotes String? @map("medical_notes") @db.Text
+  actionTaken  String? @map("action_taken") @db.Text
+
+  // Metadados da alteração
+  changedBy    String   @map("changed_by") @db.Uuid // Quem fez a alteração
+  changeReason String?  @map("change_reason") @db.Text // Motivo da alteração (opcional)
+  changeType   String   @map("change_type") @db.VarChar(50) // CREATED, STATUS_CHANGED, ASSIGNED, NOTES_ADDED, etc
+  changedAt    DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  // Relacionamentos
+  alert       VitalSignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  changedUser User           @relation("AlertChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  assignedUser User?         @relation("AlertAssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([alertId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("vital_sign_alert_history")
+}

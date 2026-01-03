@@ -33,44 +33,63 @@ export class VitalSignAlertsService {
     // Calcular prioridade automaticamente baseado na severidade
     const priority = this.calculatePriority(dto.severity, dto.type)
 
-    const alert = await this.prisma.vitalSignAlert.create({
-      data: {
-        tenantId,
-        residentId: dto.residentId,
-        vitalSignId: dto.vitalSignId,
-        notificationId: dto.notificationId,
-        type: dto.type,
-        severity: dto.severity,
-        title: dto.title,
-        description: dto.description,
-        value: dto.value,
-        metadata: dto.metadata as Prisma.JsonObject,
-        status: dto.status || AlertStatus.ACTIVE,
-        priority: dto.priority !== undefined ? dto.priority : priority,
-        assignedTo: dto.assignedTo,
-        createdBy,
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-            bedId: true,
+    // Criar alerta e primeira entrada de histórico em transação
+    const alert = await this.prisma.$transaction(async (prisma) => {
+      const newAlert = await prisma.vitalSignAlert.create({
+        data: {
+          tenantId,
+          residentId: dto.residentId,
+          vitalSignId: dto.vitalSignId,
+          notificationId: dto.notificationId,
+          type: dto.type,
+          severity: dto.severity,
+          title: dto.title,
+          description: dto.description,
+          value: dto.value,
+          metadata: dto.metadata as Prisma.JsonObject,
+          status: dto.status || AlertStatus.ACTIVE,
+          priority: dto.priority !== undefined ? dto.priority : priority,
+          assignedTo: dto.assignedTo,
+          createdBy,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+              bedId: true,
+            },
+          },
+          vitalSign: {
+            select: {
+              id: true,
+              timestamp: true,
+            },
+          },
+          notification: {
+            select: {
+              id: true,
+              title: true,
+            },
           },
         },
-        vitalSign: {
-          select: {
-            id: true,
-            timestamp: true,
-          },
+      })
+
+      // Criar primeira entrada de histórico (criação do alerta)
+      await prisma.vitalSignAlertHistory.create({
+        data: {
+          alertId: newAlert.id,
+          status: newAlert.status,
+          assignedTo: newAlert.assignedTo,
+          medicalNotes: null,
+          actionTaken: null,
+          changedBy: createdBy || 'SYSTEM', // Sistema se não houver usuário
+          changeType: 'CREATED',
+          changeReason: 'Alerta criado automaticamente pelo sistema',
         },
-        notification: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
+      })
+
+      return newAlert
     })
 
     this.logger.log(`Alerta criado com sucesso: ${alert.id}`)
@@ -318,33 +337,65 @@ export class VitalSignAlertsService {
       this.logger.log(`Alerta ${id} movido para tratamento`)
     }
 
-    const updatedAlert = await this.prisma.vitalSignAlert.update({
-      where: { id },
-      data: updateData,
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
+    // Determinar tipo de mudança para histórico
+    let changeType = 'UPDATED'
+    if (dto.status && dto.status !== existingAlert.status) {
+      changeType = 'STATUS_CHANGED'
+    } else if (dto.assignedTo !== undefined && dto.assignedTo !== existingAlert.assignedTo) {
+      changeType = 'ASSIGNED'
+    } else if (dto.medicalNotes) {
+      changeType = 'NOTES_ADDED'
+    } else if (dto.actionTaken) {
+      changeType = 'ACTION_TAKEN'
+    }
+
+    // Atualizar alerta e criar entrada de histórico em uma transação
+    const result = await this.prisma.$transaction(async (prisma) => {
+      // Atualizar alerta
+      const updatedAlert = await prisma.vitalSignAlert.update({
+        where: { id },
+        data: updateData,
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          assignedUser: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          resolvedUser: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        assignedUser: {
-          select: {
-            id: true,
-            name: true,
-          },
+      })
+
+      // Criar entrada de histórico
+      await prisma.vitalSignAlertHistory.create({
+        data: {
+          alertId: id,
+          status: updatedAlert.status,
+          assignedTo: updatedAlert.assignedTo,
+          medicalNotes: updatedAlert.medicalNotes,
+          actionTaken: updatedAlert.actionTaken,
+          changedBy: userId,
+          changeType,
+          changeReason: null, // Pode ser adicionado futuramente ao DTO
         },
-        resolvedUser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      })
+
+      return updatedAlert
     })
 
     this.logger.log(`Alerta ${id} atualizado com sucesso`)
-    return updatedAlert
+    return result
   }
 
   /**
@@ -429,5 +480,74 @@ export class VitalSignAlertsService {
 
     // Severidade INFO
     return 1
+  }
+
+  /**
+   * Buscar histórico de alterações de um alerta
+   * Retorna todas as mudanças em ordem cronológica para exibição ao usuário
+   */
+  async getHistory(tenantId: string, alertId: string) {
+    // Verificar se alerta existe e pertence ao tenant
+    const alert = await this.prisma.vitalSignAlert.findFirst({
+      where: {
+        id: alertId,
+        tenantId,
+      },
+    })
+
+    if (!alert) {
+      throw new NotFoundException(`Alerta ${alertId} não encontrado`)
+    }
+
+    // Buscar histórico de alterações
+    const history = await this.prisma.vitalSignAlertHistory.findMany({
+      where: {
+        alertId,
+      },
+      include: {
+        changedUser: {
+          select: {
+            id: true,
+            name: true,
+            profile: {
+              select: {
+                positionCode: true,
+              },
+            },
+          },
+        },
+        assignedUser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        changedAt: 'asc', // Ordem cronológica (mais antigo primeiro)
+      },
+    })
+
+    // Formatar histórico para exibição
+    return history.map((entry) => ({
+      id: entry.id,
+      changeType: entry.changeType,
+      status: entry.status,
+      assignedTo: entry.assignedUser
+        ? {
+            id: entry.assignedUser.id,
+            name: entry.assignedUser.name,
+          }
+        : null,
+      medicalNotes: entry.medicalNotes,
+      actionTaken: entry.actionTaken,
+      changedBy: {
+        id: entry.changedUser.id,
+        name: entry.changedUser.name,
+        positionCode: entry.changedUser.profile?.positionCode,
+      },
+      changeReason: entry.changeReason,
+      changedAt: entry.changedAt,
+    }))
   }
 }

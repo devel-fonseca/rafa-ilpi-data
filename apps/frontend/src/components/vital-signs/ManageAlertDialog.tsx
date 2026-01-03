@@ -22,6 +22,11 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
   AlertTriangle,
   Activity,
   Thermometer,
@@ -31,12 +36,16 @@ import {
   FileText,
   User,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  History,
 } from 'lucide-react'
 import { useUpdateAlert, canManageVitalSignAlerts } from '@/hooks/useVitalSignAlerts'
 import { useAuthStore } from '@/stores/auth.store'
 import type { VitalSignAlert } from '@/api/vitalSignAlerts.api'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { CreateEvolutionFromAlertDialog } from './CreateEvolutionFromAlertDialog'
+import { AlertHistoryTimeline } from './AlertHistoryTimeline'
 
 interface ManageAlertDialogProps {
   alert: VitalSignAlert | null
@@ -60,6 +69,7 @@ export function ManageAlertDialog({
   const user = useAuthStore((state) => state.user)
   const updateAlertMutation = useUpdateAlert()
   const [showCreateEvolution, setShowCreateEvolution] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   const { control, register, handleSubmit, reset, watch } =
     useForm<ManageAlertFormData>({
@@ -431,6 +441,30 @@ export function ManageAlertDialog({
                 </div>
               </div>
             )}
+
+            {/* Histórico de Alterações */}
+            <Collapsible open={showHistory} onOpenChange={setShowHistory}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    <span>Histórico de Alterações</span>
+                  </div>
+                  {showHistory ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <AlertHistoryTimeline alertId={alert.id} />
+              </CollapsibleContent>
+            </Collapsible>
 
             <DialogFooter className="gap-2">
               <Button
