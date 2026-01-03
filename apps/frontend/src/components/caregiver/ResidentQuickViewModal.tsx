@@ -367,15 +367,18 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   {/* Sinais Vitais Consolidados */}
                   {consolidatedVitalSigns && (
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Sinais Vitais
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          Tipo: {translateBloodType(resident?.bloodType)}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-4 gap-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Informações de Saúde
+                      </p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Tipo Sanguíneo - Destaque */}
+                        <div className="text-center bg-primary/5 rounded-lg p-2">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Tipo</p>
+                          <p className="text-sm font-bold text-primary">
+                            {translateBloodType(resident?.bloodType)}
+                          </p>
+                        </div>
+
                         {/* PA */}
                         <div className="text-center">
                           <p className="text-[10px] text-muted-foreground mb-0.5">PA</p>
