@@ -147,6 +147,21 @@ export class DailyRecordsController {
     };
   }
 
+  @Get('resident/:residentId/consolidated-vital-signs')
+  @ApiOperation({
+    summary: 'Buscar sinais vitais consolidados de um residente',
+    description: 'Retorna o último valor registrado de cada parâmetro vital, mesmo que estejam em registros diferentes. Ideal para visualização rápida.',
+  })
+  @ApiResponse({ status: 200, description: 'Sinais vitais consolidados' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  async findConsolidatedVitalSigns(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.findConsolidatedVitalSigns(residentId, user.tenantId);
+  }
+
   @Get('resident/:residentId/date/:date')
   @ApiOperation({
     summary: 'Buscar todos os registros de um residente em uma data específica',

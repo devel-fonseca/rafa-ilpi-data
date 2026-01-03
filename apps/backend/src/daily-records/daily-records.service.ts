@@ -936,4 +936,167 @@ export class DailyRecordsService {
 
     return vitalSign || null;
   }
+
+  /**
+   * Busca os últimos valores registrados de cada parâmetro vital
+   * Consolida valores de diferentes registros para exibição rápida
+   */
+  async findConsolidatedVitalSigns(residentId: string, tenantId: string) {
+    // Verificar se residente existe e pertence ao tenant
+    const resident = await this.prisma.resident.findFirst({
+      where: {
+        id: residentId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    // Buscar último valor de cada parâmetro
+    // Otimizado: uma query por parâmetro, ordenada por timestamp DESC
+    const [
+      lastBloodPressure,
+      lastBloodGlucose,
+      lastTemperature,
+      lastOxygenSaturation,
+      lastHeartRate,
+      lastRespiratoryRate,
+    ] = await Promise.all([
+      // Pressão Arterial (PA)
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          systolicBloodPressure: { not: null },
+          diastolicBloodPressure: { not: null },
+        },
+        select: {
+          systolicBloodPressure: true,
+          diastolicBloodPressure: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+
+      // Glicemia
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          bloodGlucose: { not: null },
+        },
+        select: {
+          bloodGlucose: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+
+      // Temperatura
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          temperature: { not: null },
+        },
+        select: {
+          temperature: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+
+      // Saturação de Oxigênio (SpO2)
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          oxygenSaturation: { not: null },
+        },
+        select: {
+          oxygenSaturation: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+
+      // Frequência Cardíaca (FC)
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          heartRate: { not: null },
+        },
+        select: {
+          heartRate: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+
+      // Frequência Respiratória (FR)
+      this.prisma.vitalSign.findFirst({
+        where: {
+          residentId,
+          tenantId,
+          deletedAt: null,
+          respiratoryRate: { not: null },
+        },
+        select: {
+          respiratoryRate: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+    ]);
+
+    // Montar resposta consolidada
+    return {
+      bloodPressure: lastBloodPressure
+        ? {
+            systolic: lastBloodPressure.systolicBloodPressure,
+            diastolic: lastBloodPressure.diastolicBloodPressure,
+            timestamp: lastBloodPressure.timestamp,
+          }
+        : null,
+      bloodGlucose: lastBloodGlucose
+        ? {
+            value: lastBloodGlucose.bloodGlucose,
+            timestamp: lastBloodGlucose.timestamp,
+          }
+        : null,
+      temperature: lastTemperature
+        ? {
+            value: lastTemperature.temperature,
+            timestamp: lastTemperature.timestamp,
+          }
+        : null,
+      oxygenSaturation: lastOxygenSaturation
+        ? {
+            value: lastOxygenSaturation.oxygenSaturation,
+            timestamp: lastOxygenSaturation.timestamp,
+          }
+        : null,
+      heartRate: lastHeartRate
+        ? {
+            value: lastHeartRate.heartRate,
+            timestamp: lastHeartRate.timestamp,
+          }
+        : null,
+      respiratoryRate: lastRespiratoryRate
+        ? {
+            value: lastRespiratoryRate.respiratoryRate,
+            timestamp: lastRespiratoryRate.timestamp,
+          }
+        : null,
+    };
+  }
 }

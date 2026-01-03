@@ -116,15 +116,32 @@ interface Resident {
   room?: Room | null
 }
 
-interface VitalSign {
-  id: string
-  timestamp: string
-  systolicBloodPressure?: number
-  diastolicBloodPressure?: number
-  temperature?: number
-  heartRate?: number
-  oxygenSaturation?: number
-  bloodGlucose?: number
+interface ConsolidatedVitalSigns {
+  bloodPressure: {
+    systolic: number
+    diastolic: number
+    timestamp: string
+  } | null
+  bloodGlucose: {
+    value: number
+    timestamp: string
+  } | null
+  temperature: {
+    value: number
+    timestamp: string
+  } | null
+  oxygenSaturation: {
+    value: number
+    timestamp: string
+  } | null
+  heartRate: {
+    value: number
+    timestamp: string
+  } | null
+  respiratoryRate: {
+    value: number
+    timestamp: string
+  } | null
 }
 
 interface DailyRecord {
@@ -232,12 +249,12 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
     (prescription) => prescription.medications || [],
   ) || []
 
-  // Buscar último sinal vital
-  const { data: lastVitalSign } = useQuery<VitalSign | null>({
-    queryKey: ['resident-last-vital-sign', residentId],
+  // Buscar sinais vitais consolidados
+  const { data: consolidatedVitalSigns } = useQuery<ConsolidatedVitalSigns | null>({
+    queryKey: ['resident-consolidated-vital-signs', residentId],
     queryFn: async () => {
       try {
-        const response = await api.get(`/daily-records/resident/${residentId}/last-vital-sign`)
+        const response = await api.get(`/daily-records/resident/${residentId}/consolidated-vital-signs`)
         return response.data || null
       } catch {
         return null
@@ -356,42 +373,115 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                     </Badge>
                   </div>
 
-                  {/* Sinais Vitais */}
-                  {lastVitalSign && (
+                  {/* Sinais Vitais Consolidados */}
+                  {consolidatedVitalSigns && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                        Sinais Vitais em{' '}
-                        {format(new Date(lastVitalSign.timestamp), 'dd/MM/yyyy')} às{' '}
-                        {format(new Date(lastVitalSign.timestamp), 'HH:mm')}
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Sinais Vitais
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        {lastVitalSign.systolicBloodPressure &&
-                          lastVitalSign.diastolicBloodPressure && (
-                            <Badge variant="outline">
-                              PA: {lastVitalSign.systolicBloodPressure}/
-                              {lastVitalSign.diastolicBloodPressure} mmHg
-                            </Badge>
+                      <div className="grid grid-cols-4 gap-3">
+                        {/* PA */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">PA</p>
+                          {consolidatedVitalSigns.bloodPressure ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.bloodPressure.systolic}/
+                                {consolidatedVitalSigns.bloodPressure.diastolic}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.bloodPressure.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
                           )}
-                        {lastVitalSign.temperature && (
-                          <Badge variant="outline">
-                            Temp: {lastVitalSign.temperature}°C
-                          </Badge>
-                        )}
-                        {lastVitalSign.heartRate && (
-                          <Badge variant="outline">
-                            FC: {lastVitalSign.heartRate} bpm
-                          </Badge>
-                        )}
-                        {lastVitalSign.oxygenSaturation && (
-                          <Badge variant="outline">
-                            SpO2: {lastVitalSign.oxygenSaturation}%
-                          </Badge>
-                        )}
-                        {lastVitalSign.bloodGlucose && (
-                          <Badge variant="outline">
-                            Glicemia: {lastVitalSign.bloodGlucose} mg/dL
-                          </Badge>
-                        )}
+                        </div>
+
+                        {/* Glicemia */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Glicemia</p>
+                          {consolidatedVitalSigns.bloodGlucose ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.bloodGlucose.value}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.bloodGlucose.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
+                          )}
+                        </div>
+
+                        {/* Temperatura */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">Temp</p>
+                          {consolidatedVitalSigns.temperature ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.temperature.value}°
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.temperature.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
+                          )}
+                        </div>
+
+                        {/* SpO2 */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">SpO2</p>
+                          {consolidatedVitalSigns.oxygenSaturation ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.oxygenSaturation.value}%
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.oxygenSaturation.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
+                          )}
+                        </div>
+
+                        {/* FC */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">FC</p>
+                          {consolidatedVitalSigns.heartRate ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.heartRate.value}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.heartRate.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
+                          )}
+                        </div>
+
+                        {/* FR */}
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground mb-0.5">FR</p>
+                          {consolidatedVitalSigns.respiratoryRate ? (
+                            <>
+                              <p className="text-sm font-semibold">
+                                {consolidatedVitalSigns.respiratoryRate.value}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {format(new Date(consolidatedVitalSigns.respiratoryRate.timestamp), 'dd/MM HH:mm')}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">--</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
