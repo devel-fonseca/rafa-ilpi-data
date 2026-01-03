@@ -49,6 +49,48 @@ import {
 } from '@/utils/clinicalNotesConstants'
 import { formatVitalSignsToText } from '@/utils/vitalSignsFormatter'
 
+/**
+ * Mapeia positionCode + registrationType para a profissão clínica correspondente
+ * Para TECHNICAL_MANAGER, usa o registrationType para determinar a profissão
+ */
+function getUserProfession(
+  positionCode?: string | null,
+  registrationType?: string | null,
+): ClinicalProfession | null {
+  if (!positionCode) return null
+
+  // Mapeamento direto por cargo
+  const positionToProfession: Record<string, ClinicalProfession> = {
+    DOCTOR: 'MEDICINE',
+    NURSE: 'NURSING',
+    NURSING_COORDINATOR: 'NURSING',
+    NUTRITIONIST: 'NUTRITION',
+    PHYSIOTHERAPIST: 'PHYSIOTHERAPY',
+    PSYCHOLOGIST: 'PSYCHOLOGY',
+    SOCIAL_WORKER: 'SOCIAL_WORK',
+    SPEECH_THERAPIST: 'SPEECH_THERAPY',
+    OCCUPATIONAL_THERAPIST: 'OCCUPATIONAL_THERAPY',
+  }
+
+  // Se não é RT, retornar mapeamento direto
+  if (positionCode !== 'TECHNICAL_MANAGER') {
+    return positionToProfession[positionCode] || null
+  }
+
+  // Para RT, mapear por registrationType (conselho profissional)
+  const registrationToProfession: Record<string, ClinicalProfession> = {
+    CRM: 'MEDICINE',
+    COREN: 'NURSING',
+    CRN: 'NUTRITION',
+    CREFITO: 'PHYSIOTHERAPY',
+    CRP: 'PSYCHOLOGY',
+    CRESS: 'SOCIAL_WORK',
+    CREFONO: 'SPEECH_THERAPY',
+  }
+
+  return registrationType ? registrationToProfession[registrationType] || null : null
+}
+
 // Validação com Zod
 const clinicalNoteSchema = z
   .object({
@@ -124,6 +166,22 @@ export function ClinicalNotesForm({
 
   const isLoading = createMutation.isPending || updateMutation.isPending
 
+  // Detectar profissão do usuário logado baseado em cargo e registro profissional
+  const userProfession = useMemo(() => {
+    return getUserProfession(
+      user?.profile?.positionCode,
+      user?.profile?.registrationType,
+    )
+  }, [user?.profile?.positionCode, user?.profile?.registrationType])
+
+  // Filtrar profissões disponíveis: se userProfession detectado, mostrar apenas essa
+  const availableProfessions = useMemo(() => {
+    if (userProfession) {
+      return authorizedProfessions.filter((prof) => prof === userProfession)
+    }
+    return authorizedProfessions
+  }, [userProfession, authorizedProfessions])
+
   // Helper para mapear dados profissionais do perfil do usuário (memoizado para evitar re-renders infinitos)
   const professionalData = useMemo(() => {
     if (!user || !myProfile) {
@@ -194,12 +252,14 @@ export function ClinicalNotesForm({
     }
   }, [open, reset])
 
-  // Auto-selecionar primeira profissão autorizada ao abrir (apenas em criação)
+  // Auto-selecionar profissão do usuário ao abrir (apenas em criação)
   useEffect(() => {
-    if (open && !isEditing && authorizedProfessions.length > 0) {
-      setValue('profession', authorizedProfessions[0])
+    if (open && !isEditing && availableProfessions.length > 0) {
+      // Se userProfession detectado, usar ele; senão, usar primeira profissão autorizada
+      const professionToSelect = userProfession || availableProfessions[0]
+      setValue('profession', professionToSelect)
     }
-  }, [open, isEditing, authorizedProfessions, setValue])
+  }, [open, isEditing, availableProfessions, userProfession, setValue])
 
   // Populate form with note values when editing
   useEffect(() => {
@@ -580,37 +640,44 @@ export function ClinicalNotesForm({
                 name="profession"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isEditing || authorizationLoading} // Não pode mudar profissão ao editar
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {authorizationLoading ? (
-                        <div className="flex items-center justify-center p-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
-                      ) : authorizedProfessions.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground">
-                          Nenhuma profissão autorizada
-                        </div>
-                      ) : (
-                        Object.entries(PROFESSION_CONFIG)
-                          .filter(([key]) => authorizedProfessions.includes(key as ClinicalProfession))
-                          .map(([key, config]) => (
-                            <SelectItem key={key} value={key}>
-                              <span className="flex items-center gap-2">
-                                <span>{config.icon}</span>
-                                <span>{config.label}</span>
-                              </span>
-                            </SelectItem>
-                          ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isEditing || authorizationLoading || !!userProfession}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {authorizationLoading ? (
+                          <div className="flex items-center justify-center p-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        ) : availableProfessions.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            Nenhuma profissão autorizada
+                          </div>
+                        ) : (
+                          Object.entries(PROFESSION_CONFIG)
+                            .filter(([key]) => availableProfessions.includes(key as ClinicalProfession))
+                            .map(([key, config]) => (
+                              <SelectItem key={key} value={key}>
+                                <span className="flex items-center gap-2">
+                                  <span>{config.icon}</span>
+                                  <span>{config.label}</span>
+                                </span>
+                              </SelectItem>
+                            ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {userProfession && !isEditing && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Profissão selecionada automaticamente com base no seu cargo/registro profissional
+                      </p>
+                    )}
+                  </>
                 )}
               />
               {errors.profession && (

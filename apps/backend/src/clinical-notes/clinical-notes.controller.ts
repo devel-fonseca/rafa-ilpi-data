@@ -170,21 +170,43 @@ export class ClinicalNotesController {
   })
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   async getAuthorizedProfessionsForUser(@CurrentUser() user: any) {
-    // Buscar positionCode do usuário (está na tabela user_profiles, não em users)
-    // O JWT retorna user.id (não user.userId)
+    // Buscar positionCode e registrationType do usuário
     const userProfile = await this.prisma.userProfile.findUnique({
       where: {
         userId: user.id,
       },
-      select: { positionCode: true },
+      select: {
+        positionCode: true,
+        registrationType: true,
+      },
     })
 
     if (!userProfile || !userProfile.positionCode) {
       return []
     }
 
-    // Retornar profissões autorizadas baseadas no cargo
-    return getAuthorizedProfessions(userProfile.positionCode)
+    // Se não é RT, retornar profissões baseadas no cargo
+    if (userProfile.positionCode !== 'TECHNICAL_MANAGER') {
+      return getAuthorizedProfessions(userProfile.positionCode)
+    }
+
+    // Se é RT, mapear registrationType para profissão específica
+    const registrationToProfession: Record<string, string> = {
+      CRM: 'MEDICINE',
+      COREN: 'NURSING',
+      CRN: 'NUTRITION',
+      CREFITO: 'PHYSIOTHERAPY',
+      CRP: 'PSYCHOLOGY',
+      CRESS: 'SOCIAL_WORK',
+      CREFONO: 'SPEECH_THERAPY',
+    }
+
+    if (userProfile.registrationType && registrationToProfession[userProfile.registrationType]) {
+      return [registrationToProfession[userProfile.registrationType]]
+    }
+
+    // Fallback: se RT sem registro válido, retornar vazio
+    return []
   }
 
   /**
