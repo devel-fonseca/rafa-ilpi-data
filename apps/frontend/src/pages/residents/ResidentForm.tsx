@@ -37,6 +37,8 @@ import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
+import { useMySubscription } from '@/hooks/useTenant'
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -224,11 +226,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const [cnsValidation, setCnsValidation] = useState({ valido: true, mensagem: '' })
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
+  const [showLimitDialog, setShowLimitDialog] = useState(false)
+  const [hasSeenWarning, setHasSeenWarning] = useState(false)
 
   // Estado removido - BedSelector gerencia internamente a hierarquia
 
   // Ref para armazenar dados do residente carregado (para sincronizar Select depois)
   const residentDataRef = useRef<any>(null)
+
+  // Buscar dados de subscription para verificar limites
+  const { data: subscriptionData } = useMySubscription()
 
   const {
     register,
@@ -297,6 +304,20 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       setCnsValidation(getMensagemValidacaoCNS(watchCns))
     }
   }, [watchCns])
+
+  // Verificar limite ao entrar na página (apenas em modo criação e se não viu ainda)
+  useEffect(() => {
+    if (isEditMode || !subscriptionData || hasSeenWarning) return
+
+    const { usage, plan } = subscriptionData
+    const percentage = plan.maxResidents > 0 ? (usage.activeResidents / plan.maxResidents) * 100 : 0
+
+    // Mostrar dialog se >= 80% do limite
+    if (percentage >= 80) {
+      setShowLimitDialog(true)
+      setHasSeenWarning(true)
+    }
+  }, [subscriptionData, hasSeenWarning, isEditMode])
 
   // Removido código antigo de sincronização - agora usando BedSelector
 
@@ -861,6 +882,23 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Plan Limit Warning Dialog */}
+      {subscriptionData && !isEditMode && (
+        <PlanLimitWarningDialog
+          type="residents"
+          open={showLimitDialog}
+          onOpenChange={setShowLimitDialog}
+          onProceed={() => {
+            // Usuário decidiu prosseguir mesmo com o aviso
+            // Dialog fecha automaticamente via onProceed
+          }}
+          usage={{
+            current: subscriptionData.usage.activeResidents,
+            max: subscriptionData.plan.maxResidents,
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

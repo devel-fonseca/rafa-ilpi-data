@@ -24,6 +24,8 @@ import { cleanCPF } from '@/utils/formatters'
 import { addUserToTenant, createUserProfile } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
+import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
+import { useMySubscription } from '@/hooks/useTenant'
 
 export default function UserCreatePage() {
   const navigate = useNavigate()
@@ -55,6 +57,11 @@ export default function UserCreatePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [cpfValidation, setCpfValidation] = useState({ valido: true, mensagem: '' })
+  const [showLimitDialog, setShowLimitDialog] = useState(false)
+  const [hasSeenWarning, setHasSeenWarning] = useState(false)
+
+  // Buscar dados de subscription para verificar limites
+  const { data: subscriptionData } = useMySubscription()
 
   // Validação de CPF em tempo real
   useEffect(() => {
@@ -80,6 +87,20 @@ export default function UserCreatePage() {
       }))
     }
   }, [formData.positionCode, formData.isTechnicalManager, formData.isNursingCoordinator])
+
+  // Verificar limite ao entrar na página (apenas uma vez e se não viu ainda)
+  useEffect(() => {
+    if (!subscriptionData || hasSeenWarning) return
+
+    const { usage, plan } = subscriptionData
+    const percentage = plan.maxUsers > 0 ? (usage.activeUsers / plan.maxUsers) * 100 : 0
+
+    // Mostrar dialog se >= 80% do limite
+    if (percentage >= 80) {
+      setShowLimitDialog(true)
+      setHasSeenWarning(true)
+    }
+  }, [subscriptionData, hasSeenWarning])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -186,8 +207,27 @@ export default function UserCreatePage() {
     navigate('/dashboard/usuarios')
   }
 
+  const handleProceedWithWarning = () => {
+    // Usuário decidiu prosseguir mesmo com o aviso
+    // Dialog fecha automaticamente via onProceed
+  }
+
   return (
     <div className="space-y-6 pb-16">
+      {/* Plan Limit Warning Dialog */}
+      {subscriptionData && (
+        <PlanLimitWarningDialog
+          type="users"
+          open={showLimitDialog}
+          onOpenChange={setShowLimitDialog}
+          onProceed={handleProceedWithWarning}
+          usage={{
+            current: subscriptionData.usage.activeUsers,
+            max: subscriptionData.plan.maxUsers,
+          }}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

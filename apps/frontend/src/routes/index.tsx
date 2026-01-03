@@ -86,8 +86,8 @@ import TenantMessages from '@/pages/superadmin/TenantMessages'
 import TenantMessageForm from '@/pages/superadmin/TenantMessageForm'
 import TenantMessageView from '@/pages/superadmin/TenantMessageView'
 
-// Placeholder Pages (serão implementados futuramente)
-const SettingsPage = () => <div>Configurações</div>
+// Settings Pages
+import { BillingPage } from '@/pages/settings/BillingPage'
 
 export const router = createBrowserRouter([
   {
@@ -275,8 +275,8 @@ export const router = createBrowserRouter([
         element: <PopViewer />,
       },
       {
-        path: 'settings',
-        element: <SettingsPage />,
+        path: 'settings/billing',
+        element: <BillingPage />,
       },
     ],
   },

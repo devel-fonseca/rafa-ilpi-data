@@ -772,9 +772,197 @@ async runJobs() {
 
 ---
 
+## 🔗 Integração com Tenant Admin Billing
+
+### Separação de Responsabilidades
+
+O Portal SuperAdmin convive harmoniosamente com o sistema de **Tenant Admin Billing** (self-service de planos), mantendo separação clara de responsabilidades:
+
+**SUPERADMIN (/superadmin/*):**
+- **Acesso:** Apenas usuários com role `SUPERADMIN`
+- **Escopo:** Todos os tenants (visão global)
+- **Funcionalidades:**
+  - ✅ CRUD completo de planos
+  - ✅ Upgrade/Downgrade de qualquer tenant
+  - ✅ Aplicar descontos e preços customizados
+  - ✅ Cancelar/Reativar subscriptions
+  - ✅ Ver todas as faturas da plataforma
+  - ✅ Analytics financeiros globais
+  - ✅ Gestão de contratos e templates de email
+
+**TENANT ADMIN (/admin/*):**
+- **Acesso:** Usuários com role `ADMIN` ou `MANAGER` do próprio tenant
+- **Escopo:** Apenas dados do próprio tenant
+- **Funcionalidades:**
+  - ✅ Ver plano atual e planos disponíveis para UPGRADE
+  - ✅ Solicitar upgrade de plano (self-service)
+  - ✅ Ver histórico de faturas do próprio tenant
+  - ✅ Atualizar método de pagamento preferido
+  - ✅ Cancelar trial antes da primeira cobrança
+  - ❌ **NÃO** pode aplicar descontos (reservado ao SuperAdmin)
+  - ❌ **NÃO** pode fazer downgrade (reservado ao SuperAdmin)
+  - ❌ **NÃO** pode ver faturas de outros tenants
+
+### Pontos de Integração
+
+#### 1. Services Compartilhados
+
+Os serviços do SuperAdmin são **reutilizados** pelo Tenant Admin com validações específicas:
+
+```typescript
+// SubscriptionAdminService.changePlan()
+// Usado em dois contextos:
+
+// Contexto 1: Tenant Admin (self-service upgrade)
+POST /admin/subscription/upgrade
+├─ Validações: Apenas upgrades permitidos
+├─ Source: TENANT_SELF_SERVICE
+└─ Chama: SubscriptionAdminService.changePlan()
+
+// Contexto 2: SuperAdmin (gestão manual)
+POST /superadmin/tenants/:id/change-plan
+├─ Validações: Upgrades ou downgrades permitidos
+├─ Source: SUPERADMIN
+└─ Chama: SubscriptionAdminService.changePlan()
+```
+
+#### 2. Logs de Auditoria Diferenciados
+
+Para rastreabilidade, logs seguem padrões distintos:
+
+**Tenant Admin (Self-Service):**
+```typescript
+logger.log(
+  `[TENANT-SELF-SERVICE] Upgrade solicitado: ${tenantId} → ${newPlanId} (user: ${user.email})`
+)
+```
+
+**SuperAdmin (Intervenção Manual):**
+```typescript
+logger.log(
+  `[SUPERADMIN] Plano alterado: tenant=${tenantId} newPlan=${planId} by=${adminEmail}`
+)
+```
+
+#### 3. Visibilidade no Portal SuperAdmin
+
+**TenantDetails.tsx** exibe histórico completo de subscriptions com origem da mudança:
+
+```
+Subscription History
+┌────────────┬─────────────┬────────────────────────┐
+│ Plano      │ Período     │ Origem                 │
+├────────────┼─────────────┼────────────────────────┤
+│ Enterprise │ Atual       │ SuperAdmin (downgrade) │
+│ Profissional│ Jan-Mar 25 │ Self-Service (upgrade) │
+│ Básico     │ Trial       │ Cadastro inicial       │
+└────────────┴─────────────┴────────────────────────┘
+```
+
+**Metadata em SystemAlerts:**
+```json
+{
+  "source": "TENANT_SELF_SERVICE" | "SUPERADMIN",
+  "userId": "uuid do usuário que executou a mudança",
+  "reason": "Motivo da mudança (se fornecido)"
+}
+```
+
+### Tabela Comparativa de Funcionalidades
+
+| Funcionalidade                  | SuperAdmin | Tenant Admin |
+|--------------------------------|------------|--------------|
+| Ver todos os planos            | ✅         | ✅ (apenas upgrades) |
+| Criar/Editar planos            | ✅         | ❌           |
+| Upgrade de plano               | ✅         | ✅ (self-service) |
+| Downgrade de plano             | ✅         | ❌           |
+| Aplicar descontos              | ✅         | ❌           |
+| Ver todas as faturas           | ✅         | ❌ (apenas próprias) |
+| Gerar faturas manuais          | ✅         | ❌           |
+| Cancelar trial                 | ✅         | ✅ (apenas próprio) |
+| Cancelar subscription ativa    | ✅         | ❌           |
+| Reativar subscription          | ✅         | ❌           |
+| Analytics financeiros          | ✅         | ❌           |
+| Gestão de contratos            | ✅         | ✅ (aceite apenas) |
+
+### Casos de Uso de Integração
+
+#### Caso 1: Upgrade Solicitado pelo Tenant
+
+**Fluxo:**
+1. Tenant Admin acessa `/dashboard/settings/billing`
+2. Seleciona plano Profissional e confirma upgrade
+3. `POST /admin/subscription/upgrade` é chamado
+4. Backend:
+   - Valida que é upgrade válido
+   - Chama `SubscriptionAdminService.changePlan()`
+   - Gera fatura via `InvoiceService.generateInvoice()`
+   - Cria `SystemAlert` com `source: 'TENANT_SELF_SERVICE'`
+5. SuperAdmin visualiza em `/superadmin/tenants/:id`:
+   - Nova subscription com badge "Self-Service"
+   - Fatura gerada automaticamente
+   - Alert no histórico: "Upgrade solicitado via self-service"
+
+#### Caso 2: Desconto Aplicado pelo SuperAdmin
+
+**Fluxo:**
+1. SuperAdmin acessa `/superadmin/subscriptions/:id`
+2. Aplica desconto de 20% com razão "Cliente fidelidade"
+3. `POST /superadmin/subscriptions/:id/apply-discount` é chamado
+4. Backend atualiza `subscription.discountPercent` e `subscription.discountReason`
+5. Tenant Admin acessa `/dashboard/settings/billing`:
+   - **MELHORIA IMPLEMENTADA:** Vê seção "Desconto Aplicado"
+   - Exibe: "Desconto de 20% - Cliente fidelidade"
+   - Próxima fatura reflete o desconto
+
+#### Caso 3: Downgrade Necessário (Apenas SuperAdmin)
+
+**Fluxo:**
+1. Tenant contata suporte solicitando downgrade
+2. SuperAdmin avalia e aprova
+3. SuperAdmin acessa `/superadmin/tenants/:id`
+4. Seleciona plano menor e confirma mudança
+5. `POST /superadmin/tenants/:id/change-plan` é chamado
+6. Backend:
+   - Permite downgrade (sem validação de bloqueio)
+   - Chama `SubscriptionAdminService.changePlan()`
+   - Cria `SystemAlert` com `source: 'SUPERADMIN'`
+7. Tenant Admin visualiza mudança na próxima renovação
+
+### Garantias de Isolamento
+
+**Segurança de Dados:**
+```typescript
+// Tenant Admin NUNCA acessa dados de outros tenants
+const invoices = await this.prisma.invoice.findMany({
+  where: {
+    tenantId: user.tenantId, // ← Scoped ao tenant do usuário
+  }
+})
+
+// Validação adicional em endpoints de detalhes
+if (invoice.tenantId !== user.tenantId) {
+  throw new ForbiddenException('Acesso negado')
+}
+```
+
+**Separação de Rotas:**
+- `/admin/*` → Controllers com guards `@Roles('ADMIN', 'MANAGER')`
+- `/superadmin/*` → Controllers com guards `@Roles('SUPERADMIN')`
+- Zero conflito de rotas (prefixos diferentes)
+
+### Documentação Relacionada
+
+Para entender o sistema completo de billing do tenant, consulte:
+- **[Tenant Billing](./tenant-billing.md)** - Documentação completa do self-service
+- **[Multi-tenancy](../architecture/multi-tenancy.md)** - Arquitetura de isolamento
+
+---
+
 ## Referências
 
 - [Documentação Multi-tenancy](./multi-tenancy.md)
+- [Documentação Tenant Billing](./tenant-billing.md)
 - [Schema do Banco de Dados](../architecture/database-schema.md)
 - [Asaas API Docs](https://docs.asaas.com/)
 - [TanStack Query](https://tanstack.com/query/latest)

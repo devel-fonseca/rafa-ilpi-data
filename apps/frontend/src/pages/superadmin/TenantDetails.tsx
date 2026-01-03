@@ -106,7 +106,7 @@ export function TenantDetails() {
     variant: 'outline' as const,
   }
 
-  const activeSub = tenant.subscriptions.find((s) => s.status === 'ACTIVE' || s.status === 'TRIAL')
+  const activeSub = tenant.subscriptions.find((s) => s.status === 'active' || s.status === 'trialing')
 
   const handleReactivate = async () => {
     if (!confirm(`Confirma a reativação de "${tenant.name}"? O acesso será restaurado imediatamente.`)) return

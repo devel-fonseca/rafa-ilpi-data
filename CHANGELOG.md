@@ -6,6 +6,74 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-03] - Modal de Boas-vindas Pós-Trial e Alertas Dismissíveis 🎉
+
+### ✨ Adicionado
+
+**1. WelcomeToActivePlanDialog** (`apps/frontend/src/components/billing/WelcomeToActivePlanDialog.tsx`)
+- Modal de boas-vindas exibido uma única vez após trial expirar
+- Mensagem positiva: "Bem-vindo ao plano ativo!" (não punitiva)
+- Exibe informações do plano (nome, badge ATIVO)
+- Mostra detalhes da primeira fatura (número, valor, data de vencimento)
+- Dois CTAs: "Visualizar Fatura" (primário) e "Continuar Usando o Sistema" (secundário)
+- Persistência via localStorage (`welcome-active-plan-seen`)
+- Condições de exibição: trial expirado + status active + fatura pendente
+- Integrado no DashboardLayout para aparecer em qualquer página
+
+**2. Sistema de Alertas Dismissíveis** (`apps/frontend/src/components/admin/PlanStatusSection.tsx`)
+- Alerta de Fatura: dismissível com botão X
+- Alerta de Limite: dismissível com botão X
+- Cada alerta possui localStorage próprio:
+  - `trial-expired-alert-dismissed` (alertas de fatura)
+  - `plan-limit-alert-dismissed` (alertas de limite)
+- Layout responsivo com botão X no canto superior direito
+- Cores contextuais para hover states (critical/warning/info/success)
+- `aria-label` para acessibilidade
+
+### 📝 Alterado
+
+**1. PlanStatusSection** (`apps/frontend/src/components/admin/PlanStatusSection.tsx`)
+- Prop `showManageButton` adicionada (default: true)
+- Botão "Gerenciar Plano" agora é opcional (removido na página de billing)
+- Alertas de fatura agora usam 5 níveis de urgência:
+  - `critical`: >7 dias de atraso (grace period expirado)
+  - `warning`: 1-7 dias de atraso
+  - `info`: vence hoje ou amanhã
+  - `success`: trial acabou de expirar (primeira fatura, dentro do prazo)
+  - `null`: fatura normal dentro do prazo (sem alert)
+- Ambos os alertas (fatura e limite) são dismissíveis
+
+**2. CurrentPlanTab** (`apps/frontend/src/pages/settings/CurrentPlanTab.tsx`)
+- Passa `showManageButton={false}` para PlanStatusSection
+- Remove botão redundante na página de gerenciamento de plano
+
+**3. PaymentMethodSelector** (`apps/frontend/src/components/billing/PaymentMethodSelector.tsx`)
+- Removido PIX das opções de pagamento
+- Apenas Boleto e Cartão de Crédito disponíveis
+- Cartão de Crédito como método padrão
+- Reordenado para mostrar Cartão primeiro
+
+**4. DashboardLayout** (`apps/frontend/src/layouts/DashboardLayout.tsx`)
+- Integrado WelcomeToActivePlanDialog após CookieConsent
+- Removido import não utilizado de Badge
+
+### 🎯 Comportamento
+
+**Modal de Boas-vindas:**
+- Exibido automaticamente no primeiro acesso após trial expirar
+- Não reaparece após ser fechado (localStorage)
+- Tom positivo focado em boas-vindas, não em cobrança
+- Facilita navegação direta para faturas
+
+**Alertas Dismissíveis:**
+- Usuário tem controle sobre quais alertas deseja ver
+- Reduz "ruído psicológico" de avisos persistentes
+- Cada alerta pode ser fechado independentemente
+- Estado persiste entre sessões (localStorage)
+- Não reaparece após dismissão (exceto se limpar localStorage)
+
+---
+
 ## [2026-01-02] - Sistema de Alertas Médicos de Sinais Vitais 🚨
 
 ### ✨ Adicionado

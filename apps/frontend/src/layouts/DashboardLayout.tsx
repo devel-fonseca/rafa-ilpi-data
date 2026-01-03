@@ -5,7 +5,6 @@ import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileTex
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +29,7 @@ import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { PositionCode, POSITION_CODE_LABELS } from '@/types/permissions'
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown'
 import { MessagesDropdown } from '@/components/messages/MessagesDropdown'
+import { WelcomeToActivePlanDialog } from '@/components/billing/WelcomeToActivePlanDialog'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -685,6 +685,9 @@ export function DashboardLayout() {
 
       {/* Cookie Consent Banner */}
       <CookieConsent />
+
+      {/* Welcome to Active Plan Dialog (post-trial) */}
+      <WelcomeToActivePlanDialog />
     </div>
   )
 }
