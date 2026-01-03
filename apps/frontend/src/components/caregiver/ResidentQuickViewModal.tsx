@@ -367,9 +367,6 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   {/* Sinais Vitais Consolidados */}
                   {consolidatedVitalSigns && (
                     <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                        Informações de Saúde
-                      </p>
                       <div className="grid grid-cols-3 gap-3">
                         {/* Tipo Sanguíneo - Destaque */}
                         <div className="text-center bg-primary/5 rounded-lg p-2">
