@@ -367,7 +367,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   {/* Sinais Vitais Consolidados */}
                   {consolidatedVitalSigns && (
                     <div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {/* Tipo Sanguíneo - Destaque */}
                         <div className="text-center bg-primary/5 rounded-lg p-2">
                           <p className="text-[10px] text-muted-foreground mb-0.5">Tipo</p>
