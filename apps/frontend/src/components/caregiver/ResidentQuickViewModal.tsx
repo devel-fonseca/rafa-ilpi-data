@@ -138,10 +138,6 @@ interface ConsolidatedVitalSigns {
     value: number
     timestamp: string
   } | null
-  respiratoryRate: {
-    value: number
-    timestamp: string
-  } | null
 }
 
 interface DailyRecord {
@@ -255,8 +251,10 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
     queryFn: async () => {
       try {
         const response = await api.get(`/daily-records/resident/${residentId}/consolidated-vital-signs`)
+        console.log('🔍 Consolidated Vital Signs:', response.data)
         return response.data || null
-      } catch {
+      } catch (error) {
+        console.error('❌ Error fetching consolidated vital signs:', error)
         return null
       }
     },
@@ -306,6 +304,9 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
         .map((n) => n[0])
         .join('')
     : '?'
+
+  // Debug: verificar se consolidatedVitalSigns existe
+  console.log('🩺 Rendering with consolidatedVitalSigns:', consolidatedVitalSigns)
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -459,23 +460,6 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                               </p>
                               <p className="text-[10px] text-muted-foreground">
                                 {format(new Date(consolidatedVitalSigns.heartRate.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-
-                        {/* FR */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">FR</p>
-                          {consolidatedVitalSigns.respiratoryRate ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.respiratoryRate.value}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.respiratoryRate.timestamp), 'dd/MM HH:mm')}
                               </p>
                             </>
                           ) : (

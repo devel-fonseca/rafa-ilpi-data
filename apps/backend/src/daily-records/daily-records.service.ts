@@ -963,7 +963,6 @@ export class DailyRecordsService {
       lastTemperature,
       lastOxygenSaturation,
       lastHeartRate,
-      lastRespiratoryRate,
     ] = await Promise.all([
       // Pressão Arterial (PA)
       this.prisma.vitalSign.findFirst({
@@ -1041,21 +1040,6 @@ export class DailyRecordsService {
         },
         orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
       }),
-
-      // Frequência Respiratória (FR)
-      this.prisma.vitalSign.findFirst({
-        where: {
-          residentId,
-          tenantId,
-          deletedAt: null,
-          respiratoryRate: { not: null },
-        },
-        select: {
-          respiratoryRate: true,
-          timestamp: true,
-        },
-        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
-      }),
     ]);
 
     // Montar resposta consolidada
@@ -1089,12 +1073,6 @@ export class DailyRecordsService {
         ? {
             value: lastHeartRate.heartRate,
             timestamp: lastHeartRate.timestamp,
-          }
-        : null,
-      respiratoryRate: lastRespiratoryRate
-        ? {
-            value: lastRespiratoryRate.respiratoryRate,
-            timestamp: lastRespiratoryRate.timestamp,
           }
         : null,
     };
