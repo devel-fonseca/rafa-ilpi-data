@@ -620,14 +620,101 @@ export class ClinicalNotesService {
    * Busca tags únicas usadas em evoluções clínicas (para sugestões)
    */
   async getTagsSuggestions(tenantId: string): Promise<string[]> {
+    // Tags pré-definidas para contexto geriátrico e clínico
+    const predefinedTags = [
+      // Urgência e Prioridade
+      'Urgente',
+      'Atenção Imediata',
+      'Prioritário',
+      'Monitoramento',
+      'Monitoramento Contínuo',
+
+      // Sistemas e Categorias Clínicas
+      'Cardiovascular',
+      'Respiratório',
+      'Neurológico',
+      'Gastrointestinal',
+      'Genitourinário',
+      'Musculoesquelético',
+      'Dermatológico',
+
+      // Sinais Vitais
+      'Sinais Vitais Alterados',
+      'Hipertensão',
+      'Hipotensão',
+      'Taquicardia',
+      'Bradicardia',
+      'Febre',
+      'Hipotermia',
+      'Hipóxia',
+
+      // Condições Específicas
+      'Diabetes',
+      'Controle Glicêmico',
+      'Hiperglicemia',
+      'Hipoglicemia',
+      'Dor',
+      'Dor Crônica',
+      'Dor Aguda',
+
+      // Infecção e Feridas
+      'Investigação Infecciosa',
+      'Antibioticoterapia',
+      'Lesão por Pressão',
+      'Cuidados com Feridas',
+
+      // Nutrição e Hidratação
+      'Nutrição',
+      'Desidratação',
+      'Disfagia',
+      'Avaliação Nutricional',
+
+      // Mobilidade e Quedas
+      'Risco de Queda',
+      'Mobilidade Reduzida',
+      'Fisioterapia',
+      'Reabilitação',
+
+      // Mental e Comportamental
+      'Alteração do Estado Mental',
+      'Agitação',
+      'Depressão',
+      'Ansiedade',
+      'Declínio Cognitivo',
+
+      // Medicação
+      'Ajuste Medicamentoso',
+      'Reação Adversa',
+      'Polifarmácia',
+
+      // Cuidados e Intercorrências
+      'Intercorrência Clínica',
+      'Evolução Favorável',
+      'Piora do Quadro',
+      'Necessita Avaliação Médica',
+      'Encaminhamento',
+
+      // Outros
+      'Família Comunicada',
+      'Multidisciplinar',
+      'Cuidados Paliativos',
+    ]
+
+    // Buscar tags já utilizadas no tenant
     const notes = await this.prisma.clinicalNote.findMany({
       where: { tenantId, isAmended: false },
       select: { tags: true },
     })
 
-    // Extrair todas as tags e remover duplicatas
-    const allTags = notes.flatMap((note) => note.tags)
-    return [...new Set(allTags)].sort()
+    const usedTags = notes.flatMap((note) => note.tags)
+
+    // Combinar tags pré-definidas com tags já utilizadas e remover duplicatas
+    const allTags = [...new Set([...predefinedTags, ...usedTags])]
+
+    // Retornar ordenado alfabeticamente
+    return allTags.sort((a, b) =>
+      a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+    )
   }
 
   /**
@@ -782,22 +869,72 @@ export class ClinicalNotesService {
 
     assessment += alertTypeMessages[alert.type] || 'Avaliar quadro clínico geral.'
 
-    // Sugerir tags baseadas no tipo de alerta
-    const suggestedTags: string[] = ['Sinais Vitais Anormais']
+    // Sugerir tags baseadas no tipo e severidade do alerta
+    const suggestedTags: string[] = []
+
+    // Tag principal baseada na severidade
     if (alert.severity === 'CRITICAL') {
       suggestedTags.push('Urgente')
+      suggestedTags.push('Atenção Imediata')
+    } else if (alert.severity === 'HIGH') {
+      suggestedTags.push('Prioritário')
+    } else if (alert.severity === 'MEDIUM') {
+      suggestedTags.push('Monitoramento')
     }
+
+    // Tags por sistema/categoria clínica
     if (alert.type.includes('PRESSURE')) {
       suggestedTags.push('Cardiovascular')
+      suggestedTags.push('Sinais Vitais Alterados')
+      if (alert.type === 'PRESSURE_HIGH') {
+        suggestedTags.push('Hipertensão')
+      } else {
+        suggestedTags.push('Hipotensão')
+      }
     }
+
     if (alert.type.includes('GLUCOSE')) {
-      suggestedTags.push('Diabetes')
+      suggestedTags.push('Controle Glicêmico')
+      suggestedTags.push('Sinais Vitais Alterados')
+      if (alert.type === 'GLUCOSE_HIGH') {
+        suggestedTags.push('Hiperglicemia')
+        suggestedTags.push('Diabetes')
+      } else {
+        suggestedTags.push('Hipoglicemia')
+        suggestedTags.push('Risco de Queda')
+      }
     }
+
     if (alert.type.includes('TEMPERATURE')) {
-      suggestedTags.push('Infecção')
+      suggestedTags.push('Sinais Vitais Alterados')
+      if (alert.type === 'TEMPERATURE_HIGH') {
+        suggestedTags.push('Febre')
+        suggestedTags.push('Investigação Infecciosa')
+      } else {
+        suggestedTags.push('Hipotermia')
+      }
     }
+
     if (alert.type.includes('OXYGEN')) {
       suggestedTags.push('Respiratório')
+      suggestedTags.push('Sinais Vitais Alterados')
+      suggestedTags.push('Hipóxia')
+      suggestedTags.push('Monitoramento Contínuo')
+    }
+
+    if (alert.type.includes('HEART_RATE')) {
+      suggestedTags.push('Cardiovascular')
+      suggestedTags.push('Sinais Vitais Alterados')
+      if (alert.type === 'HEART_RATE_HIGH') {
+        suggestedTags.push('Taquicardia')
+      } else {
+        suggestedTags.push('Bradicardia')
+      }
+    }
+
+    // Tags gerais de contexto geriátrico
+    if (alert.severity === 'CRITICAL' || alert.severity === 'HIGH') {
+      suggestedTags.push('Intercorrência Clínica')
     }
 
     return {
