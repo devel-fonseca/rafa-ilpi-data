@@ -115,6 +115,12 @@ export function CreateEvolutionFromAlertDialog({
   const { data: authorizedProfessions, isLoading: loadingProfessions } =
     useAuthorizedProfessions()
 
+  // Filtrar profissões: se usuário tem profissão definida, mostrar apenas ela
+  // Caso contrário, mostrar todas autorizadas
+  const availableProfessions = userProfession
+    ? authorizedProfessions?.filter((prof) => prof === userProfession) || []
+    : authorizedProfessions || []
+
   // Buscar dados pré-preenchidos do alerta
   const {
     data: prefillData,
@@ -302,8 +308,8 @@ export function CreateEvolutionFromAlertDialog({
                       <SelectItem value="loading" disabled>
                         Carregando profissões...
                       </SelectItem>
-                    ) : authorizedProfessions && authorizedProfessions.length > 0 ? (
-                      authorizedProfessions.map((profession) => (
+                    ) : availableProfessions && availableProfessions.length > 0 ? (
+                      availableProfessions.map((profession) => (
                         <SelectItem key={profession} value={profession}>
                           {getProfessionLabel(profession)}
                         </SelectItem>
