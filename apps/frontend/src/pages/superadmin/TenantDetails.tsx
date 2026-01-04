@@ -7,16 +7,14 @@ import {
   Calendar,
   CreditCard,
   Activity,
-  Ban,
   Play,
-  Trash2,
   Receipt,
   ExternalLink,
   FileText,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
-import { SuspendTenantDialog } from '@/components/superadmin/SuspendTenantDialog'
+import { ApplyDiscountDialog } from '@/components/superadmin/ApplyDiscountDialog'
 import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
 import { ContractAcceptanceModal } from '@/components/superadmin/ContractAcceptanceModal'
 import { PrivacyPolicyAcceptanceModal } from '@/components/superadmin/PrivacyPolicyAcceptanceModal'
@@ -24,9 +22,7 @@ import {
   useTenant,
   useTenantStats,
   useSubscriptionHistory,
-  useSuspendTenant,
   useReactivateTenant,
-  useChangePlan,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
 import { useTenantContractAcceptance, useTenantPrivacyPolicyAcceptance } from '@/hooks/useContracts'
@@ -150,11 +146,15 @@ export function TenantDetails() {
         <div className="flex gap-2">
           <EditTenantDialog tenant={tenant} />
           <ChangePlanDialog tenant={tenant} />
-          {tenant.status === 'ACTIVE' && (
-            <SuspendTenantDialog
-              tenantId={tenant.id}
-              tenantName={tenant.name}
-              variant="button"
+          {activeSub && (
+            <ApplyDiscountDialog
+              subscriptionId={activeSub.id}
+              currentDiscount={{
+                discountPercent: activeSub.discountPercent,
+                discountReason: activeSub.discountReason,
+                customPrice: activeSub.customPrice,
+              }}
+              planPrice={activeSub.plan.price !== null ? activeSub.plan.price.toString() : null}
             />
           )}
           {tenant.status === 'SUSPENDED' && (

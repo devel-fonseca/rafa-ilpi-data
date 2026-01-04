@@ -30,6 +30,13 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 - Cores contextuais para hover states (critical/warning/info/success)
 - `aria-label` para acessibilidade
 
+**3. Portal SuperAdmin - Aplicar Descontos** (`apps/frontend/src/pages/superadmin/TenantDetails.tsx`)
+- Integrado botão "Aplicar Desconto" na página de detalhes do tenant
+- Dialog com 2 abas: Desconto Percentual e Preço Customizado
+- Exibe desconto atual se existir
+- Botão para remover desconto/preço customizado
+- Localização: ao lado de "Editar" e "Mudar Plano" no header da página
+
 ### 📝 Alterado
 
 **1. PlanStatusSection** (`apps/frontend/src/components/admin/PlanStatusSection.tsx`)
@@ -56,6 +63,11 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 **4. DashboardLayout** (`apps/frontend/src/layouts/DashboardLayout.tsx`)
 - Integrado WelcomeToActivePlanDialog após CookieConsent
 - Removido import não utilizado de Badge
+
+**5. Subscription Interface** (`apps/frontend/src/api/superadmin.api.ts`)
+- Adicionados campos de desconto: `discountPercent`, `discountReason`, `customPrice`
+- Adicionado campo `trialEndDate`
+- Sincronizado com modelo do backend
 
 ### 🎯 Comportamento
 

@@ -70,6 +70,10 @@ export interface Subscription {
   status: string
   currentPeriodStart: string | null
   currentPeriodEnd: string | null
+  trialEndDate: string | null
+  discountPercent: string | null
+  discountReason: string | null
+  customPrice: string | null
   createdAt: string
   plan: Plan
 }
