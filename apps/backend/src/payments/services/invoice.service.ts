@@ -401,7 +401,7 @@ export class InvoiceService {
     // ✅ AJUSTE 4: Mapear método escolhido no onboarding
     // Evita fricção e melhora conversão de pagamento
     const billingType = this.mapPaymentMethod(
-      subscription.preferredPaymentMethod,
+      subscription.preferredPaymentMethod ?? undefined,
     )
 
     // Gerar número da fatura
@@ -455,7 +455,7 @@ export class InvoiceService {
         amount: new Prisma.Decimal(amount),
         originalAmount: new Prisma.Decimal(basePrice),
         discountPercent: discount > 0 ? new Prisma.Decimal(discount) : null,
-        billingCycle: subscription.billing_cycle,
+        billingCycle: subscription.plan.billingCycle,
         currency: 'BRL',
         status: InvoiceStatus.OPEN,
         dueDate,

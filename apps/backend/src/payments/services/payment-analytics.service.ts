@@ -253,11 +253,13 @@ export class PaymentAnalyticsService {
         : 0
 
       // Aplicar desconto se houver
-      const discount = subscription.discountPercent || 0
+      const discount = subscription.discountPercent
+        ? Number(subscription.discountPercent)
+        : 0
       const priceWithDiscount = basePrice * (1 - discount / 100)
 
       // Normalizar para mensal (se for anual, dividir por 12)
-      if (subscription.billing_cycle === 'ANNUAL') {
+      if (subscription.plan.billingCycle === 'ANNUAL') {
         monthlyValue = priceWithDiscount / 12
       } else {
         monthlyValue = priceWithDiscount
