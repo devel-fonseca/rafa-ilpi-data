@@ -163,6 +163,43 @@ export function usePermissions() {
     return permissions.some((p) => query.data.all.includes(p))
   }
 
+  /**
+   * Verifica se o usuário é RT (Responsável Técnico)
+   * Baseado no positionCode do perfil do usuário
+   */
+  const isTechnicalManager = (): boolean => {
+    return user?.profile?.positionCode === 'TECHNICAL_MANAGER'
+  }
+
+  /**
+   * Verifica se o usuário é Coordenador de Enfermagem
+   */
+  const isNursingCoordinator = (): boolean => {
+    return user?.profile?.positionCode === 'NURSING_COORDINATOR'
+  }
+
+  /**
+   * Verifica se o usuário pertence à equipe de enfermagem
+   * Inclui: Enfermeiros, Técnicos e Auxiliares de Enfermagem
+   */
+  const isNursingStaff = (): boolean => {
+    const nursingPositions = [
+      'NURSE',
+      'NURSING_TECHNICIAN',
+      'NURSING_ASSISTANT',
+      'NURSING_COORDINATOR',
+    ]
+    return nursingPositions.includes(user?.profile?.positionCode || '')
+  }
+
+  /**
+   * Verifica se o usuário pode visualizar a agenda de prescrições
+   * Apenas RT e equipe de enfermagem
+   */
+  const canViewPrescriptionCalendar = (): boolean => {
+    return isTechnicalManager() || isNursingStaff()
+  }
+
   return {
     permissions: query.data?.all ?? [],
     inheritedPermissions: query.data?.inherited ?? [],
@@ -170,6 +207,10 @@ export function usePermissions() {
     hasPermission,
     hasAllPermissions,
     hasAnyPermission,
+    isTechnicalManager,
+    isNursingCoordinator,
+    isNursingStaff,
+    canViewPrescriptionCalendar,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

@@ -29,6 +29,13 @@ model Prescription {
   // Observações gerais
   notes String? @db.Text
 
+  // Revisão Médica (quando prescrição é revisada por médico)
+  lastMedicalReviewDate DateTime? @db.Timestamptz(3) // Data da consulta médica
+  lastReviewedByDoctor  String? // Nome do médico que revisou
+  lastReviewDoctorCrm   String? // CRM do médico revisor
+  lastReviewDoctorState String? // UF do CRM do médico revisor
+  lastReviewNotes       String?   @db.Text // Observações da revisão
+
   // Status
   isActive Boolean @default(true)
 
@@ -53,6 +60,7 @@ model Prescription {
   @@index([tenantId, residentId])
   @@index([tenantId, isActive])
   @@index([tenantId, validUntil])
+  @@index([tenantId, lastMedicalReviewDate])
   @@index([deletedAt])
   // Índices compostos para queries frequentes
   @@index([tenantId, residentId, isActive]) // Listar prescrições ativas do residente

@@ -62,10 +62,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  FileCheck,
 } from 'lucide-react'
 import { parseISO } from 'date-fns'
 import { useToast } from '@/components/ui/use-toast'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { MedicalReviewModal } from './modals/MedicalReviewModal'
 
 export default function PrescriptionsList() {
   const navigate = useNavigate()
@@ -79,6 +81,12 @@ export default function PrescriptionsList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: any | null }>({
+    open: false,
+    prescription: null,
+  })
+
+  // Estado do modal de revisão médica
+  const [reviewModal, setReviewModal] = useState<{ open: boolean; prescription: Prescription | null }>({
     open: false,
     prescription: null,
   })
@@ -197,6 +205,20 @@ export default function PrescriptionsList() {
     }
 
     return 'Ativa'
+  }
+
+  // Determinar se a prescrição precisa de revisão médica
+  const needsMedicalReview = (prescription: Prescription): boolean => {
+    if (!prescription.isActive) return false
+
+    if (prescription.reviewDate) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const reviewDate = parseISO(prescription.reviewDate)
+      return reviewDate <= today
+    }
+
+    return false
   }
 
   const handleStatusFilterChange = (status: string) => {
@@ -525,12 +547,23 @@ export default function PrescriptionsList() {
                                 Ver Detalhes
                               </DropdownMenuItem>
                               {canUpdatePrescriptions && (
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/dashboard/prescricoes/${prescription.id}/edit`)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Editar
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => navigate(`/dashboard/prescricoes/${prescription.id}/edit`)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  {needsMedicalReview(prescription) && (
+                                    <DropdownMenuItem
+                                      onClick={() => setReviewModal({ open: true, prescription })}
+                                      className="text-yellow-700 dark:text-yellow-400"
+                                    >
+                                      <FileCheck className="h-4 w-4 mr-2" />
+                                      Registrar Revisão Médica
+                                    </DropdownMenuItem>
+                                  )}
+                                </>
                               )}
                               {canDeletePrescriptions && (
                                 <>
@@ -616,6 +649,16 @@ export default function PrescriptionsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Medical Review Modal */}
+      {reviewModal.prescription && (
+        <MedicalReviewModal
+          prescriptionId={reviewModal.prescription.id}
+          residentId={reviewModal.prescription.residentId}
+          open={reviewModal.open}
+          onClose={() => setReviewModal({ open: false, prescription: null })}
+        />
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { QueryPrescriptionDto } from './dto/query-prescription.dto';
 import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
+import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -93,6 +94,11 @@ export class PrescriptionsService {
       'prescriptionImageUrl',
       'notes',
       'isActive',
+      'lastMedicalReviewDate',
+      'lastReviewedByDoctor',
+      'lastReviewDoctorCrm',
+      'lastReviewDoctorState',
+      'lastReviewNotes',
     ];
 
     for (const field of fieldsToCheck) {
@@ -669,6 +675,116 @@ export class PrescriptionsService {
     } catch (error) {
       this.logger.error('Erro ao atualizar prescrição', {
         error: error.message,
+        prescriptionId: id,
+        tenantId,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Registra revisão médica de uma prescrição
+   * Usado quando médico examina residente e emite nova receita (mesma prescrição)
+   */
+  async recordMedicalReview(
+    id: string,
+    dto: MedicalReviewPrescriptionDto,
+    userId: string,
+    tenantId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    try {
+      // 1. Buscar prescrição existente
+      const prescription = await this.prisma.prescription.findFirst({
+        where: {
+          id,
+          tenantId,
+          deletedAt: null,
+        },
+        include: {
+          medications: true,
+          sosMedications: true,
+        },
+      });
+
+      if (!prescription) {
+        throw new NotFoundException('Prescrição não encontrada');
+      }
+
+      // 2. Validar que prescrição está ativa
+      if (!prescription.isActive) {
+        throw new BadRequestException(
+          'Não é possível registrar revisão médica em prescrição inativa',
+        );
+      }
+
+      // 3. Criar snapshot do estado anterior (previousData)
+      const previousData = JSON.parse(JSON.stringify(prescription));
+
+      // 4. Atualizar prescrição em transação com histórico
+      const updated = await this.prisma.$transaction(async (tx) => {
+        // 4.1 Atualizar campos de revisão médica + versionNumber
+        const updatedPrescription = await tx.prescription.update({
+          where: { id },
+          data: {
+            lastMedicalReviewDate: parseISO(dto.medicalReviewDate),
+            lastReviewedByDoctor: dto.reviewedByDoctor,
+            lastReviewDoctorCrm: dto.reviewDoctorCrm,
+            lastReviewDoctorState: dto.reviewDoctorState,
+            lastReviewNotes: dto.reviewNotes,
+            prescriptionImageUrl: dto.prescriptionImageUrl, // Nova receita
+            reviewDate: dto.newReviewDate ? parseISO(dto.newReviewDate) : undefined,
+            versionNumber: prescription.versionNumber + 1, // Incrementar versão
+            updatedBy: userId, // Registrar quem fez a revisão
+          },
+          include: {
+            medications: true,
+            sosMedications: true,
+          },
+        });
+
+        // 4.2 Criar snapshot do estado novo (newData)
+        const newData = JSON.parse(JSON.stringify(updatedPrescription));
+
+        // 4.3 Calcular campos alterados
+        const changedFields = this.calculateChangedFields(previousData, newData);
+
+        // 4.4 Buscar nome do usuário para histórico
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        // 4.5 Criar entrada no histórico
+        await this.createPrescriptionHistoryRecord(
+          id,
+          tenantId,
+          'UPDATE',
+          `Revisão médica realizada em ${dto.medicalReviewDate}`,
+          userId,
+          user?.name || 'Sistema',
+          previousData,
+          newData,
+          changedFields,
+          tx,
+          ipAddress,
+          userAgent,
+        );
+
+        return updatedPrescription;
+      });
+
+      this.logger.log(
+        `Revisão médica registrada: Prescrição ${id} | Médico: ${dto.reviewedByDoctor} (CRM ${dto.reviewDoctorCrm}-${dto.reviewDoctorState})`,
+        { tenantId, userId },
+      );
+
+      return updated;
+    } catch (error) {
+      this.logger.error('Erro ao registrar revisão médica de prescrição', {
+        error,
         prescriptionId: id,
         tenantId,
         userId,

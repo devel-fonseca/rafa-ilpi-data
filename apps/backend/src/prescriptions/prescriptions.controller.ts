@@ -11,6 +11,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Request,
 } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -19,6 +20,7 @@ import { DeletePrescriptionDto } from './dto/delete-prescription.dto';
 import { QueryPrescriptionDto } from './dto/query-prescription.dto';
 import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
+import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -106,6 +108,33 @@ export class PrescriptionsController {
       updatePrescriptionDto,
       user.tenantId,
       user.id,
+    );
+  }
+
+  @Patch(':id/medical-review')
+  @RequirePermissions(PermissionType.UPDATE_PRESCRIPTIONS)
+  @AuditAction('MEDICAL_REVIEW')
+  @ApiOperation({
+    summary: 'Registrar revisão médica de prescrição',
+    description: 'Usado quando médico examina residente e emite nova receita com mesma prescrição. Atualiza dados da consulta médica e nova data de revisão.'
+  })
+  @ApiResponse({ status: 200, description: 'Revisão médica registrada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Prescrição inativa ou dados inválidos' })
+  @ApiResponse({ status: 404, description: 'Prescrição não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
+  recordMedicalReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() medicalReviewDto: MedicalReviewPrescriptionDto,
+    @CurrentUser() user: any,
+    @Request() req: any,
+  ) {
+    return this.prescriptionsService.recordMedicalReview(
+      id,
+      medicalReviewDto,
+      user.id,
+      user.tenantId,
+      req.ip,
+      req.headers['user-agent'],
     );
   }
 

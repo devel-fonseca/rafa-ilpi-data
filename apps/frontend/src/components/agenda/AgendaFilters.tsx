@@ -22,6 +22,7 @@ import {
   CONTENT_FILTER_LABELS,
   CONTENT_FILTER_ICONS,
 } from '@/types/agenda'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Resident {
   id: string
@@ -54,6 +55,10 @@ export function AgendaFilters({
   const [showFilters, setShowFilters] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
+
+  // Verificar permissão para visualização de prescrições
+  const { canViewPrescriptionCalendar } = usePermissions()
+  const canSeePrescriptions = canViewPrescriptionCalendar()
 
   // Buscar residentes ativos
   const { data: residentsData } = useQuery<{ data: Resident[] }>({
@@ -160,6 +165,9 @@ export function AgendaFilters({
               <SelectItem value="general">📋 Geral (Todos Residentes)</SelectItem>
               <SelectItem value="institutional">🏢 Institucional (Eventos da Instituição)</SelectItem>
               <SelectItem value="resident">👤 Por Residente</SelectItem>
+              {canSeePrescriptions && (
+                <SelectItem value="prescriptions">💊 Prescrições (RT e Enfermagem)</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

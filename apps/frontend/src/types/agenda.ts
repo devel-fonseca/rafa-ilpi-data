@@ -73,7 +73,7 @@ export interface AgendaItem {
 }
 
 export type ViewType = 'daily' | 'weekly' | 'monthly' | 'period'
-export type ScopeType = 'general' | 'institutional' | 'resident'
+export type ScopeType = 'general' | 'institutional' | 'resident' | 'prescriptions'
 export type StatusFilterType = 'all' | 'pending' | 'completed' | 'missed' | 'cancelled'
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -308,3 +308,45 @@ export const STATUS_BADGES: Record<AgendaItem['status'], {
     label: 'Cancelado',
   },
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// TIPOS PARA VISUALIZAÇÃO DE PRESCRIÇÕES
+// ──────────────────────────────────────────────────────────────────────────────
+
+export enum PrescriptionType {
+  ROTINA = 'ROTINA',
+  ALTERACAO_PONTUAL = 'ALTERACAO_PONTUAL',
+  ANTIBIOTICO = 'ANTIBIOTICO',
+  ALTO_RISCO = 'ALTO_RISCO',
+  CONTROLADO = 'CONTROLADO',
+  OUTRO = 'OUTRO',
+}
+
+export enum PrescriptionStatus {
+  ACTIVE = 'ACTIVE',
+  EXPIRING_SOON = 'EXPIRING_SOON', // Vence em até 7 dias
+  EXPIRED = 'EXPIRED',
+  NEEDS_REVIEW = 'NEEDS_REVIEW', // Data de revisão chegou
+}
+
+export interface PrescriptionCalendarItem {
+  id: string
+  residentId: string
+  residentName: string
+  prescriptionType: PrescriptionType
+  status: PrescriptionStatus
+  doctorName: string
+  doctorCrm: string
+  prescriptionDate: string | Date
+  validUntil?: string | Date
+  reviewDate?: string | Date
+  daysUntilExpiry?: number
+  daysUntilReview?: number
+  medicationCount: number
+  medicationNames: string[]
+  isControlled: boolean
+  controlledClass?: string
+  notes?: string
+}
+
+export type PrescriptionFilterType = 'all' | 'active' | 'expiring' | 'expired' | 'needs_review'

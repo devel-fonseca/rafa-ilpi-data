@@ -76,6 +76,13 @@ export interface Prescription {
   notificationType?: NotificationType
   prescriptionImageUrl?: string
   notes?: string
+  // Campos de Revisão Médica
+  lastMedicalReviewDate?: string
+  lastReviewedByDoctor?: string
+  lastReviewDoctorCrm?: string
+  lastReviewDoctorState?: string
+  lastReviewNotes?: string
+  // Status e Auditoria
   isActive: boolean
   createdBy: string
   createdAt: string
@@ -150,6 +157,16 @@ export interface UpdatePrescriptionDto extends Partial<CreatePrescriptionDto> {
 
 export interface DeletePrescriptionDto {
   deleteReason: string // Obrigatório (mínimo 10 caracteres)
+}
+
+export interface MedicalReviewPrescriptionDto {
+  medicalReviewDate: string // Data da consulta médica (YYYY-MM-DD)
+  reviewedByDoctor: string // Nome do médico que revisou
+  reviewDoctorCrm: string // CRM do médico revisor
+  reviewDoctorState: string // UF do CRM (2 caracteres)
+  newReviewDate?: string // Nova data de revisão (YYYY-MM-DD)
+  prescriptionImageUrl: string // URL da nova receita (obrigatório)
+  reviewNotes: string // Observações da revisão (mínimo 10 caracteres)
 }
 
 export interface QueryPrescriptionParams {
@@ -270,6 +287,9 @@ export const prescriptionsApi = {
 
   update: (id: string, data: UpdatePrescriptionDto) =>
     api.patch<Prescription>(`/prescriptions/${id}`, data),
+
+  recordMedicalReview: (id: string, data: MedicalReviewPrescriptionDto) =>
+    api.patch<Prescription>(`/prescriptions/${id}/medical-review`, data),
 
   remove: (id: string, deleteReason: string) =>
     api.delete(`/prescriptions/${id}`, {
