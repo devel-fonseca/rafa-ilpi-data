@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AgendaItem, StatusFilterType } from '@/types/agenda'
@@ -11,10 +11,13 @@ import {
   parseISO,
   startOfWeek,
   endOfWeek,
-  isSameMonth
+  isSameMonth,
+  addDays,
+  subDays
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AgendaItemCard } from './AgendaItemCard'
+import { DayDetailModal } from './DayDetailModal'
 
 interface Props {
   items: AgendaItem[]
@@ -25,6 +28,9 @@ interface Props {
 }
 
 export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onStatusFilterChange }: Props) {
+  // Estado do modal
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+
   // Calcular início e fim do mês
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate])
   const monthEnd = useMemo(() => endOfMonth(selectedDate), [selectedDate])
@@ -33,6 +39,13 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
   const calendarStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 0 }), [monthStart])
   const calendarEnd = useMemo(() => endOfWeek(monthEnd, { weekStartsOn: 0 }), [monthEnd])
   const calendarDays = useMemo(() => eachDayOfInterval({ start: calendarStart, end: calendarEnd }), [calendarStart, calendarEnd])
+
+  // Função de navegação entre dias no modal
+  const handleNavigateDay = (direction: 'prev' | 'next') => {
+    if (!selectedDay) return
+    const newDay = direction === 'prev' ? subDays(selectedDay, 1) : addDays(selectedDay, 1)
+    setSelectedDay(newDay)
+  }
 
   // Agrupar itens por dia
   const itemsByDay = useMemo(() => {
@@ -173,12 +186,13 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
                 return (
                   <div
                     key={dayKey}
+                    onClick={() => setSelectedDay(day)}
                     className={`
-                      min-h-[100px] p-2 rounded-lg border transition-colors
+                      min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
                       ${isToday ? 'ring-2 ring-primary bg-primary/5' : ''}
                       ${isSelected ? 'bg-accent' : ''}
-                      ${!isCurrentMonth ? 'opacity-40 bg-muted/50' : 'bg-background'}
-                      ${hasItems ? 'border-primary/30' : 'border-border'}
+                      ${!isCurrentMonth ? 'opacity-40 bg-muted/50' : 'bg-background hover:bg-accent/50'}
+                      ${hasItems ? 'border-primary/30 hover:border-primary/50' : 'border-border hover:border-primary/30'}
                     `}
                   >
                     {/* Número do dia */}
@@ -329,6 +343,18 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">Nenhum evento agendado neste mês.</p>
         </Card>
+      )}
+
+      {/* Modal de detalhes do dia */}
+      {selectedDay && (
+        <DayDetailModal
+          day={selectedDay}
+          items={itemsByDay[format(selectedDay, 'yyyy-MM-dd')] || []}
+          isOpen={!!selectedDay}
+          onClose={() => setSelectedDay(null)}
+          onNavigateDay={handleNavigateDay}
+          isToday={isSameDay(selectedDay, today)}
+        />
       )}
     </div>
   )

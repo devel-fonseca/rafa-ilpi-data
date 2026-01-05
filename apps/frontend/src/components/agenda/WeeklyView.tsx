@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AgendaItem, StatusFilterType } from '@/types/agenda'
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns'
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AgendaItemCard } from './AgendaItemCard'
+import { DayDetailModal } from './DayDetailModal'
 
 interface Props {
   items: AgendaItem[]
@@ -15,10 +16,20 @@ interface Props {
 }
 
 export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onStatusFilterChange }: Props) {
+  // Estado do modal
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+
   // Calcular início e fim da semana (domingo a sábado)
   const weekStart = useMemo(() => startOfWeek(selectedDate, { weekStartsOn: 0 }), [selectedDate])
   const weekEnd = useMemo(() => endOfWeek(selectedDate, { weekStartsOn: 0 }), [selectedDate])
   const weekDays = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd])
+
+  // Função de navegação entre dias no modal
+  const handleNavigateDay = (direction: 'prev' | 'next') => {
+    if (!selectedDay) return
+    const newDay = direction === 'prev' ? subDays(selectedDay, 1) : addDays(selectedDay, 1)
+    setSelectedDay(newDay)
+  }
 
   // Agrupar itens por dia
   const itemsByDay = useMemo(() => {
@@ -131,7 +142,10 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
             >
               {/* Header do dia */}
               <div className="mb-3 pb-2 border-b">
-                <div className="flex items-center justify-between">
+                <div
+                  className="flex items-center justify-between cursor-pointer hover:bg-accent/50 -mx-2 px-2 py-1 rounded transition-colors"
+                  onClick={() => setSelectedDay(day)}
+                >
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase">
                       {format(day, 'EEE', { locale: ptBR })}
@@ -181,7 +195,10 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
                   ))
                 )}
                 {dayItems.length > 5 && (
-                  <p className="text-xs text-muted-foreground text-center pt-2">
+                  <p
+                    className="text-xs text-muted-foreground text-center pt-2 cursor-pointer hover:text-primary hover:underline transition-colors"
+                    onClick={() => setSelectedDay(day)}
+                  >
                     +{dayItems.length - 5} itens...
                   </p>
                 )}
@@ -248,6 +265,18 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
           )
         })}
       </div>
+
+      {/* Modal de detalhes do dia */}
+      {selectedDay && (
+        <DayDetailModal
+          day={selectedDay}
+          items={itemsByDay[format(selectedDay, 'yyyy-MM-dd')] || []}
+          isOpen={!!selectedDay}
+          onClose={() => setSelectedDay(null)}
+          onNavigateDay={handleNavigateDay}
+          isToday={isSameDay(selectedDay, today)}
+        />
+      )}
     </div>
   )
 }
