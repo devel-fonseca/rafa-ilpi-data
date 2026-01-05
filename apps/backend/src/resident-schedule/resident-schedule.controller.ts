@@ -69,6 +69,17 @@ export class ResidentScheduleController {
     return this.scheduleService.createConfig(dto, user.tenantId, user.id);
   }
 
+  @Get('configs')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Listar todas as configurações ativas do tenant',
+    description: 'Retorna todas as configurações ativas de registros obrigatórios de residentes ativos (usado para cálculo de cobertura)',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de configurações' })
+  getAllActiveConfigs(@CurrentUser() user: any) {
+    return this.scheduleService.getAllActiveConfigs(user.tenantId);
+  }
+
   @Get('configs/resident/:residentId')
   @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
   @ApiOperation({

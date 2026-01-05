@@ -13,9 +13,8 @@ import {
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { formatBedFromResident } from '@/utils/formatters'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
-import { parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { extractDateOnly, getCurrentDate, formatDateOnlySafe } from '@/utils/dateHelpers'
+import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 
 const ITEMS_PER_PAGE = 12
 
@@ -69,6 +68,7 @@ export function ResidentSelectionGrid({
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('active')
   const [currentPage, setCurrentPage] = useState(1)
+  const [quickViewResidentId, setQuickViewResidentId] = useState<string | null>(null)
 
   // Criar mapa de últimos registros por residente
   const latestRecordsMap = useMemo(() => {
@@ -232,8 +232,7 @@ export function ResidentSelectionGrid({
             return (
               <Card
                 key={resident.id}
-                className="relative overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group"
-                onClick={() => onSelectResident(resident.id)}
+                className="relative overflow-hidden hover:shadow-lg transition-all duration-200 group"
               >
                 {/* Badges de Alerta no Topo */}
                 <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-2">
@@ -263,7 +262,13 @@ export function ResidentSelectionGrid({
 
                 <CardContent className="p-6 pt-12 flex flex-col items-center text-center space-y-3">
                   {/* Foto */}
-                  <div className="relative group-hover:scale-110 transition-transform duration-200">
+                  <div
+                    className="relative group-hover:scale-110 transition-transform duration-200 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setQuickViewResidentId(resident.id)
+                    }}
+                  >
                     <PhotoViewer
                       photoUrl={resident.fotoUrl}
                       altText={resident.fullName}
@@ -315,10 +320,7 @@ export function ResidentSelectionGrid({
                   <Button
                     variant="outline"
                     className="w-full mt-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectResident(resident.id)
-                    }}
+                    onClick={() => onSelectResident(resident.id)}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Criar Registro
@@ -376,6 +378,14 @@ export function ResidentSelectionGrid({
           </div>
         )}
       </>
+      )}
+
+      {/* Modal de Visualização Rápida */}
+      {quickViewResidentId && (
+        <ResidentQuickViewModal
+          residentId={quickViewResidentId}
+          onClose={() => setQuickViewResidentId(null)}
+        />
       )}
     </div>
   )

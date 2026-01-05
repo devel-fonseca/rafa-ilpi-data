@@ -14,7 +14,7 @@ import { Search, User, FileText, Eye, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { cn } from '@/lib/utils'
 import { usePublishedPops } from '@/hooks/usePops'
-import { ResidentQuickViewModal } from '@/components/caregiver/ResidentQuickViewModal'
+import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { POPQuickViewModal } from '@/components/pops/POPQuickViewModal'
 
 // ══════════════════════════════════════════════════════════════════════════

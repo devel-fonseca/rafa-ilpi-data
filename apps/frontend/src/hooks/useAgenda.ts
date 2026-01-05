@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { AgendaItem, ContentFilterType, InstitutionalEvent, ViewType } from '@/types/agenda'
+import { AgendaItem, ContentFilterType, InstitutionalEvent, ViewType, StatusFilterType } from '@/types/agenda'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { toast } from 'sonner'
 import { useMemo } from 'react'
@@ -10,6 +10,7 @@ interface GetAgendaItemsParams {
   selectedDate: Date
   residentId?: string | null
   filters?: ContentFilterType[]
+  statusFilter?: StatusFilterType
 }
 
 /**
@@ -21,7 +22,7 @@ interface GetAgendaItemsParams {
  * - 'weekly': busca a semana inteira (range query)
  * - 'monthly': busca o mês inteiro (range query)
  */
-export function useAgendaItems({ viewType, selectedDate, residentId, filters }: GetAgendaItemsParams) {
+export function useAgendaItems({ viewType, selectedDate, residentId, filters, statusFilter }: GetAgendaItemsParams) {
   // Calcular intervalo baseado no viewType
   const dateRange = useMemo(() => {
     if (viewType === 'daily') {
@@ -56,6 +57,7 @@ export function useAgendaItems({ viewType, selectedDate, residentId, filters }: 
       dateRange.mode === 'single' ? dateRange.date : `${dateRange.startDate}-${dateRange.endDate}`,
       residentId,
       filters,
+      statusFilter,
     ],
     queryFn: async () => {
       const params: Record<string, string> = {}
@@ -73,6 +75,10 @@ export function useAgendaItems({ viewType, selectedDate, residentId, filters }: 
 
       if (filters && filters.length > 0) {
         params.filters = filters.join(',')
+      }
+
+      if (statusFilter && statusFilter !== 'all') {
+        params.statusFilter = statusFilter
       }
 
       const response = await api.get<AgendaItem[]>('/resident-schedule/agenda/items', {

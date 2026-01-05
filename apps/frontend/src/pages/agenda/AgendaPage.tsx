@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { AgendaFilters } from '@/components/agenda/AgendaFilters'
@@ -11,7 +12,7 @@ import { WeeklyView } from '@/components/agenda/WeeklyView'
 import { MonthlyView } from '@/components/agenda/MonthlyView'
 import { InstitutionalEventModal } from '@/components/agenda/InstitutionalEventModal'
 import { useAgendaItems, useInstitutionalEvents, useInstitutionalEventMutations } from '@/hooks/useAgenda'
-import { ViewType, ScopeType, ContentFilterType } from '@/types/agenda'
+import { ViewType, ScopeType, ContentFilterType, StatusFilterType } from '@/types/agenda'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 const STORAGE_KEY = 'agenda-preferences'
@@ -26,6 +27,7 @@ export default function AgendaPage() {
   const [scope, setScope] = useState<ScopeType>('general')
   const [residentId, setResidentId] = useState<string | null>(null)
   const [contentFilters, setContentFilters] = useState<ContentFilterType[]>(ALL_FILTERS)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
 
   // Estado do modal de eventos institucionais
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
@@ -73,6 +75,7 @@ export default function AgendaPage() {
     selectedDate,
     residentId: scope === 'resident' ? residentId : null,
     filters: scope === 'resident' && residentId ? contentFilters : undefined,
+    statusFilter,
   })
 
   // Buscar eventos institucionais (para scope 'institutional')
@@ -97,7 +100,7 @@ export default function AgendaPage() {
     }
   }
 
-  const handleCreateEvent = async (data: any) => {
+  const handleCreateEvent = async (data: unknown) => {
     await createEvent.mutateAsync(data)
   }
 
@@ -128,9 +131,8 @@ export default function AgendaPage() {
         />
       </Card>
 
-      {/* Navegação de Data e Seletor de Visualização */}
+      {/* Navegação de Data */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {/* Navegação de Data */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrevDay}>
             <ChevronLeft className="h-4 w-4" />
@@ -198,10 +200,22 @@ export default function AgendaPage() {
           <DailyView items={items} isLoading={isLoading} />
         )}
         {viewType === 'weekly' && (
-          <WeeklyView items={items} selectedDate={selectedDate} isLoading={isLoading} />
+          <WeeklyView
+            items={items}
+            selectedDate={selectedDate}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
         {viewType === 'monthly' && (
-          <MonthlyView items={items} selectedDate={selectedDate} isLoading={isLoading} />
+          <MonthlyView
+            items={items}
+            selectedDate={selectedDate}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
       </div>
 

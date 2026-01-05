@@ -177,6 +177,24 @@ export function useScheduleConfigsByResident(
   });
 }
 
+/**
+ * Hook para listar todas as configurações ativas de registros obrigatórios do tenant
+ * Usado para cálculo de cobertura de registros obrigatórios
+ */
+export function useAllActiveScheduleConfigs(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['schedule-configs', 'all-active'],
+    queryFn: async () => {
+      const response = await api.get<ResidentScheduleConfig[]>(
+        '/resident-schedule/configs',
+      );
+      return response.data;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // QUERIES - AGENDAMENTOS
 // ──────────────────────────────────────────────────────────────────────────

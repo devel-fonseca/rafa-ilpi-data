@@ -1,4 +1,4 @@
-import { IsOptional, IsDateString, IsUUID, IsArray, IsEnum } from 'class-validator';
+import { IsOptional, IsDateString, IsUUID, IsArray, IsEnum, IsIn } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export enum ContentFilterType {
@@ -24,6 +24,14 @@ export enum ContentFilterType {
   ACTIVITIES = 'activities',
   VISITS = 'visits',
   OTHER_RECORDS = 'other_records',
+}
+
+export enum StatusFilterType {
+  ALL = 'all',
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  MISSED = 'missed',
+  CANCELLED = 'cancelled',
 }
 
 export class GetAgendaItemsDto {
@@ -68,4 +76,16 @@ export class GetAgendaItemsDto {
   })
   @IsEnum(ContentFilterType, { each: true })
   filters?: ContentFilterType[];
+
+  /**
+   * Filtro por status do item
+   * all = todos os status
+   * pending = apenas pendentes
+   * completed = apenas concluídos
+   * missed = apenas perdidos
+   * cancelled = apenas cancelados
+   */
+  @IsOptional()
+  @IsEnum(StatusFilterType)
+  statusFilter?: StatusFilterType;
 }

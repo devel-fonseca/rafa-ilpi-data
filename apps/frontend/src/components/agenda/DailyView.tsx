@@ -11,7 +11,7 @@ interface Props {
 const generateTimeSlots = () => {
   const slots: string[] = []
   for (let hour = 0; hour < 24; hour++) {
-    for (let minute of [0, 30]) {
+    for (const minute of [0, 30]) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
       slots.push(time)
     }

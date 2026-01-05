@@ -411,6 +411,38 @@ export class ResidentScheduleService {
   }
 
   /**
+   * Buscar todas as configurações ativas de registros obrigatórios do tenant
+   * Usado para cálculo de cobertura de registros obrigatórios
+   */
+  async getAllActiveConfigs(tenantId: string) {
+    return this.prisma.residentScheduleConfig.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        deletedAt: null,
+        resident: {
+          status: 'Ativo',
+          deletedAt: null,
+        },
+      },
+      select: {
+        id: true,
+        residentId: true,
+        recordType: true,
+        frequency: true,
+        dayOfWeek: true,
+        dayOfMonth: true,
+        suggestedTimes: true,
+        metadata: true,
+      },
+      orderBy: [
+        { residentId: 'asc' },
+        { recordType: 'asc' },
+      ],
+    });
+  }
+
+  /**
    * Atualizar configuração
    */
   async updateConfig(

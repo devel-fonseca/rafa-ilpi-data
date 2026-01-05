@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { GetAgendaItemsDto, ContentFilterType } from './dto/get-agenda-items.dto';
+import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/get-agenda-items.dto';
 import { AgendaItem, AgendaItemType } from './interfaces/agenda-item.interface';
-import { parseISO, startOfDay, endOfDay, isWithinInterval, eachDayOfInterval, format } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, isWithinInterval, eachDayOfInterval, format, isPast, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
 
 @Injectable()
@@ -95,15 +95,37 @@ export class AgendaService {
       items.push(...records);
     }
 
+    // Aplicar filtro de status se fornecido
+    const statusFilter = dto.statusFilter || StatusFilterType.ALL;
+    let filteredItems = items;
+
+    if (statusFilter !== StatusFilterType.ALL) {
+      filteredItems = items.filter((item) => {
+        // Aplicar lógica de status baseada no filtro
+        switch (statusFilter) {
+          case StatusFilterType.PENDING:
+            return item.status === 'pending';
+          case StatusFilterType.COMPLETED:
+            return item.status === 'completed';
+          case StatusFilterType.MISSED:
+            return item.status === 'missed';
+          case StatusFilterType.CANCELLED:
+            return item.status === 'cancelled';
+          default:
+            return true;
+        }
+      });
+    }
+
     // Ordenar por horário
-    items.sort((a, b) => {
+    filteredItems.sort((a, b) => {
       const timeA = a.scheduledTime || '00:00';
       const timeB = b.scheduledTime || '00:00';
       return timeA.localeCompare(timeB);
     });
 
-    this.logger.log(`Encontrados ${items.length} itens da agenda`);
-    return items;
+    this.logger.log(`Encontrados ${filteredItems.length} itens da agenda (total: ${items.length}, filtro: ${statusFilter})`);
+    return filteredItems;
   }
 
   /**
@@ -199,9 +221,16 @@ export class AgendaService {
                 },
               });
 
-              // Para dias passados: só mostrar se foi realmente administrado
-              // Para hoje e futuros: mostrar sempre (pendente ou administrado)
-              if (isPastDay && !administration) continue;
+              // Determinar o status do item
+              let status: 'pending' | 'completed' | 'missed';
+              if (administration && administration.wasAdministered) {
+                status = 'completed';
+              } else if (isPastDay) {
+                // Se é um dia passado e não foi administrado, está missed
+                status = 'missed';
+              } else {
+                status = 'pending';
+              }
 
               items.push({
                 id: `${medication.id}-${format(currentDay, 'yyyy-MM-dd')}-${time}`,
@@ -213,7 +242,7 @@ export class AgendaService {
                 description: medication.instructions || undefined,
                 scheduledDate: currentDay,
                 scheduledTime: time,
-                status: administration ? 'completed' : 'pending',
+                status,
                 completedAt: administration?.createdAt,
                 completedBy: administration?.user?.name || administration?.administeredBy,
                 medicationName: medication.name,
@@ -273,26 +302,36 @@ export class AgendaService {
       },
     });
 
-    return events.map((event) => ({
-      id: event.id,
-      type: AgendaItemType.SCHEDULED_EVENT,
-      category: this.mapEventTypeToCategory(event.eventType),
-      residentId: event.residentId,
-      residentName: event.resident.fullName,
-      title: event.title,
-      description: event.description || undefined,
-      scheduledDate: event.scheduledDate,
-      scheduledTime: event.scheduledTime || '00:00',
-      status: this.mapEventStatus(event.status),
-      completedAt: event.completedAt || undefined,
-      completedBy: event.updatedByUser?.name,
-      eventType: event.eventType,
-      vaccineData: event.vaccineData as any,
-      eventId: event.id,
-      metadata: {
-        notes: event.notes,
-      },
-    }));
+    const now = new Date();
+
+    return events.map((event) => {
+      // Se o evento está SCHEDULED mas a data já passou, marcar como MISSED
+      let eventStatus = event.status;
+      if (eventStatus === 'SCHEDULED' && isBefore(event.scheduledDate, startOfDay(now))) {
+        eventStatus = 'MISSED';
+      }
+
+      return {
+        id: event.id,
+        type: AgendaItemType.SCHEDULED_EVENT,
+        category: this.mapEventTypeToCategory(event.eventType),
+        residentId: event.residentId,
+        residentName: event.resident.fullName,
+        title: event.title,
+        description: event.description || undefined,
+        scheduledDate: event.scheduledDate,
+        scheduledTime: event.scheduledTime || '00:00',
+        status: this.mapEventStatus(eventStatus),
+        completedAt: event.completedAt || undefined,
+        completedBy: event.updatedByUser?.name,
+        eventType: event.eventType,
+        vaccineData: event.vaccineData as any,
+        eventId: event.id,
+        metadata: {
+          notes: event.notes,
+        },
+      };
+    });
   }
 
   /**
@@ -387,12 +426,19 @@ export class AgendaService {
           },
         });
 
-        // Para dias passados: só mostrar se foi realmente registrado
-        // Para hoje e futuros: mostrar sempre (pendente ou concluído)
-        if (isPastDay && !record) continue;
-
         const suggestedTimes = config.suggestedTimes as string[] || [];
         const primaryTime = suggestedTimes.length > 0 ? suggestedTimes[0] : '00:00';
+
+        // Determinar o status do registro
+        let status: 'pending' | 'completed' | 'missed';
+        if (record && !record.deletedAt) {
+          status = 'completed';
+        } else if (isPastDay) {
+          // Se é um dia passado e não foi registrado, está missed
+          status = 'missed';
+        } else {
+          status = 'pending';
+        }
 
         items.push({
           id: `${config.id}-${format(targetDate, 'yyyy-MM-dd')}`,
@@ -404,7 +450,7 @@ export class AgendaService {
           description: config.notes || undefined,
           scheduledDate: targetDate,
           scheduledTime: primaryTime,
-          status: record ? 'completed' : 'pending',
+          status,
           completedAt: record?.createdAt,
           completedBy: record?.user?.name || record?.recordedBy,
           recordType: config.recordType,

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AgendaItem } from '@/types/agenda'
+import { AgendaItem, StatusFilterType } from '@/types/agenda'
 import {
   format,
   startOfMonth,
@@ -20,9 +20,11 @@ interface Props {
   items: AgendaItem[]
   selectedDate: Date
   isLoading?: boolean
+  statusFilter?: StatusFilterType
+  onStatusFilterChange?: (filter: StatusFilterType) => void
 }
 
-export function MonthlyView({ items, selectedDate, isLoading }: Props) {
+export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onStatusFilterChange }: Props) {
   // Calcular início e fim do mês
   const monthStart = useMemo(() => startOfMonth(selectedDate), [selectedDate])
   const monthEnd = useMemo(() => endOfMonth(selectedDate), [selectedDate])
@@ -108,13 +110,37 @@ export function MonthlyView({ items, selectedDate, isLoading }: Props) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
+            <Badge
+              variant="outline"
+              className={`cursor-pointer transition-all ${
+                statusFilter === 'pending'
+                  ? 'bg-yellow-600 text-white hover:bg-yellow-700 border-yellow-600'
+                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300'
+              }`}
+              onClick={() => onStatusFilterChange?.(statusFilter === 'pending' ? 'all' : 'pending')}
+            >
               {monthItems.filter(i => i.status === 'pending').length} pendentes
             </Badge>
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge
+              variant="outline"
+              className={`cursor-pointer transition-all ${
+                statusFilter === 'completed'
+                  ? 'bg-green-600 text-white hover:bg-green-700 border-green-600'
+                  : 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300'
+              }`}
+              onClick={() => onStatusFilterChange?.(statusFilter === 'completed' ? 'all' : 'completed')}
+            >
               {monthItems.filter(i => i.status === 'completed').length} concluídos
             </Badge>
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            <Badge
+              variant="outline"
+              className={`cursor-pointer transition-all ${
+                statusFilter === 'missed'
+                  ? 'bg-red-600 text-white hover:bg-red-700 border-red-600'
+                  : 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300'
+              }`}
+              onClick={() => onStatusFilterChange?.(statusFilter === 'missed' ? 'all' : 'missed')}
+            >
               {monthItems.filter(i => i.status === 'missed').length} perdidos
             </Badge>
           </div>

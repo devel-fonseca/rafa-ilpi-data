@@ -53,7 +53,7 @@ export interface AgendaItem {
   status: 'pending' | 'completed' | 'missed' | 'cancelled'
   completedAt?: string | Date
   completedBy?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 
   // Específico para medicamentos
   medicationName?: string
@@ -74,6 +74,7 @@ export interface AgendaItem {
 
 export type ViewType = 'daily' | 'weekly' | 'monthly' | 'period'
 export type ScopeType = 'general' | 'institutional' | 'resident'
+export type StatusFilterType = 'all' | 'pending' | 'completed' | 'missed' | 'cancelled'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TIPOS PARA EVENTOS INSTITUCIONAIS
@@ -121,7 +122,7 @@ export interface InstitutionalEvent {
   location?: string
 
   // Metadados adicionais
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 
   // Auditoria
   createdAt: string | Date

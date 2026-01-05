@@ -37,7 +37,7 @@ interface Props {
   onClose: () => void
   onSubmit: (data: FormData) => Promise<void>
   initialDate?: Date
-  editData?: any
+  editData?: InstitutionalEvent
 }
 
 const EVENT_TYPE_LABELS: Record<InstitutionalEventType, string> = {
