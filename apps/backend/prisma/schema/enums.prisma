@@ -181,6 +181,12 @@ enum PermissionType {
   VIEW_RESIDENT_SCHEDULE
   MANAGE_RESIDENT_SCHEDULE
 
+  // Eventos Institucionais (Documentos, Treinamentos, Reuniões, Inspeções, etc)
+  VIEW_INSTITUTIONAL_EVENTS
+  CREATE_INSTITUTIONAL_EVENTS
+  UPDATE_INSTITUTIONAL_EVENTS
+  DELETE_INSTITUTIONAL_EVENTS
+
   // Mensagens Internas
   VIEW_MESSAGES
   SEND_MESSAGES
@@ -353,6 +359,25 @@ enum ScheduledEventStatus {
   MISSED
 
   @@map("ScheduledEventStatus")
+}
+
+enum InstitutionalEventType {
+  DOCUMENT_EXPIRY  // Vencimento de documentos
+  TRAINING         // Treinamentos
+  MEETING          // Reuniões
+  INSPECTION       // Inspeções/Fiscalizações
+  MAINTENANCE      // Manutenções
+  OTHER            // Outros eventos
+
+  @@map("InstitutionalEventType")
+}
+
+enum InstitutionalEventVisibility {
+  ADMIN_ONLY  // Apenas admin vê
+  RT_ONLY     // Apenas RT (Responsável Técnico) vê
+  ALL_USERS   // Todos os usuários veem
+
+  @@map("InstitutionalEventVisibility")
 }
 
 // ==========================================
@@ -548,6 +573,11 @@ enum SystemNotificationType {
   // Agendamentos
   SCHEDULED_EVENT_DUE
   SCHEDULED_EVENT_MISSED
+
+  // Eventos Institucionais
+  INSTITUTIONAL_EVENT_CREATED
+  INSTITUTIONAL_EVENT_UPDATED
+  INSTITUTIONAL_EVENT_DUE
 }
 
 enum NotificationCategory {
@@ -559,6 +589,7 @@ enum NotificationCategory {
   POP
   SYSTEM
   SCHEDULED_EVENT
+  INSTITUTIONAL_EVENT
 }
 
 enum NotificationSeverity {

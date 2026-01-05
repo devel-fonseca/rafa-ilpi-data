@@ -30,6 +30,9 @@ import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 // Daily Records Pages
 import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
 
+// Agenda Pages
+import AgendaPage from '@/pages/agenda/AgendaPage'
+
 // Prescriptions Pages
 import PrescriptionsPage from '@/pages/prescriptions/PrescriptionsPage'
 import PrescriptionsList from '@/pages/prescriptions/PrescriptionsList'
@@ -173,6 +176,10 @@ export const router = createBrowserRouter([
       {
         path: 'registros-diarios',
         element: <DailyRecordsPage />,
+      },
+      {
+        path: 'agenda',
+        element: <AgendaPage />,
       },
       {
         path: 'prescricoes',

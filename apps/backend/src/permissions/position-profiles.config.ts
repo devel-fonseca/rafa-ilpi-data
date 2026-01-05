@@ -122,6 +122,11 @@ const BASE_PERMISSIONS = {
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
     PermissionType.MANAGE_RESIDENT_SCHEDULE,
+    // Eventos Institucionais
+    PermissionType.VIEW_INSTITUTIONAL_EVENTS,
+    PermissionType.CREATE_INSTITUTIONAL_EVENTS,
+    PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
+    PermissionType.DELETE_INSTITUTIONAL_EVENTS,
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,
@@ -207,6 +212,11 @@ const BASE_PERMISSIONS = {
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
     PermissionType.MANAGE_RESIDENT_SCHEDULE,
+    // Eventos Institucionais
+    PermissionType.VIEW_INSTITUTIONAL_EVENTS,
+    PermissionType.CREATE_INSTITUTIONAL_EVENTS,
+    PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
+    PermissionType.DELETE_INSTITUTIONAL_EVENTS,
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,

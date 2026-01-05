@@ -1,0 +1,59 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  EVENTOS INSTITUCIONAIS
+//
+//  Eventos da própria instituição (vencimentos, treinamentos, reuniões, etc.)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model InstitutionalEvent {
+  id             String                        @id @default(uuid()) @db.Uuid
+  tenantId       String                        @db.Uuid
+  eventType      InstitutionalEventType
+  visibility     InstitutionalEventVisibility  @default(ALL_USERS)
+  title          String
+  description    String?                       @db.Text
+  scheduledDate  DateTime                      @db.Timestamptz(3)
+  scheduledTime  String?                       // Formato HH:mm
+  allDay         Boolean                       @default(false)
+  status         ScheduledEventStatus          @default(SCHEDULED)
+  completedAt    DateTime?                     @db.Timestamptz(3)
+  notes          String?                       @db.Text
+
+  // Campos específicos para vencimento de documentos
+  documentType   String?
+  documentNumber String?
+  expiryDate     DateTime?                     @db.Timestamptz(3)
+  responsible    String?
+
+  // Campos específicos para treinamentos
+  trainingTopic  String?
+  instructor     String?
+  targetAudience String?
+  location       String?
+
+  // Metadados adicionais (JSON flexível)
+  metadata       Json?                         @db.JsonB
+
+  // Auditoria
+  createdAt      DateTime                      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                      @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?                     @db.Timestamptz(3)
+  createdBy      String                        @db.Uuid
+  updatedBy      String?                       @db.Uuid
+
+  // Relações
+  tenant         Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser  User                          @relation("InstitutionalEventCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updatedByUser  User?                         @relation("InstitutionalEventUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([tenantId])
+  @@index([scheduledDate])
+  @@index([eventType])
+  @@index([visibility])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, eventType, scheduledDate])
+  @@index([expiryDate])
+  @@map("institutional_events")
+}

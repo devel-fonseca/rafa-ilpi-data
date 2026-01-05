@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -399,6 +399,23 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/dashboard/agenda"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Agenda'}
+                  </Link>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Agenda</TooltipContent>
+                )}
+              </Tooltip>
+
               {canViewPops && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -588,6 +605,14 @@ export function DashboardLayout() {
               >
                 <Pill className="h-4 w-4" />
                 Medicações
+              </Link>
+              <Link
+                to="/dashboard/agenda"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <Calendar className="h-4 w-4" />
+                Agenda
               </Link>
               {canViewPops && (
                 <Link

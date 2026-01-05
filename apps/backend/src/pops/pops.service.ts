@@ -318,8 +318,8 @@ export class PopsService {
         },
       })
 
-      // Se é ADMIN, permite acesso (bypass)
-      if (user?.role === 'admin') {
+      // Se é ADMIN, permite acesso (bypass) (case-insensitive)
+      if (user?.role?.toLowerCase() === 'admin') {
         return pop
       }
 

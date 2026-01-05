@@ -122,6 +122,10 @@ model User {
   passwordResetTokens PasswordResetToken[]
   accessLogs          AccessLog[]
 
+  // Eventos Institucionais
+  institutionalEventsCreated InstitutionalEvent[] @relation("InstitutionalEventCreatedBy")
+  institutionalEventsUpdated InstitutionalEvent[] @relation("InstitutionalEventUpdatedBy")
+
   @@unique([tenantId, email])
   @@index([createdBy])
   @@index([updatedBy])

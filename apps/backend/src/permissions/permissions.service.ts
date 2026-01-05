@@ -319,8 +319,8 @@ export class PermissionsService {
         return { inherited: [], custom: [], all: [] };
       }
 
-      // Se é ADMIN, retorna TODAS as permissões como herdadas
-      if (userPermData.role === 'admin') {
+      // Se é ADMIN, retorna TODAS as permissões como herdadas (case-insensitive)
+      if (userPermData.role?.toLowerCase() === 'admin') {
         const allPermissions = Object.values(PermissionType);
         return {
           inherited: allPermissions,

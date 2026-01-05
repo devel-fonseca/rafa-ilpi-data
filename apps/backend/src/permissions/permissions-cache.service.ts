@@ -146,8 +146,8 @@ export class PermissionsCacheService {
   calculateEffectivePermissions(
     userPermData: CachedUserPermissions,
   ): PermissionType[] {
-    // Se é ADMIN, retorna TODAS as permissões
-    if (userPermData.role === 'admin') {
+    // Se é ADMIN, retorna TODAS as permissões (case-insensitive)
+    if (userPermData.role?.toLowerCase() === 'admin') {
       return Object.values(PermissionType);
     }
 
@@ -201,8 +201,8 @@ export class PermissionsCacheService {
       return false;
     }
 
-    // 1. ADMIN tem todas as permissões
-    if (userPermData.role === 'admin') {
+    // 1. ADMIN tem todas as permissões (case-insensitive)
+    if (userPermData.role?.toLowerCase() === 'admin') {
       return true;
     }
 

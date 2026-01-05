@@ -49,6 +49,7 @@ import { EmailLogsModule } from './email-logs/email-logs.module';
 import { TenantMessagesModule } from './tenant-messages/tenant-messages.module';
 import { MessagesModule } from './messages/messages.module';
 import { CacheModule } from './cache/cache.module';
+import { InstitutionalEventsModule } from './institutional-events/institutional-events.module';
 
 @Module({
   imports: [
@@ -123,6 +124,7 @@ import { CacheModule } from './cache/cache.module';
     EmailLogsModule,
     TenantMessagesModule,
     MessagesModule,
+    InstitutionalEventsModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { ResidentScheduleService } from './resident-schedule.service';
 import { ResidentScheduleTasksService } from './resident-schedule-tasks.service';
+import { AgendaService } from './agenda.service';
 import {
   CreateScheduleConfigDto,
   UpdateScheduleConfigDto,
@@ -29,6 +30,7 @@ import {
   UpdateScheduledEventDto,
   QueryDailyTasksDto,
 } from './dto';
+import { GetAgendaItemsDto } from './dto/get-agenda-items.dto';
 import { CreateAlimentacaoConfigDto } from './dto/create-alimentacao-config.dto';
 import { UpdateAlimentacaoConfigDto } from './dto/update-alimentacao-config.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,6 +39,7 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { parseISO, startOfDay, endOfDay } from 'date-fns';
 
 @ApiTags('Resident Schedule')
 @ApiBearerAuth()
@@ -47,6 +50,7 @@ export class ResidentScheduleController {
   constructor(
     private readonly scheduleService: ResidentScheduleService,
     private readonly tasksService: ResidentScheduleTasksService,
+    private readonly agendaService: AgendaService,
   ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -303,5 +307,123 @@ export class ResidentScheduleController {
   })
   getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() user: any) {
     return this.tasksService.getDailyTasks(user.tenantId, query.date);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AGENDA CONSOLIDADA (Medicamentos + Eventos + Registros)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  @Get('agenda/items')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Buscar itens da agenda consolidados',
+    description:
+      'Retorna todos os itens da agenda (medicamentos, eventos agendados e registros obrigatórios) ' +
+      'consolidados em uma única lista. Permite filtrar por residente e tipo de conteúdo.\n\n' +
+      '**Modos de consulta:**\n' +
+      '1. **Single date**: Fornece apenas `date` (visualização diária)\n' +
+      '2. **Range query**: Fornece `startDate` e `endDate` (visualizações semanal/mensal)\n' +
+      '3. **Default**: Se nenhum fornecido, usa data atual',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de itens da agenda' })
+  @ApiQuery({
+    name: 'date',
+    description: 'Data única no formato YYYY-MM-DD (modo single date)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Data inicial do intervalo no formato YYYY-MM-DD (modo range query)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'endDate',
+    description: 'Data final do intervalo no formato YYYY-MM-DD (modo range query)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'residentId',
+    description: 'ID do residente (UUID) - opcional, se não informado retorna todos',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filters',
+    description: 'Filtros de tipo de conteúdo (array separado por vírgulas)',
+    required: false,
+    example: 'medications,vaccinations,feeding',
+  })
+  getAgendaItems(@Query() query: GetAgendaItemsDto, @CurrentUser() user: any) {
+    return this.agendaService.getAgendaItems(query, user.tenantId);
+  }
+
+  @Get('agenda/institutional-events')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Buscar eventos institucionais para a agenda',
+    description:
+      'Retorna eventos institucionais (vencimento de documentos, treinamentos, reuniões, etc.) ' +
+      'filtrados por visibilidade baseado no role do usuário.\n\n' +
+      '**Modos de consulta:**\n' +
+      '1. **Single date**: Fornece apenas `date` (visualização diária)\n' +
+      '2. **Range query**: Fornece `startDate` e `endDate` (visualizações semanal/mensal)\n' +
+      '3. **Default**: Se nenhum fornecido, usa data atual',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de eventos institucionais' })
+  @ApiQuery({
+    name: 'date',
+    description: 'Data única no formato YYYY-MM-DD (modo single date)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Data inicial do intervalo no formato YYYY-MM-DD (modo range query)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'endDate',
+    description: 'Data final do intervalo no formato YYYY-MM-DD (modo range query)',
+    required: false,
+  })
+  async getInstitutionalEvents(
+    @CurrentUser() user: any,
+    @Query('date') date?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    // Determinar intervalo de datas
+    let targetStartDate: Date;
+    let targetEndDate: Date;
+
+    if (startDate && endDate) {
+      // Modo Range Query
+      targetStartDate = parseISO(`${startDate}T00:00:00.000`);
+      targetEndDate = parseISO(`${endDate}T23:59:59.999`);
+    } else if (date) {
+      // Modo Single Date (retrocompatível)
+      const singleDate = parseISO(`${date}T12:00:00.000`);
+      targetStartDate = startOfDay(singleDate);
+      targetEndDate = endOfDay(singleDate);
+    } else {
+      // Modo Default: hoje
+      const today = new Date();
+      targetStartDate = startOfDay(today);
+      targetEndDate = endOfDay(today);
+    }
+
+    // Verificar se usuário é RT
+    const userProfile = await this.agendaService['prisma'].userProfile.findUnique({
+      where: { userId: user.id },
+      select: { isTechnicalManager: true },
+    });
+
+    const isRT = userProfile?.isTechnicalManager || false;
+
+    return this.agendaService.getInstitutionalEvents(
+      targetStartDate,
+      targetEndDate,
+      user.tenantId,
+      user.role,
+      isRT,
+    );
   }
 }

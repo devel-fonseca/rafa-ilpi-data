@@ -520,4 +520,57 @@ export class NotificationsService {
       metadata: { residentId, residentName, eventTitle, scheduledDate: dateStr },
     })
   }
+
+  /**
+   * Criar notificação de novo evento institucional
+   * A notificação é broadcast (vai para todos do tenant)
+   */
+  async createInstitutionalEventCreatedNotification(
+    tenantId: string,
+    eventId: string,
+    eventTitle: string,
+    eventType: string,
+    scheduledDate: Date,
+    createdByName: string,
+  ) {
+    const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
+
+    return this.create(tenantId, {
+      type: SystemNotificationType.INSTITUTIONAL_EVENT_CREATED,
+      category: NotificationCategory.INSTITUTIONAL_EVENT,
+      severity: NotificationSeverity.INFO,
+      title: 'Novo Evento Institucional',
+      message: `${createdByName} criou o evento "${eventTitle}" agendado para ${dateStr}.`,
+      actionUrl: `/dashboard/agenda`,
+      entityType: 'INSTITUTIONAL_EVENT',
+      entityId: eventId,
+      metadata: { eventTitle, eventType, scheduledDate: dateStr, createdByName },
+    })
+  }
+
+  /**
+   * Criar notificação de evento institucional atualizado
+   */
+  async createInstitutionalEventUpdatedNotification(
+    tenantId: string,
+    eventId: string,
+    eventTitle: string,
+    eventType: string,
+    scheduledDate: Date,
+    updatedByName: string,
+  ) {
+    const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
+
+    return this.create(tenantId, {
+      type: SystemNotificationType.INSTITUTIONAL_EVENT_UPDATED,
+      category: NotificationCategory.INSTITUTIONAL_EVENT,
+      severity: NotificationSeverity.INFO,
+      title: 'Evento Institucional Atualizado',
+      message: `${updatedByName} atualizou o evento "${eventTitle}" agendado para ${dateStr}.`,
+      actionUrl: `/dashboard/agenda`,
+      entityType: 'INSTITUTIONAL_EVENT',
+      entityId: eventId,
+      metadata: { eventTitle, eventType, scheduledDate: dateStr, updatedByName },
+    })
+  }
 }

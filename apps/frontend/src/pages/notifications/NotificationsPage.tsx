@@ -70,6 +70,10 @@ const CATEGORY_CONFIG = {
     label: 'Agendamentos',
     icon: Calendar,
   },
+  [NotificationCategory.INSTITUTIONAL_EVENT]: {
+    label: 'Eventos Institucionais',
+    icon: Calendar,
+  },
   [NotificationCategory.SYSTEM]: {
     label: 'Sistema',
     icon: Info,
