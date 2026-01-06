@@ -16,6 +16,7 @@ import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { formatDateOnly } from '../utils/date.helpers';
 import {
   PrescriptionType,
   ControlledClass,
@@ -118,20 +119,15 @@ export class PrescriptionsService {
    * Converte campos DateTime que são @db.Date do Prisma para string YYYY-MM-DD
    * Isso evita problemas de timezone causados pela serialização JSON do JavaScript
    *
-   * Campos afetados: prescriptionDate, validUntil, reviewDate
+   * Campos afetados: prescriptionDate, validUntil, reviewDate, lastMedicalReviewDate
    */
   private formatDateOnlyFields(prescription: any): any {
     if (!prescription) return prescription;
 
     const formatDate = (date: Date | null | undefined): string | null => {
       if (!date) return null;
-      // Garantir que é um objeto Date
-      const d = date instanceof Date ? date : new Date(date);
-      // Formatar como YYYY-MM-DD usando UTC para evitar timezone shift
-      const year = d.getUTCFullYear();
-      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(d.getUTCDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      // Usar utilitário centralizado timezone-safe
+      return formatDateOnly(date);
     };
 
     return {
@@ -139,6 +135,7 @@ export class PrescriptionsService {
       prescriptionDate: formatDate(prescription.prescriptionDate),
       validUntil: formatDate(prescription.validUntil),
       reviewDate: formatDate(prescription.reviewDate),
+      lastMedicalReviewDate: formatDate(prescription.lastMedicalReviewDate),
     };
   }
 

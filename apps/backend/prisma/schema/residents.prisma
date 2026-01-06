@@ -23,7 +23,7 @@ model Resident {
   gender      Gender
   civilStatus CivilStatus?
   religion    String?
-  birthDate   DateTime     @db.Timestamptz(3)
+  birthDate   DateTime     @db.Date
   nationality String       @default("Brasileira")
   birthCity   String?
   birthState  String? // UF (2 letras)
@@ -71,11 +71,11 @@ model Resident {
   legalGuardianDistrict   String?
 
   // 5 – Admissão
-  admissionDate       DateTime  @db.Timestamptz(3)
+  admissionDate       DateTime  @db.Date
   admissionType       String? // Voluntária | Involuntária | Judicial | outro
   admissionReason     String?
   admissionConditions String?
-  dischargeDate       DateTime? @db.Timestamptz(3)
+  dischargeDate       DateTime? @db.Date
   dischargeReason     String?
 
   // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)

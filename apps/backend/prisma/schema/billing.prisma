@@ -17,7 +17,7 @@ model Invoice {
   description     String?       @db.Text // Descrição da fatura
   currency        String        @default("BRL") @db.VarChar(3)
   status          InvoiceStatus
-  dueDate         DateTime      @db.Timestamptz(3)
+  dueDate         DateTime      @db.Date
   paidAt          DateTime?     @db.Timestamptz(3)
   asaasInvoiceId  String?       @unique @db.VarChar(255)
   paymentUrl      String?       @db.Text

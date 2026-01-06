@@ -12,7 +12,7 @@ model Vaccination {
   // 11 Campos obrigatórios (RDC 502/2021)
   vaccine        String // 1) Vacina/Profilaxia (ex: "COVID-19", "Influenza")
   dose           String // 3) Dose (ex: "1ª dose", "2ª dose", "Reforço")
-  date           DateTime @db.Timestamptz(3) // 2) Data da vacinação
+  date           DateTime @db.Date // 2) Data da vacinação
   batch          String // 4) Lote do imunizante
   manufacturer   String // 5) Fabricante
   cnes           String // 6) CNES (Código Nacional do Estabelecimento de Saúde)

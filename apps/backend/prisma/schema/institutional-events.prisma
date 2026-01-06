@@ -11,7 +11,7 @@ model InstitutionalEvent {
   visibility     InstitutionalEventVisibility  @default(ALL_USERS)
   title          String
   description    String?                       @db.Text
-  scheduledDate  DateTime                      @db.Timestamptz(3)
+  scheduledDate  DateTime                      @db.Date
   scheduledTime  String?                       // Formato HH:mm
   allDay         Boolean                       @default(false)
   status         ScheduledEventStatus          @default(SCHEDULED)
@@ -21,7 +21,7 @@ model InstitutionalEvent {
   // Campos específicos para vencimento de documentos
   documentType   String?
   documentNumber String?
-  expiryDate     DateTime?                     @db.Timestamptz(3)
+  expiryDate     DateTime?                     @db.Date
   responsible    String?
 
   // Campos específicos para treinamentos

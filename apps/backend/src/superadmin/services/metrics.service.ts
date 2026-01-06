@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { Decimal } from '@prisma/client/runtime/library'
+import { formatDateOnly } from '../../utils/date.helpers'
 
 /**
  * MetricsService
@@ -177,8 +178,9 @@ export class MetricsService {
 
       const mrr = await this.calculateMrrForPeriod(targetDate, nextMonth)
 
+      // ✅ Usar formatDateOnly para extrair YYYY-MM-DD e depois slice(0,7) para YYYY-MM
       trends.push({
-        month: targetDate.toISOString().slice(0, 7), // YYYY-MM
+        month: formatDateOnly(targetDate).slice(0, 7), // YYYY-MM
         mrr: Math.round(mrr * 100) / 100,
       })
     }

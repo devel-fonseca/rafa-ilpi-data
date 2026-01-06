@@ -13,10 +13,10 @@ model Prescription {
   doctorName       String
   doctorCrm        String
   doctorCrmState   String // UF
-  prescriptionDate DateTime         @db.Timestamptz(3)
+  prescriptionDate DateTime         @db.Date
   prescriptionType PrescriptionType
-  validUntil       DateTime?        @db.Timestamptz(3) // Obrigatório para ANTIBIOTICO e CONTROLADO
-  reviewDate       DateTime?        @db.Timestamptz(3) // Data estimada para revisão da prescrição
+  validUntil       DateTime?        @db.Date // Obrigatório para ANTIBIOTICO e CONTROLADO
+  reviewDate       DateTime?        @db.Date // Data estimada para revisão da prescrição
 
   // Campos específicos para CONTROLADO
   controlledClass    ControlledClass?
@@ -30,7 +30,7 @@ model Prescription {
   notes String? @db.Text
 
   // Revisão Médica (quando prescrição é revisada por médico)
-  lastMedicalReviewDate DateTime? @db.Timestamptz(3) // Data da consulta médica
+  lastMedicalReviewDate DateTime? @db.Date // Data da consulta médica
   lastReviewedByDoctor  String? // Nome do médico que revisou
   lastReviewDoctorCrm   String? // CRM do médico revisor
   lastReviewDoctorState String? // UF do CRM do médico revisor
@@ -120,8 +120,8 @@ model Medication {
   scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
 
   // Período
-  startDate DateTime  @db.Timestamptz(3)
-  endDate   DateTime? @db.Timestamptz(3) // null = uso contínuo
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date // null = uso contínuo
 
   // Flags especiais
   isControlled        Boolean @default(false)
@@ -215,8 +215,8 @@ model SOSMedication {
   maxDailyDoses     Int // Limite diário (ex: 3)
 
   // Período de validade
-  startDate DateTime  @db.Timestamptz(3)
-  endDate   DateTime? @db.Timestamptz(3)
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
 
   // Observações
   instructions String? @db.Text
@@ -291,7 +291,7 @@ model MedicationAdministration {
   residentId     String @db.Uuid
 
   // Data/hora da administração
-  date          DateTime @db.Timestamptz(3)
+  date          DateTime @db.Date
   scheduledTime String // Horário programado (ex: "06:00")
   actualTime    String? // Horário real de administração (se diferente)
 
@@ -338,7 +338,7 @@ model SOSAdministration {
   residentId      String @db.Uuid
 
   // Data/hora
-  date DateTime @db.Timestamptz(3)
+  date DateTime @db.Date
   time String // Horário da administração
 
   // Motivo

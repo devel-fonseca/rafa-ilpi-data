@@ -2,8 +2,9 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { parseISO, startOfDay } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { ScheduleFrequency, ScheduledEventStatus } from '@prisma/client';
+import { getCurrentDateInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
 
 export interface DailyTask {
   type: 'RECURRING' | 'EVENT';
@@ -43,11 +44,20 @@ export class ResidentScheduleTasksService {
     tenantId: string,
     dateStr?: string,
   ): Promise<DailyTask[]> {
-    // Parse da data (usa data atual se não informada)
-    const targetDate = dateStr
-      ? parseISO(`${dateStr}T12:00:00.000`)
-      : startOfDay(new Date());
+    // ✅ Parse da data (usa data atual no timezone do tenant se não informada)
+    let targetDateStr: string;
+    if (dateStr) {
+      targetDateStr = dateStr; // YYYY-MM-DD já fornecido
+    } else {
+      // Obter tenant para pegar timezone
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { timezone: true },
+      });
+      targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
+    }
 
+    const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
     const dayOfWeek = targetDate.getDay(); // 0 = Domingo, 6 = Sábado
     const dayOfMonth = targetDate.getDate(); // 1-31
 
@@ -206,11 +216,20 @@ export class ResidentScheduleTasksService {
     tenantId: string,
     dateStr?: string,
   ): Promise<DailyTask[]> {
-    // Parse da data (usa data atual se não informada)
-    const targetDate = dateStr
-      ? parseISO(`${dateStr}T12:00:00.000`)
-      : startOfDay(new Date());
+    // ✅ Parse da data (usa data atual no timezone do tenant se não informada)
+    let targetDateStr: string;
+    if (dateStr) {
+      targetDateStr = dateStr; // YYYY-MM-DD já fornecido
+    } else {
+      // Obter tenant para pegar timezone
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { timezone: true },
+      });
+      targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
+    }
 
+    const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
     const dayOfWeek = targetDate.getDay();
     const dayOfMonth = targetDate.getDate();
 

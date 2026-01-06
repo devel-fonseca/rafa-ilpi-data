@@ -11,7 +11,7 @@ model DailyRecord {
 
   // Tipo e metadados
   type RecordType
-  date DateTime   @db.Timestamptz(3) // Data do registro (sem hora)
+  date DateTime   @db.Date // Data do registro (sem hora)
   time String // Hora no formato "HH:mm" (ex: "07:00", "14:30")
 
   // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
@@ -151,7 +151,7 @@ model ResidentScheduledEvent {
   eventType ScheduledEventType
 
   // Data e hora do agendamento
-  scheduledDate DateTime @db.Timestamptz(3)
+  scheduledDate DateTime @db.Date
   scheduledTime String // HH:mm
 
   // Detalhes do evento

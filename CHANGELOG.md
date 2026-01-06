@@ -6,6 +6,101 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-06] - Padronização Completa de Data/Hora Timezone-Safe 🎯
+
+### 🔧 Corrigido
+
+**BUGS CRÍTICOS ELIMINADOS:**
+
+- **Bug "dia -1":** Campos de data civil (birthDate, admissionDate, recordDate) não sofrem mais timezone shifts
+- **prescriptions.service.ts:formatDateOnlyFields():** Substituído manual UTC extraction por `formatDateOnly()` centralizado
+- **notifications.cron.ts:** 4 ocorrências de `new Date() + setHours(0,0,0,0)` substituídas por `getCurrentDateInTz(tenant.timezone)`
+- **resident-schedule-tasks.service.ts:** 2 ocorrências de `startOfDay(new Date())` substituídas por `getCurrentDateInTz(tenant.timezone)`
+- **metrics.service.ts:181:** `.toISOString().slice(0, 7)` substituído por `formatDateOnly().slice(0, 7)`
+
+### 📝 Alterado
+
+**BANCO DE DADOS (Prisma Schema):**
+
+- **21 campos migrados:** TIMESTAMPTZ(3) → DATE em 9 arquivos schema
+  - `residents.prisma`: birthDate, admissionDate, dischargeDate (3 campos)
+  - `medications.prisma`: prescriptionDate, validUntil, reviewDate, lastMedicalReviewDate, startDate, endDate (10 campos)
+  - `daily-records.prisma`: date, scheduledDate (2 campos)
+  - `institutional-events.prisma`: scheduledDate, expiryDate (2 campos)
+  - `vaccinations.prisma`: date (1 campo)
+  - `billing.prisma`: dueDate (1 campo)
+  - `auth.prisma`: birthDate (1 campo)
+  - `documents.prisma`: foundedAt, issuedAt, expiresAt (3 campos)
+- **tenant.prisma:** Adicionado campo `timezone` (String, default: "America/Sao_Paulo", VarChar(50)) com índice
+- **Migration:** `20260106094412_datetime_standardization_clean_slate` (banco resetado - pré-lançamento)
+
+**BACKEND (NestJS/TypeScript):**
+
+- **date.helpers.ts:** Biblioteca centralizada timezone-safe criada com 10 funções:
+  - `parseDateOnly()`, `formatDateOnly()`, `parseTimestamp()`, `toTenantZonedDisplay()`
+  - `getCurrentDateInTz()`, `getDayRangeInTz()`, `localToUTC()`
+  - `isValidDateOnly()`, `isValidTime()`, `DEFAULT_TIMEZONE`
+- **date.validators.ts:** Decorators class-validator customizados (`@IsDateOnly`, `@IsTimeString`)
+- **Dependências:** Instalado `date-fns-tz` para conversões timezone IANA
+
+### ✨ Adicionado
+
+**DOCUMENTAÇÃO:**
+
+- **[docs/standards/DATETIME_STANDARD.md](docs/standards/DATETIME_STANDARD.md):** Documento oficial completo (1.0.0)
+  - 11 seções: Regras fundamentais, banco de dados, backend, frontend, API, timezone config, checklists, exemplos, testes, troubleshooting, changelog
+  - 25+ exemplos práticos (ERRADO vs CORRETO)
+  - 7 cenários de testes E2E obrigatórios
+  - Antipadrões documentados com alternativas
+
+**TESTES:**
+
+- **date.helpers.spec.ts:** Testes unitários completos (11 test cases)
+  - `parseDateOnly`, `formatDateOnly`, `getCurrentDateInTz`, `getDayRangeInTz`, `localToUTC`
+  - Validadores `isValidDateOnly`, `isValidTime`
+  - Cobertura: timezone shifts, virada de dia, conversões UTC ↔ local
+
+### 🗑️ Removido
+
+**DOCUMENTAÇÃO OBSOLETA:**
+
+- **docs/GUIA-PADROES-DATA.md:** Removido (substituído por DATETIME_STANDARD.md)
+  - Abordagem antiga: "noon strategy" (TIMESTAMPTZ com 12:00:00)
+  - Nova abordagem: DATE puro (mais simples e correto)
+- **docs/ESLINT-REGRAS-DATA.md:** Removido (regras baseadas no padrão antigo)
+
+### 🎯 Impacto
+
+**BREAKING CHANGES:**
+
+- ⚠️ **Banco de dados:** 21 campos alterados (compatível apenas com reset completo)
+- ⚠️ **DTOs:** Campos DATE agora esperam string YYYY-MM-DD, não Date JS
+- ⚠️ **Queries:** Comparações de DATE devem usar strings, não Date objects
+
+**REGRAS FUNDAMENTAIS (Nova Padronização):**
+
+1. **Data civil** (aniversário, admissão) → `DATE` (YYYY-MM-DD) - NUNCA converter com timezone
+2. **Momento exato** (auditoria, logs) → `TIMESTAMPTZ` em UTC (ISO 8601 com Z)
+3. **Agendamento local** (eventos) → `DATE` + `TIME` (HH:mm) + `tenant.timezone` (IANA)
+4. **Timezone padrão:** `America/Sao_Paulo` (GMT-3)
+5. **`recordDate` imutável** - nunca reclassifica ao mudar timezone do tenant
+
+**TIMEZONE DO TENANT:**
+
+- Configurável apenas por SuperAdmin
+- Não afeta datas civis já criadas (imutabilidade garantida)
+- Usado para calcular "data atual" ao criar novos registros
+
+### 📊 Estatísticas
+
+- **9 arquivos Prisma alterados** (21 campos migrados)
+- **4 services backend corrigidos** (prescriptions, notifications, resident-schedule-tasks, metrics)
+- **1 biblioteca criada** (date.helpers.ts com 10 funções + testes)
+- **1 documento padrão oficial** (11 seções, 8.000+ palavras)
+- **0 erros TypeScript** introduzidos (compilação validada)
+
+---
+
 ## [2026-01-03] - Modal de Boas-vindas Pós-Trial e Alertas Dismissíveis 🎉
 
 ### ✨ Adicionado

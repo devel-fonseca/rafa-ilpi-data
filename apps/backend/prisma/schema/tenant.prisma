@@ -55,6 +55,9 @@ model Tenant {
   addressState      String?
   addressZipCode    String?
 
+  // Timezone
+  timezone String @default("America/Sao_Paulo") @db.VarChar(50) // Timezone IANA do tenant
+
   deletedAt DateTime? @db.Timestamptz(3)
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
@@ -118,6 +121,7 @@ model Tenant {
   vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
   institutionalEvents       InstitutionalEvent[] // Eventos institucionais
 
+  @@index([timezone])
   @@map("tenants")
 }
 

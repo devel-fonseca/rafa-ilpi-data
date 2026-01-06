@@ -242,7 +242,7 @@ model UserProfile {
   phone        String?
   cpf          String? // CPF do usuário (sincronizado com User.cpf)
   department   String? // Departamento
-  birthDate    DateTime? @db.Timestamptz(3)
+  birthDate    DateTime? @db.Date
   notes        String?   @db.Text
   preferences  Json?     @default("{}") // Preferências do usuário (tema, sidebar, etc)
 

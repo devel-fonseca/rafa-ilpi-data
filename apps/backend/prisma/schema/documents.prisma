@@ -27,7 +27,7 @@ model TenantProfile {
   websiteUrl   String?
 
   // Informações complementares
-  foundedAt DateTime? @db.Timestamptz(3) // Data de fundação
+  foundedAt DateTime? @db.Date // Data de fundação
   mission   String?   @db.Text // Missão institucional
   vision    String?   @db.Text // Visão institucional
   values    String?   @db.Text // Valores institucionais
@@ -65,8 +65,8 @@ model TenantDocument {
   mimeType String? @db.VarChar(100) // application/pdf, image/jpeg, etc.
 
   // Metadados do documento
-  issuedAt       DateTime?      @db.Timestamptz(3) // Data de emissão
-  expiresAt      DateTime?      @db.Timestamptz(3) // Data de vencimento (se aplicável)
+  issuedAt       DateTime?      @db.Date // Data de emissão
+  expiresAt      DateTime?      @db.Date // Data de vencimento (se aplicável)
   status         DocumentStatus @default(PENDENTE) // Calculado automaticamente
   documentNumber String?        @db.VarChar(100) // Número do documento (ex: protocolo, número de alvará)
   issuerEntity   String?        @db.VarChar(200) // Entidade emissora (ex: Vigilância Sanitária, Corpo de Bombeiros)

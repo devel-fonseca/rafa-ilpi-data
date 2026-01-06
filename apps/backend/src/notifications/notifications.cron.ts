@@ -6,6 +6,11 @@ import {
   getDocumentLabel,
   shouldTriggerAlert,
 } from '../institutional-profile/config/document-requirements.config'
+import {
+  getCurrentDateInTz,
+  parseDateOnly,
+  DEFAULT_TIMEZONE,
+} from '../utils/date.helpers'
 
 @Injectable()
 export class NotificationsCronService {
@@ -30,25 +35,24 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true },
+        select: { id: true, name: true, timezone: true },
       })
 
       let totalDue = 0
       let totalMissed = 0
 
       for (const tenant of tenants) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // ✅ Obter data atual no timezone do tenant (recordDate é DATE)
+        const todayStr = getCurrentDateInTz(
+          tenant.timezone || DEFAULT_TIMEZONE,
+        )
 
         // Buscar eventos agendados para hoje (status SCHEDULED)
         const eventsToday = await this.prisma.residentScheduledEvent.findMany({
           where: {
             tenantId: tenant.id,
             status: 'SCHEDULED',
-            scheduledDate: {
-              gte: today,
-              lt: new Date(today.getTime() + 24 * 60 * 60 * 1000), // Menos de 24h
-            },
+            scheduledDate: todayStr, // Comparação direta com DATE
             deletedAt: null,
           },
           include: {
@@ -63,7 +67,7 @@ export class NotificationsCronService {
 
         // Criar notificações para eventos do dia
         for (const event of eventsToday) {
-          // Verificar se já existe notificação para hoje
+          // Verificar se já existe notificação para hoje (createdAt é TIMESTAMPTZ)
           const existing = await this.prisma.notification.findFirst({
             where: {
               tenantId: tenant.id,
@@ -71,7 +75,7 @@ export class NotificationsCronService {
               entityId: event.id,
               type: 'SCHEDULED_EVENT_DUE',
               createdAt: {
-                gte: today,
+                gte: new Date(), // TIMESTAMPTZ comparado com now()
               },
             },
           })
@@ -90,16 +94,12 @@ export class NotificationsCronService {
         }
 
         // Buscar eventos passados não concluídos (status SCHEDULED)
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
-
         const missedEvents = await this.prisma.residentScheduledEvent.findMany({
           where: {
             tenantId: tenant.id,
             status: 'SCHEDULED',
             scheduledDate: {
-              lt: today, // Antes de hoje
-              gte: yesterday, // Apenas de ontem (evitar notificações antigas)
+              lt: todayStr, // Antes de hoje (comparação de DATE strings)
             },
             deletedAt: null,
           },
@@ -161,13 +161,18 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true },
+        select: { id: true, name: true, timezone: true },
       })
 
       let totalExpired = 0
       let totalExpiring = 0
 
       for (const tenant of tenants) {
+        // ✅ Obter data atual no timezone do tenant
+        const todayStr = getCurrentDateInTz(
+          tenant.timezone || DEFAULT_TIMEZONE,
+        )
+
         // Buscar prescrições ativas
         const prescriptions = await this.prisma.prescription.findMany({
           where: {
@@ -186,20 +191,16 @@ export class NotificationsCronService {
           },
         })
 
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
         for (const prescription of prescriptions) {
-          const validUntil = prescription.validUntil
-            ? new Date(prescription.validUntil)
-            : null
+          if (!prescription.validUntil) continue
 
-          if (!validUntil) continue
+          // ✅ validUntil agora é DATE (string YYYY-MM-DD), comparar diretamente
+          const validUntilStr = parseDateOnly(prescription.validUntil as any)
 
-          // Zerar horas para comparação apenas de data
-          validUntil.setHours(0, 0, 0, 0)
-
-          const diffTime = validUntil.getTime() - today.getTime()
+          // Calcular diferença de dias entre duas datas civil
+          const todayDate = new Date(todayStr + 'T00:00:00')
+          const validDate = new Date(validUntilStr + 'T00:00:00')
+          const diffTime = validDate.getTime() - todayDate.getTime()
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
           // Prescrição vencida (< 0 dias)
@@ -279,15 +280,17 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true },
+        select: { id: true, timezone: true },
       })
 
       let totalExpired = 0
       let totalExpiring = 0
 
       for (const tenant of tenants) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // ✅ Obter data atual no timezone do tenant
+        const todayStr = getCurrentDateInTz(
+          tenant.timezone || DEFAULT_TIMEZONE,
+        )
 
         // Verificar documentos institucionais
         const tenantDocs = await this.prisma.tenantDocument.findMany({
@@ -301,10 +304,13 @@ export class NotificationsCronService {
         for (const doc of tenantDocs) {
           if (!doc.expiresAt) continue
 
-          const expiresAt = new Date(doc.expiresAt)
-          expiresAt.setHours(0, 0, 0, 0)
+          // ✅ expiresAt agora é DATE (string YYYY-MM-DD), comparar diretamente
+          const expiresAtStr = parseDateOnly(doc.expiresAt as any)
 
-          const diffTime = expiresAt.getTime() - today.getTime()
+          // Calcular diferença de dias entre duas datas civil
+          const todayDate = new Date(todayStr + 'T00:00:00')
+          const expiresDate = new Date(expiresAtStr + 'T00:00:00')
+          const diffTime = expiresDate.getTime() - todayDate.getTime()
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
           // Documento vencido
@@ -397,18 +403,21 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true },
+        select: { id: true, name: true, timezone: true },
       })
 
       let totalNotifications = 0
       let totalMarkedForReview = 0
 
       for (const tenant of tenants) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
+        // ✅ Obter data atual no timezone do tenant
+        const todayStr = getCurrentDateInTz(
+          tenant.timezone || DEFAULT_TIMEZONE,
+        )
 
         // Buscar POPs PUBLISHED com nextReviewDate <= hoje + 30 dias
-        const inThirtyDays = new Date(today)
+        const todayDate = new Date(todayStr + 'T00:00:00')
+        const inThirtyDays = new Date(todayDate)
         inThirtyDays.setDate(inThirtyDays.getDate() + 30)
 
         const popsNeedingReview = await this.prisma.pop.findMany({
@@ -429,15 +438,13 @@ export class NotificationsCronService {
         })
 
         for (const pop of popsNeedingReview) {
-          const reviewDate = pop.nextReviewDate
-            ? new Date(pop.nextReviewDate)
-            : null
+          if (!pop.nextReviewDate) continue
 
-          if (!reviewDate) continue
+          // ✅ nextReviewDate pode ser DATE ou TIMESTAMPTZ, normalizar
+          const reviewDateStr = parseDateOnly(pop.nextReviewDate as any)
+          const reviewDate = new Date(reviewDateStr + 'T00:00:00')
 
-          reviewDate.setHours(0, 0, 0, 0)
-
-          const diffTime = reviewDate.getTime() - today.getTime()
+          const diffTime = reviewDate.getTime() - todayDate.getTime()
           const daysUntilReview = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
           // Janelas de alerta: 30, 15, 7, 3, 1, 0 (vencido)
@@ -453,7 +460,7 @@ export class NotificationsCronService {
                   entityType: 'POP',
                   entityId: pop.id,
                   createdAt: {
-                    gte: new Date(today),
+                    gte: todayDate, // TIMESTAMPTZ comparado com midnight local
                   },
                 },
               })
