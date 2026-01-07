@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
+import { Page, PageHeader, Section, EmptyState } from '../../design-system/components'
 import {
   Table,
   TableBody,
@@ -88,29 +89,22 @@ export default function PopsList() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Procedimentos Operacionais Padrão
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie os POPs da instituição conforme RDC 502/2021
-          </p>
-        </div>
-        <Button onClick={() => navigate('/dashboard/pops/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo POP
-        </Button>
-      </div>
+    <>
+      <Page>
+        <PageHeader
+          title="Procedimentos Operacionais Padrão"
+          subtitle="Gerencie os POPs da instituição conforme RDC 502/2021"
+          actions={
+            <Button onClick={() => navigate('/dashboard/pops/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo POP
+            </Button>
+          }
+        />
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <Section title="Filtros">
+          <Card>
+            <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-4">
             {/* Search */}
             <div className="md:col-span-2">
@@ -185,30 +179,29 @@ export default function PopsList() {
               Mostrar apenas POPs que precisam revisão
             </label>
           </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </Section>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
+        <Section title="POPs">
+          <Card>
+            <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-muted-foreground">
               Carregando POPs...
             </div>
           ) : !pops || pops.length === 0 ? (
-            <div className="p-8 text-center">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">
-                Nenhum POP encontrado
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Comece criando seu primeiro POP
-              </p>
-              <Button className="mt-4" onClick={() => navigate('/dashboard/pops/new')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar POP
-              </Button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="Nenhum POP encontrado"
+              description="Comece criando seu primeiro POP"
+              action={
+                <Button onClick={() => navigate('/dashboard/pops/new')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar POP
+                </Button>
+              }
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -326,8 +319,10 @@ export default function PopsList() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </Section>
+      </Page>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog
@@ -353,6 +348,6 @@ export default function PopsList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }

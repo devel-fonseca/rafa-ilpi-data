@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ArrowLeft, Send, Users, Mail, X } from 'lucide-react';
+import { Send, Users, Mail, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Page, PageHeader, Section } from '@/design-system/components';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -92,30 +93,17 @@ export default function ComposeMessagePage() {
   const selectedUsers = users.filter(u => selectedRecipients.has(u.id));
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/mensagens')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Nova Mensagem</h1>
-          <p className="text-muted-foreground mt-1">
-            Envie mensagens para usuários do seu tenant
-          </p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Nova Mensagem"
+        subtitle="Envie mensagens para usuários do seu tenant"
+        onBack={() => navigate('/dashboard/mensagens')}
+      />
 
-      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Tipo de Mensagem</CardTitle>
-            <CardDescription>
-              Escolha se deseja enviar para usuários específicos ou para todos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Section title="Tipo de Mensagem">
+          <Card>
+            <CardContent className="pt-6">
             <Controller
               control={control}
               name="type"
@@ -154,19 +142,15 @@ export default function ComposeMessagePage() {
                 </RadioGroup>
               )}
             />
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Section>
 
         {/* Destinatários (apenas para DIRECT) */}
         {selectedType === MessageType.DIRECT && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Destinatários *</CardTitle>
-              <CardDescription>
-                Selecione um ou mais usuários para receber a mensagem
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <Section title="Destinatários">
+            <Card>
+              <CardContent className="pt-6 space-y-4">
               {/* Buscar usuários */}
               <Input
                 placeholder="Buscar por nome ou email..."
@@ -269,19 +253,14 @@ export default function ComposeMessagePage() {
                   </AlertDescription>
                 </Alert>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Section>
         )}
 
-        {/* Conteúdo da mensagem */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Conteúdo da Mensagem</CardTitle>
-            <CardDescription>
-              Digite o assunto e o corpo da mensagem
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section title="Conteúdo da Mensagem">
+          <Card>
+            <CardContent className="pt-6 space-y-4">
             {/* Assunto */}
             <div className="space-y-2">
               <Label htmlFor="subject">Assunto *</Label>
@@ -315,12 +294,13 @@ Dicas:
                 <p className="text-sm text-destructive">{errors.body.message}</p>
               )}
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Section>
 
-        {/* Botões */}
-        <Card>
-          <CardContent className="pt-6">
+        <Section title="Ações">
+          <Card>
+            <CardContent className="pt-6">
             <div className="flex gap-4">
               <Button
                 type="submit"
@@ -341,9 +321,10 @@ Dicas:
                 Cancelar
               </Button>
             </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Section>
       </form>
-    </div>
+    </Page>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { Plus, Zap } from 'lucide-react'
+import { Page, PageHeader, Section } from '@/design-system/components'
 
 // Hooks
 import { useBuildings, useDeleteBuilding } from '@/hooks/useBuildings'
@@ -235,88 +236,106 @@ export function BedsStructurePage() {
     setActiveTab('beds')
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Estrutura de Leitos</h1>
-          <p className="text-muted-foreground">
-            Gerencie prédios, andares, quartos e leitos
-          </p>
+  // Renderizar botões de ação baseados na aba ativa
+  const renderActions = () => {
+    if (!canManageInfrastructure) return null
+
+    if (activeTab === 'buildings') {
+      return (
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setGeneratorOpen(true)}
+            variant="secondary"
+            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Gerador Automático de Estrutura
+          </Button>
+          <Button
+            onClick={() => {
+              setSelectedBuilding(undefined)
+              setBuildingFormOpen(true)
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Prédio
+          </Button>
         </div>
-        {canManageInfrastructure && activeTab === 'buildings' && (
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setGeneratorOpen(true)}
-              variant="secondary"
-              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30"
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Gerador Automático de Estrutura
-            </Button>
-            <Button
-              onClick={() => {
-                setSelectedBuilding(undefined)
-                setBuildingFormOpen(true)
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Prédio
-            </Button>
-          </div>
-        )}
-        {canManageInfrastructure && activeTab === 'floors' && (
-          <Button
-            onClick={() => {
-              setSelectedFloor(undefined)
-              setFloorFormOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Andar
-          </Button>
-        )}
-        {canManageInfrastructure && activeTab === 'rooms' && (
-          <Button
-            onClick={() => {
-              setSelectedRoom(undefined)
-              setRoomFormOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Quarto
-          </Button>
-        )}
-        {canManageInfrastructure && activeTab === 'beds' && (
-          <Button
-            onClick={() => {
-              setSelectedBed(undefined)
-              setBedFormOpen(true)
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Leito
-          </Button>
-        )}
-      </div>
+      )
+    }
 
-      {/* Stats Cards */}
-      <BedsStatsCards
-        buildingsCount={buildings?.length || 0}
-        floorsCount={floors?.length || 0}
-        roomsCount={rooms?.length || 0}
-        bedsCount={beds?.length || 0}
-        onTabChange={setActiveTab}
-      />
+    if (activeTab === 'floors') {
+      return (
+        <Button
+          onClick={() => {
+            setSelectedFloor(undefined)
+            setFloorFormOpen(true)
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Andar
+        </Button>
+      )
+    }
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-        <TabsList className="hidden">
-          <TabsTrigger value="buildings">Prédios</TabsTrigger>
-          <TabsTrigger value="floors">Andares</TabsTrigger>
-          <TabsTrigger value="rooms">Quartos</TabsTrigger>
-          <TabsTrigger value="beds">Leitos</TabsTrigger>
-        </TabsList>
+    if (activeTab === 'rooms') {
+      return (
+        <Button
+          onClick={() => {
+            setSelectedRoom(undefined)
+            setRoomFormOpen(true)
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Quarto
+        </Button>
+      )
+    }
+
+    if (activeTab === 'beds') {
+      return (
+        <Button
+          onClick={() => {
+            setSelectedBed(undefined)
+            setBedFormOpen(true)
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Leito
+        </Button>
+      )
+    }
+
+    return null
+  }
+
+  return (
+    <>
+      <Page>
+        <PageHeader
+          title="Estrutura de Leitos"
+          subtitle="Gerencie prédios, andares, quartos e leitos"
+          actions={renderActions()}
+        />
+
+      <Section title="Estatísticas">
+        <BedsStatsCards
+          buildingsCount={buildings?.length || 0}
+          floorsCount={floors?.length || 0}
+          roomsCount={rooms?.length || 0}
+          bedsCount={beds?.length || 0}
+          onTabChange={setActiveTab}
+        />
+      </Section>
+
+      <Section title="Estrutura">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="hidden">
+            <TabsTrigger value="buildings">Prédios</TabsTrigger>
+            <TabsTrigger value="floors">Andares</TabsTrigger>
+            <TabsTrigger value="rooms">Quartos</TabsTrigger>
+            <TabsTrigger value="beds">Leitos</TabsTrigger>
+          </TabsList>
 
         {/* TAB: PRÉDIOS */}
         <TabsContent value="buildings" className="space-y-4">
@@ -464,10 +483,12 @@ export function BedsStructurePage() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </Section>
+    </Page>
 
-      {/* FORMS */}
-      <BuildingForm
+    {/* FORMS */}
+    <BuildingForm
         open={buildingFormOpen}
         onOpenChange={(open) => {
           setBuildingFormOpen(open)
@@ -521,6 +542,6 @@ export function BedsStructurePage() {
 
       {/* BUILDING STRUCTURE GENERATOR */}
       <BuildingStructureGenerator open={generatorOpen} onOpenChange={setGeneratorOpen} />
-    </div>
+    </>
   )
 }
