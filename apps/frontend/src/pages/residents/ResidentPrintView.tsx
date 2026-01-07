@@ -8,6 +8,7 @@ import { useResident } from '@/hooks/useResidents'
 // TODO: Migrar para @react-pdf/renderer
 // import html2pdf from 'html2pdf.js'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { Page, PageHeader } from '@/design-system/components'
 
 export function ResidentPrintView() {
   const { id } = useParams<{ id: string }>()
@@ -89,26 +90,14 @@ export function ResidentPrintView() {
   }
 
   return (
-    <div className="min-h-screen bg-muted print:bg-white">
-      {/* Cabeçalho da Página - Ocultar na impressão */}
-      <div className="bg-white border-b print:hidden sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{residentData.fullName}</h1>
-              <p className="text-sm text-muted-foreground mt-1">Visualizando as informações do residente</p>
-            </div>
-
+    <Page className="min-h-screen bg-muted print:bg-white">
+      <div className="print:hidden">
+        <PageHeader
+          title={residentData.fullName}
+          subtitle="Visualizando as informações do residente"
+          onBack={() => navigate('/dashboard/residentes')}
+          actions={
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/dashboard/residentes')}
-                disabled={isExporting}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
-
               <Button
                 variant="outline"
                 onClick={handlePrint}
@@ -136,8 +125,8 @@ export function ResidentPrintView() {
                 )}
               </Button>
             </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
       {/* Documento */}
@@ -190,6 +179,6 @@ export function ResidentPrintView() {
           }
         }
       `}</style>
-    </div>
+    </Page>
   )
 }
