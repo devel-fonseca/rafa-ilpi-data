@@ -8,6 +8,7 @@ import { formatDateTimeSafe, formatDateLongSafe } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Page, PageHeader, Section } from '@/design-system/components'
 import {
   Dialog,
   DialogContent,
@@ -197,22 +198,12 @@ export default function ResidentDailyRecordsCalendar() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(`/dashboard/residentes/${id}`)}
-          className="h-10 w-10 p-0"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{resident?.fullName || 'Residente'}</h1>
-          <p className="text-sm text-muted-foreground">Registros Diários - Calendário</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={resident?.fullName || 'Residente'}
+        subtitle="Registros Diários - Calendário"
+        onBack={() => navigate(`/dashboard/residentes/${id}`)}
+      />
 
       {/* Layout 2 colunas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -663,6 +654,6 @@ export default function ResidentDailyRecordsCalendar() {
           record={viewingRecord}
         />
       )}
-    </div>
+    </Page>
   )
 }
