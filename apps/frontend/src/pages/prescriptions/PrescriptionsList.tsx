@@ -68,6 +68,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { MedicalReviewModal } from './modals/MedicalReviewModal'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PrescriptionsList() {
   const navigate = useNavigate()
@@ -250,166 +251,156 @@ export default function PrescriptionsList() {
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-danger" />
-        <p className="text-danger">Erro ao carregar prescrições</p>
-      </div>
+      <Page>
+        <PageHeader
+          title="Prescrições"
+          subtitle="Gerencie as prescrições da ILPI"
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar prescrições"
+          description="Ocorreu um erro ao buscar as prescrições. Tente novamente."
+          variant="error"
+        />
+      </Page>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Prescrições</h1>
-          <p className="text-muted-foreground mt-1">Gerencie as prescrições da ILPI</p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={() => navigate('/dashboard/prescricoes')}
-            variant="outline"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-          {canCreatePrescriptions && (
-            <Button
-              onClick={() => navigate('/dashboard/prescricoes/new')}
-              className="flex items-center gap-2"
-            >
+    <Page>
+      <PageHeader
+        title="Prescrições"
+        subtitle="Gerencie as prescrições da ILPI"
+        onBack={() => navigate('/dashboard/prescricoes')}
+        actions={
+          canCreatePrescriptions && (
+            <Button onClick={() => navigate('/dashboard/prescricoes/new')}>
               <Plus className="h-4 w-4" />
               Nova Prescrição
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
-                  <p className="text-2xl font-bold text-primary mt-1">{stats.totalActive}</p>
+        <Section title="Estatísticas">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
+                    <p className="text-2xl font-bold text-primary mt-1">{stats.totalActive}</p>
+                  </div>
+                  <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Vencendo em 5 dias</h3>
-                  <p className="text-2xl font-bold text-severity-warning mt-1">
-                    {stats.expiringIn5Days}
-                  </p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Vencendo em 5 dias</h3>
+                    <p className="text-2xl font-bold text-severity-warning mt-1">
+                      {stats.expiringIn5Days}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
+                    <AlertTriangle className="h-6 w-6 text-severity-warning" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-severity-warning" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Antibióticos</h3>
-                  <p className="text-2xl font-bold text-success mt-1">
-                    {stats.activeAntibiotics}
-                  </p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Antibióticos</h3>
+                    <p className="text-2xl font-bold text-success mt-1">
+                      {stats.activeAntibiotics}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
+                    <Pill className="h-6 w-6 text-success" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
-                  <Pill className="h-6 w-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Controlados</h3>
-                  <p className="text-2xl font-bold text-medication-controlled mt-1">
-                    {stats.activeControlled}
-                  </p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Controlados</h3>
+                    <p className="text-2xl font-bold text-medication-controlled mt-1">
+                      {stats.activeControlled}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
+                    <CheckCircle2 className="h-6 w-6 text-medication-controlled" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-medication-controlled" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Section>
       )}
 
       {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div className="space-y-2">
-              <Label htmlFor="search">Buscar por residente ou medicamento</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="search"
-                  placeholder="Digite aqui..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                />
-                <Button onClick={handleSearch} variant="outline">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="status">Filtro</Label>
-              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger id="status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ATIVA">Prescrições Ativas</SelectItem>
-                  <SelectItem value="VENCENDO">Vencendo em 5 dias</SelectItem>
-                  <SelectItem value="VENCIDAS">Prescrições Vencidas</SelectItem>
-                  <SelectItem value="INATIVAS">Prescrições Inativas</SelectItem>
-                  <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
-                  <SelectItem value="CONTROLADO">Controlados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Clear Filters */}
-            <div className="space-y-2 flex items-end">
-              <Button onClick={handleClearFilters} variant="outline" className="w-full">
-                Limpar Filtros
+      <Section title="Filtros">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <Label htmlFor="search">Buscar por residente ou medicamento</Label>
+            <div className="flex gap-2">
+              <Input
+                id="search"
+                placeholder="Digite aqui..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <Button onClick={handleSearch} variant="outline">
+                <Search className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Status Filter */}
+          <div className="space-y-2">
+            <Label htmlFor="status">Filtro</Label>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger id="status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ATIVA">Prescrições Ativas</SelectItem>
+                <SelectItem value="VENCENDO">Vencendo em 5 dias</SelectItem>
+                <SelectItem value="VENCIDAS">Prescrições Vencidas</SelectItem>
+                <SelectItem value="INATIVAS">Prescrições Inativas</SelectItem>
+                <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
+                <SelectItem value="CONTROLADO">Controlados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters */}
+          <div className="space-y-2 flex items-end">
+            <Button onClick={handleClearFilters} variant="outline" className="w-full">
+              Limpar Filtros
+            </Button>
+          </div>
+        </div>
+      </Section>
 
       {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Prescrições ({meta?.total || 0})</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title={`Prescrições (${meta?.total || 0})`}>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : prescriptions && prescriptions.length > 0 ? (
@@ -665,6 +656,7 @@ export default function PrescriptionsList() {
           onClose={() => setReviewModal({ open: false, prescription: null })}
         />
       )}
-    </div>
+      </Section>
+    </Page>
   )
 }
