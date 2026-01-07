@@ -49,6 +49,7 @@ import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabel
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
 import { DailyTasksPanel } from '@/components/daily-records/DailyTasksPanel'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { Page, PageHeader, Section } from '@/design-system/components'
 import {
   ViewHigieneModal,
   ViewAlimentacaoModal,
@@ -254,7 +255,11 @@ export function DailyRecordsPage() {
   // Se não houver residente selecionado, mostrar grid de seleção
   if (!residentId) {
     return (
-      <div className="space-y-6">
+      <Page>
+        <PageHeader
+          title="Registros Diários"
+          subtitle="Selecione um residente para visualizar ou adicionar registros"
+        />
         <ResidentSelectionGrid
           residents={residentsData?.data || []}
           latestRecords={latestRecords}
@@ -267,34 +272,26 @@ export function DailyRecordsPage() {
             />
           }
         />
-      </div>
+      </Page>
     )
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground dark:text-gray-100">Registros Diários</h1>
-          <p className="text-muted-foreground dark:text-muted-foreground/70 mt-1">
-            {resident?.fullName} |{' '}
-            {formatDateLongSafe(selectedDate + 'T00:00:00')}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
+    <Page maxWidth="wide">
+      <PageHeader
+        title="Registros Diários"
+        subtitle={`${resident?.fullName} | ${formatDateLongSafe(selectedDate + 'T00:00:00')}`}
+        onBack={handleBack}
+        actions={
           <Button variant="outline" onClick={handleExportPDF}>
             <Download className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Cards de Resumo Clínico em Grid */}
+      <Section title="Resumo Clínico">
       <TooltipProvider delayDuration={300}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Card de Alergias */}
@@ -477,8 +474,10 @@ export function DailyRecordsPage() {
         </Card>
         </div>
       </TooltipProvider>
+      </Section>
 
       {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
+      <Section title="Registros do Dia">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Coluna 1: Tarefas do Dia (1/3) */}
         <div className="lg:col-span-1">
@@ -613,8 +612,10 @@ export function DailyRecordsPage() {
           </Card>
         </div>
       </div>
+      </Section>
 
       {/* Grid de Cards de Resumo (Sinais Vitais, Alimentação e Hidratação) */}
+      <Section title="Resumo do Dia">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Card de Sinais Vitais e Antropometria */}
         <Card className="border-medication-controlled/20 dark:border-medication-controlled/30">
@@ -867,6 +868,7 @@ export function DailyRecordsPage() {
           )
         })()}
       </div>
+      </Section>
 
       {/* Modais */}
       {activeModal === 'HIGIENE' && (
@@ -1122,7 +1124,7 @@ export function DailyRecordsPage() {
           record={viewingRecord}
         />
       )}
-    </div>
+    </Page>
   )
 }
 
