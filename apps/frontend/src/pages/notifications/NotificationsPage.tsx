@@ -15,6 +15,7 @@ import {
   CheckCheck,
   X,
   Calendar,
+  Loader2,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ import {
   getNotificationCategoryConfig,
 } from '@/design-system/tokens/colors'
 import { MissedEventActionsModal } from '@/components/resident-schedule/MissedEventActionsModal'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 const CATEGORY_CONFIG = {
   [NotificationCategory.PRESCRIPTION]: {
@@ -147,33 +149,23 @@ export function NotificationsPage() {
   const totalPages = data?.meta.totalPages || 1
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bell className="h-8 w-8" />
-            Notificações
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie todas as suas notificações do sistema
-          </p>
-        </div>
-        {notifications.some((n) => !n.read) && (
-          <Button onClick={handleMarkAllAsRead} variant="outline">
-            <CheckCheck className="h-4 w-4 mr-2" />
-            Marcar todas como lidas
-          </Button>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title="Notificações"
+        subtitle="Gerencie todas as suas notificações do sistema"
+        actions={
+          notifications.some((n) => !n.read) && (
+            <Button onClick={handleMarkAllAsRead} variant="outline">
+              <CheckCheck className="h-4 w-4 mr-2" />
+              Marcar todas como lidas
+            </Button>
+          )
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title="Filtros">
+        <Card>
+          <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -227,22 +219,27 @@ export function NotificationsPage() {
               {showOnlyUnread ? 'Mostrar todas' : 'Apenas não lidas'}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Section>
 
-      <Card>
-        <CardContent className="p-6">
-          {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Carregando notificações...
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Nenhuma notificação encontrada</p>
-              <p className="text-sm">Tente ajustar os filtros</p>
-            </div>
-          ) : (
+      <Section title="Lista de Notificações">
+        {isLoading ? (
+          <EmptyState
+            icon={Loader2}
+            title="Carregando notificações..."
+            description="Aguarde enquanto buscamos suas notificações"
+            variant="loading"
+          />
+        ) : notifications.length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            title="Nenhuma notificação encontrada"
+            description="Tente ajustar os filtros para encontrar notificações"
+          />
+        ) : (
+          <Card>
+            <CardContent className="p-6">
             <>
               <div className="space-y-3">
                 {notifications.map((notification) => {
@@ -341,9 +338,10 @@ export function NotificationsPage() {
                 </div>
               )}
             </>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+      </Section>
 
       {/* Modal de Ações para Evento Perdido */}
       {selectedNotification && (
@@ -358,6 +356,6 @@ export function NotificationsPage() {
           notificationId={selectedNotification.id}
         />
       )}
-    </div>
+    </Page>
   )
 }

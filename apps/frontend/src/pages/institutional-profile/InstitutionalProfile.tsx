@@ -1,30 +1,20 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2 } from 'lucide-react'
 import { ProfileForm } from './ProfileForm'
 import { DocumentsTab } from './DocumentsTab'
 import { ComplianceTab } from './ComplianceTab'
+import { Page, PageHeader } from '@/design-system/components'
 
 export default function InstitutionalProfile() {
   const [activeTab, setActiveTab] = useState('profile')
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
-            Perfil Institucional
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie informações institucionais, documentos e compliance
-          </p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="Perfil Institucional"
+        subtitle="Gerencie informações institucionais, documentos e compliance"
+      />
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto">
           <TabsList className="inline-flex w-full md:grid md:grid-cols-3 min-w-max">
@@ -46,6 +36,6 @@ export default function InstitutionalProfile() {
           <ComplianceTab />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   )
 }

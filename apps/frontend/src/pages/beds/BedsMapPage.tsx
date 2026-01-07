@@ -1,55 +1,76 @@
 import { useBedsHierarchy } from '@/hooks/useBedsMap'
 import { OccupancyStats } from '@/components/beds/OccupancyStats'
 import { BedsMapVisualization } from '@/components/beds/BedsMapVisualization'
-import { Card, CardContent } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle, Bed } from 'lucide-react'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export function BedsMapPage() {
   const { data, isLoading, error } = useBedsHierarchy()
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Page>
+        <PageHeader
+          title="Mapa de Leitos"
+          subtitle="Carregando informações..."
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando mapa de leitos..."
+          description="Aguarde enquanto buscamos a estrutura de leitos"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center text-danger">
-          Erro ao carregar o mapa de leitos. Tente novamente mais tarde.
-        </CardContent>
-      </Card>
+      <Page>
+        <PageHeader
+          title="Mapa de Leitos"
+          subtitle="Erro ao carregar dados"
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title="Erro ao carregar o mapa de leitos"
+          description="Ocorreu um erro ao buscar a estrutura de leitos. Tente novamente mais tarde."
+          variant="error"
+        />
+      </Page>
     )
   }
 
   if (!data) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          Nenhum dado disponível.
-        </CardContent>
-      </Card>
+      <Page>
+        <PageHeader
+          title="Mapa de Leitos"
+          subtitle="Sem dados disponíveis"
+        />
+        <EmptyState
+          icon={Bed}
+          title="Nenhum dado disponível"
+          description="Não há informações de leitos cadastradas no momento"
+        />
+      </Page>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Mapa de Leitos</h1>
-        <p className="text-muted-foreground">
-          Visualização hierárquica completa da estrutura de leitos
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Mapa de Leitos"
+        subtitle="Visualização hierárquica completa da estrutura de leitos"
+      />
 
-      {/* Estatísticas de Ocupação */}
-      <OccupancyStats stats={data.stats} />
+      <Section title="Estatísticas de Ocupação">
+        <OccupancyStats stats={data.stats} />
+      </Section>
 
-      {/* Mapa Hierárquico */}
-      <BedsMapVisualization data={data} />
-    </div>
+      <Section title="Mapa Hierárquico">
+        <BedsMapVisualization data={data} />
+      </Section>
+    </Page>
   )
 }

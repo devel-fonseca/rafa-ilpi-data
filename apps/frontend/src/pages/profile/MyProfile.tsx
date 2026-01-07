@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History } from 'lucide-react'
+import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { extractDateOnly } from '@/utils/dateHelpers'
@@ -24,6 +24,7 @@ import {
   POSITION_CODE_LABELS,
   REGISTRATION_TYPE_LABELS
 } from '@/types/permissions'
+import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function MyProfile() {
   const { user } = useAuthStore()
@@ -228,55 +229,67 @@ export default function MyProfile() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Page>
+        <PageHeader
+          title="Meu Perfil"
+          subtitle="Carregando informações..."
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando seu perfil..."
+          description="Aguarde enquanto buscamos suas informações"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (isError) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-destructive">
-              Erro ao carregar perfil: {error?.message || 'Erro desconhecido'}
-            </p>
-            <div className="flex justify-center mt-4">
-              <Button onClick={() => refetch()}>
-                Tentar Novamente
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Page>
+        <PageHeader
+          title="Meu Perfil"
+          subtitle="Erro ao carregar dados"
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title="Erro ao carregar perfil"
+          description={error?.message || 'Não foi possível carregar suas informações. Tente novamente.'}
+          variant="error"
+          action={
+            <Button onClick={() => refetch()}>
+              Tentar Novamente
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
   if (!profile) {
     return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              Não foi possível carregar seu perfil
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Page>
+        <PageHeader
+          title="Meu Perfil"
+          subtitle="Perfil não encontrado"
+        />
+        <EmptyState
+          icon={User}
+          title="Perfil não encontrado"
+          description="Não foi possível carregar seu perfil"
+        />
+      </Page>
     )
   }
 
   const isSaving = updateProfileMutation.isPending || uploadingPhoto
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Meu Perfil</h1>
-        <p className="text-muted-foreground">
-          Gerencie suas informações pessoais e dados de contato
-        </p>
-      </div>
+    <Page maxWidth="wide">
+      <PageHeader
+        title="Meu Perfil"
+        subtitle="Gerencie suas informações pessoais e dados de contato"
+      />
 
       {/* Foto de Perfil + Informações da Conta */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -371,7 +384,7 @@ export default function MyProfile() {
         </TabsList>
 
         {/* Aba: Autorização ILPI */}
-        <TabsContent value="authorization">
+        <TabsContent value="authorization" className="space-y-0">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -465,7 +478,7 @@ export default function MyProfile() {
         </TabsContent>
 
         {/* Aba: Dados Pessoais */}
-        <TabsContent value="personal">
+        <TabsContent value="personal" className="space-y-0">
           <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
@@ -540,7 +553,7 @@ export default function MyProfile() {
         </TabsContent>
 
         {/* Aba: Alterar Senha */}
-        <TabsContent value="password">
+        <TabsContent value="password" className="space-y-0">
           <form onSubmit={handlePasswordChange}>
           <Card>
             <CardHeader>
@@ -659,16 +672,16 @@ export default function MyProfile() {
         </TabsContent>
 
         {/* Aba: Sessões Ativas */}
-        <TabsContent value="sessions">
+        <TabsContent value="sessions" className="space-y-0">
           <SessionsTab userId={user?.id || ''} />
         </TabsContent>
 
         {/* Aba: Histórico de Acesso */}
-        <TabsContent value="access-logs">
+        <TabsContent value="access-logs" className="space-y-0">
           <AccessLogsTab userId={user?.id || ''} />
         </TabsContent>
       </Tabs>
-    </div>
+    </Page>
   )
 }
 

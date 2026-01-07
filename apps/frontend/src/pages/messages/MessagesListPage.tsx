@@ -24,6 +24,7 @@ import { MessageType, MessageStatus } from '@/api/messages.api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MessageReadStatsDialog } from '@/components/messages/MessageReadStatsDialog';
+import { Page, PageHeader, Section } from '@/design-system/components';
 
 export default function MessagesListPage() {
   const navigate = useNavigate();
@@ -83,93 +84,95 @@ export default function MessagesListPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold">Mensagens</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie sua comunicação interna
-          </p>
-        </div>
-        <Button onClick={() => navigate('/dashboard/mensagens/nova')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Mensagem
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Mensagens"
+        subtitle="Gerencie sua comunicação interna"
+        actions={
+          <Button onClick={() => navigate('/dashboard/mensagens/nova')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Mensagem
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Não Lidas</CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.unread}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Mensagens aguardando leitura
-              </p>
-            </CardContent>
-          </Card>
+        <Section title="Estatísticas">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Não Lidas</CardTitle>
+                <Mail className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.unread}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mensagens aguardando leitura
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Recebidas</CardTitle>
-              <Inbox className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.received}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total de mensagens recebidas
-              </p>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Recebidas</CardTitle>
+                <Inbox className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.received}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total de mensagens recebidas
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Enviadas</CardTitle>
-              <Send className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.sent}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Total de mensagens enviadas
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Enviadas</CardTitle>
+                <Send className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.sent}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total de mensagens enviadas
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </Section>
       )}
 
       {/* Filtros */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar em assunto e mensagem..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-            </div>
-            <Button onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-2" />
-              Buscar
-            </Button>
-            {activeTab === 'inbox' && stats && stats.unread > 0 && (
-              <Button variant="outline" onClick={handleMarkAllAsRead}>
-                <Eye className="h-4 w-4 mr-2" />
-                Marcar todas como lidas
+      <Section title="Filtros">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Buscar em assunto e mensagem..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <Button onClick={handleSearch}>
+                <Search className="h-4 w-4 mr-2" />
+                Buscar
               </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {activeTab === 'inbox' && stats && stats.unread > 0 && (
+                <Button variant="outline" onClick={handleMarkAllAsRead}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Marcar todas como lidas
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </Section>
 
       {/* Tabs: Inbox vs Sent */}
-      <Card>
+      <Section title="Mensagens">
+        <Card>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <CardHeader>
             <TabsList className="grid w-full grid-cols-2">
@@ -351,7 +354,8 @@ export default function MessagesListPage() {
             </CardContent>
           </TabsContent>
         </Tabs>
-      </Card>
-    </div>
+        </Card>
+      </Section>
+    </Page>
   );
 }
