@@ -10,6 +10,7 @@ import { uploadFile } from '@/services/upload'
 import { toast } from 'sonner'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { Page, PageHeader } from '@/design-system/components'
 
 // Importar os steps (serão criados a seguir)
 import { Step1ResidentInfo } from './form/Step1ResidentInfo'
@@ -135,18 +136,12 @@ export default function PrescriptionForm() {
 
   return (
     <FormProvider {...methods}>
-      <div className="space-y-6 p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {isEditing ? 'Editar Prescrição' : 'Nova Prescrição'}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Preencha os dados da prescrição médica
-            </p>
-          </div>
-        </div>
+      <Page>
+        <PageHeader
+          title={isEditing ? 'Editar Prescrição' : 'Nova Prescrição'}
+          subtitle="Preencha os dados da prescrição médica"
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
 
         {/* Stepper */}
         <Stepper steps={STEPS} currentStep={currentStep} />
@@ -187,7 +182,7 @@ export default function PrescriptionForm() {
             )}
           </Button>
         </div>
-      </div>
+      </Page>
     </FormProvider>
   )
 }

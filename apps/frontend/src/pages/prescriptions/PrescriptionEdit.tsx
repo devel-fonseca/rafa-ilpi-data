@@ -19,6 +19,7 @@ import { getSignedFileUrl } from '@/services/upload'
 import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -104,55 +105,61 @@ export default function PrescriptionEdit() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
-          <span className="text-muted-foreground">Carregando prescrição...</span>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Editar Prescrição"
+          subtitle="Carregando informações..."
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
+        <EmptyState
+          icon={FileText}
+          title="Carregando prescrição..."
+          description="Aguarde enquanto buscamos os detalhes"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (!prescription) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground/70" />
-        <p className="text-muted-foreground">Prescrição não encontrada</p>
-        <Button onClick={() => navigate('/dashboard/prescricoes')}>
-          Voltar ao Dashboard
-        </Button>
-      </div>
+      <Page>
+        <PageHeader
+          title="Editar Prescrição"
+          subtitle="Prescrição não encontrada"
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title="Prescrição não encontrada"
+          description="A prescrição que você está procurando não existe ou foi removida."
+          action={
+            <Button onClick={() => navigate('/dashboard/prescricoes')}>
+              Voltar ao Dashboard
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
   const prescriptionData = prescription.data
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-foreground">
-              Editar Prescrição
-            </h1>
+    <Page>
+      <PageHeader
+        title="Editar Prescrição"
+        subtitle={
+          <div className="flex items-center gap-3">
+            <span>Altere o status da prescrição de {prescriptionData.resident?.fullName}</span>
             <Badge variant="outline">
               {PRESCRIPTION_TYPE_LABELS[prescriptionData.prescriptionType] ||
                 prescriptionData.prescriptionType}
             </Badge>
           </div>
-          <p className="text-muted-foreground">
-            Altere o status da prescrição de {prescriptionData.resident?.fullName}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/dashboard/prescricoes/${id}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Cancelar
-          </Button>
+        }
+        onBack={() => navigate(`/dashboard/prescricoes/${id}`)}
+        actions={
           <Button
             onClick={handleSave}
             disabled={updateMutation.isPending}
@@ -160,18 +167,13 @@ export default function PrescriptionEdit() {
             <Save className="h-4 w-4 mr-2" />
             {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Card de Controle de Status (EDITÁVEL) */}
-      <Card className="border-2 border-primary">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Status da Prescrição
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title="Status da Prescrição">
+        <Card className="border-2 border-primary">
+          <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <Label htmlFor="active-status" className="text-base font-semibold">
@@ -190,18 +192,14 @@ export default function PrescriptionEdit() {
               className="data-[state=checked]:bg-success/60"
             />
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Section>
 
       {/* Informações do Residente (SOMENTE LEITURA) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Dados do Residente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title="Dados do Residente">
+        <Card>
+          <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Nome</p>
@@ -218,18 +216,14 @@ export default function PrescriptionEdit() {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Section>
 
       {/* Informações da Prescrição (SOMENTE LEITURA) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Dados da Prescrição
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Section title="Dados da Prescrição">
+        <Card>
+          <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Médico</p>
@@ -305,19 +299,15 @@ export default function PrescriptionEdit() {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </Section>
 
       {/* Medicamentos Contínuos (SOMENTE LEITURA) */}
       {prescriptionData.medications && prescriptionData.medications.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Pill className="h-5 w-5" />
-              Medicamentos Contínuos ({prescriptionData.medications.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section title={`Medicamentos Contínuos (${prescriptionData.medications.length})`}>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
             {prescriptionData.medications.map((medication: any, index: number) => (
               <div
                 key={medication.id}
@@ -394,20 +384,16 @@ export default function PrescriptionEdit() {
                 )}
               </div>
             ))}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Section>
       )}
 
       {/* Medicamentos SOS (SOMENTE LEITURA) */}
       {prescriptionData.sosMedications && prescriptionData.sosMedications.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Medicamentos SOS ({prescriptionData.sosMedications.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <Section title={`Medicamentos SOS (${prescriptionData.sosMedications.length})`}>
+          <Card>
+            <CardContent className="pt-6 space-y-4">
             {prescriptionData.sosMedications.map((sos: any, index: number) => (
               <div
                 key={sos.id}
@@ -454,9 +440,10 @@ export default function PrescriptionEdit() {
                 )}
               </div>
             ))}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Section>
       )}
-    </div>
+    </Page>
   )
 }

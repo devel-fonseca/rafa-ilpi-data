@@ -51,6 +51,7 @@ import {
   formatDateLongSafe,
   formatDateOnlySafe,
 } from '@/utils/dateHelpers'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
   ROTINA: 'Rotina',
@@ -285,41 +286,54 @@ export default function PrescriptionDetails() {
   // Early returns após hooks
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
-          <span className="text-muted-foreground">Carregando prescrição...</span>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Detalhes da Prescrição"
+          subtitle="Carregando informações..."
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
+        <EmptyState
+          icon={FileText}
+          title="Carregando prescrição..."
+          description="Aguarde enquanto buscamos os detalhes"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (!prescription) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground/70" />
-        <p className="text-muted-foreground">Prescrição não encontrada</p>
-        <Button onClick={() => navigate('/dashboard/prescricoes')}>
-          Voltar ao Dashboard
-        </Button>
-      </div>
+      <Page>
+        <PageHeader
+          title="Detalhes da Prescrição"
+          subtitle="Prescrição não encontrada"
+          onBack={() => navigate('/dashboard/prescricoes')}
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title="Prescrição não encontrada"
+          description="A prescrição que você está procurando não existe ou foi removida."
+          action={
+            <Button onClick={() => navigate('/dashboard/prescricoes')}>
+              Voltar ao Dashboard
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
   const prescriptionData = prescription.data
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-foreground">
-              Detalhes da Prescrição
-            </h1>
-            <Badge
-              variant={prescriptionData.isActive ? 'default' : 'secondary'}
-            >
+    <Page maxWidth="wide">
+      <PageHeader
+        title="Detalhes da Prescrição"
+        subtitle={
+          <div className="flex items-center gap-3">
+            <span>Prescrição de {prescriptionData.resident?.fullName}</span>
+            <Badge variant={prescriptionData.isActive ? 'default' : 'secondary'}>
               {prescriptionData.isActive ? 'Ativa' : 'Inativa'}
             </Badge>
             <Badge variant="outline">
@@ -327,26 +341,21 @@ export default function PrescriptionDetails() {
                 prescriptionData.prescriptionType}
             </Badge>
           </div>
-          <p className="text-muted-foreground">
-            Prescrição de {prescriptionData.resident?.fullName}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/dashboard/prescricoes')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          {canUpdatePrescriptions && (
+        }
+        onBack={() => navigate('/dashboard/prescricoes')}
+        actions={
+          canUpdatePrescriptions && (
             <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Informações Principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Section title="Informações Principais">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Residente */}
         <Card>
           <CardHeader>
@@ -507,18 +516,14 @@ export default function PrescriptionDetails() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </Section>
 
       {/* Dados de Controlado */}
       {prescriptionData.prescriptionType === 'CONTROLADO' && (
-        <Card className="border-medication-controlled/30 bg-medication-controlled/5">
-          <CardHeader>
-            <CardTitle className="text-base text-medication-controlled/90 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Informações de Medicamento Controlado
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Section title="Informações de Medicamento Controlado">
+          <Card className="border-medication-controlled/30 bg-medication-controlled/5">
+          <CardContent className="pt-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Classe</p>
@@ -553,11 +558,13 @@ export default function PrescriptionDetails() {
               )}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </Section>
       )}
 
       {/* Tabs - Medicamentos e Histórico */}
-      <Tabs defaultValue="medications" className="w-full">
+      <Section title="Medicamentos">
+        <Tabs defaultValue="medications" className="w-full">
         <div className="overflow-x-auto">
           <TabsList className="inline-flex w-full md:grid md:grid-cols-2 min-w-max">
             <TabsTrigger value="medications" className="whitespace-nowrap">
@@ -941,18 +948,18 @@ export default function PrescriptionDetails() {
             ))
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </Section>
 
       {/* Observações */}
       {prescriptionData.notes && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Observações</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Section title="Observações">
+          <Card>
+          <CardContent className="pt-6">
             <p className="text-foreground/80">{prescriptionData.notes}</p>
           </CardContent>
-        </Card>
+          </Card>
+        </Section>
       )}
 
       {/* Modais */}
@@ -1017,6 +1024,6 @@ export default function PrescriptionDetails() {
           }}
         />
       )}
-    </div>
+    </Page>
   )
 }
