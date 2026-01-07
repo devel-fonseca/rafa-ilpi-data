@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 import {
   Tooltip,
   TooltipContent,
@@ -362,36 +363,32 @@ export default function ResidentProfile() {
   const activePrescriptions = prescriptions.filter((p: any) => p.status === 'ACTIVE')
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/residentes')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{resident.fullName}</h1>
-            <div className="flex items-center gap-3 mt-2">
-              <Badge className={getStatusBadgeColor(resident.status)}>{resident.status}</Badge>
-              <span className="text-muted-foreground">{calculateAge(resident.birthDate)} anos</span>
-              {resident.cpf && <span className="text-muted-foreground">CPF: {resident.cpf}</span>}
-            </div>
+    <Page maxWidth="wide">
+      <PageHeader
+        title={resident.fullName}
+        subtitle={
+          <div className="flex items-center gap-3">
+            <Badge className={getStatusBadgeColor(resident.status)}>{resident.status}</Badge>
+            <span className="text-muted-foreground">{calculateAge(resident.birthDate)} anos</span>
+            {resident.cpf && <span className="text-muted-foreground">CPF: {resident.cpf}</span>}
           </div>
-        </div>
-
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/view`)}>
-            <Eye className="mr-2 h-4 w-4" />
-            Ver Cadastro
-          </Button>
-          {canDelete && (
-            <Button variant="destructive" onClick={() => setDeleteModal(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Remover
+        }
+        onBack={() => navigate('/dashboard/residentes')}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/view`)}>
+              <Eye className="mr-2 h-4 w-4" />
+              Ver Cadastro
             </Button>
-          )}
-        </div>
-      </div>
+            {canDelete && (
+              <Button variant="destructive" onClick={() => setDeleteModal(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remover
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Main Tabs */}
       <Tabs defaultValue="personal" className="space-y-4">
@@ -1137,6 +1134,6 @@ export default function ResidentProfile() {
           residentName={resident.fullName}
         />
       )}
-    </div>
+    </Page>
   )
 }
