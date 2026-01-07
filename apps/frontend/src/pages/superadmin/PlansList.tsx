@@ -97,11 +97,11 @@ export function PlansList() {
 
   const getPlanTypeColor = (type: string) => {
     const colors = {
-      FREE: 'bg-gray-500/10 text-gray-700 border-gray-500/50',
-      TRIAL: 'bg-blue-500/10 text-blue-700 border-blue-500/50',
+      FREE: 'bg-gray-500/10 text-foreground/80 border-border/50/50',
+      TRIAL: 'bg-primary/10 text-primary/80 border-primary/50',
       ESSENTIAL: 'bg-[#059669]/10 text-[#059669] border-[#059669]/50',
       PROFESSIONAL: 'bg-[#06b6d4]/10 text-[#06b6d4] border-[#06b6d4]/50',
-      PREMIUM: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/50',
+      PREMIUM: 'bg-warning/10 text-warning/80 border-warning',
     }
     return colors[type as keyof typeof colors] || colors.ESSENTIAL
   }
@@ -139,7 +139,7 @@ export function PlansList() {
             {/* Popular Badge */}
             {plan.isPopular && (
               <div className="absolute -top-3 -right-3">
-                <Badge className="bg-yellow-500 text-yellow-900 border-0 shadow-lg">
+                <Badge className="bg-warning text-warning/95 border-0 shadow-lg">
                   <Star className="h-3 w-3 mr-1" fill="currentColor" />
                   Popular
                 </Badge>
@@ -279,7 +279,7 @@ export function PlansList() {
                           Desconto percentual aplicado automaticamente a assinaturas anuais
                         </p>
                         {formData.annualDiscountPercent && formData.annualDiscountPercent > 0 && (
-                          <p className="text-xs text-blue-600 font-medium">
+                          <p className="text-xs text-primary font-medium">
                             💰 Economia de {formData.annualDiscountPercent}% para clientes anuais
                           </p>
                         )}
@@ -372,7 +372,7 @@ export function PlansList() {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveFeature(feature)}
-                                    className="ml-2 hover:text-red-200"
+                                    className="ml-2 hover:text-danger/20"
                                   >
                                     <X className="h-3 w-3" />
                                   </button>
@@ -385,12 +385,12 @@ export function PlansList() {
                         {/* Features sugeridas (disponíveis para adicionar) */}
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-slate-600">Clique para adicionar:</p>
-                          <div className="flex flex-wrap gap-2 p-3 bg-blue-50 rounded-md border border-blue-200 max-h-48 overflow-y-auto">
+                          <div className="flex flex-wrap gap-2 p-3 bg-primary/5 rounded-md border border-primary/30 max-h-48 overflow-y-auto">
                             {AVAILABLE_FEATURES.filter(f => !features.includes(f)).map((feature, idx) => (
                               <Badge
                                 key={idx}
                                 variant="outline"
-                                className="cursor-pointer bg-white border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400"
+                                className="cursor-pointer bg-white border-primary/30 text-primary/80 hover:bg-primary/10 hover:border-primary/40"
                                 onClick={() => {
                                   setFeatures([...features, feature])
                                 }}
@@ -458,7 +458,7 @@ export function PlansList() {
                   onClick={() => handleTogglePopular(plan.id)}
                   disabled={togglePopularMutation.isPending}
                   className={`border-slate-300 hover:bg-slate-100 ${
-                    plan.isPopular ? 'bg-yellow-100 text-yellow-600' : 'text-slate-700'
+                    plan.isPopular ? 'bg-warning/10 text-warning' : 'text-slate-700'
                   }`}
                 >
                   <Star
@@ -473,7 +473,7 @@ export function PlansList() {
                   onClick={() => handleToggleActive(plan.id)}
                   disabled={toggleActiveMutation.isPending}
                   className={`border-slate-300 hover:bg-slate-100 ${
-                    plan.isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    plan.isActive ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
                   }`}
                   title={plan.isActive ? 'Desativar plano' : 'Ativar plano'}
                 >

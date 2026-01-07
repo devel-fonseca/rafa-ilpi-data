@@ -167,7 +167,7 @@ export function PhotoViewer({
 
   return (
     <div
-      className={`relative ${borderClass} border-2 border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center ${sizeClasses[size]} ${className}`}
+      className={`relative ${borderClass} border-2 border-border overflow-hidden bg-muted/50 flex items-center justify-center ${sizeClasses[size]} ${className}`}
     >
       {isLoading ? (
         // Spinner de carregamento
@@ -177,8 +177,8 @@ export function PhotoViewer({
       ) : error ? (
         // Fallback com erro
         <div className="flex flex-col items-center justify-center gap-2 text-center p-2">
-          <AlertCircle className="w-1/3 h-1/3 text-red-300" />
-          <p className="text-xs text-red-500">{error}</p>
+          <AlertCircle className="w-1/3 h-1/3 text-danger/30" />
+          <p className="text-xs text-danger">{error}</p>
         </div>
       ) : displayUrl ? (
         // Imagem carregada com lazy loading e blur placeholder
@@ -199,7 +199,7 @@ export function PhotoViewer({
         />
       ) : (
         // Fallback padrão (sem foto)
-        <User className="w-1/3 h-1/3 text-gray-400" />
+        <User className="w-1/3 h-1/3 text-muted-foreground/70" />
       )}
     </div>
   )

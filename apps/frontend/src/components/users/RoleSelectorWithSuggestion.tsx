@@ -102,7 +102,7 @@ export function RoleSelectorWithSuggestion({
                   </span>
                 </div>
                 {role === recommendation.suggestedRole && (
-                  <CheckCircle2 className="h-4 w-4 text-green-600 ml-2" />
+                  <CheckCircle2 className="h-4 w-4 text-success ml-2" />
                 )}
               </div>
             </SelectItem>
@@ -118,25 +118,25 @@ export function RoleSelectorWithSuggestion({
           }
           className={
             isLocked
-              ? 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
+              ? 'bg-primary/5 dark:bg-primary/95 border-primary/30 dark:border-primary/80'
               : isDifferentFromSuggestion
                 ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800'
-                : 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                : 'bg-success/5 dark:bg-success/95 border-success/30 dark:border-success/80'
           }
         >
           <div className="flex gap-2">
             {isLocked ? (
-              <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+              <Lock className="h-4 w-4 text-primary dark:text-primary/40 mt-0.5" />
             ) : isDifferentFromSuggestion ? (
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
             ) : (
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5" />
+              <CheckCircle2 className="h-4 w-4 text-success dark:text-success/40 mt-0.5" />
             )}
             <div className="flex-1">
               <AlertDescription className="text-sm">
                 {isLocked ? (
                   <p>
-                    <strong className="text-blue-700 dark:text-blue-300">
+                    <strong className="text-primary/80 dark:text-primary/30">
                       Role bloqueada:
                     </strong>{' '}
                     {recommendation.reason}
@@ -157,7 +157,7 @@ export function RoleSelectorWithSuggestion({
                 ) : (
                   <>
                     <p>
-                      <strong className="text-green-700 dark:text-green-300">
+                      <strong className="text-success/80 dark:text-success/30">
                         ✓ Recomendação seguida:
                       </strong>{' '}
                       {recommendation.reason}

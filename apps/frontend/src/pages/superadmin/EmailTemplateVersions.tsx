@@ -57,7 +57,7 @@ export default function EmailTemplateVersions() {
         <div>
           <h1 className="text-3xl font-bold">{template.name}</h1>
           <p className="text-muted-foreground mt-1">
-            <code className="bg-gray-100 px-2 py-1 rounded text-sm">{template.key}</code>
+            <code className="bg-muted px-2 py-1 rounded text-sm">{template.key}</code>
             {' • '}
             Versão atual: {template.version}
           </p>

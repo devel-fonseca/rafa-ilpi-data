@@ -32,12 +32,12 @@ const RECORD_TYPE_CONFIG: Record<
   HIGIENE: {
     icon: Bath,
     label: 'Higiene',
-    color: 'text-blue-600 dark:text-blue-400',
+    color: 'text-primary dark:text-primary/40',
   },
   ALIMENTACAO: {
     icon: Utensils,
     label: 'Alimentação',
-    color: 'text-green-600 dark:text-green-400',
+    color: 'text-success dark:text-success/40',
   },
   HIDRATACAO: {
     icon: Droplets,
@@ -47,7 +47,7 @@ const RECORD_TYPE_CONFIG: Record<
   MONITORAMENTO: {
     icon: Activity,
     label: 'Sinais Vitais',
-    color: 'text-red-600 dark:text-red-400',
+    color: 'text-danger dark:text-danger/40',
   },
   ELIMINACAO: {
     icon: Trash2,
@@ -57,7 +57,7 @@ const RECORD_TYPE_CONFIG: Record<
   COMPORTAMENTO: {
     icon: Smile,
     label: 'Comportamento',
-    color: 'text-purple-600 dark:text-purple-400',
+    color: 'text-medication-controlled dark:text-medication-controlled/40',
   },
   HUMOR: {
     icon: Smile,

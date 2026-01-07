@@ -30,9 +30,9 @@ export function OverdueDashboard() {
   if (errorMetrics) {
     return (
       <div className="p-8">
-        <Alert className="bg-red-900 border-red-800">
-          <AlertCircle className="h-4 w-4 text-red-400" />
-          <AlertDescription className="text-red-200">
+        <Alert className="bg-danger/90 border-danger/80">
+          <AlertCircle className="h-4 w-4 text-danger/40" />
+          <AlertDescription className="text-danger/20">
             Erro ao carregar dados de inadimplência. Por favor, tente novamente.
           </AlertDescription>
         </Alert>
@@ -49,17 +49,17 @@ export function OverdueDashboard() {
           <p className="text-slate-400 mt-1">Monitore faturas vencidas e tendências de inadimplência</p>
         </div>
 
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-success/30">
           <CardContent className="p-8 text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-4 bg-green-100 rounded-full">
-                <AlertTriangle className="h-12 w-12 text-green-600" />
+              <div className="p-4 bg-success/10 rounded-full">
+                <AlertTriangle className="h-12 w-12 text-success" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-green-900 mb-2">
+            <h3 className="text-2xl font-bold text-success/95 mb-2">
               Tudo em Dia! 🎉
             </h3>
-            <p className="text-green-700">
+            <p className="text-success/80">
               Não há faturas vencidas no momento. Excelente trabalho!
             </p>
           </CardContent>
@@ -79,21 +79,21 @@ export function OverdueDashboard() {
       {/* Cards de Resumo */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Card 1: Receita em Atraso */}
-        <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200">
+        <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-danger/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-red-900 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-danger/90 flex items-center gap-2">
               <TrendingDown className="h-4 w-4" />
               Receita em Atraso
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-900">
+            <div className="text-3xl font-bold text-danger/90">
               {new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL',
               }).format(metrics.totalOverdueAmount)}
             </div>
-            <p className="text-xs text-red-700 mt-2">
+            <p className="text-xs text-danger/80 mt-2">
               {metrics.totalOverdueInvoices} {metrics.totalOverdueInvoices === 1 ? 'fatura vencida' : 'faturas vencidas'}
             </p>
           </CardContent>
@@ -111,19 +111,19 @@ export function OverdueDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-600">0-30 dias</span>
-                <span className="text-sm font-semibold text-orange-600">
+                <span className="text-sm font-semibold text-severity-warning">
                   R$ {(metrics.aging['0-30'].amount / 1000).toFixed(1)}k ({metrics.aging['0-30'].count})
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-600">30-60 dias</span>
-                <span className="text-sm font-semibold text-red-600">
+                <span className="text-sm font-semibold text-danger">
                   R$ {(metrics.aging['30-60'].amount / 1000).toFixed(1)}k ({metrics.aging['30-60'].count})
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-600">60+ dias</span>
-                <span className="text-sm font-semibold text-red-800">
+                <span className="text-sm font-semibold text-danger/90">
                   R$ {(metrics.aging['60+'].amount / 1000).toFixed(1)}k ({metrics.aging['60+'].count})
                 </span>
               </div>
@@ -149,7 +149,7 @@ export function OverdueDashboard() {
             <div className="mt-3">
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div
-                  className="bg-red-600 h-2 rounded-full transition-all"
+                  className="bg-danger/60 h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(metrics.overdueRate, 100)}%` }}
                 />
               </div>

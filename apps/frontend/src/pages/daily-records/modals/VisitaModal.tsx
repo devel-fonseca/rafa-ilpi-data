@@ -2,7 +2,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -54,7 +54,7 @@ export function VisitaModal({
   } = useForm<VisitaFormData>({
     resolver: zodResolver(visitaSchema),
     defaultValues: {
-      time: getCurrentTimeLocal(),
+      time: getCurrentTime(),
     },
   })
 

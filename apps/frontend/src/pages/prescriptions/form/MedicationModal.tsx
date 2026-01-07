@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { CreateMedicationDto } from '@/api/prescriptions.api'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 interface MedicationModalProps {
   open: boolean
@@ -81,7 +81,7 @@ export function MedicationModal({
       route: 'VO',
       frequency: 'UMA_VEZ_DIA',
       scheduledTimes: ['08:00'],
-      startDate: getCurrentDateLocal(),
+      startDate: getCurrentDate(),
       isControlled: false,
       isHighRisk: false,
       requiresDoubleCheck: false,
@@ -107,7 +107,7 @@ export function MedicationModal({
     if (open && initialData) {
       // Converter datas ISO para formato local YYYY-MM-DD
       const convertDateToLocal = (isoDate: string | undefined): string => {
-        if (!isoDate) return getCurrentDateLocal()
+        if (!isoDate) return getCurrentDate()
         // Se já está no formato YYYY-MM-DD, retorna direto
         if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate
         // Se é ISO completo (com hora), extrai apenas a parte da data
@@ -128,7 +128,7 @@ export function MedicationModal({
         route: 'VO',
         frequency: 'UMA_VEZ_DIA',
         scheduledTimes: ['08:00'],
-        startDate: getCurrentDateLocal(),
+        startDate: getCurrentDate(),
         isControlled: false,
         isHighRisk: false,
         requiresDoubleCheck: false,
@@ -176,7 +176,7 @@ export function MedicationModal({
                 placeholder="Ex: Losartana"
               />
               {errors.name && (
-                <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.name.message}</p>
               )}
             </div>
 
@@ -210,7 +210,7 @@ export function MedicationModal({
                 placeholder="Ex: 50mg"
               />
               {errors.concentration && (
-                <p className="text-sm text-red-600 mt-1">{errors.concentration.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.concentration.message}</p>
               )}
             </div>
 
@@ -222,7 +222,7 @@ export function MedicationModal({
                 placeholder="Ex: 1 comprimido"
               />
               {errors.dose && (
-                <p className="text-sm text-red-600 mt-1">{errors.dose.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.dose.message}</p>
               )}
             </div>
           </div>
@@ -317,21 +317,21 @@ export function MedicationModal({
                 {...register('startDate', { required: 'Data de início é obrigatória' })}
               />
               {errors.startDate && (
-                <p className="text-sm text-red-600 mt-1">{errors.startDate.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.startDate.message}</p>
               )}
             </div>
 
             <div>
               <Label htmlFor="endDate">Data de Término</Label>
               <Input id="endDate" type="date" {...register('endDate')} />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Deixe em branco para uso contínuo
               </p>
             </div>
           </div>
 
           {/* Checkboxes */}
-          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="isControlled"

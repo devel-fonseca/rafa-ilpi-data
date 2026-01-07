@@ -96,7 +96,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
                   className="bg-white border-slate-200 text-slate-900"
                 />
                 {errors.name && (
-                  <p className="text-xs text-red-400">{errors.name.message}</p>
+                  <p className="text-xs text-danger/40">{errors.name.message}</p>
                 )}
               </div>
 
@@ -117,7 +117,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
                   className="bg-white border-slate-200 text-slate-900"
                 />
                 {errors.email && (
-                  <p className="text-xs text-red-400">{errors.email.message}</p>
+                  <p className="text-xs text-danger/40">{errors.email.message}</p>
                 )}
               </div>
 

@@ -29,11 +29,11 @@ export function AlimentacaoGroupedCard({
   });
 
   return (
-    <Card className="p-4 bg-card hover:bg-accent/50 transition-colors border-2 border-orange-200">
+    <Card className="p-4 bg-card hover:bg-accent/50 transition-colors border-2 border-severity-warning/30">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <Utensils className="h-5 w-5 text-orange-600" />
+            <Utensils className="h-5 w-5 text-severity-warning" />
             <span className="font-semibold text-base">Alimentação</span>
             <Badge variant="secondary" className="text-xs">
               6 refeições

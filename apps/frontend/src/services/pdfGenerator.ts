@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
-import { differenceInYears, parseISO } from 'date-fns'
-import { formatDateLongSafe, formatDateOnlySafe, getCurrentDateTime, normalizeUTCDate } from '@/utils/dateHelpers'
+import { differenceInYears } from 'date-fns'
+import { formatDateLongSafe, formatDateOnlySafe, getCurrentDateTime, normalizeUTCDate, extractDateOnly } from '@/utils/dateHelpers'
 
 // ==================== TIPOS ====================
 
@@ -76,7 +76,10 @@ function groupRecordsByType(records: DailyRecord[]): Record<string, DailyRecord[
  */
 function calculateAge(birthDate: string): number {
   try {
-    return differenceInYears(new Date(), parseISO(birthDate))
+    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+    const dayKey = extractDateOnly(birthDate)
+    const birth = new Date(dayKey + 'T12:00:00')
+    return differenceInYears(new Date(), birth)
   } catch {
     return 0
   }

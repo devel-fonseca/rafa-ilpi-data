@@ -161,7 +161,7 @@ export function DocumentMetadataModal({ open, onOpenChange, document }: Document
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
           {/* Informação do documento */}
           <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-            <p className="text-sm font-medium text-gray-900">{document.fileName}</p>
+            <p className="text-sm font-medium text-foreground">{document.fileName}</p>
             <p className="text-xs text-muted-foreground">
               Enviado em {new Date(document.createdAt).toLocaleDateString('pt-BR')}
             </p>

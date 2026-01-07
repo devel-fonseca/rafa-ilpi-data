@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
       </div>
     )
   }
@@ -67,13 +67,13 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
-            <p className="text-gray-600 mb-4">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-4">
               Você não tem permissão para acessar esta página.
             </p>
             <a
               href="/dashboard"
-              className="text-blue-600 hover:text-blue-800 font-medium"
+              className="text-primary hover:text-primary/90 font-medium"
             >
               Voltar ao Dashboard
             </a>

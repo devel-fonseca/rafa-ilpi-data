@@ -78,14 +78,14 @@ export function ContractAcceptanceModal({
           <Separator className="bg-slate-200" />
 
           {/* Hash SHA-256 */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-xs text-blue-900 mb-2">
+          <div className="bg-primary/5 border border-primary/30 rounded-lg p-4">
+            <p className="text-xs text-primary/95 mb-2">
               <strong>Hash SHA-256 (Prova de Integridade):</strong>
             </p>
-            <p className="text-xs font-mono break-all text-blue-800 bg-blue-100 p-2 rounded">
+            <p className="text-xs font-mono break-all text-primary/90 bg-primary/10 p-2 rounded">
               {acceptance.contractHash}
             </p>
-            <p className="text-xs text-blue-700 mt-2">
+            <p className="text-xs text-primary/80 mt-2">
               Este hash criptográfico garante que o conteúdo do contrato aceito
               não foi alterado desde o momento da aceitação, servindo como prova
               jurídica de integridade.

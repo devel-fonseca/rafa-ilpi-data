@@ -33,6 +33,7 @@ import { api } from '@/services/api'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Check } from 'lucide-react'
@@ -45,12 +46,12 @@ const RECORD_TYPE_CONFIG: Record<
   string,
   { icon: typeof Bath; label: string; color: string }
 > = {
-  HIGIENE: { icon: Bath, label: 'Higiene', color: 'text-blue-600' },
-  ALIMENTACAO: { icon: Utensils, label: 'Alimentação', color: 'text-green-600' },
+  HIGIENE: { icon: Bath, label: 'Higiene', color: 'text-primary' },
+  ALIMENTACAO: { icon: Utensils, label: 'Alimentação', color: 'text-success' },
   HIDRATACAO: { icon: Droplets, label: 'Hidratação', color: 'text-cyan-600' },
-  MONITORAMENTO: { icon: Activity, label: 'Sinais Vitais', color: 'text-red-600' },
+  MONITORAMENTO: { icon: Activity, label: 'Sinais Vitais', color: 'text-danger' },
   ELIMINACAO: { icon: Trash2, label: 'Eliminação', color: 'text-amber-600' },
-  COMPORTAMENTO: { icon: Smile, label: 'Comportamento', color: 'text-purple-600' },
+  COMPORTAMENTO: { icon: Smile, label: 'Comportamento', color: 'text-medication-controlled' },
   HUMOR: { icon: Smile, label: 'Humor', color: 'text-pink-600' },
   SONO: { icon: Moon, label: 'Sono', color: 'text-indigo-600' },
   PESO: { icon: Weight, label: 'Peso', color: 'text-muted-foreground' },
@@ -293,7 +294,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
   // Calcular idade
   const age = resident
     ? new Date().getFullYear() -
-      new Date(resident.birthDate).getFullYear()
+      new Date(extractDateOnly(resident.birthDate) + 'T12:00:00').getFullYear()
     : 0
 
   // Iniciais do nome
@@ -612,7 +613,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                           {/* Date/Time */}
                           <div className="text-right flex-shrink-0">
                             <p className="text-xs font-medium text-muted-foreground">
-                              {format(new Date(record.date), 'dd/MM', { locale: ptBR })}
+                              {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM', { locale: ptBR })}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {record.time}
@@ -709,7 +710,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                   // Verificar se já foi administrado hoje neste horário
                   const todayAdmin = medication.administrations?.find(
                     (admin) =>
-                      format(new Date(admin.date), 'yyyy-MM-dd') === today &&
+                      extractDateOnly(admin.date) === today &&
                       admin.scheduledTime === scheduledTime
                   )
 

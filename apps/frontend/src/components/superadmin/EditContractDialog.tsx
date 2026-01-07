@@ -54,7 +54,7 @@ export function EditContractDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
+          <div className="bg-primary/5 p-3 rounded text-sm text-primary/90">
             <strong>Versão:</strong> {contract?.version} (não editável)
           </div>
 
@@ -70,8 +70,8 @@ export function EditContractDialog({
 
           <div>
             <Label>Conteúdo (HTML) *</Label>
-            <Card className="mt-2 p-3 bg-blue-50 border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-2">
+            <Card className="mt-2 p-3 bg-primary/5 border-primary/30">
+              <p className="text-xs font-semibold text-primary/95 mb-2">
                 📝 Variáveis disponíveis:
                 <code className="ml-2 bg-white px-1 rounded">{'{{tenant.name}}'}</code>
                 <code className="ml-1 bg-white px-1 rounded">{'{{tenant.cnpj}}'}</code>

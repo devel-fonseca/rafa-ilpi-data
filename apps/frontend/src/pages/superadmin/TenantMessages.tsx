@@ -110,20 +110,20 @@ export default function TenantMessages() {
         return <Badge variant="outline">Rascunho</Badge>;
       case 'SCHEDULED':
         return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+          <Badge className="bg-primary/10 text-primary/90 hover:bg-primary/10">
             <Calendar className="h-3 w-3 mr-1" />
             Agendado
           </Badge>
         );
       case 'SENDING':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          <Badge className="bg-warning/10 text-warning/90 hover:bg-warning/10">
             Enviando...
           </Badge>
         );
       case 'SENT':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/10 text-success/90 hover:bg-success/10">
             <Send className="h-3 w-3 mr-1" />
             Enviado
           </Badge>
@@ -192,12 +192,12 @@ export default function TenantMessages() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-blue-600">
+              <CardTitle className="text-sm font-medium text-primary">
                 Agendadas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary">
                 {messagesData?.messages.filter((m) => m.status === 'SCHEDULED').length || 0}
               </div>
             </CardContent>
@@ -205,12 +205,12 @@ export default function TenantMessages() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-600">
+              <CardTitle className="text-sm font-medium text-success">
                 Enviadas
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success">
                 {messagesData?.messages.filter((m) => m.status === 'SENT').length || 0}
               </div>
             </CardContent>
@@ -282,11 +282,11 @@ export default function TenantMessages() {
                         <TableCell>
                           {message.status === 'SENT' ? (
                             <div className="text-sm space-y-1">
-                              <div className="text-green-600">
+                              <div className="text-success">
                                 ✓ {message.sentCount} enviado{message.sentCount !== 1 && 's'}
                               </div>
                               {message.failedCount > 0 && (
-                                <div className="text-red-600">
+                                <div className="text-danger">
                                   ✗ {message.failedCount} falha{message.failedCount !== 1 && 's'}
                                 </div>
                               )}
@@ -333,7 +333,7 @@ export default function TenantMessages() {
                               {message.status === 'DRAFT' && (
                                 <DropdownMenuItem
                                   onClick={() => setDeleteId(message.id)}
-                                  className="text-red-600"
+                                  className="text-danger"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Deletar
@@ -376,7 +376,7 @@ export default function TenantMessages() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger/60 hover:bg-danger/70"
             >
               Deletar
             </AlertDialogAction>
@@ -398,7 +398,7 @@ export default function TenantMessages() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => sendId && sendMutation.mutate(sendId)}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success/60 hover:bg-success/70"
             >
               <Send className="h-4 w-4 mr-2" />
               Enviar Agora

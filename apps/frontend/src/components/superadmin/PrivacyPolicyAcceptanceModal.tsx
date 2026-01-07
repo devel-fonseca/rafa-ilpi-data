@@ -71,16 +71,16 @@ export function PrivacyPolicyAcceptanceModal({
           <Separator className="bg-slate-200" />
 
           {/* Declarações LGPD */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900 mb-3">
+          <div className="bg-primary/5 border border-primary/30 rounded-lg p-4">
+            <p className="text-sm font-medium text-primary/95 mb-3">
               Declarações LGPD Registradas
             </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {acceptance.lgpdIsDataController ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+                  <XCircle className="h-5 w-5 text-danger" />
                 )}
                 <span className="text-sm text-slate-700">
                   A ILPI é Controladora de Dados (art. 5º, VI, LGPD)
@@ -96,9 +96,9 @@ export function PrivacyPolicyAcceptanceModal({
               </div>
               <div className="flex items-center gap-2">
                 {acceptance.lgpdHasLegalBasis ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+                  <XCircle className="h-5 w-5 text-danger" />
                 )}
                 <span className="text-sm text-slate-700">
                   Possui base legal para tratamento de dados (arts. 7º e 11, LGPD)
@@ -114,9 +114,9 @@ export function PrivacyPolicyAcceptanceModal({
               </div>
               <div className="flex items-center gap-2">
                 {acceptance.lgpdAcknowledgesResponsibility ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-success" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+                  <XCircle className="h-5 w-5 text-danger" />
                 )}
                 <span className="text-sm text-slate-700">
                   Reconhece responsabilidades como Controladora

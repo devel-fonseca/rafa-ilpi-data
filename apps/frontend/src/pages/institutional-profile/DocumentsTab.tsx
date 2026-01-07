@@ -393,7 +393,7 @@ export function DocumentsTab() {
             // Estado vazio
             <div className="flex flex-col items-center justify-center h-64 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900">Nenhum documento encontrado</h3>
+              <h3 className="text-lg font-semibold text-foreground">Nenhum documento encontrado</h3>
               <p className="text-sm text-muted-foreground mt-2 max-w-md">
                 {hasActiveFilters
                   ? 'Não há documentos que correspondam aos filtros aplicados. Tente ajustar os filtros ou limpar para ver todos.'

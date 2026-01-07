@@ -243,34 +243,34 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
           {invoiceState && !trialAlertDismissed && (
             <div className={cn(
               'flex items-start gap-2 p-3 rounded-lg text-sm relative',
-              invoiceState.level === 'critical' && 'bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800',
-              invoiceState.level === 'warning' && 'bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800',
-              invoiceState.level === 'info' && 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800',
-              invoiceState.level === 'success' && 'bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800'
+              invoiceState.level === 'critical' && 'bg-danger/5 dark:bg-danger/95/20 border border-danger/30 dark:border-danger/80',
+              invoiceState.level === 'warning' && 'bg-warning/5 dark:bg-warning/95/20 border border-warning/30 dark:border-warning/80',
+              invoiceState.level === 'info' && 'bg-primary/5 dark:bg-primary/95/20 border border-primary/30 dark:border-primary/80',
+              invoiceState.level === 'success' && 'bg-success/5 dark:bg-success/95/20 border border-success/30 dark:border-success/80'
             )}>
               <AlertTriangle className={cn(
                 'h-4 w-4 mt-0.5 flex-shrink-0',
-                invoiceState.level === 'critical' && 'text-red-600 dark:text-red-400',
-                invoiceState.level === 'warning' && 'text-yellow-600 dark:text-yellow-400',
-                invoiceState.level === 'info' && 'text-blue-600 dark:text-blue-400',
-                invoiceState.level === 'success' && 'text-green-600 dark:text-green-400'
+                invoiceState.level === 'critical' && 'text-danger dark:text-danger/40',
+                invoiceState.level === 'warning' && 'text-warning dark:text-warning/40',
+                invoiceState.level === 'info' && 'text-primary dark:text-primary/40',
+                invoiceState.level === 'success' && 'text-success dark:text-success/40'
               )} />
               <div className="flex-1 pr-6">
                 <p className={cn(
                   'font-semibold',
-                  invoiceState.level === 'critical' && 'text-red-900 dark:text-red-100',
-                  invoiceState.level === 'warning' && 'text-yellow-900 dark:text-yellow-100',
-                  invoiceState.level === 'info' && 'text-blue-900 dark:text-blue-100',
-                  invoiceState.level === 'success' && 'text-green-900 dark:text-green-100'
+                  invoiceState.level === 'critical' && 'text-danger/90 dark:text-red-100',
+                  invoiceState.level === 'warning' && 'text-warning/95 dark:text-warning/10',
+                  invoiceState.level === 'info' && 'text-primary/95 dark:text-primary/10',
+                  invoiceState.level === 'success' && 'text-success/95 dark:text-success/10'
                 )}>
                   {invoiceState.message}
                 </p>
                 <p className={cn(
                   'text-sm mt-1',
-                  invoiceState.level === 'critical' && 'text-red-800 dark:text-red-200',
-                  invoiceState.level === 'warning' && 'text-yellow-800 dark:text-yellow-200',
-                  invoiceState.level === 'info' && 'text-blue-800 dark:text-blue-200',
-                  invoiceState.level === 'success' && 'text-green-800 dark:text-green-200'
+                  invoiceState.level === 'critical' && 'text-danger/90 dark:text-danger/20',
+                  invoiceState.level === 'warning' && 'text-warning/90 dark:text-warning/20',
+                  invoiceState.level === 'info' && 'text-primary/90 dark:text-blue-200',
+                  invoiceState.level === 'success' && 'text-success/90 dark:text-success/20'
                 )}>
                   {invoiceState.description}
                 </p>
@@ -299,19 +299,19 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
                 onClick={dismissTrialAlert}
                 className={cn(
                   'absolute top-2 right-2 p-1 rounded transition-colors',
-                  invoiceState.level === 'critical' && 'hover:bg-red-100 dark:hover:bg-red-900/50',
-                  invoiceState.level === 'warning' && 'hover:bg-yellow-100 dark:hover:bg-yellow-900/50',
-                  invoiceState.level === 'info' && 'hover:bg-blue-100 dark:hover:bg-blue-900/50',
-                  invoiceState.level === 'success' && 'hover:bg-green-100 dark:hover:bg-green-900/50'
+                  invoiceState.level === 'critical' && 'hover:bg-danger/10 dark:hover:bg-danger/90/50',
+                  invoiceState.level === 'warning' && 'hover:bg-warning/10 dark:hover:bg-warning/90/50',
+                  invoiceState.level === 'info' && 'hover:bg-primary/10 dark:hover:bg-primary/90/50',
+                  invoiceState.level === 'success' && 'hover:bg-success/10 dark:hover:bg-success/90/50'
                 )}
                 aria-label="Fechar alerta"
               >
                 <X className={cn(
                   'h-4 w-4',
-                  invoiceState.level === 'critical' && 'text-red-600 dark:text-red-400',
-                  invoiceState.level === 'warning' && 'text-yellow-600 dark:text-yellow-400',
-                  invoiceState.level === 'info' && 'text-blue-600 dark:text-blue-400',
-                  invoiceState.level === 'success' && 'text-green-600 dark:text-green-400'
+                  invoiceState.level === 'critical' && 'text-danger dark:text-danger/40',
+                  invoiceState.level === 'warning' && 'text-warning dark:text-warning/40',
+                  invoiceState.level === 'info' && 'text-primary dark:text-primary/40',
+                  invoiceState.level === 'success' && 'text-success dark:text-success/40'
                 )} />
               </button>
             </div>

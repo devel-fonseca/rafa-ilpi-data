@@ -8,7 +8,6 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameDay,
-  parseISO,
   startOfWeek,
   endOfWeek,
   isSameMonth,
@@ -16,6 +15,7 @@ import {
   subDays
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { AgendaItemCard } from './AgendaItemCard'
 import { DayDetailModal } from './DayDetailModal'
 
@@ -57,11 +57,8 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
     })
 
     items.forEach(item => {
-      const itemDate = typeof item.scheduledDate === 'string'
-        ? parseISO(item.scheduledDate)
-        : item.scheduledDate
-
-      const dayKey = format(itemDate, 'yyyy-MM-dd')
+      // ✅ Usa extractDateOnly para evitar timezone shift
+      const dayKey = extractDateOnly(item.scheduledDate)
       if (grouped[dayKey]) {
         grouped[dayKey].push(item)
       }
@@ -103,9 +100,9 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
 
   // Estatísticas do mês
   const monthItems = items.filter(item => {
-    const itemDate = typeof item.scheduledDate === 'string'
-      ? parseISO(item.scheduledDate)
-      : item.scheduledDate
+    // ✅ Usa extractDateOnly para evitar timezone shift
+    const dayKey = extractDateOnly(item.scheduledDate)
+    const itemDate = new Date(dayKey + 'T12:00:00')
     return isSameMonth(itemDate, selectedDate)
   })
 
@@ -127,8 +124,8 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'pending'
-                  ? 'bg-yellow-600 text-white hover:bg-yellow-700 border-yellow-600'
-                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300'
+                  ? 'bg-warning/60 text-white hover:bg-warning/70 border-warning/60'
+                  : 'bg-warning/10 text-warning/90 hover:bg-warning/20 border-warning/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'pending' ? 'all' : 'pending')}
             >
@@ -138,8 +135,8 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'completed'
-                  ? 'bg-green-600 text-white hover:bg-green-700 border-green-600'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300'
+                  ? 'bg-success/60 text-white hover:bg-success/70 border-success/60'
+                  : 'bg-success/10 text-success/90 hover:bg-success/20 border-success/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'completed' ? 'all' : 'completed')}
             >
@@ -149,8 +146,8 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'missed'
-                  ? 'bg-red-600 text-white hover:bg-red-700 border-red-600'
-                  : 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300'
+                  ? 'bg-danger/60 text-white hover:bg-danger/70 border-danger/60'
+                  : 'bg-danger/10 text-danger/90 hover:bg-danger/20 border-danger/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'missed' ? 'all' : 'missed')}
             >
@@ -220,10 +217,10 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
                             title={`${item.scheduledTime} - ${item.title}`}
                           >
                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                              item.status === 'completed' ? 'bg-green-500' :
-                              item.status === 'pending' ? 'bg-yellow-500' :
-                              item.status === 'missed' ? 'bg-red-500' :
-                              'bg-gray-400'
+                              item.status === 'completed' ? 'bg-success' :
+                              item.status === 'pending' ? 'bg-warning' :
+                              item.status === 'missed' ? 'bg-danger' :
+                              'bg-muted/40'
                             }`} />
                             <span className="truncate text-muted-foreground">
                               {item.scheduledTime}
@@ -292,7 +289,7 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
                         <div className="flex gap-1">
                           {dayItems.filter(i => i.status === 'completed').length > 0 && (
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <div className="w-2 h-2 rounded-full bg-success" />
                               <span className="text-xs text-muted-foreground">
                                 {dayItems.filter(i => i.status === 'completed').length}
                               </span>
@@ -300,7 +297,7 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
                           )}
                           {dayItems.filter(i => i.status === 'pending').length > 0 && (
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                              <div className="w-2 h-2 rounded-full bg-warning" />
                               <span className="text-xs text-muted-foreground">
                                 {dayItems.filter(i => i.status === 'pending').length}
                               </span>
@@ -308,7 +305,7 @@ export function MonthlyView({ items, selectedDate, isLoading, statusFilter, onSt
                           )}
                           {dayItems.filter(i => i.status === 'missed').length > 0 && (
                             <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <div className="w-2 h-2 rounded-full bg-danger" />
                               <span className="text-xs text-muted-foreground">
                                 {dayItems.filter(i => i.status === 'missed').length}
                               </span>

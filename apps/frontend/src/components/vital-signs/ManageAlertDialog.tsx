@@ -423,8 +423,8 @@ export function ManageAlertDialog({
 
             {/* Evoluções Clínicas Vinculadas */}
             {alert.clinicalNotes && alert.clinicalNotes.length > 0 && (
-              <div className="space-y-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-100">
+              <div className="space-y-2 p-3 bg-primary/5 dark:bg-primary/95 rounded-lg border border-primary/30 dark:border-primary/80">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary/95 dark:text-primary/10">
                   <FileText className="h-4 w-4" />
                   Evoluções Clínicas Vinculadas ({alert.clinicalNotes.length})
                 </div>
@@ -432,7 +432,7 @@ export function ManageAlertDialog({
                   {alert.clinicalNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="text-xs text-blue-800 dark:text-blue-200"
+                      className="text-xs text-primary/90 dark:text-blue-200"
                     >
                       • {note.profession} -{' '}
                       {formatDateTimeSafe(note.noteDate)}

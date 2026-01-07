@@ -88,12 +88,12 @@ export function AdministerMedicationModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1">
-          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">{medication.name}</h3>
-          <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="mb-4 p-4 bg-primary/5 dark:bg-primary/95/30 rounded-lg border border-primary/30 dark:border-primary/80">
+          <h3 className="font-semibold text-primary/95 dark:text-primary/10 mb-1">{medication.name}</h3>
+          <p className="text-sm text-primary/80 dark:text-primary/30">
             {medication.presentation} - {medication.concentration}
           </p>
-          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+          <p className="text-sm text-primary/80 dark:text-primary/30 mt-1">
             <span className="font-medium">Dose:</span> {medication.dose} -{' '}
             <span className="font-medium">Via:</span> {medication.route}
           </p>
@@ -109,7 +109,7 @@ export function AdministerMedicationModal({
                 {...register('date', { required: 'Data é obrigatória' })}
               />
               {errors.date && (
-                <p className="text-sm text-red-600 mt-1">{errors.date.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.date.message}</p>
               )}
             </div>
 
@@ -129,14 +129,14 @@ export function AdministerMedicationModal({
                 ))}
               </select>
               {errors.scheduledTime && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.scheduledTime.message}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded">
+          <div className="flex items-center space-x-2 p-3 bg-muted/50 dark:bg-gray-900/50 rounded">
             <Checkbox
               id="wasAdministered"
               checked={wasAdministered}
@@ -158,7 +158,7 @@ export function AdministerMedicationModal({
                   type="time"
                   {...register('actualTime')}
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-muted-foreground dark:text-muted-foreground/70 mt-1">
                   Deixe em branco se foi no horário programado
                 </p>
               </div>
@@ -173,14 +173,14 @@ export function AdministerMedicationModal({
                   placeholder="Nome do profissional"
                 />
                 {errors.administeredBy && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-danger mt-1">
                     {errors.administeredBy.message}
                   </p>
                 )}
               </div>
 
               {medication.requiresDoubleCheck && (
-                <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded">
+                <div className="p-3 bg-severity-warning/5 dark:bg-severity-warning/95/30 border border-severity-warning/30 dark:border-severity-warning/80 rounded">
                   <Label htmlFor="checkedBy">
                     Checado por (Dupla Checagem)
                   </Label>
@@ -189,7 +189,7 @@ export function AdministerMedicationModal({
                     {...register('checkedBy')}
                     placeholder="Nome do segundo profissional"
                   />
-                  <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+                  <p className="text-xs text-severity-warning/80 dark:text-severity-warning/30 mt-1">
                     Este medicamento requer dupla checagem
                   </p>
                 </div>
@@ -209,7 +209,7 @@ export function AdministerMedicationModal({
                 rows={3}
               />
               {errors.reason && (
-                <p className="text-sm text-red-600 mt-1">{errors.reason.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.reason.message}</p>
               )}
             </div>
           )}

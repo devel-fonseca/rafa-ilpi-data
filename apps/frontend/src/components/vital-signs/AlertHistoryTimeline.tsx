@@ -54,19 +54,19 @@ export function AlertHistoryTimeline({ alertId }: AlertHistoryTimelineProps) {
   const getChangeIcon = (changeType: string) => {
     switch (changeType) {
       case 'CREATED':
-        return <AlertCircle className="h-4 w-4 text-blue-500" />
+        return <AlertCircle className="h-4 w-4 text-primary" />
       case 'STATUS_CHANGED':
-        return <Activity className="h-4 w-4 text-purple-500" />
+        return <Activity className="h-4 w-4 text-medication-controlled" />
       case 'ASSIGNED':
-        return <UserCheck className="h-4 w-4 text-green-500" />
+        return <UserCheck className="h-4 w-4 text-success" />
       case 'NOTES_ADDED':
         return <MessageSquare className="h-4 w-4 text-orange-500" />
       case 'ACTION_TAKEN':
         return <CheckCircle className="h-4 w-4 text-emerald-500" />
       case 'UPDATED':
-        return <FileEdit className="h-4 w-4 text-gray-500" />
+        return <FileEdit className="h-4 w-4 text-muted-foreground" />
       default:
-        return <Clock className="h-4 w-4 text-gray-400" />
+        return <Clock className="h-4 w-4 text-muted-foreground/70" />
     }
   }
 
@@ -109,17 +109,17 @@ export function AlertHistoryTimeline({ alertId }: AlertHistoryTimelineProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-red-500'
+        return 'bg-danger'
       case 'IN_TREATMENT':
-        return 'bg-yellow-500'
+        return 'bg-warning'
       case 'MONITORING':
-        return 'bg-blue-500'
+        return 'bg-primary'
       case 'RESOLVED':
-        return 'bg-green-500'
+        return 'bg-success'
       case 'IGNORED':
         return 'bg-gray-500'
       default:
-        return 'bg-gray-400'
+        return 'bg-muted/40'
     }
   }
 

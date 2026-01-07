@@ -203,14 +203,14 @@ export default function MessagesListPage() {
                     key={message.id}
                     className={`cursor-pointer ${
                       message.recipientStatus !== MessageStatus.READ
-                        ? 'bg-blue-50 dark:bg-blue-950/20 font-medium'
+                        ? 'bg-primary/5 dark:bg-primary/95/20 font-medium'
                         : ''
                     }`}
                     onClick={() => navigate(`/dashboard/mensagens/${message.id}`)}
                   >
                     <TableCell>
                       {message.recipientStatus !== MessageStatus.READ && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full"></div>
                       )}
                     </TableCell>
                     <TableCell>{message.sender.name}</TableCell>

@@ -78,16 +78,16 @@ export function PhotoUpload({ onPhotoSelected, currentPhoto }: PhotoUploadProps)
           'relative w-36 h-48 border-2 border-dashed rounded-lg cursor-pointer overflow-hidden',
           'flex flex-col items-center justify-center transition-all',
           'hover:border-primary hover:bg-primary/5',
-          preview ? 'border-gray-400' : 'border-gray-300 bg-gray-50'
+          preview ? 'border-border/40' : 'border-border bg-muted/50'
         )}
         onClick={handleClick}
       >
         {preview ? (
           <>
             {isLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 z-10">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted z-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-2"></div>
-                <p className="text-xs text-gray-600">Carregando foto...</p>
+                <p className="text-xs text-muted-foreground">Carregando foto...</p>
               </div>
             )}
             <img
@@ -104,8 +104,8 @@ export function PhotoUpload({ onPhotoSelected, currentPhoto }: PhotoUploadProps)
           </>
         ) : (
           <>
-            <User className="w-12 h-12 text-gray-400 mb-2" />
-            <p className="text-xs text-gray-500 text-center px-2">
+            <User className="w-12 h-12 text-muted-foreground/70 mb-2" />
+            <p className="text-xs text-muted-foreground text-center px-2">
               Clique para upload<br/>
               <span className="text-xs">Foto do Residente</span>
             </p>

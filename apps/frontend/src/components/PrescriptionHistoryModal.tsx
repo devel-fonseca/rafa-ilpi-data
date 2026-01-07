@@ -52,13 +52,13 @@ export function PrescriptionHistoryModal({
   const getChangeTypeColor = (changeType: string) => {
     switch (changeType) {
       case 'CREATE':
-        return 'bg-green-100 text-green-800'
+        return 'bg-success/10 text-success/90'
       case 'UPDATE':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-primary/10 text-primary/90'
       case 'DELETE':
-        return 'bg-red-100 text-red-800'
+        return 'bg-danger/10 text-danger/90'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-muted text-foreground/90'
     }
   }
 
@@ -142,11 +142,11 @@ export function PrescriptionHistoryModal({
                 <div
                   key={entry.id}
                   className={`relative pl-8 pb-4 ${
-                    index !== data.history.length - 1 ? 'border-l-2 border-gray-200' : ''
+                    index !== data.history.length - 1 ? 'border-l-2 border-border' : ''
                   }`}
                 >
                   {/* Timeline Dot */}
-                  <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-gray-300" />
+                  <div className="absolute left-0 top-0 -translate-x-1/2 w-4 h-4 rounded-full bg-white border-2 border-border" />
 
                   {/* Version Card */}
                   <div className="rounded-lg border p-4 space-y-3 bg-white shadow-sm">

@@ -11,19 +11,19 @@ interface CriticalAlertsProps {
 
 const ALERT_SEVERITY_COLORS = {
   CRITICAL: {
-    bg: 'bg-red-50 border-red-200',
-    badge: 'bg-red-100 text-red-700 border-red-300',
-    icon: 'text-red-600',
+    bg: 'bg-danger/5 border-danger/30',
+    badge: 'bg-danger/10 text-danger/80 border-danger/30',
+    icon: 'text-danger',
   },
   WARNING: {
-    bg: 'bg-orange-50 border-orange-200',
-    badge: 'bg-orange-100 text-orange-700 border-orange-300',
-    icon: 'text-orange-600',
+    bg: 'bg-severity-warning/5 border-severity-warning/30',
+    badge: 'bg-severity-warning/10 text-severity-warning/80 border-severity-warning/30',
+    icon: 'text-severity-warning',
   },
   INFO: {
-    bg: 'bg-blue-50 border-blue-200',
-    badge: 'bg-blue-100 text-blue-700 border-blue-300',
-    icon: 'text-blue-600',
+    bg: 'bg-primary/5 border-primary/30',
+    badge: 'bg-primary/10 text-primary/80 border-primary/30',
+    icon: 'text-primary',
   },
 }
 
@@ -46,7 +46,7 @@ export function CriticalAlerts({ alerts }: CriticalAlertsProps) {
   }
 
   return (
-    <Card className="border-2 border-red-200">
+    <Card className="border-2 border-danger/30">
       <CardContent className="p-6">
         <div className="space-y-3">
           {alerts.map((alert) => {
@@ -63,7 +63,7 @@ export function CriticalAlerts({ alerts }: CriticalAlertsProps) {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle className={`h-5 w-5 ${colors.icon}`} />
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-foreground">
                         {alert.residentName}
                       </span>
                       <Badge
@@ -73,10 +73,10 @@ export function CriticalAlerts({ alerts }: CriticalAlertsProps) {
                         {ALERT_TYPE_LABELS[alert.type] || alert.type}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-700 mb-2">
+                    <p className="text-sm text-foreground/80 mb-2">
                       {alert.message}
                     </p>
-                    <div className="flex gap-4 text-xs text-gray-600">
+                    <div className="flex gap-4 text-xs text-muted-foreground">
                       {alert.doctorName && (
                         <span>Prescritor: {alert.doctorName}</span>
                       )}

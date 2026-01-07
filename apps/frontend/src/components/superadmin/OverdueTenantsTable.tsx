@@ -108,9 +108,9 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
                     variant={isCritical ? 'destructive' : isWarning ? 'secondary' : 'outline'}
                     className={
                       isCritical
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-danger/60 text-white'
                         : isWarning
-                          ? 'bg-orange-100 text-orange-800'
+                          ? 'bg-severity-warning/10 text-severity-warning/90'
                           : ''
                     }
                   >
@@ -120,7 +120,7 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
 
                 {/* Valor Total em Atraso */}
                 <TableCell className="text-right">
-                  <span className="font-semibold text-red-900">
+                  <span className="font-semibold text-danger/90">
                     {new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
                       currency: 'BRL',
@@ -134,9 +134,9 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
                     variant={isCritical ? 'destructive' : isWarning ? 'secondary' : 'outline'}
                     className={
                       isCritical
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-danger/60 text-white'
                         : isWarning
-                          ? 'bg-orange-100 text-orange-800'
+                          ? 'bg-severity-warning/10 text-severity-warning/90'
                           : ''
                     }
                   >
@@ -168,7 +168,7 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
-                        className="cursor-pointer text-blue-600 hover:text-blue-700"
+                        className="cursor-pointer text-primary hover:text-primary/80"
                         onClick={() => handleSendReminder(tenant)}
                       >
                         <Mail className="h-4 w-4 mr-2" />
@@ -176,7 +176,7 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
-                        className="cursor-pointer text-green-600 hover:text-green-700"
+                        className="cursor-pointer text-success hover:text-success/80"
                         onClick={() => handleRenegotiate(tenant)}
                       >
                         <DollarSign className="h-4 w-4 mr-2" />
@@ -184,7 +184,7 @@ export function OverdueTenantsTable({ tenants }: OverdueTenantsTableProps) {
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
-                        className="cursor-pointer text-red-600 hover:text-red-700"
+                        className="cursor-pointer text-danger hover:text-danger/80"
                         onClick={() => handleSuspend(tenant)}
                       >
                         <Ban className="h-4 w-4 mr-2" />

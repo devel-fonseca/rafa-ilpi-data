@@ -165,11 +165,11 @@ export function EditDailyRecordModal({
               id="editReason"
               placeholder="Ex: Correção de horário registrado incorretamente"
               {...register('editReason')}
-              className={errors.editReason ? 'border-red-500' : ''}
+              className={errors.editReason ? 'border-danger' : ''}
               rows={3}
             />
             {errors.editReason && (
-              <p className="text-sm text-red-500">{errors.editReason.message}</p>
+              <p className="text-sm text-danger">{errors.editReason.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Caracteres (sem espaços): {cleanedLength}/10
@@ -184,10 +184,10 @@ export function EditDailyRecordModal({
               type="time"
               {...register('time')}
               className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${
-                errors.time ? 'border-red-500' : ''
+                errors.time ? 'border-danger' : ''
               }`}
             />
-            {errors.time && <p className="text-sm text-red-500">{errors.time.message}</p>}
+            {errors.time && <p className="text-sm text-danger">{errors.time.message}</p>}
           </div>
 
           {/* Campo: Observações (opcional) */}

@@ -131,7 +131,7 @@ export default function ForcePasswordChange() {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                   tabIndex={-1}
                 >
                   {showCurrentPassword ? (
@@ -159,7 +159,7 @@ export default function ForcePasswordChange() {
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                   tabIndex={-1}
                 >
                   {showNewPassword ? (
@@ -191,14 +191,14 @@ export default function ForcePasswordChange() {
                     formData.newPassword &&
                     formData.confirmPassword.length >= formData.newPassword.length &&
                     formData.confirmPassword !== formData.newPassword
-                      ? 'border-red-500 focus-visible:ring-red-500'
+                      ? 'border-danger focus-visible:ring-red-500'
                       : ''
                   }
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? (
@@ -212,14 +212,14 @@ export default function ForcePasswordChange() {
                formData.newPassword &&
                formData.confirmPassword.length >= formData.newPassword.length &&
                formData.confirmPassword !== formData.newPassword && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-danger">
                   As senhas não conferem
                 </p>
               )}
               {formData.confirmPassword &&
                formData.newPassword &&
                formData.confirmPassword === formData.newPassword && (
-                <p className="text-xs text-green-600">
+                <p className="text-xs text-success">
                   ✓ As senhas conferem
                 </p>
               )}

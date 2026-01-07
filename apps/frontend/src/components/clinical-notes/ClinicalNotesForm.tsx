@@ -707,11 +707,11 @@ export function ClinicalNotesForm({
 
           {/* Sinais Vitais Compacto */}
           {lastVitalSign && !vitalSignsLoading && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-900">Último Monitoramento</span>
+                  <Activity className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-primary/95">Último Monitoramento</span>
                   <span className="text-xs text-muted-foreground">
                     {formatDateTimeSafe(lastVitalSign.timestamp)}
                   </span>
@@ -790,12 +790,12 @@ export function ClinicalNotesForm({
             <div>
               {documentTitle && documentContent ? (
                 // Card compacto quando documento existe
-                <div className="p-3 border-2 border-purple-200 bg-purple-50 rounded-lg">
+                <div className="p-3 border-2 border-medication-controlled/30 bg-medication-controlled/5 rounded-lg">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <FileText className="h-4 w-4 text-purple-600 shrink-0" />
-                        <h4 className="font-medium text-purple-900 text-sm truncate">{documentTitle}</h4>
+                        <FileText className="h-4 w-4 text-medication-controlled shrink-0" />
+                        <h4 className="font-medium text-medication-controlled/95 text-sm truncate">{documentTitle}</h4>
                         {documentType && (
                           <Badge variant="secondary" className="text-xs shrink-0">
                             {documentType}
@@ -856,7 +856,7 @@ export function ClinicalNotesForm({
                     setDocumentEnabled(true)
                     setShowEditorModal(true)
                   }}
-                  className="w-full gap-2 text-purple-700 border-purple-200 hover:bg-purple-50"
+                  className="w-full gap-2 text-medication-controlled/80 border-medication-controlled/30 hover:bg-medication-controlled/5"
                 >
                   <FileText className="h-4 w-4" />
                   Adicionar Documento Formatado (opcional)

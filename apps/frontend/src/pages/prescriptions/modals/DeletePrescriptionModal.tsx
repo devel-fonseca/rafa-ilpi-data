@@ -18,6 +18,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { extractDateOnly } from '@/utils/dateHelpers'
+import { format } from 'date-fns'
 
 /**
  * Schema de validação para exclusão de Prescription
@@ -127,7 +129,7 @@ export function DeletePrescriptionModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-danger">
             <Trash2 className="h-5 w-5" />
             Excluir Prescrição
           </DialogTitle>
@@ -163,7 +165,7 @@ export function DeletePrescriptionModal({
               </dd>
 
               <dt className="text-muted-foreground">Data da Prescrição:</dt>
-              <dd>{new Date(prescription.prescriptionDate).toLocaleDateString('pt-BR')}</dd>
+              <dd>{format(new Date(extractDateOnly(prescription.prescriptionDate) + 'T12:00:00'), 'dd/MM/yyyy')}</dd>
             </dl>
           </div>
 
@@ -176,11 +178,11 @@ export function DeletePrescriptionModal({
               id="deleteReason"
               placeholder="Ex: Prescrição duplicada acidentalmente no sistema"
               {...register('deleteReason')}
-              className={errors.deleteReason ? 'border-red-500' : ''}
+              className={errors.deleteReason ? 'border-danger' : ''}
               rows={3}
             />
             {errors.deleteReason && (
-              <p className="text-sm text-red-500">{errors.deleteReason.message}</p>
+              <p className="text-sm text-danger">{errors.deleteReason.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Caracteres (sem espaços): {cleanedLength}/10

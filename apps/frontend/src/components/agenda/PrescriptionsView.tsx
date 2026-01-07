@@ -91,48 +91,48 @@ export function PrescriptionsView({
             </div>
 
             {/* Ativas */}
-            <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-success/5 dark:bg-success/95 border border-success/30 dark:border-success/80">
               <div className="flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-2xl font-bold text-green-700 dark:text-green-300">{stats.active}</span>
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <span className="text-2xl font-bold text-success/80 dark:text-success/30">{stats.active}</span>
               </div>
-              <span className="text-xs text-green-700 dark:text-green-300 text-center">Ativas</span>
+              <span className="text-xs text-success/80 dark:text-success/30 text-center">Ativas</span>
             </div>
 
             {/* Vencendo */}
-            <div className="flex flex-col items-center p-3 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-severity-warning/5 dark:bg-severity-warning/95 border border-severity-warning/30 dark:border-severity-warning/80">
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-orange-600" />
-                <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{stats.expiring}</span>
+                <Clock className="h-4 w-4 text-severity-warning" />
+                <span className="text-2xl font-bold text-severity-warning/80 dark:text-severity-warning/30">{stats.expiring}</span>
               </div>
-              <span className="text-xs text-orange-700 dark:text-orange-300 text-center">Vencendo</span>
+              <span className="text-xs text-severity-warning/80 dark:text-severity-warning/30 text-center">Vencendo</span>
             </div>
 
             {/* Vencidas */}
-            <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-danger/5 dark:bg-danger/95 border border-danger/30 dark:border-danger/80">
               <div className="flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <span className="text-2xl font-bold text-red-700 dark:text-red-300">{stats.expired}</span>
+                <AlertTriangle className="h-4 w-4 text-danger" />
+                <span className="text-2xl font-bold text-danger/80 dark:text-danger/30">{stats.expired}</span>
               </div>
-              <span className="text-xs text-red-700 dark:text-red-300 text-center">Vencidas</span>
+              <span className="text-xs text-danger/80 dark:text-danger/30 text-center">Vencidas</span>
             </div>
 
             {/* Precisam revisão */}
-            <div className="flex flex-col items-center p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-warning/5 dark:bg-warning/95 border border-warning/30 dark:border-warning/80">
               <div className="flex items-center gap-1">
-                <FileText className="h-4 w-4 text-yellow-600" />
-                <span className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{stats.needsReview}</span>
+                <FileText className="h-4 w-4 text-warning" />
+                <span className="text-2xl font-bold text-warning/80 dark:text-warning/30">{stats.needsReview}</span>
               </div>
-              <span className="text-xs text-yellow-700 dark:text-yellow-300 text-center">Revisão</span>
+              <span className="text-xs text-warning/80 dark:text-warning/30 text-center">Revisão</span>
             </div>
 
             {/* Controladas */}
-            <div className="flex flex-col items-center p-3 rounded-lg bg-purple-50 dark:bg-purple-950 border border-purple-200 dark:border-purple-800">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-medication-controlled/5 dark:bg-medication-controlled/95 border border-medication-controlled/30 dark:border-medication-controlled/90">
               <div className="flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4 text-purple-600" />
-                <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">{stats.controlled}</span>
+                <AlertTriangle className="h-4 w-4 text-medication-controlled" />
+                <span className="text-2xl font-bold text-medication-controlled/80 dark:text-medication-controlled/30">{stats.controlled}</span>
               </div>
-              <span className="text-xs text-purple-700 dark:text-purple-300 text-center">Controladas</span>
+              <span className="text-xs text-medication-controlled/80 dark:text-medication-controlled/30 text-center">Controladas</span>
             </div>
           </div>
 
@@ -149,8 +149,8 @@ export function PrescriptionsView({
               variant={filter === 'active' ? 'default' : 'outline'}
               className={`cursor-pointer transition-all ${
                 filter === 'active'
-                  ? 'bg-green-600 hover:bg-green-700'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300'
+                  ? 'bg-success/60 hover:bg-success/70'
+                  : 'bg-success/10 text-success/90 hover:bg-success/20 border-success/30'
               }`}
               onClick={() => onFilterChange?.('active')}
             >
@@ -161,8 +161,8 @@ export function PrescriptionsView({
               variant={filter === 'expiring' ? 'default' : 'outline'}
               className={`cursor-pointer transition-all ${
                 filter === 'expiring'
-                  ? 'bg-orange-600 hover:bg-orange-700'
-                  : 'bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-300'
+                  ? 'bg-severity-warning/60 hover:bg-severity-warning/70'
+                  : 'bg-severity-warning/10 text-severity-warning/90 hover:bg-orange-200 border-severity-warning/30'
               }`}
               onClick={() => onFilterChange?.('expiring')}
             >
@@ -173,8 +173,8 @@ export function PrescriptionsView({
               variant={filter === 'expired' ? 'default' : 'outline'}
               className={`cursor-pointer transition-all ${
                 filter === 'expired'
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300'
+                  ? 'bg-danger/60 hover:bg-danger/70'
+                  : 'bg-danger/10 text-danger/90 hover:bg-danger/20 border-danger/30'
               }`}
               onClick={() => onFilterChange?.('expired')}
             >
@@ -185,8 +185,8 @@ export function PrescriptionsView({
               variant={filter === 'needs_review' ? 'default' : 'outline'}
               className={`cursor-pointer transition-all ${
                 filter === 'needs_review'
-                  ? 'bg-yellow-600 hover:bg-yellow-700'
-                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300'
+                  ? 'bg-warning/60 hover:bg-warning/70'
+                  : 'bg-warning/10 text-warning/90 hover:bg-warning/20 border-warning/30'
               }`}
               onClick={() => onFilterChange?.('needs_review')}
             >

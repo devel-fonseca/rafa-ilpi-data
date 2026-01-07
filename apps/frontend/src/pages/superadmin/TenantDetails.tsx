@@ -162,7 +162,7 @@ export function TenantDetails() {
               variant="default"
               onClick={handleReactivate}
               disabled={reactivateMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success/60 hover:bg-success/70"
             >
               <Play className="h-4 w-4 mr-2" />
               Reativar

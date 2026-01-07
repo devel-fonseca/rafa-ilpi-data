@@ -335,8 +335,8 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
           {/* STEP 2: Configurar Quartos do Andar */}
           {step === 'floors' && currentFloor && (
             <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-blue-900">
+              <div className="bg-primary/5 border border-primary/30 rounded-lg p-4">
+                <p className="text-sm font-semibold text-primary/95">
                   Andar {currentFloor.floorNumber} de {state.totalFloors}
                 </p>
               </div>
@@ -360,8 +360,8 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
           {/* STEP 3: Detalhar Quartos */}
           {step === 'floor-detail' && currentRoom && currentFloor && (
             <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm font-semibold text-green-900">
+              <div className="bg-success/5 border border-success/30 rounded-lg p-4">
+                <p className="text-sm font-semibold text-success/95">
                   Andar {currentFloor.floorNumber} • Quarto {currentRoomIndex + 1} de {currentFloor.roomsCount}
                 </p>
               </div>
@@ -419,7 +419,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                   onChange={e =>
                     setCurrentRoom(prev => (prev ? { ...prev, hasPrivateBathroom: e.target.checked } : null))
                   }
-                  className="rounded border-gray-300"
+                  className="rounded border-border"
                 />
                 <Label htmlFor="bathroom" className="cursor-pointer">
                   Tem banheiro privativo?
@@ -434,7 +434,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                   onChange={e =>
                     setCurrentRoom(prev => (prev ? { ...prev, isAccessible: e.target.checked } : null))
                   }
-                  className="rounded border-gray-300"
+                  className="rounded border-border"
                 />
                 <Label htmlFor="accessible" className="cursor-pointer">
                   É acessível?
@@ -446,14 +446,14 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
           {/* STEP 4: Review */}
           {step === 'review' && (
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="font-semibold text-purple-900">Resumo da Estrutura</p>
+              <div className="bg-medication-controlled/5 border border-medication-controlled/30 rounded-lg p-4">
+                <p className="font-semibold text-medication-controlled/95">Resumo da Estrutura</p>
               </div>
 
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-semibold">Prédio: {state.buildingName}</p>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     Código: <span className="font-mono font-semibold">{state.buildingCode}</span> •{' '}
                     {state.totalFloors} andar{state.totalFloors > 1 ? 'es' : ''} (Começando no andar{' '}
                     {state.startFloorNumber === 0 ? ' térreo' : ` ${state.startFloorNumber}`})
@@ -461,14 +461,14 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                 </div>
 
                 {state.floors.map((floor, floorIdx) => (
-                  <div key={floorIdx} className="border-l-2 border-purple-300 pl-3 py-1">
+                  <div key={floorIdx} className="border-l-2 border-medication-controlled/30 pl-3 py-1">
                     <p className="text-sm font-semibold">
                       Andar {floor.floorNumber} <span className="font-mono text-xs">({floor.floorCode})</span>
                     </p>
-                    <p className="text-xs text-gray-600">{floor.rooms.length} quarto(s)</p>
+                    <p className="text-xs text-muted-foreground">{floor.rooms.length} quarto(s)</p>
 
                     {floor.rooms.map((room, roomIdx) => (
-                      <div key={roomIdx} className="text-xs text-gray-700 ml-2 py-1">
+                      <div key={roomIdx} className="text-xs text-foreground/80 ml-2 py-1">
                         <p>
                           • {room.roomName} <span className="font-mono">({room.roomCode})</span>: {room.bedCount} leito{room.bedCount > 1 ? 's' : ''}{' '}
                           <span className="font-mono text-indigo-600">
@@ -482,8 +482,8 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
                   </div>
                 ))}
 
-                <div className="bg-gray-100 rounded p-2 mt-3">
-                  <p className="text-xs font-semibold text-gray-700">
+                <div className="bg-muted rounded p-2 mt-3">
+                  <p className="text-xs font-semibold text-foreground/80">
                     Total: {state.floors.reduce((sum, f) => sum + f.rooms.length, 0)} quartos •{' '}
                     {state.floors.reduce((sum, f) => sum + f.rooms.reduce((s, r) => s + r.bedCount, 0), 0)} leitos
                   </p>
@@ -521,7 +521,7 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
           )}
 
           {step === 'review' && (
-            <Button onClick={handleCreateStructure} disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleCreateStructure} disabled={isLoading} className="bg-success/60 hover:bg-success/70">
               {isLoading ? 'Criando...' : 'Criar Estrutura'}
               <Check className="w-4 h-4 ml-2" />
             </Button>

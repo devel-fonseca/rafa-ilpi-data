@@ -201,7 +201,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
             <div className="md:col-span-1">
               <Label htmlFor="search">Busca</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
                 <Input
                   id="search"
                   placeholder="Buscar documentos..."
@@ -243,12 +243,12 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : error ? (
-            <div className="text-center py-12 text-red-600">
+            <div className="text-center py-12 text-danger">
               Erro ao carregar documentos. Tente novamente.
             </div>
           ) : filteredDocuments.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-lg font-medium">Nenhum documento encontrado</p>
               <p className="text-sm mt-2">
                 {documents.length === 0
@@ -275,10 +275,10 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <FileIcon className="h-4 w-4 text-gray-400" />
+                          <FileIcon className="h-4 w-4 text-muted-foreground/70" />
                           <div>
                             <div className="font-medium">{getTypeLabel(doc.type)}</div>
-                            <div className="text-xs text-gray-500">{doc.fileName}</div>
+                            <div className="text-xs text-muted-foreground">{doc.fileName}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -286,7 +286,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                         {doc.details ? (
                           <span className="text-sm">{doc.details}</span>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="text-sm text-muted-foreground/70">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -308,7 +308,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                               onClick={() => handleDelete(doc.id, doc.fileName)}
                               disabled={deleteMutation.isPending}
                               title="Excluir"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-danger hover:text-danger/80 hover:bg-danger/5"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -338,7 +338,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
             {/* Tipo de Documento */}
             <div>
               <Label htmlFor="document-upload-type">
-                Tipo de Documento <span className="text-red-500">*</span>
+                Tipo de Documento <span className="text-danger">*</span>
               </Label>
               <Select value={uploadType} onValueChange={setUploadType}>
                 <SelectTrigger id="document-upload-type">
@@ -368,15 +368,15 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
             {/* Arquivo */}
             <div>
               <Label htmlFor="document-upload-file">
-                Arquivo <span className="text-red-500">*</span>
+                Arquivo <span className="text-danger">*</span>
               </Label>
               <div className="mt-2">
                 {selectedFile ? (
-                  <div className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
-                    <FileIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/50">
+                    <FileIcon className="h-5 w-5 text-muted-foreground/70 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{selectedFile.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -414,7 +414,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                   className="hidden"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Formatos aceitos: PDF, JPG, PNG, WEBP (máx. 10MB)
               </p>
             </div>

@@ -28,8 +28,9 @@ import {
   ResidentScheduledEvent,
   ScheduledEventStatus,
 } from '@/hooks/useResidentSchedule';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { extractDateOnly } from '@/utils/dateHelpers';
 
 interface ScheduledEventsListProps {
   residentId: string;
@@ -79,9 +80,10 @@ export function ScheduledEventsList({
     })
     .sort((a, b) => {
       // Ordenar por data crescente (próximos agendamentos primeiro)
-      const dateA = parseISO(a.scheduledDate);
-      const dateB = parseISO(b.scheduledDate);
-      return dateA.getTime() - dateB.getTime();
+      // ✅ Usa extractDateOnly para evitar timezone shift
+      const dayKeyA = extractDateOnly(a.scheduledDate);
+      const dayKeyB = extractDateOnly(b.scheduledDate);
+      return dayKeyA.localeCompare(dayKeyB);
     });
 
   const handleDelete = (event: ResidentScheduledEvent) => {
@@ -121,7 +123,9 @@ export function ScheduledEventsList({
   };
 
   const formatDate = (dateStr: string): string => {
-    const date = parseISO(dateStr);
+    // ✅ Usa extractDateOnly para evitar timezone shift
+    const dayKey = extractDateOnly(dateStr);
+    const date = new Date(dayKey + 'T12:00:00');
     return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
   };
 
@@ -246,7 +250,7 @@ export function ScheduledEventsList({
                       title="Marcar como concluído"
                       disabled={updateMutation.isPending}
                     >
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     </Button>
                   )}
                   {canManage && (

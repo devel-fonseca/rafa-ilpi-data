@@ -1,14 +1,32 @@
 /**
- * Utilitários para conversão de timezone UTC ↔ America/Sao_Paulo
+ * ⚠️ DEPRECATED - Este arquivo está deprecated desde 06/01/2026
  *
- * Problema documentado em 22/11/2025:
- * Backend e banco de dados armazenam timestamps em UTC (correto),
- * mas frontend não fazia conversão para timezone local do usuário.
+ * Use @/utils/dateHelpers.ts ao invés disso.
+ * Este arquivo será REMOVIDO em 30 dias (06/02/2026).
  *
- * Solução:
- * - Backend mantém UTC (melhor prática internacional)
- * - Frontend converte UTC → America/Sao_Paulo para exibição
- * - Suporta expansão futura para multi-timezone
+ * MIGRAÇÃO DE FUNÇÕES:
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * timezone.ts (deprecated)       → dateHelpers.ts (novo)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * getCurrentTimeLocal()          → getCurrentTime()
+ * getCurrentDateLocal()          → getCurrentDate()
+ * formatUtcToLocal()             → formatDateSafe()
+ * formatDateShort()              → formatDateOnlySafe()
+ * formatDateTime()               → formatDateTimeSafe()
+ * formatTime()                   → formatTimeSafe()
+ * utcToLocal()                   → normalizeUTCDate()
+ * localToUtc()                   → localToUTC()
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *
+ * RAZÃO DA DEPRECIAÇÃO:
+ * - Sistema migrou para padrão timezone-safe completo
+ * - Backend migrou 21 campos de TIMESTAMPTZ para DATE
+ * - dateHelpers.ts oferece funções mais robustas e type-safe
+ * - Elimina bugs de timezone shift em datas civis
+ *
+ * @deprecated Desde 06/01/2026 - Use @/utils/dateHelpers.ts
+ * @author Rafa Labs - Datetime Standardization Project
+ * @date 2026-01-06
  */
 
 import { format as formatDateFns, parseISO } from 'date-fns'

@@ -103,7 +103,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
       {recurringTasks.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Repeat className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Repeat className="h-4 w-4 text-primary dark:text-primary/40" />
             <h3 className="font-semibold text-sm">Registros Obrigatórios</h3>
             <Badge variant="secondary" className="ml-auto">
               {recurringTasks.length}
@@ -116,14 +116,14 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                 key={`recurring-${task.configId}-${index}`}
                 className={`p-3 border rounded-lg hover:bg-accent/50 transition-colors ${
                   task.isCompleted
-                    ? 'bg-accent/20 dark:bg-accent/10 border-green-500/30 dark:border-green-500/20'
+                    ? 'bg-accent/20 dark:bg-accent/10 border-success/30 dark:border-success/20'
                     : ''
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     {task.isCompleted && (
-                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-success dark:text-success/40 flex-shrink-0" />
                     )}
                     <Badge
                       variant="outline"
@@ -156,7 +156,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                 )}
 
                 {task.isCompleted && task.completedBy && (
-                  <div className="flex items-center gap-1 text-xs text-green-700 dark:text-green-300 mt-2 font-medium">
+                  <div className="flex items-center gap-1 text-xs text-success/80 dark:text-success/30 mt-2 font-medium">
                     <CheckCircle2 className="h-3 w-3" />
                     <span>Registrado por {task.completedBy}</span>
                   </div>
@@ -171,7 +171,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
       {eventTasks.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <Calendar className="h-4 w-4 text-success dark:text-success/40" />
             <h3 className="font-semibold text-sm">Agendamentos</h3>
             <Badge variant="secondary" className="ml-auto">
               {eventTasks.length}
@@ -203,7 +203,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                   </div>
 
                   {task.status === 'COMPLETED' && (
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <CheckCircle2 className="h-4 w-4 text-success dark:text-success/40" />
                   )}
                 </div>
 

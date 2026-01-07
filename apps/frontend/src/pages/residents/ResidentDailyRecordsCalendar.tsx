@@ -191,7 +191,7 @@ export default function ResidentDailyRecordsCalendar() {
   if (isLoadingResident) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -210,7 +210,7 @@ export default function ResidentDailyRecordsCalendar() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">{resident?.fullName || 'Residente'}</h1>
-          <p className="text-sm text-gray-600">Registros Diários - Calendário</p>
+          <p className="text-sm text-muted-foreground">Registros Diários - Calendário</p>
         </div>
       </div>
 
@@ -238,14 +238,14 @@ export default function ResidentDailyRecordsCalendar() {
           <CardContent>
             {isLoadingRecords ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : records.length > 0 ? (
               <div className="space-y-2">
                 {records.map((record: any) => (
                   <div
                     key={record.id}
-                    className={`border-l-4 pl-4 py-2 rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                    className={`border-l-4 pl-4 py-2 rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       {/* Conteúdo principal - clicável para visualizar */}
@@ -318,9 +318,9 @@ export default function ResidentDailyRecordsCalendar() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <Calendar className="h-12 w-12 text-gray-300" />
-                <div className="text-gray-500 font-medium">Nenhum registro encontrado</div>
-                <p className="text-sm text-gray-400 text-center max-w-sm">
+                <Calendar className="h-12 w-12 text-muted-foreground/50" />
+                <div className="text-muted-foreground font-medium">Nenhum registro encontrado</div>
+                <p className="text-sm text-muted-foreground/70 text-center max-w-sm">
                   Selecione uma data com indicador verde para visualizar registros
                 </p>
               </div>

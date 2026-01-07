@@ -45,7 +45,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
         <div className="space-y-4 mb-6">
           {/* Subjetivo */}
           {note.subjective && (
-            <div className="border-l-4 border-blue-500 pl-3">
+            <div className="border-l-4 border-primary pl-3">
               <h3 className="font-bold text-base mb-2">[S] SUBJETIVO</h3>
               <div className="text-sm whitespace-pre-wrap">{note.subjective}</div>
             </div>
@@ -53,7 +53,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
 
           {/* Objetivo */}
           {note.objective && (
-            <div className="border-l-4 border-green-500 pl-3">
+            <div className="border-l-4 border-success pl-3">
               <h3 className="font-bold text-base mb-2">[O] OBJETIVO</h3>
               <div className="text-sm whitespace-pre-wrap">{note.objective}</div>
             </div>
@@ -61,7 +61,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
 
           {/* Avaliação */}
           {note.assessment && (
-            <div className="border-l-4 border-orange-500 pl-3">
+            <div className="border-l-4 border-severity-warning pl-3">
               <h3 className="font-bold text-base mb-2">[A] AVALIAÇÃO</h3>
               <div className="text-sm whitespace-pre-wrap">{note.assessment}</div>
             </div>
@@ -69,7 +69,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
 
           {/* Plano */}
           {note.plan && (
-            <div className="border-l-4 border-purple-500 pl-3">
+            <div className="border-l-4 border-medication-controlled pl-3">
               <h3 className="font-bold text-base mb-2">[P] PLANO</h3>
               <div className="text-sm whitespace-pre-wrap">{note.plan}</div>
             </div>
@@ -77,7 +77,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
 
           {/* Tags */}
           {note.tags && note.tags.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-300">
+            <div className="mt-4 pt-4 border-t border-border">
               <p className="text-sm">
                 <strong>Tags:</strong> {note.tags.join(', ')}
               </p>
@@ -85,7 +85,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
           )}
 
           {/* Informações de Registro */}
-          <div className="mt-6 pt-4 border-t-2 border-gray-400 text-sm text-gray-700">
+          <div className="mt-6 pt-4 border-t-2 border-border/40 text-sm text-foreground/80">
             <p>
               <strong>Profissional:</strong> {note.professional.name} ({note.professional.email})
             </p>
@@ -102,7 +102,7 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
                 </p>
               </>
             )}
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               <strong>ID do Documento:</strong> {note.id}
             </p>
           </div>
@@ -127,16 +127,16 @@ export const ClinicalNotePrintView = forwardRef<HTMLDivElement, ClinicalNotePrin
             }
 
             /* Cores das bordas laterais SOAP */
-            .border-blue-500 {
+            .border-primary {
               border-color: #3b82f6 !important;
             }
-            .border-green-500 {
+            .border-success {
               border-color: #22c55e !important;
             }
-            .border-orange-500 {
+            .border-severity-warning {
               border-color: #f97316 !important;
             }
-            .border-purple-500 {
+            .border-medication-controlled {
               border-color: #a855f7 !important;
             }
 

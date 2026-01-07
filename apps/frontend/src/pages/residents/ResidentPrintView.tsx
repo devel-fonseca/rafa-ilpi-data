@@ -95,7 +95,7 @@ export function ResidentPrintView() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{residentData.fullName}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{residentData.fullName}</h1>
               <p className="text-sm text-muted-foreground mt-1">Visualizando as informações do residente</p>
             </div>
 

@@ -15,7 +15,7 @@ import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickView
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 
 // Modais de registro (reutilizando de DailyRecordsPage)
@@ -38,7 +38,7 @@ export function CaregiverDashboard() {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
   const { data, isLoading, error, refetch } = useCaregiverTasks()
-  const today = getCurrentDateLocal()
+  const today = getCurrentDate()
 
   // Estado para modals
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(
@@ -129,8 +129,8 @@ export function CaregiverDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando tarefas do dia...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando tarefas do dia...</p>
         </div>
       </div>
     )
@@ -181,7 +181,7 @@ export function CaregiverDashboard() {
         {/* Empty State */}
         <Card>
           <CardContent className="text-center py-12">
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
+            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-success" />
             <h3 className="text-lg font-semibold mb-2">
               Todas as tarefas concluídas!
             </h3>

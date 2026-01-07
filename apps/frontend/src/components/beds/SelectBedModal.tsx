@@ -41,10 +41,10 @@ interface AvailableBed {
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
-  'Disponível': 'bg-green-100 text-green-900 border-green-500',
-  'Ocupado': 'bg-red-100 text-red-900 border-red-500',
-  'Manutenção': 'bg-yellow-100 text-yellow-900 border-yellow-500',
-  'Reservado': 'bg-blue-100 text-blue-900 border-blue-500',
+  'Disponível': 'bg-success/10 text-success/95 border-success',
+  'Ocupado': 'bg-danger/10 text-danger/90 border-danger',
+  'Manutenção': 'bg-warning/10 text-warning/95 border-warning',
+  'Reservado': 'bg-primary/10 text-primary/95 border-primary',
 }
 
 export function SelectBedModal({
@@ -245,7 +245,7 @@ export function SelectBedModal({
               {filterScope !== 'all' && (
                 <button
                   onClick={() => setFilterScope('all')}
-                  className="text-xs text-blue-600 hover:underline mt-2"
+                  className="text-xs text-primary hover:underline mt-2"
                 >
                   Expandir busca para todos os prédios
                 </button>
@@ -273,7 +273,7 @@ export function SelectBedModal({
                         <Card
                           key={bedInfo.bed.id}
                           className={`border-2 transition-all cursor-pointer ${
-                            BED_STATUS_COLORS[bedInfo.bed.status] || 'bg-gray-100'
+                            BED_STATUS_COLORS[bedInfo.bed.status] || 'bg-muted'
                           } ${
                             isSelected
                               ? 'ring-4 ring-blue-600 shadow-lg scale-105'
@@ -284,7 +284,7 @@ export function SelectBedModal({
                           <CardContent className="p-3 relative">
                             {isSelected && (
                               <div className="absolute top-1 right-1">
-                                <div className="bg-blue-600 rounded-full p-0.5">
+                                <div className="bg-primary/60 rounded-full p-0.5">
                                   <Check className="h-3 w-3 text-white" />
                                 </div>
                               </div>

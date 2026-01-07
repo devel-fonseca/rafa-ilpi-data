@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
 import type { Prescription, QueryPrescriptionParams } from '@/api/prescriptions.api'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,7 +64,7 @@ import {
   ArrowLeft,
   FileCheck,
 } from 'lucide-react'
-import { parseISO } from 'date-fns'
+// parseISO removido - usar extractDateOnly para campos DATE
 import { useToast } from '@/components/ui/use-toast'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { MedicalReviewModal } from './modals/MedicalReviewModal'
@@ -184,15 +184,17 @@ export default function PrescriptionsList() {
 
   // Obter cor do badge de status
   const getStatusBadgeColor = (prescription: Prescription) => {
-    if (!prescription.isActive) return 'bg-gray-100 text-gray-800'
+    if (!prescription.isActive) return 'bg-muted text-foreground/90'
 
     if (prescription.validUntil) {
       const today = new Date()
-      const validUntil = parseISO(prescription.validUntil)
-      if (validUntil < today) return 'bg-red-100 text-red-800'
+      // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+      const dayKey = extractDateOnly(prescription.validUntil)
+      const validUntil = new Date(dayKey + 'T12:00:00')
+      if (validUntil < today) return 'bg-danger/10 text-danger/90'
     }
 
-    return 'bg-green-100 text-green-800'
+    return 'bg-success/10 text-success/90'
   }
 
   const getStatusLabel = (prescription: Prescription) => {
@@ -200,7 +202,9 @@ export default function PrescriptionsList() {
 
     if (prescription.validUntil) {
       const today = new Date()
-      const validUntil = parseISO(prescription.validUntil)
+      // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+      const dayKey = extractDateOnly(prescription.validUntil)
+      const validUntil = new Date(dayKey + 'T12:00:00')
       if (validUntil < today) return 'Vencida'
     }
 
@@ -214,7 +218,9 @@ export default function PrescriptionsList() {
     if (prescription.reviewDate) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const reviewDate = parseISO(prescription.reviewDate)
+      // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+      const dayKey = extractDateOnly(prescription.reviewDate)
+      const reviewDate = new Date(dayKey + 'T00:00:00')
       return reviewDate <= today
     }
 
@@ -245,8 +251,8 @@ export default function PrescriptionsList() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-red-500" />
-        <p className="text-red-600">Erro ao carregar prescrições</p>
+        <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-danger" />
+        <p className="text-danger">Erro ao carregar prescrições</p>
       </div>
     )
   }
@@ -256,8 +262,8 @@ export default function PrescriptionsList() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Prescrições</h1>
-          <p className="text-gray-600 mt-1">Gerencie as prescrições da ILPI</p>
+          <h1 className="text-3xl font-bold text-foreground">Prescrições</h1>
+          <p className="text-muted-foreground mt-1">Gerencie as prescrições da ILPI</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -286,11 +292,11 @@ export default function PrescriptionsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Total</h3>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalActive}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
+                  <p className="text-2xl font-bold text-primary mt-1">{stats.totalActive}</p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -300,13 +306,13 @@ export default function PrescriptionsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Vencendo em 5 dias</h3>
-                  <p className="text-2xl font-bold text-orange-600 mt-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Vencendo em 5 dias</h3>
+                  <p className="text-2xl font-bold text-severity-warning mt-1">
                     {stats.expiringIn5Days}
                   </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
-                  <AlertTriangle className="h-6 w-6 text-orange-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
+                  <AlertTriangle className="h-6 w-6 text-severity-warning" />
                 </div>
               </div>
             </CardContent>
@@ -316,13 +322,13 @@ export default function PrescriptionsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Antibióticos</h3>
-                  <p className="text-2xl font-bold text-green-600 mt-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Antibióticos</h3>
+                  <p className="text-2xl font-bold text-success mt-1">
                     {stats.activeAntibiotics}
                   </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
-                  <Pill className="h-6 w-6 text-green-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
+                  <Pill className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
@@ -332,13 +338,13 @@ export default function PrescriptionsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Controlados</h3>
-                  <p className="text-2xl font-bold text-purple-600 mt-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Controlados</h3>
+                  <p className="text-2xl font-bold text-medication-controlled mt-1">
                     {stats.activeControlled}
                   </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
+                  <CheckCircle2 className="h-6 w-6 text-medication-controlled" />
                 </div>
               </div>
             </CardContent>
@@ -405,7 +411,7 @@ export default function PrescriptionsList() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-gray-500">Carregando...</div>
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : prescriptions && prescriptions.length > 0 ? (
             <>
               <div className="overflow-x-auto">
@@ -435,7 +441,7 @@ export default function PrescriptionsList() {
                               const totalMeds = continuousMeds.length + sosMeds.length
 
                               if (totalMeds === 0) {
-                                return <span className="text-gray-500">-</span>
+                                return <span className="text-muted-foreground">-</span>
                               }
 
                               const displayMeds = [
@@ -468,11 +474,11 @@ export default function PrescriptionsList() {
                                 <div className="space-y-1">
                                   {displayMeds.map((med) => (
                                     <div key={med.id} className="flex items-center gap-2">
-                                      <span className="text-gray-600">{med.name}</span>
+                                      <span className="text-muted-foreground">{med.name}</span>
                                       {med.type === 'SOS' && (
                                         <Badge
                                           variant="outline"
-                                          className="text-xs px-1.5 py-0 bg-orange-50 text-orange-700 border-orange-300"
+                                          className="text-xs px-1.5 py-0 bg-severity-warning/5 text-severity-warning/80 border-severity-warning/30"
                                         >
                                           SOS
                                         </Badge>
@@ -484,7 +490,7 @@ export default function PrescriptionsList() {
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <div className="inline-block">
-                                            <span className="text-gray-500 italic text-xs cursor-help underline decoration-dotted">
+                                            <span className="text-muted-foreground italic text-xs cursor-help underline decoration-dotted">
                                               +{totalMeds - 2} mais
                                             </span>
                                           </div>
@@ -498,7 +504,7 @@ export default function PrescriptionsList() {
                                                 {med.type === 'SOS' && (
                                                   <Badge
                                                     variant="outline"
-                                                    className="text-[10px] px-1 py-0 bg-orange-50 text-orange-700 border-orange-300"
+                                                    className="text-[10px] px-1 py-0 bg-severity-warning/5 text-severity-warning/80 border-severity-warning/30"
                                                   >
                                                     SOS
                                                   </Badge>
@@ -557,7 +563,7 @@ export default function PrescriptionsList() {
                                   {needsMedicalReview(prescription) && (
                                     <DropdownMenuItem
                                       onClick={() => setReviewModal({ open: true, prescription })}
-                                      className="text-yellow-700 dark:text-yellow-400"
+                                      className="text-warning/80 dark:text-warning/40"
                                     >
                                       <FileCheck className="h-4 w-4 mr-2" />
                                       Registrar Revisão Médica
@@ -572,7 +578,7 @@ export default function PrescriptionsList() {
                                     onClick={() =>
                                       setDeleteModal({ open: true, prescription })
                                     }
-                                    className="text-red-600"
+                                    className="text-danger"
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Deletar
@@ -591,7 +597,7 @@ export default function PrescriptionsList() {
               {/* Pagination */}
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-6">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Página {meta.page} de {meta.totalPages} ({meta.total} registros)
                   </div>
                   <div className="flex gap-2">
@@ -623,7 +629,7 @@ export default function PrescriptionsList() {
               )}
             </>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               Nenhuma prescrição encontrada
             </div>
           )}
@@ -643,7 +649,7 @@ export default function PrescriptionsList() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleDelete} className="bg-danger/60 hover:bg-danger/70">
               Deletar
             </AlertDialogAction>
           </AlertDialogFooter>

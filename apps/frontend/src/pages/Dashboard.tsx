@@ -53,36 +53,36 @@ export default function Dashboard() {
       value: String(totalResidents),
       description: 'Total de residentes cadastrados',
       icon: Users,
-      iconColor: 'text-blue-600',
-      iconBg: 'bg-blue-100',
-      valueColor: 'text-blue-600',
+      iconColor: 'text-primary',
+      iconBg: 'bg-primary/10',
+      valueColor: 'text-primary',
     },
     {
       title: 'Funcionários',
       value: '1',
       description: 'Usuários ativos',
       icon: UserPlus,
-      iconColor: 'text-green-600',
-      iconBg: 'bg-green-100',
-      valueColor: 'text-green-600',
+      iconColor: 'text-success',
+      iconBg: 'bg-success/10',
+      valueColor: 'text-success',
     },
     {
       title: 'Registros Hoje',
       value: String(totalRecordsToday),
       description: 'Atividades registradas',
       icon: Activity,
-      iconColor: 'text-purple-600',
-      iconBg: 'bg-purple-100',
-      valueColor: 'text-purple-600',
+      iconColor: 'text-medication-controlled',
+      iconBg: 'bg-medication-controlled/10',
+      valueColor: 'text-medication-controlled',
     },
     {
       title: 'Prescrições',
       value: String(totalPrescriptions),
       description: 'Prescrições ativas',
       icon: Pill,
-      iconColor: 'text-orange-600',
-      iconBg: 'bg-orange-100',
-      valueColor: 'text-orange-600',
+      iconColor: 'text-severity-warning',
+      iconBg: 'bg-severity-warning/10',
+      valueColor: 'text-severity-warning',
     },
   ]
 
@@ -140,7 +140,7 @@ export default function Dashboard() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">{stat.title}</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{stat.title}</h3>
                   <p className={`text-2xl font-bold ${stat.valueColor} mt-1`}>
                     {stat.value}
                   </p>

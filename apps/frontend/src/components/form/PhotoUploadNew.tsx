@@ -236,7 +236,7 @@ export function PhotoUploadNew({
       {label && (
         <Label>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </Label>
       )}
 
@@ -262,7 +262,7 @@ export function PhotoUploadNew({
               type="button"
               onClick={handleRemove}
               disabled={disabled}
-              className="absolute top-0 right-0 -m-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-full p-1 shadow-lg transition-colors"
+              className="absolute top-0 right-0 -m-2 bg-danger hover:bg-danger/60 disabled:bg-muted/40 text-white rounded-full p-1 shadow-lg transition-colors"
               title="Remover foto"
             >
               <X className="w-4 h-4" />
@@ -273,8 +273,8 @@ export function PhotoUploadNew({
               <div
                 className={`absolute bottom-2 left-2 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-md ${
                   faceDetected
-                    ? 'bg-green-500 text-white'
-                    : 'bg-yellow-500 text-white'
+                    ? 'bg-success text-white'
+                    : 'bg-warning text-white'
                 }`}
               >
                 <Scan className="w-3 h-3" />
@@ -296,7 +296,7 @@ export function PhotoUploadNew({
           className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
             isDragging
               ? 'border-primary bg-primary/5'
-              : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+              : 'border-border bg-muted/50 hover:border-border/40 hover:bg-muted'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <input
@@ -308,12 +308,12 @@ export function PhotoUploadNew({
             className="hidden"
           />
 
-          <CloudUpload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
-          <p className="text-sm font-medium text-gray-700">{description}</p>
-          <p className="text-xs text-gray-500 mt-2">
+          <CloudUpload className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70" />
+          <p className="text-sm font-medium text-foreground/80">{description}</p>
+          <p className="text-xs text-muted-foreground mt-2">
             Máximo {maxSize}MB • PNG, JPG, WebP
           </p>
-          <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+          <p className="text-xs text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
             <Scan className="w-3 h-3" />
             Detecção facial automática
           </p>
@@ -324,8 +324,8 @@ export function PhotoUploadNew({
       {isProcessing && (
         <div className="border-2 border-dashed border-primary rounded-lg p-8 text-center bg-primary/5">
           <Loader2 className="w-10 h-10 mx-auto mb-3 text-primary animate-spin" />
-          <p className="text-sm font-medium text-gray-700">Processando imagem...</p>
-          <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
+          <p className="text-sm font-medium text-foreground/80">Processando imagem...</p>
+          <p className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
             <Scan className="w-3 h-3" />
             Detectando rosto e aplicando enquadramento
           </p>
@@ -333,7 +333,7 @@ export function PhotoUploadNew({
       )}
 
       {/* Mensagem de erro */}
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   )
 }

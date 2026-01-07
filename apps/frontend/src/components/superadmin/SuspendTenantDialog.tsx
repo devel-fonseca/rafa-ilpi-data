@@ -87,8 +87,8 @@ export function SuspendTenantDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-red-900 flex items-center gap-2">
-            <Ban className="h-5 w-5 text-red-600" />
+          <DialogTitle className="text-danger/90 flex items-center gap-2">
+            <Ban className="h-5 w-5 text-danger" />
             Suspender Tenant
           </DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -98,9 +98,9 @@ export function SuspendTenantDialog({
 
         <div className="space-y-5">
           {/* Alert de Aviso */}
-          <Alert className="bg-red-50 border-red-200">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800 text-sm">
+          <Alert className="bg-danger/5 border-danger/30">
+            <AlertTriangle className="h-4 w-4 text-danger" />
+            <AlertDescription className="text-danger/90 text-sm">
               <strong>Atenção:</strong> Esta é uma ação crítica. O tenant perderá acesso
               ao sistema até que seja reativado manualmente.
             </AlertDescription>
@@ -129,7 +129,7 @@ export function SuspendTenantDialog({
             <Label className="text-slate-700">
               Faturas Vencidas ({tenant.overdueInvoices})
             </Label>
-            <Card className="bg-white border-red-200">
+            <Card className="bg-white border-danger/30">
               <CardContent className="p-3 space-y-2 max-h-[150px] overflow-y-auto">
                 {tenant.invoices.map((invoice) => (
                   <div
@@ -149,9 +149,9 @@ export function SuspendTenantDialog({
                 ))}
               </CardContent>
             </Card>
-            <div className="flex justify-between items-center p-3 bg-red-50 rounded-md border border-red-200">
-              <span className="text-sm font-medium text-red-900">Total em Atraso:</span>
-              <span className="text-lg font-bold text-red-900">
+            <div className="flex justify-between items-center p-3 bg-danger/5 rounded-md border border-danger/30">
+              <span className="text-sm font-medium text-danger/90">Total em Atraso:</span>
+              <span className="text-lg font-bold text-danger/90">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -173,7 +173,7 @@ export function SuspendTenantDialog({
               placeholder="Ex: Inadimplência superior a 30 dias, múltiplas tentativas de contato sem retorno..."
             />
             {errors.reason && (
-              <p className="text-sm text-red-600">{errors.reason}</p>
+              <p className="text-sm text-danger">{errors.reason}</p>
             )}
             <p className="text-xs text-slate-500">
               {reason.length}/10 caracteres mínimos
@@ -181,7 +181,7 @@ export function SuspendTenantDialog({
           </div>
 
           {/* Confirmação Obrigatória */}
-          <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="space-y-3 p-4 bg-warning/5 border border-warning/30 rounded-md">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="confirm"
@@ -203,7 +203,7 @@ export function SuspendTenantDialog({
               </div>
             </div>
             {errors.confirmed && (
-              <p className="text-sm text-red-600 mt-2">{errors.confirmed}</p>
+              <p className="text-sm text-danger mt-2">{errors.confirmed}</p>
             )}
           </div>
         </div>
@@ -220,7 +220,7 @@ export function SuspendTenantDialog({
           <Button
             onClick={handleSuspend}
             disabled={suspendMutation.isPending || !confirmed}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-danger/60 hover:bg-danger/70 text-white"
           >
             {suspendMutation.isPending ? (
               <>

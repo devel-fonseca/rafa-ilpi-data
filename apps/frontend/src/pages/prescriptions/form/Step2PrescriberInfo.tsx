@@ -58,7 +58,7 @@ export function Step2PrescriberInfo() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold mb-2">Informações do Prescritor</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Dados do médico responsável pela prescrição
         </p>
       </div>
@@ -79,7 +79,7 @@ export function Step2PrescriberInfo() {
               placeholder="Dr. João Silva"
             />
             {errors.doctorName && (
-              <p className="text-sm text-red-600 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.doctorName.message as string}
               </p>
             )}
@@ -96,7 +96,7 @@ export function Step2PrescriberInfo() {
                 placeholder="123456"
               />
               {errors.doctorCrm && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.doctorCrm.message as string}
                 </p>
               )}
@@ -120,7 +120,7 @@ export function Step2PrescriberInfo() {
                 </SelectContent>
               </Select>
               {errors.doctorCrmState && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.doctorCrmState.message as string}
                 </p>
               )}
@@ -146,7 +146,7 @@ export function Step2PrescriberInfo() {
                 })}
               />
               {errors.prescriptionDate && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.prescriptionDate.message as string}
                 </p>
               )}
@@ -178,7 +178,7 @@ export function Step2PrescriberInfo() {
                 <Label htmlFor="validUntil">
                   Validade da Prescrição *
                   {isControlled && (
-                    <span className="text-xs text-gray-500 ml-2">
+                    <span className="text-xs text-muted-foreground ml-2">
                       (Obrigatório para medicamentos controlados)
                     </span>
                   )}
@@ -193,7 +193,7 @@ export function Step2PrescriberInfo() {
                   })}
                 />
                 {errors.validUntil && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-danger mt-1">
                     {errors.validUntil.message as string}
                   </p>
                 )}
@@ -213,7 +213,7 @@ export function Step2PrescriberInfo() {
                 {...register('reviewDate')}
               />
               {errors.reviewDate && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.reviewDate.message as string}
                 </p>
               )}
@@ -234,9 +234,9 @@ export function Step2PrescriberInfo() {
 
       {/* Campos Condicionais para Medicamentos Controlados */}
       {isControlled && (
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-medication-controlled/30 bg-medication-controlled/5">
           <CardHeader>
-            <CardTitle className="text-base text-purple-800 flex items-center gap-2">
+            <CardTitle className="text-base text-medication-controlled/90 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Dados de Medicamento Controlado
             </CardTitle>
@@ -267,7 +267,7 @@ export function Step2PrescriberInfo() {
                 </SelectContent>
               </Select>
               {errors.controlledClass && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.controlledClass.message as string}
                 </p>
               )}
@@ -288,7 +288,7 @@ export function Step2PrescriberInfo() {
                   placeholder="123456789"
                 />
                 {errors.notificationNumber && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-danger mt-1">
                     {errors.notificationNumber.message as string}
                   </p>
                 )}
@@ -314,16 +314,16 @@ export function Step2PrescriberInfo() {
                   </SelectContent>
                 </Select>
                 {errors.notificationType && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-danger mt-1">
                     {errors.notificationType.message as string}
                   </p>
                 )}
               </div>
             </div>
 
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+            <Alert className="bg-primary/5 border-primary/30">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-primary/90">
                 <strong>Importante:</strong> O upload da imagem da prescrição médica
                 será realizado no passo final (Revisão). Este campo é obrigatório
                 para medicamentos controlados.

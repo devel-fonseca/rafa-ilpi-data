@@ -96,12 +96,12 @@ export function TransferBedModal({
               </div>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <ArrowRight className="h-5 w-5 text-primary dark:text-primary/40 shrink-0" />
 
             <div className="flex-1">
               <Label className="text-xs text-muted-foreground">Para</Label>
               <div className="space-y-1">
-                <Badge variant="outline" className="font-mono text-base bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/50">
+                <Badge variant="outline" className="font-mono text-base bg-primary/10 dark:bg-primary/20 border-primary/50">
                   {toBedCode}
                 </Badge>
                 <p className="text-xs text-muted-foreground">{toLocation}</p>
@@ -112,7 +112,7 @@ export function TransferBedModal({
           {/* Motivo */}
           <div className="space-y-2">
             <Label htmlFor="reason">
-              Motivo da Transferência <span className="text-red-500">*</span>
+              Motivo da Transferência <span className="text-danger">*</span>
             </Label>
             <Textarea
               id="reason"
@@ -123,7 +123,7 @@ export function TransferBedModal({
                 setError('')
               }}
               rows={4}
-              className={error ? 'border-red-500' : ''}
+              className={error ? 'border-danger' : ''}
             />
             <p className="text-xs text-muted-foreground">
               Mínimo de 10 caracteres. {reason.length}/10

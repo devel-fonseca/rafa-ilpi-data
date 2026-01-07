@@ -58,9 +58,9 @@ export function SuperAdminDashboard() {
   if (errorOverview || errorTrends) {
     return (
       <div className="p-8">
-        <Alert className="bg-red-900 border-red-800">
-          <AlertCircle className="h-4 w-4 text-red-400" />
-          <AlertDescription className="text-red-200">
+        <Alert className="bg-danger/90 border-danger/80">
+          <AlertCircle className="h-4 w-4 text-danger/40" />
+          <AlertDescription className="text-danger/20">
             Erro ao carregar métricas. Por favor, tente novamente.
           </AlertDescription>
         </Alert>
@@ -115,30 +115,30 @@ export function SuperAdminDashboard() {
       {/* Overdue Alert Card */}
       {overdueMetrics && overdueMetrics.totalOverdueInvoices > 0 && (
         <Link to="/superadmin/overdue" className="block">
-          <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 hover:border-red-300 transition-all">
+          <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-danger/30 hover:border-danger/30 transition-all">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <AlertTriangle className="h-6 w-6 text-red-600" />
+                    <div className="p-2 bg-danger/10 rounded-lg">
+                      <AlertTriangle className="h-6 w-6 text-danger" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-red-900">
+                      <h3 className="text-lg font-semibold text-danger/90">
                         Atenção: Inadimplência Detectada
                       </h3>
-                      <p className="text-sm text-red-700">
+                      <p className="text-sm text-danger/80">
                         Existem faturas vencidas que requerem ação
                       </p>
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-3 gap-4 mt-4">
-                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
-                      <p className="text-xs text-red-600 font-medium mb-1">
+                    <div className="bg-white/60 rounded-lg p-3 border border-danger/10">
+                      <p className="text-xs text-danger font-medium mb-1">
                         VALOR EM ATRASO
                       </p>
-                      <p className="text-2xl font-bold text-red-900">
+                      <p className="text-2xl font-bold text-danger/90">
                         {new Intl.NumberFormat('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
@@ -146,20 +146,20 @@ export function SuperAdminDashboard() {
                       </p>
                     </div>
 
-                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
-                      <p className="text-xs text-red-600 font-medium mb-1">
+                    <div className="bg-white/60 rounded-lg p-3 border border-danger/10">
+                      <p className="text-xs text-danger font-medium mb-1">
                         FATURAS VENCIDAS
                       </p>
-                      <p className="text-2xl font-bold text-red-900">
+                      <p className="text-2xl font-bold text-danger/90">
                         {overdueMetrics.totalOverdueInvoices}
                       </p>
                     </div>
 
-                    <div className="bg-white/60 rounded-lg p-3 border border-red-100">
-                      <p className="text-xs text-red-600 font-medium mb-1">
+                    <div className="bg-white/60 rounded-lg p-3 border border-danger/10">
+                      <p className="text-xs text-danger font-medium mb-1">
                         TAXA DE INADIMPLÊNCIA
                       </p>
-                      <p className="text-2xl font-bold text-red-900">
+                      <p className="text-2xl font-bold text-danger/90">
                         {overdueMetrics.overdueRate.toFixed(1)}%
                       </p>
                     </div>
@@ -168,7 +168,7 @@ export function SuperAdminDashboard() {
 
                 <Button
                   variant="default"
-                  className="bg-red-600 hover:bg-red-700 text-white ml-4"
+                  className="bg-danger/60 hover:bg-danger/70 text-white ml-4"
                 >
                   Ver Dashboard
                   <ArrowRight className="h-4 w-4 ml-2" />

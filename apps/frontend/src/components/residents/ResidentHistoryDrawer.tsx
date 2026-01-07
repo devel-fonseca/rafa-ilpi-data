@@ -42,21 +42,21 @@ export function ResidentHistoryDrawer({
     switch (changeType) {
       case 'CREATE':
         return (
-          <Badge className="bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30">
+          <Badge className="bg-success/10 dark:bg-success/20 text-success/80 dark:text-success/30 border-success/30">
             <CheckCircle className="w-3 h-3 mr-1" />
             Criação
           </Badge>
         )
       case 'UPDATE':
         return (
-          <Badge className="bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30">
+          <Badge className="bg-primary/10 dark:bg-primary/20 text-primary/80 dark:text-primary/30 border-primary/30">
             <FileText className="w-3 h-3 mr-1" />
             Atualização
           </Badge>
         )
       case 'DELETE':
         return (
-          <Badge className="bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30">
+          <Badge className="bg-danger/10 dark:bg-danger/20 text-danger/80 dark:text-danger/30 border-danger/30">
             <XCircle className="w-3 h-3 mr-1" />
             Remoção
           </Badge>
@@ -103,12 +103,12 @@ export function ResidentHistoryDrawer({
           )}
 
           {error && (
-            <Card className="border-red-500/50 bg-red-500/10 dark:bg-red-500/20">
+            <Card className="border-danger/50 bg-danger/10 dark:bg-danger/20">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <AlertCircle className="w-5 h-5 text-danger dark:text-danger/40" />
                   <div>
-                    <p className="font-semibold text-red-700 dark:text-red-300">Erro ao carregar histórico</p>
+                    <p className="font-semibold text-danger/80 dark:text-danger/30">Erro ao carregar histórico</p>
                     <p className="text-sm mt-1 text-muted-foreground">
                       Não foi possível buscar o histórico de alterações.
                     </p>
@@ -130,24 +130,24 @@ export function ResidentHistoryDrawer({
           {data && data.history && data.history.length > 0 && (
             <div className="space-y-4">
               {/* Informação do Residente */}
-              <Card className="bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/30">
+              <Card className="bg-primary/10 dark:bg-primary/20 border-primary/30">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Nome Completo</p>
-                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.resident.fullName}</p>
+                      <p className="font-semibold text-primary/80 dark:text-primary/30">{data.resident.fullName}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">CPF</p>
-                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.resident.cpf || 'Não informado'}</p>
+                      <p className="font-semibold text-primary/80 dark:text-primary/30">{data.resident.cpf || 'Não informado'}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Versão Atual</p>
-                      <p className="font-semibold text-blue-700 dark:text-blue-300">v{data.resident.currentVersion}</p>
+                      <p className="font-semibold text-primary/80 dark:text-primary/30">v{data.resident.currentVersion}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total de Versões</p>
-                      <p className="font-semibold text-blue-700 dark:text-blue-300">{data.totalVersions}</p>
+                      <p className="font-semibold text-primary/80 dark:text-primary/30">{data.totalVersions}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -198,7 +198,7 @@ export function ResidentHistoryDrawer({
                             {entry.changedFields.map((field: string, idx: number) => (
                               <Badge
                                 key={idx}
-                                className="text-xs font-mono bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30"
+                                className="text-xs font-mono bg-success/10 dark:bg-success/20 text-success/80 dark:text-success/30 border-success/30"
                               >
                                 {field}
                               </Badge>
@@ -225,12 +225,12 @@ export function ResidentHistoryDrawer({
               </div>
 
               {/* Nota de Conformidade */}
-              <Card className="bg-blue-500/10 dark:bg-blue-500/20 border-blue-500/30">
+              <Card className="bg-primary/10 dark:bg-primary/20 border-primary/30">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-primary dark:text-primary/40 flex-shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1">Conformidade Regulatória</p>
+                      <p className="font-semibold text-primary/80 dark:text-primary/30 mb-1">Conformidade Regulatória</p>
                       <p className="text-xs text-muted-foreground">
                         Este histórico é imutável e está em conformidade com a RDC 502/2021 Art. 39 (ANVISA)
                         e LGPD Art. 48, garantindo rastreabilidade completa de todas as alterações no prontuário.

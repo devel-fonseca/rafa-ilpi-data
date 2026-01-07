@@ -66,7 +66,7 @@ export function DailyRecordActions({ record, onActionComplete }: DailyRecordActi
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => setDeleteModalOpen(true)}
-            className="text-red-600 focus:text-red-600"
+            className="text-danger focus:text-danger"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Excluir Registro

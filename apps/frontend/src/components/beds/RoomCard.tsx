@@ -26,10 +26,10 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 }
 
 const ROOM_TYPE_COLORS: Record<string, string> = {
-  INDIVIDUAL: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-  DUPLO: 'bg-green-500/10 text-green-700 dark:text-green-300',
-  TRIPLO: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-  COLETIVO: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
+  INDIVIDUAL: 'bg-primary/10 text-primary/80 dark:text-primary/30',
+  DUPLO: 'bg-success/10 text-success/80 dark:text-success/30',
+  TRIPLO: 'bg-warning/10 text-warning/80 dark:text-warning/30',
+  COLETIVO: 'bg-medication-controlled/10 text-medication-controlled/80 dark:text-medication-controlled/30',
 }
 
 export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: RoomCardProps) {
@@ -37,9 +37,9 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
     room.capacity > 0 ? Math.round(((room.occupiedBeds || 0) / room.capacity) * 100) : 0
 
   const getOccupancyColor = (rate: number) => {
-    if (rate >= 90) return 'bg-red-500'
-    if (rate >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (rate >= 90) return 'bg-danger'
+    if (rate >= 70) return 'bg-warning'
+    return 'bg-success'
   }
 
   return (
@@ -49,7 +49,7 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <DoorOpen className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <DoorOpen className="h-5 w-5 text-severity-warning dark:text-severity-warning/40" />
           <CardTitle className="text-lg font-bold">{room.name}</CardTitle>
         </div>
         {canManage && (
@@ -74,7 +74,7 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
                   e.stopPropagation()
                   onDelete?.(room)
                 }}
-                className="text-red-600"
+                className="text-danger"
               >
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir
@@ -135,14 +135,14 @@ export function RoomCard({ room, onEdit, onDelete, onClick, canManage = true }: 
 
           {/* Estatísticas de leitos */}
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-green-500/10 dark:bg-green-500/20 rounded-lg p-2">
-              <div className="text-xl font-bold text-green-700 dark:text-green-300">
+            <div className="bg-success/10 dark:bg-success/20 rounded-lg p-2">
+              <div className="text-xl font-bold text-success/80 dark:text-success/30">
                 {room.availableBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Disponíveis</div>
             </div>
-            <div className="bg-red-500/10 dark:bg-red-500/20 rounded-lg p-2">
-              <div className="text-xl font-bold text-red-700 dark:text-red-300">
+            <div className="bg-danger/10 dark:bg-danger/20 rounded-lg p-2">
+              <div className="text-xl font-bold text-danger/80 dark:text-danger/30">
                 {room.occupiedBeds || 0}
               </div>
               <div className="text-xs text-muted-foreground">Ocupados</div>

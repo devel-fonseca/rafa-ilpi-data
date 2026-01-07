@@ -103,7 +103,7 @@ export function InvoicesList() {
         <div className="flex items-center gap-4">
           <Button
             onClick={() => setCreateDialogOpen(true)}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-success/60 hover:bg-success/70"
           >
             <Plus className="h-4 w-4 mr-2" />
             Gerar Fatura Manual
@@ -155,7 +155,7 @@ export function InvoicesList() {
             </Select>
 
             {/* Overdue Toggle */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center gap-2 px-3 py-2 bg-danger/5 border border-danger/30 rounded-md">
               <Switch
                 id="only-overdue"
                 checked={filters.onlyOverdue || false}
@@ -165,7 +165,7 @@ export function InvoicesList() {
               />
               <Label
                 htmlFor="only-overdue"
-                className="text-sm font-medium text-red-900 cursor-pointer whitespace-nowrap"
+                className="text-sm font-medium text-danger/90 cursor-pointer whitespace-nowrap"
               >
                 Apenas Vencidas
               </Label>
@@ -184,7 +184,7 @@ export function InvoicesList() {
           )}
 
           {isError && (
-            <div className="p-8 text-center text-red-400">
+            <div className="p-8 text-center text-danger/40">
               Erro ao carregar: {error.message}
             </div>
           )}
@@ -264,8 +264,8 @@ export function InvoicesList() {
                               variant={isCritical ? 'destructive' : 'secondary'}
                               className={`w-fit text-xs ${
                                 isCritical
-                                  ? 'bg-red-600 text-white'
-                                  : 'bg-orange-100 text-orange-800'
+                                  ? 'bg-danger/60 text-white'
+                                  : 'bg-severity-warning/10 text-severity-warning/90'
                               }`}
                             >
                               {daysOverdue}d atraso
@@ -282,10 +282,10 @@ export function InvoicesList() {
                           </span>
                           <div className="flex gap-1">
                             {invoice.billingCycle === 'ANNUAL' && (
-                              <span className="text-xs text-green-600">Anual</span>
+                              <span className="text-xs text-success">Anual</span>
                             )}
                             {invoice.discountPercent && (
-                              <span className="text-xs text-green-600">
+                              <span className="text-xs text-success">
                                 -{invoice.discountPercent}%
                               </span>
                             )}

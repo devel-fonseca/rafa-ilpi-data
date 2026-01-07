@@ -214,7 +214,8 @@ export function usePrescriptionsDashboard() {
 // ========== HOOKS PARA VISUALIZAÇÃO DE AGENDA ==========
 
 import { PrescriptionCalendarItem, PrescriptionFilterType, PrescriptionType, PrescriptionStatus } from '@/types/agenda'
-import { differenceInDays, parseISO } from 'date-fns'
+import { differenceInDays } from 'date-fns'
+import { extractDateOnly } from '@/utils/dateHelpers'
 
 // Função auxiliar: Calcular status da prescrição
 function calculatePrescriptionStatus(
@@ -228,7 +229,7 @@ function calculatePrescriptionStatus(
 
   // Verificar validade (para antibióticos e controlados)
   if (validUntil) {
-    const expiryDate = parseISO(validUntil)
+    const expiryDate = new Date(extractDateOnly(validUntil) + 'T12:00:00')
     const daysUntilExpiry = differenceInDays(expiryDate, now)
 
     if (daysUntilExpiry < 0) {
@@ -241,7 +242,7 @@ function calculatePrescriptionStatus(
 
   // Verificar data de revisão
   if (reviewDate) {
-    const reviewDateParsed = parseISO(reviewDate)
+    const reviewDateParsed = new Date(extractDateOnly(reviewDate) + 'T12:00:00')
     const daysUntilReview = differenceInDays(reviewDateParsed, now)
 
     if (daysUntilReview <= 0) {
@@ -255,8 +256,8 @@ function calculatePrescriptionStatus(
 // Função auxiliar: Transformar prescrição do backend para calendário
 function transformPrescriptionForCalendar(prescription: any): PrescriptionCalendarItem {
   const now = new Date()
-  const validUntil = prescription.validUntil ? parseISO(prescription.validUntil) : undefined
-  const reviewDate = prescription.reviewDate ? parseISO(prescription.reviewDate) : undefined
+  const validUntil = prescription.validUntil ? new Date(extractDateOnly(prescription.validUntil) + 'T12:00:00') : undefined
+  const reviewDate = prescription.reviewDate ? new Date(extractDateOnly(prescription.reviewDate) + 'T12:00:00') : undefined
 
   const daysUntilExpiry = validUntil ? differenceInDays(validUntil, now) : undefined
   const daysUntilReview = reviewDate ? differenceInDays(reviewDate, now) : undefined
@@ -316,8 +317,8 @@ export function usePrescriptionsForCalendar(
       let prescriptions = response.data.data.map(transformPrescriptionForCalendar)
 
       // Filtrar por período (validUntil ou reviewDate dentro do intervalo)
-      const start = parseISO(`${startDate}T00:00:00`)
-      const end = parseISO(`${endDate}T23:59:59`)
+      const start = new Date(`${startDate}T00:00:00`)
+      const end = new Date(`${endDate}T23:59:59`)
 
       prescriptions = prescriptions.filter(p => {
         // SEMPRE incluir prescrições que precisam de ação URGENTE (vencidas, vencendo, precisam revisão)
@@ -332,13 +333,13 @@ export function usePrescriptionsForCalendar(
         // Para prescrições ATIVAS, verificar se têm evento no período
         // Incluir se validUntil está no período
         if (p.validUntil) {
-          const validDate = parseISO(p.validUntil as string)
+          const validDate = new Date(extractDateOnly(p.validUntil as string) + 'T12:00:00')
           if (validDate >= start && validDate <= end) return true
         }
 
         // Incluir se reviewDate está no período
         if (p.reviewDate) {
-          const review = parseISO(p.reviewDate as string)
+          const review = new Date(extractDateOnly(p.reviewDate as string) + 'T12:00:00')
           if (review >= start && review <= end) return true
         }
 

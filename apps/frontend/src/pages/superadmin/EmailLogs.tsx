@@ -91,21 +91,21 @@ export default function EmailLogs() {
     switch (status) {
       case 'SENT':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/10 text-success/90 hover:bg-success/10">
             <CheckCircle className="h-3 w-3 mr-1" />
             Enviado
           </Badge>
         );
       case 'FAILED':
         return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          <Badge className="bg-danger/10 text-danger/90 hover:bg-danger/10">
             <XCircle className="h-3 w-3 mr-1" />
             Falhou
           </Badge>
         );
       case 'BOUNCED':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          <Badge className="bg-warning/10 text-warning/90 hover:bg-warning/10">
             <AlertCircle className="h-3 w-3 mr-1" />
             Bounce
           </Badge>
@@ -159,12 +159,12 @@ export default function EmailLogs() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-600">
+              <CardTitle className="text-sm font-medium text-success">
                 Enviados
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.sent}</div>
+              <div className="text-2xl font-bold text-success">{stats.sent}</div>
               <p className="text-xs text-muted-foreground">
                 {((stats.sent / stats.total) * 100).toFixed(1)}% de sucesso
               </p>
@@ -173,12 +173,12 @@ export default function EmailLogs() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-red-600">
+              <CardTitle className="text-sm font-medium text-danger">
                 Falharam
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.failed}</div>
+              <div className="text-2xl font-bold text-danger">{stats.failed}</div>
               <p className="text-xs text-muted-foreground">
                 {((stats.failed / stats.total) * 100).toFixed(1)}%
               </p>
@@ -187,12 +187,12 @@ export default function EmailLogs() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-yellow-600">
+              <CardTitle className="text-sm font-medium text-warning">
                 Bounces
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.bounced}</div>
+              <div className="text-2xl font-bold text-warning">{stats.bounced}</div>
               <p className="text-xs text-muted-foreground">
                 {((stats.bounced / stats.total) * 100).toFixed(1)}%
               </p>

@@ -35,39 +35,39 @@ const statusBadgeVariants = cva(
         'bed-reserved': 'border-info/30 bg-info/10 text-info',
 
         // Record Type variants (10 tipos)
-        'record-higiene': 'border-blue-300 bg-blue-100 text-blue-700',
-        'record-alimentacao': 'border-green-300 bg-green-100 text-green-700',
+        'record-higiene': 'border-primary/30 bg-primary/10 text-primary/80',
+        'record-alimentacao': 'border-success/30 bg-success/10 text-success/80',
         'record-hidratacao': 'border-cyan-300 bg-cyan-100 text-cyan-700',
-        'record-monitoramento': 'border-yellow-300 bg-yellow-100 text-yellow-700',
-        'record-eliminacao': 'border-gray-300 bg-gray-100 text-gray-700',
-        'record-comportamento': 'border-purple-300 bg-purple-100 text-purple-700',
-        'record-intercorrencia': 'border-red-300 bg-red-100 text-red-700',
+        'record-monitoramento': 'border-warning/30 bg-warning/10 text-warning/80',
+        'record-eliminacao': 'border-border bg-muted text-foreground/80',
+        'record-comportamento': 'border-medication-controlled/30 bg-medication-controlled/10 text-medication-controlled/80',
+        'record-intercorrencia': 'border-danger/30 bg-danger/10 text-danger/80',
         'record-atividades': 'border-indigo-300 bg-indigo-100 text-indigo-700',
-        'record-visita': 'border-pink-300 bg-pink-100 text-pink-700',
+        'record-visita': 'border-accent/30 bg-pink-100 text-pink-700',
         'record-outros': 'border-slate-300 bg-slate-100 text-slate-700',
 
         // Severity variants
         'severity-critical': 'border-danger/30 bg-danger/10 text-danger',
-        'severity-warning': 'border-orange-300 bg-orange-100 text-orange-700',
+        'severity-warning': 'border-severity-warning/30 bg-severity-warning/10 text-severity-warning/80',
         'severity-info': 'border-info/30 bg-info/10 text-info',
 
         // Medication variants
         'medication-controlled': 'border-accent/30 bg-accent/10 text-accent',
-        'medication-sos': 'border-orange-300 bg-orange-100 text-orange-700',
+        'medication-sos': 'border-severity-warning/30 bg-severity-warning/10 text-severity-warning/80',
         'medication-high-risk': 'border-danger/30 bg-danger/10 text-danger',
 
         // Controlled Class variants
-        'controlled-bzd': 'border-yellow-300 bg-yellow-100 text-yellow-700',
-        'controlled-psicofarmaco': 'border-purple-300 bg-purple-100 text-purple-700',
-        'controlled-opioide': 'border-red-300 bg-red-100 text-red-700',
-        'controlled-anticonvulsivante': 'border-blue-300 bg-blue-100 text-blue-700',
-        'controlled-outro': 'border-gray-300 bg-gray-100 text-gray-700',
+        'controlled-bzd': 'border-warning/30 bg-warning/10 text-warning/80',
+        'controlled-psicofarmaco': 'border-medication-controlled/30 bg-medication-controlled/10 text-medication-controlled/80',
+        'controlled-opioide': 'border-danger/30 bg-danger/10 text-danger/80',
+        'controlled-anticonvulsivante': 'border-primary/30 bg-primary/10 text-primary/80',
+        'controlled-outro': 'border-border bg-muted text-foreground/80',
 
         // Room Type variants
-        'room-individual': 'border-blue-300 bg-blue-100 text-blue-800',
-        'room-duplo': 'border-green-300 bg-green-100 text-green-800',
-        'room-triplo': 'border-yellow-300 bg-yellow-100 text-yellow-800',
-        'room-coletivo': 'border-purple-300 bg-purple-100 text-purple-800',
+        'room-individual': 'border-primary/30 bg-primary/10 text-primary/90',
+        'room-duplo': 'border-success/30 bg-success/10 text-success/90',
+        'room-triplo': 'border-warning/30 bg-warning/10 text-warning/90',
+        'room-coletivo': 'border-medication-controlled/30 bg-medication-controlled/10 text-medication-controlled/90',
       },
     },
     defaultVariants: {

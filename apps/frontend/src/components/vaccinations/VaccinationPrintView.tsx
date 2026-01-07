@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { formatDateShort } from '@/utils/timezone'
+import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { InstitutionalHeader, SignatureFooter } from '@/components/print'
 import type { Vaccination } from '@/hooks/useVaccinations'
 
@@ -37,7 +37,7 @@ export function VaccinationPrintView({ residentId, vaccinations }: VaccinationPr
             </p>
             <p className="text-sm">
               <strong>Data de Nascimento:</strong>{' '}
-              {residentData.birthDate ? formatDateShort(residentData.birthDate) : 'Não informado'}
+              {residentData.birthDate ? formatDateOnlySafe(residentData.birthDate) : 'Não informado'}
             </p>
           </div>
         }
@@ -59,7 +59,7 @@ export function VaccinationPrintView({ residentId, vaccinations }: VaccinationPr
         <tbody>
           {vaccinations.map((vaccination) => (
             <tr key={vaccination.id}>
-              <td>{formatDateShort(vaccination.date)}</td>
+              <td>{formatDateOnlySafe(vaccination.date)}</td>
               <td>{vaccination.vaccine}</td>
               <td>{vaccination.dose}</td>
               <td>{vaccination.batch}</td>

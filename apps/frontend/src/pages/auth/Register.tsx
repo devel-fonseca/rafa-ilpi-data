@@ -589,18 +589,18 @@ export default function Register() {
             onBlur={fetchCompanyData}
             placeholder="00.000.000/0000-00"
             maxLength={18}
-            className={errors.cnpj ? 'border-red-500' : ''}
+            className={errors.cnpj ? 'border-danger' : ''}
             disabled={loadingCNPJ}
           />
           {loadingCNPJ && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/70" />
             </div>
           )}
         </div>
-        {errors.cnpj && <p className="text-sm text-red-500">{errors.cnpj}</p>}
+        {errors.cnpj && <p className="text-sm text-danger">{errors.cnpj}</p>}
         {!errors.cnpj && !loadingCNPJ && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             Digite o CNPJ para buscar automaticamente os dados da empresa
           </p>
         )}
@@ -614,12 +614,12 @@ export default function Register() {
           value={formData.name}
           onChange={handleChange}
           placeholder="Será preenchido automaticamente pelo CNPJ"
-          className={errors.name ? 'border-red-500' : ''}
+          className={errors.name ? 'border-danger' : ''}
           readOnly={!!formData.name && formData.cnpj.length === 18}
         />
-        {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+        {errors.name && <p className="text-sm text-danger">{errors.name}</p>}
         {formData.name && formData.cnpj.length === 18 && (
-          <p className="text-xs text-green-600">
+          <p className="text-xs text-success">
             ✓ Preenchido automaticamente via CNPJ
           </p>
         )}
@@ -634,9 +634,9 @@ export default function Register() {
             value={formData.phone}
             onChange={handleChange}
             placeholder="(00) 00000-0000"
-            className={errors.phone ? 'border-red-500' : ''}
+            className={errors.phone ? 'border-danger' : ''}
           />
-          {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+          {errors.phone && <p className="text-sm text-danger">{errors.phone}</p>}
         </div>
 
         <div className="space-y-2">
@@ -648,9 +648,9 @@ export default function Register() {
             value={formData.email}
             onChange={handleChange}
             placeholder="contato@ilpi.com.br"
-            className={errors.email ? 'border-red-500' : ''}
+            className={errors.email ? 'border-danger' : ''}
           />
-          {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+          {errors.email && <p className="text-sm text-danger">{errors.email}</p>}
         </div>
       </div>
 
@@ -669,9 +669,9 @@ export default function Register() {
                 onBlur={fetchAddress}
                 placeholder="00000-000"
                 maxLength={9}
-                className={errors.addressZip ? 'border-red-500' : ''}
+                className={errors.addressZip ? 'border-danger' : ''}
               />
-              {errors.addressZip && <p className="text-sm text-red-500">{errors.addressZip}</p>}
+              {errors.addressZip && <p className="text-sm text-danger">{errors.addressZip}</p>}
             </div>
 
             <div className="col-span-2 space-y-2">
@@ -682,9 +682,9 @@ export default function Register() {
                 value={formData.addressStreet}
                 onChange={handleChange}
                 placeholder="Rua Exemplo"
-                className={errors.addressStreet ? 'border-red-500' : ''}
+                className={errors.addressStreet ? 'border-danger' : ''}
               />
-              {errors.addressStreet && <p className="text-sm text-red-500">{errors.addressStreet}</p>}
+              {errors.addressStreet && <p className="text-sm text-danger">{errors.addressStreet}</p>}
             </div>
           </div>
 
@@ -697,9 +697,9 @@ export default function Register() {
                 value={formData.addressNumber}
                 onChange={handleChange}
                 placeholder="123"
-                className={errors.addressNumber ? 'border-red-500' : ''}
+                className={errors.addressNumber ? 'border-danger' : ''}
               />
-              {errors.addressNumber && <p className="text-sm text-red-500">{errors.addressNumber}</p>}
+              {errors.addressNumber && <p className="text-sm text-danger">{errors.addressNumber}</p>}
             </div>
 
             <div className="col-span-2 space-y-2">
@@ -723,9 +723,9 @@ export default function Register() {
                 value={formData.addressDistrict}
                 onChange={handleChange}
                 placeholder="Centro"
-                className={errors.addressDistrict ? 'border-red-500' : ''}
+                className={errors.addressDistrict ? 'border-danger' : ''}
               />
-              {errors.addressDistrict && <p className="text-sm text-red-500">{errors.addressDistrict}</p>}
+              {errors.addressDistrict && <p className="text-sm text-danger">{errors.addressDistrict}</p>}
             </div>
 
             <div className="space-y-2">
@@ -736,9 +736,9 @@ export default function Register() {
                 value={formData.addressCity}
                 onChange={handleChange}
                 placeholder="São Paulo"
-                className={errors.addressCity ? 'border-red-500' : ''}
+                className={errors.addressCity ? 'border-danger' : ''}
               />
-              {errors.addressCity && <p className="text-sm text-red-500">{errors.addressCity}</p>}
+              {errors.addressCity && <p className="text-sm text-danger">{errors.addressCity}</p>}
             </div>
           </div>
 
@@ -751,9 +751,9 @@ export default function Register() {
               onChange={handleChange}
               placeholder="SP"
               maxLength={2}
-              className={errors.addressState ? 'border-red-500' : ''}
+              className={errors.addressState ? 'border-danger' : ''}
             />
-            {errors.addressState && <p className="text-sm text-red-500">{errors.addressState}</p>}
+            {errors.addressState && <p className="text-sm text-danger">{errors.addressState}</p>}
           </div>
         </div>
       </div>
@@ -771,9 +771,9 @@ export default function Register() {
           value={formData.adminName}
           onChange={handleChange}
           placeholder="João Silva"
-          className={errors.adminName ? 'border-red-500' : ''}
+          className={errors.adminName ? 'border-danger' : ''}
         />
-        {errors.adminName && <p className="text-sm text-red-500">{errors.adminName}</p>}
+        {errors.adminName && <p className="text-sm text-danger">{errors.adminName}</p>}
       </div>
 
       <div className="space-y-2">
@@ -785,9 +785,9 @@ export default function Register() {
           onChange={handleChange}
           placeholder="000.000.000-00"
           maxLength={14}
-          className={errors.adminCpf ? 'border-red-500' : ''}
+          className={errors.adminCpf ? 'border-danger' : ''}
         />
-        {errors.adminCpf && <p className="text-sm text-red-500">{errors.adminCpf}</p>}
+        {errors.adminCpf && <p className="text-sm text-danger">{errors.adminCpf}</p>}
       </div>
 
       <div className="space-y-2">
@@ -799,9 +799,9 @@ export default function Register() {
           value={formData.adminEmail}
           onChange={handleChange}
           placeholder="admin@ilpi.com.br"
-          className={errors.adminEmail ? 'border-red-500' : ''}
+          className={errors.adminEmail ? 'border-danger' : ''}
         />
-        {errors.adminEmail && <p className="text-sm text-red-500">{errors.adminEmail}</p>}
+        {errors.adminEmail && <p className="text-sm text-danger">{errors.adminEmail}</p>}
       </div>
 
       <div className="space-y-2">
@@ -814,20 +814,20 @@ export default function Register() {
             value={formData.adminPassword}
             onChange={handleChange}
             placeholder="Mínimo 8 caracteres"
-            className={errors.adminPassword ? 'border-red-500' : ''}
+            className={errors.adminPassword ? 'border-danger' : ''}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
             tabIndex={-1}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {errors.adminPassword && <p className="text-sm text-red-500">{errors.adminPassword}</p>}
+        {errors.adminPassword && <p className="text-sm text-danger">{errors.adminPassword}</p>}
         {!errors.adminPassword && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             Mínimo 8 caracteres com: maiúscula, minúscula, número e caractere especial (@$!%*?&)
           </p>
         )}
@@ -843,21 +843,21 @@ export default function Register() {
             value={formData.adminPasswordConfirm}
             onChange={handleChange}
             placeholder="Digite a senha novamente"
-            className={errors.adminPasswordConfirm ? 'border-red-500' : ''}
+            className={errors.adminPasswordConfirm ? 'border-danger' : ''}
           />
           <button
             type="button"
             onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
             tabIndex={-1}
           >
             {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
-        {errors.adminPasswordConfirm && <p className="text-sm text-red-500">{errors.adminPasswordConfirm}</p>}
+        {errors.adminPasswordConfirm && <p className="text-sm text-danger">{errors.adminPasswordConfirm}</p>}
       </div>
 
-      <Alert className="bg-blue-50 border-blue-200">
+      <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
           Este será o primeiro usuário administrador da ILPI. Você poderá adicionar outros usuários após o cadastro.
         </AlertDescription>
@@ -870,7 +870,7 @@ export default function Register() {
     <div className="space-y-4">
       {loadingPlans ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
         </div>
       ) : (
         <RadioGroup value={formData.planId} onValueChange={(value) => setFormData(prev => ({ ...prev, planId: value }))}>
@@ -881,14 +881,14 @@ export default function Register() {
                 className={cn(
                   "relative rounded-lg border p-4 transition-shadow",
                   plan.isActive ? "cursor-pointer hover:shadow-md" : "cursor-not-allowed",
-                  formData.planId === plan.id ? "border-blue-500 bg-blue-50" : "border-gray-200",
+                  formData.planId === plan.id ? "border-primary bg-primary/5" : "border-border",
                   plan.isPopular && plan.isActive && "ring-2 ring-blue-500"
                 )}
               >
                 {/* Overlay para planos inativos */}
                 {!plan.isActive && (
                   <div className="absolute inset-0 bg-white/80 rounded-lg flex items-center justify-center z-10 backdrop-blur-[1px]">
-                    <div className="bg-red-500/90 text-white px-4 py-2 rounded-lg shadow-lg font-semibold">
+                    <div className="bg-danger/90 text-white px-4 py-2 rounded-lg shadow-lg font-semibold">
                       Temporariamente Indisponível
                     </div>
                   </div>
@@ -908,7 +908,7 @@ export default function Register() {
                   )}
                 >
                   {plan.isPopular && (
-                    <span className="absolute -top-3 left-4 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                    <span className="absolute -top-3 left-4 bg-primary text-white text-xs px-2 py-1 rounded">
                       Mais Popular
                     </span>
                   )}
@@ -916,7 +916,7 @@ export default function Register() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-semibold text-lg">{plan.displayName}</h3>
-                      <p className="text-gray-600 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         {plan.maxUsers === -1 ? 'Usuários ilimitados' : `Até ${plan.maxUsers} usuários`} •
                         {plan.maxResidents === -1 ? ' Residentes ilimitados' : ` Até ${plan.maxResidents} residentes`}
                       </p>
@@ -930,9 +930,9 @@ export default function Register() {
                             : `R$ ${Number(plan.price).toFixed(2)}`
                         }
                       </p>
-                      {plan.price !== null && Number(plan.price) > 0 && <p className="text-sm text-gray-500">/mês</p>}
+                      {plan.price !== null && Number(plan.price) > 0 && <p className="text-sm text-muted-foreground">/mês</p>}
                       {plan.trialDays > 0 && (
-                        <p className="text-sm text-green-600 font-medium mt-1">
+                        <p className="text-sm text-success font-medium mt-1">
                           {plan.trialDays} dias grátis
                         </p>
                       )}
@@ -941,8 +941,8 @@ export default function Register() {
 
                   <div className="space-y-2 mt-3">
                     {featuresToArray(plan.features).map((feature, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <div key={idx} className="flex items-center gap-2 text-sm text-foreground/80">
+                        <Check className="h-4 w-4 text-success flex-shrink-0" />
                         <span>{feature}</span>
                       </div>
                     ))}
@@ -954,7 +954,7 @@ export default function Register() {
         </RadioGroup>
       )}
 
-      {errors.planId && <p className="text-sm text-red-500">{errors.planId}</p>}
+      {errors.planId && <p className="text-sm text-danger">{errors.planId}</p>}
 
       {/* Seção: Ciclo de Cobrança (aparece após selecionar plano) */}
       {formData.planId && (() => {
@@ -968,19 +968,19 @@ export default function Register() {
         const savings = annualPriceMonthly - annualPriceWithDiscount
 
         return (
-          <div className="mt-6 space-y-3 pt-6 border-t border-gray-200">
+          <div className="mt-6 space-y-3 pt-6 border-t border-border">
             <Label className="text-base font-semibold">Ciclo de Cobrança</Label>
             <RadioGroup
               value={formData.billingCycle}
               onValueChange={(value) => setFormData(prev => ({ ...prev, billingCycle: value as 'MONTHLY' | 'ANNUAL' }))}
             >
               {/* Opção Mensal */}
-              <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
                 <RadioGroupItem value="MONTHLY" id="monthly" />
                 <Label htmlFor="monthly" className="flex-1 cursor-pointer">
                   <div>
                     <p className="font-medium">💳 Mensal</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       R$ {monthlyPrice.toFixed(2)}/mês
                     </p>
                   </div>
@@ -989,38 +989,38 @@ export default function Register() {
 
               {/* Opção Anual (se houver desconto configurado) */}
               {annualDiscount > 0 ? (
-                <div className="flex items-center space-x-2 border-2 border-green-500 rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-2 border-2 border-success rounded-lg p-4 bg-success/5 hover:bg-success/10 transition-colors cursor-pointer">
                   <RadioGroupItem value="ANNUAL" id="annual" />
                   <Label htmlFor="annual" className="flex-1 cursor-pointer">
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium">🎉 Anual</p>
-                        <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                        <span className="bg-success/60 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
                           Economize {annualDiscount}%
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         R$ {annualPriceWithDiscount.toFixed(2)}/ano
-                        <span className="ml-2 line-through text-gray-400">
+                        <span className="ml-2 line-through text-muted-foreground/70">
                           R$ {annualPriceMonthly.toFixed(2)}
                         </span>
                       </p>
-                      <p className="text-xs text-green-700 font-medium mt-1">
+                      <p className="text-xs text-success/80 font-medium mt-1">
                         💰 Você economiza R$ {savings.toFixed(2)} por ano
                       </p>
                     </div>
                   </Label>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer">
                   <RadioGroupItem value="ANNUAL" id="annual" />
                   <Label htmlFor="annual" className="flex-1 cursor-pointer">
                     <div>
                       <p className="font-medium">📅 Anual</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         R$ {annualPriceMonthly.toFixed(2)}/ano
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Pagamento único anual
                       </p>
                     </div>
@@ -1037,18 +1037,18 @@ export default function Register() {
   // Step 4: Declarações LGPD
   const renderStep4 = () => (
     <div className="space-y-6">
-      <Alert className="bg-blue-50 border-blue-200">
+      <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
           <strong>Contexto Legal LGPD:</strong> Antes de prosseguir, é importante esclarecer os papéis e responsabilidades conforme a Lei Geral de Proteção de Dados (LGPD).
         </AlertDescription>
       </Alert>
 
-      <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-primary/30">
         <div className="space-y-4 text-sm">
-          <p className="font-medium text-blue-900">
+          <p className="font-medium text-primary/95">
             <strong>Entenda os papéis LGPD:</strong>
           </p>
-          <ul className="list-disc list-inside space-y-2 text-blue-800">
+          <ul className="list-disc list-inside space-y-2 text-primary/90">
             <li><strong>ILPI (você)</strong> = <strong>Controladora de Dados:</strong> Define finalidades e toma decisões sobre tratamento de dados dos residentes</li>
             <li><strong>Rafa Labs</strong> = <strong>Operadora de Dados:</strong> Apenas processa dados conforme suas instruções, fornecendo infraestrutura tecnológica</li>
           </ul>
@@ -1069,13 +1069,13 @@ export default function Register() {
             <label htmlFor="lgpdIsDataController" className="text-sm font-medium cursor-pointer block">
               Declaro que a ILPI é <strong>Controladora dos Dados Pessoais</strong> dos residentes
             </label>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               A ILPI define as finalidades e é responsável pela coleta, uso e armazenamento dos dados de saúde e pessoais dos residentes.
             </p>
           </div>
         </div>
         {errors.lgpdIsDataController && (
-          <p className="text-sm text-red-500">{errors.lgpdIsDataController}</p>
+          <p className="text-sm text-danger">{errors.lgpdIsDataController}</p>
         )}
 
         {/* Declaração 2 */}
@@ -1091,13 +1091,13 @@ export default function Register() {
             <label htmlFor="lgpdHasLegalBasis" className="text-sm font-medium cursor-pointer block">
               Declaro que possuo <strong>base legal</strong> para tratamento de dados dos residentes
             </label>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               A ILPI possui autorização legal (contrato de prestação de serviços com responsáveis legais, tutela, curatela ou consentimento) para coletar e tratar dados pessoais sensíveis de saúde.
             </p>
           </div>
         </div>
         {errors.lgpdHasLegalBasis && (
-          <p className="text-sm text-red-500">{errors.lgpdHasLegalBasis}</p>
+          <p className="text-sm text-danger">{errors.lgpdHasLegalBasis}</p>
         )}
 
         {/* Declaração 3 */}
@@ -1113,13 +1113,13 @@ export default function Register() {
             <label htmlFor="lgpdAcknowledgesResponsibility" className="text-sm font-medium cursor-pointer block">
               Reconheço as <strong>responsabilidades da ILPI</strong> como Controladora de Dados
             </label>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               A ILPI é responsável por: obter consentimento dos titulares/responsáveis legais, garantir exatidão dos dados, comunicar incidentes à ANPD, atender solicitações de titulares (acesso, retificação, exclusão), e manter conformidade com LGPD, RDC 502/2021 ANVISA e CFM 1.821/2007.
             </p>
           </div>
         </div>
         {errors.lgpdAcknowledgesResponsibility && (
-          <p className="text-sm text-red-500">{errors.lgpdAcknowledgesResponsibility}</p>
+          <p className="text-sm text-danger">{errors.lgpdAcknowledgesResponsibility}</p>
         )}
       </div>
     </div>
@@ -1128,20 +1128,20 @@ export default function Register() {
   // Step 5: Política de Privacidade
   const renderStep5 = () => (
     <div className="space-y-6">
-      <Alert className="bg-blue-50 border-blue-200">
+      <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
           Leia atentamente a Política de Privacidade antes de continuar. <strong>Tempo mínimo de leitura: 30 segundos.</strong>
         </AlertDescription>
       </Alert>
 
       {/* Timer de leitura */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-300">
-        <span className="text-sm font-medium text-blue-900">
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
+        <span className="text-sm font-medium text-primary/95">
           {privacyReadTime >= 30 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Política de Privacidade...'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          privacyReadTime >= 30 ? "text-green-600" : "text-blue-600"
+          privacyReadTime >= 30 ? "text-success" : "text-primary"
         )}>
           {privacyReadTime}s / 30s
         </span>
@@ -1165,7 +1165,7 @@ export default function Register() {
         </Alert>
       )}
 
-      <div className="flex items-start space-x-2 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-start space-x-2 p-4 bg-muted/50 rounded-lg">
         <Checkbox
           id="privacyPolicyAccepted"
           checked={formData.privacyPolicyAccepted}
@@ -1178,14 +1178,14 @@ export default function Register() {
           htmlFor="privacyPolicyAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            privacyReadTime < 30 && "text-gray-400 cursor-not-allowed"
+            privacyReadTime < 30 && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito a Política de Privacidade da plataforma RAFA ILPI
         </label>
       </div>
       {errors.privacyPolicyAccepted && (
-        <p className="text-sm text-red-500">{errors.privacyPolicyAccepted}</p>
+        <p className="text-sm text-danger">{errors.privacyPolicyAccepted}</p>
       )}
 
       <div className="text-center">
@@ -1193,7 +1193,7 @@ export default function Register() {
           href="/privacy-policy"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:text-blue-800 underline"
+          className="text-sm text-primary hover:text-primary/90 underline"
         >
           Abrir Política de Privacidade em nova aba
         </a>
@@ -1204,20 +1204,20 @@ export default function Register() {
   // Step 6: Aceite do Contrato (antes era Step 4)
   const renderStep6 = () => (
     <div className="space-y-6">
-      <Alert className="bg-blue-50 border-blue-200">
+      <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
           Leia atentamente o contrato de prestação de serviços antes de continuar. <strong>Tempo mínimo de leitura: 60 segundos.</strong>
         </AlertDescription>
       </Alert>
 
       {/* Timer de leitura */}
-      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-blue-300">
-        <span className="text-sm font-medium text-blue-900">
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
+        <span className="text-sm font-medium text-primary/95">
           {contractReadTime >= 60 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Contrato de Serviço...'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          contractReadTime >= 60 ? "text-green-600" : "text-blue-600"
+          contractReadTime >= 60 ? "text-success" : "text-primary"
         )}>
           {contractReadTime}s / 60s
         </span>
@@ -1239,7 +1239,7 @@ export default function Register() {
         </Alert>
       )}
 
-      <div className="flex items-start space-x-2 p-4 bg-gray-50 rounded-lg">
+      <div className="flex items-start space-x-2 p-4 bg-muted/50 rounded-lg">
         <Checkbox
           id="contractAccepted"
           checked={formData.contractAccepted}
@@ -1252,14 +1252,14 @@ export default function Register() {
           htmlFor="contractAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            contractReadTime < 60 && "text-gray-400 cursor-not-allowed"
+            contractReadTime < 60 && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito os termos do contrato de prestação de serviços da plataforma RAFA ILPI
         </label>
       </div>
       {errors.contractAccepted && (
-        <p className="text-sm text-red-500">{errors.contractAccepted}</p>
+        <p className="text-sm text-danger">{errors.contractAccepted}</p>
       )}
     </div>
   )
@@ -1275,13 +1275,13 @@ export default function Register() {
       </div>
 
       {/* Seção 1: Dados da ILPI (resumo readonly) */}
-      <Card className="p-4 bg-blue-50 border-blue-200">
+      <Card className="p-4 bg-primary/5 border-primary/30">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-blue-900 mb-2">
+            <p className="text-sm font-medium text-primary/95 mb-2">
               📋 Dados de Cobrança (ILPI)
             </p>
-            <div className="space-y-1 text-sm text-blue-800">
+            <div className="space-y-1 text-sm text-primary/90">
               <p><strong>Nome:</strong> {formData.name}</p>
               <p><strong>CNPJ:</strong> {formData.cnpj}</p>
               <p><strong>Email:</strong> {formData.email}</p>
@@ -1292,7 +1292,7 @@ export default function Register() {
             variant="ghost"
             size="sm"
             onClick={() => setCurrentStep(1)}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-primary hover:text-primary/80"
           >
             ✏️ Editar
           </Button>
@@ -1302,7 +1302,7 @@ export default function Register() {
       {/* Seção 2: Método de Pagamento */}
       <div className="space-y-3">
         <Label className="text-base font-semibold">Escolha o Método de Pagamento Preferido</Label>
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-muted-foreground">
           Você poderá alterar esta preferência posteriormente no painel de configurações.
         </p>
 
@@ -1311,16 +1311,16 @@ export default function Register() {
           onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'BOLETO' | 'CREDIT_CARD' }))}
         >
           {/* Boleto */}
-          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
             <RadioGroupItem value="BOLETO" id="boleto" />
             <Label htmlFor="boleto" className="flex-1 cursor-pointer">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-severity-warning/10 rounded-lg flex items-center justify-center">
                   <span className="text-2xl">🧾</span>
                 </div>
                 <div>
                   <p className="font-medium">Boleto Bancário</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Confirmação em até 3 dias úteis
                   </p>
                 </div>
@@ -1329,16 +1329,16 @@ export default function Register() {
           </div>
 
           {/* Cartão de Crédito */}
-          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
             <RadioGroupItem value="CREDIT_CARD" id="credit-card" />
             <Label htmlFor="credit-card" className="flex-1 cursor-pointer">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                   <span className="text-2xl">💳</span>
                 </div>
                 <div>
                   <p className="font-medium">Cartão de Crédito</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Renovação automática mensal
                   </p>
                 </div>
@@ -1349,8 +1349,8 @@ export default function Register() {
       </div>
 
       {/* Disclaimer LGPD sobre Asaas */}
-      <Card className="p-4 bg-gray-50 border-gray-200">
-        <p className="text-xs text-gray-600">
+      <Card className="p-4 bg-muted/50 border-border">
+        <p className="text-xs text-muted-foreground">
           🔒 <strong>Segurança e Privacidade:</strong> Os dados de pagamento são processados
           exclusivamente pela <strong>Asaas Gestão Financeira</strong>, operadora de pagamentos
           certificada PCI-DSS nível 1. A Rafa Labs não armazena dados de cartão de crédito.
@@ -1359,7 +1359,7 @@ export default function Register() {
 
       {/* Validação */}
       {errors.paymentMethod && (
-        <p className="text-sm text-red-500">{errors.paymentMethod}</p>
+        <p className="text-sm text-danger">{errors.paymentMethod}</p>
       )}
     </div>
   )
@@ -1384,8 +1384,8 @@ export default function Register() {
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium",
                       currentStep >= step
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-gray-500"
+                        ? "bg-primary/60 text-white"
+                        : "bg-muted/20 text-muted-foreground"
                     )}
                   >
                     {step}
@@ -1394,7 +1394,7 @@ export default function Register() {
                     <div
                       className={cn(
                         "w-8 h-1",
-                        currentStep > step ? "bg-blue-600" : "bg-gray-200"
+                        currentStep > step ? "bg-primary/60" : "bg-muted/20"
                       )}
                     />
                   )}
@@ -1403,7 +1403,7 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="flex justify-center mt-2 text-sm text-gray-600">
+          <div className="flex justify-center mt-2 text-sm text-muted-foreground">
             {currentStep === 1 && "Dados da ILPI"}
             {currentStep === 2 && "Administrador"}
             {currentStep === 3 && "Escolha o Plano"}

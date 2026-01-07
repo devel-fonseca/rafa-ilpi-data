@@ -15,7 +15,7 @@ import { useAdministerSOS } from '@/hooks/usePrescriptions'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerSOSDto } from '@/api/prescriptions.api'
-import { getCurrentDateLocal, getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
 import { getErrorMessage } from '@/utils/errorHandling'
 
 interface AdministerSOSModalProps {
@@ -40,8 +40,8 @@ export function AdministerSOSModal({
   } = useForm<AdministerSOSDto>({
     defaultValues: {
       sosMedicationId: sosMedication.id,
-      date: getCurrentDateLocal(),
-      time: getCurrentTimeLocal(),
+      date: getCurrentDate(),
+      time: getCurrentTime(),
       indication: '',
       administeredBy: user?.name || '',
       notes: '',
@@ -63,8 +63,8 @@ export function AdministerSOSModal({
     if (open) {
       reset({
         sosMedicationId: sosMedication.id,
-        date: getCurrentDateLocal(),
-        time: getCurrentTimeLocal(),
+        date: getCurrentDate(),
+        time: getCurrentTime(),
         indication: sosMedication.indicationDetails || '',
         administeredBy: user?.name || '',
         notes: '',
@@ -80,16 +80,16 @@ export function AdministerSOSModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-1">
-          <div className="mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-          <h3 className="font-semibold text-orange-900 mb-1">{sosMedication.name}</h3>
-          <p className="text-sm text-orange-700">
+          <div className="mb-4 p-4 bg-severity-warning/5 rounded-lg border border-severity-warning/30">
+          <h3 className="font-semibold text-severity-warning/90 mb-1">{sosMedication.name}</h3>
+          <p className="text-sm text-severity-warning/80">
             {sosMedication.presentation} - {sosMedication.concentration}
           </p>
-          <p className="text-sm text-orange-700 mt-1">
+          <p className="text-sm text-severity-warning/80 mt-1">
             <span className="font-medium">Dose:</span> {sosMedication.dose} -{' '}
             <span className="font-medium">Via:</span> {sosMedication.route}
           </p>
-          <div className="mt-2 flex gap-4 text-xs text-orange-800">
+          <div className="mt-2 flex gap-4 text-xs text-severity-warning/90">
             <span>
               <strong>Intervalo Mínimo:</strong> {sosMedication.minInterval}
             </span>
@@ -109,7 +109,7 @@ export function AdministerSOSModal({
                 {...register('date', { required: 'Data é obrigatória' })}
               />
               {errors.date && (
-                <p className="text-sm text-red-600 mt-1">{errors.date.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.date.message}</p>
               )}
             </div>
 
@@ -121,7 +121,7 @@ export function AdministerSOSModal({
                 {...register('time', { required: 'Horário é obrigatório' })}
               />
               {errors.time && (
-                <p className="text-sm text-red-600 mt-1">{errors.time.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.time.message}</p>
               )}
             </div>
           </div>
@@ -137,9 +137,9 @@ export function AdministerSOSModal({
               rows={3}
             />
             {errors.indication && (
-              <p className="text-sm text-red-600 mt-1">{errors.indication.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.indication.message}</p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Descreva o motivo específico da administração (sintomas, queixas, etc.)
             </p>
           </div>
@@ -154,7 +154,7 @@ export function AdministerSOSModal({
               placeholder="Nome do profissional"
             />
             {errors.administeredBy && (
-              <p className="text-sm text-red-600 mt-1">
+              <p className="text-sm text-danger mt-1">
                 {errors.administeredBy.message}
               </p>
             )}

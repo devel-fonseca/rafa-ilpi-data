@@ -3,22 +3,21 @@
  * Centraliza toda a lógica de transformação de dados para evitar duplicação
  */
 
-import { format } from 'date-fns'
+import { formatDateOnlySafe } from './dateHelpers'
 
 // ========== CONVERSÃO DE DATAS (Pós-migração TIMESTAMPTZ) ==========
 
 /**
  * Converte TIMESTAMPTZ do backend para formato brasileiro DD/MM/YYYY
  * Usado para preencher inputs no modo de edição
+ *
+ * IMPORTANTE: Usa formatDateOnlySafe() para evitar timezone shift em campos @db.Date
  */
 export const timestamptzToDisplay = (timestamp: string | Date | null | undefined): string => {
   if (!timestamp) return ''
   try {
-     
-    // OK: timestamp é um TIMESTAMPTZ completo ou Date object do backend, não um campo date-only
-    // Este helper é usado APENAS para exibição, não para enviar de volta ao backend
-    const date = new Date(timestamp)
-    return format(date, 'dd/MM/yyyy')
+    // Usa formatDateOnlySafe que trata corretamente campos @db.Date (birthDate, admissionDate, etc)
+    return formatDateOnlySafe(timestamp)
   } catch {
     return ''
   }

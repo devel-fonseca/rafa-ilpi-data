@@ -18,7 +18,7 @@ import {
 import { toast } from 'sonner'
 import { uploadFile } from '@/services/upload'
 import { useCreateVaccination, useUpdateVaccination, CreateVaccinationInput, UpdateVaccinationInput, Vaccination } from '@/hooks/useVaccinations'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 // Validação com Zod
 const vaccinationSchema = z.object({
@@ -84,7 +84,7 @@ export function VaccinationForm({
           notes: vaccination.notes || '',
         }
       : {
-          date: getCurrentDateLocal(),
+          date: getCurrentDate(),
         },
   })
 

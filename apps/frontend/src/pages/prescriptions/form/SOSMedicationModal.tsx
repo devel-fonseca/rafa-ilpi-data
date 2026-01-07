@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { CreateSOSMedicationDto } from '@/api/prescriptions.api'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 interface SOSMedicationModalProps {
   open: boolean
@@ -82,7 +82,7 @@ export function SOSMedicationModal({
       indicationDetails: '',
       minInterval: '4h',
       maxDailyDoses: 3,
-      startDate: getCurrentDateLocal(),
+      startDate: getCurrentDate(),
       instructions: '',
     },
   })
@@ -91,7 +91,7 @@ export function SOSMedicationModal({
     if (open && initialData) {
       // Converter datas ISO para formato local YYYY-MM-DD
       const convertDateToLocal = (isoDate: string | undefined): string => {
-        if (!isoDate) return getCurrentDateLocal()
+        if (!isoDate) return getCurrentDate()
         // Se já está no formato YYYY-MM-DD, retorna direto
         if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate
         // Se é ISO completo (com hora), extrai apenas a parte da data
@@ -114,7 +114,7 @@ export function SOSMedicationModal({
         indicationDetails: '',
         minInterval: '4h',
         maxDailyDoses: 3,
-        startDate: getCurrentDateLocal(),
+        startDate: getCurrentDate(),
         instructions: '',
       })
     }
@@ -144,7 +144,7 @@ export function SOSMedicationModal({
                 placeholder="Ex: Dipirona"
               />
               {errors.name && (
-                <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.name.message}</p>
               )}
             </div>
 
@@ -178,7 +178,7 @@ export function SOSMedicationModal({
                 placeholder="Ex: 500mg"
               />
               {errors.concentration && (
-                <p className="text-sm text-red-600 mt-1">{errors.concentration.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.concentration.message}</p>
               )}
             </div>
 
@@ -190,7 +190,7 @@ export function SOSMedicationModal({
                 placeholder="Ex: 1 comprimido"
               />
               {errors.dose && (
-                <p className="text-sm text-red-600 mt-1">{errors.dose.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.dose.message}</p>
               )}
             </div>
           </div>
@@ -216,7 +216,7 @@ export function SOSMedicationModal({
           </div>
 
           {/* Indicação */}
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg space-y-4">
+          <div className="p-4 bg-severity-warning/5 border border-severity-warning/30 rounded-lg space-y-4">
             <div>
               <Label htmlFor="indication">Indicação de Uso *</Label>
               <Select
@@ -243,14 +243,14 @@ export function SOSMedicationModal({
                 {...register('indicationDetails')}
                 placeholder="Ex: Dor moderada a intensa"
               />
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Especifique quando o medicamento deve ser administrado
               </p>
             </div>
           </div>
 
           {/* Restrições de Uso */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-warning/5 border border-warning/30 rounded-lg">
             <div>
               <Label htmlFor="minInterval">Intervalo Mínimo entre Doses *</Label>
               <Input
@@ -261,9 +261,9 @@ export function SOSMedicationModal({
                 placeholder="Ex: 4h, 6h, 8h"
               />
               {errors.minInterval && (
-                <p className="text-sm text-red-600 mt-1">{errors.minInterval.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.minInterval.message}</p>
               )}
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Tempo mínimo entre administrações
               </p>
             </div>
@@ -281,11 +281,11 @@ export function SOSMedicationModal({
                 placeholder="Ex: 3"
               />
               {errors.maxDailyDoses && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-danger mt-1">
                   {errors.maxDailyDoses.message}
                 </p>
               )}
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Número máximo de doses em 24h
               </p>
             </div>
@@ -301,14 +301,14 @@ export function SOSMedicationModal({
                 {...register('startDate', { required: 'Data de início é obrigatória' })}
               />
               {errors.startDate && (
-                <p className="text-sm text-red-600 mt-1">{errors.startDate.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.startDate.message}</p>
               )}
             </div>
 
             <div>
               <Label htmlFor="endDate">Data de Término</Label>
               <Input id="endDate" type="date" {...register('endDate')} />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Deixe em branco para uso contínuo
               </p>
             </div>

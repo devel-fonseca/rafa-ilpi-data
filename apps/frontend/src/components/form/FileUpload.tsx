@@ -91,7 +91,7 @@ export function FileUpload({
         className={cn(
           'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
           'hover:border-primary hover:bg-primary/5',
-          isDragging ? 'border-primary bg-primary/10' : 'border-gray-300 bg-gray-50'
+          isDragging ? 'border-primary bg-primary/10' : 'border-border bg-muted/50'
         )}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -99,9 +99,9 @@ export function FileUpload({
         onDrop={handleDrop}
         onClick={handleClick}
       >
-        <CloudUpload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-        <p className="text-sm font-medium text-gray-700">{title}</p>
-        <p className="text-xs text-gray-500 mt-1">{description}</p>
+        <CloudUpload className="w-12 h-12 mx-auto mb-3 text-muted-foreground/70" />
+        <p className="text-sm font-medium text-foreground/80">{title}</p>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -117,12 +117,12 @@ export function FileUpload({
           {files.map(({ file, id }) => (
             <div
               key={id}
-              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm"
+              className="flex items-center justify-between p-3 bg-white border border-border rounded-lg text-sm"
             >
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                <span className="truncate text-gray-700">{file.name}</span>
-                <span className="text-gray-400 text-xs flex-shrink-0">
+                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="truncate text-foreground/80">{file.name}</span>
+                <span className="text-muted-foreground/70 text-xs flex-shrink-0">
                   ({(file.size / 1024).toFixed(1)} KB)
                 </span>
               </div>

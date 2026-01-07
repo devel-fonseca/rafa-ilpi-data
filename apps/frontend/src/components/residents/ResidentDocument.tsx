@@ -70,7 +70,7 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
   }
 
   return (
-    <div className="print-container text-gray-900 leading-relaxed">
+    <div className="print-container text-foreground leading-relaxed">
       {/* Cabeçalho Institucional */}
       <InstitutionalHeader
         documentTitle="REGISTRO DE RESIDENTE"
@@ -100,7 +100,7 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
         <div className="flex gap-6 items-start">
           {/* FOTO (formato moderno 1:1) */}
           {resident.fotoUrl ? (
-            <div className="w-[140px] h-[140px] border border-gray-300 rounded-md bg-muted overflow-hidden print:shadow-none flex-shrink-0">
+            <div className="w-[140px] h-[140px] border border-border rounded-md bg-muted overflow-hidden print:shadow-none flex-shrink-0">
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
@@ -109,7 +109,7 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
               />
             </div>
           ) : (
-            <div className="w-[140px] h-[140px] bg-muted border border-gray-300 rounded-md flex items-center justify-center text-muted-foreground text-xs print:shadow-none flex-shrink-0">
+            <div className="w-[140px] h-[140px] bg-muted border border-border rounded-md flex items-center justify-center text-muted-foreground text-xs print:shadow-none flex-shrink-0">
               FOTO 3x4
             </div>
           )}
@@ -362,7 +362,7 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
       {/* ============================================================
           OBSERVAÇÕES GERAIS (se necessário)
       =============================================================== */}
-      <div className="mt-8 text-xs text-gray-600">
+      <div className="mt-8 text-xs text-muted-foreground">
         <p><strong>Observação:</strong> Este documento contém informações confidenciais do residente e deve ser mantido em sigilo conforme a Lei Geral de Proteção de Dados (LGPD).</p>
         {resident.updatedAt && (
           <p className="mt-2">Última atualização do cadastro: {formatDateTime(resident.updatedAt)}</p>

@@ -23,25 +23,25 @@ export function TrialAlert() {
 
   return (
     <>
-      <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+      <Alert className="bg-primary/5 dark:bg-primary/95/30 border-primary/30 dark:border-primary/80">
         <div className="flex items-start gap-4">
-          <div className="flex items-center justify-center w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex-shrink-0">
-            <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="flex items-center justify-center w-10 h-10 bg-primary/10 dark:bg-primary/90/50 rounded-full flex-shrink-0">
+            <Clock className="h-5 w-5 text-primary dark:text-primary/40" />
           </div>
 
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+              <Badge variant="outline" className="bg-primary/10 dark:bg-primary/90/50 text-primary/80 dark:text-primary/30 border-primary/30 dark:border-primary/70">
                 PERÍODO DE TESTE
               </Badge>
               {daysRemaining !== null && (
-                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                <span className="text-sm font-semibold text-primary/80 dark:text-primary/30">
                   {daysRemaining} {daysRemaining === 1 ? 'dia restante' : 'dias restantes'}
                 </span>
               )}
             </div>
 
-            <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+            <AlertDescription className="text-sm text-primary/90 dark:text-blue-200">
               Você está no período de testes gratuito.
               {trialEndDate && (
                 <>
@@ -62,7 +62,7 @@ export function TrialAlert() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                className="text-danger dark:text-danger/40 border-danger/30 dark:border-danger/70 hover:bg-danger/5 dark:hover:bg-danger/95/30"
                 onClick={() => setShowCancelDialog(true)}
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />

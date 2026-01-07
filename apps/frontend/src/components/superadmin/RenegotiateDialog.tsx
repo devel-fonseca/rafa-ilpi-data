@@ -102,7 +102,7 @@ export function RenegotiateDialog({
       <DialogContent className="sm:max-w-[600px] bg-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-900 flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-green-600" />
+            <DollarSign className="h-5 w-5 text-success" />
             Renegociar Fatura
           </DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -127,7 +127,7 @@ export function RenegotiateDialog({
 
           {/* Error general */}
           {errors.general && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="text-sm text-danger bg-danger/5 border border-danger/30 rounded-md p-3">
               {errors.general}
             </div>
           )}
@@ -148,7 +148,7 @@ export function RenegotiateDialog({
               />
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">{discountPercent}% de desconto</span>
-                <span className="text-sm font-medium text-green-600">
+                <span className="text-sm font-medium text-success">
                   - R$ {discountAmount.toFixed(2)}
                 </span>
               </div>
@@ -193,7 +193,7 @@ export function RenegotiateDialog({
               placeholder="Ex: Cliente com dificuldades financeiras temporárias, boa histórico de pagamento..."
             />
             {errors.reason && (
-              <p className="text-sm text-red-600">{errors.reason}</p>
+              <p className="text-sm text-danger">{errors.reason}</p>
             )}
             <p className="text-xs text-slate-500">
               {reason.length}/10 caracteres mínimos
@@ -201,34 +201,34 @@ export function RenegotiateDialog({
           </div>
 
           {/* Preview */}
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-success/5 border-success/30">
             <CardContent className="p-4 space-y-2">
-              <h4 className="text-sm font-medium text-green-900">Preview da Renegociação</h4>
+              <h4 className="text-sm font-medium text-success/95">Preview da Renegociação</h4>
               <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-green-700">Valor Original:</span>
-                  <span className="text-green-900 line-through">
+                  <span className="text-success/80">Valor Original:</span>
+                  <span className="text-success/95 line-through">
                     R$ {originalAmount.toFixed(2)}
                   </span>
                 </div>
                 {discountPercent > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-green-700">Desconto ({discountPercent}%):</span>
-                    <span className="text-green-600 font-medium">
+                    <span className="text-success/80">Desconto ({discountPercent}%):</span>
+                    <span className="text-success font-medium">
                       - R$ {discountAmount.toFixed(2)}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-green-300">
-                  <span className="text-green-900">Novo Valor:</span>
-                  <span className="text-green-900 text-base">
+                <div className="flex justify-between text-sm font-bold pt-2 border-t border-success/30">
+                  <span className="text-success/95">Novo Valor:</span>
+                  <span className="text-success/95 text-base">
                     R$ {newAmount.toFixed(2)}
                   </span>
                 </div>
                 {extensionDays > 0 && (
                   <div className="flex justify-between text-sm pt-1">
-                    <span className="text-green-700">Novo Vencimento:</span>
-                    <span className="text-green-900">
+                    <span className="text-success/80">Novo Vencimento:</span>
+                    <span className="text-success/95">
                       {newDueDate.toLocaleDateString('pt-BR')}
                     </span>
                   </div>
@@ -250,7 +250,7 @@ export function RenegotiateDialog({
           <Button
             onClick={handleSubmit}
             disabled={renegotiateMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 text-white"
+            className="bg-success/60 hover:bg-success/70 text-white"
           >
             {renegotiateMutation.isPending ? (
               <>

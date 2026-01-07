@@ -40,7 +40,7 @@ export function InstitutionalHeader({
   return (
     <>
       {/* Cabeçalho Institucional */}
-      <div className={`mb-6 border-b-2 border-gray-800 pb-4 ${className}`}>
+      <div className={`mb-6 border-b-2 border-border/80 pb-4 ${className}`}>
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-4">
             {/* Logo Institucional */}
@@ -53,7 +53,7 @@ export function InstitutionalHeader({
                 className="!h-20 !w-20 !rounded-md print:shadow-none"
               />
             ) : (
-              <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
+              <div className="w-20 h-20 bg-muted/20 rounded flex items-center justify-center text-xs text-muted-foreground">
                 LOGO
               </div>
             )}

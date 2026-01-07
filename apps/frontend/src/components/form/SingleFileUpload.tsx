@@ -105,7 +105,7 @@ export function SingleFileUpload({
       {label && (
         <Label>
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-danger ml-1">*</span>}
         </Label>
       )}
 
@@ -115,16 +115,16 @@ export function SingleFileUpload({
             'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all',
             'hover:border-primary hover:bg-primary/5',
             disabled && 'opacity-50 cursor-not-allowed',
-            error ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'
+            error ? 'border-danger/30 bg-danger/5' : 'border-border bg-muted/50'
           )}
           onClick={handleClick}
         >
-          <CloudUpload className="w-10 h-10 mx-auto mb-3 text-gray-400" />
-          <p className="text-sm font-medium text-gray-700">Clique para upload</p>
+          <CloudUpload className="w-10 h-10 mx-auto mb-3 text-muted-foreground/70" />
+          <p className="text-sm font-medium text-foreground/80">Clique para upload</p>
           {description && (
-            <p className="text-xs text-gray-500 mt-1">{description}</p>
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
           )}
-          <p className="text-xs text-gray-400 mt-2">Máximo {maxSize}MB</p>
+          <p className="text-xs text-muted-foreground/70 mt-2">Máximo {maxSize}MB</p>
           <input
             ref={inputRef}
             type="file"
@@ -135,12 +135,12 @@ export function SingleFileUpload({
           />
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-lg p-4 bg-white">
+        <div className="border border-border rounded-lg p-4 bg-white">
           <div className="flex items-start gap-3">
             {/* Preview da imagem ou ícone de PDF */}
             <div className="flex-shrink-0">
               {preview && !isPDF(fileName) ? (
-                <div className="relative w-20 h-20 rounded border border-gray-200 overflow-hidden">
+                <div className="relative w-20 h-20 rounded border border-border overflow-hidden">
                   <img
                     src={preview}
                     alt="Preview"
@@ -150,28 +150,28 @@ export function SingleFileUpload({
                     onError={() => setIsLoading(false)}
                   />
                   {isLoading && (
-                    <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-muted flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     </div>
                   )}
                 </div>
               ) : isPDF(fileName) ? (
-                <div className="w-20 h-20 rounded border border-gray-200 bg-red-50 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-red-500" />
+                <div className="w-20 h-20 rounded border border-border bg-danger/5 flex items-center justify-center">
+                  <FileText className="w-8 h-8 text-danger" />
                 </div>
               ) : (
-                <div className="w-20 h-20 rounded border border-gray-200 bg-gray-50 flex items-center justify-center">
-                  <File className="w-8 h-8 text-gray-400" />
+                <div className="w-20 h-20 rounded border border-border bg-muted/50 flex items-center justify-center">
+                  <File className="w-8 h-8 text-muted-foreground/70" />
                 </div>
               )}
             </div>
 
             {/* Informações do arquivo */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 break-words">
+              <p className="text-sm font-medium text-foreground break-words">
                 {fileName}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {selectedFile
                   ? `${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`
                   : 'Arquivo existente'}
@@ -198,7 +198,7 @@ export function SingleFileUpload({
                 disabled={disabled}
                 title="Remover arquivo"
               >
-                <X className="w-4 h-4 text-red-500" />
+                <X className="w-4 h-4 text-danger" />
               </Button>
             </div>
           </div>
@@ -215,7 +215,7 @@ export function SingleFileUpload({
       )}
 
       {error && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-danger">{error}</p>
       )}
     </div>
   )

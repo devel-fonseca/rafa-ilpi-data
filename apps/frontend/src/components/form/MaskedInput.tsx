@@ -56,13 +56,13 @@ export const MaskedInput = forwardRef<HTMLInputElement, MaskedInputProps>(
           onChange={handleChange}
           className={cn(
             className,
-            validation && !validation.valido && value && 'border-red-500 focus-visible:ring-red-500'
+            validation && !validation.valido && value && 'border-danger focus-visible:ring-red-500'
           )}
         />
         {validation && validation.mensagem && value && (
           <p className={cn(
             'text-xs mt-1',
-            validation.valido ? 'text-green-600' : 'text-red-600'
+            validation.valido ? 'text-success' : 'text-danger'
           )}>
             {validation.mensagem}
           </p>

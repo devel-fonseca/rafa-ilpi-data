@@ -272,7 +272,7 @@ export function EmailTemplatePreview() {
                 <div key={variable.name}>
                   <Label htmlFor={variable.name} className="text-xs">
                     {variable.name}
-                    {variable.required && <span className="text-red-500 ml-1">*</span>}
+                    {variable.required && <span className="text-danger ml-1">*</span>}
                     <span className="text-muted-foreground ml-2">({variable.type})</span>
                   </Label>
                   <Input
@@ -325,9 +325,9 @@ export function EmailTemplatePreview() {
           </CardHeader>
           <CardContent>
             {isLoadingPreview ? (
-              <div className="flex items-center justify-center h-[600px] border rounded-lg bg-gray-50">
+              <div className="flex items-center justify-center h-[600px] border rounded-lg bg-muted/50">
                 <div className="text-center">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-gray-400" />
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground/70" />
                   <p className="text-sm text-muted-foreground">Gerando preview...</p>
                 </div>
               </div>

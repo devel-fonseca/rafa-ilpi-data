@@ -49,9 +49,9 @@ export function MetricCard({
     if (!trend) return null
 
     if (trend.value > 0) {
-      return <TrendingUp className="h-4 w-4 text-green-400" />
+      return <TrendingUp className="h-4 w-4 text-success/40" />
     } else if (trend.value < 0) {
-      return <TrendingDown className="h-4 w-4 text-red-400" />
+      return <TrendingDown className="h-4 w-4 text-danger/40" />
     } else {
       return <Minus className="h-4 w-4 text-slate-500" />
     }
@@ -61,9 +61,9 @@ export function MetricCard({
     if (!trend) return ''
 
     if (trend.value > 0) {
-      return 'text-green-400'
+      return 'text-success/40'
     } else if (trend.value < 0) {
-      return 'text-red-400'
+      return 'text-danger/40'
     } else {
       return 'text-slate-500'
     }

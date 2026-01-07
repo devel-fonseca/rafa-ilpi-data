@@ -48,14 +48,14 @@ export function SubscriptionChangeHistory() {
                 <div
                   className={`mt-0.5 p-2 rounded-full ${
                     isSelfService
-                      ? 'bg-blue-100 dark:bg-blue-950/50'
-                      : 'bg-purple-100 dark:bg-purple-950/50'
+                      ? 'bg-primary/10 dark:bg-primary/95/50'
+                      : 'bg-medication-controlled/10 dark:bg-medication-controlled/95/50'
                   }`}
                 >
                   {isSelfService ? (
-                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <User className="h-4 w-4 text-primary dark:text-primary/40" />
                   ) : (
-                    <Settings className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <Settings className="h-4 w-4 text-medication-controlled dark:text-medication-controlled/40" />
                   )}
                 </div>
 
@@ -66,8 +66,8 @@ export function SubscriptionChangeHistory() {
                       variant={isSelfService ? 'default' : 'secondary'}
                       className={
                         isSelfService
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300'
-                          : 'bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300'
+                          ? 'bg-primary/10 text-primary/90 dark:bg-primary/95/50 dark:text-primary/30'
+                          : 'bg-medication-controlled/10 text-medication-controlled/90 dark:bg-medication-controlled/95/50 dark:text-medication-controlled/30'
                       }
                     >
                       {isSelfService ? 'Self-Service' : 'Ajustado pelo Suporte'}

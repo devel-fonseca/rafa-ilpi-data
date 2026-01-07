@@ -211,8 +211,8 @@ export function CreateInvoiceDialog({
             </div>
 
             {/* Info Box */}
-            <div className="p-4 bg-blue-950/30 rounded-lg border border-blue-700">
-              <p className="text-sm text-blue-300">
+            <div className="p-4 bg-primary/95/30 rounded-lg border border-primary/70">
+              <p className="text-sm text-primary/30">
                 ℹ️ <strong>Importante:</strong> A fatura será criada
                 automaticamente no Asaas com vencimento em 7 dias. Um boleto e
                 link de pagamento serão gerados.
@@ -232,7 +232,7 @@ export function CreateInvoiceDialog({
             <Button
               type="submit"
               disabled={createMutation.isPending || !selectedTenantId || !amount}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success/60 hover:bg-success/70"
             >
               {createMutation.isPending ? (
                 <>

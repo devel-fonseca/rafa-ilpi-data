@@ -10,9 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Contract } from '@/api/contracts.api'
 
 const statusColors = {
-  DRAFT: 'bg-gray-200 text-gray-800',
-  ACTIVE: 'bg-green-100 text-green-800',
-  REVOKED: 'bg-red-100 text-red-800',
+  DRAFT: 'bg-muted/20 text-foreground/90',
+  ACTIVE: 'bg-success/10 text-success/90',
+  REVOKED: 'bg-danger/10 text-danger/90',
 }
 
 const statusLabels = {

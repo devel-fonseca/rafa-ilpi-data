@@ -30,7 +30,7 @@ export function SignatureFooter({
   className = '',
 }: SignatureFooterProps) {
   return (
-    <div className={`print-only mt-8 pt-4 border-t-2 border-gray-300 ${className}`}>
+    <div className={`print-only mt-8 pt-4 border-t-2 border-border ${className}`}>
       <div className="flex justify-between items-start">
         <div>
           <p className="text-sm font-semibold">

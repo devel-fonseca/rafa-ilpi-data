@@ -143,7 +143,7 @@ export function SuperAdminLayout() {
                 <item.icon className="h-5 w-5" />
                 <span className="flex-1">{item.label}</span>
                 {typeof item.badge === 'number' && item.badge > 0 && (
-                  <Badge className="bg-red-500 text-white border-0 h-5 min-w-5 flex items-center justify-center px-1.5">
+                  <Badge className="bg-danger text-white border-0 h-5 min-w-5 flex items-center justify-center px-1.5">
                     {item.badge > 99 ? '99+' : item.badge}
                   </Badge>
                 )}

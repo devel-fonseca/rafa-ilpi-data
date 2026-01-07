@@ -80,14 +80,14 @@ export function DeleteMedicationModal({
         </AlertDialogHeader>
 
         {/* Card Destacado - RDC 502/2021 */}
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+        <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
           <div className="flex items-start gap-2">
-            <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+              <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
                 Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
               </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+              <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
                 Toda exclusão de registro deve ter justificativa documentada para fins de
                 auditoria e conformidade regulatória.
               </p>
@@ -97,9 +97,9 @@ export function DeleteMedicationModal({
           <div className="space-y-2">
             <Label
               htmlFor="deleteReason"
-              className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+              className="text-sm font-semibold text-warning/95 dark:text-warning/10"
             >
-              Motivo da Exclusão <span className="text-red-600">*</span>
+              Motivo da Exclusão <span className="text-danger">*</span>
             </Label>
             <Textarea
               id="deleteReason"
@@ -109,11 +109,11 @@ export function DeleteMedicationModal({
                 setDeleteReason(e.target.value)
                 setDeleteReasonError('')
               }}
-              className={`min-h-[100px] ${deleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+              className={`min-h-[100px] ${deleteReasonError ? 'border-danger focus:border-danger' : ''}`}
               disabled={deleteMutation.isPending}
             />
             {deleteReasonError && (
-              <p className="text-sm text-red-600 mt-2">{deleteReasonError}</p>
+              <p className="text-sm text-danger mt-2">{deleteReasonError}</p>
             )}
             <p className="text-xs text-muted-foreground">
               {cleanedLength}/10 caracteres mínimos. Este motivo ficará registrado

@@ -111,8 +111,8 @@ export default function ResetPassword() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="h-6 w-6 text-red-600" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger/10">
+              <AlertCircle className="h-6 w-6 text-danger" />
             </div>
             <CardTitle>Link Inválido</CardTitle>
             <CardDescription>
@@ -147,8 +147,8 @@ export default function ResetPassword() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle2 className="h-6 w-6 text-success" />
             </div>
             <CardTitle>Senha Redefinida</CardTitle>
             <CardDescription>
@@ -205,12 +205,12 @@ export default function ResetPassword() {
                 </button>
               </div>
               {newPassword && !validatePassword(newPassword) && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-danger">
                   Mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial (@$!%*?&)
                 </p>
               )}
               {newPassword && validatePassword(newPassword) && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
+                <p className="text-xs text-success flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Senha forte
                 </p>
@@ -240,12 +240,12 @@ export default function ResetPassword() {
                 </button>
               </div>
               {confirmPassword && !passwordsMatch && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-danger">
                   As senhas não coincidem
                 </p>
               )}
               {confirmPassword && passwordsMatch && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
+                <p className="text-xs text-success flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Senhas coincidem
                 </p>

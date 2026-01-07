@@ -28,9 +28,9 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
       : 0
 
   const getOccupancyColor = (rate: number) => {
-    if (rate >= 90) return 'bg-red-500'
-    if (rate >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (rate >= 90) return 'bg-danger'
+    if (rate >= 70) return 'bg-warning'
+    return 'bg-success'
   }
 
   return (
@@ -40,7 +40,7 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <Building2 className="h-5 w-5 text-primary dark:text-primary/40" />
           <CardTitle className="text-lg font-bold">{building.name}</CardTitle>
         </div>
         {canManage && (
@@ -65,7 +65,7 @@ export function BuildingCard({ building, onEdit, onDelete, onClick, onNavigateFl
                   e.stopPropagation()
                   onDelete?.(building)
                 }}
-                className="text-red-600"
+                className="text-danger"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Excluir

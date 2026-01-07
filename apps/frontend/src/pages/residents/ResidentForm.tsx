@@ -1014,7 +1014,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
       {/* Campo de Motivo da Alteração - Obrigatório no modo edição (RDC 502/2021) */}
       {isEditMode && !readOnly && (
-        <Card className="shadow-lg mb-6 border-yellow-500/50">
+        <Card className="shadow-lg mb-6 border-warning">
           <CardContent className="p-6">
             <div className="space-y-2">
               <Label htmlFor="changeReason" className="text-base font-semibold">

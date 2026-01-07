@@ -258,12 +258,12 @@ export function CreateEvolutionFromAlertDialog({
 
           {/* Success Prefill Indicator */}
           {!loadingPrefill && prefillData && (
-            <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
-              <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-800 dark:text-green-200">
+            <Alert className="border-success/30 bg-success/5 dark:bg-success/95">
+              <Sparkles className="h-4 w-4 text-success dark:text-success/40" />
+              <AlertTitle className="text-success/90 dark:text-success/20">
                 Campos pré-preenchidos com sucesso
               </AlertTitle>
-              <AlertDescription className="text-green-700 dark:text-green-300">
+              <AlertDescription className="text-success/80 dark:text-success/30">
                 Os campos Objetivo (O) e Avaliação (A) foram preenchidos
                 automaticamente com base nos sinais vitais e severidade do
                 alerta.
@@ -288,7 +288,7 @@ export function CreateEvolutionFromAlertDialog({
           {/* Profissão */}
           <div className="space-y-2">
             <Label htmlFor="profession">
-              Profissão <span className="text-red-500">*</span>
+              Profissão <span className="text-danger">*</span>
             </Label>
             <Controller
               name="profession"
@@ -329,7 +329,7 @@ export function CreateEvolutionFromAlertDialog({
               </p>
             )}
             {errors.profession && (
-              <p className="text-xs text-red-500">{errors.profession.message}</p>
+              <p className="text-xs text-danger">{errors.profession.message}</p>
             )}
           </div>
 
@@ -413,7 +413,7 @@ export function CreateEvolutionFromAlertDialog({
             {/* Plano (P) */}
             <div className="space-y-2">
               <Label htmlFor="plan">
-                Plano (P) - Conduta <span className="text-red-500">*</span>
+                Plano (P) - Conduta <span className="text-danger">*</span>
               </Label>
               <Textarea
                 id="plan"
@@ -425,7 +425,7 @@ export function CreateEvolutionFromAlertDialog({
                 className="resize-none"
               />
               {errors.plan && (
-                <p className="text-xs text-red-500">{errors.plan.message}</p>
+                <p className="text-xs text-danger">{errors.plan.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 O que será feito? Tratamentos, medicamentos, exames,
@@ -464,7 +464,7 @@ export function CreateEvolutionFromAlertDialog({
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 hover:text-red-500"
+                      className="ml-1 hover:text-danger"
                     >
                       <X className="h-3 w-3" />
                     </button>

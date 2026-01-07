@@ -106,14 +106,14 @@ export function RecordCalendar({
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-gray-500">Carregando...</div>
+            <div className="text-sm text-muted-foreground">Carregando...</div>
           </div>
         ) : (
           <div className="space-y-2">
             {/* Cabeçalho com dias da semana */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map((day) => (
-                <div key={day} className="text-center text-xs font-semibold text-gray-500 py-2">
+                <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2">
                   {day}
                 </div>
               ))}
@@ -138,16 +138,16 @@ export function RecordCalendar({
                           ${isCurrentMonth ? 'opacity-100' : 'opacity-40'}
                           ${isSelected ? 'ring-2 ring-blue-500' : ''}
                           ${hasRecordToday && isCurrentMonth
-                            ? 'bg-green-200 hover:bg-green-300 font-semibold'
-                            : 'bg-gray-100 hover:bg-gray-200'
+                            ? 'bg-success/20 hover:bg-green-300 font-semibold'
+                            : 'bg-muted hover:bg-muted/20'
                           }
                           ${isSelected && 'ring-2 ring-offset-2 ring-blue-500'}
-                          ${isTodayDate && isCurrentMonth ? 'border border-blue-400' : ''}
+                          ${isTodayDate && isCurrentMonth ? 'border border-primary/40' : ''}
                         `}
                       >
                         <span>{format(day, 'd')}</span>
                         {hasRecordToday && isCurrentMonth && (
-                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-green-600 rounded-full" />
+                          <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-success/60 rounded-full" />
                         )}
                       </button>
                     )
@@ -159,11 +159,11 @@ export function RecordCalendar({
             {/* Legenda */}
             <div className="mt-4 pt-3 border-t space-y-2 text-xs">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-200 rounded" />
+                <div className="w-3 h-3 bg-success/20 rounded" />
                 <span>Tem registros</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-gray-100 rounded" />
+                <div className="w-3 h-3 bg-muted rounded" />
                 <span>Sem registros</span>
               </div>
             </div>

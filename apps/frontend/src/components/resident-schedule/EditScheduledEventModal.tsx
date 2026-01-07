@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { extractDateOnly } from '@/utils/dateHelpers';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -86,8 +86,8 @@ export function EditScheduledEventModal({
   // Preencher form quando event mudar
   useEffect(() => {
     if (event && open) {
-      // Formatar data para input type="date" (yyyy-MM-dd)
-      const dateFormatted = format(new Date(event.scheduledDate), 'yyyy-MM-dd');
+      // ✅ Usa extractDateOnly para evitar timezone shift
+      const dateFormatted = extractDateOnly(event.scheduledDate);
 
       form.reset({
         eventType: event.eventType,

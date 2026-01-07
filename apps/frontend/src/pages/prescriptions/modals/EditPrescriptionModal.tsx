@@ -19,6 +19,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { extractDateOnly } from '@/utils/dateHelpers'
+import { format } from 'date-fns'
 
 /**
  * Schema de validação para edição de Prescription
@@ -174,7 +176,7 @@ export function EditPrescriptionModal({
               <dd>{prescription.prescriptionType}</dd>
 
               <dt className="text-muted-foreground">Data:</dt>
-              <dd>{new Date(prescription.prescriptionDate).toLocaleDateString('pt-BR')}</dd>
+              <dd>{format(new Date(extractDateOnly(prescription.prescriptionDate) + 'T12:00:00'), 'dd/MM/yyyy')}</dd>
             </dl>
           </div>
 
@@ -187,11 +189,11 @@ export function EditPrescriptionModal({
               id="changeReason"
               placeholder="Ex: Atualização da data de validade conforme nova prescrição médica"
               {...register('changeReason')}
-              className={errors.changeReason ? 'border-red-500' : ''}
+              className={errors.changeReason ? 'border-danger' : ''}
               rows={3}
             />
             {errors.changeReason && (
-              <p className="text-sm text-red-500">{errors.changeReason.message}</p>
+              <p className="text-sm text-danger">{errors.changeReason.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Caracteres (sem espaços): {cleanedLength}/10
@@ -205,10 +207,10 @@ export function EditPrescriptionModal({
               id="validUntil"
               type="date"
               {...register('validUntil')}
-              className={errors.validUntil ? 'border-red-500' : ''}
+              className={errors.validUntil ? 'border-danger' : ''}
             />
             {errors.validUntil && (
-              <p className="text-sm text-red-500">{errors.validUntil.message}</p>
+              <p className="text-sm text-danger">{errors.validUntil.message}</p>
             )}
           </div>
 
@@ -219,10 +221,10 @@ export function EditPrescriptionModal({
               id="reviewDate"
               type="date"
               {...register('reviewDate')}
-              className={errors.reviewDate ? 'border-red-500' : ''}
+              className={errors.reviewDate ? 'border-danger' : ''}
             />
             {errors.reviewDate && (
-              <p className="text-sm text-red-500">{errors.reviewDate.message}</p>
+              <p className="text-sm text-danger">{errors.reviewDate.message}</p>
             )}
           </div>
 
@@ -243,7 +245,7 @@ export function EditPrescriptionModal({
               id="isActive"
               type="checkbox"
               {...register('isActive')}
-              className="h-4 w-4 rounded border-gray-300"
+              className="h-4 w-4 rounded border-border"
             />
             <Label htmlFor="isActive" className="cursor-pointer">
               Prescrição ativa

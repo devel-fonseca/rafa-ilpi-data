@@ -113,9 +113,9 @@ export default function PopObsoleteModal({
           </div>
 
           {/* Information */}
-          <div className="rounded-lg border bg-blue-50 p-4 text-sm">
-            <p className="font-medium text-blue-900">O que acontecerá:</p>
-            <ul className="mt-2 space-y-1 text-blue-800">
+          <div className="rounded-lg border bg-primary/5 p-4 text-sm">
+            <p className="font-medium text-primary/95">O que acontecerá:</p>
+            <ul className="mt-2 space-y-1 text-primary/90">
               <li>• O status do POP será alterado para "Obsoleto"</li>
               <li>• Ele será removido da lista de POPs publicados</li>
               <li>• O histórico completo será preservado</li>

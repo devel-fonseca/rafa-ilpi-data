@@ -67,19 +67,19 @@ export function AlertCenter() {
   const getSeverityIcon = (severity: AlertSeverity) => {
     switch (severity) {
       case 'CRITICAL':
-        return <AlertCircle className="h-5 w-5 text-red-500" />
+        return <AlertCircle className="h-5 w-5 text-danger" />
       case 'WARNING':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />
       case 'INFO':
-        return <Info className="h-5 w-5 text-blue-500" />
+        return <Info className="h-5 w-5 text-primary" />
     }
   }
 
   const getSeverityBadge = (severity: AlertSeverity) => {
     const variants = {
-      CRITICAL: 'bg-red-500/10 text-red-700 border-red-500/50',
-      WARNING: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/50',
-      INFO: 'bg-blue-500/10 text-blue-700 border-blue-500/50',
+      CRITICAL: 'bg-danger/10 text-danger/80 border-danger/50',
+      WARNING: 'bg-warning/10 text-warning/80 border-warning',
+      INFO: 'bg-primary/10 text-primary/80 border-primary/50',
     }
     return (
       <Badge variant="outline" className={variants[severity]}>
@@ -125,7 +125,7 @@ export function AlertCenter() {
           <p className="text-slate-400 mt-2">
             {alerts.length} {alerts.length === 1 ? 'alerta' : 'alertas'}
             {unreadCount > 0 && (
-              <span className="ml-2 text-yellow-300">
+              <span className="ml-2 text-warning/30">
                 ({unreadCount} não {unreadCount === 1 ? 'lido' : 'lidos'})
               </span>
             )}
@@ -206,7 +206,7 @@ export function AlertCenter() {
         {alerts.length === 0 ? (
           <Card className="bg-white border-slate-200">
             <CardContent className="py-12 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-4" />
               <p className="text-slate-400">Nenhum alerta encontrado</p>
             </CardContent>
           </Card>
@@ -232,7 +232,7 @@ export function AlertCenter() {
                         {getTypeLabel(alert.type)}
                       </Badge>
                       {alert.read && (
-                        <Badge variant="outline" className="text-xs bg-green-100 border-green-300 text-green-700">
+                        <Badge variant="outline" className="text-xs bg-success/10 border-success/30 text-success/80">
                           Lido
                         </Badge>
                       )}
@@ -270,7 +270,7 @@ export function AlertCenter() {
                       variant="ghost"
                       onClick={() => handleDelete(alert.id)}
                       disabled={deleteMutation.isPending}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/50"
+                      className="text-danger/40 hover:text-danger/30 hover:bg-danger/90/50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

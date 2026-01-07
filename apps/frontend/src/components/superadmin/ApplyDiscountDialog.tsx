@@ -295,7 +295,7 @@ export function ApplyDiscountDialog({
               variant="outline"
               onClick={handleRemoveDiscount}
               disabled={removeDiscountMutation.isPending}
-              className="w-full border-red-700 text-red-400 hover:bg-red-900/50"
+              className="w-full border-danger/70 text-danger/40 hover:bg-danger/90/50"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Remover Desconto/Preço Customizado

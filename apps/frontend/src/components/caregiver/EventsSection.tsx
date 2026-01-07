@@ -26,22 +26,22 @@ const EVENT_TYPE_CONFIG: Record<
   VACCINATION: {
     icon: Syringe,
     label: 'Vacinação',
-    color: 'text-blue-600 dark:text-blue-400',
+    color: 'text-primary dark:text-primary/40',
   },
   CONSULTATION: {
     icon: Stethoscope,
     label: 'Consulta',
-    color: 'text-green-600 dark:text-green-400',
+    color: 'text-success dark:text-success/40',
   },
   EXAM: {
     icon: FlaskConical,
     label: 'Exame',
-    color: 'text-purple-600 dark:text-purple-400',
+    color: 'text-medication-controlled dark:text-medication-controlled/40',
   },
   PROCEDURE: {
     icon: Activity,
     label: 'Procedimento',
-    color: 'text-orange-600 dark:text-orange-400',
+    color: 'text-severity-warning dark:text-severity-warning/40',
   },
   OTHER: {
     icon: Calendar,

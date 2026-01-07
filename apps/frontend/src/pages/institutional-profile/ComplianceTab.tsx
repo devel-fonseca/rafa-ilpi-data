@@ -89,7 +89,7 @@ export function ComplianceTab() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center h-64">
           <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium text-gray-900">Dados de compliance indisponíveis</p>
+          <p className="text-lg font-medium text-foreground">Dados de compliance indisponíveis</p>
           <p className="text-sm text-muted-foreground mt-2">
             Não foi possível carregar os dados de compliance. Tente novamente.
           </p>
@@ -277,7 +277,7 @@ export function ComplianceTab() {
                         />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{doc.label}</p>
+                        <p className="font-medium text-foreground">{doc.label}</p>
                         <p className="text-sm text-muted-foreground">
                           {isUploaded ? 'Documento enviado' : 'Pendente de envio'}
                         </p>
@@ -338,7 +338,7 @@ export function ComplianceTab() {
             <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-success" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">Compliance 100%</h3>
+            <h3 className="text-xl font-bold text-foreground">Compliance 100%</h3>
             <p className="text-sm text-muted-foreground mt-2 text-center max-w-md">
               Parabéns! Sua instituição está em total conformidade com os requisitos documentais.
               Todos os documentos obrigatórios foram enviados e estão válidos.

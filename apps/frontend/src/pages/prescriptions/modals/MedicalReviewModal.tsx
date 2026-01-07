@@ -253,10 +253,10 @@ export function MedicalReviewModal({
                   type="date"
                   {...register('medicalReviewDate')}
                   max={new Date().toISOString().split('T')[0]}
-                  className={errors.medicalReviewDate ? 'border-red-500' : ''}
+                  className={errors.medicalReviewDate ? 'border-danger' : ''}
                 />
                 {errors.medicalReviewDate && (
-                  <p className="text-sm text-red-500">{errors.medicalReviewDate.message}</p>
+                  <p className="text-sm text-danger">{errors.medicalReviewDate.message}</p>
                 )}
               </div>
 
@@ -270,10 +270,10 @@ export function MedicalReviewModal({
                   type="date"
                   {...register('newReviewDate')}
                   min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                  className={errors.newReviewDate ? 'border-red-500' : ''}
+                  className={errors.newReviewDate ? 'border-danger' : ''}
                 />
                 {errors.newReviewDate && (
-                  <p className="text-sm text-red-500">{errors.newReviewDate.message}</p>
+                  <p className="text-sm text-danger">{errors.newReviewDate.message}</p>
                 )}
               </div>
             </div>
@@ -287,10 +287,10 @@ export function MedicalReviewModal({
                 id="reviewedByDoctor"
                 placeholder="Ex: Dr. João Silva"
                 {...register('reviewedByDoctor')}
-                className={errors.reviewedByDoctor ? 'border-red-500' : ''}
+                className={errors.reviewedByDoctor ? 'border-danger' : ''}
               />
               {errors.reviewedByDoctor && (
-                <p className="text-sm text-red-500">{errors.reviewedByDoctor.message}</p>
+                <p className="text-sm text-danger">{errors.reviewedByDoctor.message}</p>
               )}
             </div>
 
@@ -304,10 +304,10 @@ export function MedicalReviewModal({
                   id="reviewDoctorCrm"
                   placeholder="Ex: 123456"
                   {...register('reviewDoctorCrm')}
-                  className={errors.reviewDoctorCrm ? 'border-red-500' : ''}
+                  className={errors.reviewDoctorCrm ? 'border-danger' : ''}
                 />
                 {errors.reviewDoctorCrm && (
-                  <p className="text-sm text-red-500">{errors.reviewDoctorCrm.message}</p>
+                  <p className="text-sm text-danger">{errors.reviewDoctorCrm.message}</p>
                 )}
               </div>
 
@@ -322,7 +322,7 @@ export function MedicalReviewModal({
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger
-                        className={errors.reviewDoctorState ? 'border-red-500' : ''}
+                        className={errors.reviewDoctorState ? 'border-danger' : ''}
                       >
                         <SelectValue placeholder="UF" />
                       </SelectTrigger>
@@ -337,7 +337,7 @@ export function MedicalReviewModal({
                   )}
                 />
                 {errors.reviewDoctorState && (
-                  <p className="text-sm text-red-500">{errors.reviewDoctorState.message}</p>
+                  <p className="text-sm text-danger">{errors.reviewDoctorState.message}</p>
                 )}
               </div>
             </div>
@@ -374,11 +374,11 @@ export function MedicalReviewModal({
                 id="reviewNotes"
                 placeholder="Ex: Dr. João confirmou mesma prescrição. Residente está estável e sem queixas."
                 {...register('reviewNotes')}
-                className={errors.reviewNotes ? 'border-red-500' : ''}
+                className={errors.reviewNotes ? 'border-danger' : ''}
                 rows={4}
               />
               {errors.reviewNotes && (
-                <p className="text-sm text-red-500">{errors.reviewNotes.message}</p>
+                <p className="text-sm text-danger">{errors.reviewNotes.message}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Caracteres (sem espaços): {cleanedLength}/10

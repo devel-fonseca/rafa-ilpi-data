@@ -17,6 +17,7 @@ import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History } from 'lucide-react'
 import { format } from 'date-fns'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import {
   PositionCode,
   RegistrationType,
@@ -68,7 +69,7 @@ export default function MyProfile() {
       setFormData({
         profilePhoto: profile.profilePhoto || undefined,
         phone: profile.phone || '',
-        birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
+        birthDate: profile.birthDate ? extractDateOnly(profile.birthDate) : '',
         notes: profile.notes || '',
       })
     }
@@ -144,7 +145,7 @@ export default function MyProfile() {
       setFormData({
         profilePhoto: profile.profilePhoto || undefined,
         phone: profile.phone || '',
-        birthDate: profile.birthDate ? format(new Date(profile.birthDate), 'yyyy-MM-dd') : '',
+        birthDate: profile.birthDate ? extractDateOnly(profile.birthDate) : '',
         notes: profile.notes || '',
       })
       setPhotoFile(null)
@@ -442,7 +443,7 @@ export default function MyProfile() {
                       </Badge>
                     )}
                     {profile.isNursingCoordinator && (
-                      <Badge variant="outline" className="text-blue-600 border-blue-300">
+                      <Badge variant="outline" className="text-primary border-primary/30">
                         <Briefcase className="h-3 w-3 mr-1" />
                         Coordenador de Enfermagem
                       </Badge>
@@ -580,7 +581,7 @@ export default function MyProfile() {
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                     tabIndex={-1}
                   >
                     {showNewPassword ? (
@@ -611,14 +612,14 @@ export default function MyProfile() {
                       passwordData.newPassword &&
                       passwordData.confirmPassword.length >= passwordData.newPassword.length &&
                       passwordData.confirmPassword !== passwordData.newPassword
-                        ? 'border-red-500 focus-visible:ring-red-500'
+                        ? 'border-danger focus-visible:ring-red-500'
                         : ''
                     }
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                     tabIndex={-1}
                   >
                     {showConfirmPassword ? (
@@ -632,14 +633,14 @@ export default function MyProfile() {
                  passwordData.newPassword &&
                  passwordData.confirmPassword.length >= passwordData.newPassword.length &&
                  passwordData.confirmPassword !== passwordData.newPassword && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-danger mt-1">
                     As senhas não conferem
                   </p>
                 )}
                 {passwordData.confirmPassword &&
                  passwordData.newPassword &&
                  passwordData.confirmPassword === passwordData.newPassword && (
-                  <p className="text-xs text-green-600 mt-1">
+                  <p className="text-xs text-success mt-1">
                     ✓ As senhas conferem
                   </p>
                 )}
@@ -857,16 +858,16 @@ function AccessLogsTab({ userId }: { userId: string }) {
   }
 
   const ACTION_COLORS: Record<string, string> = {
-    LOGIN: 'bg-blue-100 text-blue-800',
-    LOGOUT: 'bg-gray-100 text-gray-800',
-    PASSWORD_CHANGED: 'bg-yellow-100 text-yellow-800',
-    SESSION_REVOKED: 'bg-red-100 text-red-800',
-    FORCE_PASSWORD_CHANGE: 'bg-orange-100 text-orange-800',
+    LOGIN: 'bg-primary/10 text-primary/90',
+    LOGOUT: 'bg-muted text-foreground/90',
+    PASSWORD_CHANGED: 'bg-warning/10 text-warning/90',
+    SESSION_REVOKED: 'bg-danger/10 text-danger/90',
+    FORCE_PASSWORD_CHANGE: 'bg-severity-warning/10 text-severity-warning/90',
   }
 
   const STATUS_COLORS: Record<string, string> = {
-    SUCCESS: 'bg-green-100 text-green-800',
-    FAILED: 'bg-red-100 text-red-800',
+    SUCCESS: 'bg-success/10 text-success/90',
+    FAILED: 'bg-danger/10 text-danger/90',
   }
 
   return (
@@ -941,12 +942,12 @@ function AccessLogsTab({ userId }: { userId: string }) {
                         {format(new Date(log.createdAt), 'dd/MM/yyyy HH:mm:ss')}
                       </td>
                       <td className="p-3 text-sm">
-                        <Badge className={ACTION_COLORS[log.action] || 'bg-gray-100 text-gray-800'}>
+                        <Badge className={ACTION_COLORS[log.action] || 'bg-muted text-foreground/90'}>
                           {ACTION_LABELS[log.action] || log.action}
                         </Badge>
                       </td>
                       <td className="p-3 text-sm">
-                        <Badge className={STATUS_COLORS[log.status] || 'bg-gray-100 text-gray-800'}>
+                        <Badge className={STATUS_COLORS[log.status] || 'bg-muted text-foreground/90'}>
                           {log.status}
                         </Badge>
                       </td>

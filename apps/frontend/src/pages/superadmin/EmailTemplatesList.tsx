@@ -93,12 +93,12 @@ export default function EmailTemplatesList() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      ONBOARDING: 'bg-blue-100 text-blue-800',
-      BILLING: 'bg-yellow-100 text-yellow-800',
-      LIFECYCLE: 'bg-green-100 text-green-800',
-      SYSTEM: 'bg-gray-100 text-gray-800',
+      ONBOARDING: 'bg-primary/10 text-primary/90',
+      BILLING: 'bg-warning/10 text-warning/90',
+      LIFECYCLE: 'bg-success/10 text-success/90',
+      SYSTEM: 'bg-muted text-foreground/90',
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-muted text-foreground/90';
   };
 
   if (isLoading) {
@@ -147,7 +147,7 @@ export default function EmailTemplatesList() {
                   <TableRow key={template.id}>
                     <TableCell className="font-medium">{template.name}</TableCell>
                     <TableCell>
-                      <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+                      <code className="bg-muted px-2 py-1 rounded text-xs">
                         {template.key}
                       </code>
                     </TableCell>
@@ -212,7 +212,7 @@ export default function EmailTemplatesList() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setTemplateToDelete(template)}
-                            className="text-red-600"
+                            className="text-danger"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
@@ -254,7 +254,7 @@ export default function EmailTemplatesList() {
             <AlertDialogAction
               onClick={() => templateToDelete && deleteMutation.mutate(templateToDelete.id)}
               disabled={deleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger/60 hover:bg-danger/70"
             >
               {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>

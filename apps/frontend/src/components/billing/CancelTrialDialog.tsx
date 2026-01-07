@@ -48,15 +48,15 @@ export function CancelTrialDialog({ open, onOpenChange }: CancelTrialDialogProps
       <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center w-12 h-12 bg-red-100 dark:bg-red-950/30 rounded-full">
-              <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            <div className="flex items-center justify-center w-12 h-12 bg-danger/10 dark:bg-danger/95/30 rounded-full">
+              <AlertTriangle className="h-6 w-6 text-danger dark:text-danger/40" />
             </div>
             <AlertDialogTitle className="text-foreground">
               Cancelar Período de Teste
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-muted-foreground text-left">
-            <strong className="text-red-600 dark:text-red-400">Atenção:</strong> Esta ação é irreversível. Ao cancelar o trial:
+            <strong className="text-danger dark:text-danger/40">Atenção:</strong> Esta ação é irreversível. Ao cancelar o trial:
             <ul className="list-disc list-inside mt-2 space-y-1">
               <li>Sua conta será imediatamente desativada</li>
               <li>Você perderá acesso a todos os dados e funcionalidades</li>
@@ -75,7 +75,7 @@ export function CancelTrialDialog({ open, onOpenChange }: CancelTrialDialogProps
           <AlertDialogAction
             onClick={handleConfirmCancel}
             disabled={cancelTrial.isPending}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-danger/60 hover:bg-danger/70 text-white"
           >
             {cancelTrial.isPending ? 'Cancelando...' : 'Sim, Cancelar Trial'}
           </AlertDialogAction>

@@ -50,7 +50,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
 import { ResidentScheduleTab } from '@/components/resident-schedule/ResidentScheduleTab'
 import { formatBedFromResident, formatCNS } from '@/utils/formatters'
-import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
 import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import { ClinicalNotesList } from '@/components/clinical-notes'
 import { ClinicalProfileTab } from '@/components/clinical-data/ClinicalProfileTab'
@@ -173,7 +173,9 @@ export default function ResidentProfile() {
   // Calcular idade
   const calculateAge = (birthDate: string) => {
     const today = new Date()
-    const birth = new Date(birthDate)
+    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+    const dayKey = extractDateOnly(birthDate)
+    const birth = new Date(dayKey + 'T12:00:00')
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -184,7 +186,9 @@ export default function ResidentProfile() {
 
   const calculateTimeInInstitution = (admissionDate: string) => {
     const today = new Date()
-    const admission = new Date(admissionDate)
+    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+    const dayKey = extractDateOnly(admissionDate)
+    const admission = new Date(dayKey + 'T12:00:00')
 
     let years = today.getFullYear() - admission.getFullYear()
     let months = today.getMonth() - admission.getMonth()
@@ -824,7 +828,7 @@ export default function ResidentProfile() {
                             <Pill className="h-4 w-4 text-info" />
                             <h4 className="font-semibold">
                               Prescrição de{' '}
-                              {format(new Date(prescription.prescriptionDate), 'dd/MM/yyyy', {
+                              {format(new Date(extractDateOnly(prescription.prescriptionDate) + 'T12:00:00'), 'dd/MM/yyyy', {
                                 locale: ptBR,
                               })}
                             </h4>
@@ -849,7 +853,7 @@ export default function ResidentProfile() {
                             {prescription.expiryDate && (
                               <div>
                                 <span className="font-medium">Validade:</span>{' '}
-                                {format(new Date(prescription.expiryDate), 'dd/MM/yyyy', {
+                                {format(new Date(extractDateOnly(prescription.expiryDate) + 'T12:00:00'), 'dd/MM/yyyy', {
                                   locale: ptBR,
                                 })}
                               </div>

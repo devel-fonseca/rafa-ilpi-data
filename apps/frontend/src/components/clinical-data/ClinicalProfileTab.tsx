@@ -604,14 +604,14 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
           </AlertDialogHeader>
 
           {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
                   Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
                 </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
                   Toda exclusão de registro deve ter justificativa documentada para fins de
                   auditoria e conformidade regulatória.
                 </p>
@@ -621,9 +621,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
             <div className="space-y-2">
               <Label
                 htmlFor="profileDeleteReason"
-                className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
               >
-                Motivo da Exclusão <span className="text-red-600">*</span>
+                Motivo da Exclusão <span className="text-danger">*</span>
               </Label>
               <Textarea
                 id="profileDeleteReason"
@@ -633,10 +633,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   setProfileDeleteReason(e.target.value)
                   setProfileDeleteReasonError('')
                 }}
-                className={`min-h-[100px] ${profileDeleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`min-h-[100px] ${profileDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
               />
               {profileDeleteReasonError && (
-                <p className="text-sm text-red-600 mt-2">{profileDeleteReasonError}</p>
+                <p className="text-sm text-danger mt-2">{profileDeleteReasonError}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
@@ -684,14 +684,14 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
           </AlertDialogHeader>
 
           {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
                   Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
                 </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
                   Toda exclusão de registro deve ter justificativa documentada para fins de
                   auditoria e conformidade regulatória.
                 </p>
@@ -701,9 +701,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
             <div className="space-y-2">
               <Label
                 htmlFor="allergyDeleteReason"
-                className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
               >
-                Motivo da Exclusão <span className="text-red-600">*</span>
+                Motivo da Exclusão <span className="text-danger">*</span>
               </Label>
               <Textarea
                 id="allergyDeleteReason"
@@ -713,10 +713,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   setAllergyDeleteReason(e.target.value)
                   setAllergyDeleteReasonError('')
                 }}
-                className={`min-h-[100px] ${allergyDeleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`min-h-[100px] ${allergyDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
               />
               {allergyDeleteReasonError && (
-                <p className="text-sm text-red-600 mt-2">{allergyDeleteReasonError}</p>
+                <p className="text-sm text-danger mt-2">{allergyDeleteReasonError}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
@@ -764,14 +764,14 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
           </AlertDialogHeader>
 
           {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
                   Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
                 </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
                   Toda exclusão de registro deve ter justificativa documentada para fins de
                   auditoria e conformidade regulatória.
                 </p>
@@ -781,9 +781,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
             <div className="space-y-2">
               <Label
                 htmlFor="conditionDeleteReason"
-                className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
               >
-                Motivo da Exclusão <span className="text-red-600">*</span>
+                Motivo da Exclusão <span className="text-danger">*</span>
               </Label>
               <Textarea
                 id="conditionDeleteReason"
@@ -793,10 +793,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   setConditionDeleteReason(e.target.value)
                   setConditionDeleteReasonError('')
                 }}
-                className={`min-h-[100px] ${conditionDeleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`min-h-[100px] ${conditionDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
               />
               {conditionDeleteReasonError && (
-                <p className="text-sm text-red-600 mt-2">{conditionDeleteReasonError}</p>
+                <p className="text-sm text-danger mt-2">{conditionDeleteReasonError}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
@@ -844,14 +844,14 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
           </AlertDialogHeader>
 
           {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-3">
+          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
             <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
                   Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
                 </p>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
                   Toda exclusão de registro deve ter justificativa documentada para fins de
                   auditoria e conformidade regulatória.
                 </p>
@@ -861,9 +861,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
             <div className="space-y-2">
               <Label
                 htmlFor="restrictionDeleteReason"
-                className="text-sm font-semibold text-yellow-900 dark:text-yellow-100"
+                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
               >
-                Motivo da Exclusão <span className="text-red-600">*</span>
+                Motivo da Exclusão <span className="text-danger">*</span>
               </Label>
               <Textarea
                 id="restrictionDeleteReason"
@@ -873,10 +873,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   setRestrictionDeleteReason(e.target.value)
                   setRestrictionDeleteReasonError('')
                 }}
-                className={`min-h-[100px] ${restrictionDeleteReasonError ? 'border-red-500 focus:border-red-500' : ''}`}
+                className={`min-h-[100px] ${restrictionDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
               />
               {restrictionDeleteReasonError && (
-                <p className="text-sm text-red-600 mt-2">{restrictionDeleteReasonError}</p>
+                <p className="text-sm text-danger mt-2">{restrictionDeleteReasonError}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no

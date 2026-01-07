@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { Loader2, Calendar, CheckCircle } from 'lucide-react';
+import { extractDateOnly } from '@/utils/dateHelpers';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -123,7 +124,10 @@ export function MissedEventActionsModal({
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Data inválida';
     try {
-      return format(new Date(dateStr), 'dd/MM/yyyy');
+      // ✅ Usa extractDateOnly para evitar timezone shift
+      const dayKey = extractDateOnly(dateStr);
+      const date = new Date(dayKey + 'T12:00:00');
+      return format(date, 'dd/MM/yyyy');
     } catch {
       return 'Data inválida';
     }
@@ -149,7 +153,7 @@ export function MissedEventActionsModal({
                 className="w-full justify-start h-auto py-4"
                 onClick={() => setMode('reschedule')}
               >
-                <Calendar className="mr-3 h-5 w-5 text-blue-600" />
+                <Calendar className="mr-3 h-5 w-5 text-primary" />
                 <div className="text-left">
                   <div className="font-semibold">Reagendar</div>
                   <div className="text-xs text-muted-foreground">
@@ -163,7 +167,7 @@ export function MissedEventActionsModal({
                 className="w-full justify-start h-auto py-4"
                 onClick={() => setMode('complete')}
               >
-                <CheckCircle className="mr-3 h-5 w-5 text-green-600" />
+                <CheckCircle className="mr-3 h-5 w-5 text-success" />
                 <div className="text-left">
                   <div className="font-semibold">Marcar como Concluído</div>
                   <div className="text-xs text-muted-foreground">

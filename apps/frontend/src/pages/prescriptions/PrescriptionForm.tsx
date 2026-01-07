@@ -9,7 +9,7 @@ import { useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescri
 import { uploadFile } from '@/services/upload'
 import { toast } from 'sonner'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
-import { getCurrentDateLocal } from '@/utils/timezone'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 // Importar os steps (serão criados a seguir)
 import { Step1ResidentInfo } from './form/Step1ResidentInfo'
@@ -43,7 +43,7 @@ export default function PrescriptionForm() {
       doctorName: '',
       doctorCrm: '',
       doctorCrmState: '',
-      prescriptionDate: getCurrentDateLocal(),
+      prescriptionDate: getCurrentDate(),
       prescriptionType: 'ROTINA',
       medications: [],
       sosMedications: [],
@@ -139,10 +139,10 @@ export default function PrescriptionForm() {
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               {isEditing ? 'Editar Prescrição' : 'Nova Prescrição'}
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-muted-foreground mt-1">
               Preencha os dados da prescrição médica
             </p>
           </div>

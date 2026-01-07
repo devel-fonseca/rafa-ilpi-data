@@ -177,7 +177,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
             <CardTitle className="text-sm font-medium">Severidade Crítica</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{alertsBySeverity.critical}</div>
+            <div className="text-2xl font-bold text-danger">{alertsBySeverity.critical}</div>
             <p className="text-xs text-muted-foreground">requerem atenção imediata</p>
           </CardContent>
         </Card>
@@ -187,7 +187,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
             <CardTitle className="text-sm font-medium">Severidade Atenção</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{alertsBySeverity.warning}</div>
+            <div className="text-2xl font-bold text-warning">{alertsBySeverity.warning}</div>
             <p className="text-xs text-muted-foreground">monitoramento necessário</p>
           </CardContent>
         </Card>
@@ -197,7 +197,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
             <CardTitle className="text-sm font-medium">Informativo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{alertsBySeverity.info}</div>
+            <div className="text-2xl font-bold text-primary">{alertsBySeverity.info}</div>
             <p className="text-xs text-muted-foreground">observação</p>
           </CardContent>
         </Card>
@@ -291,7 +291,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
                         </p>
                       )}
                       {alert.clinicalNotes && alert.clinicalNotes.length > 0 && (
-                        <p className="text-xs text-blue-600">
+                        <p className="text-xs text-primary">
                           📋 {alert.clinicalNotes.length} evolução(ões) vinculada(s)
                         </p>
                       )}
@@ -311,7 +311,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
                     </div>
                   )}
                   {alert.actionTaken && (
-                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded text-sm">
+                    <div className="mt-2 p-2 bg-primary/5 dark:bg-primary/95 rounded text-sm">
                       <strong>Ações Tomadas:</strong> {alert.actionTaken}
                     </div>
                   )}

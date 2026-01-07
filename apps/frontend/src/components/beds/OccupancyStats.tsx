@@ -66,7 +66,7 @@ export function OccupancyStats({ stats }: OccupancyStatsProps) {
           <div className="text-2xl font-bold">{occupancyRate}%</div>
           <div className="mt-2 h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all"
+              className="h-full bg-primary/60 transition-all"
               style={{ width: `${occupancyRate}%` }}
             />
           </div>
@@ -83,28 +83,28 @@ export function OccupancyStats({ stats }: OccupancyStatsProps) {
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <div className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-muted-foreground">Disponíveis:</span>
               </div>
               <span className="font-bold">{stats.availableBeds}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
+                <div className="w-2 h-2 rounded-full bg-danger" />
                 <span className="text-muted-foreground">Ocupados:</span>
               </div>
               <span className="font-bold">{stats.occupiedBeds}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                <div className="w-2 h-2 rounded-full bg-warning" />
                 <span className="text-muted-foreground">Manutenção:</span>
               </div>
               <span className="font-bold">{stats.maintenanceBeds}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <div className="w-2 h-2 rounded-full bg-primary" />
                 <span className="text-muted-foreground">Reservados:</span>
               </div>
               <span className="font-bold">{stats.reservedBeds}</span>

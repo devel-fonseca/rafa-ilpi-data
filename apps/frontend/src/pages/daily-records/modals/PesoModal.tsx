@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -75,7 +75,7 @@ export function PesoModal({
   } = useForm<PesoFormData>({
     resolver: zodResolver(pesoSchema),
     defaultValues: {
-      time: getCurrentTimeLocal(),
+      time: getCurrentTime(),
       peso: '',
       altura: '',
       observacoes: '',
@@ -106,10 +106,10 @@ export function PesoModal({
   const imcClassificacao = useMemo(() => {
     if (!imc) return null
 
-    if (imc < 18.5) return { texto: 'Baixo peso', cor: 'text-yellow-600' }
-    if (imc < 25) return { texto: 'Peso normal', cor: 'text-green-600' }
-    if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-orange-600' }
-    return { texto: 'Obesidade', cor: 'text-red-600' }
+    if (imc < 18.5) return { texto: 'Baixo peso', cor: 'text-warning' }
+    if (imc < 25) return { texto: 'Peso normal', cor: 'text-success' }
+    if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-severity-warning' }
+    return { texto: 'Obesidade', cor: 'text-danger' }
   }, [imc])
 
   const handleFormSubmit = (data: PesoFormData) => {

@@ -104,15 +104,15 @@ function FrequencyDropZone({
   };
 
   const frequencyColor = {
-    DAILY: 'border-blue-200 bg-blue-50/50',
-    WEEKLY: 'border-green-200 bg-green-50/50',
-    MONTHLY: 'border-purple-200 bg-purple-50/50',
+    DAILY: 'border-primary/30 bg-primary/5/50',
+    WEEKLY: 'border-success/30 bg-success/5/50',
+    MONTHLY: 'border-medication-controlled/30 bg-medication-controlled/5/50',
   };
 
   const frequencyColorActive = {
-    DAILY: 'border-blue-400 bg-blue-100',
-    WEEKLY: 'border-green-400 bg-green-100',
-    MONTHLY: 'border-purple-400 bg-purple-100',
+    DAILY: 'border-primary/40 bg-primary/10',
+    WEEKLY: 'border-success/40 bg-success/10',
+    MONTHLY: 'border-medication-controlled/40 bg-medication-controlled/10',
   };
 
   return (
@@ -142,8 +142,8 @@ function FrequencyDropZone({
 
       <CardContent>
         {isOver && configs.length > 0 && (
-          <Card className="p-4 mb-3 border-2 border-dashed border-blue-400 bg-blue-50 animate-pulse">
-            <div className="text-center text-blue-700 font-semibold text-sm">
+          <Card className="p-4 mb-3 border-2 border-dashed border-primary/40 bg-primary/5 animate-pulse">
+            <div className="text-center text-primary/80 font-semibold text-sm">
               <MousePointerClick className="h-6 w-6 mx-auto mb-1" />
               Solte aqui para adicionar
             </div>
@@ -151,7 +151,7 @@ function FrequencyDropZone({
         )}
 
         {configs.length === 0 && isOver && (
-          <div className="text-center text-blue-700 font-semibold py-8">
+          <div className="text-center text-primary/80 font-semibold py-8">
             <MousePointerClick className="h-10 w-10 mx-auto mb-2 animate-bounce" />
             <p className="text-sm">Solte aqui para configurar</p>
           </div>

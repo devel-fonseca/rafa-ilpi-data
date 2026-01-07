@@ -240,7 +240,7 @@ export function ResidentSelectionGrid({
                   {resident.mobilityAid && (
                     <Badge
                       variant="default"
-                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 border-0 shadow-md"
+                      className="bg-primary/60 hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary/60 border-0 shadow-md"
                     >
                       <Accessibility className="h-3 w-3 mr-1" />
                       <span className="text-xs font-semibold">Auxílio</span>

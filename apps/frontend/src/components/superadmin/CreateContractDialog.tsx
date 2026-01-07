@@ -338,19 +338,19 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
             />
           </div>
 
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-900">
+          <div className="p-3 bg-primary/5 border border-primary/30 rounded-lg">
+            <p className="text-xs text-primary/95">
               <strong>ℹ️ Versionamento automático:</strong> A versão será gerada automaticamente ao criar o contrato.
             </p>
           </div>
 
           <div>
             <Label>Conteúdo (HTML) *</Label>
-            <Card className="mt-2 p-3 bg-blue-50 border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-2">
+            <Card className="mt-2 p-3 bg-primary/5 border-primary/30">
+              <p className="text-xs font-semibold text-primary/95 mb-2">
                 📝 Variáveis disponíveis:
               </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-blue-800">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-primary/90">
                 <div><code className="bg-white px-1 rounded">{'{{tenant.name}}'}</code> - Nome do tenant</div>
                 <div><code className="bg-white px-1 rounded">{'{{tenant.cnpj}}'}</code> - CNPJ do tenant</div>
                 <div><code className="bg-white px-1 rounded">{'{{tenant.email}}'}</code> - Email do tenant</div>

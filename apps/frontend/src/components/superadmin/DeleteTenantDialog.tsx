@@ -67,12 +67,12 @@ export function DeleteTenantDialog({
 
   const TriggerComponent =
     variant === 'button' ? (
-      <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+      <Button variant="destructive" className="bg-danger/60 hover:bg-danger/70">
         <Trash2 className="h-4 w-4 mr-2" />
         Deletar
       </Button>
     ) : (
-      <div className="flex items-center cursor-pointer text-red-400 hover:text-red-300 w-full px-2 py-1.5">
+      <div className="flex items-center cursor-pointer text-danger/40 hover:text-danger/30 w-full px-2 py-1.5">
         <Trash2 className="h-4 w-4 mr-2" />
         Deletar
       </div>
@@ -92,11 +92,11 @@ export function DeleteTenantDialog({
 
         <div className="space-y-4">
           {/* Critical Warning */}
-          <div className="p-4 bg-red-950 rounded-lg border border-red-800">
+          <div className="p-4 bg-danger/95 rounded-lg border border-danger/80">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 mt-0.5">
                 <svg
-                  className="h-5 w-5 text-red-400"
+                  className="h-5 w-5 text-danger/40"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -108,10 +108,10 @@ export function DeleteTenantDialog({
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="text-sm font-medium text-red-300 mb-2">
+                <h4 className="text-sm font-medium text-danger/30 mb-2">
                   Atenção! Ação Destrutiva
                 </h4>
-                <ul className="text-sm text-red-300 space-y-1 list-disc list-inside">
+                <ul className="text-sm text-danger/30 space-y-1 list-disc list-inside">
                   <li>Todos os usuários perderão acesso imediato</li>
                   <li>Dados de residentes serão removidos</li>
                   <li>Histórico de subscriptions será deletado</li>
@@ -136,12 +136,12 @@ export function DeleteTenantDialog({
               autoComplete="off"
             />
             {confirmation && !isConfirmed && (
-              <p className="text-xs text-red-400">
+              <p className="text-xs text-danger/40">
                 O nome não corresponde. Digite exatamente: {tenantName}
               </p>
             )}
             {isConfirmed && (
-              <p className="text-xs text-green-400">✓ Confirmação correta</p>
+              <p className="text-xs text-success/40">✓ Confirmação correta</p>
             )}
           </div>
         </div>
@@ -163,7 +163,7 @@ export function DeleteTenantDialog({
             onClick={handleSubmit}
             disabled={deleteMutation.isPending || !isConfirmed}
             variant="destructive"
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-danger/60 hover:bg-danger/70"
           >
             {deleteMutation.isPending ? 'Deletando...' : 'Deletar Permanentemente'}
           </Button>

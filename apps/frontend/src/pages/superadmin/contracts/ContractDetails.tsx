@@ -11,9 +11,9 @@ import { PublishContractDialog } from '@/components/superadmin/PublishContractDi
 import { toast } from 'sonner'
 
 const statusColors = {
-  DRAFT: 'bg-gray-200 text-gray-800',
-  ACTIVE: 'bg-green-100 text-green-800',
-  REVOKED: 'bg-red-100 text-red-800',
+  DRAFT: 'bg-muted/20 text-foreground/90',
+  ACTIVE: 'bg-success/10 text-success/90',
+  REVOKED: 'bg-danger/10 text-danger/90',
 }
 
 const statusLabels = {
@@ -94,7 +94,7 @@ export function ContractDetails() {
               </Button>
               <Button
                 variant="outline"
-                className="text-green-600 border-green-600 hover:bg-green-50"
+                className="text-success border-success/60 hover:bg-success/5"
                 onClick={() => setPublishDialogOpen(true)}
               >
                 <Rocket className="h-4 w-4 mr-2" />
@@ -171,7 +171,7 @@ export function ContractDetails() {
                     title="Copiar hash"
                   >
                     {copiedHash ? (
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-success" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}

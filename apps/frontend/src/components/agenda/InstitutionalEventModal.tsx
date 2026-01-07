@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar, Clock, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
-import { InstitutionalEventType, InstitutionalEventVisibility } from '@/types/agenda'
+import { extractDateOnly } from '@/utils/dateHelpers'
+import { InstitutionalEventType, InstitutionalEventVisibility, InstitutionalEvent } from '@/types/agenda'
 
 interface FormData {
   eventType: InstitutionalEventType
@@ -62,12 +63,24 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
       eventType: editData?.eventType || InstitutionalEventType.OTHER,
       visibility: editData?.visibility || InstitutionalEventVisibility.ALL_USERS,
       scheduledDate: editData?.scheduledDate
-        ? format(new Date(editData.scheduledDate), 'yyyy-MM-dd')
+        ? extractDateOnly(editData.scheduledDate)
         : initialDate
           ? format(initialDate, 'yyyy-MM-dd')
           : format(new Date(), 'yyyy-MM-dd'),
       allDay: editData?.allDay || false,
-      ...editData,
+      title: editData?.title || '',
+      description: editData?.description,
+      scheduledTime: editData?.scheduledTime,
+      notes: editData?.notes,
+      documentType: editData?.documentType,
+      documentNumber: editData?.documentNumber,
+      expiryDate: editData?.expiryDate,
+      responsible: editData?.responsible,
+      trainingTopic: editData?.trainingTopic,
+      instructor: editData?.instructor,
+      targetAudience: editData?.targetAudience,
+      location: editData?.location,
+      metadata: editData?.metadata,
     },
   })
 
@@ -145,7 +158,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
               placeholder="Ex: Renovação do Alvará de Funcionamento"
             />
             {errors.title && (
-              <p className="text-sm text-red-500 mt-1">{errors.title.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.title.message}</p>
             )}
           </div>
 
@@ -174,7 +187,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
                 />
               </div>
               {errors.scheduledDate && (
-                <p className="text-sm text-red-500 mt-1">{errors.scheduledDate.message}</p>
+                <p className="text-sm text-danger mt-1">{errors.scheduledDate.message}</p>
               )}
             </div>
 
@@ -226,7 +239,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
                   placeholder="Ex: Alvará de Funcionamento"
                 />
                 {errors.documentType && (
-                  <p className="text-sm text-red-500 mt-1">{errors.documentType.message}</p>
+                  <p className="text-sm text-danger mt-1">{errors.documentType.message}</p>
                 )}
               </div>
 
@@ -251,7 +264,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
                   })}
                 />
                 {errors.expiryDate && (
-                  <p className="text-sm text-red-500 mt-1">{errors.expiryDate.message}</p>
+                  <p className="text-sm text-danger mt-1">{errors.expiryDate.message}</p>
                 )}
               </div>
 
@@ -268,8 +281,8 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
 
           {/* Campos específicos para TRAINING */}
           {eventType === InstitutionalEventType.TRAINING && (
-            <div className="border rounded-lg p-4 space-y-4 bg-blue-50 dark:bg-blue-950">
-              <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+            <div className="border rounded-lg p-4 space-y-4 bg-primary/5 dark:bg-primary/95">
+              <div className="flex items-center gap-2 text-primary/80 dark:text-primary/30">
                 <AlertCircle className="h-4 w-4" />
                 <span className="font-semibold">Dados do Treinamento</span>
               </div>
@@ -286,7 +299,7 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
                   placeholder="Ex: Prevenção de Quedas em Idosos"
                 />
                 {errors.trainingTopic && (
-                  <p className="text-sm text-red-500 mt-1">{errors.trainingTopic.message}</p>
+                  <p className="text-sm text-danger mt-1">{errors.trainingTopic.message}</p>
                 )}
               </div>
 

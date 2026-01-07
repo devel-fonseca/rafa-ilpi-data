@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
 import type { Prescription, Medication } from '@/api/prescriptions.api'
-import { formatDateShort } from '@/utils/timezone'
+import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
 import { useReactToPrint } from 'react-to-print'
 import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
 import { SignatureFooter } from '@/components/print/SignatureFooter'
@@ -106,8 +106,9 @@ export default function ActiveMedicationsPage() {
     if (!prescription.validUntil) return true
 
     // Se tem validUntil, verifica se ainda não venceu
-    const validUntilDate = new Date(prescription.validUntil)
-    validUntilDate.setHours(0, 0, 0, 0)
+    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+    const dayKey = extractDateOnly(prescription.validUntil)
+    const validUntilDate = new Date(dayKey + 'T12:00:00')
 
     return validUntilDate >= today
   })
@@ -235,7 +236,7 @@ export default function ActiveMedicationsPage() {
                             </td>
                             <td className="p-2">
                               <div className="text-xs">
-                                <div>{formatDateShort(item.prescriptionDate)}</div>
+                                <div>{formatDateOnlySafe(item.prescriptionDate)}</div>
                                 <div className="text-muted-foreground">
                                   Dr(a). {item.doctorName}
                                 </div>

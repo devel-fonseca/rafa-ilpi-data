@@ -57,7 +57,7 @@ export default function ResidentMedicationsCalendar() {
   if (isLoadingResident) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -76,7 +76,7 @@ export default function ResidentMedicationsCalendar() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">{resident?.fullName || 'Residente'}</h1>
-          <p className="text-sm text-gray-600">Calendário de Medicações</p>
+          <p className="text-sm text-muted-foreground">Calendário de Medicações</p>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export default function ResidentMedicationsCalendar() {
           <CardContent>
             {isLoadingAdministrations ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : administrations.length > 0 ? (
               <div className="space-y-2">
@@ -113,10 +113,10 @@ export default function ResidentMedicationsCalendar() {
                     key={admin.id}
                     className={`border-l-4 pl-4 py-3 rounded-r-md ${
                       admin.type === 'SOS'
-                        ? 'bg-orange-50 border-orange-500'
+                        ? 'bg-severity-warning/5 border-severity-warning'
                         : admin.wasAdministered
-                        ? 'bg-green-50 border-green-500'
-                        : 'bg-red-50 border-red-500'
+                        ? 'bg-success/5 border-success'
+                        : 'bg-danger/5 border-danger'
                     }`}
                   >
                     {/* Linha 1: Horário e Status */}
@@ -128,7 +128,7 @@ export default function ResidentMedicationsCalendar() {
                         {admin.type === 'SOS' ? (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-orange-50 text-orange-700 border-orange-300"
+                            className="text-xs bg-severity-warning/5 text-severity-warning/80 border-severity-warning/30"
                           >
                             SOS
                           </Badge>
@@ -146,7 +146,7 @@ export default function ResidentMedicationsCalendar() {
 
                     {/* Linha 2: Nome do Medicamento */}
                     <div className="flex items-center gap-2 mb-1">
-                      <Pill className="h-4 w-4 text-blue-600" />
+                      <Pill className="h-4 w-4 text-primary" />
                       <span className="font-medium text-sm">
                         {admin.medication?.name || 'Medicamento não especificado'}
                       </span>
@@ -169,9 +169,9 @@ export default function ResidentMedicationsCalendar() {
 
                     {/* Indicação (apenas SOS) */}
                     {admin.type === 'SOS' && admin.indication && (
-                      <div className="mt-2 p-2 bg-orange-100 border border-orange-200 rounded text-xs">
-                        <span className="font-medium text-orange-900">Indicação:</span>
-                        <p className="text-orange-800 mt-1">
+                      <div className="mt-2 p-2 bg-severity-warning/10 border border-severity-warning/30 rounded text-xs">
+                        <span className="font-medium text-severity-warning/90">Indicação:</span>
+                        <p className="text-severity-warning/90 mt-1">
                           {admin.indication === 'DOR' && 'Dor'}
                           {admin.indication === 'FEBRE' && 'Febre'}
                           {admin.indication === 'ANSIEDADE' && 'Ansiedade'}
@@ -199,17 +199,17 @@ export default function ResidentMedicationsCalendar() {
 
                     {/* Motivo (se não foi administrado) */}
                     {!admin.wasAdministered && admin.reason && (
-                      <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-xs">
-                        <span className="font-medium text-red-900">Motivo:</span>
-                        <p className="text-red-800 mt-1">{admin.reason}</p>
+                      <div className="mt-2 p-2 bg-danger/10 border border-danger/30 rounded text-xs">
+                        <span className="font-medium text-danger/90">Motivo:</span>
+                        <p className="text-danger/90 mt-1">{admin.reason}</p>
                       </div>
                     )}
 
                     {/* Observações */}
                     {admin.notes && (
-                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                      <div className="mt-2 p-2 bg-muted rounded text-xs">
                         <span className="font-medium">Observações:</span>
-                        <p className="text-gray-700 mt-1">{admin.notes}</p>
+                        <p className="text-foreground/80 mt-1">{admin.notes}</p>
                       </div>
                     )}
 
@@ -224,9 +224,9 @@ export default function ResidentMedicationsCalendar() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <Pill className="h-12 w-12 text-gray-300" />
-                <div className="text-gray-500 font-medium">Nenhuma administração encontrada</div>
-                <p className="text-sm text-gray-400 text-center max-w-sm">
+                <Pill className="h-12 w-12 text-muted-foreground/50" />
+                <div className="text-muted-foreground font-medium">Nenhuma administração encontrada</div>
+                <p className="text-sm text-muted-foreground/70 text-center max-w-sm">
                   Selecione uma data com indicador verde para visualizar administrações de medicamentos
                 </p>
               </div>

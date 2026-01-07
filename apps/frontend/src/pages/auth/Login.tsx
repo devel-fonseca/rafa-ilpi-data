@@ -100,11 +100,11 @@ export default function Login() {
             <RadioGroup value={selectedTenantId} onValueChange={setSelectedTenantId}>
               <div className="space-y-3">
                 {availableTenants.map((tenant) => (
-                  <div key={tenant.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <div key={tenant.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
                     <RadioGroupItem value={tenant.id} id={tenant.id} className="mt-1" />
                     <Label htmlFor={tenant.id} className="cursor-pointer flex-1">
                       <div className="font-medium">{tenant.name}</div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-muted-foreground mt-1">
                         <span className="inline-flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           {tenant.role === 'ADMIN' ? 'Administrador' :
@@ -205,7 +205,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -240,20 +240,20 @@ export default function Login() {
               )}
             </Button>
 
-            <div className="text-sm text-center text-gray-600">
+            <div className="text-sm text-center text-muted-foreground">
               Primeira vez?{' '}
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="text-primary hover:text-primary/90 font-medium"
               >
                 Cadastre sua ILPI
               </Link>
             </div>
 
-            <div className="text-xs text-center text-gray-500 pt-2 border-t w-full">
+            <div className="text-xs text-center text-muted-foreground pt-2 border-t w-full">
               <Link
                 to="/forgot-password"
-                className="hover:text-gray-700"
+                className="hover:text-foreground/80"
               >
                 Esqueceu sua senha?
               </Link>

@@ -146,7 +146,7 @@ export default function EmailTemplatePreview() {
         <div>
           <h1 className="text-3xl font-bold">Preview: {template.name}</h1>
           <p className="text-muted-foreground mt-1">
-            <code className="bg-gray-100 px-2 py-1 rounded text-sm">{template.key}</code>
+            <code className="bg-muted px-2 py-1 rounded text-sm">{template.key}</code>
           </p>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function EmailTemplatePreview() {
                 </div>
               </TabsContent>
               <TabsContent value="html" className="mt-4">
-                <pre className="bg-gray-100 p-4 rounded overflow-auto text-xs" style={{ maxHeight: '600px' }}>
+                <pre className="bg-muted p-4 rounded overflow-auto text-xs" style={{ maxHeight: '600px' }}>
                   {previewHtml}
                 </pre>
               </TabsContent>
@@ -194,7 +194,7 @@ export default function EmailTemplatePreview() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="bg-gray-100 p-4 rounded overflow-auto text-xs">
+            <pre className="bg-muted p-4 rounded overflow-auto text-xs">
               {JSON.stringify(mockData, null, 2)}
             </pre>
           </CardContent>

@@ -3,7 +3,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
+import { format } from 'date-fns'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import {
   Dialog,
@@ -235,7 +236,7 @@ export function EditMonitoramentoModal({
               </p>
               <p>
                 <span className="text-muted-foreground">Data:</span>{' '}
-                {new Date(record.date).toLocaleDateString('pt-BR')}
+                {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}
               </p>
             </div>
           </div>

@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AgendaItem, StatusFilterType } from '@/types/agenda'
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, addDays, subDays } from 'date-fns'
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, subDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { AgendaItemCard } from './AgendaItemCard'
 import { DayDetailModal } from './DayDetailModal'
 
@@ -41,11 +42,8 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
     })
 
     items.forEach(item => {
-      const itemDate = typeof item.scheduledDate === 'string'
-        ? parseISO(item.scheduledDate)
-        : item.scheduledDate
-
-      const dayKey = format(itemDate, 'yyyy-MM-dd')
+      // ✅ Usa extractDateOnly para evitar timezone shift
+      const dayKey = extractDateOnly(item.scheduledDate)
       if (grouped[dayKey]) {
         grouped[dayKey].push(item)
       }
@@ -94,8 +92,8 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'pending'
-                  ? 'bg-yellow-600 text-white hover:bg-yellow-700 border-yellow-600'
-                  : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300'
+                  ? 'bg-warning/60 text-white hover:bg-warning/70 border-warning/60'
+                  : 'bg-warning/10 text-warning/90 hover:bg-warning/20 border-warning/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'pending' ? 'all' : 'pending')}
             >
@@ -105,8 +103,8 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'completed'
-                  ? 'bg-green-600 text-white hover:bg-green-700 border-green-600'
-                  : 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300'
+                  ? 'bg-success/60 text-white hover:bg-success/70 border-success/60'
+                  : 'bg-success/10 text-success/90 hover:bg-success/20 border-success/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'completed' ? 'all' : 'completed')}
             >
@@ -116,8 +114,8 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
               variant="outline"
               className={`cursor-pointer transition-all ${
                 statusFilter === 'missed'
-                  ? 'bg-red-600 text-white hover:bg-red-700 border-red-600'
-                  : 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300'
+                  ? 'bg-danger/60 text-white hover:bg-danger/70 border-danger/60'
+                  : 'bg-danger/10 text-danger/90 hover:bg-danger/20 border-danger/30'
               }`}
               onClick={() => onStatusFilterChange?.(statusFilter === 'missed' ? 'all' : 'missed')}
             >
@@ -185,10 +183,10 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
                           <p className="text-muted-foreground truncate">{item.residentName}</p>
                         </div>
                         <div className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
-                          item.status === 'completed' ? 'bg-green-500' :
-                          item.status === 'pending' ? 'bg-yellow-500' :
-                          item.status === 'missed' ? 'bg-red-500' :
-                          'bg-gray-400'
+                          item.status === 'completed' ? 'bg-success' :
+                          item.status === 'pending' ? 'bg-warning' :
+                          item.status === 'missed' ? 'bg-danger' :
+                          'bg-muted/40'
                         }`} />
                       </div>
                     </div>

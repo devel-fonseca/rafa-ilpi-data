@@ -41,9 +41,9 @@ export function PublishContractDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">
+          <Alert className="bg-warning/5 border-warning/30">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-warning/90">
               <strong>Atenção!</strong> Ao publicar este contrato:
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>Ele ficará disponível para novos cadastros</li>
@@ -90,7 +90,7 @@ export function PublishContractDialog({
             <Button
               onClick={handlePublish}
               disabled={!confirmed || publishContract.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success/60 hover:bg-success/70"
             >
               {publishContract.isPending ? 'Publicando...' : 'Publicar Contrato'}
             </Button>

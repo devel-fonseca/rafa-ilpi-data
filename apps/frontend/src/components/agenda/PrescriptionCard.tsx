@@ -1,9 +1,10 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PrescriptionCalendarItem, PrescriptionStatus, PrescriptionType } from '@/types/agenda'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Calendar, Pill, AlertTriangle, Clock, FileText } from 'lucide-react'
+import { extractDateOnly } from '@/utils/dateHelpers'
 
 interface Props {
   prescription: PrescriptionCalendarItem
@@ -19,21 +20,21 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           variant: 'destructive' as const,
           label: 'Vencida',
           icon: <AlertTriangle className="h-3 w-3" />,
-          className: 'bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800',
+          className: 'bg-danger/60 text-white hover:bg-danger/70 dark:bg-danger/70 dark:hover:bg-red-800',
         }
       case PrescriptionStatus.EXPIRING_SOON:
         return {
           variant: 'default' as const,
           label: `Vence em ${prescription.daysUntilExpiry} dias`,
           icon: <Clock className="h-3 w-3" />,
-          className: 'bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800',
+          className: 'bg-severity-warning/60 text-white hover:bg-severity-warning/70 dark:bg-severity-warning/70 dark:hover:bg-orange-800',
         }
       case PrescriptionStatus.NEEDS_REVIEW:
         return {
           variant: 'secondary' as const,
           label: 'Precisa revisão',
           icon: <FileText className="h-3 w-3" />,
-          className: 'bg-yellow-600 text-white hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800',
+          className: 'bg-warning/60 text-white hover:bg-warning/70 dark:bg-warning/70 dark:hover:bg-yellow-800',
         }
       case PrescriptionStatus.ACTIVE:
       default:
@@ -41,7 +42,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           variant: 'outline' as const,
           label: 'Ativa',
           icon: null,
-          className: 'bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800',
+          className: 'bg-success/60 text-white hover:bg-success/70 dark:bg-success/70 dark:hover:bg-green-800',
         }
     }
   }
@@ -52,17 +53,17 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
       case PrescriptionType.ANTIBIOTICO:
         return {
           label: 'Antibiótico',
-          className: 'bg-purple-100 text-purple-900 border-purple-400 dark:bg-purple-900/40 dark:text-purple-200 dark:border-purple-700',
+          className: 'bg-medication-controlled/10 text-medication-controlled/95 border-medication-controlled/40 dark:bg-purple-900/40 dark:text-purple-200 dark:border-medication-controlled/70',
         }
       case PrescriptionType.CONTROLADO:
         return {
           label: prescription.controlledClass ? `Controlado ${prescription.controlledClass}` : 'Controlado',
-          className: 'bg-red-100 text-red-900 border-red-400 dark:bg-red-900/40 dark:text-red-200 dark:border-red-700',
+          className: 'bg-danger/10 text-danger/90 border-danger/40 dark:bg-danger/90/40 dark:text-danger/20 dark:border-danger/70',
         }
       case PrescriptionType.ALTO_RISCO:
         return {
           label: 'Alto Risco',
-          className: 'bg-orange-100 text-orange-900 border-orange-400 dark:bg-orange-900/40 dark:text-orange-200 dark:border-orange-700',
+          className: 'bg-severity-warning/10 text-severity-warning/90 border-severity-warning/40 dark:bg-orange-900/40 dark:text-orange-200 dark:border-severity-warning/70',
         }
       case PrescriptionType.ALTERACAO_PONTUAL:
         return {
@@ -72,13 +73,13 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
       case PrescriptionType.ROTINA:
         return {
           label: 'Rotina',
-          className: 'bg-blue-100 text-blue-900 border-blue-400 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700',
+          className: 'bg-primary/10 text-primary/95 border-primary/40 dark:bg-primary/90/40 dark:text-blue-200 dark:border-primary/70',
         }
       case PrescriptionType.OUTRO:
       default:
         return {
           label: 'Outro',
-          className: 'bg-gray-100 text-gray-900 border-gray-400 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600',
+          className: 'bg-muted text-foreground border-border/40 dark:bg-gray-800 dark:text-gray-200 dark:border-border/60',
         }
     }
   }
@@ -90,11 +91,11 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
     <Card
       className={`p-4 transition-all hover:shadow-lg border-2 ${onClick ? 'cursor-pointer hover:scale-[1.02]' : ''} ${
         prescription.status === PrescriptionStatus.EXPIRED
-          ? 'border-red-400 bg-red-50 dark:bg-red-950/30 dark:border-red-700'
+          ? 'border-danger/40 bg-danger/5 dark:bg-danger/95/30 dark:border-danger/70'
         : prescription.status === PrescriptionStatus.EXPIRING_SOON
-          ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/30 dark:border-orange-700'
+          ? 'border-severity-warning/40 bg-severity-warning/5 dark:bg-severity-warning/95/30 dark:border-severity-warning/70'
         : prescription.status === PrescriptionStatus.NEEDS_REVIEW
-          ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-700'
+          ? 'border-warning/40 bg-warning/5 dark:bg-warning/95/30 dark:border-warning/70'
           : 'border-border hover:border-primary/50'
       }`}
       onClick={onClick}
@@ -111,7 +112,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           </Badge>
         </div>
         {prescription.isControlled && (
-          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+          <AlertTriangle className="h-4 w-4 text-danger dark:text-danger/40 shrink-0" />
         )}
       </div>
 
@@ -160,7 +161,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           <span className="text-muted-foreground">
             Prescrita em:{' '}
             <span className="font-medium text-foreground">
-              {format(parseISO(prescription.prescriptionDate as string), 'dd/MM/yyyy', { locale: ptBR })}
+              {format(new Date(extractDateOnly(prescription.prescriptionDate as string) + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
             </span>
           </span>
         </div>
@@ -170,21 +171,21 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           <div className="flex items-center gap-2 text-xs">
             <Clock className={`h-3.5 w-3.5 shrink-0 ${
               prescription.status === PrescriptionStatus.EXPIRED
-                ? 'text-red-600 dark:text-red-400'
+                ? 'text-danger dark:text-danger/40'
               : prescription.status === PrescriptionStatus.EXPIRING_SOON
-                ? 'text-orange-600 dark:text-orange-400'
+                ? 'text-severity-warning dark:text-severity-warning/40'
                 : 'text-muted-foreground'
             }`} />
             <span className="text-muted-foreground">
               Válida até:{' '}
               <span className={`font-semibold ${
                 prescription.status === PrescriptionStatus.EXPIRED
-                  ? 'text-red-700 dark:text-red-400'
+                  ? 'text-danger/80 dark:text-danger/40'
                 : prescription.status === PrescriptionStatus.EXPIRING_SOON
-                  ? 'text-orange-700 dark:text-orange-400'
+                  ? 'text-severity-warning/80 dark:text-severity-warning/40'
                   : 'text-foreground'
               }`}>
-                {format(parseISO(prescription.validUntil as string), 'dd/MM/yyyy', { locale: ptBR })}
+                {format(new Date(extractDateOnly(prescription.validUntil as string) + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
               </span>
             </span>
           </div>
@@ -195,17 +196,17 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           <div className="flex items-center gap-2 text-xs">
             <FileText className={`h-3.5 w-3.5 shrink-0 ${
               prescription.status === PrescriptionStatus.NEEDS_REVIEW
-                ? 'text-yellow-700 dark:text-yellow-400'
+                ? 'text-warning/80 dark:text-warning/40'
                 : 'text-muted-foreground'
             }`} />
             <span className="text-muted-foreground">
               Revisão em:{' '}
               <span className={`font-semibold ${
                 prescription.status === PrescriptionStatus.NEEDS_REVIEW
-                  ? 'text-yellow-700 dark:text-yellow-400'
+                  ? 'text-warning/80 dark:text-warning/40'
                   : 'text-foreground'
               }`}>
-                {format(parseISO(prescription.reviewDate as string), 'dd/MM/yyyy', { locale: ptBR })}
+                {format(new Date(extractDateOnly(prescription.reviewDate as string) + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
               </span>
             </span>
           </div>

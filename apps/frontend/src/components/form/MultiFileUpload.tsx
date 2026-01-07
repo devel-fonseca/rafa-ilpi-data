@@ -168,7 +168,7 @@ export function MultiFileUpload({
         className={cn(
           'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all',
           'hover:border-primary hover:bg-primary/5',
-          isDragging ? 'border-primary bg-primary/10' : 'border-gray-300 bg-gray-50',
+          isDragging ? 'border-primary bg-primary/10' : 'border-border bg-muted/50',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
         onDragEnter={handleDragEnter}
@@ -177,14 +177,14 @@ export function MultiFileUpload({
         onDrop={handleDrop}
         onClick={handleClick}
       >
-        <CloudUpload className="w-10 h-10 mx-auto mb-2 text-gray-400" />
-        <p className="text-sm font-medium text-gray-700">
+        <CloudUpload className="w-10 h-10 mx-auto mb-2 text-muted-foreground/70" />
+        <p className="text-sm font-medium text-foreground/80">
           Arraste arquivos ou clique para selecionar
         </p>
         {description && (
-          <p className="text-xs text-gray-500 mt-1">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1">{description}</p>
         )}
-        <p className="text-xs text-gray-400 mt-2">Máximo {maxSize}MB por arquivo</p>
+        <p className="text-xs text-muted-foreground/70 mt-2">Máximo {maxSize}MB por arquivo</p>
         <input
           ref={inputRef}
           type="file"
@@ -219,7 +219,7 @@ export function MultiFileUpload({
             <div
               key={`existing-${file.id || file.url}`}
               className={cn(
-                "flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg transition-all",
+                "flex items-start gap-3 p-3 bg-white border border-border rounded-lg transition-all",
                 onViewFile && "cursor-pointer hover:border-primary hover:bg-primary/5"
               )}
               onClick={() => onViewFile?.(file.url)}
@@ -227,7 +227,7 @@ export function MultiFileUpload({
               {/* Miniatura */}
               <div className="flex-shrink-0">
                 {file.url && file.url.includes('image') && !isPDF(file.name || '') ? (
-                  <div className="w-12 h-12 rounded border border-gray-200 overflow-hidden bg-gray-50">
+                  <div className="w-12 h-12 rounded border border-border overflow-hidden bg-muted/50">
                     <img
                       src={file.url}
                       alt={file.name || 'Arquivo'}
@@ -239,23 +239,23 @@ export function MultiFileUpload({
                     />
                   </div>
                 ) : isPDF(file.name || file.url) ? (
-                  <div className="w-12 h-12 rounded border border-gray-200 bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-6 h-6 text-red-500" />
+                  <div className="w-12 h-12 rounded border border-border bg-danger/5 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-6 h-6 text-danger" />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded border border-gray-200 bg-gray-50 flex items-center justify-center flex-shrink-0">
-                    <File className="w-6 h-6 text-gray-400" />
+                  <div className="w-12 h-12 rounded border border-border bg-muted/50 flex items-center justify-center flex-shrink-0">
+                    <File className="w-6 h-6 text-muted-foreground/70" />
                   </div>
                 )}
               </div>
 
               {/* Informações */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 break-words">
+                <p className="text-sm font-medium text-foreground break-words">
                   {file.name || 'Arquivo'}
                 </p>
                 {file.uploadedAt && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {formatDateOnlySafe(file.uploadedAt)}
                   </p>
                 )}
@@ -271,7 +271,7 @@ export function MultiFileUpload({
                 title="Remover arquivo"
                 className="flex-shrink-0"
               >
-                <Trash2 className="w-4 h-4 text-red-500" />
+                <Trash2 className="w-4 h-4 text-danger" />
               </Button>
             </div>
           ))}
@@ -280,12 +280,12 @@ export function MultiFileUpload({
           {newFiles.map(({ id, file, preview }) => (
             <div
               key={id}
-              className="flex items-start gap-3 p-3 bg-white border border-blue-200 rounded-lg bg-blue-50"
+              className="flex items-start gap-3 p-3 bg-white border border-primary/30 rounded-lg bg-primary/5"
             >
               {/* Miniatura */}
               <div className="flex-shrink-0">
                 {preview ? (
-                  <div className="w-12 h-12 rounded border border-gray-200 overflow-hidden">
+                  <div className="w-12 h-12 rounded border border-border overflow-hidden">
                     <img
                       src={preview}
                       alt={file.name}
@@ -293,15 +293,15 @@ export function MultiFileUpload({
                     />
                   </div>
                 ) : isPDF(file.name) ? (
-                  <div className="w-12 h-12 rounded border border-gray-200 bg-red-50 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-6 h-6 text-red-500" />
+                  <div className="w-12 h-12 rounded border border-border bg-danger/5 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-6 h-6 text-danger" />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded border border-gray-200 bg-gray-50 flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded border border-border bg-muted/50 flex items-center justify-center flex-shrink-0">
                     {loadingPreviews.has(id) ? (
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                     ) : (
-                      <File className="w-6 h-6 text-gray-400" />
+                      <File className="w-6 h-6 text-muted-foreground/70" />
                     )}
                   </div>
                 )}
@@ -309,10 +309,10 @@ export function MultiFileUpload({
 
               {/* Informações */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 break-words">
+                <p className="text-sm font-medium text-foreground break-words">
                   {file.name}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {(file.size / 1024 / 1024).toFixed(2)}MB
                 </p>
               </div>
@@ -327,7 +327,7 @@ export function MultiFileUpload({
                 title="Remover arquivo"
                 className="flex-shrink-0"
               >
-                <X className="w-4 h-4 text-red-500" />
+                <X className="w-4 h-4 text-danger" />
               </Button>
             </div>
           ))}

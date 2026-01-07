@@ -27,10 +27,10 @@ export function ViewPesoModal({
 
   // Função para classificar IMC
   const getIMCClassification = (imc: number) => {
-    if (imc < 18.5) return { texto: 'Baixo peso', cor: 'text-yellow-600' }
-    if (imc < 25) return { texto: 'Peso normal', cor: 'text-green-600' }
-    if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-orange-600' }
-    return { texto: 'Obesidade', cor: 'text-red-600' }
+    if (imc < 18.5) return { texto: 'Baixo peso', cor: 'text-warning' }
+    if (imc < 25) return { texto: 'Peso normal', cor: 'text-success' }
+    if (imc < 30) return { texto: 'Sobrepeso', cor: 'text-severity-warning' }
+    return { texto: 'Obesidade', cor: 'text-danger' }
   }
 
   return (

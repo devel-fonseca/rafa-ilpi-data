@@ -39,8 +39,8 @@ export default function Welcome() {
         <Card>
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="bg-green-100 rounded-full p-3">
-                <CheckCircle className="w-12 h-12 text-green-600" />
+              <div className="bg-success/10 rounded-full p-3">
+                <CheckCircle className="w-12 h-12 text-success" />
               </div>
             </div>
             <div>

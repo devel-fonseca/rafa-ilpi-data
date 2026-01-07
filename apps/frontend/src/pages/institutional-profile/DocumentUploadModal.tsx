@@ -342,7 +342,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                     <Upload className="h-6 w-6 text-primary" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       Clique para selecionar ou arraste um arquivo
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -366,7 +366,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
                     <FileText className="h-5 w-5 text-success" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{selectedFile.name}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{selectedFile.name}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
                       <p className="text-xs text-muted-foreground">

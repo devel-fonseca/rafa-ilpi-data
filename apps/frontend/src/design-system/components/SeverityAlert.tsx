@@ -17,7 +17,7 @@ const severityAlertVariants = cva('', {
   variants: {
     severity: {
       critical: 'border-danger/50 bg-danger/5 text-danger [&>svg]:text-danger',
-      warning: 'border-orange-500/50 bg-orange-50 text-orange-900 [&>svg]:text-orange-600',
+      warning: 'border-severity-warning/50 bg-severity-warning/5 text-severity-warning/90 [&>svg]:text-severity-warning',
       info: 'border-info/50 bg-info/5 text-info [&>svg]:text-info',
     },
   },

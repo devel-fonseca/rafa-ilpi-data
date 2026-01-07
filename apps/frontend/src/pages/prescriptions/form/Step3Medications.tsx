@@ -77,7 +77,7 @@ export function Step3Medications() {
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-xl font-semibold mb-2">Medicamentos Contínuos</h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Adicione os medicamentos de uso contínuo com horários programados
           </p>
         </div>
@@ -101,30 +101,30 @@ export function Step3Medications() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-100">
-                        <Pill className="h-5 w-5 text-blue-600" />
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10">
+                        <Pill className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg text-gray-900">
+                        <h3 className="font-semibold text-lg text-foreground">
                           {medication.name}
                         </h3>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {medication.presentation} - {medication.concentration}
                         </p>
                       </div>
                       <div className="flex gap-2">
                         {medication.isControlled && (
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                          <Badge variant="outline" className="bg-medication-controlled/5 text-medication-controlled/80 border-medication-controlled/30">
                             Controlado
                           </Badge>
                         )}
                         {medication.isHighRisk && (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300">
+                          <Badge variant="outline" className="bg-danger/5 text-danger/80 border-danger/30">
                             Alto Risco
                           </Badge>
                         )}
                         {medication.requiresDoubleCheck && (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
+                          <Badge variant="outline" className="bg-severity-warning/5 text-severity-warning/80 border-severity-warning/30">
                             Dupla Checagem
                           </Badge>
                         )}
@@ -133,38 +133,38 @@ export function Step3Medications() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">Dose:</span>
-                        <p className="font-medium text-gray-900">{medication.dose}</p>
+                        <span className="text-muted-foreground">Dose:</span>
+                        <p className="font-medium text-foreground">{medication.dose}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Via:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">Via:</span>
+                        <p className="font-medium text-foreground">
                           {ROUTE_LABELS[medication.route] || medication.route}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Frequência:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">Frequência:</span>
+                        <p className="font-medium text-foreground">
                           {FREQUENCY_LABELS[medication.frequency] || medication.frequency}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">Horários:</span>
-                        <p className="font-medium text-gray-900">
+                        <span className="text-muted-foreground">Horários:</span>
+                        <p className="font-medium text-foreground">
                           {medication.scheduledTimes.join(', ')}
                         </p>
                       </div>
                     </div>
 
                     {medication.instructions && (
-                      <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                        <p className="text-sm text-gray-700">
+                      <div className="mt-3 p-2 bg-muted/50 rounded border border-border">
+                        <p className="text-sm text-foreground/80">
                           <span className="font-medium">Instruções:</span> {medication.instructions}
                         </p>
                       </div>
                     )}
 
-                    <div className="mt-3 flex gap-4 text-xs text-gray-600">
+                    <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
                       <span>
                         Início: {formatDateOnlySafe(medication.startDate)}
                       </span>
@@ -188,7 +188,7 @@ export function Step3Medications() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleDelete(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-danger hover:text-danger/80 hover:bg-danger/5"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

@@ -33,10 +33,10 @@ export function EmailTemplatesList() {
 
   const getCategoryColor = (category: string) => {
     const colors = {
-      ONBOARDING: 'bg-blue-500/10 text-blue-700 border-blue-500/50',
-      BILLING: 'bg-green-500/10 text-green-700 border-green-500/50',
-      LIFECYCLE: 'bg-purple-500/10 text-purple-700 border-purple-500/50',
-      SYSTEM: 'bg-gray-500/10 text-gray-700 border-gray-500/50',
+      ONBOARDING: 'bg-primary/10 text-primary/80 border-primary/50',
+      BILLING: 'bg-success/10 text-success/80 border-success/50',
+      LIFECYCLE: 'bg-medication-controlled/10 text-medication-controlled/80 border-medication-controlled/50',
+      SYSTEM: 'bg-gray-500/10 text-foreground/80 border-border/50/50',
     };
     return colors[category as keyof typeof colors] || colors.SYSTEM;
   };
@@ -128,7 +128,7 @@ export function EmailTemplatesList() {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => handleDelete(template)}
-                      className="text-red-600"
+                      className="text-danger"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Deletar
@@ -140,7 +140,7 @@ export function EmailTemplatesList() {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Chave:</span>
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">{template.key}</code>
+                <code className="bg-muted px-2 py-1 rounded text-xs">{template.key}</code>
               </div>
 
               <div className="flex items-center justify-between text-sm">

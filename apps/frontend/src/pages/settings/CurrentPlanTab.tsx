@@ -51,9 +51,9 @@ export function CurrentPlanTab() {
 
       {/* Desconto Aplicado (se houver) */}
       {((subscription as any).discountPercent || (subscription as any).customPrice) && (
-        <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+        <Card className="bg-success/5 dark:bg-success/95/20 border-success/30 dark:border-success/80">
           <CardHeader>
-            <CardTitle className="text-green-800 dark:text-green-300 flex items-center gap-2">
+            <CardTitle className="text-success/90 dark:text-success/30 flex items-center gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
@@ -74,34 +74,34 @@ export function CurrentPlanTab() {
             <div className="space-y-2">
               {(subscription as any).discountPercent && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-700 dark:text-green-300">Desconto:</span>
-                  <span className="text-sm font-bold text-green-800 dark:text-green-200">
+                  <span className="text-sm text-success/80 dark:text-success/30">Desconto:</span>
+                  <span className="text-sm font-bold text-success/90 dark:text-success/20">
                     {Number((subscription as any).discountPercent).toFixed(0)}% OFF
                   </span>
                 </div>
               )}
               {(subscription as any).discountReason && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-700 dark:text-green-300">Motivo:</span>
-                  <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                  <span className="text-sm text-success/80 dark:text-success/30">Motivo:</span>
+                  <span className="text-sm font-medium text-success/90 dark:text-success/20">
                     {(subscription as any).discountReason}
                   </span>
                 </div>
               )}
               {(subscription as any).customPrice && (
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-md">
-                  <p className="text-sm text-green-800 dark:text-green-200">
+                <div className="p-3 bg-success/10 dark:bg-success/90/30 rounded-md">
+                  <p className="text-sm text-success/90 dark:text-success/20">
                     <strong>Preço customizado:</strong> R${' '}
                     {Number((subscription as any).customPrice).toFixed(2)}/mês
                   </p>
                   {(subscription as any).discountReason && (
-                    <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    <p className="text-xs text-success/80 dark:text-success/30 mt-1">
                       {(subscription as any).discountReason}
                     </p>
                   )}
                 </div>
               )}
-              <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+              <p className="text-xs text-success dark:text-success/40 mt-2">
                 Este desconto foi aplicado pela nossa equipe. Aproveite!
               </p>
             </div>

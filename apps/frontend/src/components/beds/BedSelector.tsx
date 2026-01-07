@@ -299,10 +299,10 @@ export function BedSelector({
                       </div>
                       <div className="flex gap-2 mt-1">
                         {room.hasPrivateBathroom && (
-                          <span className="text-xs text-blue-600">Banheiro privativo</span>
+                          <span className="text-xs text-primary">Banheiro privativo</span>
                         )}
                         {room.accessible && (
-                          <span className="text-xs text-green-600">Acessível</span>
+                          <span className="text-xs text-success">Acessível</span>
                         )}
                       </div>
                     </div>
@@ -336,11 +336,11 @@ export function BedSelector({
                     <div className="flex items-center justify-between w-full">
                       <span>Leito {bed.code}</span>
                       {bed.status === 'DISPONIVEL' ? (
-                        <span className="ml-2 text-xs text-green-600">Disponível</span>
+                        <span className="ml-2 text-xs text-success">Disponível</span>
                       ) : bed.id === currentResidentBedId ? (
-                        <span className="ml-2 text-xs text-blue-600">Leito atual</span>
+                        <span className="ml-2 text-xs text-primary">Leito atual</span>
                       ) : (
-                        <span className="ml-2 text-xs text-red-600">{bed.status}</span>
+                        <span className="ml-2 text-xs text-danger">{bed.status}</span>
                       )}
                     </div>
                   </SelectItem>
@@ -370,10 +370,10 @@ export function BedSelector({
             {(selectedInfo.hasPrivateBathroom || selectedInfo.isAccessible) && (
               <div className="mt-2 flex gap-3 text-xs">
                 {selectedInfo.hasPrivateBathroom && (
-                  <span className="text-blue-600">✓ Banheiro privativo</span>
+                  <span className="text-primary">✓ Banheiro privativo</span>
                 )}
                 {selectedInfo.isAccessible && (
-                  <span className="text-green-600">✓ Acessível</span>
+                  <span className="text-success">✓ Acessível</span>
                 )}
               </div>
             )}

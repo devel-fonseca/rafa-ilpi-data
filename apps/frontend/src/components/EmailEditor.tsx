@@ -123,19 +123,19 @@ export function EmailEditor({
               variables.map((variable) => (
                 <button
                   key={variable.name}
-                  className="inline-flex items-center gap-1 border rounded px-2 py-1 hover:bg-gray-50 cursor-pointer text-xs transition-colors"
+                  className="inline-flex items-center gap-1 border rounded px-2 py-1 hover:bg-muted/50 cursor-pointer text-xs transition-colors"
                   onClick={() => handleCopyVariable(variable.name)}
                   title={variable.description || `Copiar {{${variable.name}}}`}
                 >
-                  <code className="bg-blue-100 text-blue-800 px-1 rounded font-mono">
+                  <code className="bg-primary/10 text-primary/90 px-1 rounded font-mono">
                     {'{{' + variable.name + '}}'}
                   </code>
                   <span className="text-muted-foreground">({variable.type})</span>
-                  {variable.required && <span className="text-red-500">*</span>}
+                  {variable.required && <span className="text-danger">*</span>}
                   {copiedVariable === variable.name ? (
-                    <Check className="h-3 w-3 text-green-600" />
+                    <Check className="h-3 w-3 text-success" />
                   ) : (
-                    <Copy className="h-3 w-3 text-gray-400" />
+                    <Copy className="h-3 w-3 text-muted-foreground/70" />
                   )}
                 </button>
               ))

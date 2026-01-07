@@ -19,36 +19,36 @@ export function StatsCards({ stats }: StatsCardsProps) {
       title: 'Prescrições Ativas',
       value: stats.totalActive,
       icon: FileText,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      valueColor: 'text-blue-600',
+      bgColor: 'bg-primary/10',
+      iconColor: 'text-primary',
+      valueColor: 'text-primary',
       onClick: () => navigate('/dashboard/prescricoes/list?status=ATIVA'),
     },
     {
       title: 'Vencendo em 5 dias',
       value: stats.expiringIn5Days,
       icon: AlertTriangle,
-      bgColor: 'bg-orange-100',
-      iconColor: 'text-orange-600',
-      valueColor: 'text-orange-600',
+      bgColor: 'bg-severity-warning/10',
+      iconColor: 'text-severity-warning',
+      valueColor: 'text-severity-warning',
       onClick: () => navigate('/dashboard/prescricoes/list?status=VENCENDO'),
     },
     {
       title: 'Antibióticos Ativos',
       value: stats.activeAntibiotics,
       icon: Pill,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600',
-      valueColor: 'text-green-600',
+      bgColor: 'bg-success/10',
+      iconColor: 'text-success',
+      valueColor: 'text-success',
       onClick: () => navigate('/dashboard/prescricoes/list?type=ANTIBIOTICO'),
     },
     {
       title: 'Controlados Ativos',
       value: stats.activeControlled,
       icon: Shield,
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      valueColor: 'text-purple-600',
+      bgColor: 'bg-medication-controlled/10',
+      iconColor: 'text-medication-controlled',
+      valueColor: 'text-medication-controlled',
       onClick: () => navigate('/dashboard/prescricoes/list?type=CONTROLADO'),
     },
   ]
@@ -64,7 +64,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-sm font-medium text-gray-600">
+                <h3 className="text-sm font-medium text-muted-foreground">
                   {card.title}
                 </h3>
                 <p className={`text-2xl font-bold ${card.valueColor} mt-1`}>

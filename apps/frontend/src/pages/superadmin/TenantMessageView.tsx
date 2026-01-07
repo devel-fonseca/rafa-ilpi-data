@@ -52,20 +52,20 @@ export default function TenantMessageView() {
         return <Badge variant="outline">Rascunho</Badge>;
       case 'SCHEDULED':
         return (
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+          <Badge className="bg-primary/10 text-primary/90 hover:bg-primary/10">
             <Calendar className="h-3 w-3 mr-1" />
             Agendado
           </Badge>
         );
       case 'SENDING':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          <Badge className="bg-warning/10 text-warning/90 hover:bg-warning/10">
             Enviando...
           </Badge>
         );
       case 'SENT':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/10 text-success/90 hover:bg-success/10">
             <Send className="h-3 w-3 mr-1" />
             Enviado
           </Badge>
@@ -192,22 +192,22 @@ export default function TenantMessageView() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-4 p-4 border rounded-lg">
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <Send className="h-6 w-6 text-green-600" />
+                <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                  <Send className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{message.sentCount}</p>
+                  <p className="text-2xl font-bold text-success">{message.sentCount}</p>
                   <p className="text-sm text-muted-foreground">Enviado com sucesso</p>
                 </div>
               </div>
 
               {message.failedCount > 0 && (
                 <div className="flex items-center gap-4 p-4 border rounded-lg">
-                  <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                    <Mail className="h-6 w-6 text-red-600" />
+                  <div className="h-12 w-12 rounded-full bg-danger/10 flex items-center justify-center">
+                    <Mail className="h-6 w-6 text-danger" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-red-600">{message.failedCount}</p>
+                    <p className="text-2xl font-bold text-danger">{message.failedCount}</p>
                     <p className="text-sm text-muted-foreground">Falhas no envio</p>
                   </div>
                 </div>

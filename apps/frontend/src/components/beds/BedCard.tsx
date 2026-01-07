@@ -36,14 +36,14 @@ const BED_STATUS_LABELS: Record<string, string> = {
 }
 
 const BED_STATUS_COLORS: Record<string, string> = {
-  'Disponível': 'bg-green-100 text-green-800',
-  'Ocupado': 'bg-red-100 text-red-800',
-  'Manutenção': 'bg-yellow-100 text-yellow-800',
-  'Reservado': 'bg-blue-100 text-blue-800',
-  DISPONIVEL: 'bg-green-100 text-green-800',
-  OCUPADO: 'bg-red-100 text-red-800',
-  MANUTENCAO: 'bg-yellow-100 text-yellow-800',
-  RESERVADO: 'bg-blue-100 text-blue-800',
+  'Disponível': 'bg-success/10 text-success/90',
+  'Ocupado': 'bg-danger/10 text-danger/90',
+  'Manutenção': 'bg-warning/10 text-warning/90',
+  'Reservado': 'bg-primary/10 text-primary/90',
+  DISPONIVEL: 'bg-success/10 text-success/90',
+  OCUPADO: 'bg-danger/10 text-danger/90',
+  MANUTENCAO: 'bg-warning/10 text-warning/90',
+  RESERVADO: 'bg-primary/10 text-primary/90',
 }
 
 export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, canManage = true }: BedCardProps) {
@@ -103,7 +103,7 @@ export function BedCard({ bed, onEdit, onDelete, onAssign, onUnassign, onClick, 
                 e.stopPropagation()
                 onDelete?.(bed)
               }}
-              className="text-red-600"
+              className="text-danger"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir

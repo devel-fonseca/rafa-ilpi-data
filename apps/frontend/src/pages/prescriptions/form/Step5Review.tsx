@@ -1,6 +1,7 @@
 import { useFormContext } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { ptBR } from 'date-fns/locale'
 import { CheckCircle2, AlertCircle, User, FileText, Pill, Upload, ImageIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,7 +70,7 @@ export function Step5Review() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold mb-2">Revisão Final</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Confira todos os dados antes de salvar a prescrição
         </p>
       </div>
@@ -89,9 +90,9 @@ export function Step5Review() {
       )}
 
       {hasErrors.length === 0 && (
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="border-success/30 bg-success/5">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success/90">
             Todos os dados obrigatórios foram preenchidos. Clique em "Salvar
             Prescrição" para finalizar.
           </AlertDescription>
@@ -110,15 +111,17 @@ export function Step5Review() {
           {resident ? (
             <div className="space-y-2">
               <p className="text-lg font-semibold">{resident.fullName}</p>
-              <p className="text-sm text-gray-600">
-                {format(parseISO(resident.birthDate), "dd 'de' MMMM 'de' yyyy", {
-                  locale: ptBR,
-                })}{' '}
+              <p className="text-sm text-muted-foreground">
+                {format(
+                  new Date(extractDateOnly(resident.birthDate) + 'T12:00:00'),
+                  "dd 'de' MMMM 'de' yyyy",
+                  { locale: ptBR }
+                )}{' '}
                 ({calculateAge(resident.birthDate)} anos)
               </p>
             </div>
           ) : (
-            <p className="text-gray-600">Carregando...</p>
+            <p className="text-muted-foreground">Carregando...</p>
           )}
         </CardContent>
       </Card>
@@ -134,25 +137,28 @@ export function Step5Review() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Médico</p>
+              <p className="text-sm text-muted-foreground">Médico</p>
               <p className="font-medium">{formData.doctorName || '-'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">CRM</p>
+              <p className="text-sm text-muted-foreground">CRM</p>
               <p className="font-medium">
                 {formData.doctorCrm || '-'} / {formData.doctorCrmState || '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Data da Prescrição</p>
+              <p className="text-sm text-muted-foreground">Data da Prescrição</p>
               <p className="font-medium">
                 {formData.prescriptionDate
-                  ? format(parseISO(formData.prescriptionDate), "dd/MM/yyyy")
+                  ? format(
+                      new Date(extractDateOnly(formData.prescriptionDate) + 'T12:00:00'),
+                      "dd/MM/yyyy"
+                    )
                   : '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tipo</p>
+              <p className="text-sm text-muted-foreground">Tipo</p>
               <Badge>
                 {PRESCRIPTION_TYPE_LABELS[formData.prescriptionType] ||
                   formData.prescriptionType}
@@ -162,25 +168,28 @@ export function Step5Review() {
 
           {formData.validUntil && (
             <div>
-              <p className="text-sm text-gray-600">Validade</p>
+              <p className="text-sm text-muted-foreground">Validade</p>
               <p className="font-medium">
-                {format(parseISO(formData.validUntil), "dd/MM/yyyy")}
+                {format(
+                  new Date(extractDateOnly(formData.validUntil) + 'T12:00:00'),
+                  "dd/MM/yyyy"
+                )}
               </p>
             </div>
           )}
 
           {formData.prescriptionType === 'CONTROLADO' && (
-            <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded">
-              <p className="text-sm font-semibold text-purple-900 mb-2">
+            <div className="mt-4 p-3 bg-medication-controlled/5 border border-medication-controlled/30 rounded">
+              <p className="text-sm font-semibold text-medication-controlled/95 mb-2">
                 Dados de Medicamento Controlado
               </p>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-600">Classe:</span>{' '}
+                  <span className="text-muted-foreground">Classe:</span>{' '}
                   <span className="font-medium">{formData.controlledClass || '-'}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Notificação:</span>{' '}
+                  <span className="text-muted-foreground">Notificação:</span>{' '}
                   <span className="font-medium">
                     {formData.notificationNumber || '-'} (
                     {formData.notificationType || '-'})
@@ -192,8 +201,8 @@ export function Step5Review() {
 
           {formData.notes && (
             <div>
-              <p className="text-sm text-gray-600">Observações</p>
-              <p className="text-sm text-gray-800">{formData.notes}</p>
+              <p className="text-sm text-muted-foreground">Observações</p>
+              <p className="text-sm text-foreground/90">{formData.notes}</p>
             </div>
           )}
         </CardContent>
@@ -241,7 +250,7 @@ export function Step5Review() {
         </CardHeader>
         <CardContent>
           {!formData.medications || formData.medications.length === 0 ? (
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Nenhum medicamento contínuo adicionado
             </p>
           ) : (
@@ -249,12 +258,12 @@ export function Step5Review() {
               {formData.medications.map((med, idx) => (
                 <div
                   key={idx}
-                  className="p-3 border border-gray-200 rounded-lg bg-gray-50"
+                  className="p-3 border border-border rounded-lg bg-muted/50"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-semibold">{med.name}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {med.presentation} - {med.concentration}
                       </p>
                     </div>
@@ -262,7 +271,7 @@ export function Step5Review() {
                       {med.isControlled && (
                         <Badge
                           variant="outline"
-                          className="bg-purple-50 text-purple-700 text-xs"
+                          className="bg-medication-controlled/5 text-medication-controlled/80 text-xs"
                         >
                           Controlado
                         </Badge>
@@ -270,7 +279,7 @@ export function Step5Review() {
                       {med.isHighRisk && (
                         <Badge
                           variant="outline"
-                          className="bg-red-50 text-red-700 text-xs"
+                          className="bg-danger/5 text-danger/80 text-xs"
                         >
                           Alto Risco
                         </Badge>
@@ -279,17 +288,17 @@ export function Step5Review() {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div>
-                      <span className="text-gray-600">Dose:</span>{' '}
+                      <span className="text-muted-foreground">Dose:</span>{' '}
                       <span className="font-medium">{med.dose}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Via:</span>{' '}
+                      <span className="text-muted-foreground">Via:</span>{' '}
                       <span className="font-medium">
                         {ROUTE_LABELS[med.route] || med.route}
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Horários:</span>{' '}
+                      <span className="text-muted-foreground">Horários:</span>{' '}
                       <span className="font-medium">
                         {med.scheduledTimes.join(', ')}
                       </span>
@@ -306,7 +315,7 @@ export function Step5Review() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-orange-600" />
+            <AlertCircle className="h-5 w-5 text-severity-warning" />
             Medicações SOS
             <Badge variant="outline" className="ml-auto">
               {formData.sosMedications?.length || 0}
@@ -315,7 +324,7 @@ export function Step5Review() {
         </CardHeader>
         <CardContent>
           {!formData.sosMedications || formData.sosMedications.length === 0 ? (
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Nenhuma medicação SOS adicionada
             </p>
           ) : (
@@ -323,34 +332,34 @@ export function Step5Review() {
               {formData.sosMedications.map((sos, idx) => (
                 <div
                   key={idx}
-                  className="p-3 border border-orange-200 rounded-lg bg-orange-50"
+                  className="p-3 border border-severity-warning/30 rounded-lg bg-severity-warning/5"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-semibold">{sos.name}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {sos.presentation} - {sos.concentration}
                       </p>
                     </div>
-                    <Badge variant="outline" className="bg-orange-100 text-orange-700">
+                    <Badge variant="outline" className="bg-severity-warning/10 text-severity-warning/80">
                       SOS
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-gray-600">Indicação:</span>{' '}
+                      <span className="text-muted-foreground">Indicação:</span>{' '}
                       <span className="font-medium">{sos.indication}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Dose:</span>{' '}
+                      <span className="text-muted-foreground">Dose:</span>{' '}
                       <span className="font-medium">{sos.dose}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Intervalo Mín.:</span>{' '}
+                      <span className="text-muted-foreground">Intervalo Mín.:</span>{' '}
                       <span className="font-medium">{sos.minInterval}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Máx. Diária:</span>{' '}
+                      <span className="text-muted-foreground">Máx. Diária:</span>{' '}
                       <span className="font-medium">{sos.maxDailyDoses}x</span>
                     </div>
                   </div>

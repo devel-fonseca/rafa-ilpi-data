@@ -2,7 +2,7 @@ import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import {
@@ -58,7 +58,7 @@ export function MonitoramentoModal({
   } = useForm<MonitoramentoFormData>({
     resolver: zodResolver(monitoramentoSchema),
     defaultValues: {
-      time: getCurrentTimeLocal(),
+      time: getCurrentTime(),
     },
   })
 

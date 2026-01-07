@@ -80,7 +80,7 @@ export function DocumentPreviewModal({
       <DialogContent className="max-w-6xl h-[95vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-5 w-5 text-success" />
             Confirmar Documento e Evolução
           </DialogTitle>
           <DialogDescription>
@@ -90,7 +90,7 @@ export function DocumentPreviewModal({
         </DialogHeader>
 
         {/* Preview do PDF usando PDFViewer do @react-pdf/renderer */}
-        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-gray-50">
+        <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-muted/50">
           {open ? (
             <div className="w-full h-full min-h-[700px]">
               <PDFViewer
@@ -114,7 +114,7 @@ export function DocumentPreviewModal({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[600px] gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/70" />
               <p className="text-sm text-muted-foreground">Carregando preview...</p>
             </div>
           )}

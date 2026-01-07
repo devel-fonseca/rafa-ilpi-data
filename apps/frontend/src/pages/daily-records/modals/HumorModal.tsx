@@ -2,7 +2,7 @@ import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -64,7 +64,7 @@ export function HumorModal({
   } = useForm<HumorFormData>({
     resolver: zodResolver(humorSchema),
     defaultValues: {
-      time: getCurrentTimeLocal(),
+      time: getCurrentTime(),
       humor: '',
       outroHumor: '',
       observacoes: '',

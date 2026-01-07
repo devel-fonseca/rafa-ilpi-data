@@ -25,9 +25,9 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
       : 0
 
   const getOccupancyColor = (rate: number) => {
-    if (rate >= 90) return 'bg-red-500'
-    if (rate >= 70) return 'bg-yellow-500'
-    return 'bg-green-500'
+    if (rate >= 90) return 'bg-danger'
+    if (rate >= 70) return 'bg-warning'
+    return 'bg-success'
   }
 
   return (
@@ -37,7 +37,7 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
-          <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <Layers className="h-5 w-5 text-medication-controlled dark:text-medication-controlled/40" />
           <CardTitle className="text-lg font-bold">{floor.name}</CardTitle>
         </div>
         {canManage && (
@@ -62,7 +62,7 @@ export function FloorCard({ floor, onEdit, onDelete, onClick, canManage = true }
                   e.stopPropagation()
                 onDelete?.(floor)
               }}
-              className="text-red-600"
+              className="text-danger"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Excluir

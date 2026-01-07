@@ -287,8 +287,8 @@ export default function PrescriptionDetails() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
-          <span className="text-gray-600">Carregando prescrição...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+          <span className="text-muted-foreground">Carregando prescrição...</span>
         </div>
       </div>
     )
@@ -297,8 +297,8 @@ export default function PrescriptionDetails() {
   if (!prescription) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-gray-400" />
-        <p className="text-gray-600">Prescrição não encontrada</p>
+        <AlertCircle className="h-12 w-12 text-muted-foreground/70" />
+        <p className="text-muted-foreground">Prescrição não encontrada</p>
         <Button onClick={() => navigate('/dashboard/prescricoes')}>
           Voltar ao Dashboard
         </Button>
@@ -314,7 +314,7 @@ export default function PrescriptionDetails() {
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               Detalhes da Prescrição
             </h1>
             <Badge
@@ -327,7 +327,7 @@ export default function PrescriptionDetails() {
                 prescriptionData.prescriptionType}
             </Badge>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Prescrição de {prescriptionData.resident?.fullName}
           </p>
         </div>
@@ -358,14 +358,14 @@ export default function PrescriptionDetails() {
           <CardContent>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">Nome</p>
+                <p className="text-sm text-muted-foreground">Nome</p>
                 <p className="font-semibold">
                   {prescriptionData.resident?.fullName}
                 </p>
               </div>
               {prescriptionData.resident?.birthDate && (
                 <div>
-                  <p className="text-sm text-gray-600">Idade</p>
+                  <p className="text-sm text-muted-foreground">Idade</p>
                   <p className="font-medium">
                     {calculateAge(prescriptionData.resident.birthDate)} anos
                   </p>
@@ -373,7 +373,7 @@ export default function PrescriptionDetails() {
               )}
               {prescriptionData.resident?.chronicConditions && (
                 <div>
-                  <p className="text-sm text-gray-600">Condições Crônicas</p>
+                  <p className="text-sm text-muted-foreground">Condições Crônicas</p>
                   <p className="font-medium text-sm">
                     {prescriptionData.resident.chronicConditions}
                   </p>
@@ -402,17 +402,17 @@ export default function PrescriptionDetails() {
           <CardContent>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">Médico</p>
+                <p className="text-sm text-muted-foreground">Médico</p>
                 <p className="font-semibold">{prescriptionData.doctorName}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">CRM</p>
+                <p className="text-sm text-muted-foreground">CRM</p>
                 <p className="font-medium">
                   {prescriptionData.doctorCrm} / {prescriptionData.doctorCrmState}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Data da Prescrição</p>
+                <p className="text-sm text-muted-foreground">Data da Prescrição</p>
                 <p className="font-medium">
                   {/* ✅ REFATORADO: Usar formatDateOnlySafe do dateHelpers */}
                   {formatDateOnlySafe(prescriptionData.prescriptionDate)}
@@ -470,7 +470,7 @@ export default function PrescriptionDetails() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    {new Date(prescriptionData.validUntil) > new Date() ? (
+                    {new Date(extractDateOnly(prescriptionData.validUntil) + 'T12:00:00') >= new Date(new Date().toDateString()) ? (
                       <Badge variant="success">
                         Dentro da validade
                       </Badge>
@@ -494,7 +494,7 @@ export default function PrescriptionDetails() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status da revisão</p>
-                    {new Date(prescriptionData.reviewDate) > new Date() ? (
+                    {new Date(extractDateOnly(prescriptionData.reviewDate) + 'T12:00:00') >= new Date(new Date().toDateString()) ? (
                       <Badge variant="info">
                         Dentro do prazo
                       </Badge>
@@ -511,9 +511,9 @@ export default function PrescriptionDetails() {
 
       {/* Dados de Controlado */}
       {prescriptionData.prescriptionType === 'CONTROLADO' && (
-        <Card className="border-purple-200 bg-purple-50">
+        <Card className="border-medication-controlled/30 bg-medication-controlled/5">
           <CardHeader>
-            <CardTitle className="text-base text-purple-800 flex items-center gap-2">
+            <CardTitle className="text-base text-medication-controlled/90 flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Informações de Medicamento Controlado
             </CardTitle>
@@ -521,31 +521,31 @@ export default function PrescriptionDetails() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Classe</p>
-                <p className="font-medium text-purple-900">
+                <p className="text-sm text-muted-foreground">Classe</p>
+                <p className="font-medium text-medication-controlled/95">
                   {prescriptionData.controlledClass || '-'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Notificação</p>
-                <p className="font-medium text-purple-900">
+                <p className="text-sm text-muted-foreground">Notificação</p>
+                <p className="font-medium text-medication-controlled/95">
                   {prescriptionData.notificationNumber || '-'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Tipo de Notificação</p>
-                <p className="font-medium text-purple-900">
+                <p className="text-sm text-muted-foreground">Tipo de Notificação</p>
+                <p className="font-medium text-medication-controlled/95">
                   {prescriptionData.notificationType || '-'}
                 </p>
               </div>
               {prescriptionData.prescriptionImageUrl && (
                 <div>
-                  <p className="text-sm text-gray-600">Receita</p>
+                  <p className="text-sm text-muted-foreground">Receita</p>
                   <a
                     href={prescriptionData.prescriptionImageUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-purple-700 hover:underline"
+                    className="text-sm text-medication-controlled/80 hover:underline"
                   >
                     Ver arquivo
                   </a>
@@ -645,13 +645,13 @@ export default function PrescriptionDetails() {
           {/* Cards Expandidos por Horário */}
           {!prescriptionData.medications || prescriptionData.medications.length === 0 ? (
             <Card>
-              <CardContent className="p-6 text-center text-gray-600">
+              <CardContent className="p-6 text-center text-muted-foreground">
                 Nenhum medicamento contínuo cadastrado
               </CardContent>
             </Card>
           ) : expandedMedicationCards.length === 0 ? (
             <Card>
-              <CardContent className="p-6 text-center text-gray-600">
+              <CardContent className="p-6 text-center text-muted-foreground">
                 Nenhuma medicação encontrada para os filtros selecionados
               </CardContent>
             </Card>
@@ -722,14 +722,14 @@ export default function PrescriptionDetails() {
                       <div className="flex-1">
                         {/* Cabeçalho do Card */}
                         <div className="flex items-start gap-3 mb-3">
-                          <Pill className="h-5 w-5 text-blue-600 mt-1" />
+                          <Pill className="h-5 w-5 text-primary mt-1" />
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-1">
                               <h3 className="font-semibold text-lg">{medication.name}</h3>
                               {/* Horário Destacado */}
-                              <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
-                                <Clock className="h-4 w-4 text-blue-600" />
-                                <span className="font-semibold text-lg text-blue-900">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-lg border border-primary/30">
+                                <Clock className="h-4 w-4 text-primary" />
+                                <span className="font-semibold text-lg text-primary/95">
                                   {scheduledTime}
                                 </span>
                               </div>
@@ -739,23 +739,23 @@ export default function PrescriptionDetails() {
                                 {config.label}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {medication.presentation} - {medication.concentration}
                             </p>
                             {/* Badges de Características */}
                             <div className="flex gap-2 mt-2">
                               {medication.isControlled && (
-                                <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                                <Badge variant="outline" className="bg-medication-controlled/5 text-medication-controlled/80">
                                   Controlado
                                 </Badge>
                               )}
                               {medication.isHighRisk && (
-                                <Badge variant="outline" className="bg-red-50 text-red-700">
+                                <Badge variant="outline" className="bg-danger/5 text-danger/80">
                                   Alto Risco
                                 </Badge>
                               )}
                               {medication.requiresDoubleCheck && (
-                                <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                                <Badge variant="outline" className="bg-severity-warning/5 text-severity-warning/80">
                                   Dupla Checagem
                                 </Badge>
                               )}
@@ -766,24 +766,24 @@ export default function PrescriptionDetails() {
                         {/* Grid de Informações */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
                           <div>
-                            <span className="text-gray-600">Dose:</span>
+                            <span className="text-muted-foreground">Dose:</span>
                             <p className="font-medium">{medication.dose}</p>
                           </div>
                           <div>
-                            <span className="text-gray-600">Via:</span>
+                            <span className="text-muted-foreground">Via:</span>
                             <p className="font-medium">
                               {ROUTE_LABELS[medication.route] || medication.route}
                             </p>
                           </div>
                           <div>
-                            <span className="text-gray-600">Frequência:</span>
+                            <span className="text-muted-foreground">Frequência:</span>
                             <p className="font-medium">{medication.frequency}</p>
                           </div>
                         </div>
 
                         {/* Instruções Especiais */}
                         {medication.instructions && (
-                          <div className="p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+                          <div className="p-3 bg-muted/50 rounded border border-border text-sm">
                             <span className="font-medium">Instruções:</span> {medication.instructions}
                           </div>
                         )}
@@ -839,7 +839,7 @@ export default function PrescriptionDetails() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() => handleDeleteMedication(medication)}
-                              className="text-red-600 focus:text-red-600"
+                              className="text-danger focus:text-danger"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Excluir Medicamento
@@ -858,7 +858,7 @@ export default function PrescriptionDetails() {
         <TabsContent value="sos" className="space-y-4 mt-6">
           {!prescriptionData.sosMedications || prescriptionData.sosMedications.length === 0 ? (
             <Card>
-              <CardContent className="p-6 text-center text-gray-600">
+              <CardContent className="p-6 text-center text-muted-foreground">
                 Nenhuma medicação SOS cadastrada
               </CardContent>
             </Card>
@@ -869,39 +869,39 @@ export default function PrescriptionDetails() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <AlertCircle className="h-5 w-5 text-orange-600" />
+                        <AlertCircle className="h-5 w-5 text-severity-warning" />
                         <div>
                           <h3 className="font-semibold text-lg">{sos.name}</h3>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {sos.presentation} - {sos.concentration}
                           </p>
                         </div>
-                        <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                        <Badge variant="outline" className="bg-severity-warning/5 text-severity-warning/80">
                           SOS
                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                         <div>
-                          <span className="text-gray-600">Indicação:</span>
+                          <span className="text-muted-foreground">Indicação:</span>
                           <p className="font-medium">{sos.indication}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Dose:</span>
+                          <span className="text-muted-foreground">Dose:</span>
                           <p className="font-medium">{sos.dose}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Intervalo Mín.:</span>
+                          <span className="text-muted-foreground">Intervalo Mín.:</span>
                           <p className="font-medium">{sos.minInterval}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600">Máx. Diária:</span>
+                          <span className="text-muted-foreground">Máx. Diária:</span>
                           <p className="font-medium">{sos.maxDailyDoses}x</p>
                         </div>
                       </div>
 
                       {sos.indicationDetails && (
-                        <div className="p-3 bg-orange-50 rounded border border-orange-200 text-sm">
+                        <div className="p-3 bg-severity-warning/5 rounded border border-severity-warning/30 text-sm">
                           <span className="font-medium">Detalhes:</span> {sos.indicationDetails}
                         </div>
                       )}
@@ -927,7 +927,7 @@ export default function PrescriptionDetails() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => handleDeleteSOSMedication(sos)}
-                            className="text-red-600 focus:text-red-600"
+                            className="text-danger focus:text-danger"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir SOS
@@ -950,7 +950,7 @@ export default function PrescriptionDetails() {
             <CardTitle className="text-base">Observações</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700">{prescriptionData.notes}</p>
+            <p className="text-foreground/80">{prescriptionData.notes}</p>
           </CardContent>
         </Card>
       )}

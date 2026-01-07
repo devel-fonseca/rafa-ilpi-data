@@ -236,7 +236,7 @@ export function VitalSignsModal({
                     <CardTitle className="text-sm font-medium">Alertas Críticos</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-red-600">{stats.criticalAlerts}</div>
+                    <div className="text-2xl font-bold text-danger">{stats.criticalAlerts}</div>
                     <p className="text-xs text-muted-foreground">nos últimos {selectedPeriod} dias</p>
                   </CardContent>
                 </Card>
@@ -248,8 +248,8 @@ export function VitalSignsModal({
                   <CardContent>
                     <div className="flex items-center gap-2">
                       {stats.trend.includes('aumento') && <TrendingUp className="h-5 w-5 text-orange-500" />}
-                      {stats.trend.includes('redução') && <TrendingDown className="h-5 w-5 text-green-500" />}
-                      {stats.trend === 'Estável' && <Activity className="h-5 w-5 text-blue-500" />}
+                      {stats.trend.includes('redução') && <TrendingDown className="h-5 w-5 text-success" />}
+                      {stats.trend === 'Estável' && <Activity className="h-5 w-5 text-primary" />}
                       <span className="text-sm font-medium">{stats.trend}</span>
                     </div>
                   </CardContent>

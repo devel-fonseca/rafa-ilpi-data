@@ -90,8 +90,8 @@ export function WelcomeToActivePlanDialog() {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-gray-900 border-border">
         <DialogHeader>
-          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full">
-            <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-success/10 dark:bg-success/90/30 rounded-full">
+            <CheckCircle2 className="w-6 h-6 text-success dark:text-success/40" />
           </div>
           <DialogTitle className="text-center text-xl font-semibold text-foreground">
             Bem-vindo ao plano ativo!
@@ -108,7 +108,7 @@ export function WelcomeToActivePlanDialog() {
               <p className="text-sm text-muted-foreground">Plano Atual</p>
               <p className="text-lg font-semibold text-foreground">{plan.displayName}</p>
             </div>
-            <Badge variant="outline" className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+            <Badge variant="outline" className="bg-success/10 dark:bg-success/90/50 text-success/80 dark:text-success/30 border-success/30 dark:border-success/70">
               ATIVO
             </Badge>
           </div>

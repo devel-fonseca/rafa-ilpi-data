@@ -63,8 +63,8 @@ export function FinancialAnalytics() {
   if (!metrics || !mrrData) {
     return (
       <div className="p-8">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-red-800">Erro ao carregar métricas financeiras</p>
+        <div className="rounded-lg border border-danger/30 bg-danger/5 p-4">
+          <p className="text-danger/90">Erro ao carregar métricas financeiras</p>
         </div>
       </div>
     )
@@ -170,7 +170,7 @@ export function FinancialAnalytics() {
             <CardTitle className="text-sm font-medium text-slate-600">
               Receita Pendente
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
@@ -188,7 +188,7 @@ export function FinancialAnalytics() {
             <CardTitle className="text-sm font-medium text-slate-600">
               Taxa de Conversão
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
@@ -206,7 +206,7 @@ export function FinancialAnalytics() {
             <CardTitle className="text-sm font-medium text-slate-600">
               Faturas Vencidas
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-4 w-4 text-danger" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
@@ -321,11 +321,11 @@ export function FinancialAnalytics() {
                         {method.conversionRate.toFixed(1)}%
                       </Badge>
                       {method.conversionRate >= 80 ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-400" />
+                        <CheckCircle2 className="h-4 w-4 text-success/40" />
                       ) : method.conversionRate >= 60 ? (
-                        <TrendingUp className="h-4 w-4 text-yellow-400" />
+                        <TrendingUp className="h-4 w-4 text-warning/40" />
                       ) : (
-                        <TrendingDown className="h-4 w-4 text-red-400" />
+                        <TrendingDown className="h-4 w-4 text-danger/40" />
                       )}
                     </div>
                   </div>

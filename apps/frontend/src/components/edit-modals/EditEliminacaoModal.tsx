@@ -3,7 +3,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
+import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -416,7 +417,7 @@ export function EditEliminacaoModal({
                 </p>
                 <p className="text-sm">
                   <span className="font-medium">Data:</span>{' '}
-                  {new Date(record.date).toLocaleDateString('pt-BR')}
+                  {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}
                 </p>
                 <p className="text-sm">
                   <span className="font-medium">Horário original:</span> {record.time}

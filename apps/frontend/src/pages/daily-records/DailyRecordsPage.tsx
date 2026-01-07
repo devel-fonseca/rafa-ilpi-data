@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatDateLong, getCurrentDateLocal } from '@/utils/timezone'
+import { formatDateLongSafe, getCurrentDate } from '@/utils/dateHelpers'
 import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye, AlertCircle, Activity, UtensilsCrossed, Heart } from 'lucide-react'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
@@ -96,7 +96,7 @@ export function DailyRecordsPage() {
   const { user } = useAuthStore()
 
   const residentId = searchParams.get('residentId')
-  const selectedDate = searchParams.get('date') || getCurrentDateLocal()
+  const selectedDate = searchParams.get('date') || getCurrentDate()
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined)
@@ -276,10 +276,10 @@ export function DailyRecordsPage() {
       {/* Header */}
       <div className="mb-8 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Registros Diários</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground dark:text-gray-100">Registros Diários</h1>
+          <p className="text-muted-foreground dark:text-muted-foreground/70 mt-1">
             {resident?.fullName} |{' '}
-            {formatDateLong(selectedDate + 'T00:00:00')}
+            {formatDateLongSafe(selectedDate + 'T00:00:00')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -419,11 +419,11 @@ export function DailyRecordsPage() {
         </Card>
 
         {/* Card de Restrições Alimentares */}
-        <Card className="border-blue-500/20">
+        <Card className="border-primary/20">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-500/10 rounded-lg shrink-0">
-                <UtensilsCrossed className="h-6 w-6 text-blue-500" />
+              <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg shrink-0">
+                <UtensilsCrossed className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-muted-foreground mb-2">
@@ -437,7 +437,7 @@ export function DailyRecordsPage() {
                           <span className="inline-block">
                             <Badge
                               variant="outline"
-                              className="border-blue-500 text-blue-500 cursor-help"
+                              className="border-primary text-primary cursor-help"
                             >
                               {restriction.description}
                             </Badge>
@@ -505,8 +505,8 @@ export function DailyRecordsPage() {
 
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                  <span className="ml-2 text-gray-500">Carregando...</span>
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">Carregando...</span>
                 </div>
               ) : records && records.length > 0 ? (
                 <div className="space-y-2">
@@ -514,7 +514,7 @@ export function DailyRecordsPage() {
                     <div
                       key={record.id}
                       onClick={() => handleViewRecord(record)}
-                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-gray-100'}`}
+                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
                     >
                       <div className="flex items-start gap-2">
                         {/* Horário */}
@@ -542,7 +542,7 @@ export function DailyRecordsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <p className="text-sm">Nenhum registro para este dia</p>
                 </div>
               )}
@@ -617,11 +617,11 @@ export function DailyRecordsPage() {
       {/* Grid de Cards de Resumo (Sinais Vitais, Alimentação e Hidratação) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Card de Sinais Vitais e Antropometria */}
-        <Card className="border-purple-500/20 dark:border-purple-500/30">
+        <Card className="border-medication-controlled/20 dark:border-medication-controlled/30">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-500/10 dark:bg-purple-500/20 rounded-lg shrink-0">
-                <Heart className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+              <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 dark:bg-medication-controlled/20 rounded-lg shrink-0">
+                <Heart className="h-6 w-6 text-medication-controlled dark:text-medication-controlled/40" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
@@ -663,13 +663,13 @@ export function DailyRecordsPage() {
                     imc = pesoNum / (alturaMetros * alturaMetros)
 
                     if (imc < 18.5) {
-                      imcClassificacao = { texto: 'Baixo peso', cor: 'text-yellow-600 dark:text-yellow-400' }
+                      imcClassificacao = { texto: 'Baixo peso', cor: 'text-warning dark:text-warning/40' }
                     } else if (imc < 25) {
-                      imcClassificacao = { texto: 'Peso normal', cor: 'text-green-600 dark:text-green-400' }
+                      imcClassificacao = { texto: 'Peso normal', cor: 'text-success dark:text-success/40' }
                     } else if (imc < 30) {
-                      imcClassificacao = { texto: 'Sobrepeso', cor: 'text-orange-600 dark:text-orange-400' }
+                      imcClassificacao = { texto: 'Sobrepeso', cor: 'text-severity-warning dark:text-severity-warning/40' }
                     } else {
-                      imcClassificacao = { texto: 'Obesidade', cor: 'text-red-600 dark:text-red-400' }
+                      imcClassificacao = { texto: 'Obesidade', cor: 'text-danger dark:text-danger/40' }
                     }
                   }
 
@@ -800,17 +800,17 @@ export function DailyRecordsPage() {
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
 
           return (
-            <Card className="border-orange-500/20 dark:border-orange-500/30">
+            <Card className="border-severity-warning/20 dark:border-severity-warning/30">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg shrink-0">
-                    <Utensils className="h-6 w-6 text-orange-500 dark:text-orange-400" />
+                  <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 dark:bg-severity-warning/20 rounded-lg shrink-0">
+                    <Utensils className="h-6 w-6 text-orange-500 dark:text-severity-warning/40" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Aceitação Alimentar Total
                     </h3>
-                    <p className="text-3xl font-bold text-orange-500 dark:text-orange-400">
+                    <p className="text-3xl font-bold text-orange-500 dark:text-severity-warning/40">
                       {percentualTotal}%
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -843,13 +843,13 @@ export function DailyRecordsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex items-center justify-center w-12 h-12 bg-info/10 dark:bg-info/20 rounded-lg shrink-0">
-                    <Droplets className="h-6 w-6 text-info dark:text-blue-400" />
+                    <Droplets className="h-6 w-6 text-info dark:text-primary/40" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Total de Líquidos Ingeridos
                     </h3>
-                    <p className="text-3xl font-bold text-info dark:text-blue-400">
+                    <p className="text-3xl font-bold text-info dark:text-primary/40">
                       {totalGeral} ml
                     </p>
                     <div className="flex gap-3 mt-1 text-xs text-muted-foreground">

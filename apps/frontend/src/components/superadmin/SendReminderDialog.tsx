@@ -48,7 +48,7 @@ export function SendReminderDialog({
       <DialogContent className="sm:max-w-[500px] bg-white">
         <DialogHeader>
           <DialogTitle className="text-slate-900 flex items-center gap-2">
-            <Mail className="h-5 w-5 text-blue-600" />
+            <Mail className="h-5 w-5 text-primary" />
             Enviar Lembrete de Pagamento
           </DialogTitle>
           <DialogDescription className="text-slate-500">
@@ -70,13 +70,13 @@ export function SendReminderDialog({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-600">Faturas Vencidas:</span>
-                <span className="text-sm font-medium text-red-600">
+                <span className="text-sm font-medium text-danger">
                   {tenant.overdueInvoices} {tenant.overdueInvoices === 1 ? 'fatura' : 'faturas'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-slate-600">Valor Total:</span>
-                <span className="text-sm font-bold text-red-900">
+                <span className="text-sm font-bold text-danger/90">
                   {new Intl.NumberFormat('pt-BR', {
                     style: 'currency',
                     currency: 'BRL',
@@ -103,7 +103,7 @@ export function SendReminderDialog({
           <Button
             onClick={handleSend}
             disabled={sendReminderMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-primary/60 hover:bg-blue-700 text-white"
           >
             {sendReminderMutation.isPending ? (
               <>

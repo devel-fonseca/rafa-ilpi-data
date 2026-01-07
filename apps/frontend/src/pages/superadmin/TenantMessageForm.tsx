@@ -217,7 +217,7 @@ export default function TenantMessageForm() {
             {/* Título */}
             <div className="space-y-2">
               <Label htmlFor="title">
-                Título <span className="text-red-600">*</span>
+                Título <span className="text-danger">*</span>
               </Label>
               <Input
                 id="title"
@@ -234,7 +234,7 @@ export default function TenantMessageForm() {
             {/* Assunto */}
             <div className="space-y-2">
               <Label htmlFor="subject">
-                Assunto do Email <span className="text-red-600">*</span>
+                Assunto do Email <span className="text-danger">*</span>
               </Label>
               <Input
                 id="subject"
@@ -251,7 +251,7 @@ export default function TenantMessageForm() {
             {/* Conteúdo HTML */}
             <div className="space-y-2">
               <Label htmlFor="htmlContent">
-                Conteúdo do Email <span className="text-red-600">*</span>
+                Conteúdo do Email <span className="text-danger">*</span>
               </Label>
               <TiptapEditor
                 content={formData.htmlContent}
@@ -275,7 +275,7 @@ export default function TenantMessageForm() {
             {/* Filtro de destinatários */}
             <div className="space-y-2">
               <Label htmlFor="recipientFilter">
-                Filtro de Destinatários <span className="text-red-600">*</span>
+                Filtro de Destinatários <span className="text-danger">*</span>
               </Label>
               <Select
                 value={formData.recipientFilter}
@@ -449,7 +449,7 @@ export default function TenantMessageForm() {
           <Button
             type="submit"
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-success/60 hover:bg-success/70"
           >
             <Send className="h-4 w-4 mr-2" />
             {formData.scheduledFor ? 'Agendar Envio' : 'Salvar'}

@@ -106,8 +106,8 @@ export default function PrescriptionEdit() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
-          <span className="text-gray-600">Carregando prescrição...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+          <span className="text-muted-foreground">Carregando prescrição...</span>
         </div>
       </div>
     )
@@ -116,8 +116,8 @@ export default function PrescriptionEdit() {
   if (!prescription) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-gray-400" />
-        <p className="text-gray-600">Prescrição não encontrada</p>
+        <AlertCircle className="h-12 w-12 text-muted-foreground/70" />
+        <p className="text-muted-foreground">Prescrição não encontrada</p>
         <Button onClick={() => navigate('/dashboard/prescricoes')}>
           Voltar ao Dashboard
         </Button>
@@ -133,7 +133,7 @@ export default function PrescriptionEdit() {
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               Editar Prescrição
             </h1>
             <Badge variant="outline">
@@ -141,7 +141,7 @@ export default function PrescriptionEdit() {
                 prescriptionData.prescriptionType}
             </Badge>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Altere o status da prescrição de {prescriptionData.resident?.fullName}
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function PrescriptionEdit() {
               id="active-status"
               checked={isActive}
               onCheckedChange={setIsActive}
-              className="data-[state=checked]:bg-green-600"
+              className="data-[state=checked]:bg-success/60"
             />
           </div>
         </CardContent>
@@ -204,14 +204,14 @@ export default function PrescriptionEdit() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Nome</p>
+              <p className="text-sm text-muted-foreground">Nome</p>
               <p className="font-semibold text-lg">
                 {prescriptionData.resident?.fullName}
               </p>
             </div>
             {prescriptionData.resident?.chronicConditions && (
               <div className="md:col-span-2">
-                <p className="text-sm text-gray-600">Condições Crônicas</p>
+                <p className="text-sm text-muted-foreground">Condições Crônicas</p>
                 <p className="font-medium">
                   {prescriptionData.resident.chronicConditions}
                 </p>
@@ -232,30 +232,30 @@ export default function PrescriptionEdit() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Médico</p>
+              <p className="text-sm text-muted-foreground">Médico</p>
               <p className="font-semibold">{prescriptionData.doctorName}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">CRM</p>
+              <p className="text-sm text-muted-foreground">CRM</p>
               <p className="font-medium">
                 {prescriptionData.doctorCrm} / {prescriptionData.doctorCrmState}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Data da Prescrição</p>
+              <p className="text-sm text-muted-foreground">Data da Prescrição</p>
               <p className="font-medium">
                 {formatDateOnlySafe(prescriptionData.prescriptionDate)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tipo</p>
+              <p className="text-sm text-muted-foreground">Tipo</p>
               <p className="font-medium">
                 {PRESCRIPTION_TYPE_LABELS[prescriptionData.prescriptionType]}
               </p>
             </div>
             {prescriptionData.validUntil && (
               <div>
-                <p className="text-sm text-gray-600">Validade</p>
+                <p className="text-sm text-muted-foreground">Validade</p>
                 <p className="font-medium">
                   {formatDateOnlySafe(prescriptionData.validUntil)}
                 </p>
@@ -263,7 +263,7 @@ export default function PrescriptionEdit() {
             )}
             {prescriptionData.reviewDate && (
               <div>
-                <p className="text-sm text-gray-600">Revisão</p>
+                <p className="text-sm text-muted-foreground">Revisão</p>
                 <p className="font-medium">
                   {formatDateOnlySafe(prescriptionData.reviewDate)}
                 </p>
@@ -271,8 +271,8 @@ export default function PrescriptionEdit() {
             )}
             {prescriptionData.notes && (
               <div className="md:col-span-2 lg:col-span-3">
-                <p className="text-sm text-gray-600">Observações</p>
-                <p className="font-medium text-gray-700">{prescriptionData.notes}</p>
+                <p className="text-sm text-muted-foreground">Observações</p>
+                <p className="font-medium text-foreground/80">{prescriptionData.notes}</p>
               </div>
             )}
             {prescriptionData.prescriptionImageUrl && (
@@ -321,26 +321,26 @@ export default function PrescriptionEdit() {
             {prescriptionData.medications.map((medication: any, index: number) => (
               <div
                 key={medication.id}
-                className="p-4 border rounded-lg bg-gray-50 space-y-3"
+                className="p-4 border rounded-lg bg-muted/50 space-y-3"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <h4 className="font-semibold text-lg">
                       {index + 1}. {medication.name}
                     </h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {PRESENTATION_LABELS[medication.presentation]} -{' '}
                       {medication.concentration}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     {medication.isControlled && (
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                      <Badge variant="outline" className="bg-medication-controlled/5 text-medication-controlled/80">
                         Controlado
                       </Badge>
                     )}
                     {medication.isHighRisk && (
-                      <Badge variant="outline" className="bg-red-50 text-red-700">
+                      <Badge variant="outline" className="bg-danger/5 text-danger/80">
                         Alto Risco
                       </Badge>
                     )}
@@ -349,23 +349,23 @@ export default function PrescriptionEdit() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-600">Dose</p>
+                    <p className="text-muted-foreground">Dose</p>
                     <p className="font-medium">{medication.dose}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Via</p>
+                    <p className="text-muted-foreground">Via</p>
                     <p className="font-medium">
                       {ROUTE_LABELS[medication.route]}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Frequência</p>
+                    <p className="text-muted-foreground">Frequência</p>
                     <p className="font-medium">
                       {FREQUENCY_LABELS[medication.frequency] || medication.frequency}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Horários</p>
+                    <p className="text-muted-foreground">Horários</p>
                     <p className="font-medium">
                       {medication.scheduledTimes?.join(', ') || '-'}
                     </p>
@@ -373,14 +373,14 @@ export default function PrescriptionEdit() {
                 </div>
 
                 {medication.instructions && (
-                  <div className="p-3 bg-blue-50 rounded border border-blue-200 text-sm">
+                  <div className="p-3 bg-primary/5 rounded border border-primary/30 text-sm">
                     <span className="font-medium">Instruções:</span>{' '}
                     {medication.instructions}
                   </div>
                 )}
 
                 {medication.startDate && (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-muted-foreground">
                     <span className="font-medium">Início:</span>{' '}
                     {formatDateOnlySafe(medication.startDate)}
                     {medication.endDate && (
@@ -411,44 +411,44 @@ export default function PrescriptionEdit() {
             {prescriptionData.sosMedications.map((sos: any, index: number) => (
               <div
                 key={sos.id}
-                className="p-4 border border-orange-200 rounded-lg bg-orange-50 space-y-3"
+                className="p-4 border border-severity-warning/30 rounded-lg bg-severity-warning/5 space-y-3"
               >
                 <div>
                   <h4 className="font-semibold text-lg">
                     {index + 1}. {sos.name}
                   </h4>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {PRESENTATION_LABELS[sos.presentation]} - {sos.concentration}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   <div>
-                    <p className="text-gray-600">Indicação</p>
+                    <p className="text-muted-foreground">Indicação</p>
                     <p className="font-medium">{sos.indication}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Dose</p>
+                    <p className="text-muted-foreground">Dose</p>
                     <p className="font-medium">{sos.dose}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Intervalo Mínimo</p>
+                    <p className="text-muted-foreground">Intervalo Mínimo</p>
                     <p className="font-medium">{sos.minInterval}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Máximo Diário</p>
+                    <p className="text-muted-foreground">Máximo Diário</p>
                     <p className="font-medium">{sos.maxDailyDoses}x</p>
                   </div>
                 </div>
 
                 {sos.indicationDetails && (
-                  <div className="p-3 bg-orange-100 rounded border border-orange-300 text-sm">
+                  <div className="p-3 bg-severity-warning/10 rounded border border-severity-warning/30 text-sm">
                     <span className="font-medium">Detalhes:</span> {sos.indicationDetails}
                   </div>
                 )}
 
                 {sos.instructions && (
-                  <div className="p-3 bg-orange-100 rounded border border-orange-300 text-sm">
+                  <div className="p-3 bg-severity-warning/10 rounded border border-severity-warning/30 text-sm">
                     <span className="font-medium">Instruções:</span> {sos.instructions}
                   </div>
                 )}

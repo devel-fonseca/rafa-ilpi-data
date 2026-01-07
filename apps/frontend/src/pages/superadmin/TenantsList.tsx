@@ -192,7 +192,7 @@ export function TenantsList() {
           )}
 
           {isError && (
-            <div className="p-8 text-center text-red-400">
+            <div className="p-8 text-center text-danger/40">
               Erro ao carregar: {error.message}
             </div>
           )}

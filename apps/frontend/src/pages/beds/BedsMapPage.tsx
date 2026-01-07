@@ -18,7 +18,7 @@ export function BedsMapPage() {
   if (error) {
     return (
       <Card>
-        <CardContent className="p-6 text-center text-red-600">
+        <CardContent className="p-6 text-center text-danger">
           Erro ao carregar o mapa de leitos. Tente novamente mais tarde.
         </CardContent>
       </Card>

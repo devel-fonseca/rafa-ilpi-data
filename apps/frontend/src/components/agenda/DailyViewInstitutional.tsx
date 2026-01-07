@@ -90,13 +90,13 @@ export function DailyViewInstitutional({ items, isLoading }: Props) {
           </div>
           <div>
             <span className="text-muted-foreground">Concluídos:</span>{' '}
-            <span className="font-semibold text-green-600">
+            <span className="font-semibold text-success">
               {items.filter((i) => i.status === 'completed').length}
             </span>
           </div>
           <div>
             <span className="text-muted-foreground">Pendentes:</span>{' '}
-            <span className="font-semibold text-yellow-600">
+            <span className="font-semibold text-warning">
               {items.filter((i) => i.status === 'pending').length}
             </span>
           </div>

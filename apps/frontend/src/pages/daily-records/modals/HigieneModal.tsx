@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { getCurrentTimeLocal } from '@/utils/timezone'
+import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
   Dialog,
@@ -75,7 +75,7 @@ export function HigieneModal({
   } = useForm<HigieneFormData>({
     resolver: zodResolver(higieneSchema),
     defaultValues: {
-      time: getCurrentTimeLocal(),
+      time: getCurrentTime(),
       tipoBanho: 'Chuveiro',
       duracao: '5',
       condicaoPele: 'Normal',

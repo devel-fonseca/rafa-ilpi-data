@@ -75,9 +75,11 @@ export function normalizeUTCDate(utcDateString: string | Date): Date {
 
     if (isDateOnlyString || isMidnightUTC || isNoonTimestamp) {
       // Para date-only, extrair apenas a parte da data e interpretar como meia-noite LOCAL
+      // IMPORTANTE: Criar Date com ano/mês/dia explícitos para evitar timezone shift
       const dateOnlyPart = utcDateString.split('T')[0]
-      const localMidnight = parseISO(`${dateOnlyPart}T00:00:00`)
-      return localMidnight
+      const [year, month, day] = dateOnlyPart.split('-').map(Number)
+      // Cria Date no timezone local (sem conversão UTC)
+      return new Date(year, month - 1, day, 0, 0, 0, 0)
     }
 
     // Para timestamps completos com hora real, fazer conversão UTC → Local normal

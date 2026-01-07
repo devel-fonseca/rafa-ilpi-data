@@ -385,8 +385,8 @@ export function ContractNew() {
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-900">
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/30 rounded-lg">
+            <p className="text-xs text-primary/95">
               <strong>ℹ️ Versionamento automático:</strong> A versão será gerada automaticamente ao criar o contrato.
               {planId === 'ALL'
                 ? ' Próxima versão do contrato genérico.'
@@ -398,11 +398,11 @@ export function ContractNew() {
         <Card className="p-6">
           <div className="mb-4">
             <h3 className="font-semibold text-lg mb-3">Conteúdo do Contrato</h3>
-            <Card className="p-4 bg-blue-50 border-blue-200">
-              <p className="text-xs font-semibold text-blue-900 mb-2">
+            <Card className="p-4 bg-primary/5 border-primary/30">
+              <p className="text-xs font-semibold text-primary/95 mb-2">
                 📝 Variáveis disponíveis para usar no contrato:
               </p>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-blue-800">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-primary/90">
                 <div><code className="bg-white px-1.5 py-0.5 rounded">{'{{tenant.name}}'}</code> - Nome do tenant</div>
                 <div><code className="bg-white px-1.5 py-0.5 rounded">{'{{tenant.cnpj}}'}</code> - CNPJ do tenant</div>
                 <div><code className="bg-white px-1.5 py-0.5 rounded">{'{{tenant.email}}'}</code> - Email do tenant</div>

@@ -58,15 +58,15 @@ export function ViewMedicationAdministrationModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* 1. Info do Medicamento (bg-blue-50) */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-1">
+          {/* 1. Info do Medicamento (bg-primary/5) */}
+          <div className="bg-primary/5 border border-primary/30 p-4 rounded-lg">
+            <h3 className="font-semibold text-primary/95 mb-1">
               {medication.name}
             </h3>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-primary/80">
               {medication.presentation} - {medication.concentration}
             </p>
-            <p className="text-sm text-blue-700 mt-1">
+            <p className="text-sm text-primary/80 mt-1">
               <span className="font-medium">Dose:</span> {medication.dose} -{' '}
               <span className="font-medium">Via:</span> {medication.route}
             </p>

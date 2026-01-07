@@ -161,7 +161,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-slate-600">{currentPlan.displayName}</span>
                 <span className="text-slate-500">→</span>
-                <span className="text-green-600 font-medium">
+                <span className="text-success font-medium">
                   {selectedPlan.displayName}
                 </span>
               </div>

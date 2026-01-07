@@ -128,7 +128,7 @@ export function DeleteDailyRecordModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-danger">
             <Trash2 className="h-5 w-5" />
             Excluir Registro Diário
           </DialogTitle>
@@ -172,11 +172,11 @@ export function DeleteDailyRecordModal({
               id="deleteReason"
               placeholder="Ex: Registro duplicado acidentalmente"
               {...register('deleteReason')}
-              className={errors.deleteReason ? 'border-red-500' : ''}
+              className={errors.deleteReason ? 'border-danger' : ''}
               rows={3}
             />
             {errors.deleteReason && (
-              <p className="text-sm text-red-500">{errors.deleteReason.message}</p>
+              <p className="text-sm text-danger">{errors.deleteReason.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Caracteres (sem espaços): {cleanedLength}/10

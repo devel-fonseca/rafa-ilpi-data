@@ -203,7 +203,7 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
             <AlertDialogAction
               onClick={handleConfirmRestore}
               disabled={rollbackMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary/60 hover:bg-blue-700"
             >
               {rollbackMutation.isPending ? 'Restaurando...' : 'Confirmar Restauração'}
             </AlertDialogAction>

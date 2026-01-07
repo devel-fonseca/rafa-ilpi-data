@@ -840,17 +840,17 @@ export function DailyRecordHistoryModal({
                           {formatFieldName(diff.field)}
                         </span>
                         {diff.type === 'added' && (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <Badge className="bg-success/10 text-success/90 dark:bg-success/90 dark:text-success/20">
                             Adicionado
                           </Badge>
                         )}
                         {diff.type === 'removed' && (
-                          <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                          <Badge className="bg-danger/10 text-danger/90 dark:bg-danger/90 dark:text-danger/20">
                             Removido
                           </Badge>
                         )}
                         {diff.type === 'changed' && (
-                          <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                          <Badge className="bg-warning/10 text-warning/90 dark:bg-warning/90 dark:text-warning/20">
                             Alterado
                           </Badge>
                         )}
@@ -863,7 +863,7 @@ export function DailyRecordHistoryModal({
                           <p className="text-xs font-medium uppercase text-muted-foreground">
                             Valor anterior
                           </p>
-                          <div className={`bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 p-3 rounded text-sm ${
+                          <div className={`bg-danger/5 dark:bg-danger/95/20 border border-danger/30 dark:border-danger/90 p-3 rounded text-sm ${
                             typeof diff.oldValue === 'object' ? 'font-mono' : ''
                           }`}>
                             {typeof diff.oldValue === 'object' ? (
@@ -881,7 +881,7 @@ export function DailyRecordHistoryModal({
                           <p className="text-xs font-medium uppercase text-muted-foreground">
                             Valor novo
                           </p>
-                          <div className={`bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 p-3 rounded text-sm ${
+                          <div className={`bg-success/5 dark:bg-success/95/20 border border-success/30 dark:border-success/90 p-3 rounded text-sm ${
                             typeof diff.newValue === 'object' ? 'font-mono' : ''
                           }`}>
                             {typeof diff.newValue === 'object' ? (

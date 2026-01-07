@@ -70,15 +70,15 @@ export function PermissionsManager({
       {/* Header com legenda */}
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <Lock className="h-4 w-4 text-blue-500" />
+          <Lock className="h-4 w-4 text-primary" />
           <span className="text-muted-foreground">Herdada do cargo</span>
         </div>
         <div className="flex items-center gap-2">
-          <Unlock className="h-4 w-4 text-green-500" />
+          <Unlock className="h-4 w-4 text-success" />
           <span className="text-muted-foreground">Customizada</span>
         </div>
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-purple-500" />
+          <CheckCircle2 className="h-4 w-4 text-medication-controlled" />
           <span className="text-muted-foreground">Ambas</span>
         </div>
       </div>
@@ -97,12 +97,12 @@ export function PermissionsManager({
                   <span className="font-medium">{group.label}</span>
                   <div className="flex items-center gap-2">
                     {counts.inherited > 0 && (
-                      <Badge variant="outline" className="text-blue-600 border-blue-300">
+                      <Badge variant="outline" className="text-primary border-primary/30">
                         {counts.inherited} herdada{counts.inherited > 1 ? 's' : ''}
                       </Badge>
                     )}
                     {counts.custom > 0 && (
-                      <Badge variant="outline" className="text-green-600 border-green-300">
+                      <Badge variant="outline" className="text-success border-success/30">
                         {counts.custom} custom
                       </Badge>
                     )}
@@ -144,13 +144,13 @@ export function PermissionsManager({
                             </span>
                             <div className="flex items-center gap-2">
                               {inherited && custom && (
-                                <CheckCircle2 className="h-4 w-4 text-purple-500" />
+                                <CheckCircle2 className="h-4 w-4 text-medication-controlled" />
                               )}
                               {inherited && !custom && (
-                                <Lock className="h-4 w-4 text-blue-500" />
+                                <Lock className="h-4 w-4 text-primary" />
                               )}
                               {!inherited && custom && (
-                                <Unlock className="h-4 w-4 text-green-500" />
+                                <Unlock className="h-4 w-4 text-success" />
                               )}
                             </div>
                           </div>
@@ -171,15 +171,15 @@ export function PermissionsManager({
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
             <div className="text-muted-foreground">Herdadas</div>
-            <div className="font-medium text-blue-600">{inheritedPermissions.length}</div>
+            <div className="font-medium text-primary">{inheritedPermissions.length}</div>
           </div>
           <div>
             <div className="text-muted-foreground">Customizadas</div>
-            <div className="font-medium text-green-600">{selectedCustom.size}</div>
+            <div className="font-medium text-success">{selectedCustom.size}</div>
           </div>
           <div>
             <div className="text-muted-foreground">Total</div>
-            <div className="font-medium text-purple-600">
+            <div className="font-medium text-medication-controlled">
               {new Set([...inheritedPermissions, ...selectedCustom]).size}
             </div>
           </div>
