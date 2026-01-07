@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Page, PageHeader } from '@/design-system/components'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { MaskedInput } from '@/components/form/MaskedInput'
@@ -881,7 +882,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <Page maxWidth="wide">
       {/* Plan Limit Warning Dialog */}
       {subscriptionData && !isEditMode && (
         <PlanLimitWarningDialog
@@ -899,34 +900,23 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         />
       )}
 
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">
-            {readOnly ? 'Visualizar Residente' : isEditMode ? 'Editar Residente' : 'Novo Residente'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {readOnly
-              ? 'Visualização dos dados cadastrais do residente'
-              : isEditMode
-              ? 'Atualize as informações do residente'
-              : 'Cadastre um novo residente na ILPI'
-            }
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={handleVoltar}
-            variant="outline"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          {readOnly && (
-            <>
-              <Button
-                onClick={() => navigate(`/dashboard/residentes/${id}`)}
-                variant="default"
+      <PageHeader
+        title={readOnly ? 'Visualizar Residente' : isEditMode ? 'Editar Residente' : 'Novo Residente'}
+        subtitle={
+          readOnly
+            ? 'Visualização dos dados cadastrais do residente'
+            : isEditMode
+            ? 'Atualize as informações do residente'
+            : 'Cadastre um novo residente na ILPI'
+        }
+        onBack={handleVoltar}
+        actions={
+          <div className="flex gap-2">
+            {readOnly && (
+              <>
+                <Button
+                  onClick={() => navigate(`/dashboard/residentes/${id}`)}
+                  variant="default"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Prontuário
@@ -957,8 +947,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               Histórico
             </Button>
           )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Loading State durante carregamento de dados */}
       {isLoading && (
@@ -2089,7 +2080,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         open={historyDrawerOpen}
         onOpenChange={setHistoryDrawerOpen}
       />
-    </div>
+    </Page>
   )
 }
 
