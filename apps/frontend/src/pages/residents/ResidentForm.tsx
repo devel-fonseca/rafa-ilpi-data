@@ -2075,7 +2075,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             {!isEditMode && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={handleClearForm}
                 disabled={isUploading}
                 className="px-8 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
