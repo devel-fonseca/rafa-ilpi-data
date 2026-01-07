@@ -26,6 +26,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
 import { useMySubscription } from '@/hooks/useTenant'
+import { Page, PageHeader } from '@/design-system/components'
 
 export default function UserCreatePage() {
   const navigate = useNavigate()
@@ -213,7 +214,7 @@ export default function UserCreatePage() {
   }
 
   return (
-    <div className="space-y-6 pb-16">
+    <Page>
       {/* Plan Limit Warning Dialog */}
       {subscriptionData && (
         <PlanLimitWarningDialog
@@ -228,39 +229,30 @@ export default function UserCreatePage() {
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={handleCancel}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Novo Usuário</h1>
-            <p className="text-muted-foreground mt-1">
-              Adicione um novo colaborador ao sistema
-            </p>
+      <PageHeader
+        title="Novo Usuário"
+        subtitle="Adicione um novo colaborador ao sistema"
+        onBack={handleCancel}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                'Criando...'
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar Usuário
+                </>
+              )}
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? (
-              'Criando...'
-            ) : (
-              <>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Criar Usuário
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-16">
         {/* Dados Básicos */}
         <Card>
           <CardHeader>
@@ -590,6 +582,6 @@ export default function UserCreatePage() {
           </Button>
         </div>
       </form>
-    </div>
+    </Page>
   )
 }
