@@ -1,49 +1,53 @@
 /**
- * 🌙 Design System RAFA ILPI - Tema Dark
+ * 🌙 Design System RAFA ILPI - Tema Dark (Hospital-Grade)
  *
  * Variáveis CSS em HSL para dark mode
  *
- * Cores ajustadas para fundo escuro mantendo contraste WCAG AA
+ * Paleta institucional ajustada para fundo escuro:
+ * - Cores de feedback mais claras (contraste WCAG AA no escuro)
+ * - Neutros "clean" e confortáveis (sem saturação excessiva)
+ * - Medicação controlada com cor própria (roxo institucional)
+ * - Background e bordas discretas (menos ruído visual)
  *
  * @author Dr. E. (Emanuel) + Claude Code
  * @date 24 de novembro de 2025
+ * @updated 07 de janeiro de 2026 - Paleta hospital-grade
  */
 
 .dark {
-  /* ========== CORE COLORS (ajustados para dark) ========== */
+  /* ========== CORE COLORS ========== */
 
-  /** Primária: Azul mais claro para contraste em fundo escuro */
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  /** Primária: Azul clínico (mais claro no dark) */
+  --primary: 210 90% 60%;
+  --primary-foreground: 222 47% 11%;
 
-  /** Secundária: Verde ajustado */
-  --secondary: 142 70% 45%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  /** Secundária: Teal institucional */
+  --secondary: 174 55% 55%;
+  --secondary-foreground: 222 47% 11%;
 
-  /** Acento: Hover visível para botões e interações */
-  --accent: 217.2 32.6% 25%;
+  /** Acento: superfícies interativas suaves */
+  --accent: 217 20% 18%;
   --accent-foreground: 210 40% 98%;
 
-  /* ========== FEEDBACK COLORS (ajustados) ========== */
+  /* ========== FEEDBACK COLORS ========== */
 
-  /** Sucesso - verde mais claro */
-  --success: 142 70% 45%;
-  --success-foreground: 222.2 47.4% 11.2%;
+  /** Sucesso */
+  --success: 158 60% 50%;
+  --success-foreground: 222 47% 11%;
 
-  /** Aviso - amarelo mais claro */
-  --warning: 43 96% 56%;
-  --warning-foreground: 222.2 47.4% 11.2%;
+  /** Aviso/Atenção */
+  --warning: 38 92% 58%;
+  --warning-foreground: 222 47% 11%;
 
-  /** Erro - vermelho ajustado */
-  --danger: 0 72% 60%;
-  --danger-foreground: 210 40% 98%;
+  /** Erro/Perigo */
+  --danger: 0 72% 62%;
+  --danger-foreground: 222 47% 11%;
 
-  /** Informação - azul mais claro */
-  --info: 217.2 91.2% 59.8%;
-  --info-foreground: 222.2 47.4% 11.2%;
+  /** Informação */
+  --info: 204 90% 62%;
+  --info-foreground: 222 47% 11%;
 
-  /* ========== BED STATUS (herdam dos feedback ajustados) ========== */
-
+  /* ========== BED STATUS (Semântica de Leitos) ========== */
   --bed-available: var(--success);
   --bed-available-foreground: var(--success-foreground);
 
@@ -56,64 +60,50 @@
   --bed-reserved: var(--info);
   --bed-reserved-foreground: var(--info-foreground);
 
-  /* ========== RECORD TYPES (ajustados para dark) ========== */
+  /* ========== RECORD TYPES (Semântica de Registros Diários) ========== */
+  --record-higiene: var(--primary);
+  --record-higiene-foreground: var(--primary-foreground);
 
-  /** Higiene - azul mais claro */
-  --record-higiene: 217.2 91.2% 59.8%;
-  --record-higiene-foreground: 222.2 47.4% 11.2%;
-
-  /** Alimentação */
   --record-alimentacao: var(--success);
   --record-alimentacao-foreground: var(--success-foreground);
 
-  /** Hidratação - cyan ajustado */
-  --record-hidratacao: 189 94% 50%;
-  --record-hidratacao-foreground: 222.2 47.4% 11.2%;
+  --record-hidratacao: 195 85% 58%;
+  --record-hidratacao-foreground: 222 47% 11%;
 
-  /** Monitoramento */
   --record-monitoramento: var(--warning);
   --record-monitoramento-foreground: var(--warning-foreground);
 
-  /** Eliminação - cinza mais claro */
-  --record-eliminacao: 220 9% 55%;
-  --record-eliminacao-foreground: 210 40% 98%;
+  --record-eliminacao: 220 10% 65%;
+  --record-eliminacao-foreground: 222 47% 11%;
 
-  /** Comportamento - roxo ajustado */
-  --record-comportamento: 271 81% 70%;
-  --record-comportamento-foreground: 222.2 47.4% 11.2%;
+  --record-comportamento: 255 45% 70%;
+  --record-comportamento-foreground: 222 47% 11%;
 
-  /** Intercorrência */
   --record-intercorrencia: var(--danger);
   --record-intercorrencia-foreground: var(--danger-foreground);
 
-  /** Atividades - índigo ajustado */
-  --record-atividades: 239 75% 70%;
-  --record-atividades-foreground: 222.2 47.4% 11.2%;
+  --record-atividades: 225 70% 68%;
+  --record-atividades-foreground: 222 47% 11%;
 
-  /** Visita - rosa ajustado */
-  --record-visita: 330 75% 65%;
-  --record-visita-foreground: 222.2 47.4% 11.2%;
+  --record-visita: 340 60% 70%;
+  --record-visita-foreground: 222 47% 11%;
 
-  /** Outros - slate ajustado */
-  --record-outros: 215 20% 70%;
-  --record-outros-foreground: 222.2 47.4% 11.2%;
+  --record-outros: 215 16% 70%;
+  --record-outros-foreground: 222 47% 11%;
 
-  /* ========== SEVERITY (ajustados) ========== */
-
+  /* ========== SEVERITY (Semântica de Severidade) ========== */
   --severity-critical: var(--danger);
   --severity-critical-foreground: var(--danger-foreground);
 
-  /** Laranja ajustado */
-  --severity-warning: 25 95% 58%;
-  --severity-warning-foreground: 222.2 47.4% 11.2%;
+  --severity-warning: 28 90% 62%;
+  --severity-warning-foreground: 222 47% 11%;
 
   --severity-info: var(--info);
   --severity-info-foreground: var(--info-foreground);
 
-  /* ========== MEDICATIONS (ajustados) ========== */
-
-  --medication-controlled: var(--accent);
-  --medication-controlled-foreground: var(--accent-foreground);
+  /* ========== MEDICATIONS (Semântica de Medicamentos) ========== */
+  --medication-controlled: 252 55% 72%;
+  --medication-controlled-foreground: 222 47% 11%;
 
   --medication-sos: var(--severity-warning);
   --medication-sos-foreground: var(--severity-warning-foreground);
@@ -121,41 +111,39 @@
   --medication-high-risk: var(--danger);
   --medication-high-risk-foreground: var(--danger-foreground);
 
-  /* ========== NEUTRAL COLORS (invertidos) ========== */
+  /* ========== NEUTRAL COLORS (UI Base) ========== */
 
-  /** Background escuro */
-  --background: 222.2 84% 4.9%;
+  /** Background principal */
+  --background: 222 47% 8%;
 
-  /** Text claro */
+  /** Texto principal */
   --foreground: 210 40% 98%;
 
-  /** Card com fundo ligeiramente mais claro que o background */
-  --card: 222.2 84% 11%;
+  /** Card background */
+  --card: 222 47% 10%;
   --card-foreground: 210 40% 98%;
 
-  /** Popover */
-  --popover: 222.2 84% 11%;
+  /** Popover background */
+  --popover: 222 47% 10%;
   --popover-foreground: 210 40% 98%;
 
   /** Muted */
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: 217 20% 16%;
+  --muted-foreground: 215 20% 70%;
 
-  /** Border */
-  --border: 217.2 32.6% 17.5%;
+  /** Border padrão (clean, baixo ruído) */
+  --border: 217 20% 18%;
 
-  /** Input */
-  --input: 217.2 32.6% 17.5%;
+  /** Input border */
+  --input: 217 20% 18%;
 
-  /** Ring (focus) */
-  --ring: 217.2 91.2% 59.8%;
+  /** Ring (focus states) */
+  --ring: var(--primary);
 
-  /** Destructive */
+  /** Destructive (compatibilidade shadcn) */
   --destructive: var(--danger);
   --destructive-foreground: var(--danger-foreground);
 
-  /* ========== TOKENS ========== */
-
-  /** Border radius permanece o mesmo */
+  /** Border radius */
   --radius: 1rem;
 }

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { useResidents, useDeleteResident, useResidentStats } from '@/hooks/useResidents'
 import type { Resident } from '@/api/residents.api'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { ResidentDocumentsModal } from '@/components/residents/ResidentDocumentsModal'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -180,9 +182,10 @@ export default function ResidentsList() {
   // Calcular idade
   const calculateAge = (birthDate: string) => {
     const today = new Date()
-     
-    // OK: Usado apenas para cálculo de idade (exibição), não envia dados ao backend
-    const birth = new Date(birthDate)
+
+    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
+    const dayKey = extractDateOnly(birthDate)
+    const birth = new Date(dayKey + 'T12:00:00')
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -229,21 +232,17 @@ export default function ResidentsList() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Residentes</h1>
-          <p className="text-muted-foreground mt-1">Gerencie os residentes da ILPI</p>
-        </div>
-        <Button
-          onClick={() => navigate('/dashboard/residentes/new')}
-          className="flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Novo Residente
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Residentes"
+        subtitle="Gerencie os residentes da ILPI"
+        actions={
+          <Button onClick={() => navigate('/dashboard/residentes/new')}>
+            <Plus className="h-4 w-4" />
+            Novo Residente
+          </Button>
+        }
+      />
 
       {/* Stats Cards */}
       {stats && (
@@ -252,11 +251,11 @@ export default function ResidentsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Total</h3>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">{stats.total}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
+                  <p className="text-2xl font-bold text-primary mt-1">{stats.total}</p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
+                  <Users className="h-6 w-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -266,13 +265,13 @@ export default function ResidentsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Ativos</h3>
-                  <p className="text-2xl font-bold text-green-600 mt-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Ativos</h3>
+                  <p className="text-2xl font-bold text-success mt-1">
                     {stats.ativos}
                   </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-green-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
+                  <UserCheck className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
@@ -282,13 +281,13 @@ export default function ResidentsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Inativos</h3>
-                  <p className="text-2xl font-bold text-orange-600 mt-1">
+                  <h3 className="text-sm font-medium text-muted-foreground">Inativos</h3>
+                  <p className="text-2xl font-bold text-severity-warning mt-1">
                     {stats.inativos}
                   </p>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
-                  <UserX className="h-6 w-6 text-orange-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
+                  <UserX className="h-6 w-6 text-severity-warning" />
                 </div>
               </div>
             </CardContent>
@@ -298,21 +297,21 @@ export default function ResidentsList() {
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600">Grau de Dependência</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Grau de Dependência</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 text-xs px-2 py-0.5">
+                    <Badge className="bg-primary/10 text-primary/80 border-primary/30 hover:bg-primary/10 text-xs px-2 py-0.5">
                       I - {stats.grauI}
                     </Badge>
-                    <Badge className="bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100 text-xs px-2 py-0.5">
+                    <Badge className="bg-severity-warning/10 text-severity-warning/80 border-severity-warning/30 hover:bg-severity-warning/10 text-xs px-2 py-0.5">
                       II - {stats.grauII}
                     </Badge>
-                    <Badge className="bg-red-100 text-red-700 border-red-200 hover:bg-red-100 text-xs px-2 py-0.5">
+                    <Badge className="bg-danger/10 text-danger/80 border-danger/30 hover:bg-danger/10 text-xs px-2 py-0.5">
                       III - {stats.grauIII}
                     </Badge>
                   </div>
                 </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
-                  <Accessibility className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
+                  <Accessibility className="h-6 w-6 text-medication-controlled" />
                 </div>
               </div>
             </CardContent>
@@ -321,9 +320,8 @@ export default function ResidentsList() {
       )}
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-4 items-end">
+      <Section title="Filtros">
+        <div className="flex gap-4 items-end">
             <div className="flex-1">
               <Label htmlFor="search">Buscar</Label>
               <div className="relative">
@@ -364,34 +362,40 @@ export default function ResidentsList() {
             <Button onClick={handleClearFilters} variant="outline">
               Limpar
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Section>
 
       {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-muted-foreground">Carregando...</div>
-            </div>
-          ) : error ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="text-danger">Erro ao carregar residentes</div>
-            </div>
-          ) : residents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-3">
-              <Users className="h-12 w-12 text-muted" />
-              <div className="text-muted-foreground">Nenhum residente encontrado</div>
+      <Section title="Lista de Residentes">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-muted-foreground">Carregando...</div>
+          </div>
+        ) : error ? (
+          <EmptyState
+            icon={Users}
+            title="Erro ao carregar residentes"
+            description="Ocorreu um erro ao buscar os residentes. Tente novamente."
+            variant="error"
+          />
+        ) : residents.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="Nenhum residente encontrado"
+            description="Comece cadastrando o primeiro residente da instituição"
+            action={
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/dashboard/residentes/new')}
               >
+                <Plus className="h-4 w-4 mr-2" />
                 Adicionar primeiro residente
               </Button>
-            </div>
-          ) : (
+            }
+          />
+        ) : (
+          <div className="rounded-md border">{/* Wrapper for table with border */}
             <>
               <Table>
                 <TableHeader>
@@ -544,9 +548,9 @@ export default function ResidentsList() {
                 </div>
               )}
             </>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </Section>
 
       {/* Delete Confirmation Modal */}
       <AlertDialog
@@ -570,11 +574,11 @@ export default function ResidentsList() {
 
           {/* Campo de Motivo da Exclusão - Obrigatório (RDC 502/2021) */}
           <div className="space-y-3 py-4">
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-2">
+            <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4">
+              <p className="text-sm text-warning/90 dark:text-warning/20 font-medium mb-2">
                 ⚠️ Atenção: Remoção Permanente
               </p>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              <p className="text-sm text-warning/80 dark:text-warning/30">
                 Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo da remoção do prontuário.
                 Esta ação ficará registrada permanentemente no histórico de auditoria.
               </p>
@@ -644,6 +648,6 @@ export default function ResidentsList() {
           residentName={documentsModal.residentName || 'Residente'}
         />
       )}
-    </div>
+    </Page>
   )
 }
