@@ -13,6 +13,7 @@ import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
+import { Page, PageHeader, Section } from '@/design-system/components'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -119,44 +120,40 @@ export default function Dashboard() {
   ]
 
   return (
-    <div>
-      {/* Welcome Section */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">
-          Bem-vindo de volta, {user?.name?.split(' ')[0]}!
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          Aqui está um resumo das atividades de hoje
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={`Bem-vindo de volta, ${user?.name?.split(' ')[0]}!`}
+        subtitle="Aqui está um resumo das atividades de hoje"
+      />
 
       {/* Busca Universal */}
       <UniversalSearch />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">{stat.title}</h3>
-                  <p className={`text-2xl font-bold ${stat.valueColor} mt-1`}>
-                    {stat.value}
-                  </p>
+      <Section title="Estatísticas">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((stat) => (
+            <Card key={stat.title}>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">{stat.title}</h3>
+                    <p className={`text-2xl font-bold ${stat.valueColor} mt-1`}>
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className={`flex items-center justify-center w-12 h-12 ${stat.iconBg} rounded-lg`}>
+                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                  </div>
                 </div>
-                <div className={`flex items-center justify-center w-12 h-12 ${stat.iconBg} rounded-lg`}>
-                  <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </Section>
 
       {/* Quick Actions */}
-      <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4">Ações Rápidas</h3>
+      <Section title="Ações Rápidas">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map((action) => (
             <Button
@@ -181,10 +178,10 @@ export default function Dashboard() {
             </Button>
           ))}
         </div>
-      </div>
+      </Section>
 
       {/* Activities Grid - Recent & Pending */}
-      <div className="mt-8">
+      <Section title="Atividades Recentes">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Activity */}
           <RecentActivity />
@@ -192,7 +189,7 @@ export default function Dashboard() {
           {/* Pending Activities */}
           <PendingActivities />
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   )
 }

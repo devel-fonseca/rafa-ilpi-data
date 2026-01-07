@@ -3,6 +3,7 @@ import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { OperationalComplianceSection } from '@/components/admin/OperationalComplianceSection'
 import { PlanStatusSection } from '@/components/admin/PlanStatusSection'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
+import { Page, PageHeader } from '@/design-system/components'
 
 export function AdminDashboard() {
   const { user } = useAuthStore()
@@ -10,32 +11,23 @@ export function AdminDashboard() {
   const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
 
   return (
-    <div>
-      {/* Header com boas-vindas */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">
-          Bem-vindo, {user?.name?.split(' ')[0]}!
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          Painel Administrativo - {new Date().toLocaleDateString('pt-BR')}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
+        subtitle={`Painel Administrativo - ${new Date().toLocaleDateString('pt-BR')}`}
+      />
 
       {/* Busca Universal */}
       <UniversalSearch />
 
       {/* Seção de Compliance Operacional */}
-      <div className="mt-6">
-        <OperationalComplianceSection
-          stats={complianceStats}
-          isLoading={isLoadingCompliance}
-        />
-      </div>
+      <OperationalComplianceSection
+        stats={complianceStats}
+        isLoading={isLoadingCompliance}
+      />
 
       {/* Plan Status Section */}
-      <div className="mt-6">
-        <PlanStatusSection />
-      </div>
-    </div>
+      <PlanStatusSection />
+    </Page>
   )
 }

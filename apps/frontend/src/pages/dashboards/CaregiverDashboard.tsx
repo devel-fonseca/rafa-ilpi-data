@@ -17,6 +17,7 @@ import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 // Modais de registro (reutilizando de DailyRecordsPage)
 import { HigieneModal } from '@/pages/daily-records/modals/HigieneModal'
@@ -127,12 +128,18 @@ export function CaregiverDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Carregando tarefas do dia...</p>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
+          subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando tarefas do dia..."
+          description="Aguarde enquanto buscamos suas tarefas"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
@@ -142,22 +149,23 @@ export function CaregiverDashboard() {
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Erro ao carregar tarefas</AlertTitle>
-        <AlertDescription>
-          {(error as Error).message ||
-            'Não foi possível carregar as tarefas. Tente novamente.'}
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            size="sm"
-            className="mt-2"
-          >
-            Tentar novamente
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <Page>
+        <PageHeader
+          title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
+          subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
+        />
+        <EmptyState
+          icon={AlertTriangle}
+          title="Erro ao carregar tarefas"
+          description={(error as Error).message || 'Não foi possível carregar as tarefas. Tente novamente.'}
+          variant="error"
+          action={
+            <Button onClick={() => refetch()} variant="outline" size="sm">
+              Tentar novamente
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
@@ -167,30 +175,18 @@ export function CaregiverDashboard() {
 
   if (!data || data.stats.totalPending === 0) {
     return (
-      <div>
-        {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-foreground">
-            Bem-vindo, {user?.name?.split(' ')[0]}!
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Tarefas do dia - {new Date().toLocaleDateString('pt-BR')}
-          </p>
-        </div>
-
-        {/* Empty State */}
-        <Card>
-          <CardContent className="text-center py-12">
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-success" />
-            <h3 className="text-lg font-semibold mb-2">
-              Todas as tarefas concluídas!
-            </h3>
-            <p className="text-muted-foreground">
-              Não há tarefas pendentes no momento.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Page>
+        <PageHeader
+          title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
+          subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
+        />
+        <EmptyState
+          icon={CheckCircle2}
+          title="Todas as tarefas concluídas!"
+          description="Não há tarefas pendentes no momento."
+          variant="success"
+        />
+      </Page>
     )
   }
 
@@ -199,16 +195,11 @@ export function CaregiverDashboard() {
   // ──────────────────────────────────────────────────────────────────────
 
   return (
-    <div>
-      {/* Header com boas-vindas */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">
-          Bem-vindo, {user?.name?.split(' ')[0]}!
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          Tarefas do dia - {new Date().toLocaleDateString('pt-BR')}
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
+        subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
+      />
 
       {/* Busca Universal */}
       <UniversalSearch
@@ -218,54 +209,58 @@ export function CaregiverDashboard() {
       />
 
       {/* Cards de estatísticas */}
-      <div className="mt-6 mb-6">
+      <Section title="Estatísticas do Dia">
         <CaregiverStatsCards stats={data.stats} isLoading={isLoading} />
-      </div>
+      </Section>
 
       {/* Grid principal: Tarefas (50%) + Medicações (50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Coluna 1: Tarefas */}
-        <div>
-          <TasksSection
-            title="Tarefas"
-            tasks={data.recurringTasks}
-            onRegister={(residentId, recordType, mealType) => {
-              // Buscar nome do residente
-              const task = data.recurringTasks.find(
-                (t) => t.residentId === residentId,
-              )
-              const residentName = task?.residentName || 'Residente'
-              handleOpenModal(residentId, residentName, recordType, mealType)
-            }}
-            onViewResident={(residentId) => setSelectedResidentId(residentId)}
-            isLoading={isLoading}
-          />
-        </div>
+      <Section title="Tarefas Pendentes">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Coluna 1: Tarefas */}
+          <div>
+            <TasksSection
+              title="Tarefas"
+              tasks={data.recurringTasks}
+              onRegister={(residentId, recordType, mealType) => {
+                // Buscar nome do residente
+                const task = data.recurringTasks.find(
+                  (t) => t.residentId === residentId,
+                )
+                const residentName = task?.residentName || 'Residente'
+                handleOpenModal(residentId, residentName, recordType, mealType)
+              }}
+              onViewResident={(residentId) => setSelectedResidentId(residentId)}
+              isLoading={isLoading}
+            />
+          </div>
 
-        {/* Coluna 2: Medicações */}
-        <div>
-          <MedicationsSection
-            title="Medicações"
-            medications={data.medications}
-            onViewResident={(residentId) => setSelectedResidentId(residentId)}
-            onAdministerMedication={handleAdministerMedication}
-            isLoading={isLoading}
-          />
+          {/* Coluna 2: Medicações */}
+          <div>
+            <MedicationsSection
+              title="Medicações"
+              medications={data.medications}
+              onViewResident={(residentId) => setSelectedResidentId(residentId)}
+              onAdministerMedication={handleAdministerMedication}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
-      </div>
+      </Section>
 
       {/* Seção: Agendamentos Pontuais (full width) */}
-      <EventsSection
-        title="Agendamentos de Hoje"
-        events={data.scheduledEvents}
-        onViewResident={(residentId) => setSelectedResidentId(residentId)}
-        isLoading={isLoading}
-      />
+      <Section title="Agendamentos de Hoje">
+        <EventsSection
+          title="Eventos"
+          events={data.scheduledEvents}
+          onViewResident={(residentId) => setSelectedResidentId(residentId)}
+          isLoading={isLoading}
+        />
+      </Section>
 
       {/* Seção: Atividades Recentes (full width) */}
-      <div className="mt-6">
+      <Section title="Atividades Recentes">
         <RecentActivity />
-      </div>
+      </Section>
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (
@@ -445,6 +440,6 @@ export function CaregiverDashboard() {
           medication={selectedMedication}
         />
       )}
-    </div>
+    </Page>
   )
 }
