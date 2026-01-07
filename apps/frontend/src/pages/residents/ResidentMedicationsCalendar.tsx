@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentMedicationDates } from '@/hooks/useResidentMedicationDates'
+import { Page, PageHeader } from '@/design-system/components'
 
 export default function ResidentMedicationsCalendar() {
   const { id } = useParams()
@@ -63,22 +64,12 @@ export default function ResidentMedicationsCalendar() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(`/dashboard/residentes/${id}`)}
-          className="h-10 w-10 p-0"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{resident?.fullName || 'Residente'}</h1>
-          <p className="text-sm text-muted-foreground">Calendário de Medicações</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={resident?.fullName || 'Residente'}
+        subtitle="Calendário de Medicações"
+        onBack={() => navigate(`/dashboard/residentes/${id}`)}
+      />
 
       {/* Layout 2 colunas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -234,6 +225,6 @@ export default function ResidentMedicationsCalendar() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </Page>
   )
 }
