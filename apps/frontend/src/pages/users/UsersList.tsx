@@ -92,6 +92,7 @@ import { UserWithProfile, UserPermissions } from "@/types/user";
 import { PositionCodeSelector } from "@/components/users/PositionCodeSelector";
 import { PermissionsManager } from "@/components/users/PermissionsManager";
 import { getErrorMessage } from '@/utils/errorHandling'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function UsersList() {
   const navigate = useNavigate();
@@ -289,38 +290,37 @@ export default function UsersList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Page>
+        <PageHeader
+          title="Gerenciamento de Usuários e Permissões"
+          subtitle="Carregando informações..."
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando usuários..."
+          description="Aguarde enquanto buscamos os dados"
+          variant="loading"
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8" />
-            Gerenciamento de Usuários e Permissões
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie usuários, cargos e permissões customizadas
-          </p>
-        </div>
-        <Button onClick={() => navigate('/dashboard/usuarios/new')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Usuário
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        title="Gerenciamento de Usuários e Permissões"
+        subtitle="Gerencie usuários, cargos e permissões customizadas"
+        actions={
+          <Button onClick={() => navigate('/dashboard/usuarios/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Usuário
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuários ({users.length})</CardTitle>
-          <CardDescription>
-            Lista de todos os usuários cadastrados com seus cargos e permissões
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Section title={`Usuários (${users.length})`}>
+        <Card>
+          <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -458,14 +458,23 @@ export default function UsersList() {
               })}
             </TableBody>
           </Table>
+          </CardContent>
+        </Card>
 
-          {users.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum usuário encontrado
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {users.length === 0 && (
+          <EmptyState
+            icon={Shield}
+            title="Nenhum usuário encontrado"
+            description="Não há usuários cadastrados no sistema ainda"
+            action={
+              <Button onClick={() => navigate('/dashboard/usuarios/new')}>
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar Primeiro Usuário
+              </Button>
+            }
+          />
+        )}
+      </Section>
 
       {/* Modal Gerenciar Permissões */}
       <Dialog
@@ -605,6 +614,6 @@ export default function UsersList() {
           setHistoryDrawer({ open, userId: null, userName: undefined })
         }
       />
-    </div>
+    </Page>
   );
 }
