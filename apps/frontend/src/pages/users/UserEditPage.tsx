@@ -22,6 +22,7 @@ import { getMensagemValidacaoCPF } from '@/utils/validators'
 import { getTenantUsers, getAllUserProfiles, updateUserProfile, createUserProfile } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
+import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function UserEditPage() {
   const navigate = useNavigate()
@@ -213,36 +214,44 @@ export default function UserEditPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <Page>
+        <PageHeader
+          title="Editar Usuário"
+          subtitle="Carregando informações..."
+          onBack={() => navigate('/dashboard/usuarios')}
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando dados do usuário..."
+          description="Aguarde enquanto buscamos as informações"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/dashboard/usuarios')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para Lista de Usuários
-        </Button>
-
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Save className="h-6 w-6 text-primary" />
+    <Page maxWidth="narrow">
+      <PageHeader
+        title="Editar Usuário"
+        subtitle="Atualize as informações do perfil do usuário"
+        onBack={() => navigate('/dashboard/usuarios')}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar Alterações
+            </Button>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Editar Usuário</h1>
-            <p className="text-muted-foreground">
-              Atualize as informações do perfil do usuário
-            </p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Seção 1: Dados Básicos (Read-only) */}
@@ -502,25 +511,7 @@ export default function UserEditPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Separator />
-
-        {/* Botões de Ação */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar Alterações
-          </Button>
-        </div>
       </form>
-    </div>
+    </Page>
   )
 }
