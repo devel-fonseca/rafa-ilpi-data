@@ -12,6 +12,7 @@ import { useReactToPrint } from 'react-to-print'
 import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
 import { SignatureFooter } from '@/components/print/SignatureFooter'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 // Mapeamento de vias de administração
 const ROUTE_LABELS: Record<string, string> = {
@@ -73,24 +74,41 @@ export default function ActiveMedicationsPage() {
 
   if (isLoadingResident || isLoadingPrescriptions) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-muted-foreground">Carregando medicações...</span>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Ficha de Medicações Ativas"
+          subtitle="Carregando informações..."
+          onBack={() => navigate('/dashboard/residentes')}
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando medicações..."
+          description="Aguarde enquanto buscamos os dados"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (!residentData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">Residente não encontrado</p>
-        <Button onClick={() => navigate('/dashboard/residentes')}>
-          Voltar para Residentes
-        </Button>
-      </div>
+      <Page>
+        <PageHeader
+          title="Ficha de Medicações Ativas"
+          subtitle="Residente não encontrado"
+          onBack={() => navigate('/dashboard/residentes')}
+        />
+        <EmptyState
+          icon={AlertCircle}
+          title="Residente não encontrado"
+          description="O residente que você está procurando não existe ou foi removido."
+          action={
+            <Button onClick={() => navigate('/dashboard/residentes')}>
+              Voltar para Residentes
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
@@ -144,52 +162,38 @@ export default function ActiveMedicationsPage() {
   const hasMedications = allMedications.length > 0
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-semibold text-foreground">
-            Ficha de Medicações Ativas
-          </h1>
-          <p className="text-muted-foreground mt-1">{residentData.fullName}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/dashboard/residentes/${residentId}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          {hasMedications && (
+    <Page>
+      <PageHeader
+        title="Ficha de Medicações Ativas"
+        subtitle={residentData.fullName}
+        onBack={() => navigate(`/dashboard/residentes/${residentId}`)}
+        actions={
+          hasMedications && (
             <Button onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
               Imprimir Ficha
             </Button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Visualização na Tela */}
       {!hasMedications ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 space-y-3">
-            <Pill className="h-12 w-12 text-muted-foreground/40" />
-            <div className="text-muted-foreground">
-              Nenhuma medicação ativa encontrada
-            </div>
+        <EmptyState
+          icon={Pill}
+          title="Nenhuma medicação ativa encontrada"
+          description="Não há medicações ativas para este residente no momento"
+          action={
             <Button
               variant="outline"
-              size="sm"
               onClick={() => navigate('/dashboard/prescricoes/new')}
             >
               Criar prescrição
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
-        <>
-          {/* Tabela de Medicações - Agrupadas por Horário */}
+        <Section title="Medicações por Horário">
           {sortedTimes.map((time) => (
             <Card key={time} className="mb-4">
                 <CardHeader className="pb-3">
@@ -276,7 +280,7 @@ export default function ActiveMedicationsPage() {
                 </CardContent>
               </Card>
             ))}
-        </>
+        </Section>
       )}
 
       {/* Área de Impressão (oculta na tela, visível apenas ao imprimir) */}
@@ -368,6 +372,6 @@ export default function ActiveMedicationsPage() {
           }
         }
       `}</style>
-    </div>
+    </Page>
   )
 }
