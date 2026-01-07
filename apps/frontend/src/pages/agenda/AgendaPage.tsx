@@ -16,6 +16,7 @@ import { useAgendaItems, useInstitutionalEvents, useInstitutionalEventMutations 
 import { usePrescriptionsForCalendar } from '@/hooks/usePrescriptions'
 import { ViewType, ScopeType, ContentFilterType, StatusFilterType, PrescriptionFilterType } from '@/types/agenda'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { Page, PageHeader, Section } from '@/design-system/components'
 
 const STORAGE_KEY = 'agenda-preferences'
 
@@ -126,34 +127,34 @@ export default function AgendaPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Agenda</h1>
-        <p className="text-muted-foreground">
-          Visualize medicamentos, agendamentos e registros obrigatórios
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title="Agenda"
+        subtitle="Visualize medicamentos, agendamentos e registros obrigatórios"
+      />
 
       {/* Filtros */}
-      <Card className="p-4">
-        <AgendaFilters
-          scope={scope}
-          residentId={residentId}
-          contentFilters={contentFilters}
-          onScopeChange={(newScope) => {
-            setScope(newScope)
-            if (newScope === 'general' || newScope === 'institutional') {
-              setResidentId(null)
-            }
-          }}
-          onResidentChange={setResidentId}
-          onContentFiltersChange={setContentFilters}
-        />
-      </Card>
+      <Section title="Filtros">
+        <Card className="p-4">
+          <AgendaFilters
+            scope={scope}
+            residentId={residentId}
+            contentFilters={contentFilters}
+            onScopeChange={(newScope) => {
+              setScope(newScope)
+              if (newScope === 'general' || newScope === 'institutional') {
+                setResidentId(null)
+              }
+            }}
+            onResidentChange={setResidentId}
+            onContentFiltersChange={setContentFilters}
+          />
+        </Card>
+      </Section>
 
-      {/* Navegação de Data */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Navegação de Data e Visualização */}
+      <Section title="Visualização">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handlePrevDay}>
             <ChevronLeft className="h-4 w-4" />
@@ -209,10 +210,9 @@ export default function AgendaPage() {
             </Button>
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Visualização */}
-      <div>
+        {/* Conteúdo da Visualização */}
         {/* Visualização de Prescrições (scope específico) */}
         {scope === 'prescriptions' && (
           <PrescriptionsView
@@ -256,7 +256,7 @@ export default function AgendaPage() {
             )}
           </>
         )}
-      </div>
+      </Section>
 
       {/* Modal de Criar/Editar Evento Institucional */}
       <InstitutionalEventModal
@@ -265,6 +265,6 @@ export default function AgendaPage() {
         onSubmit={handleCreateEvent}
         initialDate={selectedDate}
       />
-    </div>
+    </Page>
   )
 }
