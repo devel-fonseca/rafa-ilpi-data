@@ -867,14 +867,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     }
   }
 
-  const handleReset = () => {
-    if (isEditMode) {
-      // Modo edição: cancela e volta para a lista
-      navigate('/dashboard/residentes')
-    } else {
-      // Modo criação: recarrega a página para limpar o formulário
-      window.location.reload()
-    }
+  const handleCancel = () => {
+    // Cancelar e voltar para a lista
+    navigate('/dashboard/residentes')
+  }
+
+  const handleClearForm = () => {
+    // Limpar o formulário (recarrega a página)
+    window.location.reload()
   }
 
   const handleVoltar = () => {
@@ -2060,15 +2060,29 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 : (isEditMode ? 'Atualizar Residente' : 'Salvar Residente')
               }
             </Button>
+
             <Button
               type="button"
               variant="outline"
-              onClick={handleReset}
+              onClick={handleCancel}
               disabled={isUploading}
-            className="px-8 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isEditMode ? 'Cancelar' : 'Limpar'}
-          </Button>
+              className="px-8 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancelar
+            </Button>
+
+            {/* Limpar Formulário: apenas no modo criação */}
+            {!isEditMode && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleClearForm}
+                disabled={isUploading}
+                className="px-8 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Limpar Formulário
+              </Button>
+            )}
           </div>
         )}
       </form>
