@@ -401,12 +401,12 @@ export default function PrescriptionsList() {
 
       {/* Table */}
       <Section title={`Prescrições (${meta?.total || 0})`}>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-          ) : prescriptions && prescriptions.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
+        {isLoading ? (
+          <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+        ) : prescriptions && prescriptions.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Residente</TableHead>
@@ -624,8 +624,7 @@ export default function PrescriptionsList() {
               Nenhuma prescrição encontrada
             </div>
           )}
-        </CardContent>
-      </Card>
+      </Section>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteModal.open} onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}>
@@ -656,7 +655,6 @@ export default function PrescriptionsList() {
           onClose={() => setReviewModal({ open: false, prescription: null })}
         />
       )}
-      </Section>
     </Page>
   )
 }
