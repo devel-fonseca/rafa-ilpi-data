@@ -8,7 +8,6 @@ import {
   IsBoolean,
   IsNumber,
   IsArray,
-  IsDateString,
   ValidateNested,
   IsUUID,
   ArrayMinSize,
@@ -16,6 +15,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 // Helper para transformar string vazia em undefined
 const EmptyToUndefined = () => Transform(({ value }) => value === '' ? undefined : value);
@@ -44,8 +44,8 @@ class MedicalReportDto {
   @IsNotEmpty()
   url: string;
 
-  @ApiProperty({ example: '2025-01-15T00:00:00.000Z' })
-  @IsDateString()
+  @ApiProperty({ example: '2025-01-15' })
+  @IsDateOnly()
   @IsNotEmpty()
   date: string;
 }
@@ -140,8 +140,8 @@ export class CreateResidentDto {
   @IsString()
   religion?: string;
 
-  @ApiProperty({ example: '1950-01-15T00:00:00.000Z' })
-  @IsDateString()
+  @ApiProperty({ example: '1950-01-15' })
+  @IsDateOnly()
   @IsNotEmpty()
   birthDate: string;
 
@@ -327,8 +327,8 @@ export class CreateResidentDto {
   legalGuardianDistrict?: string;
 
   // 5. Admissão
-  @ApiProperty({ example: '2025-01-15T00:00:00.000Z' })
-  @IsDateString()
+  @ApiProperty({ example: '2025-01-15' })
+  @IsDateOnly()
   @IsNotEmpty()
   admissionDate: string;
 
@@ -348,10 +348,10 @@ export class CreateResidentDto {
   @IsString()
   admissionConditions?: string;
 
-  @ApiProperty({ example: '2025-12-31T00:00:00.000Z', required: false })
+  @ApiProperty({ example: '2025-12-31', required: false })
   @EmptyToUndefined()
   @IsOptional()
-  @IsDateString()
+  @IsDateOnly()
   dischargeDate?: string | null;
 
   @ApiProperty({ example: 'Retorno à família', required: false })

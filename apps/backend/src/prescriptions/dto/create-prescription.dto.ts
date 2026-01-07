@@ -3,7 +3,6 @@ import {
   IsString,
   IsNotEmpty,
   IsEnum,
-  IsDateString,
   IsOptional,
   IsArray,
   ValidateNested,
@@ -12,6 +11,7 @@ import {
 import { Type } from 'class-transformer';
 import { CreateMedicationDto } from './create-medication.dto';
 import { CreateSOSMedicationDto } from './create-sos-medication.dto';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 export class CreatePrescriptionDto {
   @ApiProperty({ description: 'ID do residente', example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -35,7 +35,7 @@ export class CreatePrescriptionDto {
   doctorCrmState: string;
 
   @ApiProperty({ description: 'Data da prescrição (YYYY-MM-DD)', example: '2025-11-17' })
-  @IsDateString()
+  @IsDateOnly()
   @IsNotEmpty()
   prescriptionDate: string;
 
@@ -53,7 +53,7 @@ export class CreatePrescriptionDto {
     example: '2025-12-17',
     required: false,
   })
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   validUntil?: string;
 
@@ -62,7 +62,7 @@ export class CreatePrescriptionDto {
     example: '2025-12-17',
     required: false,
   })
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   reviewDate?: string;
 

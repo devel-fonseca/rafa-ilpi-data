@@ -1,5 +1,6 @@
-import { IsOptional, IsString, IsEnum, IsNumberString, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsNumberString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 export class QueryResidentDto {
   @ApiPropertyOptional({ description: 'Buscar por nome (parcial)' })
@@ -17,14 +18,14 @@ export class QueryResidentDto {
   @IsString()
   gender?: string;
 
-  @ApiPropertyOptional({ description: 'Data de admissão inicial (ISO 8601)' })
+  @ApiPropertyOptional({ description: 'Data de admissão inicial (YYYY-MM-DD)' })
   @IsOptional()
-  @IsDateString()
+  @IsDateOnly()
   dataAdmissaoInicio?: string;
 
-  @ApiPropertyOptional({ description: 'Data de admissão final (ISO 8601)' })
+  @ApiPropertyOptional({ description: 'Data de admissão final (YYYY-MM-DD)' })
   @IsOptional()
-  @IsDateString()
+  @IsDateOnly()
   dataAdmissaoFim?: string;
 
   @ApiPropertyOptional({ description: 'Idade mínima' })

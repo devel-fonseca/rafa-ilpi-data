@@ -3,17 +3,16 @@ import {
   IsEnum,
   IsOptional,
   IsBoolean,
-  IsDate,
   IsObject,
   Matches,
   ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   InstitutionalEventType,
   InstitutionalEventVisibility,
   ScheduledEventStatus,
 } from '@prisma/client';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 export class CreateInstitutionalEventDto {
   @IsEnum(InstitutionalEventType)
@@ -30,9 +29,8 @@ export class CreateInstitutionalEventDto {
   @IsString()
   description?: string;
 
-  @Type(() => Date)
-  @IsDate()
-  scheduledDate: Date;
+  @IsDateOnly()
+  scheduledDate: string;
 
   @IsOptional()
   @IsString()
@@ -63,9 +61,8 @@ export class CreateInstitutionalEventDto {
   documentNumber?: string;
 
   @ValidateIf((o) => o.eventType === InstitutionalEventType.DOCUMENT_EXPIRY)
-  @Type(() => Date)
-  @IsDate()
-  expiryDate?: Date;
+  @IsDateOnly()
+  expiryDate?: string;
 
   @IsOptional()
   @IsString()

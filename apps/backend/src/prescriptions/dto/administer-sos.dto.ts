@@ -2,11 +2,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
-  IsDateString,
   IsOptional,
   IsUUID,
   Matches,
 } from 'class-validator';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 export class AdministerSOSDto {
   @ApiProperty({ description: 'ID da medicação SOS', example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -15,7 +15,7 @@ export class AdministerSOSDto {
   sosMedicationId: string;
 
   @ApiProperty({ description: 'Data da administração (YYYY-MM-DD)', example: '2025-11-17' })
-  @IsDateString()
+  @IsDateOnly()
   @IsNotEmpty()
   date: string;
 

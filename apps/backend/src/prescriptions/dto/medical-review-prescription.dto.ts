@@ -1,5 +1,4 @@
 import {
-  IsDateString,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -7,13 +6,14 @@ import {
   MinLength,
 } from 'class-validator'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsDateOnly } from '../../common/validators/date.validators'
 
 export class MedicalReviewPrescriptionDto {
   @ApiProperty({
     description: 'Data da consulta médica (YYYY-MM-DD)',
     example: '2026-01-05',
   })
-  @IsDateString()
+  @IsDateOnly()
   @IsNotEmpty()
   medicalReviewDate: string
 
@@ -46,7 +46,7 @@ export class MedicalReviewPrescriptionDto {
     description: 'Nova data de revisão (YYYY-MM-DD)',
     example: '2026-04-05',
   })
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   newReviewDate?: string
 

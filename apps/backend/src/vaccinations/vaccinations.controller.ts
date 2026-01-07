@@ -22,15 +22,16 @@ import { VaccinationsService } from './vaccinations.service'
 import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
 import { DeleteVaccinationDto } from './dto/delete-vaccination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 @ApiTags('Vaccinations')
 @ApiBearerAuth()
 @Controller('vaccinations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('VACCINATION')
 export class VaccinationsController {
   constructor(private readonly vaccinationsService: VaccinationsService) {}
@@ -39,7 +40,7 @@ export class VaccinationsController {
    * Criar novo registro de vacinação
    */
   @Post()
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.CREATE_VACCINATIONS)
   @AuditAction('CREATE')
   @ApiOperation({ summary: 'Registrar nova vacinação' })
   @ApiResponse({ status: 201, description: 'Vacinação registrada com sucesso' })
@@ -89,7 +90,7 @@ export class VaccinationsController {
    * Atualizar registro de vacinação
    */
   @Patch(':id')
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.UPDATE_VACCINATIONS)
   @AuditAction('UPDATE')
   @ApiOperation({ summary: 'Atualizar vacinação' })
   @ApiResponse({ status: 200, description: 'Vacinação atualizada com sucesso' })
@@ -109,7 +110,7 @@ export class VaccinationsController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles('admin', 'user')
+  @RequirePermissions(PermissionType.DELETE_VACCINATIONS)
   @AuditAction('DELETE')
   @ApiOperation({
     summary: 'Remover vacinação',

@@ -4,6 +4,7 @@ import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/ge
 import { AgendaItem, AgendaItemType } from './interfaces/agenda-item.interface';
 import { parseISO, startOfDay, endOfDay, isWithinInterval, eachDayOfInterval, format, isPast, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
+import { formatDateOnly } from '../utils/date.helpers';
 
 @Injectable()
 export class AgendaService {
@@ -194,13 +195,16 @@ export class AgendaService {
         if (scheduledTimes && Array.isArray(scheduledTimes) && scheduledTimes.length > 0) {
           // Para cada dia do intervalo
           for (const currentDay of daysInRange) {
-            // Verificar se a medicação está ativa neste dia específico
-            const medicationStartDate = startOfDay(medication.startDate);
-            const medicationEndDate = medication.endDate ? startOfDay(medication.endDate) : null;
-            const currentDayStart = startOfDay(currentDay);
+            // ✅ Comparar datas em formato YYYY-MM-DD para evitar timezone shift
+            const medicationStartStr = formatDateOnly(medication.startDate);
+            const medicationEndStr = medication.endDate ? formatDateOnly(medication.endDate) : null;
+            const currentDayStr = format(currentDay, 'yyyy-MM-dd');
 
-            if (currentDayStart < medicationStartDate) continue;
-            if (medicationEndDate && currentDayStart > medicationEndDate) continue;
+            // Comparação de strings YYYY-MM-DD (timezone-safe)
+            if (currentDayStr < medicationStartStr) continue;
+            if (medicationEndStr && currentDayStr > medicationEndStr) continue;
+
+            const currentDayStart = startOfDay(currentDay);
 
             const isPastDay = currentDayStart < today;
 

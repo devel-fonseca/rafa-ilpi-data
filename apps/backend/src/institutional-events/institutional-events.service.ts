@@ -52,7 +52,7 @@ export class InstitutionalEventsService {
         visibility: dto.visibility ?? InstitutionalEventVisibility.ALL_USERS,
         title: dto.title,
         description: dto.description,
-        scheduledDate: dto.scheduledDate,
+        scheduledDate: new Date(dto.scheduledDate),
         scheduledTime: dto.scheduledTime,
         allDay: dto.allDay ?? false,
         status: dto.status ?? ScheduledEventStatus.SCHEDULED,
@@ -60,7 +60,7 @@ export class InstitutionalEventsService {
         // Campos específicos para documentos
         documentType: dto.documentType,
         documentNumber: dto.documentNumber,
-        expiryDate: dto.expiryDate,
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
         responsible: dto.responsible,
         // Campos específicos para treinamentos
         trainingTopic: dto.trainingTopic,
@@ -233,7 +233,7 @@ export class InstitutionalEventsService {
         visibility: dto.visibility,
         title: dto.title,
         description: dto.description,
-        scheduledDate: dto.scheduledDate,
+        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
         scheduledTime: dto.scheduledTime,
         allDay: dto.allDay,
         status: dto.status,
@@ -242,7 +242,7 @@ export class InstitutionalEventsService {
         // Campos específicos para documentos
         documentType: dto.documentType,
         documentNumber: dto.documentNumber,
-        expiryDate: dto.expiryDate,
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
         responsible: dto.responsible,
         // Campos específicos para treinamentos
         trainingTopic: dto.trainingTopic,

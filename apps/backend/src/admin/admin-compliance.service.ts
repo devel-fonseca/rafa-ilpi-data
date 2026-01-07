@@ -1,6 +1,7 @@
 import { Injectable, Inject, Scope } from '@nestjs/common'
 import { REQUEST } from '@nestjs/core'
 import { PrismaService } from '../prisma/prisma.service'
+import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers'
 
 interface ComplianceStats {
   activeResidents: number
@@ -24,11 +25,19 @@ export class AdminComplianceService {
 
   async getTodayCompliance(): Promise<ComplianceStats> {
     const tenantId = this.request.user?.tenantId
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
 
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    // Buscar timezone do tenant
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+    // Obter data HOJE no timezone do tenant (timezone-safe)
+    const todayStr = getCurrentDateInTz(timezone)
+
+    // Obter range do dia ATUAL (00:00 até 23:59:59.999) no timezone do tenant
+    const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone)
 
     // 1. Contar residentes ativos
     const activeResidents = await this.prisma.resident.count({

@@ -4,6 +4,8 @@ import { FilesService } from '../files/files.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto, UpdateTenantDto } from './dto'
 import { DocumentStatus } from '@prisma/client'
 import { getRequiredDocuments, getDocumentLabel, isAllowedFileType, MAX_FILE_SIZE } from './config/document-requirements.config'
+import { getCurrentDateInTz } from '../utils/date.helpers'
+import { formatDateOnly } from '../utils/date.helpers'
 
 @Injectable()
 export class InstitutionalProfileService {
@@ -332,8 +334,15 @@ export class InstitutionalProfileService {
       'institutional-documents'
     )
 
-    // Calcular status do documento
-    const status = this.calculateDocumentStatus(dto.expiresAt || null)
+    // Buscar timezone do tenant para cálculo correto do status
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+    // Calcular status do documento (timezone-safe)
+    const status = this.calculateDocumentStatus(dto.expiresAt || null, timezone)
 
     // Criar registro do documento
     return this.prisma.tenantDocument.create({
@@ -373,8 +382,15 @@ export class InstitutionalProfileService {
       mimeType: string
     }
   ) {
-    // Calcular status do documento
-    const status = this.calculateDocumentStatus(dto.expiresAt || null)
+    // Buscar timezone do tenant para cálculo correto do status
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+    // Calcular status do documento (timezone-safe)
+    const status = this.calculateDocumentStatus(dto.expiresAt || null, timezone)
 
     // Criar registro do documento
     return this.prisma.tenantDocument.create({
@@ -421,7 +437,14 @@ export class InstitutionalProfileService {
 
     // Recalcular status se data de vencimento mudou
     if (data.expiresAt !== undefined) {
-      data.status = this.calculateDocumentStatus(data.expiresAt)
+      // Buscar timezone do tenant para cálculo correto do status
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { timezone: true },
+      })
+      const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+      data.status = this.calculateDocumentStatus(data.expiresAt, timezone)
     }
 
     return this.prisma.tenantDocument.update({
@@ -586,10 +609,16 @@ export class InstitutionalProfileService {
   async updateDocumentsStatus() {
     const documents = await this.prisma.tenantDocument.findMany({
       where: { deletedAt: null, expiresAt: { not: null } },
+      include: {
+        tenant: {
+          select: { timezone: true },
+        },
+      },
     })
 
     for (const document of documents) {
-      const newStatus = this.calculateDocumentStatus(document.expiresAt)
+      const timezone = document.tenant?.timezone || 'America/Sao_Paulo'
+      const newStatus = this.calculateDocumentStatus(document.expiresAt, timezone)
 
       if (newStatus !== document.status) {
         await this.prisma.tenantDocument.update({
@@ -608,18 +637,28 @@ export class InstitutionalProfileService {
 
   /**
    * Calcula o status do documento baseado na data de vencimento
+   * @param expiresAt Data de vencimento (YYYY-MM-DD string ou Date)
+   * @param timezone Timezone IANA do tenant para determinar "hoje" corretamente
    */
-  private calculateDocumentStatus(expiresAt: string | Date | null): DocumentStatus {
+  private calculateDocumentStatus(
+    expiresAt: string | Date | null,
+    timezone: string = 'America/Sao_Paulo'
+  ): DocumentStatus {
     if (!expiresAt) {
       return 'OK' // Sem data de vencimento = sempre OK
     }
 
-    const today = new Date()
-    const expiration = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt
+    // Obter data civil HOJE no timezone do tenant (timezone-safe)
+    const todayStr = getCurrentDateInTz(timezone)
 
-    // Zerar horas para comparação apenas de datas
-    today.setHours(0, 0, 0, 0)
-    expiration.setHours(0, 0, 0, 0)
+    // Extrair data civil do vencimento (YYYY-MM-DD)
+    const expirationStr = typeof expiresAt === 'string'
+      ? expiresAt.substring(0, 10) // Truncar se vier com hora
+      : formatDateOnly(expiresAt)
+
+    // Comparação de strings YYYY-MM-DD (timezone-safe)
+    const today = new Date(todayStr + 'T12:00:00')
+    const expiration = new Date(expirationStr + 'T12:00:00')
 
     const diffDays = Math.ceil((expiration.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 

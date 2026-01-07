@@ -3,11 +3,11 @@ import {
   IsString,
   IsNotEmpty,
   IsEnum,
-  IsDateString,
   IsOptional,
   IsInt,
   Min,
 } from 'class-validator';
+import { IsDateOnly } from '../../common/validators/date.validators';
 
 export class CreateSOSMedicationDto {
   @ApiProperty({ description: 'Nome do medicamento', example: 'Dipirona' })
@@ -69,12 +69,12 @@ export class CreateSOSMedicationDto {
   maxDailyDoses: number;
 
   @ApiProperty({ description: 'Data de início (YYYY-MM-DD)', example: '2025-11-17' })
-  @IsDateString()
+  @IsDateOnly()
   @IsNotEmpty()
   startDate: string;
 
   @ApiProperty({ description: 'Data de término (YYYY-MM-DD)', required: false })
-  @IsDateString()
+  @IsDateOnly()
   @IsOptional()
   endDate?: string;
 

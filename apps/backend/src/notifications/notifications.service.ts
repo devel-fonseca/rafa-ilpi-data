@@ -7,6 +7,7 @@ import {
 } from '@prisma/client'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { QueryNotificationDto } from './dto/query-notification.dto'
+import { formatDateOnly } from '../utils/date.helpers'
 
 @Injectable()
 export class NotificationsService {
@@ -533,7 +534,10 @@ export class NotificationsService {
     scheduledDate: Date,
     createdByName: string,
   ) {
-    const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
+    // ✅ Usar formatDateOnly para evitar timezone shift em campo DATE
+    const dateOnlyStr = formatDateOnly(scheduledDate) // YYYY-MM-DD
+    const [year, month, day] = dateOnlyStr.split('-')
+    const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
     return this.create(tenantId, {
       type: SystemNotificationType.INSTITUTIONAL_EVENT_CREATED,
@@ -559,7 +563,10 @@ export class NotificationsService {
     scheduledDate: Date,
     updatedByName: string,
   ) {
-    const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
+    // ✅ Usar formatDateOnly para evitar timezone shift em campo DATE
+    const dateOnlyStr = formatDateOnly(scheduledDate) // YYYY-MM-DD
+    const [year, month, day] = dateOnlyStr.split('-')
+    const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
     return this.create(tenantId, {
       type: SystemNotificationType.INSTITUTIONAL_EVENT_UPDATED,

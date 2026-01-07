@@ -1,5 +1,4 @@
-import { IsString, IsDate, IsOptional, IsUUID, Matches, Length, MaxLength } from 'class-validator'
-import { Type } from 'class-transformer'
+import { IsString, IsOptional, IsUUID, Matches, MaxLength } from 'class-validator'
 
 /**
  * DTO para criação de registro de vacinação
@@ -28,9 +27,11 @@ export class CreateVaccinationDto {
    * Formato: YYYY-MM-DD
    * Não pode ser no futuro
    */
-  @Type(() => Date)
-  @IsDate({ message: 'Data deve ser uma data válida' })
-  date: Date
+  @IsString({ message: 'Data deve ser uma string no formato YYYY-MM-DD' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'Data deve estar no formato YYYY-MM-DD',
+  })
+  date: string
 
   /**
    * 4) Lote do imunizante

@@ -30,22 +30,24 @@ export class VaccinationsService {
     tenantId: string,
     userId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
-      where: {
-        id: dto.residentId,
-        tenantId,
-        deletedAt: null,
-      },
-    });
+    try {
+      // Verificar se residente existe e pertence ao tenant
+      const resident = await this.prisma.resident.findFirst({
+        where: {
+          id: dto.residentId,
+          tenantId,
+          deletedAt: null,
+        },
+      });
 
-    if (!resident) {
-      throw new NotFoundException('Residente não encontrado');
-    }
+      if (!resident) {
+        throw new NotFoundException('Residente não encontrado');
+      }
 
-    // FIX TIMESTAMPTZ: Validar data não está no futuro usando date-fns
-    const vaccinationDate = parseISO(`${dto.date}T12:00:00.000`);
-    const today = startOfDay(new Date());
+      // Parse da string YYYY-MM-DD para Date object (sem timezone shift)
+      // Usa horário 00:00 UTC para comparação justa
+      const vaccinationDate = parseISO(`${dto.date}T00:00:00.000Z`);
+      const today = parseISO(new Date().toISOString().split('T')[0] + 'T00:00:00.000Z');
 
     if (vaccinationDate > today) {
       throw new BadRequestException('Data de vacinação não pode ser no futuro');
@@ -127,6 +129,20 @@ export class VaccinationsService {
     });
 
     return vaccination;
+    } catch (error) {
+      this.logger.error('Erro ao criar vacinação', {
+        error: error.message,
+        vaccinationData: {
+          vaccine: dto.vaccine,
+          dose: dto.dose,
+          date: dto.date,
+          residentId: dto.residentId,
+        },
+        tenantId,
+        userId,
+      });
+      throw error;
+    }
   }
 
   /**
@@ -261,8 +277,8 @@ export class VaccinationsService {
 
     // FIX TIMESTAMPTZ: Validar data se foi fornecida
     if (updateData.date) {
-      const vaccinationDate = parseISO(`${updateData.date}T12:00:00.000`);
-      const today = startOfDay(new Date());
+      const vaccinationDate = parseISO(`${updateData.date}T00:00:00.000Z`);
+      const today = parseISO(new Date().toISOString().split('T')[0] + 'T00:00:00.000Z');
 
       if (vaccinationDate > today) {
         throw new BadRequestException('Data de vacinação não pode ser no futuro');
@@ -322,7 +338,7 @@ export class VaccinationsService {
           ...(updateData as any),
           // FIX TIMESTAMPTZ: Processar data se fornecida
           ...(updateData.date && {
-            date: parseISO(`${updateData.date}T12:00:00.000`),
+            date: parseISO(`${updateData.date}T00:00:00.000Z`),
           }),
           versionNumber: newVersionNumber,
           updatedBy: userId,

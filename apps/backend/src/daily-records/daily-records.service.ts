@@ -12,6 +12,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { localToUTC } from '../utils/date.helpers';
 
 @Injectable()
 export class DailyRecordsService {
@@ -84,8 +85,15 @@ export class DailyRecordsService {
     // Se for um registro de MONITORAMENTO, criar/atualizar sinais vitais
     if (dto.type === 'MONITORAMENTO' && dto.data) {
       try {
+        // Buscar timezone do tenant para construir timestamp corretamente
+        const tenant = await this.prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { timezone: true },
+        });
+        const timezone = tenant?.timezone || 'America/Sao_Paulo';
+
         const vitalSignData = this.extractVitalSignsFromData(dto.data);
-        const timestamp = this.buildTimestamp(dto.date, dto.time);
+        const timestamp = this.buildTimestamp(dto.date, dto.time, timezone);
 
         // Usar VitalSignsService do NestJS que já tem detecção de anomalias integrada
         await this.vitalSignsService.create(tenantId, userId, {
@@ -151,14 +159,14 @@ export class DailyRecordsService {
 
   /**
    * Constrói timestamp completo a partir de date e time
-   * FIX TIMESTAMPTZ: Usar parseISO para garantir timezone correto
+   * @param dateStr Data civil (YYYY-MM-DD)
+   * @param timeStr Hora local (HH:mm)
+   * @param timezone Timezone IANA do tenant
+   * @returns Date UTC representando o momento local especificado (timezone-safe)
    */
-  private buildTimestamp(dateStr: string, timeStr: string): Date {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    // dateStr vem como "YYYY-MM-DD", parseamos e setamos a hora
-    const timestamp = parseISO(`${dateStr}T00:00:00.000`);
-    timestamp.setHours(hours, minutes, 0, 0);
-    return timestamp;
+  private buildTimestamp(dateStr: string, timeStr: string, timezone: string = 'America/Sao_Paulo'): Date {
+    // Usar helper timezone-safe que converte hora local para UTC corretamente
+    return localToUTC(dateStr, timeStr, timezone);
   }
 
   async findAll(query: QueryDailyRecordDto, tenantId: string) {
@@ -426,10 +434,18 @@ export class DailyRecordsService {
     // Se for um registro de MONITORAMENTO e houve mudança nos dados vitais, atualizar tabela de sinais vitais
     if (result.type === 'MONITORAMENTO' && (dto.data || dto.date || dto.time)) {
       try {
+        // Buscar timezone do tenant para construir timestamp corretamente
+        const tenant = await this.prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { timezone: true },
+        });
+        const timezone = tenant?.timezone || 'America/Sao_Paulo';
+
         const vitalSignData = this.extractVitalSignsFromData(result.data);
         const timestamp = this.buildTimestamp(
           result.date.toISOString().split('T')[0],
           result.time,
+          timezone,
         );
 
         // Buscar VitalSign existente por timestamp
@@ -551,9 +567,17 @@ export class DailyRecordsService {
     // Se for um registro de MONITORAMENTO, deletar sinal vital correspondente
     if (existing.type === 'MONITORAMENTO') {
       try {
+        // Buscar timezone do tenant para construir timestamp corretamente
+        const tenant = await this.prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { timezone: true },
+        });
+        const timezone = tenant?.timezone || 'America/Sao_Paulo';
+
         const timestamp = this.buildTimestamp(
           existing.date.toISOString().split('T')[0],
           existing.time,
+          timezone,
         );
 
         // Buscar VitalSign existente por timestamp
