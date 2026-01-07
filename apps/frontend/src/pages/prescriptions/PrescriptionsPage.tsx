@@ -8,6 +8,7 @@ import { CriticalAlerts } from './components/CriticalAlerts'
 import { TodayActions } from './components/TodayActions'
 import { ExpiringList } from './components/ExpiringList'
 import { ControlledResidents } from './components/ControlledResidents'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export function PrescriptionsPage() {
   const navigate = useNavigate()
@@ -23,75 +24,76 @@ export function PrescriptionsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-muted-foreground">Carregando dashboard...</span>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Gerenciamento de Prescrições"
+          subtitle="Dashboard completo de medicamentos e prescrições médicas"
+        />
+        <EmptyState
+          icon={Loader2}
+          title="Carregando dashboard..."
+          description="Aguarde enquanto buscamos os dados"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Gerenciamento de Prescrições
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Dashboard completo de medicamentos e prescrições médicas
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={refetchAll}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
-          </Button>
-          {canCreatePrescriptions && (
-            <Button onClick={handleNewPrescription}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Prescrição
+    <Page>
+      <PageHeader
+        title="Gerenciamento de Prescrições"
+        subtitle="Dashboard completo de medicamentos e prescrições médicas"
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={refetchAll}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Atualizar
             </Button>
-          )}
-        </div>
-      </div>
+            {canCreatePrescriptions && (
+              <Button onClick={handleNewPrescription}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Prescrição
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Cards de Estatísticas */}
-      <div className="mb-8">
+      <Section title="Estatísticas">
         <StatsCards stats={stats} />
-      </div>
+      </Section>
 
       {/* Alertas Críticos */}
       {alerts && alerts.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Alertas Críticos</h3>
+        <Section title="Alertas Críticos">
           <CriticalAlerts alerts={alerts} />
-        </div>
+        </Section>
       )}
 
       {/* Ações do Dia (por turno) */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Ações do Dia</h3>
+      <Section title="Ações do Dia">
         <TodayActions />
-      </div>
+      </Section>
 
       {/* Grid com Listas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Prescrições Próximas do Vencimento */}
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-4">Prescrições Vencendo em 5 Dias</h3>
-          <ExpiringList prescriptions={expiring || []} />
-        </div>
+      <Section title="Monitoramento">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Prescrições Próximas do Vencimento */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Prescrições Vencendo em 5 Dias</h3>
+            <ExpiringList prescriptions={expiring || []} />
+          </div>
 
-        {/* Residentes com Medicamentos Controlados */}
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-4">Residentes com Medicamentos Controlados</h3>
-          <ControlledResidents residents={controlled || []} />
+          {/* Residentes com Medicamentos Controlados */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Residentes com Medicamentos Controlados</h3>
+            <ControlledResidents residents={controlled || []} />
+          </div>
         </div>
-      </div>
-    </div>
+      </Section>
+    </Page>
   )
 }
 
