@@ -304,7 +304,7 @@ export function DashboardLayout() {
       </header>
 
       {/* Sidebar + Content */}
-      <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex min-h-[calc(100vh-4rem)]">
         {/* Desktop Sidebar */}
         <aside className={`hidden md:block bg-card border-r transition-all duration-300 ${
           preferences.sidebarCollapsed ? 'w-16' : 'w-64'
