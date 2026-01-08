@@ -299,13 +299,13 @@ export default function ResidentsList() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Grau de Dependência</h3>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    <Badge className="bg-primary/10 text-primary/80 border-primary/30 hover:bg-primary/10 text-xs px-2 py-0.5">
+                    <Badge className="bg-primary/10 text-primary/80 dark:text-primary border-primary/30 hover:bg-primary/10 text-xs px-2 py-0.5">
                       I - {stats.grauI}
                     </Badge>
-                    <Badge className="bg-severity-warning/10 text-severity-warning/80 border-severity-warning/30 hover:bg-severity-warning/10 text-xs px-2 py-0.5">
+                    <Badge className="bg-severity-warning/10 text-severity-warning/80 dark:text-severity-warning border-severity-warning/30 hover:bg-severity-warning/10 text-xs px-2 py-0.5">
                       II - {stats.grauII}
                     </Badge>
-                    <Badge className="bg-danger/10 text-danger/80 border-danger/30 hover:bg-danger/10 text-xs px-2 py-0.5">
+                    <Badge className="bg-danger/10 text-danger/80 dark:text-danger border-danger/30 hover:bg-danger/10 text-xs px-2 py-0.5">
                       III - {stats.grauIII}
                     </Badge>
                   </div>
@@ -574,11 +574,11 @@ export default function ResidentsList() {
 
           {/* Campo de Motivo da Exclusão - Obrigatório (RDC 502/2021) */}
           <div className="space-y-3 py-4">
-            <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4">
-              <p className="text-sm text-warning/90 dark:text-warning/20 font-medium mb-2">
+            <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4">
+              <p className="text-sm text-warning/90 dark:text-warning font-medium mb-2">
                 ⚠️ Atenção: Remoção Permanente
               </p>
-              <p className="text-sm text-warning/80 dark:text-warning/30">
+              <p className="text-sm text-warning/80 dark:text-warning/90">
                 Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo da remoção do prontuário.
                 Esta ação ficará registrada permanentemente no histórico de auditoria.
               </p>

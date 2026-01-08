@@ -58,7 +58,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
       case PrescriptionType.CONTROLADO:
         return {
           label: prescription.controlledClass ? `Controlado ${prescription.controlledClass}` : 'Controlado',
-          className: 'bg-danger/10 text-danger/90 border-danger/40 dark:bg-danger/90/40 dark:text-danger/20 dark:border-danger/70',
+          className: 'bg-danger/10 text-danger/90 border-danger/40 dark:bg-danger/40 dark:text-danger dark:border-danger/50',
         }
       case PrescriptionType.ALTO_RISCO:
         return {
@@ -73,7 +73,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
       case PrescriptionType.ROTINA:
         return {
           label: 'Rotina',
-          className: 'bg-primary/10 text-primary/95 border-primary/40 dark:bg-primary/90/40 dark:text-blue-200 dark:border-primary/70',
+          className: 'bg-primary/10 text-primary/95 border-primary/40 dark:bg-primary/40 dark:text-blue-200 dark:border-primary/50',
         }
       case PrescriptionType.OUTRO:
       default:
@@ -91,11 +91,11 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
     <Card
       className={`p-4 transition-all hover:shadow-lg border-2 ${onClick ? 'cursor-pointer hover:scale-[1.02]' : ''} ${
         prescription.status === PrescriptionStatus.EXPIRED
-          ? 'border-danger/40 bg-danger/5 dark:bg-danger/95/30 dark:border-danger/70'
+          ? 'border-danger/40 bg-danger/5 dark:bg-danger/30 dark:border-danger/50'
         : prescription.status === PrescriptionStatus.EXPIRING_SOON
-          ? 'border-severity-warning/40 bg-severity-warning/5 dark:bg-severity-warning/95/30 dark:border-severity-warning/70'
+          ? 'border-severity-warning/40 bg-severity-warning/5 dark:bg-severity-warning/30 dark:border-severity-warning/50'
         : prescription.status === PrescriptionStatus.NEEDS_REVIEW
-          ? 'border-warning/40 bg-warning/5 dark:bg-warning/95/30 dark:border-warning/70'
+          ? 'border-warning/40 bg-warning/5 dark:bg-warning/30 dark:border-warning/50'
           : 'border-border hover:border-primary/50'
       }`}
       onClick={onClick}
@@ -112,7 +112,7 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           </Badge>
         </div>
         {prescription.isControlled && (
-          <AlertTriangle className="h-4 w-4 text-danger dark:text-danger/40 shrink-0" />
+          <AlertTriangle className="h-4 w-4 text-danger dark:text-danger shrink-0" />
         )}
       </div>
 
@@ -171,18 +171,18 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           <div className="flex items-center gap-2 text-xs">
             <Clock className={`h-3.5 w-3.5 shrink-0 ${
               prescription.status === PrescriptionStatus.EXPIRED
-                ? 'text-danger dark:text-danger/40'
+                ? 'text-danger dark:text-danger'
               : prescription.status === PrescriptionStatus.EXPIRING_SOON
-                ? 'text-severity-warning dark:text-severity-warning/40'
+                ? 'text-severity-warning dark:text-severity-warning'
                 : 'text-muted-foreground'
             }`} />
             <span className="text-muted-foreground">
               Válida até:{' '}
               <span className={`font-semibold ${
                 prescription.status === PrescriptionStatus.EXPIRED
-                  ? 'text-danger/80 dark:text-danger/40'
+                  ? 'text-danger/80 dark:text-danger'
                 : prescription.status === PrescriptionStatus.EXPIRING_SOON
-                  ? 'text-severity-warning/80 dark:text-severity-warning/40'
+                  ? 'text-severity-warning/80 dark:text-severity-warning'
                   : 'text-foreground'
               }`}>
                 {format(new Date(extractDateOnly(prescription.validUntil as string) + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
@@ -196,14 +196,14 @@ export function PrescriptionCard({ prescription, onClick }: Props) {
           <div className="flex items-center gap-2 text-xs">
             <FileText className={`h-3.5 w-3.5 shrink-0 ${
               prescription.status === PrescriptionStatus.NEEDS_REVIEW
-                ? 'text-warning/80 dark:text-warning/40'
+                ? 'text-warning/80 dark:text-warning'
                 : 'text-muted-foreground'
             }`} />
             <span className="text-muted-foreground">
               Revisão em:{' '}
               <span className={`font-semibold ${
                 prescription.status === PrescriptionStatus.NEEDS_REVIEW
-                  ? 'text-warning/80 dark:text-warning/40'
+                  ? 'text-warning/80 dark:text-warning'
                   : 'text-foreground'
               }`}>
                 {format(new Date(extractDateOnly(prescription.reviewDate as string) + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
