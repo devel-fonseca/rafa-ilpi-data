@@ -22,8 +22,8 @@ export function BedsStatsCards({
       value: buildingsCount,
       icon: Building,
       bgColor: 'bg-primary/10 dark:bg-primary/20',
-      iconColor: 'text-primary dark:text-primary/40',
-      valueColor: 'text-primary/80 dark:text-primary/30',
+      iconColor: 'text-primary dark:text-primary',
+      valueColor: 'text-primary dark:text-primary',
       tabValue: 'buildings',
     },
     {
@@ -31,8 +31,8 @@ export function BedsStatsCards({
       value: floorsCount,
       icon: Home,
       bgColor: 'bg-success/10 dark:bg-success/20',
-      iconColor: 'text-success dark:text-success/40',
-      valueColor: 'text-success/80 dark:text-success/30',
+      iconColor: 'text-success dark:text-success',
+      valueColor: 'text-success dark:text-success',
       tabValue: 'floors',
     },
     {
@@ -40,8 +40,8 @@ export function BedsStatsCards({
       value: roomsCount,
       icon: Square,
       bgColor: 'bg-severity-warning/10 dark:bg-severity-warning/20',
-      iconColor: 'text-severity-warning dark:text-severity-warning/40',
-      valueColor: 'text-severity-warning/80 dark:text-severity-warning/30',
+      iconColor: 'text-severity-warning dark:text-severity-warning',
+      valueColor: 'text-severity-warning dark:text-severity-warning',
       tabValue: 'rooms',
     },
     {
@@ -49,8 +49,8 @@ export function BedsStatsCards({
       value: bedsCount,
       icon: Bed,
       bgColor: 'bg-medication-controlled/10 dark:bg-medication-controlled/20',
-      iconColor: 'text-medication-controlled dark:text-medication-controlled/40',
-      valueColor: 'text-medication-controlled/80 dark:text-medication-controlled/30',
+      iconColor: 'text-medication-controlled dark:text-medication-controlled',
+      valueColor: 'text-medication-controlled dark:text-medication-controlled',
       tabValue: 'beds',
     },
   ]
