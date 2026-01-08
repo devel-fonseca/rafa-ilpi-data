@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Edit,
   Send,
   FileText,
@@ -41,6 +40,7 @@ import PopVersionModal from './PopVersionModal'
 import PopObsoleteModal from './PopObsoleteModal'
 import { usePermissions } from '../../hooks/usePermissions'
 import { PermissionType } from '../../types/permissions'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PopViewer() {
   const navigate = useNavigate()
@@ -73,78 +73,80 @@ export default function PopViewer() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <FileText className="mx-auto h-12 w-12 animate-pulse text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">Carregando POP...</p>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Carregando POP..."
+          backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        />
+        <EmptyState
+          icon={FileText}
+          title="Carregando POP..."
+          description="Aguarde enquanto buscamos as informações"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (!pop) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <XCircle className="mx-auto h-12 w-12 text-destructive" />
-          <h3 className="mt-4 text-lg font-semibold">POP não encontrado</h3>
-          <Button className="mt-4" onClick={() => navigate('/dashboard/pops')}>
-            Voltar para lista
-          </Button>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="POP não encontrado"
+          backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        />
+        <EmptyState
+          icon={XCircle}
+          title="POP não encontrado"
+          description="O POP que você está procurando não existe ou foi removido"
+          variant="error"
+          action={
+            <Button onClick={() => navigate('/dashboard/pops')}>
+              Voltar para lista
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
-  return (
-    <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard/pops')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight">
-                  {pop.title}
-                </h1>
-                <Badge variant={PopStatusColors[pop.status]}>
-                  {PopStatusLabels[pop.status]}
-                </Badge>
-                {pop.requiresReview && (
-                  <Badge variant="destructive">
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    Precisa Revisão
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <GitBranch className="h-4 w-4" />
-                  Versão {pop.version}
-                </span>
-                <span>•</span>
-                <span>{PopCategoryLabels[pop.category]}</span>
-                <span>•</span>
-                <span>
-                  Criado em{' '}
-                  {format(new Date(pop.createdAt), 'dd/MM/yyyy', {
-                    locale: ptBR,
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
+  // Preparar subtitle com metadados
+  const subtitle = (
+    <div className="flex items-center gap-3 flex-wrap text-sm">
+      <span className="flex items-center gap-1">
+        <GitBranch className="h-4 w-4" />
+        Versão {pop.version}
+      </span>
+      <span>•</span>
+      <span>{PopCategoryLabels[pop.category]}</span>
+      <span>•</span>
+      <span>
+        Criado em{' '}
+        {format(new Date(pop.createdAt), 'dd/MM/yyyy', {
+          locale: ptBR,
+        })}
+      </span>
+    </div>
+  )
 
-          {/* Actions */}
-          <div className="flex gap-2">
+  // Preparar badges
+  const badges = (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Badge variant={PopStatusColors[pop.status]}>
+        {PopStatusLabels[pop.status]}
+      </Badge>
+      {pop.requiresReview && (
+        <Badge variant="destructive">
+          <AlertTriangle className="mr-1 h-3 w-3" />
+          Precisa Revisão
+        </Badge>
+      )}
+    </div>
+  )
+
+  // Preparar actions
+  const actions = (
+    <div className="flex gap-2 flex-wrap">
             {/* Edit (only DRAFT) */}
             {pop.status === PopStatus.DRAFT && (
               <Button
@@ -194,34 +196,44 @@ export default function PopViewer() {
               </Button>
             )}
 
-            {/* History */}
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/dashboard/pops/${id}/history`)}
-            >
-              <History className="mr-2 h-4 w-4" />
-              Histórico
-            </Button>
-          </div>
-        </div>
+      {/* History */}
+      <Button
+        variant="ghost"
+        onClick={() => navigate(`/dashboard/pops/${id}/history`)}
+      >
+        <History className="mr-2 h-4 w-4" />
+        Histórico
+      </Button>
+    </div>
+  )
 
-        {/* Alerts */}
-        {pop.requiresReview && (
-          <Card className="border-destructive bg-destructive/5">
-            <CardContent className="flex items-center gap-3 p-4">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <div className="flex-1">
-                <p className="font-semibold">Este POP precisa de revisão</p>
-                <p className="text-sm text-muted-foreground">
-                  A data de revisão venceu. Revise o conteúdo e marque como
-                  revisado ou crie uma nova versão.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+  return (
+    <Page>
+      <PageHeader
+        title={pop.title}
+        subtitle={subtitle}
+        badge={badges}
+        backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        actions={actions}
+      />
 
-        <div className="grid gap-6 lg:grid-cols-3">
+      {/* Alerts */}
+      {pop.requiresReview && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div className="flex-1">
+              <p className="font-semibold">Este POP precisa de revisão</p>
+              <p className="text-sm text-muted-foreground">
+                A data de revisão venceu. Revise o conteúdo e marque como
+                revisado ou crie uma nova versão.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
           {/* Content */}
           <div className="lg:col-span-2 space-y-6">
             <Card>
@@ -406,7 +418,6 @@ export default function PopViewer() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Modals */}
       <PopVersionModal
@@ -447,6 +458,6 @@ export default function PopViewer() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </Page>
   )
 }

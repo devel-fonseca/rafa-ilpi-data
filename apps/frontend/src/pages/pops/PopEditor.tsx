@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Send, FileText, Plus } from 'lucide-react'
+import { Save, Send, FileText, Plus } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -40,6 +40,7 @@ import { toast } from 'sonner'
 import PopTemplatesModal from './PopTemplatesModal'
 import { usePermissions } from '../../hooks/usePermissions'
 import { PermissionType } from '../../types/permissions'
+import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PopEditor() {
   const navigate = useNavigate()
@@ -186,60 +187,54 @@ export default function PopEditor() {
 
   if (isEditing && isLoadingPop) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <FileText className="mx-auto h-12 w-12 animate-pulse text-muted-foreground" />
-          <p className="mt-4 text-muted-foreground">Carregando POP...</p>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="Carregando POP..."
+          backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        />
+        <EmptyState
+          icon={FileText}
+          title="Carregando POP..."
+          description="Aguarde enquanto buscamos as informações"
+          variant="loading"
+        />
+      </Page>
     )
   }
 
   if (isEditing && existingPop?.status !== PopStatus.DRAFT) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg font-semibold">
-            Apenas POPs em rascunho podem ser editados
-          </p>
-          <p className="mt-2 text-muted-foreground">
-            Para POPs publicados, crie uma nova versão
-          </p>
-          <Button className="mt-4" onClick={() => navigate(`/dashboard/pops/${id}`)}>
-            Voltar para visualização
-          </Button>
-        </div>
-      </div>
+      <Page>
+        <PageHeader
+          title="POP não pode ser editado"
+          backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        />
+        <EmptyState
+          icon={FileText}
+          title="Apenas POPs em rascunho podem ser editados"
+          description="Para POPs publicados, crie uma nova versão"
+          action={
+            <Button onClick={() => navigate(`/dashboard/pops/${id}`)}>
+              Voltar para visualização
+            </Button>
+          }
+        />
+      </Page>
     )
   }
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard/pops')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {isEditing ? 'Editar POP' : 'Novo POP'}
-              </h1>
-              <p className="text-muted-foreground">
-                {isEditing
-                  ? 'Edite as informações do POP em rascunho'
-                  : 'Crie um novo Procedimento Operacional Padrão'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
+    <Page>
+      <PageHeader
+        title={isEditing ? 'Editar POP' : 'Novo POP'}
+        subtitle={
+          isEditing
+            ? 'Edite as informações do POP em rascunho'
+            : 'Crie um novo Procedimento Operacional Padrão'
+        }
+        backButton={{ onClick: () => navigate('/dashboard/pops') }}
+        actions={
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={handleSaveDraft}
@@ -259,10 +254,11 @@ export default function PopEditor() {
               </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Form */}
-        <div className="grid gap-6 lg:grid-cols-3">
+      {/* Form */}
+      <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Title */}
@@ -408,7 +404,6 @@ export default function PopEditor() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Dialog Nova Categoria */}
       <Dialog
@@ -473,6 +468,6 @@ export default function PopEditor() {
         onSelectTemplate={handleTemplateSelected}
         onStartFromScratch={handleStartFromScratch}
       />
-    </>
+    </Page>
   )
 }
