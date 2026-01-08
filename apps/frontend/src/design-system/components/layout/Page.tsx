@@ -37,7 +37,7 @@ const pageVariants = cva('mx-auto', {
       relaxed: 'space-y-8', // 32px - páginas espaçadas
     },
     padding: {
-      true: 'px-6 py-6', // Padding padrão (mobile-first)
+      true: 'px-4 py-4 sm:px-6 sm:py-6', // Padding responsivo (menor em mobile)
       false: '', // Sem padding (fullscreen)
     },
   },

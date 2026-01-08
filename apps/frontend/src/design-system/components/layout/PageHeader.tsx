@@ -175,10 +175,10 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       {/* Header Principal */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         {/* Título + Badge */}
-        <div className="flex-1">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className={TYPOGRAPHY_STYLES.pageTitle}>{title}</h1>
-            {badge && <div>{badge}</div>}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <h1 className={cn(TYPOGRAPHY_STYLES.pageTitle, 'text-2xl sm:text-3xl truncate')}>{title}</h1>
+            {badge && <div className="flex-shrink-0">{badge}</div>}
           </div>
           {subtitle && (
             <p className={cn(TYPOGRAPHY_STYLES.subtitle, 'mt-1')}>{subtitle}</p>
@@ -187,7 +187,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         {/* Actions */}
         {actions && (
-          <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap w-full sm:w-auto">{actions}</div>
         )}
       </div>
     </div>
