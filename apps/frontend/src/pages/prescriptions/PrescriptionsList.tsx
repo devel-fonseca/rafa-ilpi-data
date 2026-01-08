@@ -4,7 +4,7 @@ import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
 import type { Prescription, QueryPrescriptionParams } from '@/api/prescriptions.api'
 import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -61,7 +61,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ArrowLeft,
   FileCheck,
 } from 'lucide-react'
 // parseISO removido - usar extractDateOnly para campos DATE
@@ -255,7 +254,7 @@ export default function PrescriptionsList() {
         <PageHeader
           title="Prescrições"
           subtitle="Gerencie as prescrições da ILPI"
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <EmptyState
           icon={AlertTriangle}
@@ -272,7 +271,7 @@ export default function PrescriptionsList() {
       <PageHeader
         title="Prescrições"
         subtitle="Gerencie as prescrições da ILPI"
-        onBack={() => navigate('/dashboard/prescricoes')}
+        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         actions={
           canCreatePrescriptions && (
             <Button onClick={() => navigate('/dashboard/prescricoes/new')}>
@@ -354,47 +353,51 @@ export default function PrescriptionsList() {
 
       {/* Search and Filters */}
       <Section title="Filtros">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
+        <div className="flex flex-col gap-4">
+          {/* Search - ocupa linha inteira em mobile */}
           <div className="space-y-2">
-            <Label htmlFor="search">Buscar por residente ou medicamento</Label>
+            <Label htmlFor="search" className="text-sm">Buscar</Label>
             <div className="flex gap-2">
               <Input
                 id="search"
-                placeholder="Digite aqui..."
+                placeholder="Residente ou medicamento..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1"
               />
-              <Button onClick={handleSearch} variant="outline">
+              <Button onClick={handleSearch} variant="outline" size="icon" className="shrink-0">
                 <Search className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="status">Filtro</Label>
-            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ATIVA">Prescrições Ativas</SelectItem>
-                <SelectItem value="VENCENDO">Vencendo em 5 dias</SelectItem>
-                <SelectItem value="VENCIDAS">Prescrições Vencidas</SelectItem>
-                <SelectItem value="INATIVAS">Prescrições Inativas</SelectItem>
-                <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
-                <SelectItem value="CONTROLADO">Controlados</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Filtro e Botão lado a lado em mobile */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {/* Status Filter */}
+            <div className="space-y-2 col-span-2 sm:col-span-1">
+              <Label htmlFor="status" className="text-sm">Status</Label>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ATIVA">Ativas</SelectItem>
+                  <SelectItem value="VENCENDO">Vencendo (5d)</SelectItem>
+                  <SelectItem value="VENCIDAS">Vencidas</SelectItem>
+                  <SelectItem value="INATIVAS">Inativas</SelectItem>
+                  <SelectItem value="ANTIBIOTICO">Antibióticos</SelectItem>
+                  <SelectItem value="CONTROLADO">Controlados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Clear Filters */}
-          <div className="space-y-2 flex items-end">
-            <Button onClick={handleClearFilters} variant="outline" className="w-full">
-              Limpar Filtros
-            </Button>
+            {/* Clear Filters */}
+            <div className="space-y-2 col-span-2 sm:col-span-2 flex items-end">
+              <Button onClick={handleClearFilters} variant="outline" className="w-full h-10">
+                Limpar
+              </Button>
+            </div>
           </div>
         </div>
       </Section>

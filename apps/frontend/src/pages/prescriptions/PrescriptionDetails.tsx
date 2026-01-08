@@ -290,7 +290,7 @@ export default function PrescriptionDetails() {
         <PageHeader
           title="Detalhes da Prescrição"
           subtitle="Carregando informações..."
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <EmptyState
           icon={FileText}
@@ -308,7 +308,7 @@ export default function PrescriptionDetails() {
         <PageHeader
           title="Detalhes da Prescrição"
           subtitle="Prescrição não encontrada"
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <EmptyState
           icon={AlertCircle}
@@ -330,9 +330,9 @@ export default function PrescriptionDetails() {
     <Page maxWidth="wide">
       <PageHeader
         title="Detalhes da Prescrição"
-        subtitle={
-          <div className="flex items-center gap-3">
-            <span>Prescrição de {prescriptionData.resident?.fullName}</span>
+        subtitle={`Prescrição de ${prescriptionData.resident?.fullName}`}
+        badge={
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant={prescriptionData.isActive ? 'default' : 'secondary'}>
               {prescriptionData.isActive ? 'Ativa' : 'Inativa'}
             </Badge>
@@ -342,7 +342,7 @@ export default function PrescriptionDetails() {
             </Badge>
           </div>
         }
-        onBack={() => navigate('/dashboard/prescricoes')}
+        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         actions={
           canUpdatePrescriptions && (
             <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>
@@ -578,49 +578,54 @@ export default function PrescriptionDetails() {
 
         <TabsContent value="medications" className="space-y-4 mt-6">
           {/* Controles de Navegação por Data e Filtros */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-muted/30 p-4 rounded-lg">
+          <div className="flex flex-col gap-3 bg-muted/30 p-3 sm:p-4 rounded-lg">
             {/* Navegação por Data */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={goToPreviousDay}
+                className="shrink-0"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <div className="flex items-center gap-2 min-w-[200px] justify-center">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">
+              <div className="flex items-center gap-2 justify-center flex-1 min-w-0">
+                <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="font-medium text-sm sm:text-base truncate">
                   {/* ✅ REFATORADO: Usar formatDateLongSafe do dateHelpers */}
                   {formatDateLongSafe(viewDate + 'T12:00:00')}
                 </span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextDay}
-                disabled={isViewingToday}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              {!isViewingToday && (
+              <div className="flex gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={goToToday}
+                  onClick={goToNextDay}
+                  disabled={isViewingToday}
                 >
-                  Hoje
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
-              )}
+                {!isViewingToday && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToToday}
+                    className="hidden sm:flex"
+                  >
+                    Hoje
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Toggle de Ordenação */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Ordenar por:</span>
+            <div className="flex items-center gap-2 justify-center sm:justify-start">
+              <span className="text-xs sm:text-sm text-muted-foreground shrink-0">Ordenar:</span>
               <Button
                 variant={sortMode === 'medication' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortMode('medication')}
+                className="flex-1 sm:flex-none text-xs sm:text-sm"
               >
                 Medicamento
               </Button>
@@ -628,6 +633,7 @@ export default function PrescriptionDetails() {
                 variant={sortMode === 'time' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSortMode('time')}
+                className="flex-1 sm:flex-none text-xs sm:text-sm"
               >
                 Horário
               </Button>
