@@ -100,10 +100,10 @@ export default function PopTemplatesModal({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] sm:max-h-[85vh] flex flex-col p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Escolher Template de POP</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl sm:text-2xl">Escolher Template de POP</DialogTitle>
+          <DialogDescription className="text-sm">
             Selecione um template baseado em RDC 502/2021 ou comece do zero
           </DialogDescription>
         </DialogHeader>
@@ -137,22 +137,24 @@ export default function PopTemplatesModal({
               setSelectedCategory(value as PopCategory | 'all')
             }
           >
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all">
-                Todos ({templatesData?.count.total || 0})
-              </TabsTrigger>
-              <TabsTrigger value={PopCategory.GESTAO_OPERACAO}>
-                {PopCategoryLabels[PopCategory.GESTAO_OPERACAO]} (
-                {templatesData?.count.gestaoOperacao || 0})
-              </TabsTrigger>
-              <TabsTrigger value={PopCategory.ENFERMAGEM_CUIDADOS}>
-                {PopCategoryLabels[PopCategory.ENFERMAGEM_CUIDADOS]} (
-                {templatesData?.count.enfermagemCuidados || 0})
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto">
+              <TabsList className="inline-flex w-full md:grid md:grid-cols-3 min-w-max">
+                <TabsTrigger value="all" className="whitespace-nowrap">
+                  Todos ({templatesData?.count.total || 0})
+                </TabsTrigger>
+                <TabsTrigger value={PopCategory.GESTAO_OPERACAO} className="whitespace-nowrap">
+                  <span className="hidden sm:inline">{PopCategoryLabels[PopCategory.GESTAO_OPERACAO]}</span>
+                  <span className="inline sm:hidden">Gestão</span> ({templatesData?.count.gestaoOperacao || 0})
+                </TabsTrigger>
+                <TabsTrigger value={PopCategory.ENFERMAGEM_CUIDADOS} className="whitespace-nowrap">
+                  <span className="hidden sm:inline">{PopCategoryLabels[PopCategory.ENFERMAGEM_CUIDADOS]}</span>
+                  <span className="inline sm:hidden">Enfermagem</span> ({templatesData?.count.enfermagemCuidados || 0})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value={selectedCategory} className="mt-4">
-              <ScrollArea className="h-[350px] pr-4">
+              <ScrollArea className="h-[300px] sm:h-[350px] pr-2 sm:pr-4">
                 {isLoading ? (
                   <div className="py-8 text-center text-muted-foreground">
                     Carregando templates...
@@ -165,30 +167,30 @@ export default function PopTemplatesModal({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {filteredTemplates.map((template) => (
                       <button
                         key={template.id}
                         onClick={() => handleSelectTemplate(template)}
-                        className="w-full rounded-lg border p-4 text-left transition-colors hover:bg-accent"
+                        className="w-full rounded-lg border p-3 sm:p-4 text-left transition-colors hover:bg-accent"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <h4 className="font-semibold">{template.title}</h4>
+                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <h4 className="font-semibold text-sm sm:text-base truncate">{template.title}</h4>
                             </div>
-                            <p className="mt-1 text-sm text-muted-foreground">
+                            <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
                               {template.description}
                             </p>
                             {template.suggestedReviewMonths && (
-                              <p className="mt-2 text-xs text-muted-foreground">
+                              <p className="mt-1 sm:mt-2 text-xs text-muted-foreground">
                                 Revisão sugerida: {template.suggestedReviewMonths}{' '}
                                 meses
                               </p>
                             )}
                           </div>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="self-start shrink-0 text-xs">
                             {PopCategoryLabels[template.category]}
                           </Badge>
                         </div>
@@ -202,11 +204,11 @@ export default function PopTemplatesModal({
         </div>
 
         {/* Actions - Fixed at bottom */}
-        <div className="flex justify-between border-t pt-4 mt-4">
-          <Button variant="outline" onClick={onStartFromScratch}>
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2 border-t pt-4 mt-4">
+          <Button variant="outline" onClick={onStartFromScratch} className="w-full sm:w-auto">
             Começar do Zero
           </Button>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
         </div>
@@ -214,36 +216,36 @@ export default function PopTemplatesModal({
 
       {/* Warning Dialog */}
       <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg sm:max-w-xl">
           <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-6 w-6 text-amber-500" />
-              <AlertDialogTitle>Aviso Antes de Usar Template de POP</AlertDialogTitle>
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500 shrink-0 mt-0.5" />
+              <AlertDialogTitle className="text-base sm:text-lg">Aviso Antes de Usar Template de POP</AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="space-y-4 pt-4">
-              <p className="font-semibold text-foreground">
+            <AlertDialogDescription className="space-y-3 sm:space-y-4 pt-3 sm:pt-4">
+              <p className="font-semibold text-foreground text-sm sm:text-base">
                 <strong>Atenção:</strong> Este é um <strong>modelo base</strong> e não substitui a análise, adaptação e aprovação do <strong>Responsável Técnico da ILPI</strong>.
               </p>
 
-              <p className="text-sm">Ao prosseguir, você reconhece que:</p>
+              <p className="text-xs sm:text-sm">Ao prosseguir, você reconhece que:</p>
 
-              <ul className="list-disc list-inside space-y-2 text-sm">
+              <ul className="list-disc list-inside space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                 <li>O conteúdo é <strong>exemplificativo</strong> e pode não refletir integralmente a realidade da sua instituição;</li>
                 <li>O Responsável Técnico deve <strong>revisar e ajustar</strong> o documento antes da publicação;</li>
                 <li>A responsabilidade pela conformidade com normas sanitárias e operacionais é <strong>exclusivamente da ILPI</strong>;</li>
                 <li>O modelo <strong>não constitui orientação técnica assistencial</strong>.</li>
               </ul>
 
-              <p className="font-semibold text-foreground pt-2">
+              <p className="font-semibold text-foreground pt-2 text-sm sm:text-base">
                 Deseja aplicar este modelo ao seu POP?
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelWarning}>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={handleCancelWarning} className="w-full sm:w-auto">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmTemplate}>
+            <AlertDialogAction onClick={handleConfirmTemplate} className="w-full sm:w-auto">
               Aplicar Template
             </AlertDialogAction>
           </AlertDialogFooter>
