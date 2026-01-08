@@ -360,28 +360,30 @@ export default function MyProfile() {
 
       {/* Abas: Autorização ILPI, Dados Pessoais, Alterar Senha, Sessões Ativas e Logs de Acesso */}
       <Tabs defaultValue={(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) ? "authorization" : "personal"} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)}>
-            <Shield className="h-4 w-4 mr-2" />
-            Autorização ILPI
-          </TabsTrigger>
-          <TabsTrigger value="personal">
-            <FileText className="h-4 w-4 mr-2" />
-            Dados Pessoais
-          </TabsTrigger>
-          <TabsTrigger value="password">
-            <KeyRound className="h-4 w-4 mr-2" />
-            Alterar Senha
-          </TabsTrigger>
-          <TabsTrigger value="sessions">
-            <Wifi className="h-4 w-4 mr-2" />
-            Sessões Ativas
-          </TabsTrigger>
-          <TabsTrigger value="access-logs">
-            <History className="h-4 w-4 mr-2" />
-            Histórico de Acesso
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
+            <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)} className="whitespace-nowrap">
+              <Shield className="h-4 w-4 mr-2" />
+              Autorização ILPI
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="whitespace-nowrap">
+              <FileText className="h-4 w-4 mr-2" />
+              Dados Pessoais
+            </TabsTrigger>
+            <TabsTrigger value="password" className="whitespace-nowrap">
+              <KeyRound className="h-4 w-4 mr-2" />
+              Alterar Senha
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="whitespace-nowrap">
+              <Wifi className="h-4 w-4 mr-2" />
+              Sessões Ativas
+            </TabsTrigger>
+            <TabsTrigger value="access-logs" className="whitespace-nowrap">
+              <History className="h-4 w-4 mr-2" />
+              Histórico de Acesso
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Aba: Autorização ILPI */}
         <TabsContent value="authorization" className="space-y-0">
