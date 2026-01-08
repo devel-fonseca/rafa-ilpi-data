@@ -24,7 +24,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-const pageVariants = cva('mx-auto', {
+const pageVariants = cva('mx-auto min-h-full', {
   variants: {
     maxWidth: {
       default: 'max-w-7xl', // 1280px - padrão produto
