@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, AlertCircle, Plus, Edit, Trash2, ShieldAlert } from 'lucide-react'
-import { useClinicalProfile, useDeleteClinicalProfile } from '@/hooks/useClinicalProfiles'
+import { Loader2, Plus, Edit, Trash2, ShieldAlert, Accessibility } from 'lucide-react'
+import { useClinicalProfile } from '@/hooks/useClinicalProfiles'
+import { useResident } from '@/hooks/useResidents'
 import {
   useAllergiesByResident,
   useDeleteAllergy,
@@ -19,11 +20,10 @@ import {
   useDeleteDietaryRestriction,
 } from '@/hooks/useDietaryRestrictions'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { ClinicalProfileModal } from './ClinicalProfileModal'
+import { EditClinicalProfileModal } from './EditClinicalProfileModal'
 import { AllergyModal } from './AllergyModal'
 import { ConditionModal } from './ConditionModal'
 import { DietaryRestrictionModal } from './DietaryRestrictionModal'
-import type { ClinicalProfile } from '@/api/clinicalProfiles.api'
 import type { Allergy } from '@/api/allergies.api'
 import type { Condition } from '@/api/conditions.api'
 import type { DietaryRestriction } from '@/api/dietaryRestrictions.api'
@@ -62,7 +62,7 @@ const RESTRICTION_TYPE_LABELS = {
 
 export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   // Estados dos modais
-  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [clinicalProfileModalOpen, setClinicalProfileModalOpen] = useState(false)
   const [allergyModalOpen, setAllergyModalOpen] = useState(false)
   const [conditionModalOpen, setConditionModalOpen] = useState(false)
   const [restrictionModalOpen, setRestrictionModalOpen] = useState(false)
@@ -73,14 +73,11 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   const [editingRestriction, setEditingRestriction] = useState<DietaryRestriction | undefined>()
 
   // Estados para delete
-  const [deletingProfile, setDeletingProfile] = useState<ClinicalProfile | undefined>()
   const [deletingAllergy, setDeletingAllergy] = useState<Allergy | undefined>()
   const [deletingCondition, setDeletingCondition] = useState<Condition | undefined>()
   const [deletingRestriction, setDeletingRestriction] = useState<DietaryRestriction | undefined>()
 
   // Estados para deleteReason (versionamento)
-  const [profileDeleteReason, setProfileDeleteReason] = useState('')
-  const [profileDeleteReasonError, setProfileDeleteReasonError] = useState('')
   const [allergyDeleteReason, setAllergyDeleteReason] = useState('')
   const [allergyDeleteReasonError, setAllergyDeleteReasonError] = useState('')
   const [conditionDeleteReason, setConditionDeleteReason] = useState('')
@@ -91,7 +88,8 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   // Verificar permissões do usuário
   const { hasPermission } = usePermissions()
 
-  // Buscar dados clínicos
+  // Buscar dados clínicos e do residente
+  const { data: resident, isLoading: residentLoading } = useResident(residentId)
   const { data: clinicalProfile, isLoading: profileLoading } = useClinicalProfile(residentId)
   const { data: allergies = [], isLoading: allergiesLoading } = useAllergiesByResident(residentId)
   const { data: conditions = [], isLoading: conditionsLoading } = useConditionsByResident(residentId)
@@ -101,7 +99,18 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   } = useDietaryRestrictionsByResident(residentId)
 
   // Permissões específicas
+  const canCreateProfile = hasPermission(PermissionType.CREATE_CLINICAL_PROFILE)
   const canUpdateProfile = hasPermission(PermissionType.UPDATE_CLINICAL_PROFILE)
+  // Permite editar se tiver CREATE ou UPDATE (mais flexível)
+  const canEditProfile = canCreateProfile || canUpdateProfile
+
+  // Debug de permissões
+  console.log('🔍 Permissões Clinical Profile:', {
+    canCreateProfile,
+    canUpdateProfile,
+    canEditProfile,
+    clinicalProfileExists: !!clinicalProfile,
+  })
   const canCreateAllergies = hasPermission(PermissionType.CREATE_ALLERGIES)
   const canUpdateAllergies = hasPermission(PermissionType.UPDATE_ALLERGIES)
   const canDeleteAllergies = hasPermission(PermissionType.DELETE_ALLERGIES)
@@ -113,13 +122,12 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   const canDeleteRestrictions = hasPermission(PermissionType.DELETE_DIETARY_RESTRICTIONS)
 
   // Mutations para delete
-  const deleteProfileMutation = useDeleteClinicalProfile()
   const deleteAllergyMutation = useDeleteAllergy()
   const deleteConditionMutation = useDeleteCondition()
   const deleteRestrictionMutation = useDeleteDietaryRestriction()
 
   const isLoading =
-    profileLoading || allergiesLoading || conditionsLoading || restrictionsLoading
+    residentLoading || profileLoading || allergiesLoading || conditionsLoading || restrictionsLoading
 
   // Handlers para abrir modais de criação
   const handleCreateAllergy = () => {
@@ -154,31 +162,6 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   }
 
   // Handlers para delete
-  const handleConfirmDeleteProfile = async () => {
-    if (!deletingProfile) return
-
-    // Validação do motivo da exclusão
-    const trimmedReason = profileDeleteReason.trim()
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setProfileDeleteReasonError(
-        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
-      )
-      return
-    }
-
-    try {
-      await deleteProfileMutation.mutateAsync({
-        id: deletingProfile.id,
-        deleteReason: trimmedReason,
-      })
-      setDeletingProfile(undefined)
-      setProfileDeleteReason('')
-      setProfileDeleteReasonError('')
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-    }
-  }
-
   const handleConfirmDeleteAllergy = async () => {
     if (!deletingAllergy) return
 
@@ -273,72 +256,84 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 <CardTitle>Perfil Clínico</CardTitle>
                 <CardDescription>Estado de saúde e aspectos clínicos atuais</CardDescription>
               </div>
-              <div className="flex gap-2">
-                {canUpdateProfile && (
-                  <Button size="sm" variant="outline" onClick={() => setProfileModalOpen(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    {clinicalProfile ? 'Editar' : 'Criar'}
-                  </Button>
-                )}
-                {canUpdateProfile && clinicalProfile && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => setDeletingProfile(clinicalProfile)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir
-                  </Button>
-                )}
-              </div>
+              {canEditProfile && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setClinicalProfileModalOpen(true)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  {clinicalProfile ? 'Editar' : 'Adicionar'}
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            {clinicalProfile ? (
-              <div className="space-y-4">
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">Estado de Saúde</div>
-                  <div className="mt-1 text-sm">
-                    {clinicalProfile.healthStatus || (
-                      <span className="text-muted-foreground italic">Não informado</span>
-                    )}
-                  </div>
+            <div className="space-y-4">
+              {/* Estado de Saúde */}
+              <div>
+                <div className="text-sm font-semibold text-foreground">Estado de Saúde</div>
+                <div className="mt-1 text-sm">
+                  {clinicalProfile?.healthStatus || (
+                    <span className="text-muted-foreground italic">
+                      Descreva o estado de saúde do residente, indicando condições clínicas
+                      atuais, diagnósticos conhecidos, comorbidades, histórico relevante e
+                      necessidades de acompanhamento em saúde, conforme avaliação da equipe
+                      multiprofissional.
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Necessidades Especiais
-                  </div>
-                  <div className="mt-1 text-sm">
-                    {clinicalProfile.specialNeeds || (
-                      <span className="text-muted-foreground italic">Não informado</span>
-                    )}
-                  </div>
+              </div>
+
+              {/* Necessidades Especiais */}
+              <div>
+                <div className="text-sm font-semibold text-foreground">
+                  Necessidades Especiais
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">
+                <div className="mt-1 text-sm">
+                  {clinicalProfile?.specialNeeds || (
+                    <span className="text-muted-foreground italic">
+                      Descreva as necessidades especiais do residente, indicando limitações
+                      físicas, cognitivas, sensoriais ou comportamentais, bem como adaptações,
+                      apoios e cuidados específicos necessários para a prestação da assistência.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Aspectos Funcionais */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-semibold text-foreground">
                     Aspectos Funcionais
                   </div>
-                  <div className="mt-1 text-sm">
-                    {clinicalProfile.functionalAspects || (
-                      <span className="text-muted-foreground italic">Não informado</span>
-                    )}
-                  </div>
+                  {resident?.mobilityAid !== null && resident?.mobilityAid !== undefined && (
+                    <Badge
+                      variant={resident.mobilityAid ? 'default' : 'secondary'}
+                      className={resident.mobilityAid ? 'bg-primary/60 text-white' : 'text-xs'}
+                    >
+                      {resident.mobilityAid ? (
+                        <>
+                          <Accessibility className="h-3 w-3 mr-1" />
+                          Auxílio Mobilidade
+                        </>
+                      ) : (
+                        '✓ Independente'
+                      )}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1 text-sm">
+                  {clinicalProfile?.functionalAspects || (
+                    <span className="text-muted-foreground italic">
+                      Descreva os aspectos funcionais do residente, indicando o grau de autonomia
+                      para as atividades da vida diária, mobilidade, comunicação, cognição e uso
+                      de dispositivos de apoio, conforme avaliação funcional.
+                    </span>
+                  )}
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-6">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  Nenhum perfil clínico cadastrado
-                </p>
-                {canUpdateProfile && (
-                  <Button size="sm" onClick={() => setProfileModalOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Criar Perfil Clínico
-                  </Button>
-                )}
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -554,12 +549,13 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
         </Card>
       </div>
 
-      {/* Modais de Edição/Criação */}
-      <ClinicalProfileModal
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
+      {/* Modal de Edição do Perfil Clínico */}
+      <EditClinicalProfileModal
+        open={clinicalProfileModalOpen}
+        onOpenChange={setClinicalProfileModalOpen}
         residentId={residentId}
         profile={clinicalProfile}
+        currentMobilityAid={resident?.mobilityAid}
       />
 
       <AllergyModal
@@ -584,86 +580,6 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
       />
 
       {/* AlertDialogs para Confirmação de Delete */}
-      <AlertDialog
-        open={!!deletingProfile}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingProfile(undefined)
-            setProfileDeleteReason('')
-            setProfileDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Perfil Clínico</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o perfil clínico deste residente?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de
-                  auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="profileDeleteReason"
-                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
-              >
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="profileDeleteReason"
-                placeholder="Ex: Perfil clínico registrado incorretamente ou duplicado..."
-                value={profileDeleteReason}
-                onChange={(e) => {
-                  setProfileDeleteReason(e.target.value)
-                  setProfileDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${profileDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {profileDeleteReasonError && (
-                <p className="text-sm text-danger mt-2">{profileDeleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
-                histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setProfileDeleteReason('')
-                setProfileDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDeleteProfile}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog
         open={!!deletingAllergy}
         onOpenChange={(open) => {

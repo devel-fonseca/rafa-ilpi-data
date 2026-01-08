@@ -176,10 +176,13 @@ export class ClinicalProfilesService {
     id: string,
     updateDto: UpdateClinicalProfileDto,
   ) {
-    const { changeReason, ...updateData } = updateDto;
+    const { changeReason, mobilityAid, ...updateData } = updateDto;
 
     const profile = await this.prisma.clinicalProfile.findFirst({
       where: { id, tenantId, deletedAt: null },
+      include: {
+        resident: true,
+      },
     });
 
     if (!profile) {
@@ -216,6 +219,7 @@ export class ClinicalProfilesService {
     const newVersionNumber = profile.versionNumber + 1;
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Atualizar o perfil clínico
       const updatedProfile = await tx.clinicalProfile.update({
         where: { id },
         data: {
@@ -233,6 +237,7 @@ export class ClinicalProfilesService {
         versionNumber: updatedProfile.versionNumber,
       };
 
+      // 2. Criar histórico do perfil clínico
       await tx.clinicalProfileHistory.create({
         data: {
           tenantId,
@@ -248,6 +253,53 @@ export class ClinicalProfilesService {
         },
       });
 
+      // 3. Se mobilityAid foi fornecido, atualizar também o residente
+      if (mobilityAid !== undefined && profile.resident.mobilityAid !== mobilityAid) {
+        const residentPreviousMobilityAid = profile.resident.mobilityAid;
+        const residentVersionNumber = profile.resident.versionNumber + 1;
+
+        await tx.resident.update({
+          where: { id: profile.residentId },
+          data: {
+            mobilityAid,
+            versionNumber: residentVersionNumber,
+            updatedBy: userId,
+          },
+        });
+
+        // 4. Criar histórico no residente
+        await tx.residentHistory.create({
+          data: {
+            tenantId,
+            residentId: profile.residentId,
+            versionNumber: residentVersionNumber,
+            changeType: ChangeType.UPDATE,
+            changeReason: `Atualizado via edição de Aspectos Funcionais: ${changeReason}`,
+            changedFields: ['mobilityAid'],
+            previousData: {
+              ...profile.resident,
+              mobilityAid: residentPreviousMobilityAid,
+            } as any,
+            newData: {
+              ...profile.resident,
+              mobilityAid,
+              versionNumber: residentVersionNumber,
+            } as any,
+            changedAt: new Date(),
+            changedBy: userId,
+          },
+        });
+
+        this.logger.info('Campo mobilityAid sincronizado com residente', {
+          residentId: profile.residentId,
+          previousValue: residentPreviousMobilityAid,
+          newValue: mobilityAid,
+          versionNumber: residentVersionNumber,
+          tenantId,
+          userId,
+        });
+      }
+
       return updatedProfile;
     });
 
@@ -255,6 +307,7 @@ export class ClinicalProfilesService {
       profileId: id,
       versionNumber: newVersionNumber,
       changedFields,
+      mobilityAidUpdated: mobilityAid !== undefined,
       tenantId,
       userId,
     });

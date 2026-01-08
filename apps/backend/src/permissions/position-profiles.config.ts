@@ -102,6 +102,7 @@ const BASE_PERMISSIONS = {
     PermissionType.EXPORT_DATA,
     // Dados Clínicos
     PermissionType.VIEW_CLINICAL_PROFILE,
+    PermissionType.CREATE_CLINICAL_PROFILE,
     PermissionType.UPDATE_CLINICAL_PROFILE,
     PermissionType.VIEW_ALLERGIES,
     PermissionType.CREATE_ALLERGIES,
@@ -169,6 +170,7 @@ const BASE_PERMISSIONS = {
     PermissionType.DELETE_CLINICAL_NOTES,
     // Dados Clínicos
     PermissionType.VIEW_CLINICAL_PROFILE,
+    PermissionType.CREATE_CLINICAL_PROFILE,
     PermissionType.UPDATE_CLINICAL_PROFILE,
     PermissionType.VIEW_ALLERGIES,
     PermissionType.CREATE_ALLERGIES,

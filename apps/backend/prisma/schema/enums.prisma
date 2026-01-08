@@ -117,6 +117,7 @@ enum PermissionType {
 
   // Perfis Clínicos
   VIEW_CLINICAL_PROFILE
+  CREATE_CLINICAL_PROFILE
   UPDATE_CLINICAL_PROFILE
 
   // Alergias

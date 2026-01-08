@@ -26,6 +26,8 @@ export interface UpdateClinicalProfileDto {
   healthStatus?: string
   specialNeeds?: string
   functionalAspects?: string
+  mobilityAid?: boolean
+  changeReason: string
 }
 
 // ==================== API FUNCTIONS ====================

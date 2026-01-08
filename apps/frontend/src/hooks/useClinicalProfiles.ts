@@ -72,6 +72,11 @@ export function useUpdateClinicalProfile() {
         queryKey: ['clinical-profiles', 'resident', updatedProfile.residentId],
       })
 
+      // Invalidar também a query do residente, pois mobilityAid é atualizado lá
+      queryClient.invalidateQueries({
+        queryKey: ['resident', updatedProfile.residentId],
+      })
+
       toast.success('Perfil clínico atualizado com sucesso')
     },
     onError: (error: any) => {

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PermissionType" ADD VALUE 'CREATE_CLINICAL_PROFILE';
