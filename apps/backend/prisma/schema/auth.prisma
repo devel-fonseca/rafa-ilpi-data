@@ -126,6 +126,10 @@ model User {
   institutionalEventsCreated InstitutionalEvent[] @relation("InstitutionalEventCreatedBy")
   institutionalEventsUpdated InstitutionalEvent[] @relation("InstitutionalEventUpdatedBy")
 
+  // Intercorrências e RDC 502/2021
+  incidentMonthlyIndicatorsCalculated IncidentMonthlyIndicator[]   @relation("IndicatorCalculatedBy")
+  sentinelEventNotifications          SentinelEventNotification[]  @relation("SentinelEventResponsible")
+
   @@unique([tenantId, email])
   @@index([createdBy])
   @@index([updatedBy])

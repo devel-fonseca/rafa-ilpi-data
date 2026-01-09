@@ -335,6 +335,93 @@ enum RecordType {
   @@map("RecordType")
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS PARA GESTÃO DE INTERCORRÊNCIAS E RDC 502/2021
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum IncidentCategory {
+  CLINICA        // Intercorrências clínicas (saúde)
+  ASSISTENCIAL   // Intercorrências assistenciais (cuidados)
+  ADMINISTRATIVA // Intercorrências administrativas (gestão)
+
+  @@map("IncidentCategory")
+}
+
+enum IncidentSubtypeClinical {
+  QUEDA_COM_LESAO          // Evento Sentinela - notificação obrigatória
+  QUEDA_SEM_LESAO
+  TENTATIVA_SUICIDIO       // Evento Sentinela - notificação obrigatória
+  DOENCA_DIARREICA_AGUDA   // Indicador RDC (incidência)
+  DESIDRATACAO             // Indicador RDC (incidência)
+  ULCERA_DECUBITO          // Indicador RDC (prevalência)
+  DESNUTRICAO              // Indicador RDC (prevalência)
+  ESCABIOSE                // Indicador RDC (incidência)
+  FEBRE_HIPERTERMIA
+  HIPOTERMIA
+  HIPOGLICEMIA
+  HIPERGLICEMIA
+  CONVULSAO
+  ALTERACAO_CONSCIENCIA
+  DOR_TORACICA
+  DISPNEIA
+  VOMITO
+  SANGRAMENTO
+  REACAO_ALERGICA
+  OBITO                    // Indicador RDC (mortalidade)
+  OUTRA_CLINICA
+
+  @@map("IncidentSubtypeClinical")
+}
+
+enum IncidentSubtypeAssistencial {
+  ERRO_MEDICACAO
+  RECUSA_MEDICACAO
+  RECUSA_ALIMENTACAO
+  RECUSA_HIGIENE
+  RECUSA_BANHO
+  AGITACAO_PSICOMOTORA
+  AGRESSIVIDADE
+  FUGA_EVASAO
+  PERDA_OBJETOS
+  DANO_EQUIPAMENTO
+  OUTRA_ASSISTENCIAL
+
+  @@map("IncidentSubtypeAssistencial")
+}
+
+enum IncidentSubtypeAdministrativa {
+  AUSENCIA_PROFISSIONAL
+  FALTA_INSUMO
+  FALTA_MEDICAMENTO
+  EQUIPAMENTO_QUEBRADO
+  PROBLEMA_INFRAESTRUTURA
+  RECLAMACAO_FAMILIAR
+  CONFLITO_EQUIPE
+  OUTRA_ADMINISTRATIVA
+
+  @@map("IncidentSubtypeAdministrativa")
+}
+
+enum IncidentSeverity {
+  LEVE      // Sem impacto significativo
+  MODERADA  // Requer atenção
+  GRAVE     // Requer intervenção imediata
+  CRITICA   // Risco de vida ou Evento Sentinela
+
+  @@map("IncidentSeverity")
+}
+
+enum RdcIndicatorType {
+  MORTALIDADE           // Taxa de mortalidade
+  DIARREIA_AGUDA       // Taxa de incidência de doença diarréica aguda
+  ESCABIOSE            // Taxa de incidência de escabiose
+  DESIDRATACAO         // Taxa de incidência de desidratação
+  ULCERA_DECUBITO      // Taxa de prevalência de úlcera de decúbito
+  DESNUTRICAO          // Taxa de prevalência de desnutrição
+
+  @@map("RdcIndicatorType")
+}
+
 enum ScheduleFrequency {
   DAILY
   WEEKLY
@@ -579,6 +666,11 @@ enum SystemNotificationType {
   INSTITUTIONAL_EVENT_CREATED
   INSTITUTIONAL_EVENT_UPDATED
   INSTITUTIONAL_EVENT_DUE
+
+  // Intercorrências e Eventos Sentinela (RDC 502/2021)
+  INCIDENT_CREATED
+  INCIDENT_SENTINEL_EVENT
+  INCIDENT_RDC_INDICATOR_ALERT
 }
 
 enum NotificationCategory {
@@ -591,6 +683,7 @@ enum NotificationCategory {
   SYSTEM
   SCHEDULED_EVENT
   INSTITUTIONAL_EVENT
+  INCIDENT // Intercorrências e Eventos Sentinela
 }
 
 enum NotificationSeverity {
@@ -658,6 +751,7 @@ enum EmailTemplateCategory {
   ONBOARDING // user-invite
   BILLING // payment-reminder, overdue-report
   LIFECYCLE // trial-expiring, trial-converted
+  INCIDENT // sentinel-event-alert, incident-notifications
   SYSTEM // outros
 
   @@map("EmailTemplateCategory")

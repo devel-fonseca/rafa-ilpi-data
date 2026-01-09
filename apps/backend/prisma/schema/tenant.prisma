@@ -120,6 +120,8 @@ model Tenant {
   accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
   vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
   institutionalEvents       InstitutionalEvent[] // Eventos institucionais
+  incidentMonthlyIndicators IncidentMonthlyIndicator[] // Indicadores mensais RDC 502/2021
+  sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
   @@index([timezone])
   @@map("tenants")

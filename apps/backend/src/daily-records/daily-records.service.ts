@@ -11,6 +11,7 @@ import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
+import { IncidentInterceptorService } from './incident-interceptor.service';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { localToUTC } from '../utils/date.helpers';
 
@@ -19,6 +20,7 @@ export class DailyRecordsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly vitalSignsService: VitalSignsService,
+    private readonly incidentInterceptorService: IncidentInterceptorService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -81,6 +83,23 @@ export class DailyRecordsService {
       tenantId,
       userId,
     });
+
+    // DETECÇÃO AUTOMÁTICA DE INTERCORRÊNCIAS (RDC 502/2021)
+    // Analisar o registro para detectar padrões que indiquem intercorrências
+    try {
+      await this.incidentInterceptorService.analyzeAndCreateIncidents(
+        record,
+        tenantId,
+        userId,
+      );
+    } catch (error) {
+      this.logger.error('Erro na análise de intercorrências', {
+        recordId: record.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      // Não falhar a criação do registro original
+    }
 
     // Se for um registro de MONITORAMENTO, criar/atualizar sinais vitais
     if (dto.type === 'MONITORAMENTO' && dto.data) {

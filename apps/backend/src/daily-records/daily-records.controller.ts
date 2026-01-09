@@ -14,6 +14,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { DailyRecordsService } from './daily-records.service';
+import { IndicadoresRdcService } from './indicadores-rdc.service';
+import { IndicadoresRdcCronService } from './indicadores-rdc.cron';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { DeleteDailyRecordDto } from './dto/delete-daily-record.dto';
@@ -42,7 +44,11 @@ import {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @AuditEntity('DAILY_RECORD')
 export class DailyRecordsController {
-  constructor(private readonly dailyRecordsService: DailyRecordsService) {}
+  constructor(
+    private readonly dailyRecordsService: DailyRecordsService,
+    private readonly indicadoresRdcService: IndicadoresRdcService,
+    private readonly indicadoresRdcCronService: IndicadoresRdcCronService,
+  ) {}
 
   @Post()
   @RequirePermissions(PermissionType.CREATE_DAILY_RECORDS)
@@ -324,5 +330,81 @@ export class DailyRecordsController {
       user.id,
       user.name,
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INDICADORES RDC 502/2021
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @Get('indicadores-rdc')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @ApiOperation({
+    summary: 'Obter indicadores RDC 502/2021 de um mês específico',
+    description:
+      'Retorna os 6 indicadores mensais obrigatórios (mortalidade, diarreia, escabiose, desidratação, úlcera, desnutrição)',
+  })
+  @ApiResponse({ status: 200, description: 'Indicadores retornados com sucesso' })
+  async getIndicadoresRdc(
+    @CurrentUser() user: any,
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    return this.indicadoresRdcService.getIndicatorsByMonth(
+      user.tenantId,
+      yearNum,
+      monthNum,
+    );
+  }
+
+  @Get('indicadores-rdc/historico')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @ApiOperation({
+    summary: 'Obter histórico de indicadores RDC',
+    description: 'Retorna histórico dos indicadores RDC dos últimos N meses',
+  })
+  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
+  async getHistoricoIndicadoresRdc(
+    @CurrentUser() user: any,
+    @Query('months') months?: string,
+  ) {
+    const monthsNum = months ? parseInt(months) : 12;
+
+    return this.indicadoresRdcService.getIndicatorsHistory(
+      user.tenantId,
+      monthsNum,
+    );
+  }
+
+  @Post('indicadores-rdc/calcular')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @ApiOperation({
+    summary: 'Recalcular indicadores RDC manualmente',
+    description:
+      'Força o recálculo dos indicadores de um mês específico (uso administrativo)',
+  })
+  @ApiResponse({ status: 200, description: 'Indicadores recalculados com sucesso' })
+  async recalcularIndicadoresRdc(
+    @CurrentUser() user: any,
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    await this.indicadoresRdcCronService.manualCalculation(
+      user.tenantId,
+      yearNum,
+      monthNum,
+      user.id,
+    );
+
+    return {
+      message: 'Indicadores RDC recalculados com sucesso',
+      year: yearNum,
+      month: monthNum,
+    };
   }
 }

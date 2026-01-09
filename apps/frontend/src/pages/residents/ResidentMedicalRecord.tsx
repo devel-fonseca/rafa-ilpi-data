@@ -3,14 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useResident } from '@/hooks/useResidents'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
-import { useMyProfile } from '@/hooks/queries/useUserProfile'
-import { PositionCode } from '@/types/permissions'
 import { api } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { Page, PageHeader } from '@/design-system/components'
 import {
   Tooltip,
   TooltipContent,
@@ -19,36 +17,21 @@ import {
 } from '@/components/ui/tooltip'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
-  ArrowLeft,
-  Trash2,
-  Phone,
-  MapPin,
   AlertCircle,
   Loader2,
-  User,
   Pill,
   Calendar,
-  Clock,
   ChevronLeft,
   ChevronRight,
   FileText,
   Eye,
   Activity,
+  ShieldAlert,
+  ArrowLeft,
 } from 'lucide-react'
 import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useToast } from '@/components/ui/use-toast'
-import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
 import { ResidentScheduleTab } from '@/components/resident-schedule/ResidentScheduleTab'
 import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
@@ -73,13 +56,10 @@ import {
 } from '@/components/view-modals'
 import { VitalSignsModal } from '@/components/vital-signs/VitalSignsModal'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { ShieldAlert } from 'lucide-react'
 
 export default function ResidentProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { toast } = useToast()
-  const [deleteModal, setDeleteModal] = useState(false)
   const [viewDate, setViewDate] = useState<string>(getCurrentDate()) // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
   const healthConditionsCardRef = useRef<HTMLDivElement>(null)
 
@@ -90,15 +70,10 @@ export default function ResidentProfile() {
   const [currentEmergencyContactIndex, setCurrentEmergencyContactIndex] = useState(0)
 
   const { data: resident, isLoading, error } = useResident(id || '')
-  const { data: userProfile } = useMyProfile()
   const { hasPermission } = usePermissions()
 
   // Verificar se o usuário tem permissão para visualizar prontuário
   const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
-
-  // Verificar se o usuário tem permissão para remover (apenas Administrador e Responsável Técnico)
-  const canDelete = userProfile?.positionCode === PositionCode.ADMINISTRATOR ||
-                    userProfile?.positionCode === PositionCode.TECHNICAL_MANAGER
 
   // Funções de navegação entre datas
   const goToPreviousDay = () => {
@@ -209,13 +184,6 @@ export default function ResidentProfile() {
     }
   }
 
-  // Calcular IMC
-  const calculateBMI = (weight?: number, height?: number) => {
-    if (!weight || !height) return null
-    const bmi = weight / (height * height)
-    return bmi.toFixed(1)
-  }
-
   // Obter cor do badge de status
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -231,24 +199,6 @@ export default function ResidentProfile() {
         return 'bg-accent/10 text-accent border-accent/30'
       default:
         return 'bg-muted text-muted-foreground border-border'
-    }
-  }
-
-  // Traduzir estado civil
-  const translateMaritalStatus = (status?: string) => {
-    switch (status) {
-      case 'SOLTEIRO':
-        return 'Solteiro(a)'
-      case 'CASADO':
-        return 'Casado(a)'
-      case 'DIVORCIADO':
-        return 'Divorciado(a)'
-      case 'VIUVO':
-        return 'Viúvo(a)'
-      case 'UNIAO_ESTAVEL':
-        return 'União Estável'
-      default:
-        return 'Não informado'
     }
   }
 
@@ -279,31 +229,6 @@ export default function ResidentProfile() {
         return 'Outro'
       default:
         return 'Não informado'
-    }
-  }
-
-  // Helper para mostrar badge de status de preenchimento
-  const getFieldCompletionBadge = (value: any) => {
-    if (!value || value === 'Não informado' || value === '-') {
-      return <Badge variant="warning" className="text-xs">Não preenchido</Badge>
-    }
-    return <Badge variant="success" className="text-xs">Completo</Badge>
-  }
-
-  // Helper para calcular percentual de preenchimento
-  const getCompletionPercentage = (fields: any[]) => {
-    const filledCount = fields.filter(f => f && f !== 'Não informado' && f !== '-').length
-    return Math.round((filledCount / fields.length) * 100)
-  }
-
-  // Helper para mostrar badge de status geral da seção
-  const getSectionCompletionBadge = (completionPercent: number) => {
-    if (completionPercent === 100) {
-      return <Badge variant="success">100% Completo</Badge>
-    } else if (completionPercent >= 50) {
-      return <Badge variant="info">{completionPercent}% Preenchido</Badge>
-    } else {
-      return <Badge variant="warning">{completionPercent}% Incompleto</Badge>
     }
   }
 
@@ -360,8 +285,6 @@ export default function ResidentProfile() {
     )
   }
 
-  const activePrescriptions = prescriptions.filter((p: any) => p.status === 'ACTIVE')
-
   return (
     <Page maxWidth="wide">
       <PageHeader
@@ -375,18 +298,10 @@ export default function ResidentProfile() {
         }
         onBack={() => navigate('/dashboard/residentes')}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/view`)}>
-              <Eye className="mr-2 h-4 w-4" />
-              Ver Cadastro
-            </Button>
-            {canDelete && (
-              <Button variant="destructive" onClick={() => setDeleteModal(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Remover
-              </Button>
-            )}
-          </div>
+          <Button variant="outline" onClick={() => navigate(`/dashboard/residentes/${id}/view`)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Ver Cadastro
+          </Button>
         }
       />
 
@@ -696,7 +611,7 @@ export default function ResidentProfile() {
                   ) : (
                     <div className="space-y-3 py-4">
                       <div className="text-center font-medium text-foreground">
-                        Nenhum contato de emergência cadastrado.
+                        Nenhum contato de emergência cadastrado
                       </div>
                       <div className="text-sm text-muted-foreground text-center px-4">
                         A indicação de pelo menos um contato é um requisito operacional e uma boa prática essencial para o manejo adequado de urgências e emergências. Cadastre um contato para garantir segurança e continuidade do cuidado.
@@ -738,8 +653,13 @@ export default function ResidentProfile() {
                       )}
                     </div>
                   ) : (
-                    <div className="font-semibold text-lg text-foreground">
-                      Sem acomodação definida
+                    <div className="space-y-3 py-4">
+                      <div className="text-center font-medium text-foreground">
+                        Leito não informado
+                      </div>
+                      <div className="text-sm text-muted-foreground text-center px-4">
+                        A vinculação de um leito ao residente é um requisito operacional e uma boa prática essencial para a organização da assistência, a rastreabilidade do cuidado e o manejo adequado de rotinas e intercorrências. Informe o leito no cadastro do residente.
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -983,7 +903,7 @@ export default function ResidentProfile() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/dashboard/registros-diarios?residentId=${id}&date=${displayDate}`)}
+                    onClick={() => navigate(`/dashboard/registros-diarios/${id}?date=${displayDate}`)}
                   >
                     Criar novo registro
                   </Button>
@@ -1003,22 +923,6 @@ export default function ResidentProfile() {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Delete Confirmation Modal */}
-      <AlertDialog open={deleteModal} onOpenChange={setDeleteModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Funcionalidade não implementada</AlertDialogTitle>
-            <AlertDialogDescription>
-              A funcionalidade de remoção de residentes ainda não foi implementada.
-              Esta funcionalidade estará disponível em uma próxima atualização do sistema.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Fechar</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Modais de Visualização */}
       {viewingRecord?.type === 'HIGIENE' && (

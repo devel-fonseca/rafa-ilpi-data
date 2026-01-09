@@ -36,6 +36,7 @@ model Notification {
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reads           NotificationRead[] // Rastreamento individual de leitura
   vitalSignAlerts VitalSignAlert[] // Alertas médicos vinculados a esta notificação
+  sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
   // Índices para performance
   @@index([tenantId, createdAt(sort: Desc)])

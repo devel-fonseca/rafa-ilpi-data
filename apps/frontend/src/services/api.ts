@@ -40,6 +40,29 @@ api.interceptors.request.use(
   }
 )
 
+// ==================== REFRESH TOKEN MUTEX ====================
+// Controla refresh token para evitar múltiplas chamadas simultâneas (race condition)
+let isRefreshing = false
+let failedQueue: Array<{
+  resolve: (value: string) => void
+  reject: (reason: any) => void
+}> = []
+
+/**
+ * Processa a fila de requisições que falharam enquanto refresh estava em andamento
+ */
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach((promise) => {
+    if (error) {
+      promise.reject(error)
+    } else {
+      promise.resolve(token!)
+    }
+  })
+
+  failedQueue = []
+}
+
 // Response interceptor - trata refresh token
 api.interceptors.response.use(
   (response) => response,
@@ -48,19 +71,36 @@ api.interceptors.response.use(
 
     // Se token expirou (401) e não é retry
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Se já está fazendo refresh, adicionar esta requisição na fila
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            return api(originalRequest)
+          })
+          .catch((err) => {
+            return Promise.reject(err)
+          })
+      }
+
       originalRequest._retry = true
+      isRefreshing = true
+
+      const refreshToken = useAuthStore.getState().refreshToken
+
+      if (!refreshToken) {
+        // Tentar registrar logout automático (best effort)
+        isRefreshing = false
+        processQueue(error, null)
+        tryLogoutOnExpiration() // Fire-and-forget
+        useAuthStore.getState().clearAuth()
+        window.location.href = '/session-expired'
+        return Promise.reject(error)
+      }
 
       try {
-        const refreshToken = useAuthStore.getState().refreshToken
-
-        if (!refreshToken) {
-          // Tentar registrar logout automático (best effort)
-          await tryLogoutOnExpiration()
-          useAuthStore.getState().clearAuth()
-          window.location.href = '/session-expired'
-          return Promise.reject(error)
-        }
-
         // Tenta refresh
         const response = await axios.post(`${API_URL}/auth/refresh`, {
           refreshToken,
@@ -74,13 +114,20 @@ api.interceptors.response.use(
           useAuthStore.setState({ refreshToken: newRefreshToken })
         }
 
+        // Processa fila de requisições pendentes
+        processQueue(null, accessToken)
+
         // Retry requisição original
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
+        isRefreshing = false
         return api(originalRequest)
       } catch (refreshError) {
         // Refresh falhou - sessão expirada
+        processQueue(refreshError, null)
+        isRefreshing = false
+
         // Tentar registrar logout automático (best effort)
-        await tryLogoutOnExpiration()
+        tryLogoutOnExpiration() // Fire-and-forget
         useAuthStore.getState().clearAuth()
         window.location.href = '/session-expired'
         return Promise.reject(refreshError)
@@ -95,6 +142,10 @@ api.interceptors.response.use(
  * Registra logout de sessão expirada no backend
  * Usa endpoint público /auth/logout-expired que aceita apenas refreshToken
  * (não precisa de accessToken válido)
+ *
+ * Esta função executa em "fire-and-forget" mode - não bloqueia o fluxo
+ * mesmo se demorar ou falhar, garantindo que o logout seja registrado
+ * no backend sempre que possível.
  */
 async function tryLogoutOnExpiration() {
   try {
@@ -106,18 +157,19 @@ async function tryLogoutOnExpiration() {
     }
 
     // Usar endpoint público que não requer JWT
+    // Timeout aumentado para 10 segundos para redes lentas
     await axios.post(
       `${API_URL}/auth/logout-expired`,
       { refreshToken },
       {
-        timeout: 3000, // 3 segundos de timeout
+        timeout: 10000, // 10 segundos de timeout (aumentado de 3s)
       }
     )
 
     console.log('✅ [LOGOUT-EXPIRED] Logout de sessão expirada registrado com sucesso')
   } catch (error: any) {
     // Best effort - falha silenciosa, mas loga para debug
-    console.log('[LOGOUT-EXPIRED] Falha ao registrar logout (esperado se refresh também expirou):', error.message)
+    console.warn('[LOGOUT-EXPIRED] Falha ao registrar logout:', error.message)
   }
 }
 

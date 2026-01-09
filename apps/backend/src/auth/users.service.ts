@@ -523,13 +523,29 @@ export class UsersService {
   /**
    * Revogar todas as outras sessões (exceto a atual)
    */
-  async revokeAllOtherSessions(userId: string, currentTokenId: string, tenantId: string) {
+  async revokeAllOtherSessions(userId: string, currentTokenId: string | null, tenantId: string) {
+    // Se currentTokenId não foi fornecido, buscar a sessão mais recente (provavelmente a atual)
+    let tokenIdToKeep = currentTokenId;
+
+    if (!currentTokenId || currentTokenId === 'current') {
+      const mostRecentSession = await this.prisma.refreshToken.findFirst({
+        where: { userId },
+        orderBy: { lastActivityAt: 'desc' },
+        select: { id: true },
+      });
+
+      tokenIdToKeep = mostRecentSession?.id || null;
+    }
+
+    // Deletar todas as sessões exceto a mais recente
     const result = await this.prisma.refreshToken.deleteMany({
       where: {
         userId,
-        id: {
-          not: currentTokenId,
-        },
+        ...(tokenIdToKeep && {
+          id: {
+            not: tokenIdToKeep,
+          },
+        }),
       },
     });
 

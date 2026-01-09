@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -363,6 +363,23 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/dashboard/conformidade-rdc"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <Activity className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Conformidade RDC'}
+                  </Link>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Conformidade RDC</TooltipContent>
+                )}
+              </Tooltip>
+
               {canManageResidents && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -604,6 +621,14 @@ export function DashboardLayout() {
               >
                 <Calendar className="h-4 w-4" />
                 Agenda
+              </Link>
+              <Link
+                to="/dashboard/conformidade-rdc"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <Activity className="h-4 w-4" />
+                Conformidade RDC
               </Link>
               {canManageResidents && (
                 <Link

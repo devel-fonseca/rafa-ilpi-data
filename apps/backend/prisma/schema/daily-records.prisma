@@ -17,6 +17,21 @@ model DailyRecord {
   // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
   data Json @default("{}")
 
+  // ─────────────────────────────────────────────────────────────
+  // CAMPOS PARA INTERCORRÊNCIAS E RDC 502/2021 (opcionais)
+  // ─────────────────────────────────────────────────────────────
+  incidentCategory          IncidentCategory?
+  incidentSubtypeClinical   IncidentSubtypeClinical?
+  incidentSubtypeAssist     IncidentSubtypeAssistencial?
+  incidentSubtypeAdmin      IncidentSubtypeAdministrativa?
+  incidentSeverity          IncidentSeverity?
+  isEventoSentinela         Boolean                      @default(false)
+  isDoencaNotificavel       Boolean                      @default(false)
+  rdcIndicators             Json                         @default("[]") // Array de RdcIndicatorType
+  notificadoVigilancia      Boolean                      @default(false)
+  dataNotificacao           DateTime?                    @db.Timestamptz(3)
+  protocoloNotificacao      String?                      @db.VarChar(100)
+
   // Responsável pelo registro
   recordedBy String // Nome do profissional
   userId     String @db.Uuid // ID do usuário que fez o registro
@@ -36,6 +51,9 @@ model DailyRecord {
 
   // Relação com histórico de versões
   history DailyRecordHistory[]
+
+  // Relação com Eventos Sentinela
+  sentinelEventNotifications SentinelEventNotification[]
 
   // Índices para performance
   @@index([tenantId, residentId, date(sort: Desc)])
@@ -195,4 +213,74 @@ model ResidentScheduledEvent {
   @@index([residentId, status, scheduledDate]) // Eventos pendentes do residente
   @@index([tenantId, eventType, scheduledDate]) // Eventos por tipo (ex: VACINACAO)
   @@map("resident_scheduled_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  GESTÃO DE INTERCORRÊNCIAS E CONFORMIDADE RDC 502/2021
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Indicadores mensais RDC 502/2021
+model IncidentMonthlyIndicator {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  year  Int // 2024, 2025, etc
+  month Int // 1-12
+
+  indicatorType RdcIndicatorType
+
+  numerator   Int   // Casos identificados
+  denominator Int   // Total de residentes (média do mês)
+  rate        Float // Taxa calculada (numerator/denominator * 100)
+
+  incidentIds Json @default("[]") // Array de UUIDs
+  metadata    Json? @db.JsonB
+
+  calculatedAt DateTime @default(now()) @db.Timestamptz(3)
+  calculatedBy String?  @db.Uuid
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation("IndicatorCalculatedBy", fields: [calculatedBy], references: [id])
+
+  @@unique([tenantId, year, month, indicatorType])
+  @@index([tenantId, year(sort: Desc), month(sort: Desc)])
+  @@index([indicatorType])
+  @@map("incident_monthly_indicators")
+}
+
+// Rastreamento de notificações à vigilância (Eventos Sentinela)
+model SentinelEventNotification {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  dailyRecordId  String @db.Uuid
+  notificationId String @db.Uuid
+
+  eventType String @db.VarChar(100) // QUEDA_COM_LESAO, TENTATIVA_SUICIDIO
+
+  status String @default("PENDENTE") @db.VarChar(50) // PENDENTE, ENVIADO, CONFIRMADO
+
+  protocolo          String?   @db.VarChar(100)
+  dataEnvio          DateTime? @db.Timestamptz(3)
+  dataConfirmacao    DateTime? @db.Timestamptz(3)
+  responsavelEnvio   String?   @db.Uuid
+  emailEnviado       Boolean   @default(false)
+  emailEnviadoEm     DateTime? @db.Timestamptz(3)
+  emailDestinatarios Json?     @default("[]")
+
+  observacoes String? @db.Text
+  metadata    Json?   @db.JsonB
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyRecord  DailyRecord  @relation(fields: [dailyRecordId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("SentinelEventResponsible", fields: [responsavelEnvio], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([dailyRecordId])
+  @@index([status])
+  @@map("sentinel_event_notifications")
 }

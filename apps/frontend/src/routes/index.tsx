@@ -17,6 +17,7 @@ import { PrivacyPolicyPage } from '@/pages/public/PrivacyPolicyPage'
 
 // Dashboard Pages
 import Dashboard from '@/pages/Dashboard'
+import { ConformidadeRDCPage } from '@/pages/dashboards/ConformidadeRDCPage'
 
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
@@ -189,6 +190,10 @@ export const router = createBrowserRouter([
       {
         path: 'agenda',
         element: <AgendaPage />,
+      },
+      {
+        path: 'conformidade-rdc',
+        element: <ConformidadeRDCPage />,
       },
       {
         path: 'prescricoes',

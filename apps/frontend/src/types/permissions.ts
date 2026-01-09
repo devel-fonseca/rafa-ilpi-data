@@ -64,6 +64,36 @@ export enum PermissionType {
   // Vital Signs
   VIEW_VITAL_SIGNS = 'VIEW_VITAL_SIGNS',
   CREATE_VITAL_SIGNS = 'CREATE_VITAL_SIGNS',
+  RECORD_VITAL_SIGNS = 'RECORD_VITAL_SIGNS',
+
+  // Clinical Notes (SOAP)
+  VIEW_CLINICAL_NOTES = 'VIEW_CLINICAL_NOTES',
+  CREATE_CLINICAL_NOTES = 'CREATE_CLINICAL_NOTES',
+  UPDATE_CLINICAL_NOTES = 'UPDATE_CLINICAL_NOTES',
+  DELETE_CLINICAL_NOTES = 'DELETE_CLINICAL_NOTES',
+
+  // Clinical Profile
+  VIEW_CLINICAL_PROFILE = 'VIEW_CLINICAL_PROFILE',
+  CREATE_CLINICAL_PROFILE = 'CREATE_CLINICAL_PROFILE',
+  UPDATE_CLINICAL_PROFILE = 'UPDATE_CLINICAL_PROFILE',
+
+  // Allergies
+  VIEW_ALLERGIES = 'VIEW_ALLERGIES',
+  CREATE_ALLERGIES = 'CREATE_ALLERGIES',
+  UPDATE_ALLERGIES = 'UPDATE_ALLERGIES',
+  DELETE_ALLERGIES = 'DELETE_ALLERGIES',
+
+  // Chronic Conditions
+  VIEW_CONDITIONS = 'VIEW_CONDITIONS',
+  CREATE_CONDITIONS = 'CREATE_CONDITIONS',
+  UPDATE_CONDITIONS = 'UPDATE_CONDITIONS',
+  DELETE_CONDITIONS = 'DELETE_CONDITIONS',
+
+  // Dietary Restrictions
+  VIEW_DIETARY_RESTRICTIONS = 'VIEW_DIETARY_RESTRICTIONS',
+  CREATE_DIETARY_RESTRICTIONS = 'CREATE_DIETARY_RESTRICTIONS',
+  UPDATE_DIETARY_RESTRICTIONS = 'UPDATE_DIETARY_RESTRICTIONS',
+  DELETE_DIETARY_RESTRICTIONS = 'DELETE_DIETARY_RESTRICTIONS',
 
   // Documents
   VIEW_DOCUMENTS = 'VIEW_DOCUMENTS',
@@ -181,6 +211,31 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
 
   [PermissionType.VIEW_VITAL_SIGNS]: 'Visualizar sinais vitais',
   [PermissionType.CREATE_VITAL_SIGNS]: 'Registrar sinais vitais',
+  [PermissionType.RECORD_VITAL_SIGNS]: 'Registrar sinais vitais',
+
+  [PermissionType.VIEW_CLINICAL_NOTES]: 'Visualizar evoluções clínicas',
+  [PermissionType.CREATE_CLINICAL_NOTES]: 'Criar evoluções clínicas',
+  [PermissionType.UPDATE_CLINICAL_NOTES]: 'Editar evoluções clínicas',
+  [PermissionType.DELETE_CLINICAL_NOTES]: 'Excluir evoluções clínicas',
+
+  [PermissionType.VIEW_CLINICAL_PROFILE]: 'Visualizar perfil clínico',
+  [PermissionType.CREATE_CLINICAL_PROFILE]: 'Criar perfil clínico',
+  [PermissionType.UPDATE_CLINICAL_PROFILE]: 'Editar perfil clínico',
+
+  [PermissionType.VIEW_ALLERGIES]: 'Visualizar alergias',
+  [PermissionType.CREATE_ALLERGIES]: 'Cadastrar alergias',
+  [PermissionType.UPDATE_ALLERGIES]: 'Editar alergias',
+  [PermissionType.DELETE_ALLERGIES]: 'Excluir alergias',
+
+  [PermissionType.VIEW_CONDITIONS]: 'Visualizar condições crônicas',
+  [PermissionType.CREATE_CONDITIONS]: 'Cadastrar condições crônicas',
+  [PermissionType.UPDATE_CONDITIONS]: 'Editar condições crônicas',
+  [PermissionType.DELETE_CONDITIONS]: 'Excluir condições crônicas',
+
+  [PermissionType.VIEW_DIETARY_RESTRICTIONS]: 'Visualizar restrições alimentares',
+  [PermissionType.CREATE_DIETARY_RESTRICTIONS]: 'Cadastrar restrições alimentares',
+  [PermissionType.UPDATE_DIETARY_RESTRICTIONS]: 'Editar restrições alimentares',
+  [PermissionType.DELETE_DIETARY_RESTRICTIONS]: 'Excluir restrições alimentares',
 
   [PermissionType.VIEW_DOCUMENTS]: 'Visualizar documentos',
   [PermissionType.CREATE_DOCUMENTS]: 'Upload de documentos',

@@ -257,6 +257,7 @@ export const useAuthStore = create<AuthState>()(
           set({
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
+            isAuthenticated: true, // ✅ CORRIGIDO: Sincronizar estado após refresh bem-sucedido
           })
 
           api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`

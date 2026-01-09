@@ -361,25 +361,25 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 {allergies.map((allergy) => (
                   <div
                     key={allergy.id}
-                    className="flex items-start justify-between p-3 border rounded-lg"
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{allergy.substance}</span>
+                        <span className="font-medium text-foreground">{allergy.substance}</span>
                         {allergy.severity && (
-                          <Badge variant={ALLERGY_SEVERITY_LABELS[allergy.severity].variant}>
+                          <Badge variant={ALLERGY_SEVERITY_LABELS[allergy.severity].variant} className="text-xs">
                             {ALLERGY_SEVERITY_LABELS[allergy.severity].label}
                           </Badge>
                         )}
                       </div>
                       {allergy.reaction && (
-                        <p className="text-sm text-muted-foreground mb-1">{allergy.reaction}</p>
+                        <p className="text-sm text-muted-foreground">{allergy.reaction}</p>
                       )}
                       {allergy.notes && (
-                        <p className="text-xs text-muted-foreground italic">{allergy.notes}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{allergy.notes}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 ml-4">
                       {canUpdateAllergies && (
                         <Button
                           size="sm"
@@ -434,11 +434,11 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 {conditions.map((condition) => (
                   <div
                     key={condition.id}
-                    className="flex items-start justify-between p-3 border rounded-lg"
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{condition.condition}</span>
+                        <span className="font-medium text-foreground">{condition.condition}</span>
                         {condition.icdCode && (
                           <Badge variant="outline" className="text-xs">
                             CID: {condition.icdCode}
@@ -449,7 +449,7 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                         <p className="text-sm text-muted-foreground">{condition.notes}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 ml-4">
                       {canUpdateConditions && (
                         <Button
                           size="sm"
@@ -504,20 +504,20 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                 {dietaryRestrictions.map((restriction) => (
                   <div
                     key={restriction.id}
-                    className="flex items-start justify-between p-3 border rounded-lg"
+                    className="flex items-start justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="outline">
+                        <span className="font-medium text-foreground">{restriction.description}</span>
+                        <Badge variant="outline" className="text-xs">
                           {RESTRICTION_TYPE_LABELS[restriction.restrictionType]}
                         </Badge>
-                        <span className="font-medium">{restriction.description}</span>
                       </div>
                       {restriction.notes && (
                         <p className="text-sm text-muted-foreground">{restriction.notes}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 ml-4">
                       {canUpdateRestrictions && (
                         <Button
                           size="sm"
