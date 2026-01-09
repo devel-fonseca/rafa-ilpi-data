@@ -24,15 +24,16 @@ export const timestamptzToDisplay = (timestamp: string | Date | null | undefined
 }
 
 /**
- * Converte DD/MM/YYYY para Date object
- * Backend recebe Date e salva automaticamente como TIMESTAMPTZ
+ * Converte DD/MM/YYYY para YYYY-MM-DD
+ * Backend espera string YYYY-MM-DD para campos DATE (@IsDateOnly validator)
  */
-export const displayToDate = (dateStr: string | undefined): Date | null => {
+export const displayToDate = (dateStr: string | undefined): string | null => {
   if (!dateStr) return null
   const parts = dateStr.split('/')
   if (parts.length !== 3) return null
   const [day, month, year] = parts
-  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0)
+  // Retornar YYYY-MM-DD ao invés de Date object
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 }
 
 // ========== MAPEAMENTO DE ESTADO CIVIL ==========

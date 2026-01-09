@@ -1007,6 +1007,11 @@ export class ResidentsService {
         Object.entries(restDto).filter(([_, value]) => value !== undefined)
       );
 
+      // Converter campos DATE de string YYYY-MM-DD para Date objects
+      if (dataToUpdate.birthDate) dataToUpdate.birthDate = new Date(dataToUpdate.birthDate);
+      if (dataToUpdate.admissionDate) dataToUpdate.admissionDate = new Date(dataToUpdate.admissionDate);
+      if (dataToUpdate.dischargeDate) dataToUpdate.dischargeDate = new Date(dataToUpdate.dischargeDate);
+
       // Adicionar campos JSON apenas se foram enviados
       if (emergencyContacts !== undefined) dataToUpdate.emergencyContacts = emergencyContacts;
       if (documents !== undefined) dataToUpdate.documents = documents;
