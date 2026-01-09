@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProfileForm } from './ProfileForm'
 import { DocumentsTab } from './DocumentsTab'
@@ -6,7 +7,25 @@ import { ComplianceTab } from './ComplianceTab'
 import { Page, PageHeader } from '@/design-system/components'
 
 export default function InstitutionalProfile() {
-  const [activeTab, setActiveTab] = useState('profile')
+  const [searchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+
+  // Mapear query param para valor da aba
+  const getInitialTab = () => {
+    if (tabParam === 'documentos' || tabParam === 'documents') return 'documents'
+    if (tabParam === 'compliance') return 'compliance'
+    return 'profile'
+  }
+
+  const [activeTab, setActiveTab] = useState(getInitialTab())
+
+  // Atualizar aba quando query param mudar
+  useEffect(() => {
+    const newTab = getInitialTab()
+    if (newTab !== activeTab) {
+      setActiveTab(newTab)
+    }
+  }, [tabParam])
 
   return (
     <Page>

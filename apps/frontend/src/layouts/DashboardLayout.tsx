@@ -366,17 +366,17 @@ export function DashboardLayout() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
-                    to="/dashboard/conformidade-rdc"
+                    to="/dashboard/conformidade"
                     className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
                     <Activity className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Conformidade RDC'}
+                    {!preferences.sidebarCollapsed && 'Conformidade'}
                   </Link>
                 </TooltipTrigger>
                 {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Conformidade RDC</TooltipContent>
+                  <TooltipContent side="right">Conformidade</TooltipContent>
                 )}
               </Tooltip>
 
@@ -623,12 +623,12 @@ export function DashboardLayout() {
                 Agenda
               </Link>
               <Link
-                to="/dashboard/conformidade-rdc"
+                to="/dashboard/conformidade"
                 onClick={() => setIsSidebarOpen(false)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <Activity className="h-4 w-4" />
-                Conformidade RDC
+                Conformidade
               </Link>
               {canManageResidents && (
                 <Link

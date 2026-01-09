@@ -5,7 +5,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { RdcIndicatorType, RDC_INDICATOR_LABELS } from '@/types/incidents';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -86,8 +85,8 @@ export function IndicatorDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>
             Detalhamento de Casos - {RDC_INDICATOR_LABELS[indicatorType]}
           </DialogTitle>
@@ -107,7 +106,7 @@ export function IndicatorDetailsModal({
             <p className="text-muted-foreground">Nenhum caso registrado</p>
           </div>
         ) : (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto px-1">
             <div className="space-y-4 pb-4">
               {incidents.map((incident, index) => (
                 <div
@@ -196,10 +195,10 @@ export function IndicatorDetailsModal({
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
 
-        <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex justify-between items-center pt-4 border-t flex-shrink-0">
           <p className="text-sm text-muted-foreground">
             Total de {incidents?.length || 0}{' '}
             {incidents?.length === 1 ? 'caso registrado' : 'casos registrados'}

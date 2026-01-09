@@ -174,8 +174,12 @@ export function ConformidadeRDCPage() {
   return (
     <Page>
       <PageHeader
-        title="Conformidade RDC 502/2021"
-        subtitle="Indicadores mensais obrigatórios (Art. 58-59 + Anexo)"
+        title="Indicadores Mensais Obrigatórios"
+        subtitle="RDC 502/2021 - ANVISA (Art. 58-59 + Anexo)"
+        breadcrumbs={[
+          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Indicadores Mensais' },
+        ]}
       />
 
       {/* Controles */}
