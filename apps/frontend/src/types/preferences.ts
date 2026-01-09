@@ -36,6 +36,12 @@ export interface UserPreferences {
     pageSize?: number;
     density?: 'compact' | 'comfortable' | 'spacious';
   };
+
+  /**
+   * Modo de visualização na seleção de residentes
+   * @default 'grid'
+   */
+  residentSelectionViewMode?: 'grid' | 'list';
 }
 
 /**
@@ -54,4 +60,5 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
     pageSize: 10,
     density: 'comfortable',
   },
+  residentSelectionViewMode: 'grid',
 };

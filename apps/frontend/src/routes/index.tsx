@@ -28,7 +28,7 @@ import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCa
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 
 // Daily Records Pages
-import DailyRecordsPage from '@/pages/daily-records/DailyRecordsPage'
+import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
 
 // Agenda Pages
 import AgendaPage from '@/pages/agenda/AgendaPage'
@@ -175,7 +175,16 @@ export const router = createBrowserRouter([
       },
       {
         path: 'registros-diarios',
-        element: <DailyRecordsPage />,
+        children: [
+          {
+            index: true,
+            element: <ResidentSelectionPage />,
+          },
+          {
+            path: ':residentId',
+            element: <ResidentRecordsPage />,
+          },
+        ],
       },
       {
         path: 'agenda',

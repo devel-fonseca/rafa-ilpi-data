@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Accessibility } from 'lucide-react'
+import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Accessibility, Grid3x3, List } from 'lucide-react'
+import { useUserPreference } from '@/hooks/useUserPreference'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -69,6 +70,10 @@ export function ResidentSelectionGrid({
   const [statusFilter, setStatusFilter] = useState<string>('active')
   const [currentPage, setCurrentPage] = useState(1)
   const [quickViewResidentId, setQuickViewResidentId] = useState<string | null>(null)
+
+  // Usar preferência do usuário no backend (ao invés de localStorage)
+  // Ideal para dispositivos compartilhados em ILPI
+  const [viewMode, setViewMode] = useUserPreference('residentSelectionViewMode', 'grid')
 
   // Criar mapa de últimos registros por residente
   const latestRecordsMap = useMemo(() => {
@@ -155,16 +160,31 @@ export function ResidentSelectionGrid({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Registros Diários</h1>
-      </div>
-
       {/* Stats Component */}
       {statsComponent}
 
       {/* Busca e Filtros */}
       <div className="flex gap-3">
+        {/* Botões de Visualização */}
+        <div className="flex gap-1 border rounded-md p-1">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => setViewMode('grid')}
+            className="h-8 w-8"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
+            size="icon"
+            onClick={() => setViewMode('list')}
+            className="h-8 w-8"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -212,7 +232,7 @@ export function ResidentSelectionGrid({
         </DropdownMenu>
       </div>
 
-      {/* Grid de Residentes */}
+      {/* Grid ou Lista de Residentes */}
       {filteredResidents.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
@@ -225,7 +245,8 @@ export function ResidentSelectionGrid({
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedResidents.map((resident) => {
             const lastRecord = latestRecordsMap.get(resident.id)
 
@@ -323,13 +344,118 @@ export function ResidentSelectionGrid({
                     onClick={() => onSelectResident(resident.id)}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Criar Registro
+                    Registros
                   </Button>
                 </CardContent>
               </Card>
             )
           })}
-        </div>
+            </div>
+          ) : (
+            /* Visualização em Lista */
+            <div className="space-y-2">
+              {paginatedResidents.map((resident) => {
+                const lastRecord = latestRecordsMap.get(resident.id)
+
+                return (
+                  <Card
+                    key={resident.id}
+                    className="hover:shadow-md transition-shadow"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Foto */}
+                        <div
+                          className="cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setQuickViewResidentId(resident.id)
+                          }}
+                        >
+                          <PhotoViewer
+                            photoUrl={resident.fotoUrl}
+                            altText={resident.fullName}
+                            size="xs"
+                            rounded={true}
+                          />
+                        </div>
+
+                        {/* Nome e Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-sm truncate">
+                              {resident.fullName}
+                            </h3>
+                            {resident.mobilityAid && (
+                              <Badge
+                                variant="default"
+                                className="bg-primary/60 hover:bg-blue-700 dark:bg-primary dark:hover:bg-primary/60 border-0 text-xs"
+                              >
+                                <Accessibility className="h-3 w-3 mr-1" />
+                                Auxílio
+                              </Badge>
+                            )}
+                            <Badge
+                              variant={resident.status === 'Ativo' ? 'default' : 'secondary'}
+                              className={
+                                resident.status === 'Ativo'
+                                  ? 'bg-success hover:bg-success/90 text-xs'
+                                  : 'text-xs'
+                              }
+                            >
+                              {resident.status}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            {/* Leito */}
+                            {resident.bed && (
+                              <div className="flex items-center gap-1">
+                                <Bed className="h-3 w-3" />
+                                <span className="font-mono">
+                                  {formatBedFromResident(resident)}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Último Registro */}
+                            {lastRecord ? (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>
+                                  {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
+                                  {extractDateOnly(lastRecord.date) !== getCurrentDate() && (
+                                    <span className="ml-1">
+                                      em {formatDateOnlySafe(lastRecord.date)}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>Sem registros hoje</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Botão */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onSelectResident(resident.id)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Registros
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
 
         {/* Controles de Paginação */}
         {totalPages > 1 && (

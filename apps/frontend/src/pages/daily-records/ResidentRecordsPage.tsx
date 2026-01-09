@@ -1,10 +1,8 @@
 import { useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { formatDateLongSafe, getCurrentDate } from '@/utils/dateHelpers'
-import { Download, Plus, Loader2, User, Calendar, Droplets, Utensils, ArrowLeft, Eye, AlertCircle, Activity, UtensilsCrossed, Heart } from 'lucide-react'
+import { Download, Plus, Loader2, Eye, AlertCircle, Activity, UtensilsCrossed, Heart, Droplets, Utensils } from 'lucide-react'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
@@ -12,20 +10,12 @@ import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { api, getTenantInfo, getResidentInfo } from '@/services/api'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth.store'
@@ -43,12 +33,8 @@ import { IntercorrenciaModal } from './modals/IntercorrenciaModal'
 import { AtividadesModal } from './modals/AtividadesModal'
 import { VisitaModal } from './modals/VisitaModal'
 import { OutrosModal } from './modals/OutrosModal'
-import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
-import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
-import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
-import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
+import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
 import { DailyTasksPanel } from '@/components/daily-records/DailyTasksPanel'
-import { getErrorMessage } from '@/utils/errorHandling'
 import { Page, PageHeader, Section } from '@/design-system/components'
 import {
   ViewHigieneModal,
@@ -90,13 +76,13 @@ const formatRestrictionType = (type: string) => {
   return typeMap[type] || type
 }
 
-export function DailyRecordsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+export default function ResidentRecordsPage() {
+  const { residentId } = useParams<{ residentId: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
 
-  const residentId = searchParams.get('residentId')
   const selectedDate = searchParams.get('date') || getCurrentDate()
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
@@ -104,17 +90,8 @@ export function DailyRecordsPage() {
   const [viewingRecord, setViewingRecord] = useState<any>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
-  // Buscar lista de residentes (para o seletor)
-  const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
-    queryKey: ['residents'],
-    queryFn: async () => {
-      const response = await api.get('/residents')
-      return response.data
-    },
-  })
-
   // Buscar residente selecionado
-  const { data: resident } = useQuery({
+  const { data: resident, isLoading } = useQuery({
     queryKey: ['resident', residentId],
     queryFn: async () => {
       const response = await api.get(`/residents/${residentId}`)
@@ -124,7 +101,7 @@ export function DailyRecordsPage() {
   })
 
   // Buscar registros do dia
-  const { data: records, isLoading } = useQuery({
+  const { data: records } = useQuery({
     queryKey: ['daily-records', residentId, selectedDate],
     queryFn: async () => {
       const response = await api.get(
@@ -135,14 +112,21 @@ export function DailyRecordsPage() {
     enabled: !!residentId,
   })
 
+  // Hook para buscar alergias do residente
+  const { data: allergies = [] } = useAllergiesByResident(residentId || '')
+
+  // Hook para buscar condições crônicas do residente
+  const { data: conditions = [] } = useConditionsByResident(residentId || '')
+
+  // Hook para buscar restrições alimentares do residente
+  const { data: dietaryRestrictions = [] } = useDietaryRestrictionsByResident(residentId || '')
+
   // Mutation para criar registro
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       return await api.post('/daily-records', data)
     },
     onSuccess: (response) => {
-      // ✅ NOVO PADRÃO: Helper centralizado de invalidação
-      // Invalida: daily-records, daily-tasks, audit, notifications
       const recordData = response.data
       invalidateAfterDailyRecordMutation(
         queryClient,
@@ -213,66 +197,31 @@ export function DailyRecordsPage() {
       toast.success('PDF gerado com sucesso!')
     } catch (error: unknown) {
       console.error('Erro ao gerar PDF:', error)
-      toast.error(error?.message || 'Erro ao gerar PDF')
+      toast.error((error as any)?.message || 'Erro ao gerar PDF')
     }
-  }
-
-  const handleResidentSelect = (newResidentId: string) => {
-    setSearchParams({
-      residentId: newResidentId,
-      date: selectedDate,
-    })
   }
 
   const handleBack = () => {
-    setSearchParams({
-      date: selectedDate,
-    })
+    navigate('/dashboard/registros-diarios')
   }
 
-  const handleDateChange = (newDate: string) => {
-    if (residentId) {
-      setSearchParams({
-        residentId,
-        date: newDate,
-      })
-    }
-  }
-
-  // Hook para buscar últimos registros
-  const { data: latestRecords = [], isLoading: isLoadingLatest } =
-    useLatestRecordsByResidents()
-
-  // Hook para buscar alergias do residente
-  const { data: allergies = [] } = useAllergiesByResident(residentId || '')
-
-  // Hook para buscar condições crônicas do residente
-  const { data: conditions = [] } = useConditionsByResident(residentId || '')
-
-  // Hook para buscar restrições alimentares do residente
-  const { data: dietaryRestrictions = [] } = useDietaryRestrictionsByResident(residentId || '')
-
-  // Se não houver residente selecionado, mostrar grid de seleção
-  if (!residentId) {
+  if (isLoading) {
     return (
-      <Page>
-        <PageHeader
-          title="Registros Diários"
-          subtitle="Selecione um residente para visualizar ou adicionar registros"
-        />
-        <ResidentSelectionGrid
-          residents={residentsData?.data || []}
-          latestRecords={latestRecords}
-          onSelectResident={handleResidentSelect}
-          isLoading={isLoadingResidents || isLoadingLatest}
-          statsComponent={
-            <DailyRecordsOverviewStats
-              residents={residentsData?.data || []}
-              latestRecords={latestRecords}
-            />
-          }
-        />
-      </Page>
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!resident) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <AlertCircle className="h-12 w-12 text-danger" />
+        <div className="text-muted-foreground">Residente não encontrado</div>
+        <Button variant="outline" onClick={handleBack}>
+          Voltar para a lista
+        </Button>
+      </div>
     )
   }
 
@@ -281,7 +230,7 @@ export function DailyRecordsPage() {
       <PageHeader
         title="Registros Diários"
         subtitle={`${resident?.fullName} | ${formatDateLongSafe(selectedDate + 'T00:00:00')}`}
-        onBack={handleBack}
+        backButton={{ onClick: handleBack }}
         actions={
           <Button variant="outline" onClick={handleExportPDF}>
             <Download className="h-4 w-4 mr-2" />
@@ -357,7 +306,7 @@ export function DailyRecordsPage() {
           </CardContent>
         </Card>
 
-        {/* Card de Condições Crônicas - Segunda linha, 1 coluna */}
+        {/* Card de Condições Crônicas */}
         <Card className="border-warning/20">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
@@ -477,7 +426,7 @@ export function DailyRecordsPage() {
       </Section>
 
       {/* Layout em 3 colunas: Tarefas do Dia (1/3) + Timeline (1/3) + Adicionar Registro (1/3) */}
-      <Section title="Registros do Dia">
+      <Section>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* Coluna 1: Tarefas do Dia (1/3) */}
         <div className="lg:col-span-1">
@@ -485,7 +434,7 @@ export function DailyRecordsPage() {
             <CardContent className="p-6">
               <h2 className="font-semibold text-lg mb-4">Tarefas do Dia</h2>
               <DailyTasksPanel
-                residentId={residentId}
+                residentId={residentId || ''}
                 selectedDate={selectedDate}
                 onRegisterRecord={(recordType, mealType) => {
                   setActiveModal(recordType)
@@ -631,13 +580,13 @@ export function DailyRecordsPage() {
                 {(() => {
                   // Buscar último registro de PESO
                   const ultimoPesoRecord = records
-                    ?.filter((r) => r.type === 'PESO')
-                    .sort((a, b) => b.time.localeCompare(a.time))[0]
+                    ?.filter((r: any) => r.type === 'PESO')
+                    .sort((a: any, b: any) => b.time.localeCompare(a.time))[0]
 
                   // Buscar último registro de MONITORAMENTO
                   const ultimoMonitoramento = records
-                    ?.filter((r) => r.type === 'MONITORAMENTO')
-                    .sort((a, b) => b.time.localeCompare(a.time))[0]
+                    ?.filter((r: any) => r.type === 'MONITORAMENTO')
+                    .sort((a: any, b: any) => b.time.localeCompare(a.time))[0]
 
                   // Processar peso (pode vir como string "66" ou número)
                   let pesoNum: number | null = null
@@ -777,7 +726,7 @@ export function DailyRecordsPage() {
 
         {/* Card de Aceitação Alimentar */}
         {records && records.length > 0 && (() => {
-          const registrosAlimentacao = records.filter((r) => r.type === 'ALIMENTACAO')
+          const registrosAlimentacao = records.filter((r: any) => r.type === 'ALIMENTACAO')
 
           if (registrosAlimentacao.length === 0) return null
 
@@ -795,7 +744,7 @@ export function DailyRecordsPage() {
 
           // Calcula percentual total baseado em 600 pontos (6 refeições × 100%)
           const totalIngestao = registrosAlimentacao.reduce(
-            (sum, r) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
+            (sum: any, r: any) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
             0
           )
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
@@ -828,12 +777,12 @@ export function DailyRecordsPage() {
         {records && records.length > 0 && (() => {
           // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
           const totalHidratacao = records
-            .filter((r) => r.type === 'HIDRATACAO')
-            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
+            .filter((r: any) => r.type === 'HIDRATACAO')
+            .reduce((sum: any, r: any) => sum + (r.data?.volumeMl || 0), 0)
 
           const totalAlimentacao = records
-            .filter((r) => r.type === 'ALIMENTACAO' && r.data?.volumeMl)
-            .reduce((sum, r) => sum + (r.data?.volumeMl || 0), 0)
+            .filter((r: any) => r.type === 'ALIMENTACAO' && r.data?.volumeMl)
+            .reduce((sum: any, r: any) => sum + (r.data?.volumeMl || 0), 0)
 
           const totalGeral = totalHidratacao + totalAlimentacao
 
@@ -876,7 +825,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -887,15 +836,15 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => {
             setActiveModal(null)
-            setSelectedMealType(undefined) // ✅ Limpar seleção ao fechar
+            setSelectedMealType(undefined)
           }}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
-          existingRecords={records.filter((r) => r.type === 'ALIMENTACAO')}
-          defaultMealType={selectedMealType} // ✅ Passar mealType pré-selecionado
+          existingRecords={records?.filter((r: any) => r.type === 'ALIMENTACAO') || []}
+          defaultMealType={selectedMealType}
         />
       )}
       {activeModal === 'HIDRATACAO' && (
@@ -903,7 +852,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -914,7 +863,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -925,7 +874,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -936,7 +885,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -947,7 +896,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -958,7 +907,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -969,7 +918,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -980,7 +929,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -991,7 +940,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -1002,7 +951,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -1013,7 +962,7 @@ export function DailyRecordsPage() {
           open={true}
           onClose={() => setActiveModal(null)}
           onSubmit={handleCreateRecord}
-          residentId={residentId}
+          residentId={residentId || ''}
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
@@ -1127,5 +1076,3 @@ export function DailyRecordsPage() {
     </Page>
   )
 }
-
-export default DailyRecordsPage
