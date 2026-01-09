@@ -69,9 +69,7 @@ export function useRdcIndicatorsHistory(months: number = 12) {
 export function useRecalculateIndicators() {
   return {
     recalculate: async (year: number, month: number) => {
-      await api.post(`/daily-records/indicadores-rdc/calcular`, null, {
-        params: { year, month },
-      });
+      await api.post(`/daily-records/indicadores-rdc/calcular?year=${year}&month=${month}`);
     },
   };
 }
