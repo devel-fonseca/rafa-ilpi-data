@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   Inject,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAllergyDto } from './dto/create-allergy.dto';

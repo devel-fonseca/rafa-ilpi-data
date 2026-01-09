@@ -1,4 +1,4 @@
-import { PartialType, ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
 import { IsCPF } from '../../common/validators/cpf.validator';
 

@@ -201,7 +201,7 @@ export class AuthService {
       }
 
       // Remover senha do retorno e adicionar plan no tenant
-      const { password: _, tenant, ...userWithoutPassword } = user;
+      const { password: _password, tenant, ...userWithoutPassword } = user;
 
       // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
       const tenantWithPlan = tenant ? {
@@ -314,7 +314,7 @@ export class AuthService {
     }
 
     // Remover senha do retorno e adicionar plan no tenant
-    const { password: _, tenant, ...userWithoutPassword } = user;
+    const { password: _password2, tenant, ...userWithoutPassword } = user;
 
     // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
     const tenantWithPlan = tenant ? {
