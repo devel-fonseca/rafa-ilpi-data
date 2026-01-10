@@ -12,6 +12,8 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  Put,
+  NotFoundException,
 } from '@nestjs/common';
 import { DailyRecordsService } from './daily-records.service';
 import { IndicadoresRdcService } from './indicadores-rdc.service';
@@ -30,12 +32,14 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 
 @ApiTags('Daily Records')
@@ -48,6 +52,7 @@ export class DailyRecordsController {
     private readonly dailyRecordsService: DailyRecordsService,
     private readonly indicadoresRdcService: IndicadoresRdcService,
     private readonly indicadoresRdcCronService: IndicadoresRdcCronService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
