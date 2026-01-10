@@ -113,6 +113,10 @@ export enum PermissionType {
   CREATE_USERS = 'CREATE_USERS',
   UPDATE_USERS = 'UPDATE_USERS',
   DELETE_USERS = 'DELETE_USERS',
+
+  // Conformidade RDC 502/2021 (acesso restrito a gestores)
+  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
 }
 
 export interface UserPermissions {
