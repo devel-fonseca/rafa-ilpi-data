@@ -1,16 +1,25 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/auth.store'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
   requiredRole?: 'SUPERADMIN' | 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
+  requiredPermissions?: PermissionType[]
+  requireAllPermissions?: boolean // Se true, requer TODAS as permissões; se false, requer QUALQUER UMA
 }
 
-export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+  requiredPermissions,
+  requireAllPermissions = false
+}: ProtectedRouteProps) {
   const location = useLocation()
   const { isAuthenticated, user, refreshAuth, accessToken } = useAuthStore()
+  const { hasPermission } = usePermissions()
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
@@ -64,6 +73,32 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     const requiredRoleLevel = roleHierarchy[requiredRole] || 0
 
     if (userRoleLevel < requiredRoleLevel) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-4">
+              Você não tem permissão para acessar esta página.
+            </p>
+            <a
+              href="/dashboard"
+              className="text-primary hover:text-primary/90 font-medium"
+            >
+              Voltar ao Dashboard
+            </a>
+          </div>
+        </div>
+      )
+    }
+  }
+
+  // Verificar permissões se necessário
+  if (requiredPermissions && requiredPermissions.length > 0) {
+    const hasRequiredPermissions = requireAllPermissions
+      ? requiredPermissions.every(permission => hasPermission(permission))
+      : requiredPermissions.some(permission => hasPermission(permission))
+
+    if (!hasRequiredPermissions) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">

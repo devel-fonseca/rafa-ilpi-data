@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { SuperAdminLayout } from '@/layouts/SuperAdminLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { PermissionType } from '@/hooks/usePermissions'
 
 // Auth Pages
 import Login from '@/pages/auth/Login'
@@ -198,15 +199,37 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <ConformidadePage />,
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[
+                  PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+                  PermissionType.VIEW_SENTINEL_EVENTS,
+                ]}
+                requireAllPermissions={false}
+              >
+                <ConformidadePage />
+              </ProtectedRoute>
+            ),
           },
           {
             path: 'indicadores-mensais',
-            element: <ConformidadeRDCPage />,
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_COMPLIANCE_DASHBOARD]}
+              >
+                <ConformidadeRDCPage />
+              </ProtectedRoute>
+            ),
           },
           {
             path: 'eventos-sentinela',
-            element: <EventosSentinelaPage />,
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}
+              >
+                <EventosSentinelaPage />
+              </ProtectedRoute>
+            ),
           },
         ],
       },
