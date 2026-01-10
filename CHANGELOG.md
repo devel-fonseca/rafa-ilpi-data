@@ -50,13 +50,12 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 - **Módulos criados:** 3 (independentes e desacoplados)
 - **Benefícios:** SRP, testabilidade, escalabilidade, manutenibilidade
 
-### 🚨 Ação Necessária (Frontend)
+**FRONTEND - Hooks Migrados:**
 
-Atualizar chamadas de API nos componentes:
-
-- Dashboard RDC
-- Eventos Sentinela
-- Compliance/Conformidade
+- **useAdminCompliance:** Atualizado para `/compliance/daily-summary`
+- **useSentinelEvents:** Migrado para `/sentinel-events` com método PATCH
+- **useRdcIndicators:** Atualizado para `/rdc-indicators` e `/rdc-indicators/history`
+- **Zero impacto nos componentes:** Todas as páginas mantêm compatibilidade total
 
 ---
 
