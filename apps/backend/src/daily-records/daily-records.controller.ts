@@ -24,6 +24,7 @@ import { DeleteDailyRecordDto } from './dto/delete-daily-record.dto';
 import { RestoreVersionDailyRecordDto } from './dto/restore-version-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';

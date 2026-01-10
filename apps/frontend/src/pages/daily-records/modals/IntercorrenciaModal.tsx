@@ -41,10 +41,11 @@ const intercorrenciaSchema = z.object({
     .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Formato inválido'),
   categoria: z.nativeEnum(IncidentCategory, {
     required_error: 'Categoria é obrigatória',
+    errorMap: () => ({ message: 'Por favor, selecione uma categoria' }),
   }),
   subtipo: z.string().min(1, 'Subtipo é obrigatório'),
   severidade: z.nativeEnum(IncidentSeverity, {
-    required_error: 'Severidade é obrigatória',
+    errorMap: () => ({ message: 'Por favor, selecione a gravidade da intercorrência' }),
   }),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
   acaoTomada: z.string().min(1, 'Ação tomada é obrigatória'),
@@ -123,14 +124,15 @@ export function IntercorrenciaModal({
       recordedBy: currentUserName,
       incidentCategory: data.categoria,
       incidentSubtypeClinical:
-        data.categoria === IncidentCategory.CLINICA ? data.subtipo : null,
+        data.categoria === IncidentCategory.CLINICA ? data.subtipo : undefined,
       incidentSubtypeAssist:
-        data.categoria === IncidentCategory.ASSISTENCIAL ? data.subtipo : null,
+        data.categoria === IncidentCategory.ASSISTENCIAL ? data.subtipo : undefined,
       incidentSubtypeAdmin:
-        data.categoria === IncidentCategory.ADMINISTRATIVA ? data.subtipo : null,
+        data.categoria === IncidentCategory.ADMINISTRATIVA ? data.subtipo : undefined,
       incidentSeverity: data.severidade,
       isEventoSentinela,
       isDoencaNotificavel: data.isDoencaNotificavel || false,
+      rdcIndicators: isEventoSentinela ? ['EVENTO_SENTINELA'] : undefined,
       data: {
         descricao: data.descricao,
         acaoTomada: data.acaoTomada,

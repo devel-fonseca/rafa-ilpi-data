@@ -386,55 +386,33 @@ export function SentinelEventTrackingModal({
               </div>
             )}
 
-            {/* Checklist de Obrigações Legais */}
+            {/* Evento Sentinela – Notificação Obrigatória */}
             <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
               <h4 className="font-semibold text-sm text-amber-900 dark:text-amber-100 mb-3">
-                ⚖️ Checklist de Obrigações Legais (RDC 502/2021)
+                ⚖️ Evento Sentinela – Notificação Obrigatória
               </h4>
-              <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>
-                    Evento registrado no sistema (Art. 55, § 1º)
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  {event.emailEnviado ? (
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>Responsável Técnico notificado (Art. 55, § 2º)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  {event.status !== 'PENDENTE' ? (
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>
-                    Autoridade Sanitária notificada em até 24h (Art. 55, caput)
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  {event.protocolo ? (
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>Protocolo de notificação obtido (Art. 55, § 3º)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  {event.status === 'CONFIRMADO' ? (
-                    <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600" />
-                  ) : (
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>
-                    Confirmação de recebimento pela vigilância (Art. 55, § 4º)
-                  </span>
-                </li>
-              </ul>
+              <p className="text-sm text-amber-800 dark:text-amber-200 mb-3 leading-relaxed">
+                Este registro caracteriza <strong>evento sentinela</strong>, nos
+                termos do <strong>art. 55 da RDC nº 502/2021</strong>, que impõe à
+                instituição o dever de{' '}
+                <strong>notificar imediatamente a Autoridade Sanitária Local</strong>,
+                devendo ser acompanhado até a confirmação do envio, observado o{' '}
+                <strong>prazo máximo de 24 horas</strong>.
+              </p>
+              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                A manutenção do histórico e do status da notificação é essencial
+                para fins de <strong>conformidade sanitária, rastreabilidade e auditoria</strong>.
+              </p>
+              <div className="mt-4 pt-3 border-t border-amber-200 dark:border-amber-700">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <strong>Status atual:</strong>{' '}
+                  {event.status === 'CONFIRMADO'
+                    ? '✅ Notificação confirmada pela Autoridade Sanitária'
+                    : event.status === 'ENVIADO'
+                      ? '📤 Notificação enviada, aguardando confirmação'
+                      : '⏳ Pendente de notificação à Autoridade Sanitária'}
+                </p>
+              </div>
             </div>
           </div>
         </ScrollArea>

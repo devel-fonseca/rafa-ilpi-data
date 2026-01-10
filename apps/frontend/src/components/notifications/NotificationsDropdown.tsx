@@ -58,6 +58,10 @@ const CATEGORY_CONFIG = {
     label: 'Registros',
     icon: FileText,
   },
+  [NotificationCategory.INCIDENT]: {
+    label: 'Intercorrências',
+    icon: AlertTriangle,
+  },
   [NotificationCategory.SCHEDULED_EVENT]: {
     label: 'Agendamentos',
     icon: Calendar,
@@ -87,7 +91,7 @@ interface NotificationItemProps {
 
 function NotificationItem({ notification, onMarkAsRead, onOpenMissedEventModal }: NotificationItemProps) {
   const navigate = useNavigate()
-  const categoryConfig = CATEGORY_CONFIG[notification.category]
+  const categoryConfig = CATEGORY_CONFIG[notification.category] || { label: 'Sistema', icon: Bell }
   const severityColors = getNotificationSeverityColors(notification.severity)
   const categoryColors = getNotificationCategoryConfig(notification.category as any)
   const CategoryIcon = categoryConfig.icon

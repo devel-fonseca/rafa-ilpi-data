@@ -105,4 +105,69 @@ export class CreateDailyRecordDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  // Campos opcionais para INTERCORRENCIA
+  @ApiProperty({
+    required: false,
+    enum: ['CLINICA', 'ASSISTENCIAL', 'ADMINISTRATIVA'],
+    description: 'Categoria da intercorrência',
+  })
+  @IsEnum(['CLINICA', 'ASSISTENCIAL', 'ADMINISTRATIVA'])
+  @IsOptional()
+  incidentCategory?: string;
+
+  @ApiProperty({
+    required: false,
+    enum: ['LEVE', 'MODERADA', 'GRAVE', 'CRITICA'],
+    description: 'Severidade da intercorrência',
+  })
+  @IsEnum(['LEVE', 'MODERADA', 'GRAVE', 'CRITICA'])
+  @IsOptional()
+  incidentSeverity?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Subtipo clínico',
+  })
+  @IsOptional()
+  @IsString()
+  incidentSubtypeClinical?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Subtipo assistencial',
+  })
+  @IsOptional()
+  @IsString()
+  incidentSubtypeAssist?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Subtipo administrativo',
+  })
+  @IsOptional()
+  @IsString()
+  incidentSubtypeAdmin?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Indica se é evento sentinela',
+  })
+  @IsOptional()
+  isEventoSentinela?: boolean;
+
+  @ApiProperty({
+    required: false,
+    description: 'Indica se é doença notificável',
+  })
+  @IsOptional()
+  isDoencaNotificavel?: boolean;
+
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Indicadores RDC relacionados',
+  })
+  @IsOptional()
+  rdcIndicators?: string[];
 }

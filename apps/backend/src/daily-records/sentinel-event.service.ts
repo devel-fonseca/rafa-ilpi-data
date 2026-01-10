@@ -348,7 +348,6 @@ export class SentinelEventService {
   ): Promise<any[]> {
     const where: any = {
       tenantId,
-      deletedAt: null,
     };
 
     if (filters?.status) {
@@ -386,7 +385,6 @@ export class SentinelEventService {
           select: {
             id: true,
             title: true,
-            readAt: true,
           },
         },
       },
@@ -437,7 +435,6 @@ export class SentinelEventService {
       where: {
         id: eventId,
         tenantId,
-        deletedAt: null,
       },
     });
 
