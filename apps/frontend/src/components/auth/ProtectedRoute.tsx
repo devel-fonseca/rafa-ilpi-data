@@ -3,6 +3,7 @@ import { useAuthStore } from '../../stores/auth.store'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { AccessDenied } from '@/design-system/components'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -75,18 +76,7 @@ export function ProtectedRoute({
     if (userRoleLevel < requiredRoleLevel) {
       return (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Acesso Negado</h2>
-            <p className="text-muted-foreground mb-4">
-              Você não tem permissão para acessar esta página.
-            </p>
-            <a
-              href="/dashboard"
-              className="text-primary hover:text-primary/90 font-medium"
-            >
-              Voltar ao Dashboard
-            </a>
-          </div>
+          <AccessDenied />
         </div>
       )
     }
@@ -101,18 +91,7 @@ export function ProtectedRoute({
     if (!hasRequiredPermissions) {
       return (
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Acesso Negado</h2>
-            <p className="text-muted-foreground mb-4">
-              Você não tem permissão para acessar esta página.
-            </p>
-            <a
-              href="/dashboard"
-              className="text-primary hover:text-primary/90 font-medium"
-            >
-              Voltar ao Dashboard
-            </a>
-          </div>
+          <AccessDenied />
         </div>
       )
     }

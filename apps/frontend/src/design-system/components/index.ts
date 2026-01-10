@@ -23,3 +23,6 @@ export {
 
 // Componentes de dados (novos)
 export { EmptyState, type EmptyStateProps } from './data'
+
+// Componentes de feedback
+export { AccessDenied } from './feedback'
