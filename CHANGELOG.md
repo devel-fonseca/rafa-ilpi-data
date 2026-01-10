@@ -6,6 +6,60 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-10] - Refatoração Arquitetural: Event-Driven & Desacoplamento de Módulos RDC 🏗️
+
+### 🔧 Alterado (BREAKING CHANGES)
+
+**BACKEND - Arquitetura Event-Driven:**
+
+- **Desacoplamento Total:** Implementado padrão de eventos usando `@nestjs/event-emitter`
+  - `DailyRecordsService` agora emite eventos em vez de chamar serviços diretamente
+  - `SentinelEventsService` escuta via `@OnEvent('daily-record.created')`
+  - Zero dependências circulares entre módulos
+
+- **3 Novos Módulos Independentes:**
+  - `SentinelEventsModule` (src/sentinel-events/) - Eventos Sentinela RDC Art. 55
+  - `RdcIndicatorsModule` (src/rdc-indicators/) - Cálculo de 6 indicadores mensais
+  - `ComplianceModule` (src/compliance/) - Métricas de conformidade operacional
+
+- **Migração de Endpoints (BREAKING):**
+  - `GET /daily-records/eventos-sentinela/list` → `GET /sentinel-events`
+  - `PUT /daily-records/eventos-sentinela/:id/status` → `PATCH /sentinel-events/:id`
+  - `GET /daily-records/indicadores-rdc` → `GET /rdc-indicators`
+  - `GET /daily-records/indicadores-rdc/historico` → `GET /rdc-indicators/history`
+  - `POST /daily-records/indicadores-rdc/calcular` → `POST /rdc-indicators/calculate`
+  - `GET /admin/compliance/today` → `GET /compliance/daily-summary`
+
+- **Limpeza de Código:**
+  - Removidos 4 arquivos de serviços antigos (388 linhas deletadas)
+  - `DailyRecordsModule` e `AdminModule` refatorados
+  - Controllers RESTful com documentação Swagger completa
+
+### ✨ Adicionado
+
+- **Event System:** `DailyRecordCreatedEvent` para comunicação assíncrona
+- **DTOs Padronizados:** Query e Response DTOs para todos os novos endpoints
+- **Documentação Técnica:**
+  - `docs/REFACTORING_PLAN.md` - Estratégia para sistemas em produção
+  - `docs/REFACTORING_PLAN_SIMPLIFIED.md` - Plano executado (779 linhas)
+
+### 📊 Estatísticas
+
+- **Arquivos modificados:** 29 (+1305 linhas, -388 linhas)
+- **Novos arquivos:** 18 (controllers, services, DTOs, events)
+- **Módulos criados:** 3 (independentes e desacoplados)
+- **Benefícios:** SRP, testabilidade, escalabilidade, manutenibilidade
+
+### 🚨 Ação Necessária (Frontend)
+
+Atualizar chamadas de API nos componentes:
+
+- Dashboard RDC
+- Eventos Sentinela
+- Compliance/Conformidade
+
+---
+
 ## [2026-01-09] - Sistema Completo de Conformidade RDC 502/2021 ANVISA 🏥
 
 ### ✨ Adicionado
