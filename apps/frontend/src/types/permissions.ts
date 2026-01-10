@@ -129,6 +129,10 @@ export enum PermissionType {
 
   // Audit
   VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
+
+  // Conformidade RDC 502/2021 (acesso restrito a gestores)
+  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
 }
 
 export const POSITION_CODE_LABELS: Record<PositionCode, string> = {
@@ -264,6 +268,9 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.MANAGE_RESIDENT_SCHEDULE]: 'Gerenciar agenda do residente',
 
   [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
+
+  [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
+  [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
 };
 
 export const PERMISSION_GROUPS = {
@@ -361,6 +368,13 @@ export const PERMISSION_GROUPS = {
       PermissionType.VIEW_INSTITUTIONAL_PROFILE,
       PermissionType.UPDATE_INSTITUTIONAL_PROFILE,
       PermissionType.VIEW_AUDIT_LOGS,
+    ],
+  },
+  compliance: {
+    label: 'Conformidade RDC 502/2021',
+    permissions: [
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
     ],
   },
 };

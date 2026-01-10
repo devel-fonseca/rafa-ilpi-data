@@ -23,11 +23,11 @@ export class ComplianceController {
   constructor(private readonly complianceService: ComplianceService) {}
 
   @Get('daily-summary')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
   @ApiOperation({
     summary: 'Obter resumo de conformidade do dia',
     description:
-      'Retorna métricas de conformidade operacional: residentes ativos, medicamentos administrados, registros obrigatórios completados',
+      'Retorna métricas de conformidade operacional: residentes ativos, medicamentos administrados, registros obrigatórios completados (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
@@ -35,7 +35,7 @@ export class ComplianceController {
     type: DailyComplianceResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar relatórios' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
   async getDailySummary(@CurrentUser() user: any): Promise<DailyComplianceResponseDto> {
     return this.complianceService.getDailySummary(user.tenantId);
   }

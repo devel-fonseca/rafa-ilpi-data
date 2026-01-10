@@ -34,28 +34,28 @@ export class SentinelEventsController {
   constructor(private readonly sentinelEventsService: SentinelEventsService) {}
 
   @Get()
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @RequirePermissions(PermissionType.VIEW_SENTINEL_EVENTS)
   @ApiOperation({
     summary: 'Listar eventos sentinela',
     description:
-      'Retorna lista de eventos sentinela (quedas com lesão, tentativas de suicídio) com status de notificação à vigilância epidemiológica conforme RDC 502/2021 Art. 55',
+      'Retorna lista de eventos sentinela (quedas com lesão, tentativas de suicídio) com status de notificação à vigilância epidemiológica conforme RDC 502/2021 Art. 55 (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de eventos sentinela retornada com sucesso',
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar relatórios' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar eventos sentinela' })
   async findAll(@Query() query: QuerySentinelEventDto, @CurrentUser() user: any) {
     return this.sentinelEventsService.findAllSentinelEvents(user.tenantId, query);
   }
 
   @Patch(':id')
-  @RequirePermissions(PermissionType.UPDATE_DAILY_RECORDS)
+  @RequirePermissions(PermissionType.VIEW_SENTINEL_EVENTS)
   @ApiOperation({
     summary: 'Atualizar status de evento sentinela',
     description:
-      'Atualiza status de notificação à vigilância (ENVIADO, CONFIRMADO) e registra protocolo de notificação',
+      'Atualiza status de notificação à vigilância (ENVIADO, CONFIRMADO) e registra protocolo de notificação (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
@@ -63,7 +63,7 @@ export class SentinelEventsController {
   })
   @ApiResponse({ status: 404, description: 'Evento sentinela não encontrado' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para atualizar relatórios' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para atualizar eventos sentinela' })
   @ApiParam({
     name: 'id',
     description: 'ID do evento sentinela (UUID)',

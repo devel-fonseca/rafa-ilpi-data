@@ -276,6 +276,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_REPORTS,
       PermissionType.EXPORT_DATA,
       PermissionType.VIEW_AUDIT_LOGS,
+      // Conformidade RDC 502/2021 (restrito a gestores)
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
       // POPs - Gestão Administrativa
       PermissionType.VIEW_POPS,      // Ver POPs em rascunho e templates
       PermissionType.CREATE_POPS,    // Criar POPs administrativos/operacionais
@@ -318,6 +321,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       ...BASE_PERMISSIONS.ADMIN,
       // Responsável Técnico tem permissão adicional de broadcast
       PermissionType.BROADCAST_MESSAGES,
+      // Conformidade RDC 502/2021 (restrito a gestores)
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
     ],
   },
 

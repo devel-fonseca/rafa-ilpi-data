@@ -23,18 +23,18 @@ export class RdcIndicatorsController {
   constructor(private readonly rdcIndicatorsService: RdcIndicatorsService) {}
 
   @Get()
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
   @ApiOperation({
     summary: 'Obter indicadores RDC 502/2021',
     description:
-      'Retorna os 6 indicadores mensais obrigatórios: mortalidade, diarreia aguda, escabiose, desidratação, úlcera de decúbito, desnutrição',
+      'Retorna os 6 indicadores mensais obrigatórios: mortalidade, diarreia aguda, escabiose, desidratação, úlcera de decúbito, desnutrição (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
     description: 'Indicadores retornados com sucesso',
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar relatórios' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
   async getIndicators(@Query() query: QueryIndicatorsDto, @CurrentUser() user: any) {
     const year = query.year ? parseInt(query.year, 10) : new Date().getFullYear();
     const month = query.month ? parseInt(query.month, 10) : new Date().getMonth() + 1;
@@ -43,10 +43,10 @@ export class RdcIndicatorsController {
   }
 
   @Get('history')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
   @ApiOperation({
     summary: 'Obter histórico de indicadores',
-    description: 'Retorna histórico dos últimos 12 meses de indicadores RDC',
+    description: 'Retorna histórico dos últimos 12 meses de indicadores RDC (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
@@ -57,10 +57,10 @@ export class RdcIndicatorsController {
   }
 
   @Post('calculate')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
   @ApiOperation({
     summary: 'Calcular indicadores manualmente',
-    description: 'Força recálculo dos indicadores para um mês específico',
+    description: 'Força recálculo dos indicadores para um mês específico (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,

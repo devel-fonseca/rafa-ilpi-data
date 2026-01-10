@@ -162,6 +162,10 @@ enum PermissionType {
   EXPORT_DATA
   VIEW_AUDIT_LOGS
 
+  // Conformidade RDC 502/2021 (acesso restrito a gestores)
+  VIEW_COMPLIANCE_DASHBOARD // Acessar dashboard de conformidade RDC
+  VIEW_SENTINEL_EVENTS // Visualizar e gerenciar eventos sentinela
+
   // Configurações Institucionais
   VIEW_INSTITUTIONAL_SETTINGS
   UPDATE_INSTITUTIONAL_SETTINGS
