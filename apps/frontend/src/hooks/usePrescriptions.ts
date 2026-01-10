@@ -165,6 +165,8 @@ export function useAdministerMedication() {
       // Invalidar prescrição específica também
       queryClient.invalidateQueries({ queryKey: ['prescription'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      // Invalidar dashboard do cuidador (lista de tarefas diárias)
+      queryClient.invalidateQueries({ queryKey: ['caregiver-tasks'] })
     },
   })
 }

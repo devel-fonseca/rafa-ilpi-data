@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { format } from 'date-fns'
+import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import type { DailyTask } from './useResidentSchedule'
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -67,16 +67,6 @@ interface Prescription {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// HELPER: Extrair apenas a data (YYYY-MM-DD) de um timestamp
-// ──────────────────────────────────────────────────────────────────────────
-
-function extractDateOnly(dateTimeString: string): string {
-  // Usar format do date-fns com Date object é seguro aqui
-  // pois dateTimeString vem do backend em formato ISO
-  return format(new Date(dateTimeString), 'yyyy-MM-dd')
-}
-
-// ──────────────────────────────────────────────────────────────────────────
 // HOOK PRINCIPAL
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -93,7 +83,7 @@ function extractDateOnly(dateTimeString: string): string {
  * - Estatísticas (contadores de pendentes)
  */
 export function useCaregiverTasks(date?: string) {
-  const today = date || format(new Date(), 'yyyy-MM-dd')
+  const today = date || getCurrentDate()
 
   return useQuery<CaregiverTasksSummary>({
     queryKey: ['caregiver-tasks', today],

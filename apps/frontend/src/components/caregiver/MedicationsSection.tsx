@@ -36,8 +36,11 @@ export function MedicationsSection({
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  // Filtrar apenas medicações PENDENTES (não administradas)
+  const pendingMedications = medications.filter((m) => !m.wasAdministered)
+
   // Ordenar por horário programado
-  const sortedMedications = [...medications].sort((a, b) =>
+  const sortedMedications = [...pendingMedications].sort((a, b) =>
     a.scheduledTime.localeCompare(b.scheduledTime),
   )
 
@@ -80,7 +83,30 @@ export function MedicationsSection({
     )
   }
 
-  const pendingCount = medications.filter((m) => !m.wasAdministered).length
+  // Mostrar mensagem se não há pendentes (todas foram administradas)
+  if (pendingMedications.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            0 pendentes de {medications.length}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-success">
+            <Pill className="w-12 h-12 mx-auto mb-3" />
+            <p className="font-medium">Todas as medicações foram administradas!</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Nenhuma medicação pendente no momento
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const pendingCount = pendingMedications.length
 
   return (
     <Card>
