@@ -19,6 +19,7 @@ import { PrivacyPolicyPage } from '@/pages/public/PrivacyPolicyPage'
 import Dashboard from '@/pages/Dashboard'
 import { ConformidadePage } from '@/pages/dashboards/ConformidadePage'
 import { ConformidadeRDCPage } from '@/pages/dashboards/ConformidadeRDCPage'
+import { EventosSentinelaPage } from '@/pages/dashboards/EventosSentinelaPage'
 
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
@@ -202,6 +203,10 @@ export const router = createBrowserRouter([
           {
             path: 'indicadores-mensais',
             element: <ConformidadeRDCPage />,
+          },
+          {
+            path: 'eventos-sentinela',
+            element: <EventosSentinelaPage />,
           },
         ],
       },

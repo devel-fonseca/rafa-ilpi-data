@@ -278,60 +278,6 @@ export class DailyRecordsController {
     );
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Buscar registro por ID' })
-  @ApiResponse({ status: 200, description: 'Registro encontrado' })
-  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
-  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.dailyRecordsService.findOne(id, user.tenantId);
-  }
-
-  @Patch(':id')
-  @Roles('admin', 'user')
-  @AuditAction('UPDATE')
-  @ApiOperation({ summary: 'Atualizar registro diário (com motivo obrigatório)' })
-  @ApiResponse({ status: 200, description: 'Registro atualizado com sucesso' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos ou motivo ausente' })
-  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
-  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDto: UpdateDailyRecordDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.dailyRecordsService.update(
-      id,
-      updateDto,
-      user.tenantId,
-      user.id,
-      user.name,
-    );
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.OK)
-  @Roles('admin')
-  @AuditAction('DELETE')
-  @ApiOperation({ summary: 'Remover registro (soft delete com motivo obrigatório)' })
-  @ApiResponse({ status: 200, description: 'Registro removido com sucesso' })
-  @ApiResponse({ status: 400, description: 'Motivo da exclusão ausente' })
-  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
-  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() deleteDto: DeleteDailyRecordDto,
-    @CurrentUser() user: any,
-  ) {
-    return this.dailyRecordsService.remove(
-      id,
-      deleteDto,
-      user.tenantId,
-      user.id,
-      user.name,
-    );
-  }
-
   // ═══════════════════════════════════════════════════════════════════════════
   // INDICADORES RDC 502/2021
   // ═══════════════════════════════════════════════════════════════════════════
@@ -406,5 +352,237 @@ export class DailyRecordsController {
       year: yearNum,
       month: monthNum,
     };
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Buscar registro por ID' })
+  @ApiResponse({ status: 200, description: 'Registro encontrado' })
+  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+    return this.dailyRecordsService.findOne(id, user.tenantId);
+  }
+
+  @Patch(':id')
+  @Roles('admin', 'user')
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Atualizar registro diário (com motivo obrigatório)' })
+  @ApiResponse({ status: 200, description: 'Registro atualizado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos ou motivo ausente' })
+  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateDailyRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.update(
+      id,
+      updateDto,
+      user.tenantId,
+      user.id,
+      user.name,
+    );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @Roles('admin')
+  @AuditAction('DELETE')
+  @ApiOperation({ summary: 'Remover registro (soft delete com motivo obrigatório)' })
+  @ApiResponse({ status: 200, description: 'Registro removido com sucesso' })
+  @ApiResponse({ status: 400, description: 'Motivo da exclusão ausente' })
+  @ApiResponse({ status: 404, description: 'Registro não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteDto: DeleteDailyRecordDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.dailyRecordsService.remove(
+      id,
+      deleteDto,
+      user.tenantId,
+      user.id,
+      user.name,
+    );
+  }
+
+  // ==================== EVENTOS SENTINELA ====================
+
+  @Get('eventos-sentinela/list')
+  @ApiOperation({
+    summary: 'Listar eventos sentinela com filtros',
+    description:
+      'Retorna lista de eventos sentinela (quedas com lesão, tentativas de suicídio) com status de notificação',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de eventos sentinela' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDENTE', 'ENVIADO', 'CONFIRMADO'],
+    description: 'Filtrar por status de notificação',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Data inicial (ISO 8601)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Data final (ISO 8601)',
+  })
+  async listSentinelEvents(
+    @CurrentUser() user: any,
+    @Query('status') status?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const tenantId = user.tenantId;
+
+    const where: any = {
+      tenantId,
+      deletedAt: null,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (startDate) {
+      where.createdAt = {
+        ...where.createdAt,
+        gte: new Date(startDate),
+      };
+    }
+
+    if (endDate) {
+      where.createdAt = {
+        ...where.createdAt,
+        lte: new Date(endDate),
+      };
+    }
+
+    const events = await this.prisma.sentinelEventNotification.findMany({
+      where,
+      include: {
+        dailyRecord: {
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+        notification: {
+          select: {
+            id: true,
+            title: true,
+            readAt: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Mapear para formato do frontend
+    return events.map((event) => ({
+      id: event.id,
+      dailyRecordId: event.dailyRecordId,
+      residentName: event.dailyRecord.resident.fullName,
+      residentId: event.dailyRecord.resident.id,
+      eventType: this.getEventTypeLabel(event.eventType),
+      eventDate: event.dailyRecord.date,
+      eventTime: event.dailyRecord.time,
+      description:
+        event.metadata?.description || event.dailyRecord.data?.descricao || '',
+      status: event.status,
+      protocolo: event.protocolo,
+      dataEnvio: event.dataEnvio,
+      dataConfirmacao: event.dataConfirmacao,
+      responsavelEnvio: event.responsavelEnvio,
+      emailEnviado: event.emailSent,
+      emailEnviadoEm: event.emailSentAt,
+      observacoes: event.metadata?.observacoes,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+    }));
+  }
+
+  @Put('eventos-sentinela/:id/status')
+  @Roles('admin', 'user')
+  @AuditAction('UPDATE')
+  @ApiOperation({
+    summary: 'Atualizar status de evento sentinela',
+    description:
+      'Atualiza status do tracking de notificação (PENDENTE → ENVIADO → CONFIRMADO)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status atualizado com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Evento não encontrado' })
+  @ApiParam({ name: 'id', description: 'ID do evento sentinela (UUID)' })
+  async updateSentinelEventStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body()
+    updateDto: {
+      status: 'ENVIADO' | 'CONFIRMADO';
+      protocolo?: string;
+      observacoes?: string;
+    },
+    @CurrentUser() user: any,
+  ) {
+    const event = await this.prisma.sentinelEventNotification.findFirst({
+      where: {
+        id,
+        tenantId: user.tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Evento sentinela não encontrado');
+    }
+
+    const updateData: any = {
+      status: updateDto.status,
+      metadata: {
+        ...event.metadata,
+        observacoes: updateDto.observacoes,
+      },
+      updatedAt: new Date(),
+    };
+
+    if (updateDto.status === 'ENVIADO') {
+      updateData.protocolo = updateDto.protocolo;
+      updateData.dataEnvio = new Date();
+      updateData.responsavelEnvio = user.name;
+    } else if (updateDto.status === 'CONFIRMADO') {
+      updateData.dataConfirmacao = new Date();
+    }
+
+    const updated = await this.prisma.sentinelEventNotification.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return {
+      message: 'Status atualizado com sucesso',
+      event: updated,
+    };
+  }
+
+  private getEventTypeLabel(eventType: string): string {
+    const labels: Record<string, string> = {
+      QUEDA_COM_LESAO: 'Queda com Lesão',
+      TENTATIVA_SUICIDIO: 'Tentativa de Suicídio',
+    };
+    return labels[eventType] || eventType;
   }
 }
