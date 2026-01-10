@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common'
 import { AdminController } from './admin.controller'
-import { AdminComplianceService } from './admin-compliance.service'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PlansModule } from '../plans/plans.module'
 import { PaymentsModule } from '../payments/payments.module'
@@ -16,7 +15,7 @@ import { SuperAdminModule } from '../superadmin/superadmin.module'
     SuperAdminModule,
   ],
   controllers: [AdminController],
-  providers: [AdminComplianceService],
-  exports: [AdminComplianceService],
+  providers: [],
+  exports: [],
 })
 export class AdminModule {}

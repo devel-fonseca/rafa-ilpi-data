@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
@@ -12,7 +13,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { IncidentInterceptorService } from './incident-interceptor.service';
-import { SentinelEventService } from './sentinel-event.service';
+import { DailyRecordCreatedEvent } from '../sentinel-events/events/daily-record-created.event';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { localToUTC } from '../utils/date.helpers';
 
@@ -22,7 +23,7 @@ export class DailyRecordsService {
     private readonly prisma: PrismaService,
     private readonly vitalSignsService: VitalSignsService,
     private readonly incidentInterceptorService: IncidentInterceptorService,
-    private readonly sentinelEventService: SentinelEventService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -112,27 +113,17 @@ export class DailyRecordsService {
       // Não falhar a criação do registro original
     }
 
-    // CRIAÇÃO DE EVENTO SENTINELA (se aplicável)
-    // Quando uma intercorrência é marcada como evento sentinela, criar o registro de rastreamento
-    if (dto.isEventoSentinela && dto.type === 'INTERCORRENCIA') {
-      try {
-        await this.sentinelEventService.triggerSentinelEventWorkflow(
-          record.id,
-          tenantId,
-        );
-        this.logger.info('Evento sentinela criado automaticamente', {
-          recordId: record.id,
-          residentId: dto.residentId,
-        });
-      } catch (error) {
-        this.logger.error('Erro ao criar evento sentinela', {
-          recordId: record.id,
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-        // Não falhar a criação do registro original
-      }
-    }
+    // Emitir evento para processamento assíncrono
+    // O SentinelEventsService está escutando este evento via @OnEvent
+    this.eventEmitter.emit(
+      'daily-record.created',
+      new DailyRecordCreatedEvent(record, tenantId, userId),
+    );
+
+    this.logger.info('Evento daily-record.created emitido', {
+      recordId: record.id,
+      isEventoSentinela: dto.isEventoSentinela,
+    });
 
     // Se for um registro de MONITORAMENTO, criar/atualizar sinais vitais
     if (dto.type === 'MONITORAMENTO' && dto.data) {

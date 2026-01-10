@@ -22,7 +22,6 @@ export class IncidentInterceptorService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sentinelEventService?: any, // Injected later to avoid circular dependency
   ) {}
 
   /**
@@ -504,22 +503,11 @@ export class IncidentInterceptorService {
       category,
       subtypeClinical,
       subtypeAssist,
+      isEventoSentinela,
+      incidentRecordId: incidentRecord.id,
     });
 
-    // Se for Evento Sentinela, trigger workflow automático
-    if (isEventoSentinela && this.sentinelEventService) {
-      try {
-        await this.sentinelEventService.triggerSentinelEventWorkflow(
-          incidentRecord.id,
-          tenantId,
-        );
-      } catch (error) {
-        this.logger.error('Erro ao processar Evento Sentinela', {
-          incidentRecordId: incidentRecord.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Não propagar erro
-      }
-    }
+    // Nota: O workflow de Evento Sentinela é processado automaticamente pelo
+    // SentinelEventsService via @OnEvent('daily-record.created')
   }
 }

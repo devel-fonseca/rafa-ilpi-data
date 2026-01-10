@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { IndicadoresRdcService } from './indicadores-rdc.service';
+import { RdcIndicatorsService } from './rdc-indicators.service';
 
 /**
  * Serviço de cron job para cálculo automático dos indicadores RDC 502/2021.
@@ -10,12 +10,12 @@ import { IndicadoresRdcService } from './indicadores-rdc.service';
  * os indicadores do mês atual para todos os tenants ativos.
  */
 @Injectable()
-export class IndicadoresRdcCronService {
-  private readonly logger = new Logger(IndicadoresRdcCronService.name);
+export class RdcIndicatorsCronService {
+  private readonly logger = new Logger(RdcIndicatorsCronService.name);
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly indicadoresService: IndicadoresRdcService,
+    private readonly rdcIndicatorsService: RdcIndicatorsService,
   ) {}
 
   /**
@@ -54,7 +54,7 @@ export class IndicadoresRdcCronService {
       // Processar cada tenant sequencialmente para evitar sobrecarga do banco
       for (const tenant of tenants) {
         try {
-          await this.indicadoresService.calculateMonthlyIndicators(
+          await this.rdcIndicatorsService.calculateMonthlyIndicators(
             tenant.id,
             year,
             month,
@@ -108,7 +108,7 @@ export class IndicadoresRdcCronService {
       calculatedBy,
     });
 
-    await this.indicadoresService.calculateMonthlyIndicators(
+    await this.rdcIndicatorsService.calculateMonthlyIndicators(
       tenantId,
       year,
       month,

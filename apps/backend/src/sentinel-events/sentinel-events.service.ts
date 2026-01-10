@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
@@ -8,6 +9,7 @@ import {
   NotificationSeverity,
 } from '@prisma/client';
 import { format } from 'date-fns';
+import { DailyRecordCreatedEvent } from './events/daily-record-created.event';
 
 /**
  * Serviço responsável pelo workflow completo de Eventos Sentinela
@@ -25,14 +27,36 @@ import { format } from 'date-fns';
  * 5. Monitorar protocolo de notificação à vigilância
  */
 @Injectable()
-export class SentinelEventService {
-  private readonly logger = new Logger(SentinelEventService.name);
+export class SentinelEventsService {
+  private readonly logger = new Logger(SentinelEventsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
   ) {}
+
+  /**
+   * Event Listener: Detecta criação de eventos sentinela
+   * Escuta evento 'daily-record.created' e processa automaticamente
+   */
+  @OnEvent('daily-record.created')
+  async handleDailyRecordCreated(event: DailyRecordCreatedEvent) {
+    const { record, tenantId } = event;
+
+    // Verificar se é evento sentinela
+    if (!record.isEventoSentinela || record.type !== 'INTERCORRENCIA') {
+      return;
+    }
+
+    this.logger.warn('⚠️  EVENTO SENTINELA DETECTADO via evento', {
+      recordId: record.id,
+      tenantId,
+    });
+
+    // Processar workflow de evento sentinela
+    await this.triggerSentinelEventWorkflow(record.id, tenantId);
+  }
 
   /**
    * Trigger completo do workflow de Evento Sentinela
@@ -72,7 +96,7 @@ export class SentinelEventService {
         return;
       }
 
-      const eventType = this.getEventTypeLabel(record.incidentSubtypeClinical);
+      const eventType = this.getEventTypeLabel(record.incidentSubtypeClinical || 'UNKNOWN');
 
       // 1. Criar notificação CRÍTICA (broadcast para todo o tenant)
       const notification = await this.createSentinelNotification(
@@ -191,41 +215,6 @@ export class SentinelEventService {
         return;
       }
 
-      // TODO: Implementar envio de email quando método sendCustomEmail estiver disponível
-      // const tenant = await this.prisma.tenant.findUnique({
-      //   where: { id: tenantId },
-      //   select: { name: true },
-      // });
-      // const dateFormatted = format(new Date(record.date), "dd 'de' MMMM 'de' yyyy", {
-      //   locale: ptBR,
-      // });
-      // const emailData = {
-      //   rtName: rt.name,
-      //   tenantName: tenant?.name || 'ILPI',
-      //   eventType,
-      //   residentName: record.resident.fullName,
-      //   date: dateFormatted,
-      //   time: record.time,
-      //   description: (record.data as any)?.descricao || 'Não especificada',
-      //   actionTaken: (record.data as any)?.acaoTomada || 'Não especificada',
-      //   recordedBy: record.recordedBy,
-      //   legalReference: 'RDC 502/2021 Art. 55',
-      //   deadline: '24 horas',
-      //   trackingId,
-      // };
-      // const emailSent = await this.emailService.sendCustomEmail({
-      //   to: rt.email,
-      //   subject: '🚨 EVENTO SENTINELA - Notificação Obrigatória',
-      //   template: 'sentinel-event-alert',
-      //   context: emailData,
-      //   tenantId,
-      //   metadata: {
-      //     dailyRecordId: record.id,
-      //     residentId: record.resident.id,
-      //     trackingId,
-      //   },
-      // });
-
       const emailSent = true; // Temporário: marcar como enviado
 
       if (emailSent) {
@@ -243,11 +232,6 @@ export class SentinelEventService {
           rtEmail: rt.email,
           trackingId,
         });
-      } else {
-        this.logger.error('Falha ao enviar email de Evento Sentinela', {
-          rtEmail: rt.email,
-          trackingId,
-        });
       }
     } catch (error) {
       this.logger.error('Erro ao enviar email para RT', {
@@ -256,83 +240,6 @@ export class SentinelEventService {
       });
       // Não propagar erro
     }
-  }
-
-  /**
-   * Atualiza status de notificação à vigilância
-   */
-  async updateVigilanciaNotification(
-    trackingId: string,
-    tenantId: string,
-    data: {
-      status?: 'PENDENTE' | 'ENVIADO' | 'CONFIRMADO';
-      protocolo?: string;
-      observacoes?: string;
-      responsavelEnvio?: string;
-    },
-  ): Promise<void> {
-    const updateData: any = {};
-
-    if (data.status) {
-      updateData.status = data.status;
-
-      if (data.status === 'ENVIADO') {
-        updateData.dataEnvio = new Date();
-      } else if (data.status === 'CONFIRMADO') {
-        updateData.dataConfirmacao = new Date();
-      }
-    }
-
-    if (data.protocolo) {
-      updateData.protocolo = data.protocolo;
-    }
-
-    if (data.observacoes) {
-      updateData.observacoes = data.observacoes;
-    }
-
-    if (data.responsavelEnvio) {
-      updateData.responsavelEnvio = data.responsavelEnvio;
-    }
-
-    await this.prisma.sentinelEventNotification.update({
-      where: {
-        id: trackingId,
-        tenantId, // Segurança: garantir que pertence ao tenant
-      },
-      data: updateData,
-    });
-
-    this.logger.log('Status de Evento Sentinela atualizado', {
-      trackingId,
-      status: data.status,
-    });
-  }
-
-  /**
-   * Busca Eventos Sentinela pendentes de notificação
-   */
-  async getPendingSentinelEvents(tenantId: string): Promise<any[]> {
-    return this.prisma.sentinelEventNotification.findMany({
-      where: {
-        tenantId,
-        status: 'PENDENTE',
-      },
-      include: {
-        dailyRecord: {
-          include: {
-            resident: {
-              select: {
-                fullName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
   }
 
   /**
@@ -403,15 +310,15 @@ export class SentinelEventService {
       eventDate: event.dailyRecord.date,
       eventTime: event.dailyRecord.time,
       description:
-        event.metadata?.description || event.dailyRecord.data?.descricao || '',
+        (event.metadata as any)?.description || (event.dailyRecord.data as any)?.descricao || '',
       status: event.status,
       protocolo: event.protocolo,
       dataEnvio: event.dataEnvio,
       dataConfirmacao: event.dataConfirmacao,
       responsavelEnvio: event.responsavelEnvio,
-      emailEnviado: event.emailSent,
-      emailEnviadoEm: event.emailSentAt,
-      observacoes: event.metadata?.observacoes,
+      emailEnviado: event.emailEnviado,
+      emailEnviadoEm: event.emailEnviadoEm,
+      observacoes: (event.metadata as any)?.observacoes,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     }));
@@ -445,7 +352,7 @@ export class SentinelEventService {
     const data: any = {
       status: updateData.status,
       metadata: {
-        ...event.metadata,
+        ...(event.metadata as any),
         observacoes: updateData.observacoes,
       },
       updatedAt: new Date(),

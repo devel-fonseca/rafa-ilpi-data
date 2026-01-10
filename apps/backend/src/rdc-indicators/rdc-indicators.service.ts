@@ -24,8 +24,8 @@ import { startOfMonth, endOfMonth } from 'date-fns';
  * - Taxa de mortalidade = (óbitos / residentes no mês) × 100
  */
 @Injectable()
-export class IndicadoresRdcService {
-  private readonly logger = new Logger(IndicadoresRdcService.name);
+export class RdcIndicatorsService {
+  private readonly logger = new Logger(RdcIndicatorsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 

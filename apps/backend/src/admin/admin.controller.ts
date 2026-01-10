@@ -16,7 +16,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
-import { AdminComplianceService } from './admin-compliance.service'
 import { PlansService } from '../plans/plans.service'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { SubscriptionAdminService } from '../superadmin/services/subscription-admin.service'
@@ -30,18 +29,12 @@ export class AdminController {
   private readonly logger = new Logger(AdminController.name)
 
   constructor(
-    private readonly complianceService: AdminComplianceService,
     private readonly plansService: PlansService,
     private readonly invoiceService: InvoiceService,
     private readonly subscriptionAdminService: SubscriptionAdminService,
     private readonly contractsService: ContractsService,
     private readonly prisma: PrismaService,
   ) {}
-
-  @Get('compliance/today')
-  async getComplianceToday() {
-    return this.complianceService.getTodayCompliance()
-  }
 
   /**
    * 1. Obter planos disponíveis para upgrade

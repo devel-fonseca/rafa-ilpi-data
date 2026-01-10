@@ -11,13 +11,8 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  Put,
-  NotFoundException,
 } from '@nestjs/common';
 import { DailyRecordsService } from './daily-records.service';
-import { IndicadoresRdcService } from './indicadores-rdc.service';
-import { IndicadoresRdcCronService } from './indicadores-rdc.cron';
-import { SentinelEventService } from './sentinel-event.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { DeleteDailyRecordDto } from './dto/delete-daily-record.dto';
@@ -36,7 +31,6 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiQuery,
 } from '@nestjs/swagger';
 
 @ApiTags('Daily Records')
@@ -47,9 +41,6 @@ import {
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,
-    private readonly indicadoresRdcService: IndicadoresRdcService,
-    private readonly indicadoresRdcCronService: IndicadoresRdcCronService,
-    private readonly sentinelEventService: SentinelEventService,
   ) {}
 
   @Post()
@@ -284,78 +275,6 @@ export class DailyRecordsController {
   // INDICADORES RDC 502/2021
   // ═══════════════════════════════════════════════════════════════════════════
 
-  @Get('indicadores-rdc')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
-  @ApiOperation({
-    summary: 'Obter indicadores RDC 502/2021 de um mês específico',
-    description:
-      'Retorna os 6 indicadores mensais obrigatórios (mortalidade, diarreia, escabiose, desidratação, úlcera, desnutrição)',
-  })
-  @ApiResponse({ status: 200, description: 'Indicadores retornados com sucesso' })
-  async getIndicadoresRdc(
-    @CurrentUser() user: any,
-    @Query('year') year: string,
-    @Query('month') month: string,
-  ) {
-    const yearNum = parseInt(year);
-    const monthNum = parseInt(month);
-
-    return this.indicadoresRdcService.getIndicatorsByMonth(
-      user.tenantId,
-      yearNum,
-      monthNum,
-    );
-  }
-
-  @Get('indicadores-rdc/historico')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
-  @ApiOperation({
-    summary: 'Obter histórico de indicadores RDC',
-    description: 'Retorna histórico dos indicadores RDC dos últimos N meses',
-  })
-  @ApiResponse({ status: 200, description: 'Histórico retornado com sucesso' })
-  async getHistoricoIndicadoresRdc(
-    @CurrentUser() user: any,
-    @Query('months') months?: string,
-  ) {
-    const monthsNum = months ? parseInt(months) : 12;
-
-    return this.indicadoresRdcService.getIndicatorsHistory(
-      user.tenantId,
-      monthsNum,
-    );
-  }
-
-  @Post('indicadores-rdc/calcular')
-  @RequirePermissions(PermissionType.VIEW_REPORTS)
-  @ApiOperation({
-    summary: 'Recalcular indicadores RDC manualmente',
-    description:
-      'Força o recálculo dos indicadores de um mês específico (uso administrativo)',
-  })
-  @ApiResponse({ status: 200, description: 'Indicadores recalculados com sucesso' })
-  async recalcularIndicadoresRdc(
-    @CurrentUser() user: any,
-    @Query('year') year: string,
-    @Query('month') month: string,
-  ) {
-    const yearNum = parseInt(year);
-    const monthNum = parseInt(month);
-
-    await this.indicadoresRdcCronService.manualCalculation(
-      user.tenantId,
-      yearNum,
-      monthNum,
-      user.id,
-    );
-
-    return {
-      message: 'Indicadores RDC recalculados com sucesso',
-      year: yearNum,
-      month: monthNum,
-    };
-  }
-
   @Get(':id')
   @ApiOperation({ summary: 'Buscar registro por ID' })
   @ApiResponse({ status: 200, description: 'Registro encontrado' })
@@ -408,91 +327,5 @@ export class DailyRecordsController {
       user.id,
       user.name,
     );
-  }
-
-  // ==================== EVENTOS SENTINELA ====================
-
-  @Get('eventos-sentinela/list')
-  @ApiOperation({
-    summary: 'Listar eventos sentinela com filtros',
-    description:
-      'Retorna lista de eventos sentinela (quedas com lesão, tentativas de suicídio) com status de notificação',
-  })
-  @ApiResponse({ status: 200, description: 'Lista de eventos sentinela' })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: ['PENDENTE', 'ENVIADO', 'CONFIRMADO'],
-    description: 'Filtrar por status de notificação',
-  })
-  @ApiQuery({
-    name: 'startDate',
-    required: false,
-    description: 'Data inicial (ISO 8601)',
-  })
-  @ApiQuery({
-    name: 'endDate',
-    required: false,
-    description: 'Data final (ISO 8601)',
-  })
-  async listSentinelEvents(
-    @CurrentUser() user: any,
-    @Query('status') status?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    return this.sentinelEventService.findAllSentinelEvents(user.tenantId, {
-      status,
-      startDate,
-      endDate,
-    });
-  }
-
-  @Put('eventos-sentinela/:id/status')
-  @Roles('admin', 'user')
-  @AuditAction('UPDATE')
-  @ApiOperation({
-    summary: 'Atualizar status de evento sentinela',
-    description:
-      'Atualiza status do tracking de notificação (PENDENTE → ENVIADO → CONFIRMADO)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Status atualizado com sucesso',
-  })
-  @ApiResponse({ status: 404, description: 'Evento não encontrado' })
-  @ApiParam({ name: 'id', description: 'ID do evento sentinela (UUID)' })
-  async updateSentinelEventStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body()
-    updateDto: {
-      status: 'ENVIADO' | 'CONFIRMADO';
-      protocolo?: string;
-      observacoes?: string;
-    },
-    @CurrentUser() user: any,
-  ) {
-    try {
-      const updated = await this.sentinelEventService.updateSentinelEventStatus(
-        id,
-        user.tenantId,
-        {
-          status: updateDto.status,
-          protocolo: updateDto.protocolo,
-          observacoes: updateDto.observacoes,
-          responsavelEnvio: user.name,
-        },
-      );
-
-      return {
-        message: 'Status atualizado com sucesso',
-        event: updated,
-      };
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Evento sentinela não encontrado') {
-        throw new NotFoundException(error.message);
-      }
-      throw error;
-    }
   }
 }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { WinstonModule } from 'nest-winston';
 import { PrismaModule } from './prisma/prisma.module';
@@ -50,6 +51,9 @@ import { TenantMessagesModule } from './tenant-messages/tenant-messages.module';
 import { MessagesModule } from './messages/messages.module';
 import { CacheModule } from './cache/cache.module';
 import { InstitutionalEventsModule } from './institutional-events/institutional-events.module';
+import { SentinelEventsModule } from './sentinel-events/sentinel-events.module';
+import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
+import { ComplianceModule } from './compliance/compliance.module';
 
 @Module({
   imports: [
@@ -64,6 +68,9 @@ import { InstitutionalEventsModule } from './institutional-events/institutional-
 
     // Schedule Module (cron jobs)
     ScheduleModule.forRoot(),
+
+    // Event Emitter (eventos entre módulos)
+    EventEmitterModule.forRoot(),
 
     // Redis + BullMQ (filas de processamento)
     BullModule.forRootAsync({
@@ -125,6 +132,11 @@ import { InstitutionalEventsModule } from './institutional-events/institutional-
     TenantMessagesModule,
     MessagesModule,
     InstitutionalEventsModule,
+
+    // Conformidade RDC 502/2021
+    SentinelEventsModule,
+    RdcIndicatorsModule,
+    ComplianceModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

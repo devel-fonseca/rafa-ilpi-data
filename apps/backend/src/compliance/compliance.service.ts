@@ -1,30 +1,13 @@
-import { Injectable, Inject, Scope } from '@nestjs/common'
-import { REQUEST } from '@nestjs/core'
-import { PrismaService } from '../prisma/prisma.service'
-import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers'
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
+import { DailyComplianceResponseDto } from './dto';
 
-interface ComplianceStats {
-  activeResidents: number
-  medications: {
-    scheduled: number
-    administered: number
-    total: number
-  }
-  mandatoryRecords: {
-    expected: number
-    completed: number
-  }
-}
+@Injectable()
+export class ComplianceService {
+  constructor(private prisma: PrismaService) {}
 
-@Injectable({ scope: Scope.REQUEST })
-export class AdminComplianceService {
-  constructor(
-    private prisma: PrismaService,
-    @Inject(REQUEST) private request: any,
-  ) {}
-
-  async getTodayCompliance(): Promise<ComplianceStats> {
-    const tenantId = this.request.user?.tenantId
+  async getDailySummary(tenantId: string): Promise<DailyComplianceResponseDto> {
 
     // Buscar timezone do tenant
     const tenant = await this.prisma.tenant.findUnique({
