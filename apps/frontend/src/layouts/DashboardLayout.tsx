@@ -49,6 +49,8 @@ export function DashboardLayout() {
                              hasPermission(PermissionType.DELETE_RESIDENTS)
   const canViewPops = hasPermission(PermissionType.VIEW_POPS)
   const canViewMessages = hasPermission(PermissionType.VIEW_MESSAGES)
+  const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
+                            hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -363,22 +365,24 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/conformidade"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Activity className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Conformidade'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Conformidade</TooltipContent>
-                )}
-              </Tooltip>
+              {canViewCompliance && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/conformidade"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Activity className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Conformidade'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Conformidade</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
               {canManageResidents && (
                 <Tooltip>
@@ -622,14 +626,16 @@ export function DashboardLayout() {
                 <Calendar className="h-4 w-4" />
                 Agenda
               </Link>
-              <Link
-                to="/dashboard/conformidade"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Activity className="h-4 w-4" />
-                Conformidade
-              </Link>
+              {canViewCompliance && (
+                <Link
+                  to="/dashboard/conformidade"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Activity className="h-4 w-4" />
+                  Conformidade
+                </Link>
+              )}
               {canManageResidents && (
                 <Link
                   to="/dashboard/residentes"
