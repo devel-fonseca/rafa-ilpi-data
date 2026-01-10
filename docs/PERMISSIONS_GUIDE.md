@@ -1,228 +1,316 @@
-# Guia do Sistema Híbrido de Permissões
+# Guia do Sistema Híbrido de Permissões v2.0
+
+> **Versão:** 2.0 | **Última atualização:** Janeiro 2026
+> **Total de Permissões:** 78 permissões granulares
 
 ## Índice
+
 1. [Visão Geral](#visão-geral)
 2. [Arquitetura do Sistema](#arquitetura-do-sistema)
-3. [Quando Usar Cada Tipo de Permissão](#quando-usar-cada-tipo-de-permissão)
+3. [Lista Completa de Permissões](#lista-completa-de-permissões)
 4. [Como Adicionar Novas Permissões](#como-adicionar-novas-permissões)
-5. [Como Proteger Endpoints (Backend)](#como-proteger-endpoints-backend)
-6. [Como Ocultar UI (Frontend)](#como-ocultar-ui-frontend)
-7. [Gerenciamento de Permissões Customizadas](#gerenciamento-de-permissões-customizadas)
-8. [Exemplos Práticos](#exemplos-práticos)
-9. [Troubleshooting](#troubleshooting)
+5. [Proteção em Três Camadas](#proteção-em-três-camadas)
+6. [Como Proteger Endpoints (Backend)](#como-proteger-endpoints-backend)
+7. [Como Proteger UI e Rotas (Frontend)](#como-proteger-ui-e-rotas-frontend)
+8. [Gerenciamento de Permissões Customizadas](#gerenciamento-de-permissões-customizadas)
+9. [Exemplos Práticos Completos](#exemplos-práticos-completos)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Visão Geral
 
-O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas:
+O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas de controle de acesso:
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │          Sistema Híbrido de Permissões          │
 ├─────────────────────────────────────────────────┤
 │                                                 │
-│  1️⃣ Role (ADMIN/MANAGER/STAFF)                 │
+│  1️⃣  Role (ADMIN/MANAGER/STAFF/VIEWER)          │
 │     └─ Permissões globais do sistema           │
+│        ADMIN = TODAS as 78 permissões           │
 │                                                 │
-│  2️⃣ PositionCode (ADMINISTRATOR/NURSE/etc)     │
-│     └─ Permissões herdadas do cargo ILPI       │
+│  2️⃣  PositionCode (Cargo ILPI)                  │
+│     └─ Permissões herdadas automaticamente      │
+│        Ex: NURSE → 45 permissões                │
 │                                                 │
-│  3️⃣ Custom Permissions                         │
-│     └─ Permissões específicas do usuário       │
+│  3️⃣  Custom Permissions                         │
+│     └─ Exceções individuais por usuário        │
+│        Adicionar/Remover permissões específicas │
 │                                                 │
 └─────────────────────────────────────────────────┘
 ```
 
 ### Hierarquia de Permissões
 
-1. **ADMIN** (Role) = TODAS as permissões automaticamente
-2. **Position Code** (ex: NURSE) = Permissões herdadas do cargo
-3. **Custom Permissions** = Permissões adicionais ou removidas manualmente
+1. **ADMIN** (Role) → TODAS as 78 permissões automaticamente
+2. **Position Code** (Cargo ILPI) → Permissões padrão do cargo
+3. **Custom Permissions** → Ajustes manuais por usuário
 
 ---
 
 ## Arquitetura do Sistema
 
-### 1. Enum de Permissões (schema.prisma)
-
-**Localização**: `apps/backend/prisma/schema.prisma`
-
-```prisma
-enum PermissionType {
-  // Residentes
-  VIEW_RESIDENTS
-  CREATE_RESIDENTS
-  UPDATE_RESIDENTS
-  DELETE_RESIDENTS
-  EXPORT_RESIDENTS_DATA
-
-  // Registros Diários
-  VIEW_DAILY_RECORDS
-  CREATE_DAILY_RECORDS
-  UPDATE_DAILY_RECORDS
-  DELETE_DAILY_RECORDS
-
-  // Prescrições
-  VIEW_PRESCRIPTIONS
-  CREATE_PRESCRIPTIONS
-  UPDATE_PRESCRIPTIONS
-  DELETE_PRESCRIPTIONS
-
-  // Administração de Medicamentos
-  VIEW_MEDICATIONS
-  ADMINISTER_MEDICATIONS
-  ADMINISTER_CONTROLLED_MEDICATIONS
-
-  // Gestão de Leitos
-  VIEW_BEDS
-  MANAGE_BEDS
-
-  // Infraestrutura (Prédios, Andares, Quartos, Leitos)
-  MANAGE_INFRASTRUCTURE
-
-  // Documentos
-  VIEW_DOCUMENTS
-  UPLOAD_DOCUMENTS
-  DELETE_DOCUMENTS
-
-  // Perfil Clínico
-  VIEW_CLINICAL_PROFILE
-  UPDATE_CLINICAL_PROFILE
-
-  // Notas Clínicas
-  VIEW_CLINICAL_NOTES
-  CREATE_CLINICAL_NOTES
-  UPDATE_CLINICAL_NOTES
-  DELETE_CLINICAL_NOTES
-
-  // POPs (Procedimentos Operacionais Padrão)
-  // ⚠️ ATENÇÃO: POPs publicados são PÚBLICOS para todos os usuários (RDC 502/2021)
-  // VIEW_POPS permite ver DRAFT e acessar templates/histórico
-  VIEW_POPS          // Ver POPs em rascunho, templates, histórico de versões
-  CREATE_POPS        // Criar novos POPs (rascunho)
-  UPDATE_POPS        // Editar POPs, adicionar/remover anexos
-  DELETE_POPS        // Deletar POPs em rascunho
-  PUBLISH_POPS       // Publicar, versionar, marcar obsoleto (apenas RT)
-  MANAGE_POPS        // Controle total sobre POPs
-
-  // Auditoria
-  VIEW_AUDIT_LOGS
-
-  // Gerenciamento de Usuários
-  VIEW_USERS
-  CREATE_USERS
-  UPDATE_USERS
-  DELETE_USERS
-  MANAGE_USER_PERMISSIONS
-
-  // Configurações Institucionais
-  VIEW_INSTITUTIONAL_SETTINGS
-  UPDATE_INSTITUTIONAL_SETTINGS
-
-  // Perfil Institucional
-  VIEW_INSTITUTIONAL_PROFILE
-  UPDATE_INSTITUTIONAL_PROFILE
-}
-```
-
-### 2. Perfis de Cargo (position-profiles.config.ts)
-
-**Localização**: `apps/backend/src/permissions/config/position-profiles.config.ts`
-
-Define as permissões que cada cargo ILPI herda automaticamente:
+### Fluxo de Verificação de Permissões
 
 ```typescript
-export const POSITION_PROFILES: Record<PositionCode, PermissionType[]> = {
-  ADMINISTRATOR: [
-    // Administrador tem TODAS as permissões
-    PermissionType.MANAGE_INFRASTRUCTURE,
-    PermissionType.VIEW_INSTITUTIONAL_PROFILE,
-    // ... todas as outras
-  ],
-
-  NURSE: [
-    // Enfermeiro: permissões clínicas
-    PermissionType.VIEW_RESIDENTS,
-    PermissionType.VIEW_DAILY_RECORDS,
-    PermissionType.CREATE_DAILY_RECORDS,
-    PermissionType.VIEW_PRESCRIPTIONS,
-    PermissionType.ADMINISTER_MEDICATIONS,
-    // ...
-  ],
-
-  NURSING_TECHNICIAN: [
-    // Técnico de Enfermagem: permissões operacionais
-    PermissionType.VIEW_RESIDENTS,
-    PermissionType.CREATE_DAILY_RECORDS,
-    PermissionType.ADMINISTER_MEDICATIONS,
-    // ...
-  ],
-
-  // ... outros cargos
-}
+// Backend: PermissionsService.getUserAllPermissions()
+┌─────────────────────────────────────────┐
+│ 1. Usuário é ADMIN?                     │
+│    SIM → Retorna todas as 78 permissões │
+│    NÃO → Continua...                    │
+├─────────────────────────────────────────┤
+│ 2. Busca permissões herdadas do cargo   │
+│    const inherited = POSITION_PROFILES[ │
+│      userProfile.positionCode           │
+│    ]                                    │
+├─────────────────────────────────────────┤
+│ 3. Busca permissões customizadas        │
+│    const customGranted = [...]          │
+│    const customRevoked = [...]          │
+├─────────────────────────────────────────┤
+│ 4. Calcula permissões efetivas          │
+│    all = inherited + customGranted      │
+│          - customRevoked                │
+└─────────────────────────────────────────┘
 ```
 
-### 3. Sistema de Verificação
+### Cache de Permissões
 
-```typescript
-// Backend: PermissionsService
-class PermissionsService {
-  async getUserAllPermissions(userId: string) {
-    // 1. Se é ADMIN → retorna TODAS
-    if (user.role === 'ADMIN') {
-      return Object.values(PermissionType);
-    }
-
-    // 2. Busca permissões herdadas do cargo
-    const inherited = POSITION_PROFILES[userProfile.positionCode] || [];
-
-    // 3. Busca permissões customizadas
-    const custom = await this.getCustomPermissions(userId);
-
-    // 4. Mescla e retorna
-    return [...new Set([...inherited, ...custom])];
-  }
-}
-```
+- **TTL:** 5 minutos (Redis)
+- **Invalidação:** Logout/Login ou manualmente
+- **Formato:** `user-permissions:{userId}`
 
 ---
 
-## Quando Usar Cada Tipo de Permissão
+## Lista Completa de Permissões
 
-### ✅ Use **Role** (ADMIN/MANAGER/STAFF) quando:
+### 📋 Residentes (4 permissões)
 
-- **Decisões globais do sistema**
-- Exemplo: ADMIN pode acessar tudo, STAFF é restrito
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_RESIDENTS` | Visualizar lista e detalhes de residentes |
+| `CREATE_RESIDENTS` | Cadastrar novos residentes |
+| `UPDATE_RESIDENTS` | Editar dados de residentes |
+| `DELETE_RESIDENTS` | Remover residentes |
 
-### ✅ Use **PositionCode** quando:
+### 📝 Registros Diários (4 permissões)
 
-- **Permissões padrão de cargos ILPI**
-- Exemplo: Enfermeiros sempre podem administrar medicações
-- Exemplo: Técnicos de Enfermagem sempre podem criar registros diários
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_DAILY_RECORDS` | Visualizar registros diários |
+| `CREATE_DAILY_RECORDS` | Criar registros de alimentação, higiene, sono, etc. |
+| `UPDATE_DAILY_RECORDS` | Editar registros diários |
+| `DELETE_DAILY_RECORDS` | Remover registros diários |
 
-### ✅ Use **Custom Permissions** quando:
+### 💊 Prescrições (4 permissões)
 
-- **Exceções individuais**
-- Exemplo: Dar permissão extra para um usuário específico
-- Exemplo: Remover uma permissão que normalmente vem do cargo
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_PRESCRIPTIONS` | Visualizar prescrições médicas |
+| `CREATE_PRESCRIPTIONS` | Criar novas prescrições (RT, médicos) |
+| `UPDATE_PRESCRIPTIONS` | Editar prescrições |
+| `DELETE_PRESCRIPTIONS` | Remover prescrições |
+
+### 💉 Administração de Medicamentos (3 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_MEDICATIONS` | Visualizar lista de medicações |
+| `ADMINISTER_MEDICATIONS` | Administrar medicamentos comuns |
+| `ADMINISTER_CONTROLLED_MEDICATIONS` | Administrar medicamentos controlados (requer registro profissional) |
+
+### 🩺 Sinais Vitais (2 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_VITAL_SIGNS` | Visualizar sinais vitais |
+| `RECORD_VITAL_SIGNS` | Registrar pressão, temperatura, glicemia, etc. |
+
+### 💉 Vacinações (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_VACCINATIONS` | Visualizar cartão de vacinas |
+| `CREATE_VACCINATIONS` | Registrar novas vacinas |
+| `UPDATE_VACCINATIONS` | Editar registros de vacinação |
+| `DELETE_VACCINATIONS` | Remover registros de vacinação |
+
+### 📋 Evoluções Clínicas SOAP (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_CLINICAL_NOTES` | Visualizar evoluções clínicas |
+| `CREATE_CLINICAL_NOTES` | Criar novas evoluções (Subjetivo, Objetivo, Avaliação, Plano) |
+| `UPDATE_CLINICAL_NOTES` | Editar evoluções clínicas |
+| `DELETE_CLINICAL_NOTES` | Remover evoluções clínicas |
+
+### 🏥 Perfis Clínicos (3 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_CLINICAL_PROFILE` | Visualizar perfil clínico completo |
+| `CREATE_CLINICAL_PROFILE` | Criar perfil clínico inicial |
+| `UPDATE_CLINICAL_PROFILE` | Atualizar perfil clínico |
+
+### 🤧 Alergias (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_ALLERGIES` | Visualizar alergias |
+| `CREATE_ALLERGIES` | Registrar novas alergias |
+| `UPDATE_ALLERGIES` | Editar alergias |
+| `DELETE_ALLERGIES` | Remover alergias |
+
+### 🩹 Condições Crônicas (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_CONDITIONS` | Visualizar condições crônicas (diabetes, hipertensão, etc.) |
+| `CREATE_CONDITIONS` | Registrar novas condições |
+| `UPDATE_CONDITIONS` | Editar condições |
+| `DELETE_CONDITIONS` | Remover condições |
+
+### 🍽️ Restrições Alimentares (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_DIETARY_RESTRICTIONS` | Visualizar restrições alimentares |
+| `CREATE_DIETARY_RESTRICTIONS` | Registrar novas restrições |
+| `UPDATE_DIETARY_RESTRICTIONS` | Editar restrições |
+| `DELETE_DIETARY_RESTRICTIONS` | Remover restrições |
+
+### 🛏️ Gestão de Leitos (2 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_BEDS` | Visualizar mapa de leitos |
+| `MANAGE_BEDS` | Gerenciar ocupação e alocação de leitos |
+
+### 🏢 Infraestrutura (1 permissão)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `MANAGE_INFRASTRUCTURE` | Gerenciar prédios, andares, quartos e leitos |
+
+### 📎 Documentos (3 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_DOCUMENTS` | Visualizar documentos anexados |
+| `UPLOAD_DOCUMENTS` | Fazer upload de documentos |
+| `DELETE_DOCUMENTS` | Remover documentos |
+
+### 👥 Usuários e Permissões (5 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_USERS` | Visualizar lista de usuários |
+| `CREATE_USERS` | Cadastrar novos usuários |
+| `UPDATE_USERS` | Editar usuários |
+| `DELETE_USERS` | Remover usuários |
+| `MANAGE_PERMISSIONS` | Gerenciar permissões customizadas |
+
+### 📊 Relatórios e Auditoria (3 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_REPORTS` | Visualizar relatórios gerenciais |
+| `EXPORT_DATA` | Exportar dados para Excel/PDF |
+| `VIEW_AUDIT_LOGS` | Visualizar logs de auditoria |
+
+### ⚕️ Conformidade RDC 502/2021 (2 permissões) ⚠️ RESTRITO
+
+| Permissão | Descrição | Acesso Padrão |
+|-----------|-----------|---------------|
+| `VIEW_COMPLIANCE_DASHBOARD` | Acessar dashboard de conformidade RDC | ADMINISTRATOR, TECHNICAL_MANAGER |
+| `VIEW_SENTINEL_EVENTS` | Visualizar e gerenciar eventos sentinela (quedas com lesão, tentativas de suicídio) | ADMINISTRATOR, TECHNICAL_MANAGER |
+
+### ⚙️ Configurações Institucionais (2 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_INSTITUTIONAL_SETTINGS` | Visualizar configurações gerais |
+| `UPDATE_INSTITUTIONAL_SETTINGS` | Editar configurações gerais |
+
+### 🏛️ Perfil Institucional (2 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_INSTITUTIONAL_PROFILE` | Visualizar perfil da ILPI (CNPJ, endereço, etc.) |
+| `UPDATE_INSTITUTIONAL_PROFILE` | Editar perfil institucional |
+
+### 📄 POPs - Procedimentos Operacionais Padrão (6 permissões)
+
+> ⚠️ **Nota RDC 502/2021:** POPs publicados são **públicos** para todos os usuários autenticados.
+
+| Permissão | Descrição | Acesso |
+|-----------|-----------|--------|
+| `VIEW_POPS` | Ver POPs em rascunho, templates e histórico | Gestores |
+| `CREATE_POPS` | Criar novos POPs (rascunho) | Gestores |
+| `UPDATE_POPS` | Editar POPs e anexos | Gestores |
+| `DELETE_POPS` | Deletar POPs em rascunho | Gestores |
+| `PUBLISH_POPS` | Publicar, versionar, marcar obsoleto | **Apenas RT** |
+| `MANAGE_POPS` | Controle total sobre POPs | RT |
+
+### 📅 Agenda do Residente (2 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_RESIDENT_SCHEDULE` | Visualizar agenda de consultas e compromissos |
+| `MANAGE_RESIDENT_SCHEDULE` | Criar e gerenciar eventos na agenda |
+
+### 🎉 Eventos Institucionais (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_INSTITUTIONAL_EVENTS` | Visualizar eventos (festas, atividades) |
+| `CREATE_INSTITUTIONAL_EVENTS` | Criar novos eventos |
+| `UPDATE_INSTITUTIONAL_EVENTS` | Editar eventos |
+| `DELETE_INSTITUTIONAL_EVENTS` | Remover eventos |
+
+### 💬 Mensagens Internas (4 permissões)
+
+| Permissão | Descrição |
+|-----------|-----------|
+| `VIEW_MESSAGES` | Visualizar mensagens internas |
+| `SEND_MESSAGES` | Enviar mensagens para usuários |
+| `DELETE_MESSAGES` | Remover mensagens |
+| `BROADCAST_MESSAGES` | Enviar mensagens em massa (RT) |
 
 ---
 
 ## Como Adicionar Novas Permissões
 
+### Checklist Completo
+
+- [ ] 1. Adicionar no `schema.prisma` (enum PermissionType)
+- [ ] 2. Criar migration Prisma
+- [ ] 3. Regenerar Prisma Client
+- [ ] 4. Adicionar no `usePermissions.ts` (frontend enum)
+- [ ] 5. Adicionar no `types/permissions.ts` (frontend enum + labels)
+- [ ] 6. Atualizar `position-profiles.config.ts` (se necessário)
+- [ ] 7. **Atualizar permissões de usuários existentes** (data migration SQL)
+- [ ] 8. Proteger endpoints com `@RequirePermissions()`
+- [ ] 9. Proteger rotas frontend com `<ProtectedRoute>`
+- [ ] 10. Ocultar UI com `hasPermission()`
+- [ ] 11. Adicionar à tela de gerenciamento (se customizável)
+- [ ] 12. Testar com diferentes cargos
+- [ ] 13. Atualizar este guia
+
 ### Passo 1: Adicionar no Schema do Prisma
 
-**Arquivo**: `apps/backend/prisma/schema.prisma`
+**Arquivo:** `apps/backend/prisma/schema/enums.prisma`
 
 ```prisma
 enum PermissionType {
   // ... permissões existentes
 
   // Nova funcionalidade
-  VIEW_FINANCIAL_REPORTS
-  EXPORT_FINANCIAL_DATA
-  MANAGE_INVOICES
+  VIEW_FINANCIAL_REPORTS // Visualizar relatórios financeiros
+  EXPORT_FINANCIAL_DATA // Exportar dados financeiros
+  MANAGE_INVOICES // Gerenciar faturas
 }
 ```
 
@@ -239,9 +327,9 @@ npx prisma migrate dev --name add_financial_permissions
 npx prisma generate
 ```
 
-### Passo 4: Adicionar no Frontend Enum
+### Passo 4: Adicionar no Frontend Enum (usePermissions.ts)
 
-**Arquivo**: `apps/frontend/src/hooks/usePermissions.ts`
+**Arquivo:** `apps/frontend/src/hooks/usePermissions.ts`
 
 ```typescript
 export enum PermissionType {
@@ -254,33 +342,145 @@ export enum PermissionType {
 }
 ```
 
-### Passo 5: Atualizar Perfis de Cargo (se necessário)
+### Passo 5: Adicionar no Frontend Types (types/permissions.ts)
 
-**Arquivo**: `apps/backend/src/permissions/config/position-profiles.config.ts`
+**Arquivo:** `apps/frontend/src/types/permissions.ts`
 
 ```typescript
-export const POSITION_PROFILES: Record<PositionCode, PermissionType[]> = {
-  ADMINISTRATOR: [
-    // ... permissões existentes
-    PermissionType.VIEW_FINANCIAL_REPORTS,
-    PermissionType.EXPORT_FINANCIAL_DATA,
-    PermissionType.MANAGE_INVOICES,
-  ],
+// 1. Adicionar ao enum
+export enum PermissionType {
+  // ... permissões existentes
+  VIEW_FINANCIAL_REPORTS = 'VIEW_FINANCIAL_REPORTS',
+  EXPORT_FINANCIAL_DATA = 'EXPORT_FINANCIAL_DATA',
+  MANAGE_INVOICES = 'MANAGE_INVOICES',
+}
 
-  ACCOUNTANT: [
-    PermissionType.VIEW_FINANCIAL_REPORTS,
-    PermissionType.EXPORT_FINANCIAL_DATA,
-    // Sem MANAGE_INVOICES por padrão
-  ],
+// 2. Adicionar labels
+export const PERMISSION_LABELS: Record<PermissionType, string> = {
+  // ... labels existentes
+  [PermissionType.VIEW_FINANCIAL_REPORTS]: 'Visualizar relatórios financeiros',
+  [PermissionType.EXPORT_FINANCIAL_DATA]: 'Exportar dados financeiros',
+  [PermissionType.MANAGE_INVOICES]: 'Gerenciar faturas',
+}
+
+// 3. Adicionar ao grupo apropriado
+export const PERMISSION_GROUPS = {
+  // ... grupos existentes
+  financial: {
+    label: 'Financeiro',
+    permissions: [
+      PermissionType.VIEW_FINANCIAL_REPORTS,
+      PermissionType.EXPORT_FINANCIAL_DATA,
+      PermissionType.MANAGE_INVOICES,
+    ],
+  },
 }
 ```
 
-### Passo 6: Documentar a Permissão
+### Passo 6: Atualizar Perfis de Cargo (se necessário)
 
-Adicione comentários no código explicando:
-- **O que** a permissão permite fazer
-- **Quem** deve ter essa permissão por padrão
-- **Quando** usar essa permissão
+**Arquivo:** `apps/backend/src/permissions/position-profiles.config.ts`
+
+```typescript
+export const ILPI_POSITION_PROFILES = {
+  ADMINISTRATOR: {
+    permissions: [
+      // ... permissões existentes
+      PermissionType.VIEW_FINANCIAL_REPORTS,
+      PermissionType.EXPORT_FINANCIAL_DATA,
+      PermissionType.MANAGE_INVOICES,
+    ],
+  },
+
+  ACCOUNTANT: {
+    permissions: [
+      PermissionType.VIEW_FINANCIAL_REPORTS,
+      PermissionType.EXPORT_FINANCIAL_DATA,
+      // Sem MANAGE_INVOICES por padrão
+    ],
+  },
+}
+```
+
+### Passo 7: ⚠️ Atualizar Usuários Existentes (Data Migration)
+
+**⚠️ IMPORTANTE:** Quando você adiciona novas permissões a `position-profiles.config.ts`, usuários existentes **NÃO** recebem essas permissões automaticamente!
+
+**Criar arquivo:** `apps/backend/prisma/migrations/YYYYMMDD_add_financial_permissions_to_existing_users.sql`
+
+```sql
+-- Adicionar VIEW_FINANCIAL_REPORTS para todos ADMINISTRATOR
+INSERT INTO user_permissions (
+  id,
+  "userProfileId",
+  "tenantId",
+  permission,
+  "isGranted",
+  "grantedBy",
+  "grantedAt",
+  "createdAt",
+  "updatedAt"
+)
+SELECT
+  gen_random_uuid(),
+  up.id,
+  u."tenantId",
+  'VIEW_FINANCIAL_REPORTS',
+  true,
+  u.id,
+  NOW(),
+  NOW(),
+  NOW()
+FROM user_profiles up
+JOIN users u ON u.id = up."userId"
+WHERE up."positionCode" = 'ADMINISTRATOR'
+  AND NOT EXISTS (
+    SELECT 1 FROM user_permissions
+    WHERE "userProfileId" = up.id
+    AND permission = 'VIEW_FINANCIAL_REPORTS'
+  );
+
+-- Repetir para outras permissões e cargos...
+```
+
+**Aplicar migration:**
+
+```bash
+psql -h localhost -p 5432 -U rafa_user -d rafa_ilpi < apps/backend/prisma/migrations/YYYYMMDD_add_financial_permissions_to_existing_users.sql
+```
+
+---
+
+## Proteção em Três Camadas
+
+### ⚠️ Regra de Ouro: SEMPRE Proteger em 3 Camadas
+
+Para garantir segurança completa, **SEMPRE** implemente proteção em 3 camadas:
+
+```text
+┌─────────────────────────────────────────────┐
+│  1️⃣  Backend API Protection (OBRIGATÓRIO)   │
+│     └─ @RequirePermissions() decorator      │
+│        Retorna 403 Forbidden                │
+│        ✅ Segurança real                    │
+├─────────────────────────────────────────────┤
+│  2️⃣  Frontend UI Protection (UX)            │
+│     └─ hasPermission() no sidebar/menus     │
+│        Esconde links visuais                │
+│        ✅ Melhora experiência do usuário    │
+├─────────────────────────────────────────────┤
+│  3️⃣  Frontend Route Protection (UX+)        │
+│     └─ <ProtectedRoute> wrapper             │
+│        Bloqueia acesso via URL direta       │
+│        ✅ Previne confusão do usuário       │
+└─────────────────────────────────────────────┘
+```
+
+**Por que 3 camadas?**
+
+- **Camada 1 (Backend):** Segurança real - mesmo que usuário manipule o frontend, API bloqueia
+- **Camada 2 (UI):** UX - usuário não vê opções que não pode usar
+- **Camada 3 (Route):** UX+ - usuário não consegue acessar páginas digitando URL
 
 ---
 
@@ -288,55 +488,40 @@ Adicione comentários no código explicando:
 
 ### Método Recomendado: `@RequirePermissions()`
 
-Use o decorator `@RequirePermissions()` nos controllers:
-
 ```typescript
-import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
-import { PermissionType } from '@prisma/client';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
+import { PermissionType } from '@prisma/client'
 
 @Controller('financial-reports')
 export class FinancialReportsController {
 
-  // ✅ Método recomendado: Decorator de permissões
+  // ✅ Permissão única
   @Get()
   @RequirePermissions(PermissionType.VIEW_FINANCIAL_REPORTS)
   async findAll() {
-    return this.reportsService.findAll();
+    return this.reportsService.findAll()
+  }
+
+  // ✅ Múltiplas permissões (qualquer uma)
+  @Get('summary')
+  @RequirePermissions(
+    PermissionType.VIEW_FINANCIAL_REPORTS,
+    PermissionType.VIEW_COMPLIANCE_DASHBOARD
+  )
+  async getSummary() {
+    // Usuário precisa de QUALQUER UMA das permissões
   }
 
   @Post()
   @RequirePermissions(PermissionType.MANAGE_INVOICES)
   async create(@Body() dto: CreateInvoiceDto) {
-    return this.invoicesService.create(dto);
+    return this.invoicesService.create(dto)
   }
 
   @Delete(':id')
   @RequirePermissions(PermissionType.MANAGE_INVOICES)
   async remove(@Param('id') id: string) {
-    return this.invoicesService.remove(id);
-  }
-}
-```
-
-### Verificação Manual no Service (quando necessário)
-
-```typescript
-@Injectable()
-export class FinancialReportsService {
-  constructor(private permissionsService: PermissionsService) {}
-
-  async exportSensitiveData(userId: string) {
-    // Verificação manual para lógica complexa
-    const hasPermission = await this.permissionsService.hasPermission(
-      userId,
-      PermissionType.EXPORT_FINANCIAL_DATA
-    );
-
-    if (!hasPermission) {
-      throw new ForbiddenException('Você não tem permissão para exportar dados financeiros');
-    }
-
-    // Lógica de exportação
+    return this.invoicesService.remove(id)
   }
 }
 ```
@@ -344,12 +529,12 @@ export class FinancialReportsService {
 ### ⚠️ NÃO use mais `@Roles()` (método antigo)
 
 ```typescript
-// ❌ EVITE - Sistema antigo
+// ❌ EVITE - Sistema antigo baseado em roles
 @Roles('admin', 'manager')
 @Get()
 async findAll() { }
 
-// ✅ USE - Sistema híbrido
+// ✅ USE - Sistema híbrido baseado em permissões
 @RequirePermissions(PermissionType.VIEW_FINANCIAL_REPORTS)
 @Get()
 async findAll() { }
@@ -357,132 +542,209 @@ async findAll() { }
 
 ---
 
-## Como Ocultar UI (Frontend)
+## Como Proteger UI e Rotas (Frontend)
 
-### Hook: `usePermissions()`
+### 1. Proteção de Rotas (React Router)
 
-**Arquivo**: `apps/frontend/src/hooks/usePermissions.ts`
+**Arquivo:** `apps/frontend/src/routes/index.tsx`
 
 ```typescript
-import { usePermissions } from '@/hooks/usePermissions';
-import { PermissionType } from '@/hooks/usePermissions';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { PermissionType } from '@/hooks/usePermissions'
 
-function FinancialDashboard() {
-  const { hasPermission } = usePermissions();
+export const router = createBrowserRouter([
+  {
+    path: '/dashboard',
+    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+    children: [
+      // ✅ Rota com permissão única
+      {
+        path: 'financial',
+        element: (
+          <ProtectedRoute requiredPermissions={[PermissionType.VIEW_FINANCIAL_REPORTS]}>
+            <FinancialPage />
+          </ProtectedRoute>
+        ),
+      },
 
-  const canViewReports = hasPermission(PermissionType.VIEW_FINANCIAL_REPORTS);
-  const canExportData = hasPermission(PermissionType.EXPORT_FINANCIAL_DATA);
-  const canManageInvoices = hasPermission(PermissionType.MANAGE_INVOICES);
+      // ✅ Rota com múltiplas permissões (OR logic)
+      {
+        path: 'compliance',
+        element: (
+          <ProtectedRoute
+            requiredPermissions={[
+              PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+              PermissionType.VIEW_SENTINEL_EVENTS,
+            ]}
+            requireAllPermissions={false} // false = OR (qualquer uma)
+          >
+            <CompliancePage />
+          </ProtectedRoute>
+        ),
+      },
 
-  return (
-    <div>
-      {canViewReports && (
-        <ReportsSection />
-      )}
+      // ✅ Rota com múltiplas permissões (AND logic)
+      {
+        path: 'sensitive-reports',
+        element: (
+          <ProtectedRoute
+            requiredPermissions={[
+              PermissionType.VIEW_REPORTS,
+              PermissionType.EXPORT_DATA,
+            ]}
+            requireAllPermissions={true} // true = AND (todas)
+          >
+            <SensitiveReportsPage />
+          </ProtectedRoute>
+        ),
+      },
 
-      {canExportData && (
-        <Button onClick={handleExport}>
-          Exportar Dados
-        </Button>
-      )}
-
-      {canManageInvoices && (
-        <InvoiceManagement />
-      )}
-    </div>
-  );
-}
+      // ✅ Rotas aninhadas (subrotas)
+      {
+        path: 'compliance',
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[
+                  PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+                  PermissionType.VIEW_SENTINEL_EVENTS,
+                ]}
+                requireAllPermissions={false}
+              >
+                <CompliancePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'monthly-indicators',
+            element: (
+              <ProtectedRoute requiredPermissions={[PermissionType.VIEW_COMPLIANCE_DASHBOARD]}>
+                <MonthlyIndicatorsPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'sentinel-events',
+            element: (
+              <ProtectedRoute requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}>
+                <SentinelEventsPage />
+              </ProtectedRoute>
+            ),
+          },
+        ],
+      },
+    ],
+  },
+])
 ```
 
-### Ocultação Condicional de Menus (Sidebar)
+**Comportamento do `<ProtectedRoute>`:**
 
-**Arquivo**: `apps/frontend/src/layouts/DashboardLayout.tsx`
+- Usuário sem permissão vê tela "Acesso Negado"
+- Utiliza componente `<AccessDenied>` do design system
+- Botão "Voltar ao Dashboard"
+- Aparência consistente com outras páginas restritas
+
+### 2. Ocultação de Menus (Sidebar)
+
+**Arquivo:** `apps/frontend/src/layouts/DashboardLayout.tsx`
 
 ```typescript
 export function DashboardLayout() {
-  const { hasPermission } = usePermissions();
+  const { hasPermission } = usePermissions()
 
-  const canViewFinancial = hasPermission(PermissionType.VIEW_FINANCIAL_REPORTS);
-  const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE);
+  // ✅ Calcular permissões uma vez no topo
+  const canViewFinancial = hasPermission(PermissionType.VIEW_FINANCIAL_REPORTS)
+  const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
+                            hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
+  const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
 
   return (
     <Sidebar>
       {/* Menu sempre visível */}
       <SidebarItem href="/dashboard">Dashboard</SidebarItem>
 
-      {/* Menu condicional */}
+      {/* Menus condicionais - só aparecem se tiver permissão */}
       {canViewFinancial && (
-        <SidebarItem href="/financial">Financeiro</SidebarItem>
+        <SidebarItem href="/dashboard/financial">
+          <DollarSign className="h-4 w-4" />
+          Financeiro
+        </SidebarItem>
+      )}
+
+      {canViewCompliance && (
+        <SidebarItem href="/dashboard/compliance">
+          <Activity className="h-4 w-4" />
+          Conformidade
+        </SidebarItem>
       )}
 
       {canManageInfrastructure && (
-        <SidebarItem href="/beds">Gestão de Leitos</SidebarItem>
+        <SidebarItem href="/dashboard/beds">
+          <Building className="h-4 w-4" />
+          Gestão de Leitos
+        </SidebarItem>
       )}
     </Sidebar>
-  );
+  )
 }
 ```
 
-### Ocultação de Botões de Ação
-
-**Arquivo**: `apps/frontend/src/components/cards/InvoiceCard.tsx`
+**⚠️ IMPORTANTE:** Sempre use a mesma lógica de permissões no sidebar e nas rotas:
 
 ```typescript
-interface InvoiceCardProps {
-  invoice: Invoice;
-  onEdit?: (invoice: Invoice) => void;
-  onDelete?: (invoice: Invoice) => void;
-  canManage?: boolean; // ✅ Recebe permissão como prop
-}
+// ✅ CORRETO - Mesma lógica em ambos
+// Sidebar:
+const canView = hasPermission(A) || hasPermission(B)
 
-export function InvoiceCard({
-  invoice,
-  onEdit,
-  onDelete,
-  canManage = true // Default true para backward compatibility
-}: InvoiceCardProps) {
+// Route:
+<ProtectedRoute
+  requiredPermissions={[A, B]}
+  requireAllPermissions={false} // false = OR
+>
+
+// ❌ ERRADO - Lógicas diferentes
+// Sidebar: hasPermission(A) || hasPermission(B)
+// Route: requiredPermissions={[A, B]} requireAllPermissions={true} // AND
+```
+
+### 3. Ocultação de Botões e Componentes
+
+```typescript
+function FinancialPage() {
+  const { hasPermission } = usePermissions()
+
+  const canView = hasPermission(PermissionType.VIEW_FINANCIAL_REPORTS)
+  const canExport = hasPermission(PermissionType.EXPORT_DATA)
+  const canManage = hasPermission(PermissionType.MANAGE_INVOICES)
+
+  // ✅ Bloquear página inteira se não tiver permissão base
+  if (!canView) {
+    return <AccessDenied />
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{invoice.number}</CardTitle>
-
-        {/* Botões de ação aparecem apenas se canManage = true */}
-        {canManage && (
-          <DropdownMenu>
-            <DropdownMenuItem onClick={() => onEdit?.(invoice)}>
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete?.(invoice)}>
-              Excluir
-            </DropdownMenuItem>
-          </DropdownMenu>
+    <Page>
+      <PageHeader title="Relatórios Financeiros">
+        {/* ✅ Botão condicional */}
+        {canExport && (
+          <Button onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
         )}
-      </CardHeader>
-    </Card>
-  );
-}
-```
+      </PageHeader>
 
-**Uso no componente pai:**
-
-```typescript
-function InvoicesPage() {
-  const { hasPermission } = usePermissions();
-  const canManageInvoices = hasPermission(PermissionType.MANAGE_INVOICES);
-
-  return (
-    <div>
-      {invoices.map(invoice => (
-        <InvoiceCard
-          key={invoice.id}
-          invoice={invoice}
-          canManage={canManageInvoices} // ✅ Passa a permissão
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      ))}
-    </div>
-  );
+      <Section>
+        {/* ✅ Seção condicional */}
+        {canManage && (
+          <InvoiceManagement />
+        )}
+      </Section>
+    </Page>
+  )
 }
 ```
 
@@ -490,65 +752,32 @@ function InvoicesPage() {
 
 ## Gerenciamento de Permissões Customizadas
 
-### Quando Alterar a Tela de Gerenciamento
+### Quando Customizar Permissões
 
-Você deve atualizar a tela de **Gerenciar Permissões** (`ManageUserPermissionsDialog.tsx`) quando:
+#### ✅ Casos de Uso Válidos
 
-#### ✅ Adicionar nova funcionalidade ao sistema
-- Nova seção no sistema (ex: Financeiro)
-- Novas permissões que usuários podem precisar customizar
+- **Exceções temporárias:** Enfermeiro precisa acessar relatórios por 1 mês
+- **Cargos especiais:** Nutricionista precisa de permissões extras
+- **Treinamento:** Novo usuário com permissões limitadas
+- **Responsabilidades compartilhadas:** Cuidador assume temporariamente função de técnico
 
-#### ✅ Permitir exceções por usuário
-- Um enfermeiro específico pode precisar de permissões administrativas
-- Um técnico pode ter acesso temporário a relatórios
+#### ❌ Casos de Uso Inválidos
 
-#### ❌ NÃO precisa alterar quando:
-- Apenas mudanças em `POSITION_PROFILES` (permissões herdadas)
-- Permissões que SEMPRE devem vir do cargo (não customizáveis)
-- Permissões exclusivas de ADMIN (já tem tudo)
+- **Mudanças permanentes:** Atualize `position-profiles.config.ts` ao invés
+- **Permissões exclusivas de ADMIN:** Não dê `MANAGE_PERMISSIONS` para não-admins
+- **Workarounds de bugs:** Corrija o bug ao invés de dar permissões extras
 
-### Estrutura da Tela de Gerenciamento
+### Tela de Gerenciamento
 
-**Arquivo**: `apps/frontend/src/components/user-profiles/ManageUserPermissionsDialog.tsx`
+**Arquivo:** `apps/frontend/src/pages/users/UserEditPage.tsx`
 
-```typescript
-const PERMISSION_GROUPS = [
-  {
-    title: 'Residentes',
-    permissions: [
-      {
-        value: PermissionType.VIEW_RESIDENTS,
-        label: 'Visualizar residentes',
-        description: 'Permite visualizar a lista e detalhes dos residentes'
-      },
-      {
-        value: PermissionType.CREATE_RESIDENTS,
-        label: 'Cadastrar residentes'
-      },
-      // ...
-    ]
-  },
-  {
-    title: 'Financeiro', // ✅ NOVO GRUPO
-    permissions: [
-      {
-        value: PermissionType.VIEW_FINANCIAL_REPORTS,
-        label: 'Visualizar relatórios financeiros'
-      },
-      {
-        value: PermissionType.EXPORT_FINANCIAL_DATA,
-        label: 'Exportar dados financeiros'
-      },
-      {
-        value: PermissionType.MANAGE_INVOICES,
-        label: 'Gerenciar faturas'
-      },
-    ]
-  }
-];
-```
+A tela mostra:
 
-### API de Permissões Customizadas
+1. **Permissões Herdadas** (cinza, não editáveis)
+2. **Permissões Customizadas** (azul = adicionadas, vermelho = removidas)
+3. **Permissões Efetivas** (resultado final)
+
+### API Endpoints
 
 ```typescript
 // GET /api/permissions/me
@@ -560,10 +789,10 @@ const PERMISSION_GROUPS = [
 }
 
 // GET /api/permissions/user/:userId
-// Retorna permissões de um usuário específico
+// Retorna permissões de um usuário específico (apenas ADMIN)
 
 // PATCH /api/permissions/user/:userId/custom
-// Atualiza permissões customizadas
+// Atualiza permissões customizadas (apenas ADMIN)
 {
   "permissionsToAdd": ["VIEW_FINANCIAL_REPORTS"],
   "permissionsToRemove": ["DELETE_RESIDENTS"]
@@ -572,257 +801,306 @@ const PERMISSION_GROUPS = [
 
 ---
 
-## Exemplos Práticos
+## Exemplos Práticos Completos
 
-### Exemplo 1: Adicionar Módulo de Vacinação
+### Exemplo 1: Módulo de Conformidade RDC 502/2021
 
-#### 1. Adicionar permissões ao schema
+Este exemplo mostra a implementação real das permissões de conformidade.
+
+#### 1. Permissões no Schema
 
 ```prisma
 enum PermissionType {
   // ... outras permissões
 
-  // Vacinação
-  VIEW_VACCINATIONS
-  CREATE_VACCINATIONS
-  UPDATE_VACCINATIONS
-  DELETE_VACCINATIONS
+  // Conformidade RDC 502/2021 (acesso restrito a gestores)
+  VIEW_COMPLIANCE_DASHBOARD // Acessar dashboard de conformidade RDC
+  VIEW_SENTINEL_EVENTS // Visualizar e gerenciar eventos sentinela
 }
 ```
 
-#### 2. Criar migration
+#### 2. Migration
 
 ```bash
-npx prisma migrate dev --name add_vaccination_permissions
+npx prisma migrate dev --name add_compliance_permissions
 npx prisma generate
 ```
 
-#### 3. Adicionar ao frontend enum
+#### 3. Frontend Enums
+
+**usePermissions.ts:**
 
 ```typescript
-// usePermissions.ts
 export enum PermissionType {
-  VIEW_VACCINATIONS = 'VIEW_VACCINATIONS',
-  CREATE_VACCINATIONS = 'CREATE_VACCINATIONS',
-  UPDATE_VACCINATIONS = 'UPDATE_VACCINATIONS',
-  DELETE_VACCINATIONS = 'DELETE_VACCINATIONS',
-}
-```
-
-#### 4. Atualizar perfis de cargo
-
-```typescript
-// position-profiles.config.ts
-NURSE: [
-  // ... permissões existentes
-  PermissionType.VIEW_VACCINATIONS,
-  PermissionType.CREATE_VACCINATIONS,
-  PermissionType.UPDATE_VACCINATIONS,
-],
-
-NURSING_TECHNICIAN: [
-  // ... permissões existentes
-  PermissionType.VIEW_VACCINATIONS,
-  PermissionType.CREATE_VACCINATIONS,
-],
-```
-
-#### 5. Proteger endpoints
-
-```typescript
-@Controller('vaccinations')
-export class VaccinationsController {
-  @Get()
-  @RequirePermissions(PermissionType.VIEW_VACCINATIONS)
-  async findAll() { }
-
-  @Post()
-  @RequirePermissions(PermissionType.CREATE_VACCINATIONS)
-  async create() { }
-
-  @Patch(':id')
-  @RequirePermissions(PermissionType.UPDATE_VACCINATIONS)
-  async update() { }
-
-  @Delete(':id')
-  @RequirePermissions(PermissionType.DELETE_VACCINATIONS)
-  async remove() { }
-}
-```
-
-#### 6. Ocultar UI no frontend
-
-```typescript
-function VaccinationsPage() {
-  const { hasPermission } = usePermissions();
-
-  const canView = hasPermission(PermissionType.VIEW_VACCINATIONS);
-  const canCreate = hasPermission(PermissionType.CREATE_VACCINATIONS);
-  const canUpdate = hasPermission(PermissionType.UPDATE_VACCINATIONS);
-  const canDelete = hasPermission(PermissionType.DELETE_VACCINATIONS);
-
-  if (!canView) {
-    return <AccessDenied />;
-  }
-
-  return (
-    <div>
-      {canCreate && <Button onClick={handleCreate}>Nova Vacinação</Button>}
-
-      <VaccinationsList
-        canEdit={canUpdate}
-        canDelete={canDelete}
-      />
-    </div>
-  );
-}
-```
-
-#### 7. Adicionar ao gerenciamento de permissões
-
-```typescript
-// ManageUserPermissionsDialog.tsx
-const PERMISSION_GROUPS = [
-  // ... grupos existentes
-  {
-    title: 'Vacinação',
-    permissions: [
-      { value: PermissionType.VIEW_VACCINATIONS, label: 'Visualizar vacinações' },
-      { value: PermissionType.CREATE_VACCINATIONS, label: 'Registrar vacinações' },
-      { value: PermissionType.UPDATE_VACCINATIONS, label: 'Editar vacinações' },
-      { value: PermissionType.DELETE_VACCINATIONS, label: 'Remover vacinações' },
-    ]
-  }
-];
-```
-
-### Exemplo 2: Permissão de Exportação de Dados Sensíveis
-
-#### Cenário:
-Apenas alguns usuários podem exportar dados sensíveis de residentes (CPF, RG, etc.)
-
-#### 1. Adicionar permissão ao schema
-
-```prisma
-enum PermissionType {
   // ... outras permissões
-  EXPORT_SENSITIVE_DATA
+  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
 }
 ```
 
-#### 2. NÃO adicionar a nenhum `POSITION_PROFILE`
+**types/permissions.ts:**
 
 ```typescript
-// position-profiles.config.ts
-// Nenhum cargo tem essa permissão por padrão
-// Ela será concedida apenas manualmente via tela de gerenciamento
-```
+export enum PermissionType {
+  // ... outras permissões
+  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
+}
 
-#### 3. Proteger endpoint
+export const PERMISSION_LABELS: Record<PermissionType, string> = {
+  // ... outros labels
+  [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
+  [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
+}
 
-```typescript
-@Controller('residents')
-export class ResidentsController {
-  @Get('export/sensitive')
-  @RequirePermissions(PermissionType.EXPORT_SENSITIVE_DATA)
-  async exportSensitiveData() {
-    // Retorna CSV com CPF, RG, etc.
-  }
+export const PERMISSION_GROUPS = {
+  // ... outros grupos
+  compliance: {
+    label: 'Conformidade RDC 502/2021',
+    permissions: [
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
+    ],
+  },
 }
 ```
 
-#### 4. Ocultar botão no frontend
+#### 4. Perfis de Cargo
+
+**position-profiles.config.ts:**
 
 ```typescript
-function ResidentsPage() {
-  const { hasPermission } = usePermissions();
-  const canExportSensitive = hasPermission(PermissionType.EXPORT_SENSITIVE_DATA);
-
-  return (
-    <div>
-      <Button onClick={handleExportBasic}>Exportar Dados Básicos</Button>
-
-      {canExportSensitive && (
-        <Button onClick={handleExportSensitive}>
-          Exportar Dados Sensíveis
-        </Button>
-      )}
-    </div>
-  );
-}
-```
-
-#### 5. Adicionar à tela de gerenciamento
-
-```typescript
-const PERMISSION_GROUPS = [
-  {
-    title: 'Residentes',
+export const ILPI_POSITION_PROFILES = {
+  ADMINISTRATOR: {
     permissions: [
       // ... outras permissões
-      {
-        value: PermissionType.EXPORT_SENSITIVE_DATA,
-        label: 'Exportar dados sensíveis',
-        description: '⚠️ Permite exportar CPF, RG e outros dados pessoais'
-      },
-    ]
-  }
-];
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
+    ],
+  },
+
+  TECHNICAL_MANAGER: {
+    permissions: [
+      // ... outras permissões
+      PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.VIEW_SENTINEL_EVENTS,
+    ],
+  },
+
+  // Outros cargos NÃO têm essas permissões
+}
 ```
+
+#### 5. Data Migration para Usuários Existentes
+
+**prisma/migrations/20260110_add_compliance_permissions_to_existing_users.sql:**
+
+```sql
+-- Adicionar VIEW_COMPLIANCE_DASHBOARD para ADMINISTRATOR
+INSERT INTO user_permissions (
+  id, "userProfileId", "tenantId", permission,
+  "isGranted", "grantedBy", "grantedAt", "createdAt", "updatedAt"
+)
+SELECT
+  gen_random_uuid(), up.id, u."tenantId", 'VIEW_COMPLIANCE_DASHBOARD',
+  true, u.id, NOW(), NOW(), NOW()
+FROM user_profiles up
+JOIN users u ON u.id = up."userId"
+WHERE up."positionCode" = 'ADMINISTRATOR'
+  AND NOT EXISTS (
+    SELECT 1 FROM user_permissions
+    WHERE "userProfileId" = up.id
+    AND permission = 'VIEW_COMPLIANCE_DASHBOARD'
+  );
+
+-- Repetir para VIEW_SENTINEL_EVENTS e TECHNICAL_MANAGER...
+```
+
+#### 6. Backend Controllers
+
+**compliance.controller.ts:**
+
+```typescript
+@Controller('compliance')
+export class ComplianceController {
+  @Get('daily-summary')
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  @ApiOperation({
+    summary: 'Obter resumo de conformidade do dia',
+    description: 'Retorna métricas... (Acesso restrito: Administrador e Responsável Técnico)',
+  })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
+  async getDailySummary(@CurrentUser() user: any) {
+    return this.complianceService.getDailySummary(user.tenantId)
+  }
+}
+```
+
+**sentinel-events.controller.ts:**
+
+```typescript
+@Controller('sentinel-events')
+export class SentinelEventsController {
+  @Get()
+  @RequirePermissions(PermissionType.VIEW_SENTINEL_EVENTS)
+  @ApiOperation({
+    summary: 'Listar eventos sentinela',
+    description: 'Retorna lista de eventos... (Acesso restrito: Administrador e Responsável Técnico)',
+  })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar eventos sentinela' })
+  async findAll(@Query() query: QuerySentinelEventDto, @CurrentUser() user: any) {
+    return this.sentinelEventsService.findAllSentinelEvents(user.tenantId, query)
+  }
+
+  @Patch(':id')
+  @RequirePermissions(PermissionType.VIEW_SENTINEL_EVENTS)
+  async updateStatus(@Param('id') id: string, @Body() dto: UpdateSentinelEventStatusDto) {
+    return this.sentinelEventsService.updateSentinelEventStatus(id, dto)
+  }
+}
+```
+
+#### 7. Frontend Routes
+
+**routes/index.tsx:**
+
+```typescript
+{
+  path: 'conformidade',
+  children: [
+    {
+      index: true,
+      element: (
+        <ProtectedRoute
+          requiredPermissions={[
+            PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+            PermissionType.VIEW_SENTINEL_EVENTS,
+          ]}
+          requireAllPermissions={false} // OR - qualquer uma das duas
+        >
+          <ConformidadePage />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: 'indicadores-mensais',
+      element: (
+        <ProtectedRoute requiredPermissions={[PermissionType.VIEW_COMPLIANCE_DASHBOARD]}>
+          <ConformidadeRDCPage />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: 'eventos-sentinela',
+      element: (
+        <ProtectedRoute requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}>
+          <EventosSentinelaPage />
+        </ProtectedRoute>
+      ),
+    },
+  ],
+}
+```
+
+#### 8. Frontend Sidebar
+
+**DashboardLayout.tsx:**
+
+```typescript
+const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
+                          hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
+
+// Desktop sidebar
+{canViewCompliance && (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Link to="/dashboard/conformidade" className={linkClassName}>
+        <Activity className="h-4 w-4 flex-shrink-0" />
+        {!preferences.sidebarCollapsed && 'Conformidade'}
+      </Link>
+    </TooltipTrigger>
+    {preferences.sidebarCollapsed && (
+      <TooltipContent side="right">Conformidade</TooltipContent>
+    )}
+  </Tooltip>
+)}
+
+// Mobile sidebar
+{canViewCompliance && (
+  <Link to="/dashboard/conformidade" onClick={closeSidebar} className={linkClassName}>
+    <Activity className="h-4 w-4" />
+    Conformidade
+  </Link>
+)}
+```
+
+#### 9. Resultado Final
+
+**Proteção em 3 camadas implementada:**
+
+1. ✅ **Backend:** API retorna 403 para usuários sem permissão
+2. ✅ **Sidebar:** Link "Conformidade" só aparece para Admin/RT
+3. ✅ **Routes:** Digitando URL direta mostra tela "Acesso Negado"
 
 ---
 
 ## Troubleshooting
 
-### Problema: Permissões não aparecem após adicionar no schema
+### Problema 1: Permissões não aparecem após adicionar no schema
+
+**Sintomas:**
+
+- Nova permissão não aparece na tela de gerenciamento
+- Backend retorna erro "permission not in enum"
 
 **Solução:**
 
-1. Verificar se a migration foi criada:
 ```bash
+# 1. Verificar se migration foi criada
 cd apps/backend
 npx prisma migrate dev --name your_migration_name
-```
 
-2. Regenerar Prisma Client:
-```bash
+# 2. Regenerar Prisma Client
 npx prisma generate
+
+# 3. Reiniciar servidor backend
+# Ctrl+C e npm run start:dev
+
+# 4. Frontend: Fazer logout/login
 ```
 
-3. Reiniciar o servidor backend (se estiver rodando)
+### Problema 2: Usuário ADMIN não tem acesso a nova permissão
 
-4. Fazer logout/login no frontend para atualizar cache de permissões
-
----
-
-### Problema: Usuário ADMIN não tem acesso a nova permissão
-
-**Causa:** Bug no cache ou Prisma Client não regenerado.
-
-**Solução:**
-
-```typescript
-// permissions.service.ts verifica se é ADMIN
-async getUserAllPermissions(userId: string) {
-  if (user.role === 'ADMIN') {
-    // ADMIN sempre tem TODAS as permissões do enum
-    return Object.values(PermissionType);
-  }
-  // ...
-}
-```
-
-1. Verificar se `Object.values(PermissionType)` inclui a nova permissão
-2. Fazer logout/login
-3. Verificar resposta de `/api/permissions/me`
-
----
-
-### Problema: Endpoint retorna 403 mesmo com permissão correta
+**Causa:** Cache não atualizado ou Prisma Client não regenerado.
 
 **Diagnóstico:**
 
-1. Verificar resposta de `/api/permissions/me` no DevTools (Network):
+```bash
+# Verificar se nova permissão está no enum gerado
+cat apps/backend/node_modules/.prisma/client/index.d.ts | grep VIEW_COMPLIANCE_DASHBOARD
+```
+
+**Solução:**
+
+```bash
+# 1. Regenerar Prisma Client
+cd apps/backend
+npx prisma generate
+
+# 2. Limpar cache (fazer logout/login)
+# OU aguardar 5 minutos (TTL do cache)
+
+# 3. Verificar resposta de /api/permissions/me
+# DevTools → Network → permissions/me
+# all: [...] deve incluir nova permissão
+```
+
+### Problema 3: Endpoint retorna 403 mesmo com permissão correta
+
+**Diagnóstico:**
+
+1. Verificar resposta de `/api/permissions/me` no DevTools:
+
 ```json
 {
   "inherited": [...],
@@ -832,15 +1110,17 @@ async getUserAllPermissions(userId: string) {
 ```
 
 2. Verificar se o decorator está correto:
+
 ```typescript
 // ❌ ERRADO - String
 @RequirePermissions('VIEW_RESIDENTS')
 
-// ✅ CORRETO - Enum
+// ✅ CORRETO - Enum do Prisma
 @RequirePermissions(PermissionType.VIEW_RESIDENTS)
 ```
 
-3. Verificar se o módulo de permissões foi importado:
+3. Verificar se o módulo foi importado:
+
 ```typescript
 @Module({
   imports: [PermissionsModule], // ← Necessário
@@ -848,167 +1128,106 @@ async getUserAllPermissions(userId: string) {
 })
 ```
 
----
+### Problema 4: Usuários existentes não receberam novas permissões
 
-### Problema: Permissões herdadas não aparecem
+**Causa:** Novas permissões adicionadas ao `position-profiles.config.ts` não são aplicadas automaticamente.
 
-**Causa:** PositionCode do usuário não configurado ou incorreto.
+**Sintomas:**
 
-**Verificação:**
+- Novos usuários têm a permissão
+- Usuários existentes não têm
 
-1. Checar UserProfile do usuário:
-```sql
-SELECT "positionCode" FROM "UserProfile" WHERE "userId" = 'xxx';
-```
+**Solução:** Criar e executar data migration SQL (ver Passo 7 em "Como Adicionar Novas Permissões")
 
-2. Verificar se o `positionCode` existe no `POSITION_PROFILES`:
-```typescript
-// position-profiles.config.ts
-export const POSITION_PROFILES: Record<PositionCode, PermissionType[]> = {
-  NURSE: [...], // ← Deve existir
-}
-```
-
----
-
-### Problema: Sidebar não atualiza após dar permissão
+### Problema 5: Sidebar não atualiza após dar permissão
 
 **Causa:** Cache do React Query (staleTime de 5 minutos).
 
+**Solução 1 (Recomendada):**
+
+```typescript
+// Fazer logout/login
+```
+
+**Solução 2 (Desenvolvimento):**
+
+```typescript
+import { useQueryClient } from '@tanstack/react-query'
+
+const queryClient = useQueryClient()
+queryClient.invalidateQueries({ queryKey: ['permissions'] })
+```
+
+### Problema 6: Lógica do sidebar diferente das rotas
+
+**Sintomas:**
+
+- Link aparece no sidebar
+- Mas usuário vê "Acesso Negado" ao clicar
+
+**Causa:** Lógica de permissões diferente entre sidebar e rotas.
+
 **Solução:**
 
-1. Fazer logout/login
-2. OU invalidar query manualmente:
 ```typescript
-const queryClient = useQueryClient();
-queryClient.invalidateQueries({ queryKey: ['permissions'] });
+// ❌ ERRADO
+// Sidebar: hasPermission(A) || hasPermission(B)
+// Route: requireAllPermissions={true} // AND
+
+// ✅ CORRETO
+// Sidebar:
+const canView = hasPermission(A) || hasPermission(B)
+
+// Route:
+<ProtectedRoute
+  requiredPermissions={[A, B]}
+  requireAllPermissions={false} // OR
+>
 ```
 
 ---
 
-## Caso Especial: POPs (Procedimentos Operacionais Padrão)
+## Resumo: Checklist para Nova Funcionalidade
 
-### Contexto Regulatório
+Ao adicionar uma nova funcionalidade com permissões:
 
-Conforme **RDC 502/2021 da ANVISA**, POPs são **documentos institucionais obrigatórios** que devem estar disponíveis para toda a equipe da ILPI. Por isso, o módulo de POPs implementa um modelo de acesso híbrido:
+### Backend (4 passos)
 
-### Rotas Públicas (Todos os Usuários Autenticados)
-
-Estas rotas **NÃO exigem** `@RequirePermissions()`:
-
-1. **GET /pops/published** - Listar POPs publicados (vigentes)
-2. **GET /pops/:id** - Visualizar POP específico
-   - ⚠️ **Validação**: Apenas POPs com `status=PUBLISHED` são acessíveis
-   - POPs `DRAFT` ou `OBSOLETE` retornam erro 400 para usuários sem VIEW_POPS
-3. **GET /pops/categories** - Listar categorias (para filtros)
-4. **Anexos**: URLs de download incluídas no response do POP
-
-### Rotas Restritas (Requerem Permissões)
-
-| Rota | Permissão | Descrição |
-|------|-----------|-----------|
-| GET /pops | VIEW_POPS | Listar TODOS (incluindo DRAFT) |
-| GET /pops/templates/* | VIEW_POPS | Acessar templates |
-| GET /pops/:id/versions | VIEW_POPS | Histórico de versões |
-| GET /pops/:id/history | VIEW_POPS | Auditoria completa |
-| POST /pops | CREATE_POPS | Criar novo POP |
-| PATCH /pops/:id | UPDATE_POPS | Editar POP |
-| DELETE /pops/:id | DELETE_POPS | Deletar POP (DRAFT) |
-| POST /pops/:id/publish | PUBLISH_POPS | Publicar (RT apenas) |
-| POST /pops/:id/version | PUBLISH_POPS | Versionar (RT apenas) |
-| POST /pops/:id/obsolete | PUBLISH_POPS | Marcar obsoleto (RT apenas) |
-| POST /pops/:id/mark-reviewed | PUBLISH_POPS | Marcar revisado (RT apenas) |
-| POST /pops/:id/attachments | UPDATE_POPS | Adicionar anexo |
-| DELETE /pops/attachments/:id | UPDATE_POPS | Remover anexo |
-
-### Implementação da Segurança
-
-```typescript
-// pops.controller.ts
-@Get('published')
-// ⚠️ SEM @RequirePermissions - Rota pública
-async findPublished(@Req() req: any) {
-  return this.popsService.findPublished(req.user.tenantId)
-}
-
-@Get(':id')
-// ⚠️ SEM @RequirePermissions - Validação no service
-async findOne(@Req() req: any, @Param('id') id: string) {
-  // findOnePublic valida se POP está PUBLISHED
-  return this.popsService.findOnePublic(req.user.tenantId, id, req.user.id)
-}
-```
-
-```typescript
-// pops.service.ts
-async findOnePublic(tenantId: string, popId: string, userId: string) {
-  const pop = await this.prisma.pop.findFirst({ ... })
-
-  // Se não está publicado, bloqueia usuários comuns
-  if (pop.status !== PopStatus.PUBLISHED) {
-    const user = await this.prisma.user.findUnique({ ... })
-
-    // Admin sempre tem acesso
-    if (user?.role === 'admin') return pop
-
-    // Outros usuários: bloqueado
-    throw new BadRequestException(
-      'Este POP está em rascunho e não está disponível para visualização'
-    )
-  }
-
-  return pop
-}
-```
-
-### Distribuição de Permissões por Cargo
-
-```typescript
-// position-profiles.config.ts
-BASE_PERMISSIONS.VIEWER = [
-  PermissionType.VIEW_POPS, // ❌ REMOVIDO - POPs publicados são públicos
-  // ... outras permissões
-]
-
-// Apenas cargos que criam/gerenciam POPs têm VIEW_POPS
-ILPI_POSITION_PROFILES.TECHNICAL_MANAGER = {
-  permissions: [
-    PermissionType.VIEW_POPS,      // Ver DRAFT
-    PermissionType.CREATE_POPS,    // Criar
-    PermissionType.UPDATE_POPS,    // Editar
-    PermissionType.DELETE_POPS,    // Deletar
-    PermissionType.PUBLISH_POPS,   // Publicar (RT)
-    PermissionType.MANAGE_POPS,    // Controle total
-  ]
-}
-```
-
-### Por Que Este Modelo?
-
-✅ **Compliance RDC 502/2021**: POPs devem estar acessíveis a todos
-✅ **Segurança**: DRAFT não vaza para usuários comuns
-✅ **Auditoria**: Histórico e versões apenas para gestores
-✅ **Simplicidade**: Usuários comuns não veem opções de gestão
-
----
-
-## Resumo: Checklist para Adicionar Nova Permissão
-
-- [ ] 1. Adicionar no `schema.prisma` (enum `PermissionType`)
+- [ ] 1. Adicionar permissões no `schema.prisma` (enum PermissionType)
 - [ ] 2. Criar migration (`npx prisma migrate dev`)
 - [ ] 3. Regenerar Prisma Client (`npx prisma generate`)
-- [ ] 4. Adicionar no `usePermissions.ts` (frontend enum)
-- [ ] 5. Atualizar `position-profiles.config.ts` (se necessário)
-- [ ] 6. Proteger endpoints com `@RequirePermissions()`
-- [ ] 7. Ocultar UI com `hasPermission()`
-- [ ] 8. Adicionar à tela de gerenciamento (se customizável)
-- [ ] 9. Testar com diferentes cargos
-- [ ] 10. Documentar a permissão neste guia
+- [ ] 4. Proteger endpoints com `@RequirePermissions()`
+
+### Frontend (4 passos)
+
+- [ ] 5. Adicionar permissões no `usePermissions.ts` (enum)
+- [ ] 6. Adicionar permissões no `types/permissions.ts` (enum + labels + groups)
+- [ ] 7. Proteger rotas com `<ProtectedRoute>`
+- [ ] 8. Ocultar UI com `hasPermission()`
+
+### Configuração (3 passos)
+
+- [ ] 9. Atualizar `position-profiles.config.ts` (se necessário)
+- [ ] 10. Criar data migration SQL para usuários existentes
+- [ ] 11. Adicionar à tela de gerenciamento (se customizável)
+
+### Testes (2 passos)
+
+- [ ] 12. Testar com diferentes cargos (Admin, RT, Nurse, Caregiver)
+- [ ] 13. Testar as 3 camadas (API 403, Sidebar oculto, Route bloqueada)
+
+### Documentação (1 passo)
+
+- [ ] 14. Atualizar este guia (adicionar à lista de permissões)
 
 ---
 
-## Contato
+## Contato e Suporte
 
-Dúvidas sobre o sistema de permissões? Entre em contato com a equipe de desenvolvimento.
+**Dúvidas sobre o sistema de permissões?**
 
-**Última atualização:** Dezembro 2025
+- Consulte este guia primeiro
+- Verifique exemplos práticos acima
+- Entre em contato com a equipe de desenvolvimento
+
+**Última atualização:** Janeiro 2026 | **Versão:** 2.0
