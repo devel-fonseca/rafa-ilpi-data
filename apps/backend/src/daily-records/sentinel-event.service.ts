@@ -6,10 +6,8 @@ import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
-  IncidentSubtypeClinical,
 } from '@prisma/client';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 /**
  * Serviço responsável pelo workflow completo de Eventos Sentinela
@@ -193,34 +191,28 @@ export class SentinelEventService {
         return;
       }
 
-      // Buscar tenant name
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { name: true },
-      });
-
-      // Formatar data/hora para exibição
-      const dateFormatted = format(new Date(record.date), "dd 'de' MMMM 'de' yyyy", {
-        locale: ptBR,
-      });
-
-      // Dados para o template
-      const emailData = {
-        rtName: rt.name,
-        tenantName: tenant?.name || 'ILPI',
-        eventType,
-        residentName: record.resident.fullName,
-        date: dateFormatted,
-        time: record.time,
-        description: (record.data as any)?.descricao || 'Não especificada',
-        actionTaken: (record.data as any)?.acaoTomada || 'Não especificada',
-        recordedBy: record.recordedBy,
-        legalReference: 'RDC 502/2021 Art. 55',
-        deadline: '24 horas',
-        trackingId,
-      };
-
       // TODO: Implementar envio de email quando método sendCustomEmail estiver disponível
+      // const tenant = await this.prisma.tenant.findUnique({
+      //   where: { id: tenantId },
+      //   select: { name: true },
+      // });
+      // const dateFormatted = format(new Date(record.date), "dd 'de' MMMM 'de' yyyy", {
+      //   locale: ptBR,
+      // });
+      // const emailData = {
+      //   rtName: rt.name,
+      //   tenantName: tenant?.name || 'ILPI',
+      //   eventType,
+      //   residentName: record.resident.fullName,
+      //   date: dateFormatted,
+      //   time: record.time,
+      //   description: (record.data as any)?.descricao || 'Não especificada',
+      //   actionTaken: (record.data as any)?.acaoTomada || 'Não especificada',
+      //   recordedBy: record.recordedBy,
+      //   legalReference: 'RDC 502/2021 Art. 55',
+      //   deadline: '24 horas',
+      //   trackingId,
+      // };
       // const emailSent = await this.emailService.sendCustomEmail({
       //   to: rt.email,
       //   subject: '🚨 EVENTO SENTINELA - Notificação Obrigatória',
@@ -344,18 +336,153 @@ export class SentinelEventService {
   }
 
   /**
+   * Lista todos os eventos sentinela com filtros
+   */
+  async findAllSentinelEvents(
+    tenantId: string,
+    filters?: {
+      status?: string;
+      startDate?: string;
+      endDate?: string;
+    },
+  ): Promise<any[]> {
+    const where: any = {
+      tenantId,
+      deletedAt: null,
+    };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.startDate) {
+      where.createdAt = {
+        ...where.createdAt,
+        gte: new Date(filters.startDate),
+      };
+    }
+
+    if (filters?.endDate) {
+      where.createdAt = {
+        ...where.createdAt,
+        lte: new Date(filters.endDate),
+      };
+    }
+
+    const events = await this.prisma.sentinelEventNotification.findMany({
+      where,
+      include: {
+        dailyRecord: {
+          include: {
+            resident: {
+              select: {
+                id: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+        notification: {
+          select: {
+            id: true,
+            title: true,
+            readAt: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Mapear para formato do frontend
+    return events.map((event) => ({
+      id: event.id,
+      dailyRecordId: event.dailyRecordId,
+      residentName: event.dailyRecord.resident.fullName,
+      residentId: event.dailyRecord.resident.id,
+      eventType: this.getEventTypeLabel(event.eventType as any),
+      eventDate: event.dailyRecord.date,
+      eventTime: event.dailyRecord.time,
+      description:
+        event.metadata?.description || event.dailyRecord.data?.descricao || '',
+      status: event.status,
+      protocolo: event.protocolo,
+      dataEnvio: event.dataEnvio,
+      dataConfirmacao: event.dataConfirmacao,
+      responsavelEnvio: event.responsavelEnvio,
+      emailEnviado: event.emailSent,
+      emailEnviadoEm: event.emailSentAt,
+      observacoes: event.metadata?.observacoes,
+      createdAt: event.createdAt,
+      updatedAt: event.updatedAt,
+    }));
+  }
+
+  /**
+   * Atualiza status de um evento sentinela
+   */
+  async updateSentinelEventStatus(
+    eventId: string,
+    tenantId: string,
+    updateData: {
+      status: 'ENVIADO' | 'CONFIRMADO';
+      protocolo?: string;
+      observacoes?: string;
+      responsavelEnvio?: string;
+    },
+  ): Promise<any> {
+    // Verificar se evento existe e pertence ao tenant
+    const event = await this.prisma.sentinelEventNotification.findFirst({
+      where: {
+        id: eventId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!event) {
+      throw new Error('Evento sentinela não encontrado');
+    }
+
+    const data: any = {
+      status: updateData.status,
+      metadata: {
+        ...event.metadata,
+        observacoes: updateData.observacoes,
+      },
+      updatedAt: new Date(),
+    };
+
+    if (updateData.status === 'ENVIADO') {
+      data.protocolo = updateData.protocolo;
+      data.dataEnvio = new Date();
+      data.responsavelEnvio = updateData.responsavelEnvio;
+    } else if (updateData.status === 'CONFIRMADO') {
+      data.dataConfirmacao = new Date();
+    }
+
+    const updated = await this.prisma.sentinelEventNotification.update({
+      where: { id: eventId },
+      data,
+    });
+
+    this.logger.log('Status de evento sentinela atualizado', {
+      eventId,
+      status: updateData.status,
+    });
+
+    return updated;
+  }
+
+  /**
    * Obtém label legível do tipo de evento
    */
-  private getEventTypeLabel(
-    subtype?: IncidentSubtypeClinical | null,
-  ): string {
-    if (!subtype) return 'Evento Sentinela';
-
+  private getEventTypeLabel(eventType: string): string {
     const labels: Record<string, string> = {
       QUEDA_COM_LESAO: 'Queda com Lesão',
       TENTATIVA_SUICIDIO: 'Tentativa de Suicídio',
     };
-
-    return labels[subtype] || subtype;
+    return labels[eventType] || eventType;
   }
 }
