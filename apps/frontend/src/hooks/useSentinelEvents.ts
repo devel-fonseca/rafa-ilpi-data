@@ -41,7 +41,7 @@ export function useSentinelEvents(filters?: UseSentinelEventsFilters) {
       if (filters?.endDate) params.append('endDate', filters.endDate);
 
       const queryString = params.toString();
-      const url = `/daily-records/eventos-sentinela/list${queryString ? `?${queryString}` : ''}`;
+      const url = `/sentinel-events${queryString ? `?${queryString}` : ''}`;
 
       const response = await api.get<SentinelEvent[]>(url);
       return response.data;
@@ -68,8 +68,8 @@ export function useUpdateSentinelEventStatus() {
       protocolo?: string;
       observacoes?: string;
     }) => {
-      const response = await api.put(
-        `/daily-records/eventos-sentinela/${eventId}/status`,
+      const response = await api.patch(
+        `/sentinel-events/${eventId}`,
         {
           status,
           protocolo,

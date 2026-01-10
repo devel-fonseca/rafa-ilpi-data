@@ -18,7 +18,7 @@ export function useAdminCompliance() {
   return useQuery<ComplianceStats>({
     queryKey: ['admin-compliance'],
     queryFn: async () => {
-      const response = await api.get('/admin/compliance/today')
+      const response = await api.get('/compliance/daily-summary')
       return response.data
     },
     refetchInterval: 60000, // Atualiza a cada 1 minuto

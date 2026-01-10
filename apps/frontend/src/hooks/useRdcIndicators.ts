@@ -33,7 +33,7 @@ export function useRdcIndicators(year: number, month: number) {
     queryKey: ['rdc-indicators', year, month],
     queryFn: async () => {
       const response = await api.get<IndicatorsByMonth>(
-        `/daily-records/indicadores-rdc`,
+        `/rdc-indicators`,
         {
           params: { year, month },
         },
@@ -52,7 +52,7 @@ export function useRdcIndicatorsHistory(months: number = 12) {
     queryKey: ['rdc-indicators-history', months],
     queryFn: async () => {
       const response = await api.get<HistoricalIndicator[]>(
-        `/daily-records/indicadores-rdc/historico`,
+        `/rdc-indicators/history`,
         {
           params: { months },
         },
@@ -69,7 +69,7 @@ export function useRdcIndicatorsHistory(months: number = 12) {
 export function useRecalculateIndicators() {
   return {
     recalculate: async (year: number, month: number) => {
-      await api.post(`/daily-records/indicadores-rdc/calcular?year=${year}&month=${month}`);
+      await api.post(`/rdc-indicators/calculate?year=${year}&month=${month}`);
     },
   };
 }
