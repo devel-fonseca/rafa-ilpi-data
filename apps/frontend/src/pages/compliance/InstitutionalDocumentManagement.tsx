@@ -289,6 +289,11 @@ export default function DocumentManagement() {
       <PageHeader
         title="Gestão de Documentos"
         subtitle="Gerencie todos os documentos obrigatórios da instituição"
+        breadcrumbs={[
+          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Documentos da Instituição', href: '/dashboard/conformidade/documentos' },
+          { label: 'Gestão de Documentos' },
+        ]}
       />
 
       <div className="space-y-4">
