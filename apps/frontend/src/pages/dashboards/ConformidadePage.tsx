@@ -32,7 +32,7 @@ export function ConformidadePage() {
         <Card
           className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() =>
-            navigate('/dashboard/perfil-institucional?tab=documentos')
+            navigate('/dashboard/conformidade/documentos')
           }
         >
           <CardContent className="p-6">
@@ -45,7 +45,7 @@ export function ConformidadePage() {
               sanitárias, AVCB e outros.
             </p>
             <Button variant="outline" className="w-full">
-              Acessar Documentos →
+              Ver Documentos →
             </Button>
           </CardContent>
         </Card>

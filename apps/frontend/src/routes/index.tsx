@@ -22,6 +22,10 @@ import { ConformidadePage } from '@/pages/dashboards/ConformidadePage'
 import { ConformidadeRDCPage } from '@/pages/dashboards/ConformidadeRDCPage'
 import { EventosSentinelaPage } from '@/pages/dashboards/EventosSentinelaPage'
 
+// Compliance Pages
+import DocumentComplianceDashboard from '@/pages/compliance/DocumentComplianceDashboard'
+import InstitutionalDocumentManagement from '@/pages/compliance/InstitutionalDocumentManagement'
+
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
 import ResidentForm from '@/pages/residents/ResidentForm'
@@ -208,6 +212,26 @@ export const router = createBrowserRouter([
                 requireAllPermissions={false}
               >
                 <ConformidadePage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'documentos',
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+              >
+                <DocumentComplianceDashboard />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'documentos/gestao',
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+              >
+                <InstitutionalDocumentManagement />
               </ProtectedRoute>
             ),
           },
