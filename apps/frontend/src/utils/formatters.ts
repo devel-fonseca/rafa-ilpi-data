@@ -281,6 +281,22 @@ export function valueOrDash(value: any): string {
 }
 
 /**
+ * Formata natureza jurídica para exibição amigável
+ */
+export function formatLegalNature(legalNature: string | null | undefined): string {
+  if (!legalNature) return '-'
+
+  const labels: Record<string, string> = {
+    ASSOCIACAO: 'Associação sem fins lucrativos',
+    FUNDACAO: 'Fundação privada',
+    EMPRESA_PRIVADA: 'Empresa privada',
+    MEI: 'Microempreendedor Individual (MEI)',
+  }
+
+  return labels[legalNature] || legalNature
+}
+
+/**
  * Funções de formatação de leitos
  */
 export * from './bedFormatters'

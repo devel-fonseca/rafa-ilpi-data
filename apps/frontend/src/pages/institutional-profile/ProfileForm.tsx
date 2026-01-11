@@ -14,6 +14,7 @@ import { Upload, Loader2, Building2 } from 'lucide-react'
 import type { LegalNature } from '@/api/institutional-profile.api'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { buscarCEP } from '@/services/viacep'
+import { formatLegalNature } from '@/utils/formatters'
 
 const profileSchema = z.object({
   // Dados do Profile
@@ -42,13 +43,6 @@ const profileSchema = z.object({
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
-
-const legalNatureLabels: Record<LegalNature, string> = {
-  ASSOCIACAO: 'Associação sem fins lucrativos',
-  FUNDACAO: 'Fundação privada',
-  EMPRESA_PRIVADA: 'Empresa privada',
-  MEI: 'Microempreendedor Individual (MEI)',
-}
 
 export function ProfileForm() {
   const { toast } = useToast()
@@ -356,9 +350,9 @@ export function ProfileForm() {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(legalNatureLabels).map(([value, label]) => (
+                  {(['ASSOCIACAO', 'FUNDACAO', 'EMPRESA_PRIVADA', 'MEI'] as const).map((value) => (
                     <SelectItem key={value} value={value}>
-                      {label}
+                      {formatLegalNature(value)}
                     </SelectItem>
                   ))}
                 </SelectContent>

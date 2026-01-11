@@ -16,7 +16,7 @@ import {
   AlertCircle,
   FolderOpen,
 } from 'lucide-react'
-import { formatDate } from '@/utils/formatters'
+import { formatDate, formatLegalNature } from '@/utils/formatters'
 import type { DocumentStatus } from '@/api/institutional-profile.api'
 import { Page, PageHeader } from '@/design-system/components'
 import { useNavigate } from 'react-router-dom'
@@ -264,7 +264,7 @@ export default function DocumentComplianceDashboard() {
               Documentos Obrigatórios
               {fullProfile?.profile?.legalNature && (
                 <Badge variant="secondary" className="ml-2">
-                  {fullProfile.profile.legalNature}
+                  {formatLegalNature(fullProfile.profile.legalNature)}
                 </Badge>
               )}
             </CardTitle>
