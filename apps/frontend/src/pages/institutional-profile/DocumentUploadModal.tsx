@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { useConfirmDialog } from '@/hooks/useConfirmDialog'
 import {
   Dialog,
   DialogContent,
@@ -92,6 +93,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
   const { data: fullProfile } = useProfile()
   const { data: allDocumentTypes } = useAllDocumentTypes(fullProfile?.profile?.legalNature)
   const uploadMutation = useUploadDocument()
+  const { ConfirmDialog, confirm } = useConfirmDialog()
 
   // Estado para arquivo selecionado
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -230,9 +232,17 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
   /**
    * Handler para fechar modal (com confirmação se houver dados preenchidos)
    */
-  const handleClose = () => {
+  const handleClose = async () => {
     if (selectedFile || documentType) {
-      if (window.confirm('Tem certeza que deseja cancelar? Os dados preenchidos serão perdidos.')) {
+      const confirmed = await confirm({
+        title: 'Descartar alterações?',
+        description: 'As informações preenchidas serão perdidas e não poderão ser recuperadas.',
+        confirmText: 'Descartar',
+        cancelText: 'Continuar editando',
+        variant: 'warning',
+      })
+
+      if (confirmed) {
         reset()
         setSelectedFile(null)
         setFileError(null)
@@ -258,7 +268,8 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -532,5 +543,9 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
         </form>
       </DialogContent>
     </Dialog>
+
+      {/* Diálogo de confirmação para descartar alterações */}
+      <ConfirmDialog />
+    </>
   )
 }
