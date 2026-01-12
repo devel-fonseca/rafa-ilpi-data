@@ -173,8 +173,8 @@ export function BasicInfoStep({
           </div>
 
           {/* Aviso sobre campos opcionais */}
-          <div className="bg-blue-50/50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-900 dark:text-blue-100">
+          <div className="bg-info/10 rounded-lg p-4 border border-info/20">
+            <p className="text-sm text-info-foreground">
               💡{" "}
               <strong>A indicação da natureza jurídica da instituição é obrigatória.</strong>{" "}
               Os demais campos podem ser preenchidos depois acessando o Perfil

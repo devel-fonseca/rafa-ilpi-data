@@ -40,5 +40,41 @@
     "**/logs": true,
     "**/*.log": true,
     "**/coverage": true
-  }
+  },
+
+  // cSpell Configuration
+  "cSpell.language": "pt,pt-BR,en",
+  "cSpell.enabled": true,
+  "cSpell.words": [
+    // Termos técnicos do projeto
+    "ilpi",
+    "ilpis",
+    "rafa",
+    "cnes",
+    "cnpj",
+    "asaas",
+    "prisma",
+    "nestjs",
+    "tanstack",
+    "sonner",
+    "lucide",
+    "shadcn",
+    "zustand",
+    // Termos médicos/geriátricos
+    "geríatrico",
+    "geriátricos",
+    "residente",
+    "residentes",
+    "prontuário",
+    "medicação",
+    "medicações",
+    "prescrição",
+    "prescrições",
+    // Termos do domínio
+    "leitos",
+    "enfermaria",
+    "sentinela",
+    "conformidade",
+    "anvisa"
+  ]
 }

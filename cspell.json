@@ -1,0 +1,99 @@
+{
+  "version": "0.2",
+  "language": "pt,pt-BR,en",
+  "dictionaries": [
+    "typescript",
+    "node",
+    "npm",
+    "html",
+    "css",
+    "misc",
+    "custom"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "custom",
+      "path": "./cspell-custom.txt",
+      "addWords": true
+    }
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".git",
+    "*.log",
+    "*.lock",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml"
+  ],
+  "words": [
+    // Nomes do projeto
+    "ilpi",
+    "ilpis",
+    "rafa",
+
+    // Tecnologias
+    "nestjs",
+    "prisma",
+    "tanstack",
+    "sonner",
+    "lucide",
+    "shadcn",
+    "zustand",
+    "asaas",
+    "cnpj",
+    "cnes",
+
+    // Termos médicos/geriátricos
+    "geriátrico",
+    "geriátricos",
+    "residente",
+    "residentes",
+    "prontuário",
+    "prontuários",
+    "medicação",
+    "medicações",
+    "prescrição",
+    "prescrições",
+    "glicemia",
+    "oxigenação",
+    "hipertensão",
+    "hipotensão",
+    "taquicardia",
+    "bradicardia",
+
+    // Termos do domínio ILPI
+    "leitos",
+    "enfermaria",
+    "sentinela",
+    "conformidade",
+    "anvisa",
+    "regulatório",
+    "institucional",
+    "capacidade",
+    "licenciada",
+    "declarada",
+
+    // Termos de negócio
+    "onboarding",
+    "webhook",
+    "tenants",
+    "multitenancy",
+
+    // Siglas
+    "RDC",
+    "CNES",
+    "CNPJ",
+    "MEI",
+    "OSC"
+  ],
+  "ignoreWords": [
+    // Palavras que queremos ignorar completamente
+  ],
+  "flagWords": [
+    // Palavras que não devem ser usadas
+  ]
+}
