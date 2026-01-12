@@ -34,7 +34,9 @@ import {
 } from './dto'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
+import { FeatureGuard } from '../common/guards/feature.guard'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
 import { PermissionType } from '@prisma/client'
@@ -57,7 +59,8 @@ import { getAuthorizedProfessions } from './professional-authorization.config'
 @ApiTags('Clinical Notes (SOAP)')
 @ApiBearerAuth()
 @Controller('clinical-notes')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('evolucoes_clinicas')
 @AuditEntity('CLINICAL_NOTE')
 export class ClinicalNotesController {
   constructor(

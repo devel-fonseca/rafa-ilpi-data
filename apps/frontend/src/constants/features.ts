@@ -32,6 +32,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'medicacoes': 'Prescrições e medicamentos',
   'sinais_vitais': 'Sinais vitais',
   'registros_diarios': 'Registros diários',
+  'evolucoes_clinicas': 'Evoluções clínicas multiprofissionais',
 
   // Conformidade regulatória
   'conformidade': 'Hub de conformidade',
@@ -62,6 +63,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'Prescrições e medicamentos': 'Prescrições e medicamentos',
   'Sinais vitais': 'Sinais vitais',
   'Registros diários': 'Registros diários',
+  'Evoluções clínicas multiprofissionais': 'Evoluções clínicas multiprofissionais',
 
   // Conformidade
   'Hub de conformidade': 'Hub de conformidade',
@@ -113,6 +115,7 @@ export const AVAILABLE_FEATURES = [
   'Prescrições e medicamentos',
   'Sinais vitais',
   'Registros diários',
+  'Evoluções clínicas multiprofissionais',
 
   // ═══════════════════════════════════════════════════════════════
   // CONFORMIDADE REGULATÓRIA (RDC 502/2021)

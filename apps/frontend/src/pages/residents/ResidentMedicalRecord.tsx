@@ -717,7 +717,37 @@ export default function ResidentProfile() {
 
         {/* TAB 5: Evoluções Clínicas (SOAP) */}
         <TabsContent value="clinical-notes">
-          <ClinicalNotesList residentId={id || ''} residentName={resident.fullName} />
+          {!hasFeature('evolucoes_clinicas') ? (
+            <Card>
+              <CardContent className="py-16 px-4">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <Lock className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+                  </div>
+                  <div className="text-center space-y-2 max-w-md">
+                    <h3 className="text-lg font-semibold">Recurso Bloqueado</h3>
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Evoluções clínicas multiprofissionais</strong> não está disponível no seu plano atual.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Registro SOAP de evoluções clínicas por médicos, enfermeiros, fisioterapeutas, nutricionistas e outros profissionais. Histórico completo e organizado por data.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border max-w-md">
+                    <p className="text-xs text-muted-foreground text-center">
+                      💡 Faça upgrade do seu plano para desbloquear este e outros recursos avançados
+                    </p>
+                  </div>
+                  <Button onClick={() => navigate('/settings/billing')}>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Fazer Upgrade
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <ClinicalNotesList residentId={id || ''} residentName={resident.fullName} />
+          )}
         </TabsContent>
 
         {/* TAB 6: Prescrições */}
