@@ -2,13 +2,28 @@ import { Page, PageHeader } from '@/design-system/components';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, BarChart3, Shield, AlertTriangle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { FileText, BarChart3, Shield, AlertTriangle, Lock, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSentinelEvents } from '@/hooks/useSentinelEvents';
+import { useFeatures } from '@/hooks/useFeatures';
 import { differenceInHours } from 'date-fns';
+import { useState } from 'react';
 
 export function ConformidadePage() {
   const navigate = useNavigate();
+  const { hasFeature } = useFeatures();
+  const [blockedFeature, setBlockedFeature] = useState<{
+    name: string;
+    description: string;
+  } | null>(null);
 
   // Buscar eventos sentinela para mostrar badge de alerta
   const { data: sentinelEvents } = useSentinelEvents();
@@ -19,10 +34,21 @@ export function ConformidadePage() {
       return hoursElapsed > 24;
     }) || [];
 
+  /**
+   * Manipula clique em card - verifica feature antes de navegar
+   */
+  const handleCardClick = (featureKey: string, route: string, featureName: string, description: string) => {
+    if (hasFeature(featureKey)) {
+      navigate(route);
+    } else {
+      setBlockedFeature({ name: featureName, description });
+    }
+  };
+
   return (
     <Page>
       <PageHeader
-        title="Conformidade"
+        title="Hub de Conformidade"
         subtitle="Central de conformidade regulatória e documental"
       />
 
@@ -32,7 +58,12 @@ export function ConformidadePage() {
         <Card
           className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() =>
-            navigate('/dashboard/conformidade/documentos')
+            handleCardClick(
+              'documentos_institucionais',
+              '/dashboard/conformidade/documentos',
+              'Documentos Institucionais',
+              'Gestão de documentos obrigatórios: estatuto, alvarás, licenças sanitárias, AVCB e outros.'
+            )
           }
         >
           <CardContent className="p-6">
@@ -53,7 +84,14 @@ export function ConformidadePage() {
         {/* Card 2: Indicadores Mensais RDC */}
         <Card
           className="hover:shadow-lg transition-shadow cursor-pointer"
-          onClick={() => navigate('/dashboard/conformidade/indicadores-mensais')}
+          onClick={() =>
+            handleCardClick(
+              'conformidade',
+              '/dashboard/conformidade/indicadores-mensais',
+              'Indicadores Mensais Obrigatórios',
+              'Indicadores RDC 502/2021 (ANVISA): mortalidade, doenças, úlceras e desnutrição.'
+            )
+          }
         >
           <CardContent className="p-6">
             <BarChart3 className="h-12 w-12 text-primary mb-4" />
@@ -75,7 +113,14 @@ export function ConformidadePage() {
           className={`hover:shadow-lg transition-shadow cursor-pointer ${
             overdueEvents.length > 0 ? 'border-red-500' : ''
           }`}
-          onClick={() => navigate('/dashboard/conformidade/eventos-sentinela')}
+          onClick={() =>
+            handleCardClick(
+              'eventos_sentinela',
+              '/dashboard/conformidade/eventos-sentinela',
+              'Eventos Sentinela',
+              'Rastreamento de notificações obrigatórias: quedas com lesão e tentativas de suicídio.'
+            )
+          }
         >
           <CardContent className="p-6">
             <div className="flex items-start justify-between mb-4">
@@ -148,6 +193,50 @@ export function ConformidadePage() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Modal de Feature Bloqueada */}
+      <Dialog open={!!blockedFeature} onOpenChange={() => setBlockedFeature(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <Lock className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+            </div>
+            <DialogTitle className="text-center">Recurso Bloqueado</DialogTitle>
+            <DialogDescription className="text-center">
+              <strong className="text-foreground">{blockedFeature?.name}</strong> não está
+              disponível no seu plano atual.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              {blockedFeature?.description}
+            </p>
+
+            <div className="p-4 bg-muted/50 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                💡 Faça upgrade do seu plano para desbloquear este e outros recursos
+                avançados
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="sm:justify-center gap-2">
+            <Button variant="outline" onClick={() => setBlockedFeature(null)}>
+              Voltar
+            </Button>
+            <Button
+              onClick={() => {
+                setBlockedFeature(null);
+                navigate('/settings/billing');
+              }}
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              Fazer Upgrade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Page>
   );
 }

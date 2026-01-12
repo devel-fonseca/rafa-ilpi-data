@@ -379,11 +379,11 @@ export function DashboardLayout() {
                       }`}
                     >
                       <Activity className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Conformidade'}
+                      {!preferences.sidebarCollapsed && 'Hub de Conformidade'}
                     </Link>
                   </TooltipTrigger>
                   {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Conformidade</TooltipContent>
+                    <TooltipContent side="right">Hub de Conformidade</TooltipContent>
                   )}
                 </Tooltip>
               )}
@@ -637,7 +637,7 @@ export function DashboardLayout() {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Activity className="h-4 w-4" />
-                  Conformidade
+                  Hub de Conformidade
                 </Link>
               )}
               {canManageResidents && (

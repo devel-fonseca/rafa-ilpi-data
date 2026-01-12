@@ -210,25 +210,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'conformidade',
-        element: (
-          <FeatureGate featureKey="conformidade">
-            <Outlet />
-          </FeatureGate>
-        ),
+        element: <Outlet />,
         children: [
           {
             index: true,
-            element: (
-              <ProtectedRoute
-                requiredPermissions={[
-                  PermissionType.VIEW_COMPLIANCE_DASHBOARD,
-                  PermissionType.VIEW_SENTINEL_EVENTS,
-                ]}
-                requireAllPermissions={false}
-              >
-                <ConformidadePage />
-              </ProtectedRoute>
-            ),
+            element: <ConformidadePage />,
           },
           {
             path: 'documentos',
@@ -274,6 +260,36 @@ export const router = createBrowserRouter([
                   <EventosSentinelaPage />
                 </ProtectedRoute>
               </FeatureGate>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'documentos-institucionais',
+        element: (
+          <FeatureGate featureKey="documentos_institucionais">
+            <Outlet />
+          </FeatureGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+              >
+                <DocumentComplianceDashboard />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'gestao',
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+              >
+                <InstitutionalDocumentManagement />
+              </ProtectedRoute>
             ),
           },
         ],
