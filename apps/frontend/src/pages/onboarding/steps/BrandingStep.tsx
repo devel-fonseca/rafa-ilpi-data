@@ -207,7 +207,7 @@ export function BrandingStep({
 
           {/* Aviso sobre campos opcionais */}
           <div className="bg-info/10 rounded-lg p-4 border border-info/20">
-            <p className="text-sm text-info-foreground">
+            <p className="text-sm text-foreground">
               💡 <strong>Todos os campos são opcionais.</strong> Você pode
               adicionar essas informações depois acessando o Perfil
               Institucional.
