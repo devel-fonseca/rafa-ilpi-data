@@ -65,7 +65,6 @@ import {
   ViewVisitaModal,
   ViewOutrosModal,
 } from '@/components/view-modals'
-import { VitalSignsModal } from '@/components/vital-signs/VitalSignsModal'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 
 export default function ResidentProfile() {
@@ -77,7 +76,6 @@ export default function ResidentProfile() {
   // View modal states
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [viewingRecord, setViewingRecord] = useState<any>(null)
-  const [vitalSignsModalOpen, setVitalSignsModalOpen] = useState(false)
   const [vitalSignsBlockedModalOpen, setVitalSignsBlockedModalOpen] = useState(false)
   const [currentEmergencyContactIndex, setCurrentEmergencyContactIndex] = useState(0)
 
@@ -1119,14 +1117,6 @@ export default function ResidentProfile() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          {/* Modal de Sinais Vitais */}
-          <VitalSignsModal
-            open={vitalSignsModalOpen}
-            onClose={() => setVitalSignsModalOpen(false)}
-            residentId={resident.id}
-            residentName={resident.fullName}
-          />
         </>
       )}
     </Page>
