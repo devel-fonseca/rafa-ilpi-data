@@ -54,6 +54,7 @@ import { InstitutionalEventsModule } from './institutional-events/institutional-
 import { SentinelEventsModule } from './sentinel-events/sentinel-events.module';
 import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
 import { ComplianceModule } from './compliance/compliance.module';
+import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
 
 @Module({
   imports: [
@@ -137,6 +138,9 @@ import { ComplianceModule } from './compliance/compliance.module';
     SentinelEventsModule,
     RdcIndicatorsModule,
     ComplianceModule,
+
+    // Onboarding
+    TenantProfileModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
