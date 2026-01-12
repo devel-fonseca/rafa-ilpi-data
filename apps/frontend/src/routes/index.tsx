@@ -39,6 +39,9 @@ import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 // Daily Records Pages
 import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
 
+// Vital Signs Pages
+import { VitalSignsPage } from '@/pages/vital-signs'
+
 // Agenda Pages
 import AgendaPage from '@/pages/agenda/AgendaPage'
 
@@ -181,6 +184,14 @@ export const router = createBrowserRouter([
       {
         path: 'residentes/:id/medicacoes-calendario',
         element: <ResidentMedicationsCalendar />,
+      },
+      {
+        path: 'sinais-vitais/:residentId',
+        element: (
+          <FeatureGate featureKey="sinais_vitais">
+            <VitalSignsPage />
+          </FeatureGate>
+        ),
       },
       {
         path: 'registros-diarios',

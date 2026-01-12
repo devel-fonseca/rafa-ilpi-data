@@ -8,6 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Page, PageHeader } from '@/design-system/components'
 import {
   Tooltip,
@@ -28,6 +36,8 @@ import {
   Activity,
   ShieldAlert,
   ArrowLeft,
+  Lock,
+  Zap,
 } from 'lucide-react'
 import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -39,6 +49,7 @@ import { VaccinationList } from '@/components/vaccinations/VaccinationList'
 import { ClinicalNotesList } from '@/components/clinical-notes'
 import { ClinicalProfileTab } from '@/components/clinical-data/ClinicalProfileTab'
 import { HealthDocumentsTab } from '@/components/medical-record/HealthDocumentsTab'
+import { useFeatures } from '@/hooks/useFeatures'
 import {
   ViewHigieneModal,
   ViewAlimentacaoModal,
@@ -67,10 +78,12 @@ export default function ResidentProfile() {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [viewingRecord, setViewingRecord] = useState<any>(null)
   const [vitalSignsModalOpen, setVitalSignsModalOpen] = useState(false)
+  const [vitalSignsBlockedModalOpen, setVitalSignsBlockedModalOpen] = useState(false)
   const [currentEmergencyContactIndex, setCurrentEmergencyContactIndex] = useState(0)
 
   const { data: resident, isLoading, error } = useResident(id || '')
   const { hasPermission } = usePermissions()
+  const { hasFeature } = useFeatures()
 
   // Verificar se o usuário tem permissão para visualizar prontuário
   const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
@@ -98,6 +111,14 @@ export default function ResidentProfile() {
   const handleViewRecord = (record: any) => {
     setViewingRecord(record)
     setViewModalOpen(true)
+  }
+
+  const handleVitalSignsClick = () => {
+    if (hasFeature('sinais_vitais')) {
+      navigate(`/dashboard/sinais-vitais/${id}`)
+    } else {
+      setVitalSignsBlockedModalOpen(true)
+    }
   }
 
   // Buscar prescrições do residente
@@ -424,7 +445,7 @@ export default function ResidentProfile() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setVitalSignsModalOpen(true)}
+                      onClick={handleVitalSignsClick}
                     >
                       <Activity className="h-4 w-4 mr-2" />
                       Ver Sinais Vitais
@@ -1029,14 +1050,58 @@ export default function ResidentProfile() {
         />
       )}
 
-      {/* Modal de Sinais Vitais */}
+      {/* Modal de Feature Bloqueada - Sinais Vitais */}
       {resident && (
-        <VitalSignsModal
-          open={vitalSignsModalOpen}
-          onClose={() => setVitalSignsModalOpen(false)}
-          residentId={resident.id}
-          residentName={resident.fullName}
-        />
+        <>
+          <Dialog open={vitalSignsBlockedModalOpen} onOpenChange={() => setVitalSignsBlockedModalOpen(false)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                  <Lock className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+                </div>
+                <DialogTitle className="text-center">Recurso Bloqueado</DialogTitle>
+                <DialogDescription className="text-center">
+                  <strong className="text-foreground">Sinais Vitais</strong> não está disponível no seu plano atual.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Visualização de gráficos, tabelas e histórico completo de sinais vitais para análise e monitoramento clínico.
+                </p>
+
+                <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                  <p className="text-xs text-muted-foreground text-center">
+                    💡 Faça upgrade do seu plano para desbloquear este e outros recursos avançados
+                  </p>
+                </div>
+              </div>
+
+              <DialogFooter className="sm:justify-center gap-2">
+                <Button variant="outline" onClick={() => setVitalSignsBlockedModalOpen(false)}>
+                  Voltar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setVitalSignsBlockedModalOpen(false);
+                    navigate('/settings/billing');
+                  }}
+                >
+                  <Zap className="mr-2 h-4 w-4" />
+                  Fazer Upgrade
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de Sinais Vitais */}
+          <VitalSignsModal
+            open={vitalSignsModalOpen}
+            onClose={() => setVitalSignsModalOpen(false)}
+            residentId={resident.id}
+            residentName={resident.fullName}
+          />
+        </>
       )}
     </Page>
   )
