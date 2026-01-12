@@ -876,9 +876,9 @@ export class ClinicalNotesService {
     if (alert.severity === 'CRITICAL') {
       suggestedTags.push('Urgente')
       suggestedTags.push('Atenção Imediata')
-    } else if (alert.severity === 'HIGH') {
+    } else if (alert.severity === 'WARNING') {
       suggestedTags.push('Prioritário')
-    } else if (alert.severity === 'MEDIUM') {
+    } else if (alert.severity === 'INFO') {
       suggestedTags.push('Monitoramento')
     }
 
@@ -933,7 +933,7 @@ export class ClinicalNotesService {
     }
 
     // Tags gerais de contexto geriátrico
-    if (alert.severity === 'CRITICAL' || alert.severity === 'HIGH') {
+    if (alert.severity === 'CRITICAL' || alert.severity === 'WARNING') {
       suggestedTags.push('Intercorrência Clínica')
     }
 

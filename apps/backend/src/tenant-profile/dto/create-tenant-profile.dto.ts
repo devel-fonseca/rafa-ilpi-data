@@ -19,11 +19,11 @@ export class CreateTenantProfileDto {
   @ApiProperty({
     description: 'Natureza jurídica da instituição (OBRIGATÓRIO)',
     enum: LegalNature,
-    example: 'PRIVATE_NONPROFIT',
+    example: 'ASSOCIACAO',
   })
   @IsEnum(LegalNature, {
     message:
-      'Natureza jurídica deve ser: PRIVATE_FOR_PROFIT, PRIVATE_NONPROFIT, PUBLIC ou MIXED',
+      'Natureza jurídica deve ser: ASSOCIACAO, FUNDACAO, EMPRESA_PRIVADA ou MEI',
   })
   legalNature: LegalNature;
 

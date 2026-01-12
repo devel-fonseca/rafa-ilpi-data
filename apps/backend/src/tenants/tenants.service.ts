@@ -169,15 +169,16 @@ export class TenantsService {
         });
 
         // 2. Criar a subscription
+        const trialDurationMs = plan.trialDays * 24 * 60 * 60 * 1000; // Usar trialDays do plano
         const subscription = await prisma.subscription.create({
           data: {
             tenantId: tenant.id,
             planId,
             status: 'trialing',
             startDate: new Date(),
-            trialEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias de trial
+            trialEndDate: new Date(Date.now() + trialDurationMs),
             currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            currentPeriodEnd: new Date(Date.now() + trialDurationMs),
             // Novos campos de billing
             billingCycle,
             preferredPaymentMethod: paymentMethod,

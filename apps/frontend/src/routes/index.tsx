@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { SuperAdminLayout } from '@/layouts/SuperAdminLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { RequireProfileCompletion } from '@/components/auth/RequireProfileCompletion'
 import { PermissionType } from '@/hooks/usePermissions'
 import { FeatureGate } from '@/components/features'
 
@@ -104,6 +105,9 @@ import TenantMessageView from '@/pages/superadmin/TenantMessageView'
 // Settings Pages
 import { BillingPage } from '@/pages/settings/BillingPage'
 
+// Onboarding Pages
+import { OnboardingWizard } from '@/pages/onboarding/OnboardingWizard'
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -142,10 +146,20 @@ export const router = createBrowserRouter([
     element: <PrivacyPolicyPage />,
   },
   {
+    path: '/onboarding',
+    element: (
+      <ProtectedRoute>
+        <OnboardingWizard />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: '/dashboard',
     element: (
       <ProtectedRoute>
-        <DashboardLayout />
+        <RequireProfileCompletion>
+          <DashboardLayout />
+        </RequireProfileCompletion>
       </ProtectedRoute>
     ),
     children: [
