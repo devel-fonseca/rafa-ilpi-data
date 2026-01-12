@@ -26,6 +26,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'residentes': 'Gestão de residentes',
   'usuarios': 'Gestão de usuários',
   'prontuario': 'Prontuário eletrônico',
+  'notificacoes': 'Notificações',
 
   // Módulos clínicos
   'medicacoes': 'Prescrições e medicamentos',
@@ -46,7 +47,6 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Comunicação
   'mensagens': 'Mensagens internas',
-  'alertas': 'Notificações automáticas',
 
   // ═══════════════════════════════════════════════════════════════
   // LABELS HUMANIZADOS (mapeamento idempotente)
@@ -56,6 +56,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'Gestão de residentes': 'Gestão de residentes',
   'Gestão de usuários': 'Gestão de usuários',
   'Prontuário eletrônico': 'Prontuário eletrônico',
+  'Notificações': 'Notificações',
 
   // Clínicos
   'Prescrições e medicamentos': 'Prescrições e medicamentos',
@@ -76,7 +77,6 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Comunicação
   'Mensagens internas': 'Mensagens internas',
-  'Notificações automáticas': 'Notificações automáticas',
 }
 
 /**
@@ -88,6 +88,7 @@ export const CORE_FEATURES = [
   'Gestão de usuários',
   'Prontuário eletrônico',
   'Hub de conformidade',
+  'Notificações',
 ] as const
 
 /**
@@ -104,6 +105,7 @@ export const AVAILABLE_FEATURES = [
   'Gestão de usuários',
   'Prontuário eletrônico',
   'Hub de conformidade',
+  'Notificações',
 
   // ═══════════════════════════════════════════════════════════════
   // MÓDULOS CLÍNICOS
@@ -131,7 +133,6 @@ export const AVAILABLE_FEATURES = [
   // COMUNICAÇÃO
   // ═══════════════════════════════════════════════════════════════
   'Mensagens internas',
-  'Notificações automáticas',
 ] as const
 
 /**

@@ -14,6 +14,7 @@ async function main() {
     usuarios: true,
     prontuario: true,
     conformidade: true,
+    notificacoes: true,
   };
 
   const plans = [
