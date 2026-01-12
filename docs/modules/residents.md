@@ -1,8 +1,16 @@
 # Módulo: Residentes
 
 **Status:** ✅ Implementado
-**Versão:** 1.1.0
-**Última atualização:** 14/12/2025
+**Versão:** 1.1.1
+**Última atualização:** 12/01/2026
+
+> **📝 Atualização 1.1.1 (12/01/2026):**
+>
+> - Corrigido tipo de campos de data no schema (`@db.Date` em vez de `@db.Timestamptz(3)`)
+> - Adicionados endpoints de histórico e transferência de leito na tabela de API
+> - Corrigida contagem de campos do responsável legal (12 campos)
+> - Atualizada lista de campos criptografados (apenas CPF, CNS e legalGuardianCpf)
+> - Adicionadas respostas detalhadas dos novos endpoints
 
 ## Visão Geral
 
@@ -74,7 +82,7 @@ model Resident {
   gender      Gender                // MASCULINO | FEMININO | OUTRO | NAO_INFORMADO *
   civilStatus CivilStatus?          // SOLTEIRO | CASADO | DIVORCIADO | VIUVO | UNIAO_ESTAVEL
   religion    String?               // Religião
-  birthDate   DateTime              // Data de nascimento * @db.Timestamptz(3)
+  birthDate   DateTime @db.Date     // Data de nascimento *
   nationality String @default("Brasileira")
   birthCity   String?               // Naturalidade
   birthState  String?               // UF de nascimento
@@ -107,7 +115,7 @@ model Resident {
   emergencyContacts Json @default("[]")
   // Estrutura: [{ "name": "...", "phone": "...", "relationship": "..." }]
 
-  // 4. Responsável Legal (13 campos)
+  // 4. Responsável Legal (12 campos)
   legalGuardianName       String?
   legalGuardianCpf        String?
   legalGuardianRg         String?
@@ -122,11 +130,11 @@ model Resident {
   legalGuardianDistrict   String?
 
   // 5. Admissão (6 campos)
-  admissionDate       DateTime  @db.Timestamptz(3) // Data de admissão *
+  admissionDate       DateTime  @db.Date // Data de admissão *
   admissionType       String?   // Voluntária | Involuntária | Judicial
   admissionReason     String?   // Motivo da admissão
   admissionConditions String?   // Condições na admissão
-  dischargeDate       DateTime? @db.Timestamptz(3) // Data de desligamento
+  dischargeDate       DateTime? @db.Date // Data de desligamento
   dischargeReason     String?   // Motivo do desligamento
 
   // 6. Saúde - Dados Estáveis (6 campos)
@@ -221,7 +229,10 @@ enum BloodType {
 | GET | `/api/residents/:id` | `VIEW_RESIDENTS` | Buscar por ID com URLs assinadas |
 | PATCH | `/api/residents/:id` | `UPDATE_RESIDENTS` | Atualizar residente |
 | DELETE | `/api/residents/:id` | `DELETE_RESIDENTS` | Soft delete |
+| GET | `/api/residents/:id/history` | `VIEW_RESIDENTS` | Buscar histórico completo de alterações |
+| GET | `/api/residents/:id/history/:versionNumber` | `VIEW_RESIDENTS` | Buscar versão específica do histórico |
 | GET | `/api/residents/stats/overview` | `VIEW_REPORTS` | Estatísticas gerais |
+| POST | `/api/residents/:id/transfer-bed` | `UPDATE_RESIDENTS` | Transferir residente para outro leito |
 
 ### Query Parameters (GET /residents)
 
@@ -267,6 +278,102 @@ enum BloodType {
     masculino: number,
     feminino: number
   }
+}
+```
+
+### Resposta de Histórico (GET /residents/:id/history)
+
+```typescript
+{
+  resident: {
+    id: string,
+    fullName: string,
+    cpf: string,
+    versionNumber: number,
+    status: string,
+    deletedAt: string | null
+  },
+  history: [
+    {
+      id: string,
+      versionNumber: number,
+      changeType: 'CREATE' | 'UPDATE' | 'DELETE',
+      changeReason: string,
+      changedFields: string[],
+      changedAt: string,
+      changedBy: {
+        id: string,
+        name: string,
+        email: string
+      }
+    }
+  ],
+  totalVersions: number
+}
+```
+
+**Nota:** Os snapshots `previousData` e `newData` não são retornados por padrão para evitar payload muito grande. Use o endpoint de versão específica para obter snapshots completos.
+
+### Resposta de Versão Específica (GET /residents/:id/history/:versionNumber)
+
+```typescript
+{
+  id: string,
+  versionNumber: number,
+  changeType: 'CREATE' | 'UPDATE' | 'DELETE',
+  changeReason: string,
+  changedFields: string[],
+  previousData: object | null,  // Snapshot completo ANTES (null em CREATE)
+  newData: object,              // Snapshot completo DEPOIS
+  changedAt: string,
+  changedBy: {
+    id: string,
+    name: string,
+    email: string
+  }
+}
+```
+
+### Resposta de Transferência de Leito (POST /residents/:id/transfer-bed)
+
+**Request Body:**
+
+```typescript
+{
+  toBedId: string,           // UUID do leito destino
+  reason: string,            // Motivo da transferência (min 10 chars)
+  transferredAt?: string     // ISO 8601, opcional (default: now)
+}
+```
+
+**Response:**
+
+```typescript
+{
+  resident: {
+    id: string,
+    fullName: string,
+    bedId: string,
+    bed: {
+      id: string,
+      code: string,
+      status: string,
+      room: { /* hierarquia completa */ }
+    }
+  },
+  transferHistory: {
+    id: string,
+    residentId: string,
+    fromBedId: string,
+    toBedId: string,
+    reason: string,
+    transferredAt: string,
+    transferredBy: string,
+    fromBed: { /* dados completos */ },
+    toBed: { /* dados completos */ },
+    user: { id, name, email }
+  },
+  message: string  // "Residente transferido de X para Y com sucesso"
 }
 ```
 
@@ -659,12 +766,12 @@ Retornada automaticamente em `findOne()` e `findAll()`:
 #### Campos Criptografados
 
 - `cpf` (Resident)
-- `rg` (Resident)
 - `cns` (Cartão Nacional de Saúde)
 - `legalGuardianCpf` (Responsável legal)
-- `legalGuardianRg` (Responsável legal)
 
 **Algoritmo:** AES-256-GCM com Scrypt KDF (derivação de chave por tenant)
+
+**Nota:** Campos RG não são criptografados devido à sua baixa sensibilidade comparada ao CPF. O RG não é chave única nacional e sua criptografia aumentaria overhead desnecessariamente.
 
 #### Middleware de Descriptografia
 
