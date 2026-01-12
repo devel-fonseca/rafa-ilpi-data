@@ -133,7 +133,7 @@ export default function DocumentComplianceDashboard() {
         title="Dashboard de Conformidade de Documentos"
         subtitle="Visão geral do status dos documentos institucionais"
         breadcrumbs={[
-          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
           { label: 'Documentos da Instituição' },
         ]}
         actions={

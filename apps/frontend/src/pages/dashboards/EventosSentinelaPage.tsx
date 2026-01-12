@@ -123,7 +123,7 @@ export function EventosSentinelaPage() {
         title="Eventos Sentinela"
         subtitle="Rastreamento de notificações obrigatórias à Vigilância Sanitária (RDC 502/2021 Art. 55)"
         breadcrumbs={[
-          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
           { label: 'Eventos Sentinela' },
         ]}
       />

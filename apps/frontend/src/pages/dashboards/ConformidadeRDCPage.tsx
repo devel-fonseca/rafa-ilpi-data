@@ -177,7 +177,7 @@ export function ConformidadeRDCPage() {
         title="Indicadores Mensais Obrigatórios"
         subtitle="RDC 502/2021 - ANVISA (Art. 58-59 + Anexo)"
         breadcrumbs={[
-          { label: 'Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
           { label: 'Indicadores Mensais' },
         ]}
       />
