@@ -46,9 +46,11 @@ export enum NotificationCategory {
   DOCUMENT = 'DOCUMENT',
   DAILY_RECORD = 'DAILY_RECORD',
   MEDICATION = 'MEDICATION',
+  POP = 'POP',
+  SYSTEM = 'SYSTEM',
   SCHEDULED_EVENT = 'SCHEDULED_EVENT',
   INSTITUTIONAL_EVENT = 'INSTITUTIONAL_EVENT',
-  SYSTEM = 'SYSTEM',
+  INCIDENT = 'INCIDENT', // Intercorrências e Eventos Sentinela
 }
 
 export enum NotificationSeverity {

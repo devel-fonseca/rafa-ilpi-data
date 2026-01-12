@@ -30,6 +30,7 @@ import { PositionCode, POSITION_CODE_LABELS } from '@/types/permissions'
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown'
 import { MessagesDropdown } from '@/components/messages/MessagesDropdown'
 import { WelcomeToActivePlanDialog } from '@/components/billing/WelcomeToActivePlanDialog'
+import { useFeatures } from '@/hooks/useFeatures'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -40,6 +41,7 @@ export function DashboardLayout() {
   const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
   const { hasPermission } = usePermissions()
+  const { hasFeature } = useFeatures()
 
   // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
@@ -48,6 +50,8 @@ export function DashboardLayout() {
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
   const canViewPops = hasPermission(PermissionType.VIEW_POPS)
+
+  // Verificar permissões (features são validadas nas rotas)
   const canViewMessages = hasPermission(PermissionType.VIEW_MESSAGES)
   const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
                             hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)

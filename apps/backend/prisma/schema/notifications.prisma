@@ -5,8 +5,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 model Notification {
-  id       String  @id @default(uuid()) @db.Uuid
-  tenantId String  @db.Uuid
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
 
   // Tipo e Categoria
   type     SystemNotificationType
@@ -33,9 +33,9 @@ model Notification {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   // Relações
-  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  reads           NotificationRead[] // Rastreamento individual de leitura
-  vitalSignAlerts VitalSignAlert[] // Alertas médicos vinculados a esta notificação
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reads                      NotificationRead[] // Rastreamento individual de leitura
+  vitalSignAlerts            VitalSignAlert[] // Alertas médicos vinculados a esta notificação
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
   // Índices para performance

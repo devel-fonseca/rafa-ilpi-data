@@ -82,6 +82,39 @@ export class TenantsController {
     return this.tenantsService.getMySubscription(user.tenantId);
   }
 
+  @Get('me/features')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Buscar features do plano do tenant',
+    description:
+      'Retorna as features disponíveis no plano do tenant logado. SUPERADMIN recebe todas as features.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Features do plano',
+    schema: {
+      type: 'object',
+      properties: {
+        plan: { type: 'string', example: 'Profissional' },
+        planType: { type: 'string', example: 'PROFISSIONAL' },
+        features: {
+          type: 'object',
+          example: {
+            mensagens: true,
+            agenda: true,
+            conformidade: true,
+            eventos_sentinela: false,
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Nenhuma assinatura ativa encontrada' })
+  getMyFeatures(@CurrentUser() user: JwtPayload) {
+    return this.tenantsService.getMyFeatures(user.tenantId, user.id);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPERADMIN')

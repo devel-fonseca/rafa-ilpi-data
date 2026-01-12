@@ -63,64 +63,64 @@ model Tenant {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  subscriptions             Subscription[]
-  users                     User[]
-  userProfiles              UserProfile[]
-  userHistory               UserHistory[] // Histórico de usuários
-  residents                 Resident[]
-  residentHistory           ResidentHistory[] // Histórico de residentes
-  dailyRecords              DailyRecord[]
-  dailyRecordHistory        DailyRecordHistory[]
-  vitalSigns                VitalSign[]
-  prescriptions             Prescription[]
-  prescriptionHistory       PrescriptionHistory[] // Histórico de prescrições
-  medicationHistory         MedicationHistory[] // Histórico de medicamentos
-  sosMedicationHistory      SOSMedicationHistory[] // Histórico de medicamentos SOS
-  medicationAdministrations MedicationAdministration[]
-  sosAdministrations        SOSAdministration[]
-  vaccinations              Vaccination[]
-  vaccinationHistory        VaccinationHistory[] // Histórico de vacinações
-  allergies                 Allergy[]
-  allergyHistory            AllergyHistory[] // Histórico de alergias
-  conditions                Condition[]
-  conditionHistory          ConditionHistory[] // Histórico de condições
-  clinicalNotes             ClinicalNote[]
-  clinicalNoteHistory       ClinicalNoteHistory[]
-  clinicalProfiles          ClinicalProfile[]
-  clinicalProfileHistory    ClinicalProfileHistory[]
-  dietaryRestrictions       DietaryRestriction[]
-  dietaryRestrictionHistory DietaryRestrictionHistory[]
-  auditLogs                 AuditLog[]
-  buildings                 Building[]
-  floors                    Floor[]
-  rooms                     Room[]
-  beds                      Bed[]
-  profile                   TenantProfile?
-  documents                 TenantDocument[]
-  residentDocuments         ResidentDocument[]
-  notifications             Notification[]
-  clinicalNoteDocuments     ClinicalNoteDocument[]
-  documentHistory           DocumentHistory[]
-  pops                      Pop[]
-  popAttachments            PopAttachment[]
-  popHistory                PopHistory[]
-  VitalSignHistory          VitalSignHistory[]
-  bedTransferHistory        BedTransferHistory[]
-  residentScheduleConfigs   ResidentScheduleConfig[]
-  residentScheduledEvents   ResidentScheduledEvent[]
-  invoices                  Invoice[] // SuperAdmin - Faturas
-  usageMetrics              UsageMetrics[] // SuperAdmin - Métricas de uso
-  systemAlerts              SystemAlert[] // SuperAdmin - Alertas
-  contractAcceptance        ContractAcceptance?
-  privacyPolicyAcceptance   PrivacyPolicyAcceptance?
-  messages                  Message[]
-  messageRecipients         MessageRecipient[]
-  messageAttachments        MessageAttachment[]
-  emailLogs                 EmailLog[] // Auditoria de emails enviados
-  accessLogs                AccessLog[] // Logs de acesso e auditoria de segurança
-  vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
-  institutionalEvents       InstitutionalEvent[] // Eventos institucionais
-  incidentMonthlyIndicators IncidentMonthlyIndicator[] // Indicadores mensais RDC 502/2021
+  subscriptions              Subscription[]
+  users                      User[]
+  userProfiles               UserProfile[]
+  userHistory                UserHistory[] // Histórico de usuários
+  residents                  Resident[]
+  residentHistory            ResidentHistory[] // Histórico de residentes
+  dailyRecords               DailyRecord[]
+  dailyRecordHistory         DailyRecordHistory[]
+  vitalSigns                 VitalSign[]
+  prescriptions              Prescription[]
+  prescriptionHistory        PrescriptionHistory[] // Histórico de prescrições
+  medicationHistory          MedicationHistory[] // Histórico de medicamentos
+  sosMedicationHistory       SOSMedicationHistory[] // Histórico de medicamentos SOS
+  medicationAdministrations  MedicationAdministration[]
+  sosAdministrations         SOSAdministration[]
+  vaccinations               Vaccination[]
+  vaccinationHistory         VaccinationHistory[] // Histórico de vacinações
+  allergies                  Allergy[]
+  allergyHistory             AllergyHistory[] // Histórico de alergias
+  conditions                 Condition[]
+  conditionHistory           ConditionHistory[] // Histórico de condições
+  clinicalNotes              ClinicalNote[]
+  clinicalNoteHistory        ClinicalNoteHistory[]
+  clinicalProfiles           ClinicalProfile[]
+  clinicalProfileHistory     ClinicalProfileHistory[]
+  dietaryRestrictions        DietaryRestriction[]
+  dietaryRestrictionHistory  DietaryRestrictionHistory[]
+  auditLogs                  AuditLog[]
+  buildings                  Building[]
+  floors                     Floor[]
+  rooms                      Room[]
+  beds                       Bed[]
+  profile                    TenantProfile?
+  documents                  TenantDocument[]
+  residentDocuments          ResidentDocument[]
+  notifications              Notification[]
+  clinicalNoteDocuments      ClinicalNoteDocument[]
+  documentHistory            DocumentHistory[]
+  pops                       Pop[]
+  popAttachments             PopAttachment[]
+  popHistory                 PopHistory[]
+  VitalSignHistory           VitalSignHistory[]
+  bedTransferHistory         BedTransferHistory[]
+  residentScheduleConfigs    ResidentScheduleConfig[]
+  residentScheduledEvents    ResidentScheduledEvent[]
+  invoices                   Invoice[] // SuperAdmin - Faturas
+  usageMetrics               UsageMetrics[] // SuperAdmin - Métricas de uso
+  systemAlerts               SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance         ContractAcceptance?
+  privacyPolicyAcceptance    PrivacyPolicyAcceptance?
+  messages                   Message[]
+  messageRecipients          MessageRecipient[]
+  messageAttachments         MessageAttachment[]
+  emailLogs                  EmailLog[] // Auditoria de emails enviados
+  accessLogs                 AccessLog[] // Logs de acesso e auditoria de segurança
+  vitalSignAlerts            VitalSignAlert[] // Alertas médicos de sinais vitais
+  institutionalEvents        InstitutionalEvent[] // Eventos institucionais
+  incidentMonthlyIndicators  IncidentMonthlyIndicator[] // Indicadores mensais RDC 502/2021
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
   @@index([timezone])

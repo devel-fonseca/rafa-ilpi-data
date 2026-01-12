@@ -2,18 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  Bell,
-  CheckCheck,
-  FileText,
-  HeartPulse,
-  Pill,
-  AlertTriangle,
-  Info,
-  CheckCircle2,
-  ExternalLink,
-  Calendar,
-} from 'lucide-react'
+import { Bell, CheckCheck, ExternalLink } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,11 +12,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useNotifications, useUnreadCount, useMarkAsRead, useMarkAllAsRead } from '@/hooks/useNotifications'
 import {
   NotificationCategory,
-  NotificationSeverity,
   SystemNotificationType,
   type Notification,
 } from '@/api/notifications.api'
@@ -36,52 +23,10 @@ import {
   getNotificationCategoryConfig,
 } from '@/design-system/tokens/colors'
 import { MissedEventActionsModal } from '@/components/resident-schedule/MissedEventActionsModal'
-
-const CATEGORY_CONFIG = {
-  [NotificationCategory.PRESCRIPTION]: {
-    label: 'Prescrições',
-    icon: Pill,
-  },
-  [NotificationCategory.VITAL_SIGN]: {
-    label: 'Sinais Vitais',
-    icon: HeartPulse,
-  },
-  [NotificationCategory.DOCUMENT]: {
-    label: 'Documentos',
-    icon: FileText,
-  },
-  [NotificationCategory.MEDICATION]: {
-    label: 'Medicação',
-    icon: Pill,
-  },
-  [NotificationCategory.DAILY_RECORD]: {
-    label: 'Registros',
-    icon: FileText,
-  },
-  [NotificationCategory.INCIDENT]: {
-    label: 'Intercorrências',
-    icon: AlertTriangle,
-  },
-  [NotificationCategory.SCHEDULED_EVENT]: {
-    label: 'Agendamentos',
-    icon: Calendar,
-  },
-  [NotificationCategory.INSTITUTIONAL_EVENT]: {
-    label: 'Eventos Institucionais',
-    icon: Calendar,
-  },
-  [NotificationCategory.SYSTEM]: {
-    label: 'Sistema',
-    icon: Info,
-  },
-}
-
-const SEVERITY_ICONS = {
-  [NotificationSeverity.CRITICAL]: AlertTriangle,
-  [NotificationSeverity.WARNING]: AlertTriangle,
-  [NotificationSeverity.INFO]: Info,
-  [NotificationSeverity.SUCCESS]: CheckCircle2,
-}
+import {
+  getCategoryConfig,
+  getSeverityIcon,
+} from '@/config/notifications.config'
 
 interface NotificationItemProps {
   notification: Notification
@@ -91,11 +36,11 @@ interface NotificationItemProps {
 
 function NotificationItem({ notification, onMarkAsRead, onOpenMissedEventModal }: NotificationItemProps) {
   const navigate = useNavigate()
-  const categoryConfig = CATEGORY_CONFIG[notification.category] || { label: 'Sistema', icon: Bell }
+  const categoryConfig = getCategoryConfig(notification.category)
   const severityColors = getNotificationSeverityColors(notification.severity)
   const categoryColors = getNotificationCategoryConfig(notification.category as any)
   const CategoryIcon = categoryConfig.icon
-  const SeverityIcon = SEVERITY_ICONS[notification.severity]
+  const SeverityIcon = getSeverityIcon(notification.severity)
 
   const handleClick = () => {
     // Se for notificação de evento perdido, abrir modal específico

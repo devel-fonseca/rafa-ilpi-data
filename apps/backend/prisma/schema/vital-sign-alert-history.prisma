@@ -21,9 +21,9 @@ model VitalSignAlertHistory {
   changedAt    DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
 
   // Relacionamentos
-  alert       VitalSignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  changedUser User           @relation("AlertChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
-  assignedUser User?         @relation("AlertAssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
+  alert        VitalSignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  changedUser  User           @relation("AlertChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  assignedUser User?          @relation("AlertAssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
 
   // Índices
   @@index([alertId, changedAt(sort: Desc)])

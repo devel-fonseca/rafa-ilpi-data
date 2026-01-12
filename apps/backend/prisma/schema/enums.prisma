@@ -344,22 +344,22 @@ enum RecordType {
 // ──────────────────────────────────────────────────────────────────────────────
 
 enum IncidentCategory {
-  CLINICA        // Intercorrências clínicas (saúde)
-  ASSISTENCIAL   // Intercorrências assistenciais (cuidados)
+  CLINICA // Intercorrências clínicas (saúde)
+  ASSISTENCIAL // Intercorrências assistenciais (cuidados)
   ADMINISTRATIVA // Intercorrências administrativas (gestão)
 
   @@map("IncidentCategory")
 }
 
 enum IncidentSubtypeClinical {
-  QUEDA_COM_LESAO          // Evento Sentinela - notificação obrigatória
+  QUEDA_COM_LESAO // Evento Sentinela - notificação obrigatória
   QUEDA_SEM_LESAO
-  TENTATIVA_SUICIDIO       // Evento Sentinela - notificação obrigatória
-  DOENCA_DIARREICA_AGUDA   // Indicador RDC (incidência)
-  DESIDRATACAO             // Indicador RDC (incidência)
-  ULCERA_DECUBITO          // Indicador RDC (prevalência)
-  DESNUTRICAO              // Indicador RDC (prevalência)
-  ESCABIOSE                // Indicador RDC (incidência)
+  TENTATIVA_SUICIDIO // Evento Sentinela - notificação obrigatória
+  DOENCA_DIARREICA_AGUDA // Indicador RDC (incidência)
+  DESIDRATACAO // Indicador RDC (incidência)
+  ULCERA_DECUBITO // Indicador RDC (prevalência)
+  DESNUTRICAO // Indicador RDC (prevalência)
+  ESCABIOSE // Indicador RDC (incidência)
   FEBRE_HIPERTERMIA
   HIPOTERMIA
   HIPOGLICEMIA
@@ -371,7 +371,7 @@ enum IncidentSubtypeClinical {
   VOMITO
   SANGRAMENTO
   REACAO_ALERGICA
-  OBITO                    // Indicador RDC (mortalidade)
+  OBITO // Indicador RDC (mortalidade)
   OUTRA_CLINICA
 
   @@map("IncidentSubtypeClinical")
@@ -407,21 +407,21 @@ enum IncidentSubtypeAdministrativa {
 }
 
 enum IncidentSeverity {
-  LEVE      // Sem impacto significativo
-  MODERADA  // Requer atenção
-  GRAVE     // Requer intervenção imediata
-  CRITICA   // Risco de vida ou Evento Sentinela
+  LEVE // Sem impacto significativo
+  MODERADA // Requer atenção
+  GRAVE // Requer intervenção imediata
+  CRITICA // Risco de vida ou Evento Sentinela
 
   @@map("IncidentSeverity")
 }
 
 enum RdcIndicatorType {
-  MORTALIDADE           // Taxa de mortalidade
-  DIARREIA_AGUDA       // Taxa de incidência de doença diarréica aguda
-  ESCABIOSE            // Taxa de incidência de escabiose
-  DESIDRATACAO         // Taxa de incidência de desidratação
-  ULCERA_DECUBITO      // Taxa de prevalência de úlcera de decúbito
-  DESNUTRICAO          // Taxa de prevalência de desnutrição
+  MORTALIDADE // Taxa de mortalidade
+  DIARREIA_AGUDA // Taxa de incidência de doença diarréica aguda
+  ESCABIOSE // Taxa de incidência de escabiose
+  DESIDRATACAO // Taxa de incidência de desidratação
+  ULCERA_DECUBITO // Taxa de prevalência de úlcera de decúbito
+  DESNUTRICAO // Taxa de prevalência de desnutrição
 
   @@map("RdcIndicatorType")
 }
@@ -454,20 +454,20 @@ enum ScheduledEventStatus {
 }
 
 enum InstitutionalEventType {
-  DOCUMENT_EXPIRY  // Vencimento de documentos
-  TRAINING         // Treinamentos
-  MEETING          // Reuniões
-  INSPECTION       // Inspeções/Fiscalizações
-  MAINTENANCE      // Manutenções
-  OTHER            // Outros eventos
+  DOCUMENT_EXPIRY // Vencimento de documentos
+  TRAINING // Treinamentos
+  MEETING // Reuniões
+  INSPECTION // Inspeções/Fiscalizações
+  MAINTENANCE // Manutenções
+  OTHER // Outros eventos
 
   @@map("InstitutionalEventType")
 }
 
 enum InstitutionalEventVisibility {
-  ADMIN_ONLY  // Apenas admin vê
-  RT_ONLY     // Apenas RT (Responsável Técnico) vê
-  ALL_USERS   // Todos os usuários veem
+  ADMIN_ONLY // Apenas admin vê
+  RT_ONLY // Apenas RT (Responsável Técnico) vê
+  ALL_USERS // Todos os usuários veem
 
   @@map("InstitutionalEventVisibility")
 }

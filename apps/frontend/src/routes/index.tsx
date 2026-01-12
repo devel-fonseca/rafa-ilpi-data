@@ -1,8 +1,9 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { SuperAdminLayout } from '@/layouts/SuperAdminLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { PermissionType } from '@/hooks/usePermissions'
+import { FeatureGate } from '@/components/features'
 
 // Auth Pages
 import Login from '@/pages/auth/Login'
@@ -183,6 +184,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'registros-diarios',
+        element: (
+          <FeatureGate featureKey="registros_diarios">
+            <Outlet />
+          </FeatureGate>
+        ),
         children: [
           {
             index: true,
@@ -196,10 +202,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'agenda',
-        element: <AgendaPage />,
+        element: (
+          <FeatureGate featureKey="agenda">
+            <AgendaPage />
+          </FeatureGate>
+        ),
       },
       {
         path: 'conformidade',
+        element: (
+          <FeatureGate featureKey="conformidade">
+            <Outlet />
+          </FeatureGate>
+        ),
         children: [
           {
             index: true,
@@ -218,21 +233,25 @@ export const router = createBrowserRouter([
           {
             path: 'documentos',
             element: (
-              <ProtectedRoute
-                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
-              >
-                <DocumentComplianceDashboard />
-              </ProtectedRoute>
+              <FeatureGate featureKey="documentos_institucionais">
+                <ProtectedRoute
+                  requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+                >
+                  <DocumentComplianceDashboard />
+                </ProtectedRoute>
+              </FeatureGate>
             ),
           },
           {
             path: 'documentos/gestao',
             element: (
-              <ProtectedRoute
-                requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
-              >
-                <InstitutionalDocumentManagement />
-              </ProtectedRoute>
+              <FeatureGate featureKey="documentos_institucionais">
+                <ProtectedRoute
+                  requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
+                >
+                  <InstitutionalDocumentManagement />
+                </ProtectedRoute>
+              </FeatureGate>
             ),
           },
           {
@@ -248,11 +267,13 @@ export const router = createBrowserRouter([
           {
             path: 'eventos-sentinela',
             element: (
-              <ProtectedRoute
-                requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}
-              >
-                <EventosSentinelaPage />
-              </ProtectedRoute>
+              <FeatureGate featureKey="eventos_sentinela">
+                <ProtectedRoute
+                  requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}
+                >
+                  <EventosSentinelaPage />
+                </ProtectedRoute>
+              </FeatureGate>
             ),
           },
         ],
@@ -283,11 +304,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'beds/structure',
-        element: <BedsStructurePage />,
+        element: (
+          <FeatureGate featureKey="quartos">
+            <BedsStructurePage />
+          </FeatureGate>
+        ),
       },
       {
         path: 'beds/map',
-        element: <BedsMapPage />,
+        element: (
+          <FeatureGate featureKey="mapa_leitos">
+            <BedsMapPage />
+          </FeatureGate>
+        ),
       },
       {
         path: 'perfil-institucional',
@@ -327,35 +356,55 @@ export const router = createBrowserRouter([
       },
       {
         path: 'mensagens',
-        element: <MessagesListPage />,
-      },
-      {
-        path: 'mensagens/nova',
-        element: <ComposeMessagePage />,
-      },
-      {
-        path: 'mensagens/:id',
-        element: <MessageDetailPage />,
+        element: (
+          <FeatureGate featureKey="mensagens">
+            <Outlet />
+          </FeatureGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <MessagesListPage />,
+          },
+          {
+            path: 'nova',
+            element: <ComposeMessagePage />,
+          },
+          {
+            path: ':id',
+            element: <MessageDetailPage />,
+          },
+        ],
       },
       {
         path: 'pops',
-        element: <PopsList />,
-      },
-      {
-        path: 'pops/new',
-        element: <PopEditor />,
-      },
-      {
-        path: 'pops/:id/edit',
-        element: <PopEditor />,
-      },
-      {
-        path: 'pops/:id/history',
-        element: <PopHistoryPage />,
-      },
-      {
-        path: 'pops/:id',
-        element: <PopViewer />,
+        element: (
+          <FeatureGate featureKey="pops">
+            <Outlet />
+          </FeatureGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <PopsList />,
+          },
+          {
+            path: 'new',
+            element: <PopEditor />,
+          },
+          {
+            path: ':id/edit',
+            element: <PopEditor />,
+          },
+          {
+            path: ':id/history',
+            element: <PopHistoryPage />,
+          },
+          {
+            path: ':id',
+            element: <PopViewer />,
+          },
+        ],
       },
       {
         path: 'settings/billing',

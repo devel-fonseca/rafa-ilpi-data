@@ -5,23 +5,23 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 model InstitutionalEvent {
-  id             String                        @id @default(uuid()) @db.Uuid
-  tenantId       String                        @db.Uuid
-  eventType      InstitutionalEventType
-  visibility     InstitutionalEventVisibility  @default(ALL_USERS)
-  title          String
-  description    String?                       @db.Text
-  scheduledDate  DateTime                      @db.Date
-  scheduledTime  String?                       // Formato HH:mm
-  allDay         Boolean                       @default(false)
-  status         ScheduledEventStatus          @default(SCHEDULED)
-  completedAt    DateTime?                     @db.Timestamptz(3)
-  notes          String?                       @db.Text
+  id            String                       @id @default(uuid()) @db.Uuid
+  tenantId      String                       @db.Uuid
+  eventType     InstitutionalEventType
+  visibility    InstitutionalEventVisibility @default(ALL_USERS)
+  title         String
+  description   String?                      @db.Text
+  scheduledDate DateTime                     @db.Date
+  scheduledTime String? // Formato HH:mm
+  allDay        Boolean                      @default(false)
+  status        ScheduledEventStatus         @default(SCHEDULED)
+  completedAt   DateTime?                    @db.Timestamptz(3)
+  notes         String?                      @db.Text
 
   // Campos específicos para vencimento de documentos
   documentType   String?
   documentNumber String?
-  expiryDate     DateTime?                     @db.Date
+  expiryDate     DateTime? @db.Date
   responsible    String?
 
   // Campos específicos para treinamentos
@@ -31,19 +31,19 @@ model InstitutionalEvent {
   location       String?
 
   // Metadados adicionais (JSON flexível)
-  metadata       Json?                         @db.JsonB
+  metadata Json? @db.JsonB
 
   // Auditoria
-  createdAt      DateTime                      @default(now()) @db.Timestamptz(3)
-  updatedAt      DateTime                      @updatedAt @db.Timestamptz(3)
-  deletedAt      DateTime?                     @db.Timestamptz(3)
-  createdBy      String                        @db.Uuid
-  updatedBy      String?                       @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
 
   // Relações
-  tenant         Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  createdByUser  User                          @relation("InstitutionalEventCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
-  updatedByUser  User?                         @relation("InstitutionalEventUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser User   @relation("InstitutionalEventCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updatedByUser User?  @relation("InstitutionalEventUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   // Índices
   @@index([tenantId])

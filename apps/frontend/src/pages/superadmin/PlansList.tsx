@@ -15,9 +15,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { usePlans, useUpdatePlan, useTogglePlanPopular, useTogglePlanActive } from '@/hooks/usePlans'
-import { Edit2, Star, Users, Home, Calendar, Check, X, Power, Plus } from 'lucide-react'
+import { Edit2, Star, Users, Home, Calendar, Check, X, Power, Plus, Lock } from 'lucide-react'
 import type { Plan, UpdatePlanDto } from '@/api/plans.api'
-import { AVAILABLE_FEATURES, featuresToArray, arrayToFeatures } from '@/constants/features'
+import { AVAILABLE_FEATURES, CORE_FEATURES, featuresToArray, arrayToFeatures } from '@/constants/features'
 
 /**
  * PlansList Page
@@ -68,10 +68,16 @@ export function PlansList() {
   const handleSave = () => {
     if (!editingPlan) return
 
+    // Garantir que features CORE estejam sempre incluídas
+    const allFeatures = [
+      ...Array.from(CORE_FEATURES), // Features core sempre habilitadas
+      ...features.filter(f => !CORE_FEATURES.includes(f as any)), // Features opcionais
+    ]
+
     // Incluir features convertidas no formData
     const dataToSave = {
       ...formData,
-      features: arrayToFeatures(features),
+      features: arrayToFeatures(allFeatures),
     }
 
     updatePlanMutation.mutate(
@@ -358,35 +364,65 @@ export function PlansList() {
                       <div className="space-y-3">
                         <Label className="text-slate-600">Features do Plano</Label>
 
-                        {/* Features selecionadas */}
-                        {features.length > 0 && (
+                        {/* Features FIXAS (Core - sempre habilitadas) */}
+                        <div className="p-3 bg-slate-50 rounded-md border border-slate-300">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Lock className="h-3 w-3 text-slate-600" />
+                            <p className="text-xs font-medium text-slate-700">
+                              Features Core (sempre habilitadas em todos os planos):
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {CORE_FEATURES.map((feature, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="bg-slate-200 text-slate-700 border border-slate-300"
+                              >
+                                <Lock className="h-3 w-3 mr-1" />
+                                {feature}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Features OPCIONAIS selecionadas */}
+                        {features.filter(f => !CORE_FEATURES.includes(f as any)).length > 0 && (
                           <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
-                            <p className="text-xs font-medium text-emerald-900 mb-2">Features Ativas:</p>
+                            <p className="text-xs font-medium text-emerald-900 mb-2">
+                              Features Opcionais Ativas ({features.filter(f => !CORE_FEATURES.includes(f as any)).length}):
+                            </p>
                             <div className="flex flex-wrap gap-2">
-                              {features.map((feature, idx) => (
-                                <Badge
-                                  key={idx}
-                                  className="bg-emerald-600 text-white hover:bg-emerald-700 pr-1"
-                                >
-                                  {feature}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveFeature(feature)}
-                                    className="ml-2 hover:text-danger/20"
+                              {features
+                                .filter(f => !CORE_FEATURES.includes(f as any))
+                                .map((feature, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    className="bg-emerald-600 text-white hover:bg-emerald-700 pr-1"
                                   >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </Badge>
-                              ))}
+                                    {feature}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveFeature(feature)}
+                                      className="ml-2 hover:text-danger/20"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
                             </div>
                           </div>
                         )}
 
-                        {/* Features sugeridas (disponíveis para adicionar) */}
+                        {/* Features OPCIONAIS disponíveis (excluindo core features) */}
                         <div className="space-y-2">
-                          <p className="text-xs font-medium text-slate-600">Clique para adicionar:</p>
+                          <p className="text-xs font-medium text-slate-600">
+                            Features opcionais disponíveis ({AVAILABLE_FEATURES.filter(f => !features.includes(f) && !CORE_FEATURES.includes(f as any)).length}) - clique para adicionar:
+                          </p>
                           <div className="flex flex-wrap gap-2 p-3 bg-primary/5 rounded-md border border-primary/30 max-h-48 overflow-y-auto">
-                            {AVAILABLE_FEATURES.filter(f => !features.includes(f)).map((feature, idx) => (
+                            {AVAILABLE_FEATURES.filter(
+                              f => !features.includes(f) && !CORE_FEATURES.includes(f as any)
+                            ).map((feature, idx) => (
                               <Badge
                                 key={idx}
                                 variant="outline"

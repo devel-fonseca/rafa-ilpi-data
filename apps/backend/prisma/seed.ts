@@ -7,6 +7,14 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Seed Plans
+  // ⚠️ IMPORTANTE: Planos vêm apenas com features CORE
+  // Features opcionais devem ser adicionadas via SuperAdmin Portal
+  const coreFeaturesOnly = {
+    residentes: true,
+    usuarios: true,
+    prontuario: true,
+  };
+
   const plans = [
     {
       name: "free",
@@ -17,17 +25,7 @@ async function main() {
       price: 0,
       trialDays: 0,
       isPopular: false,
-      features: {
-        residentes: true,
-        registrosDiarios: true,
-        medicacoes: true,
-        contratos: false,
-        escalas: false,
-        financeiro: false,
-        relatoriosAnvisa: false,
-        rh: false,
-        suporte24h: false,
-      },
+      features: coreFeaturesOnly,
     },
     {
       name: "basico",
@@ -38,17 +36,7 @@ async function main() {
       price: 299,
       trialDays: 7,
       isPopular: true,
-      features: {
-        residentes: true,
-        registrosDiarios: true,
-        medicacoes: true,
-        contratos: true,
-        escalas: true,
-        financeiro: false,
-        relatoriosAnvisa: false,
-        rh: false,
-        suporte24h: false,
-      },
+      features: coreFeaturesOnly,
     },
     {
       name: "profissional",
@@ -59,17 +47,7 @@ async function main() {
       price: 499,
       trialDays: 14,
       isPopular: false,
-      features: {
-        residentes: true,
-        registrosDiarios: true,
-        medicacoes: true,
-        contratos: true,
-        escalas: true,
-        financeiro: true,
-        relatoriosAnvisa: true,
-        rh: false,
-        suporte24h: false,
-      },
+      features: coreFeaturesOnly,
     },
     {
       name: "enterprise",
@@ -80,17 +58,7 @@ async function main() {
       price: null,
       trialDays: 0,
       isPopular: false,
-      features: {
-        residentes: true,
-        registrosDiarios: true,
-        medicacoes: true,
-        contratos: true,
-        escalas: true,
-        financeiro: true,
-        relatoriosAnvisa: true,
-        rh: true,
-        suporte24h: true,
-      },
+      features: coreFeaturesOnly,
     },
   ];
 

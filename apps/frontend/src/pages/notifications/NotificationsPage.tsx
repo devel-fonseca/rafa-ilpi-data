@@ -2,22 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  Bell,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  FileText,
-  HeartPulse,
-  Pill,
-  Filter,
-  Search,
-  CheckCheck,
-  X,
-  Calendar,
-  Loader2,
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Bell, Search, CheckCheck, X, Loader2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -46,55 +32,12 @@ import {
 } from '@/design-system/tokens/colors'
 import { MissedEventActionsModal } from '@/components/resident-schedule/MissedEventActionsModal'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
-
-const CATEGORY_CONFIG = {
-  [NotificationCategory.PRESCRIPTION]: {
-    label: 'Prescrições',
-    icon: Pill,
-  },
-  [NotificationCategory.VITAL_SIGN]: {
-    label: 'Sinais Vitais',
-    icon: HeartPulse,
-  },
-  [NotificationCategory.DOCUMENT]: {
-    label: 'Documentos',
-    icon: FileText,
-  },
-  [NotificationCategory.MEDICATION]: {
-    label: 'Medicação',
-    icon: Pill,
-  },
-  [NotificationCategory.DAILY_RECORD]: {
-    label: 'Registros',
-    icon: FileText,
-  },
-  [NotificationCategory.SCHEDULED_EVENT]: {
-    label: 'Agendamentos',
-    icon: Calendar,
-  },
-  [NotificationCategory.INSTITUTIONAL_EVENT]: {
-    label: 'Eventos Institucionais',
-    icon: Calendar,
-  },
-  [NotificationCategory.SYSTEM]: {
-    label: 'Sistema',
-    icon: Info,
-  },
-}
-
-const SEVERITY_ICONS = {
-  [NotificationSeverity.CRITICAL]: AlertTriangle,
-  [NotificationSeverity.WARNING]: AlertTriangle,
-  [NotificationSeverity.INFO]: Info,
-  [NotificationSeverity.SUCCESS]: CheckCircle2,
-}
-
-const SEVERITY_LABELS = {
-  [NotificationSeverity.CRITICAL]: 'Crítico',
-  [NotificationSeverity.WARNING]: 'Aviso',
-  [NotificationSeverity.INFO]: 'Info',
-  [NotificationSeverity.SUCCESS]: 'Sucesso',
-}
+import {
+  NOTIFICATION_CATEGORY_CONFIG,
+  getCategoryConfig,
+  getSeverityIcon,
+  getSeverityLabel,
+} from '@/config/notifications.config'
 
 export function NotificationsPage() {
   const navigate = useNavigate()
@@ -186,7 +129,7 @@ export function NotificationsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
+                {Object.entries(NOTIFICATION_CATEGORY_CONFIG).map(([key, config]) => (
                   <SelectItem key={key} value={key}>
                     {config.label}
                   </SelectItem>
@@ -203,9 +146,9 @@ export function NotificationsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as severidades</SelectItem>
-                {Object.entries(SEVERITY_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
+                {Object.values(NotificationSeverity).map((severity) => (
+                  <SelectItem key={severity} value={severity}>
+                    {getSeverityLabel(severity)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -243,11 +186,11 @@ export function NotificationsPage() {
             <>
               <div className="space-y-3">
                 {notifications.map((notification) => {
-                  const categoryConfig = CATEGORY_CONFIG[notification.category]
+                  const categoryConfig = getCategoryConfig(notification.category)
                   const severityColors = getNotificationSeverityColors(notification.severity)
                   const categoryColors = getNotificationCategoryConfig(notification.category as any)
                   const CategoryIcon = categoryConfig.icon
-                  const SeverityIcon = SEVERITY_ICONS[notification.severity]
+                  const SeverityIcon = getSeverityIcon(notification.severity)
 
                   const relativeTime = formatDistanceToNow(
                     new Date(notification.createdAt),
@@ -283,7 +226,7 @@ export function NotificationsPage() {
                                 <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                               )}
                               <Badge variant="outline" className="text-xs">
-                                {SEVERITY_LABELS[notification.severity]}
+                                {getSeverityLabel(notification.severity)}
                               </Badge>
                               <Badge variant="secondary" className="text-xs">
                                 {categoryConfig.label}

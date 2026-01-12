@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '../services/api'
+import { useFeaturesStore } from './features.store'
 
 export interface User {
   id: string
@@ -226,6 +227,10 @@ export const useAuthStore = create<AuthState>()(
           // Isso garante que dados do usuário anterior não apareçam
           if (typeof window !== 'undefined') {
             console.log('🧹 Auth Store - Limpando cache no logout...')
+
+            // Limpar features store
+            useFeaturesStore.getState().clearFeatures()
+
             // Limpar cache do React Query
             if (window.queryClient) {
               console.log('🧹 Limpando React Query cache...')

@@ -2,6 +2,7 @@ import { PlanStatusSection } from '@/components/admin/PlanStatusSection'
 import { TrialAlert } from '@/components/billing/TrialAlert'
 import { PaymentMethodSelector } from '@/components/billing/PaymentMethodSelector'
 import { SubscriptionChangeHistory } from '@/components/billing/SubscriptionChangeHistory'
+import { PlanFeaturesCard } from '@/components/billing/PlanFeaturesCard'
 import { useMySubscription } from '@/hooks/useTenant'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +39,9 @@ export function CurrentPlanTab() {
         <h2 className="text-lg font-semibold text-foreground mb-4">Seu Plano Atual</h2>
         <PlanStatusSection showManageButton={false} />
       </div>
+
+      {/* Features do Plano */}
+      <PlanFeaturesCard />
 
       {/* Método de Pagamento */}
       <Card className="bg-card border-border">

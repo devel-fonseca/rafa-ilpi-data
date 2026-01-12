@@ -19,72 +19,115 @@
  */
 export const FEATURES_MAP: Record<string, string> = {
   // ═══════════════════════════════════════════════════════════════
-  // CHAVES ANTIGAS (compatibilidade retroativa com banco de dados)
+  // CHAVES TÉCNICAS (snake_case) → Labels Humanizados
   // ═══════════════════════════════════════════════════════════════
+
+  // Core (sempre habilitadas)
   'residentes': 'Gestão de residentes',
   'usuarios': 'Gestão de usuários',
   'prontuario': 'Prontuário eletrônico',
-  'medicacoes': 'Controle de medicamentos',
+
+  // Módulos clínicos
+  'medicacoes': 'Prescrições e medicamentos',
   'sinais_vitais': 'Sinais vitais',
-  'alertas': 'Alertas e notificações',
-  'relatorios': 'Relatórios e dashboards',
-  'quartos': 'Gestão de quartos/leitos',
-  'financeiro': 'Controle financeiro',
-  'whatsapp': 'Integração com WhatsApp',
-  'versoes': 'Histórico de versões',
-  'backup': 'Backup automático',
-  'suporte': 'Suporte prioritário',
-  'treinamento': 'Treinamento incluído',
+  'registros_diarios': 'Registros diários',
+
+  // Conformidade regulatória
+  'conformidade': 'Hub de conformidade',
+  'eventos_sentinela': 'Eventos sentinela',
+  'documentos_institucionais': 'Documentos institucionais',
+
+  // Gestão e operações
+  'agenda': 'Agenda de atividades',
+  'quartos': 'Gestão de leitos',
+  'mapa_leitos': 'Mapa de leitos',
+  'pops': 'POPs (Procedimentos Operacionais Padrão)',
+
+  // Comunicação
+  'mensagens': 'Mensagens internas',
+  'alertas': 'Notificações automáticas',
 
   // ═══════════════════════════════════════════════════════════════
-  // LABELS MODERNOS (mapeamento idempotente)
+  // LABELS HUMANIZADOS (mapeamento idempotente)
   // ═══════════════════════════════════════════════════════════════
+
+  // Core
   'Gestão de residentes': 'Gestão de residentes',
   'Gestão de usuários': 'Gestão de usuários',
   'Prontuário eletrônico': 'Prontuário eletrônico',
-  'Controle de medicamentos': 'Controle de medicamentos',
+
+  // Clínicos
+  'Prescrições e medicamentos': 'Prescrições e medicamentos',
   'Sinais vitais': 'Sinais vitais',
-  'Alertas e notificações': 'Alertas e notificações',
-  'Relatórios e dashboards': 'Relatórios e dashboards',
-  'Gestão de quartos/leitos': 'Gestão de quartos/leitos',
-  'Controle financeiro': 'Controle financeiro',
-  'Integração com WhatsApp': 'Integração com WhatsApp',
-  'Histórico de versões': 'Histórico de versões',
-  'Backup automático': 'Backup automático',
-  'Suporte prioritário': 'Suporte prioritário',
-  'Treinamento incluído': 'Treinamento incluído',
+  'Registros diários': 'Registros diários',
+
+  // Conformidade
+  'Hub de conformidade': 'Hub de conformidade',
+  'Eventos sentinela': 'Eventos sentinela',
+  'Documentos institucionais': 'Documentos institucionais',
+
+  // Operações
+  'Agenda de atividades': 'Agenda de atividades',
+  'Gestão de leitos': 'Gestão de leitos',
+  'Mapa de leitos': 'Mapa de leitos',
+  'POPs (Procedimentos Operacionais Padrão)': 'POPs (Procedimentos Operacionais Padrão)',
+
+  // Comunicação
+  'Mensagens internas': 'Mensagens internas',
+  'Notificações automáticas': 'Notificações automáticas',
 }
+
+/**
+ * Features FIXAS - sempre habilitadas em TODOS os planos (não podem ser removidas)
+ * Estas são as funcionalidades core do sistema
+ */
+export const CORE_FEATURES = [
+  'Gestão de residentes',
+  'Gestão de usuários',
+  'Prontuário eletrônico',
+] as const
 
 /**
  * Lista de features disponíveis (labels humanizados) para seleção
  * Ordenadas por categoria e relevância
+ *
+ * ⚠️ IMPORTANTE: Incluir APENAS features que realmente existem no sistema
  */
 export const AVAILABLE_FEATURES = [
-  // Core features
+  // ═══════════════════════════════════════════════════════════════
+  // CORE (sempre habilitadas - não aparecem como opcionais)
+  // ═══════════════════════════════════════════════════════════════
   'Gestão de residentes',
   'Gestão de usuários',
   'Prontuário eletrônico',
 
-  // Módulos clínicos
-  'Controle de medicamentos',
+  // ═══════════════════════════════════════════════════════════════
+  // MÓDULOS CLÍNICOS
+  // ═══════════════════════════════════════════════════════════════
+  'Prescrições e medicamentos',
   'Sinais vitais',
+  'Registros diários',
 
-  // Gestão e operações
-  'Gestão de quartos/leitos',
-  'Controle financeiro',
-  'Relatórios e dashboards',
+  // ═══════════════════════════════════════════════════════════════
+  // CONFORMIDADE REGULATÓRIA (RDC 502/2021)
+  // ═══════════════════════════════════════════════════════════════
+  'Hub de conformidade',
+  'Eventos sentinela',
+  'Documentos institucionais',
 
-  // Comunicação e alertas
-  'Alertas e notificações',
-  'Integração com WhatsApp',
+  // ═══════════════════════════════════════════════════════════════
+  // GESTÃO E OPERAÇÕES
+  // ═══════════════════════════════════════════════════════════════
+  'Agenda de atividades',
+  'Gestão de leitos',
+  'Mapa de leitos',
+  'POPs (Procedimentos Operacionais Padrão)',
 
-  // Recursos avançados
-  'Histórico de versões',
-  'Backup automático',
-
-  // Suporte
-  'Suporte prioritário',
-  'Treinamento incluído',
+  // ═══════════════════════════════════════════════════════════════
+  // COMUNICAÇÃO
+  // ═══════════════════════════════════════════════════════════════
+  'Mensagens internas',
+  'Notificações automáticas',
 ] as const
 
 /**

@@ -6,6 +6,131 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-12] - Sistema de Feature Gating por Plano de Assinatura 🔐
+
+### ✨ Adicionado
+
+**BACKEND - Feature Gating:**
+
+- **`FeatureGuard`** (`src/common/guards/feature.guard.ts`) - Guard do NestJS que valida se tenant tem acesso à feature antes de executar rota
+- **`@RequireFeatures` decorator** (`src/common/decorators/require-features.decorator.ts`) - Decorator para marcar rotas que exigem features específicas
+- **`GET /tenants/me/features`** - Endpoint que retorna features habilitadas no plano do tenant logado
+- **Trial Access:** Tenants em trial têm acesso COMPLETO a todas features durante período de teste
+- **SUPERADMIN Bypass:** SUPERADMIN (tenantId = null) tem acesso ilimitado sem validação
+
+**FRONTEND - Feature Gating:**
+
+- **`features.store.ts`** - Zustand store que mantém estado global das features do tenant com persistência em localStorage
+- **`useFeatures` hook** - Hook que expõe features store e carrega features automaticamente no mount
+- **`<FeatureGate>` component** - Componente que renderiza children apenas se feature está habilitada, mostra upgrade card se bloqueada
+- **`<UpgradePlanCard>` component** - Card de upgrade com CTA para `/settings/billing` quando feature está bloqueada
+- **`<PlanFeaturesCard>` component** - Card que exibe features incluídas/não incluídas no plano atual (billing page)
+
+**FEATURE MANAGEMENT:**
+
+- **`FEATURES_MAP`** (`constants/features.ts`) - Single Source of Truth com mapeamento bidirecional (snake_case ↔ labels humanizados)
+- **`CORE_FEATURES`** - 3 features fixas sempre habilitadas: Gestão de residentes, Gestão de usuários, Prontuário eletrônico
+- **`AVAILABLE_FEATURES`** - 13 features opcionais organizadas por categoria (Clínicos, Conformidade, Operações, Comunicação)
+- **SuperAdmin Plan Editor** - Interface visual para adicionar/remover features dos planos com 3 seções (Core/Ativas/Disponíveis)
+
+### 🔧 Alterado
+
+**ROTAS PROTEGIDAS (Frontend):**
+
+- `/dashboard/registros-diarios/*` → protegida com `<FeatureGate featureKey="registros_diarios">`
+- `/dashboard/agenda` → protegida com `<FeatureGate featureKey="agenda">`
+- `/dashboard/conformidade/*` → protegida com `<FeatureGate featureKey="conformidade">`
+- `/dashboard/conformidade/eventos-sentinela` → requer `eventos_sentinela`
+- `/dashboard/conformidade/documentos/*` → requer `documentos_institucionais`
+- `/dashboard/mensagens/*` → protegida com `<FeatureGate featureKey="mensagens">`
+- `/dashboard/pops/*` → protegida com `<FeatureGate featureKey="pops">`
+- `/dashboard/beds/structure` → protegida com `<FeatureGate featureKey="quartos">` (estrutura física)
+- `/dashboard/beds/map` → protegida com `<FeatureGate featureKey="mapa_leitos">` (ocupação)
+
+**CONTROLLERS PROTEGIDOS (Backend):**
+
+- `MessagesController` - endpoints protegidos com `@RequireFeatures('mensagens')`
+- `ResidentScheduleController` - endpoints protegidos com `@RequireFeatures('agenda')`
+- `ComplianceController` - rotas de eventos sentinela requerem `'conformidade', 'eventos_sentinela'`
+- `TenantController` - novo endpoint `/tenants/me/features` retorna features do plano
+
+**SIDEBAR STRATEGY (Discovery-Led Growth):**
+
+- Features aparecem no sidebar mesmo quando bloqueadas (se usuário tem permissão)
+- Validação de feature acontece na rota (via `<FeatureGate>`)
+- Usuário descobre valor da feature ao clicar e ver upgrade card
+- **Sem badges "PRO"** - abordagem minimalista sem indicadores visuais
+
+**SEED DATABASE:**
+
+- Planos agora são criados apenas com features CORE (residentes, usuarios, prontuario)
+- Features opcionais devem ser adicionadas via SuperAdmin Portal
+- Simplificação do seed - não precisa atualizar a cada nova feature
+
+**BILLING PAGE:**
+
+- Tab "Plano Atual" agora exibe card com features incluídas/não incluídas
+- Visualização clara do que está habilitado no plano
+
+### 📝 Documentação
+
+- **`docs/modules/feature-gating.md`** (267 linhas) - Documentação completa do sistema:
+  - Arquitetura (guards, stores, components)
+  - Fluxo de validação backend/frontend
+  - Casos especiais (SUPERADMIN, Trial, Subscription expirada)
+  - Boas práticas e troubleshooting
+  - Roadmap de melhorias futuras
+
+- **`docs/modules/compliance.md`** - Documentação do módulo de conformidade
+- **`docs/modules/messages.md`** - Documentação do sistema de mensagens
+- **`docs/modules/schedule.md`** - Documentação da agenda
+- **`docs/modules/daily-records.md`** - Atualizado com eventos sentinela
+- **`docs/modules/notifications.md`** - Atualizado
+
+### 🎯 Features Disponíveis no Sistema
+
+**Core (sempre habilitadas):**
+- Gestão de residentes
+- Gestão de usuários
+- Prontuário eletrônico
+
+**Clínicos:**
+- Prescrições e medicamentos
+- Sinais vitais
+- Registros diários
+
+**Conformidade Regulatória (RDC 502/2021):**
+- Hub de conformidade
+- Eventos sentinela
+- Documentos institucionais
+
+**Gestão e Operações:**
+- Agenda de atividades
+- Gestão de leitos (estrutura física)
+- Mapa de leitos (visualização de ocupação)
+- POPs (Procedimentos Operacionais Padrão)
+
+**Comunicação:**
+- Mensagens internas
+- Notificações automáticas
+
+### 📊 Estatísticas
+
+- **Arquivos criados:** 8 (guards, stores, components, hooks)
+- **Arquivos modificados:** 15+ (rotas, controllers, layouts, pages)
+- **Documentação:** 1 novo módulo (feature-gating.md) + 4 atualizados
+- **Rotas protegidas:** 10+ rotas principais
+- **Controllers protegidos:** 4 controllers com feature validation
+
+### 🔐 Segurança
+
+- **Validação dupla:** Frontend (UX) + Backend (segurança)
+- **Imutabilidade:** Features CORE não podem ser removidas
+- **Trial safety:** Acesso completo durante trial para conversão
+- **SUPERADMIN bypass:** Acesso total para administração
+
+---
+
 ## [2026-01-10] - Refatoração Arquitetural: Event-Driven & Desacoplamento de Módulos RDC 🏗️
 
 ### 🔧 Alterado (BREAKING CHANGES)

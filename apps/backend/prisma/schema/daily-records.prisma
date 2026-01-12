@@ -20,17 +20,17 @@ model DailyRecord {
   // ─────────────────────────────────────────────────────────────
   // CAMPOS PARA INTERCORRÊNCIAS E RDC 502/2021 (opcionais)
   // ─────────────────────────────────────────────────────────────
-  incidentCategory          IncidentCategory?
-  incidentSubtypeClinical   IncidentSubtypeClinical?
-  incidentSubtypeAssist     IncidentSubtypeAssistencial?
-  incidentSubtypeAdmin      IncidentSubtypeAdministrativa?
-  incidentSeverity          IncidentSeverity?
-  isEventoSentinela         Boolean                      @default(false)
-  isDoencaNotificavel       Boolean                      @default(false)
-  rdcIndicators             Json                         @default("[]") // Array de RdcIndicatorType
-  notificadoVigilancia      Boolean                      @default(false)
-  dataNotificacao           DateTime?                    @db.Timestamptz(3)
-  protocoloNotificacao      String?                      @db.VarChar(100)
+  incidentCategory        IncidentCategory?
+  incidentSubtypeClinical IncidentSubtypeClinical?
+  incidentSubtypeAssist   IncidentSubtypeAssistencial?
+  incidentSubtypeAdmin    IncidentSubtypeAdministrativa?
+  incidentSeverity        IncidentSeverity?
+  isEventoSentinela       Boolean                        @default(false)
+  isDoencaNotificavel     Boolean                        @default(false)
+  rdcIndicators           Json                           @default("[]") // Array de RdcIndicatorType
+  notificadoVigilancia    Boolean                        @default(false)
+  dataNotificacao         DateTime?                      @db.Timestamptz(3)
+  protocoloNotificacao    String?                        @db.VarChar(100)
 
   // Responsável pelo registro
   recordedBy String // Nome do profissional
@@ -229,11 +229,11 @@ model IncidentMonthlyIndicator {
 
   indicatorType RdcIndicatorType
 
-  numerator   Int   // Casos identificados
-  denominator Int   // Total de residentes (média do mês)
+  numerator   Int // Casos identificados
+  denominator Int // Total de residentes (média do mês)
   rate        Float // Taxa calculada (numerator/denominator * 100)
 
-  incidentIds Json @default("[]") // Array de UUIDs
+  incidentIds Json  @default("[]") // Array de UUIDs
   metadata    Json? @db.JsonB
 
   calculatedAt DateTime @default(now()) @db.Timestamptz(3)

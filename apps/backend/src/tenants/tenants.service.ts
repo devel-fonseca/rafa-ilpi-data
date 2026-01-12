@@ -932,4 +932,74 @@ export class TenantsService {
       tenantStatus: tenant?.status || 'TRIAL',
     };
   }
+
+  /**
+   * Busca features disponíveis no plano do tenant
+   * SUPERADMIN (tenantId = null) recebe todas as features
+   */
+  async getMyFeatures(tenantId: string | null, userId: string) {
+    // SUPERADMIN tem acesso a todas as features
+    if (!tenantId) {
+      // Retornar todas as features como true
+      const allFeatures: Record<string, boolean> = {
+        // Core (sempre habilitadas)
+        residentes: true,
+        usuarios: true,
+        prontuario: true,
+        // Módulos clínicos
+        medicacoes: true,
+        sinais_vitais: true,
+        registros_diarios: true,
+        eventos_sentinela: true,
+        // Gestão e operações
+        quartos: true,
+        financeiro: true,
+        relatorios: true,
+        agenda: true,
+        documentos_institucionais: true,
+        // Comunicação
+        alertas: true,
+        mensagens: true,
+        whatsapp: true,
+        // Conformidade
+        conformidade: true,
+        // Recursos avançados
+        versoes: true,
+        backup: true,
+      };
+
+      return {
+        plan: 'SUPERADMIN',
+        planType: 'SUPERADMIN',
+        features: allFeatures,
+      };
+    }
+
+    // Buscar subscription ativa do tenant
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        tenantId,
+        status: {
+          in: ['active', 'trialing', 'ACTIVE', 'TRIAL'],
+        },
+      },
+      include: {
+        plan: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Nenhuma assinatura ativa encontrada');
+    }
+
+    return {
+      plan: subscription.plan.displayName || subscription.plan.name,
+      planType: subscription.plan.type,
+      features: subscription.plan.features as Record<string, boolean>,
+      subscriptionStatus: subscription.status,
+    };
+  }
 }

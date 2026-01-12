@@ -40,11 +40,14 @@ import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Resident Schedule')
 @ApiBearerAuth()
 @Controller('resident-schedule')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('agenda')
 @AuditEntity('RESIDENT_SCHEDULE')
 export class ResidentScheduleController {
   constructor(
