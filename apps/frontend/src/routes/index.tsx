@@ -307,27 +307,41 @@ export const router = createBrowserRouter([
       },
       {
         path: 'prescricoes',
-        element: <PrescriptionsPage />,
-      },
-      {
-        path: 'prescricoes/list',
-        element: <PrescriptionsList />,
-      },
-      {
-        path: 'prescricoes/new',
-        element: <PrescriptionForm />,
-      },
-      {
-        path: 'prescricoes/:id',
-        element: <PrescriptionDetails />,
-      },
-      {
-        path: 'prescricoes/:id/edit',
-        element: <PrescriptionEdit />,
+        element: (
+          <FeatureGate featureKey="medicacoes">
+            <Outlet />
+          </FeatureGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <PrescriptionsPage />,
+          },
+          {
+            path: 'list',
+            element: <PrescriptionsList />,
+          },
+          {
+            path: 'new',
+            element: <PrescriptionForm />,
+          },
+          {
+            path: ':id',
+            element: <PrescriptionDetails />,
+          },
+          {
+            path: ':id/edit',
+            element: <PrescriptionEdit />,
+          },
+        ],
       },
       {
         path: 'medicacoes-ativas/:residentId',
-        element: <ActiveMedicationsPage />,
+        element: (
+          <FeatureGate featureKey="medicacoes">
+            <ActiveMedicationsPage />
+          </FeatureGate>
+        ),
       },
       {
         path: 'beds/structure',

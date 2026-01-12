@@ -23,8 +23,10 @@ import { AdministerSOSDto } from './dto/administer-sos.dto';
 import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
@@ -41,7 +43,8 @@ import {
 @ApiTags('Prescriptions')
 @ApiBearerAuth()
 @Controller('prescriptions')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('medicacoes')
 @AuditEntity('PRESCRIPTION')
 export class PrescriptionsController {
   constructor(private readonly prescriptionsService: PrescriptionsService) {}
