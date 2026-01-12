@@ -733,26 +733,52 @@ export default function ResidentProfile() {
                     Prescrições registradas para {resident.fullName}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/dashboard/residentes/${id}/medicacoes-calendario`)}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Ver Administrações
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate(`/dashboard/medicacoes-ativas/${id}`)}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Ver Ficha de Medicações
-                  </Button>
-                </div>
+                {hasFeature('medicacoes') && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/dashboard/residentes/${id}/medicacoes-calendario`)}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Ver Administrações
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/dashboard/medicacoes-ativas/${id}`)}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Ver Ficha de Medicações
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
-              {prescriptions.length > 0 ? (
+              {!hasFeature('medicacoes') ? (
+                <div className="flex flex-col items-center justify-center py-16 px-4 space-y-4">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                    <Lock className="h-8 w-8 text-amber-600 dark:text-amber-500" />
+                  </div>
+                  <div className="text-center space-y-2 max-w-md">
+                    <h3 className="text-lg font-semibold">Recurso Bloqueado</h3>
+                    <p className="text-sm text-muted-foreground">
+                      <strong className="text-foreground">Prescrições e medicamentos</strong> não está disponível no seu plano atual.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Gerencie prescrições médicas, controle de medicamentos contínuos e SOS, histórico de administrações, calendário de medicações e alertas de vencimento.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border max-w-md">
+                    <p className="text-xs text-muted-foreground text-center">
+                      💡 Faça upgrade do seu plano para desbloquear este e outros recursos avançados
+                    </p>
+                  </div>
+                  <Button onClick={() => navigate('/settings/billing')}>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Fazer Upgrade
+                  </Button>
+                </div>
+              ) : prescriptions.length > 0 ? (
                 <div className="space-y-4">
                   {prescriptions.map((prescription: any) => (
                     <div

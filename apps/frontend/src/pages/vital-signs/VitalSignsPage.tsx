@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { subDays, startOfDay, endOfDay, parseISO, format } from 'date-fns'
+import { subDays, startOfDay, endOfDay, parseISO } from 'date-fns'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { useResident } from '@/hooks/useResidents'
 import { Page, PageHeader } from '@/design-system/components'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,7 +20,6 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
-  ArrowLeft,
 } from 'lucide-react'
 import { VitalSignsCharts } from '@/components/vital-signs/VitalSignsCharts'
 import { VitalSignsTable } from '@/components/vital-signs/VitalSignsTable'
@@ -59,7 +57,7 @@ export function VitalSignsPage() {
   }
 
   // Buscar dados de sinais vitais
-  const { data: vitalSigns, isLoading } = useQuery({
+  const { data: vitalSigns } = useQuery({
     queryKey: ['vital-signs', residentId, selectedPeriod],
     queryFn: async () => {
       const { startDate, endDate } = getDateRange()
@@ -237,7 +235,7 @@ export function VitalSignsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
-                  {stats.trend.includes('aumento') && <TrendingUp className="h-5 w-5 text-orange-500" />}
+                  {stats.trend.includes('aumento') && <TrendingUp className="h-5 w-5 text-warning" />}
                   {stats.trend.includes('redução') && <TrendingDown className="h-5 w-5 text-success" />}
                   {stats.trend === 'Estável' && <Activity className="h-5 w-5 text-primary" />}
                   <span className="text-sm font-medium">{stats.trend}</span>
