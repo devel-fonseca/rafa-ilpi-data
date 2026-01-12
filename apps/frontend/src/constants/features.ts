@@ -34,6 +34,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Conformidade regulatória
   'conformidade': 'Hub de conformidade',
+  'indicadores_mensais': 'Indicadores mensais obrigatórios',
   'eventos_sentinela': 'Eventos sentinela',
   'documentos_institucionais': 'Documentos institucionais',
 
@@ -63,6 +64,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Conformidade
   'Hub de conformidade': 'Hub de conformidade',
+  'Indicadores mensais obrigatórios': 'Indicadores mensais obrigatórios',
   'Eventos sentinela': 'Eventos sentinela',
   'Documentos institucionais': 'Documentos institucionais',
 
@@ -85,6 +87,7 @@ export const CORE_FEATURES = [
   'Gestão de residentes',
   'Gestão de usuários',
   'Prontuário eletrônico',
+  'Hub de conformidade',
 ] as const
 
 /**
@@ -100,6 +103,7 @@ export const AVAILABLE_FEATURES = [
   'Gestão de residentes',
   'Gestão de usuários',
   'Prontuário eletrônico',
+  'Hub de conformidade',
 
   // ═══════════════════════════════════════════════════════════════
   // MÓDULOS CLÍNICOS
@@ -111,7 +115,7 @@ export const AVAILABLE_FEATURES = [
   // ═══════════════════════════════════════════════════════════════
   // CONFORMIDADE REGULATÓRIA (RDC 502/2021)
   // ═══════════════════════════════════════════════════════════════
-  'Hub de conformidade',
+  'Indicadores mensais obrigatórios',
   'Eventos sentinela',
   'Documentos institucionais',
 

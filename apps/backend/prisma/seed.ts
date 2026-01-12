@@ -13,6 +13,7 @@ async function main() {
     residentes: true,
     usuarios: true,
     prontuario: true,
+    conformidade: true,
   };
 
   const plans = [

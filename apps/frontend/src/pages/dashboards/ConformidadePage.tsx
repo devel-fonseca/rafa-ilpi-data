@@ -86,7 +86,7 @@ export function ConformidadePage() {
           className="hover:shadow-lg transition-shadow cursor-pointer"
           onClick={() =>
             handleCardClick(
-              'conformidade',
+              'indicadores_mensais',
               '/dashboard/conformidade/indicadores-mensais',
               'Indicadores Mensais Obrigatórios',
               'Indicadores RDC 502/2021 (ANVISA): mortalidade, doenças, úlceras e desnutrição.'
