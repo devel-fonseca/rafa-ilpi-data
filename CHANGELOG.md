@@ -6,6 +6,69 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-13] - Digitalização de Contratos de Prestação de Serviços 📄
+
+### ✨ Adicionado
+
+**BACKEND - Módulo de Contratos:**
+
+- **`ResidentContractsModule`** - Módulo completo para digitalização de contratos físicos entre ILPI e residentes
+- **`FileProcessingService`** - Serviço de processamento de arquivos com conversão imagem→PDF e carimbo institucional
+  - Conversão automática de JPEG/PNG/WEBP para PDF A4
+  - Preservação de qualidade original (sem redimensionamento forçado)
+  - Carimbo institucional em rodapé (dados ILPI, validador, hash SHA-256, token público)
+  - Escalonamento inteligente com margens seguras (40pt topo, 40pt laterais, 90pt rodapé)
+- **`ResidentContractsService`** - Lógica de negócio para CRUD, versionamento e validação
+- **Upload dual:** Arquivo original + PDF processado com criptografia SSE-C
+- **Metadados completos:** Número contrato, vigência, valor mensalidade, dia vencimento, assinantes
+- **Status automático:** VIGENTE, VENCENDO_EM_30_DIAS, VENCIDO (calculado por `endDate`)
+- **Versionamento:** Substituição de contratos com histórico auditado (`ContractHistory`)
+- **Validação pública:** Endpoint sem autenticação para verificar autenticidade por hash SHA-256
+- **6 novas permissões:** `VIEW_CONTRACTS`, `CREATE_CONTRACTS`, `UPDATE_CONTRACTS`, `REPLACE_CONTRACTS`, `DELETE_CONTRACTS`, `VALIDATE_CONTRACTS`
+
+**DATABASE - Schema Prisma:**
+
+- **`ResidentContract` model** - Contratos com arquivo original + processado, metadados e versionamento
+- **`ContractHistory` model** - Histórico de alterações com snapshots completos
+- **3 novos enums:** `ContractDocumentStatus`, `ContractHistoryAction`, `SignatoryRole`
+- **Índices otimizados:** Por tenant, residente, status, hash (validação pública)
+- **Migration:** `20260113111215_add_resident_contracts_digitalization`
+
+**DEPENDÊNCIAS:**
+
+- **pdf-lib** - Manipulação de PDFs (criação, incorporação de imagens, adição de texto)
+- **sharp** - Processamento de imagens (conversão PNG, otimização, metadata)
+
+### 🔧 Corrigido
+
+**FileProcessingService - Limitação do pdf-lib:**
+
+- **Problema:** Após `pdfDoc.save()`, o documento fica "congelado" e não aceita mais modificações
+- **Solução:** Recarregar PDF com `PDFDocument.load(pdfBytes)` antes de adicionar carimbo
+- **Afeta:** `processImage()`, `processPdf()`, `rebuildPdfFromImages()`
+
+**Qualidade de Imagem:**
+
+- **Problema inicial:** Imagens sendo redimensionadas agressivamente (500x700px), causando perda de qualidade
+- **Iteração 1:** Aumentado para 1654x2339px (A4 em 200 DPI), ainda com cortes nas bordas
+- **Iteração 2:** Aumentado para 2480x3508px (A4 em 300 DPI), problema de cortes persistiu
+- **Solução final:** Removido redimensionamento forçado, apenas conversão PNG com qualidade 100%
+  - Preserva resolução original
+  - Escalonamento feito dinamicamente no PDF para caber na área útil (515x712pt)
+  - Margens seguras: 40pt topo, 40pt laterais, 90pt rodapé (espaço para carimbo)
+
+**Posicionamento do Carimbo:**
+
+- **Problema:** Carimbo sobrepondo conteúdo da imagem
+- **Solução:** Reservar 90pt no rodapé, posicionar carimbo em y=50pt, alinhar imagem ao topo com offset
+- **Resultado:** Carimbo sempre visível sem sobrepor conteúdo original
+
+### 📝 Documentação
+
+- **`docs/modules/resident-contracts.md`** - Documentação completa do módulo (arquitetura, endpoints, regras de negócio, limitações técnicas)
+
+---
+
 ## [2026-01-12] - Sistema de Feature Gating por Plano de Assinatura 🔐
 
 ### ✨ Adicionado
