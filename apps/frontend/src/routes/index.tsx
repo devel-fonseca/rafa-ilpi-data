@@ -108,6 +108,11 @@ import { BillingPage } from '@/pages/settings/BillingPage'
 // Onboarding Pages
 import { OnboardingWizard } from '@/pages/onboarding/OnboardingWizard'
 
+// Contracts Pages
+import ResidentContractsList from '@/pages/contracts/ResidentContractsList'
+import ResidentContractUpload from '@/pages/contracts/ResidentContractUpload'
+import ResidentContractView from '@/pages/contracts/ResidentContractView'
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -464,6 +469,38 @@ export const router = createBrowserRouter([
       {
         path: 'settings/billing',
         element: <BillingPage />,
+      },
+      {
+        path: 'contratos',
+        element: (
+          <FeatureGate featureKey="contratos">
+            <ProtectedRoute
+              requiredPermissions={[PermissionType.VIEW_CONTRACTS]}
+            >
+              <Outlet />
+            </ProtectedRoute>
+          </FeatureGate>
+        ),
+        children: [
+          {
+            index: true,
+            element: <ResidentContractsList />,
+          },
+          {
+            path: 'novo',
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.CREATE_CONTRACTS]}
+              >
+                <ResidentContractUpload />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: ':residentId/:contractId',
+            element: <ResidentContractView />,
+          },
+        ],
       },
     ],
   },

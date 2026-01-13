@@ -45,6 +45,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'quartos': 'Gestão de leitos',
   'mapa_leitos': 'Mapa de leitos',
   'pops': 'POPs (Procedimentos Operacionais Padrão)',
+  'contratos': 'Contratos do residente',
 
   // Comunicação
   'mensagens': 'Mensagens internas',
@@ -76,6 +77,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'Gestão de leitos': 'Gestão de leitos',
   'Mapa de leitos': 'Mapa de leitos',
   'POPs (Procedimentos Operacionais Padrão)': 'POPs (Procedimentos Operacionais Padrão)',
+  'Contratos do residente': 'Contratos do residente',
 
   // Comunicação
   'Mensagens internas': 'Mensagens internas',
@@ -131,6 +133,7 @@ export const AVAILABLE_FEATURES = [
   'Gestão de leitos',
   'Mapa de leitos',
   'POPs (Procedimentos Operacionais Padrão)',
+  'Contratos do residente',
 
   // ═══════════════════════════════════════════════════════════════
   // COMUNICAÇÃO
