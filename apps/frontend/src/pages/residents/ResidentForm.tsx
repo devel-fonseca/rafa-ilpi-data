@@ -128,8 +128,10 @@ const residentSchema = z.object({
     .refine((dateStr) => {
       if (!dateStr) return true; // Se vazio, a validação .min() captura
 
-      // Parse da data no formato YYYY-MM-DD (formato do input type="date")
-      const [year, month, day] = dateStr.split('-').map(Number);
+      // Parse da data no formato DD/MM/AAAA (formato do MaskedInput)
+      const [day, month, year] = dateStr.split('/').map(Number);
+      if (!day || !month || !year) return false; // Formato inválido
+
       const birthDate = new Date(year, month - 1, day); // mês é 0-indexed
       const today = new Date();
 
