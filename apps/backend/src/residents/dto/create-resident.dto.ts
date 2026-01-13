@@ -15,7 +15,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { IsDateOnly } from '../../common/validators/date.validators';
+import { IsDateOnly, IsMinimumAge } from '../../common/validators/date.validators';
 
 // Helper para transformar string vazia em undefined
 const EmptyToUndefined = () => Transform(({ value }) => value === '' ? undefined : value);
@@ -94,6 +94,12 @@ export class CreateResidentDto {
   @IsString()
   socialName?: string;
 
+  @ApiProperty({ example: 'joao@example.com', required: false })
+  @IsOptional()
+  @IsEmail()
+  @EmptyToUndefined()
+  email?: string;
+
   @ApiProperty({ example: '123.456.789-00' })
   @IsString()
   @IsNotEmpty()
@@ -142,6 +148,7 @@ export class CreateResidentDto {
 
   @ApiProperty({ example: '1950-01-15' })
   @IsDateOnly()
+  @IsMinimumAge()
   @IsNotEmpty()
   birthDate: string;
 
@@ -216,45 +223,10 @@ export class CreateResidentDto {
   @IsString()
   currentPhone?: string;
 
-  @ApiProperty({ example: '01234-567', required: false })
+  @ApiProperty({ example: 'Vindo da Clínica X', required: false })
   @IsOptional()
   @IsString()
-  originCep?: string;
-
-  @ApiProperty({ example: 'SP', required: false })
-  @IsOptional()
-  @IsString()
-  originState?: string;
-
-  @ApiProperty({ example: 'São Paulo', required: false })
-  @IsOptional()
-  @IsString()
-  originCity?: string;
-
-  @ApiProperty({ example: 'Rua das Palmeiras', required: false })
-  @IsOptional()
-  @IsString()
-  originStreet?: string;
-
-  @ApiProperty({ example: '456', required: false })
-  @IsOptional()
-  @IsString()
-  originNumber?: string;
-
-  @ApiProperty({ example: 'Casa', required: false })
-  @IsOptional()
-  @IsString()
-  originComplement?: string;
-
-  @ApiProperty({ example: 'Jardim', required: false })
-  @IsOptional()
-  @IsString()
-  originDistrict?: string;
-
-  @ApiProperty({ example: '(11) 2222-3333', required: false })
-  @IsOptional()
-  @IsString()
-  originPhone?: string;
+  origin?: string;
 
   // 3. Contatos de Emergência
   @ApiProperty({ type: [EmergencyContactDto] })
@@ -269,6 +241,12 @@ export class CreateResidentDto {
   @IsOptional()
   @IsString()
   legalGuardianName?: string;
+
+  @ApiProperty({ example: 'ana.silva@example.com', required: false })
+  @IsOptional()
+  @IsEmail()
+  @EmptyToUndefined()
+  legalGuardianEmail?: string;
 
   @ApiProperty({ example: '987.654.321-00', required: false })
   @IsOptional()

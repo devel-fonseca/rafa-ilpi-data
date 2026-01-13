@@ -14,6 +14,7 @@ model Resident {
   // 1 – Dados Pessoais
   fullName    String
   socialName  String?
+  email       String? // Email do residente
   cpf         String
   rg          String?
   rgIssuer    String?
@@ -42,15 +43,8 @@ model Resident {
   currentDistrict   String?
   currentPhone      String?
 
-  // Procedência
-  originCep        String?
-  originState      String?
-  originCity       String?
-  originStreet     String?
-  originNumber     String?
-  originComplement String?
-  originDistrict   String?
-  originPhone      String?
+  // Procedência (texto livre)
+  origin String? // Ex: "Vindo da Clínica X", "Diretamente da residência", "Indicação judicial"
 
   // 3 – Contatos de Emergência (array JSON)
   emergencyContacts Json @default("[]")
@@ -58,6 +52,7 @@ model Resident {
 
   // 4 – Responsável Legal
   legalGuardianName       String?
+  legalGuardianEmail      String? // Email do responsável legal
   legalGuardianCpf        String?
   legalGuardianRg         String?
   legalGuardianPhone      String?

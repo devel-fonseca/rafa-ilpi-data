@@ -1,56 +1,85 @@
-import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { useForm, Controller, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { ChevronDown, Plus, X, ArrowLeft, FileText, Edit, History } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Page, PageHeader } from '@/design-system/components'
-import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { PhotoViewer } from '@/components/form/PhotoViewer'
-import { MaskedInput } from '@/components/form/MaskedInput'
-import { FileUpload } from '@/components/form/FileUpload'
-import { validarCPF, getMensagemValidacaoCPF, getMensagemValidacaoCNS } from '@/utils/validators'
-import { buscarCEP } from '@/services/viacep'
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  ChevronDown,
+  Plus,
+  X,
+  ArrowLeft,
+  FileText,
+  Edit,
+  History,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Page, PageHeader } from "@/design-system/components";
+import { PhotoUploadNew } from "@/components/form/PhotoUploadNew";
+import { PhotoViewer } from "@/components/form/PhotoViewer";
+import { MaskedInput } from "@/components/form/MaskedInput";
+import { FileUpload } from "@/components/form/FileUpload";
+import {
+  validarCPF,
+  getMensagemValidacaoCPF,
+  getMensagemValidacaoCNS,
+} from "@/utils/validators";
+import { buscarCEP } from "@/services/viacep";
 import {
   timestamptzToDisplay,
   displayToDate,
   mapEstadoCivilFromBackend,
   mapEstadoCivilToBackend,
   mapTipoSanguineoFromBackend,
-  mapTipoSanguineoToBackend
-} from '@/utils/formMappers'
-import { cn } from '@/lib/utils'
-import { api } from '@/services/api'
-import { useAuthStore } from '@/stores/auth.store'
-import { uploadFile, getSignedFileUrl } from '@/services/upload'
-import { useRooms } from '@/hooks/useRooms'
-import { useBeds } from '@/hooks/useBeds'
-import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
-import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
-import { toast } from 'sonner'
-import { getErrorMessage } from '@/utils/errorHandling'
-import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
-import { useMySubscription } from '@/hooks/useTenant'
+  mapTipoSanguineoToBackend,
+} from "@/utils/formMappers";
+import { cn } from "@/lib/utils";
+import { api } from "@/services/api";
+import { useAuthStore } from "@/stores/auth.store";
+import { uploadFile, getSignedFileUrl } from "@/services/upload";
+import { useRooms } from "@/hooks/useRooms";
+import { useBeds } from "@/hooks/useBeds";
+import { BedSearchCombobox } from "@/components/beds/BedSearchCombobox";
+import { ResidentHistoryDrawer } from "@/components/residents/ResidentHistoryDrawer";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/utils/errorHandling";
+import { PlanLimitWarningDialog } from "@/components/admin/PlanLimitWarningDialog";
+import { useMySubscription } from "@/hooks/useTenant";
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
-  title: string
-  children: ReactNode
-  defaultOpen?: boolean
-  required?: boolean
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  required?: boolean;
 }
 
-function Collapsible({ title, children, defaultOpen = true, required = false }: CollapsibleProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+function Collapsible({
+  title,
+  children,
+  defaultOpen = true,
+  required = false,
+}: CollapsibleProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
     <div className="border border-border rounded-lg mb-4 overflow-hidden">
@@ -63,38 +92,66 @@ function Collapsible({ title, children, defaultOpen = true, required = false }: 
           {required && <span className="text-danger ml-1">*</span>}
         </span>
         <ChevronDown
-          className={cn('w-5 h-5 transition-transform', isOpen ? '' : '-rotate-90')}
+          className={cn(
+            "w-5 h-5 transition-transform",
+            isOpen ? "" : "-rotate-90"
+          )}
         />
       </div>
       {isOpen && <div className="p-5">{children}</div>}
     </div>
-  )
+  );
 }
 
 // Schema Zod de validação
 const residentSchema = z.object({
   // Status (opcional - apenas para modo edição)
-  status: z.enum(['Ativo', 'Inativo', 'Falecido']).optional(),
+  status: z.enum(["Ativo", "Inativo", "Falecido"]).optional(),
 
   // Motivo da alteração (obrigatório apenas no modo edição - RDC 502/2021 Art. 39)
   changeReason: z.string().optional(),
 
   // Dados Pessoais
   foto: z.any().optional(),
-  nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   nomeSocial: z.string().optional(),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   cns: z.string().optional(),
-  cpf: z.string().refine((val) => validarCPF(val), 'CPF inválido'),
+  cpf: z.string().refine((val) => validarCPF(val), "CPF inválido"),
   rg: z.string().optional(),
   orgaoExpedidor: z.string().optional(),
   escolaridade: z.string().optional(),
   profissao: z.string().optional(),
-  genero: z.enum(['MASCULINO', 'FEMININO', 'OUTRO']).refine((val) => val !== undefined, {
-    message: 'Gênero é obrigatório'
-  }),
+  genero: z
+    .enum(["MASCULINO", "FEMININO", "OUTRO"])
+    .refine((val) => val !== undefined, {
+      message: "Gênero é obrigatório",
+    }),
   estadoCivil: z.string().optional(),
   religiao: z.string().optional(),
-  dataNascimento: z.string().min(1, 'Data de nascimento é obrigatória'),
+  dataNascimento: z.string()
+    .min(1, "Data de nascimento é obrigatória")
+    .refine((dateStr) => {
+      if (!dateStr) return true; // Se vazio, a validação .min() captura
+
+      // Parse da data no formato YYYY-MM-DD (formato do input type="date")
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const birthDate = new Date(year, month - 1, day); // mês é 0-indexed
+      const today = new Date();
+
+      // Calcula idade considerando se já fez aniversário este ano
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        age--;
+      }
+
+      return age >= 60;
+    }, {
+      message: "Residente deve ter idade igual ou superior a 60 anos (RDC 502/2021 Art. 2º)"
+    }),
   nacionalidade: z.string().optional(),
   naturalidade: z.string().optional(),
   ufNascimento: z.string().optional(),
@@ -112,29 +169,28 @@ const residentSchema = z.object({
   bairroAtual: z.string().optional(),
   telefoneAtual: z.string().optional(),
 
-  // Endereço de Procedência
-  endProcedenciaDiferente: z.boolean().nullable().optional().transform(val => val ?? false),
-  cepProcedencia: z.string().optional(),
-  estadoProcedencia: z.string().optional(),
-  cidadeProcedencia: z.string().optional(),
-  logradouroProcedencia: z.string().optional(),
-  numeroProcedencia: z.string().optional(),
-  complementoProcedencia: z.string().optional(),
-  bairroProcedencia: z.string().optional(),
-  telefoneProcedencia: z.string().optional(),
+  // Procedência (texto livre)
+  procedencia: z.string().max(255).optional(),
   documentosEnderecoUrls: z.array(z.any()).optional(),
 
   // Contatos
-  contatosEmergencia: z.array(
-    z.object({
-      nome: z.string().optional(),
-      telefone: z.string().optional(),
-      parentesco: z.string().optional()
-    })
-  ).optional(),
+  contatosEmergencia: z
+    .array(
+      z.object({
+        nome: z.string().optional(),
+        telefone: z.string().optional(),
+        parentesco: z.string().optional(),
+      })
+    )
+    .optional(),
 
   // Responsável Legal
   responsavelLegalNome: z.string().optional(),
+  responsavelLegalEmail: z
+    .string()
+    .email("Email inválido")
+    .optional()
+    .or(z.literal("")),
   responsavelLegalCpf: z.string().optional(),
   responsavelLegalRg: z.string().optional(),
   responsavelLegalTelefone: z.string().optional(),
@@ -149,7 +205,7 @@ const residentSchema = z.object({
   responsavelLegalDocumentosUrls: z.array(z.any()).optional(),
 
   // Admissão
-  dataAdmissao: z.string().min(1, 'Data de admissão é obrigatória'),
+  dataAdmissao: z.string().min(1, "Data de admissão é obrigatória"),
   tipoAdmissao: z.string().optional(),
   motivoAdmissao: z.string().optional(),
   condicoesAdmissao: z.string().optional(),
@@ -160,7 +216,11 @@ const residentSchema = z.object({
   consentimentoImagem: z.any().optional(),
 
   // Saúde (campos básicos mantidos - dados clínicos evolutivos migraram para tabelas dedicadas)
-  necessitaAuxilioMobilidade: z.boolean().nullable().optional().transform(val => val ?? false),
+  necessitaAuxilioMobilidade: z
+    .boolean()
+    .nullable()
+    .optional()
+    .transform((val) => val ?? false),
   tipoSanguineo: z.string().optional(),
   altura: z.string().optional(),
   peso: z.string().optional(),
@@ -172,71 +232,85 @@ const residentSchema = z.object({
   dataLaudoMedico: z.string().optional(),
 
   // Convênios
-  convenios: z.array(
-    z.object({
-      nome: z.string().optional(),
-      numero: z.string().optional(),
-      arquivo: z.any().optional()
-    })
-  ).optional(),
+  convenios: z
+    .array(
+      z.object({
+        nome: z.string().optional(),
+        numero: z.string().optional(),
+        arquivo: z.any().optional(),
+      })
+    )
+    .optional(),
 
   // Pertences
   pertences: z.array(z.object({ nome: z.string().optional() })).optional(),
 
   // Acomodação - Apenas o leito (o quarto é obtido através do leito)
-  leitoNumero: z.string().optional()
-})
+  leitoNumero: z.string().optional(),
+});
 
 // Schema com validação condicional para changeReason (obrigatório no modo edição)
 const getResidentSchema = (isEditMode: boolean) => {
   if (isEditMode) {
     return residentSchema.extend({
-      changeReason: z.string()
-        .min(10, 'Motivo da alteração deve ter no mínimo 10 caracteres')
-        .refine(val => val.trim().length >= 10, {
-          message: 'Motivo da alteração deve ter no mínimo 10 caracteres (sem contar espaços)'
-        })
-    })
+      changeReason: z
+        .string()
+        .min(10, "Motivo da alteração deve ter no mínimo 10 caracteres")
+        .refine((val) => val.trim().length >= 10, {
+          message:
+            "Motivo da alteração deve ter no mínimo 10 caracteres (sem contar espaços)",
+        }),
+    });
   }
-  return residentSchema
-}
+  return residentSchema;
+};
 
-type ResidentFormData = z.infer<typeof residentSchema>
+type ResidentFormData = z.infer<typeof residentSchema>;
 
 interface ResidentFormProps {
-  readOnly?: boolean
+  readOnly?: boolean;
 }
 
 export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Estados para modo edição
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isLoading, setIsLoading] = useState(false) // Carregando dados do residente
-  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | undefined>(undefined)
-  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false)
-  const [residentFullName, setResidentFullName] = useState<string | undefined>(undefined)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Carregando dados do residente
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | undefined>(
+    undefined
+  );
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [residentFullName, setResidentFullName] = useState<string | undefined>(
+    undefined
+  );
 
   // Pegar tenantId do usuário logado
-  const user = useAuthStore((state) => state.user)
-  const tenantId = user?.tenantId
+  const user = useAuthStore((state) => state.user);
+  const tenantId = user?.tenantId;
 
   // Estados gerais
-  const [cpfValidation, setCpfValidation] = useState({ valido: true, mensagem: '' })
-  const [cnsValidation, setCnsValidation] = useState({ valido: true, mensagem: '' })
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState('')
-  const [showLimitDialog, setShowLimitDialog] = useState(false)
-  const [hasSeenWarning, setHasSeenWarning] = useState(false)
+  const [cpfValidation, setCpfValidation] = useState({
+    valido: true,
+    mensagem: "",
+  });
+  const [cnsValidation, setCnsValidation] = useState({
+    valido: true,
+    mensagem: "",
+  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const [hasSeenWarning, setHasSeenWarning] = useState(false);
 
   // Estado removido - BedSelector gerencia internamente a hierarquia
 
   // Ref para armazenar dados do residente carregado (para sincronizar Select depois)
-  const residentDataRef = useRef<any>(null)
+  const residentDataRef = useRef<any>(null);
 
   // Buscar dados de subscription para verificar limites
-  const { data: subscriptionData } = useMySubscription()
+  const { data: subscriptionData } = useMySubscription();
 
   const {
     register,
@@ -244,39 +318,54 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     control,
     watch,
     setValue,
-    formState: { errors }
+    formState: { errors },
   } = useForm<ResidentFormData>({
     resolver: zodResolver(getResidentSchema(isEditMode)),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: {
-      status: 'Ativo', // Valor padrão para novos residentes
-      leitoNumero: '', // Sempre iniciar com string vazia para evitar controlled/uncontrolled
-      contatosEmergencia: [{ nome: '', telefone: '', parentesco: '' }],
-      convenios: [{ nome: '', numero: '' }],
-      endProcedenciaDiferente: false,
-      necessitaAuxilioMobilidade: false
-    }
-  })
+      status: "Ativo", // Valor padrão para novos residentes
+      leitoNumero: "", // Sempre iniciar com string vazia para evitar controlled/uncontrolled
+      contatosEmergencia: [{ nome: "", telefone: "", parentesco: "" }],
+      convenios: [{ nome: "", numero: "" }],
+      necessitaAuxilioMobilidade: false,
+    },
+  });
 
-  const { fields: contatosFields, append: appendContato, remove: removeContato } = useFieldArray({
+  const {
+    fields: contatosFields,
+    append: appendContato,
+    remove: removeContato,
+  } = useFieldArray({
     control,
-    name: 'contatosEmergencia'
-  })
+    name: "contatosEmergencia",
+  });
 
-  const { fields: conveniosFields, append: appendConvenio, remove: removeConvenio } = useFieldArray({
+  const {
+    fields: conveniosFields,
+    append: appendConvenio,
+    remove: removeConvenio,
+  } = useFieldArray({
     control,
-    name: 'convenios'
-  })
+    name: "convenios",
+  });
 
-  const { fields: medicamentosFields, append: appendMedicamento, remove: removeMedicamento } = useFieldArray({
+  const {
+    fields: medicamentosFields,
+    append: appendMedicamento,
+    remove: removeMedicamento,
+  } = useFieldArray({
     control,
-    name: 'medicamentos'
-  })
+    name: "medicamentos",
+  });
 
-  const { fields: pertencesFields, append: appendPertence, remove: removePertence } = useFieldArray({
+  const {
+    fields: pertencesFields,
+    append: appendPertence,
+    remove: removePertence,
+  } = useFieldArray({
     control,
-    name: 'pertences'
-  })
+    name: "pertences",
+  });
 
   // Hooks de Beds (Acomodação)
   // Removidos - BedSelector busca os dados internamente
@@ -284,170 +373,259 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // const { data: beds, isLoading: isLoadingBeds } = useBeds()
 
   // Refs para inputs de badges
-  const medicamentosInputRef = useRef<HTMLInputElement>(null)
-  const pertencesInputRef = useRef<HTMLInputElement>(null)
+  const medicamentosInputRef = useRef<HTMLInputElement>(null);
+  const pertencesInputRef = useRef<HTMLInputElement>(null);
 
-  const watchEndProcedenciaDiferente = watch('endProcedenciaDiferente')
-  const watchCpf = watch('cpf')
-  const watchCns = watch('cns')
+  const watchCpf = watch("cpf");
+  const watchCns = watch("cns");
+  const watchDataNascimento = watch("dataNascimento");
   // Removido - usando BedSelector agora
 
   // Validação de CPF em tempo real
   useEffect(() => {
     if (watchCpf) {
-      setCpfValidation(getMensagemValidacaoCPF(watchCpf))
+      setCpfValidation(getMensagemValidacaoCPF(watchCpf));
     }
-  }, [watchCpf])
+  }, [watchCpf]);
 
   // Validação de CNS em tempo real
   useEffect(() => {
     if (watchCns) {
-      setCnsValidation(getMensagemValidacaoCNS(watchCns))
+      setCnsValidation(getMensagemValidacaoCNS(watchCns));
     }
-  }, [watchCns])
+  }, [watchCns]);
+
+  // Calcula idade a partir da data de nascimento (formato DD/MM/AAAA)
+  const calculateAge = (dateStr: string): number | null => {
+    if (!dateStr || dateStr.length !== 10) return null;
+
+    const [day, month, year] = dateStr.split('/').map(Number);
+    if (!day || !month || !year || year < 1900) return null;
+
+    const birthDate = new Date(year, month - 1, day);
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age--;
+    }
+
+    return age >= 0 ? age : null;
+  };
+
+  // Mensagem de feedback para data de nascimento
+  const getBirthDateFeedback = (): { message: string; isError: boolean } | null => {
+    if (!watchDataNascimento || watchDataNascimento.length !== 10) {
+      return { message: "Critério etário: 60 anos ou mais (art. 2º, RDC nº 502/2021).", isError: false };
+    }
+
+    const age = calculateAge(watchDataNascimento);
+
+    if (age === null) {
+      return { message: "Critério etário: 60 anos ou mais (art. 2º, RDC nº 502/2021).", isError: false };
+    }
+
+    if (age < 60) {
+      return {
+        message: "Residente deve ter idade igual ou superior a 60 anos (RDC 502/2021 Art. 2º)",
+        isError: true
+      };
+    }
+
+    return { message: `✓ Idade: ${age} anos`, isError: false };
+  };
 
   // Verificar limite ao entrar na página (apenas em modo criação e se não viu ainda)
   useEffect(() => {
-    if (isEditMode || !subscriptionData || hasSeenWarning) return
+    if (isEditMode || !subscriptionData || hasSeenWarning) return;
 
-    const { usage, plan } = subscriptionData
-    const percentage = plan.maxResidents > 0 ? (usage.activeResidents / plan.maxResidents) * 100 : 0
+    const { usage, plan } = subscriptionData;
+    const percentage =
+      plan.maxResidents > 0
+        ? (usage.activeResidents / plan.maxResidents) * 100
+        : 0;
 
     // Mostrar dialog se >= 80% do limite
     if (percentage >= 80) {
-      setShowLimitDialog(true)
-      setHasSeenWarning(true)
+      setShowLimitDialog(true);
+      setHasSeenWarning(true);
     }
-  }, [subscriptionData, hasSeenWarning, isEditMode])
+  }, [subscriptionData, hasSeenWarning, isEditMode]);
 
   // Removido código antigo de sincronização - agora usando BedSelector
-
 
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
   useEffect(() => {
     // Flag para verificar se componente ainda está montado
-    let isMounted = true
+    let isMounted = true;
     // AbortController para cancelar requisições pendentes
-    const controller = new AbortController()
+    const controller = new AbortController();
 
     const loadResident = async () => {
       if (!id) {
-        setIsEditMode(false)
-        return
+        setIsEditMode(false);
+        return;
       }
 
-      if (!isMounted) return
+      if (!isMounted) return;
 
-      setIsEditMode(true)
-      setIsLoading(true)
+      setIsEditMode(true);
+      setIsLoading(true);
 
       try {
         const response = await api.get(`/residents/${id}`, {
           signal: controller.signal,
-        })
+        });
 
         // Verifica se o componente ainda está montado
-        if (!isMounted) return
+        if (!isMounted) return;
 
-        const resident = response.data
+        const resident = response.data;
 
-        console.log('🔍 DEBUG - Dados do residente carregados:', resident)
+        console.log("🔍 DEBUG - Dados do residente carregados:", resident);
 
         // ===== FOTO =====
         // O PhotoViewer cuida de assinar a URL automaticamente
         if (isMounted) {
-          setCurrentPhotoUrl(resident.fotoUrl || undefined)
+          setCurrentPhotoUrl(resident.fotoUrl || undefined);
         }
 
         // Verifica novamente se está montado antes de começar a atualizar formulário
-        if (!isMounted) return
+        if (!isMounted) return;
 
         // ===== DADOS PESSOAIS =====
         if (resident.fullName) {
-          setValue('nome', resident.fullName)
-          setResidentFullName(resident.fullName)
+          setValue("nome", resident.fullName);
+          setResidentFullName(resident.fullName);
         }
-        if (resident.socialName) setValue('nomeSocial', resident.socialName)
-        if (resident.cns) setValue('cns', resident.cns)
-        if (resident.cpf) setValue('cpf', resident.cpf)
-        if (resident.rg) setValue('rg', resident.rg)
-        if (resident.rgIssuer) setValue('orgaoExpedidor', resident.rgIssuer)
-        if (resident.education) setValue('escolaridade', resident.education)
-        if (resident.profession) setValue('profissao', resident.profession)
-        if (resident.gender) setValue('genero', resident.gender)
-        if (resident.civilStatus) setValue('estadoCivil', mapEstadoCivilFromBackend(resident.civilStatus))
-        if (resident.religion) setValue('religiao', resident.religion)
-        if (resident.birthDate) setValue('dataNascimento', timestamptzToDisplay(resident.birthDate))
-        if (resident.nationality) setValue('nacionalidade', resident.nationality)
-        if (resident.birthCity) setValue('naturalidade', resident.birthCity)
-        if (resident.birthState) setValue('ufNascimento', resident.birthState)
-        if (resident.motherName) setValue('nomeMae', resident.motherName)
-        if (resident.fatherName) setValue('nomePai', resident.fatherName)
-        if (resident.status) setValue('status', resident.status)
+        if (resident.socialName) setValue("nomeSocial", resident.socialName);
+        if (resident.email) setValue("email", resident.email);
+        if (resident.cns) setValue("cns", resident.cns);
+        if (resident.cpf) setValue("cpf", resident.cpf);
+        if (resident.rg) setValue("rg", resident.rg);
+        if (resident.rgIssuer) setValue("orgaoExpedidor", resident.rgIssuer);
+        if (resident.education) setValue("escolaridade", resident.education);
+        if (resident.profession) setValue("profissao", resident.profession);
+        if (resident.gender) setValue("genero", resident.gender);
+        if (resident.civilStatus)
+          setValue(
+            "estadoCivil",
+            mapEstadoCivilFromBackend(resident.civilStatus)
+          );
+        if (resident.religion) setValue("religiao", resident.religion);
+        if (resident.birthDate)
+          setValue("dataNascimento", timestamptzToDisplay(resident.birthDate));
+        if (resident.nationality)
+          setValue("nacionalidade", resident.nationality);
+        if (resident.birthCity) setValue("naturalidade", resident.birthCity);
+        if (resident.birthState) setValue("ufNascimento", resident.birthState);
+        if (resident.motherName) setValue("nomeMae", resident.motherName);
+        if (resident.fatherName) setValue("nomePai", resident.fatherName);
+        if (resident.status) setValue("status", resident.status);
 
         // ===== ENDEREÇO ATUAL =====
-        if (resident.currentCep) setValue('cepAtual', resident.currentCep)
-        if (resident.currentState) setValue('estadoAtual', resident.currentState)
-        if (resident.currentCity) setValue('cidadeAtual', resident.currentCity)
-        if (resident.currentStreet) setValue('logradouroAtual', resident.currentStreet)
-        if (resident.currentNumber) setValue('numeroAtual', resident.currentNumber)
-        if (resident.currentComplement) setValue('complementoAtual', resident.currentComplement)
-        if (resident.currentDistrict) setValue('bairroAtual', resident.currentDistrict)
-        if (resident.currentPhone) setValue('telefoneAtual', resident.currentPhone)
+        if (resident.currentCep) setValue("cepAtual", resident.currentCep);
+        if (resident.currentState)
+          setValue("estadoAtual", resident.currentState);
+        if (resident.currentCity) setValue("cidadeAtual", resident.currentCity);
+        if (resident.currentStreet)
+          setValue("logradouroAtual", resident.currentStreet);
+        if (resident.currentNumber)
+          setValue("numeroAtual", resident.currentNumber);
+        if (resident.currentComplement)
+          setValue("complementoAtual", resident.currentComplement);
+        if (resident.currentDistrict)
+          setValue("bairroAtual", resident.currentDistrict);
+        if (resident.currentPhone)
+          setValue("telefoneAtual", resident.currentPhone);
 
-        // ===== ENDEREÇO DE PROCEDÊNCIA =====
-        if (resident.originCep) {
-          setValue('endProcedenciaDiferente', true)
-          setValue('cepProcedencia', resident.originCep)
-          if (resident.originState) setValue('estadoProcedencia', resident.originState)
-          if (resident.originCity) setValue('cidadeProcedencia', resident.originCity)
-          if (resident.originStreet) setValue('logradouroProcedencia', resident.originStreet)
-          if (resident.originNumber) setValue('numeroProcedencia', resident.originNumber)
-          if (resident.originComplement) setValue('complementoProcedencia', resident.originComplement)
-          if (resident.originDistrict) setValue('bairroProcedencia', resident.originDistrict)
-        }
+        // ===== PROCEDÊNCIA =====
+        if (resident.origin) setValue("procedencia", resident.origin);
 
         // ===== CONTATOS =====
-        if (resident.emergencyContacts && Array.isArray(resident.emergencyContacts) && resident.emergencyContacts.length > 0) {
+        if (
+          resident.emergencyContacts &&
+          Array.isArray(resident.emergencyContacts) &&
+          resident.emergencyContacts.length > 0
+        ) {
           // Mapear emergencyContacts (inglês) para contatosEmergencia (português do form)
           const contatos = resident.emergencyContacts.map((contact: any) => ({
             nome: contact.name,
             telefone: contact.phone,
-            parentesco: contact.relationship
-          }))
-          setValue('contatosEmergencia', contatos)
+            parentesco: contact.relationship,
+          }));
+          setValue("contatosEmergencia", contatos);
         }
 
         // ===== RESPONSÁVEL LEGAL =====
-        if (resident.legalGuardianName) setValue('responsavelLegalNome', resident.legalGuardianName)
-        if (resident.legalGuardianCpf) setValue('responsavelLegalCpf', resident.legalGuardianCpf)
-        if (resident.legalGuardianRg) setValue('responsavelLegalRg', resident.legalGuardianRg)
-        if (resident.legalGuardianPhone) setValue('responsavelLegalTelefone', resident.legalGuardianPhone)
-        if (resident.legalGuardianType) setValue('responsavelLegalTipo', resident.legalGuardianType)
-        if (resident.legalGuardianCep) setValue('responsavelLegalCep', resident.legalGuardianCep)
-        if (resident.legalGuardianState) setValue('responsavelLegalUf', resident.legalGuardianState)
-        if (resident.legalGuardianCity) setValue('responsavelLegalCidade', resident.legalGuardianCity)
-        if (resident.legalGuardianStreet) setValue('responsavelLegalLogradouro', resident.legalGuardianStreet)
-        if (resident.legalGuardianNumber) setValue('responsavelLegalNumero', resident.legalGuardianNumber)
-        if (resident.legalGuardianComplement) setValue('responsavelLegalComplemento', resident.legalGuardianComplement)
-        if (resident.legalGuardianDistrict) setValue('responsavelLegalBairro', resident.legalGuardianDistrict)
+        if (resident.legalGuardianName)
+          setValue("responsavelLegalNome", resident.legalGuardianName);
+        if (resident.legalGuardianEmail)
+          setValue("responsavelLegalEmail", resident.legalGuardianEmail);
+        if (resident.legalGuardianCpf)
+          setValue("responsavelLegalCpf", resident.legalGuardianCpf);
+        if (resident.legalGuardianRg)
+          setValue("responsavelLegalRg", resident.legalGuardianRg);
+        if (resident.legalGuardianPhone)
+          setValue("responsavelLegalTelefone", resident.legalGuardianPhone);
+        if (resident.legalGuardianType)
+          setValue("responsavelLegalTipo", resident.legalGuardianType);
+        if (resident.legalGuardianCep)
+          setValue("responsavelLegalCep", resident.legalGuardianCep);
+        if (resident.legalGuardianState)
+          setValue("responsavelLegalUf", resident.legalGuardianState);
+        if (resident.legalGuardianCity)
+          setValue("responsavelLegalCidade", resident.legalGuardianCity);
+        if (resident.legalGuardianStreet)
+          setValue("responsavelLegalLogradouro", resident.legalGuardianStreet);
+        if (resident.legalGuardianNumber)
+          setValue("responsavelLegalNumero", resident.legalGuardianNumber);
+        if (resident.legalGuardianComplement)
+          setValue(
+            "responsavelLegalComplemento",
+            resident.legalGuardianComplement
+          );
+        if (resident.legalGuardianDistrict)
+          setValue("responsavelLegalBairro", resident.legalGuardianDistrict);
 
         // ===== SAÚDE =====
-        if (resident.bloodType) setValue('tipoSanguineo', mapTipoSanguineoFromBackend(resident.bloodType))
+        if (resident.bloodType)
+          setValue(
+            "tipoSanguineo",
+            mapTipoSanguineoFromBackend(resident.bloodType)
+          );
         // Converter altura de metros para centímetros ao carregar (ex: 1.70 → 170)
-        if (resident.height) setValue('altura', Math.round(resident.height * 100).toString())
-        if (resident.weight) setValue('peso', resident.weight.toString())
-        if (resident.medicationsOnAdmission) setValue('medicamentos', resident.medicationsOnAdmission.split(',').map(nome => ({ nome: nome.trim() })))
-        if (resident.dependencyLevel) setValue('grauDependencia', resident.dependencyLevel)
+        if (resident.height)
+          setValue("altura", Math.round(resident.height * 100).toString());
+        if (resident.weight) setValue("peso", resident.weight.toString());
+        if (resident.medicationsOnAdmission)
+          setValue(
+            "medicamentos",
+            resident.medicationsOnAdmission
+              .split(",")
+              .map((nome) => ({ nome: nome.trim() }))
+          );
+        if (resident.dependencyLevel)
+          setValue("grauDependencia", resident.dependencyLevel);
 
         // ===== MOBILIDADE =====
         if (resident.mobilityAid !== undefined) {
-          setValue('necessitaAuxilioMobilidade', resident.mobilityAid)
+          setValue("necessitaAuxilioMobilidade", resident.mobilityAid);
         }
 
         // ===== PERTENCES =====
-        if (resident.belongings && Array.isArray(resident.belongings) && resident.belongings.length > 0) {
-          setValue('pertences', resident.belongings.map((item: string) => ({ nome: item })))
+        if (
+          resident.belongings &&
+          Array.isArray(resident.belongings) &&
+          resident.belongings.length > 0
+        ) {
+          setValue(
+            "pertences",
+            resident.belongings.map((item: string) => ({ nome: item }))
+          );
         }
 
         // ===== CONVÊNIOS =====
@@ -456,210 +634,270 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           const convenios = resident.healthPlans.map((plan: any) => ({
             nome: plan.name,
             numero: plan.cardNumber,
-          }))
-          setValue('convenios', convenios)
+          }));
+          setValue("convenios", convenios);
         }
 
         // ===== ADMISSÃO/DESLIGAMENTO =====
-        if (resident.admissionDate) setValue('dataAdmissao', timestamptzToDisplay(resident.admissionDate))
-        if (resident.admissionType) setValue('tipoAdmissao', resident.admissionType)
-        if (resident.admissionReason) setValue('motivoAdmissao', resident.admissionReason)
-        if (resident.admissionConditions) setValue('condicoesAdmissao', resident.admissionConditions)
-        if (resident.dischargeDate) setValue('dataDesligamento', timestamptzToDisplay(resident.dischargeDate))
-        if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
+        if (resident.admissionDate)
+          setValue(
+            "dataAdmissao",
+            timestamptzToDisplay(resident.admissionDate)
+          );
+        if (resident.admissionType)
+          setValue("tipoAdmissao", resident.admissionType);
+        if (resident.admissionReason)
+          setValue("motivoAdmissao", resident.admissionReason);
+        if (resident.admissionConditions)
+          setValue("condicoesAdmissao", resident.admissionConditions);
+        if (resident.dischargeDate)
+          setValue(
+            "dataDesligamento",
+            timestamptzToDisplay(resident.dischargeDate)
+          );
+        if (resident.dischargeReason)
+          setValue("motivoDesligamento", resident.dischargeReason);
 
         // ===== ACOMODAÇÃO =====
         if (resident.bedId) {
-          setValue('leitoNumero', resident.bedId)
+          setValue("leitoNumero", resident.bedId);
         }
         // Armazenar dados na ref para sincronização posterior
         residentDataRef.current = {
           roomId: resident.roomId,
-          bedId: resident.bedId
-        }
+          bedId: resident.bedId,
+        };
 
         if (isMounted) {
-          console.log('✅ Residente carregado com sucesso para edição:', resident.fullName)
+          console.log(
+            "✅ Residente carregado com sucesso para edição:",
+            resident.fullName
+          );
         }
       } catch (error: unknown) {
         // Ignora erros de abortamento
-        if (error.name === 'AbortError') {
-          console.log('Requisição cancelada')
-          return
+        if (error.name === "AbortError") {
+          console.log("Requisição cancelada");
+          return;
         }
 
         if (isMounted) {
-          console.error('❌ Erro ao carregar residente:', error)
+          console.error("❌ Erro ao carregar residente:", error);
           // Apenas mostra o erro, mas NÃO navega automaticamente
           // (evita navegação indesejada quando o usuário volta de uma aba de visualização de documento)
-          toast.error(`Erro ao carregar dados do residente: ${error.response?.data?.message || error.message}`)
+          toast.error(
+            `Erro ao carregar dados do residente: ${
+              error.response?.data?.message || error.message
+            }`
+          );
         }
       } finally {
         if (isMounted) {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       }
-    }
+    };
 
-    loadResident()
+    loadResident();
 
     // Cleanup function
     return () => {
-      isMounted = false
-      controller.abort()
-    }
-  }, [id, navigate, setValue])
+      isMounted = false;
+      controller.abort();
+    };
+  }, [id, navigate, setValue]);
 
   // Função genérica para buscar CEP (consolidada das 3 anteriores)
-  const handleBuscarCep = useCallback(async (cep: string, prefix: 'atual' | 'procedencia' | 'responsavelLegal') => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length === 8) {
-      const endereco = await buscarCEP(cepLimpo)
-      if (endereco) {
-        const fieldMapping = {
-          atual: {
-            estado: 'estadoAtual',
-            cidade: 'cidadeAtual',
-            logradouro: 'logradouroAtual',
-            bairro: 'bairroAtual',
-            complemento: 'complementoAtual'
-          },
-          procedencia: {
-            estado: 'estadoProcedencia',
-            cidade: 'cidadeProcedencia',
-            logradouro: 'logradouroProcedencia',
-            bairro: 'bairroProcedencia',
-            complemento: 'complementoProcedencia'
-          },
-          responsavelLegal: {
-            estado: 'responsavelLegalUf',
-            cidade: 'responsavelLegalCidade',
-            logradouro: 'responsavelLegalLogradouro',
-            bairro: 'responsavelLegalBairro',
-            complemento: 'responsavelLegalComplemento'
+  const handleBuscarCep = useCallback(
+    async (
+      cep: string,
+      prefix: "atual" | "procedencia" | "responsavelLegal"
+    ) => {
+      const cepLimpo = cep.replace(/\D/g, "");
+      if (cepLimpo.length === 8) {
+        const endereco = await buscarCEP(cepLimpo);
+        if (endereco) {
+          const fieldMapping = {
+            atual: {
+              estado: "estadoAtual",
+              cidade: "cidadeAtual",
+              logradouro: "logradouroAtual",
+              bairro: "bairroAtual",
+              complemento: "complementoAtual",
+            },
+            procedencia: {
+              estado: "estadoProcedencia",
+              cidade: "cidadeProcedencia",
+              logradouro: "logradouroProcedencia",
+              bairro: "bairroProcedencia",
+              complemento: "complementoProcedencia",
+            },
+            responsavelLegal: {
+              estado: "responsavelLegalUf",
+              cidade: "responsavelLegalCidade",
+              logradouro: "responsavelLegalLogradouro",
+              bairro: "responsavelLegalBairro",
+              complemento: "responsavelLegalComplemento",
+            },
+          };
+          const fields = fieldMapping[prefix];
+          setValue(fields.estado as keyof ResidentFormData, endereco.estado);
+          setValue(fields.cidade as keyof ResidentFormData, endereco.cidade);
+          setValue(
+            fields.logradouro as keyof ResidentFormData,
+            endereco.logradouro
+          );
+          setValue(fields.bairro as keyof ResidentFormData, endereco.bairro);
+          if (endereco.complemento) {
+            setValue(
+              fields.complemento as keyof ResidentFormData,
+              endereco.complemento
+            );
           }
         }
-        const fields = fieldMapping[prefix]
-        setValue(fields.estado as keyof ResidentFormData, endereco.estado)
-        setValue(fields.cidade as keyof ResidentFormData, endereco.cidade)
-        setValue(fields.logradouro as keyof ResidentFormData, endereco.logradouro)
-        setValue(fields.bairro as keyof ResidentFormData, endereco.bairro)
-        if (endereco.complemento) {
-          setValue(fields.complemento as keyof ResidentFormData, endereco.complemento)
-        }
       }
-    }
-  }, [setValue])
+    },
+    [setValue]
+  );
 
   const onSubmit = async (data: ResidentFormData) => {
-    console.log('🚀 onSubmit chamado. isEditMode:', isEditMode, 'id:', id)
-    console.log('📋 Dados do formulário:', data)
-    console.log('🔍 Estado atual - isLoading:', isLoading, 'isUploading:', isUploading)
-    console.log('🔍 Erros de validação:', errors)
+    console.log("🚀 onSubmit chamado. isEditMode:", isEditMode, "id:", id);
+    console.log("📋 Dados do formulário:", data);
+    console.log(
+      "🔍 Estado atual - isLoading:",
+      isLoading,
+      "isUploading:",
+      isUploading
+    );
+    console.log("🔍 Erros de validação:", errors);
     try {
-      console.log('✓ Entrando no try block')
-      setIsUploading(true)
+      console.log("✓ Entrando no try block");
+      setIsUploading(true);
 
       // ========================================
       // FASE 1: Upload de arquivos para MinIO
       // ========================================
-      let fotoUrl = null
-      const documentosPessoaisUrls: string[] = []
-      const documentosEnderecoUrls: string[] = []
-      const documentosResponsavelUrls: string[] = []
-      let laudoMedicoUrl = null
-      let convenioArquivoUrl = null
-      let termoAdmissaoUrl = null
-      const consentimentosUrls: string[] = []
+      let fotoUrl = null;
+      const documentosPessoaisUrls: string[] = [];
+      const documentosEnderecoUrls: string[] = [];
+      const documentosResponsavelUrls: string[] = [];
+      let laudoMedicoUrl = null;
+      let convenioArquivoUrl = null;
+      let termoAdmissaoUrl = null;
+      const consentimentosUrls: string[] = [];
 
       try {
         // Upload da foto
         if (data.foto && data.foto instanceof File) {
-          setUploadProgress('Enviando foto...')
-          fotoUrl = await uploadFile(data.foto, 'photos')
-          console.log('Foto enviada:', fotoUrl)
+          setUploadProgress("Enviando foto...");
+          fotoUrl = await uploadFile(data.foto, "photos");
+          console.log("Foto enviada:", fotoUrl);
         }
 
         // Upload de documentos pessoais (array)
-        if (data.documentosPessoaisUrls && Array.isArray(data.documentosPessoaisUrls)) {
-          setUploadProgress('Enviando documentos pessoais...')
+        if (
+          data.documentosPessoaisUrls &&
+          Array.isArray(data.documentosPessoaisUrls)
+        ) {
+          setUploadProgress("Enviando documentos pessoais...");
           for (const file of data.documentosPessoaisUrls) {
             if (file instanceof File) {
-              const url = await uploadFile(file, 'documents')
-              documentosPessoaisUrls.push(url)
+              const url = await uploadFile(file, "documents");
+              documentosPessoaisUrls.push(url);
             }
           }
-          console.log('Documentos pessoais enviados:', documentosPessoaisUrls)
+          console.log("Documentos pessoais enviados:", documentosPessoaisUrls);
         }
 
         // Upload de documentos de endereço (array)
-        if (data.documentosEnderecoUrls && Array.isArray(data.documentosEnderecoUrls)) {
-          setUploadProgress('Enviando documentos de endereço...')
+        if (
+          data.documentosEnderecoUrls &&
+          Array.isArray(data.documentosEnderecoUrls)
+        ) {
+          setUploadProgress("Enviando documentos de endereço...");
           for (const file of data.documentosEnderecoUrls) {
             if (file instanceof File) {
-              const url = await uploadFile(file, 'documents')
-              documentosEnderecoUrls.push(url)
+              const url = await uploadFile(file, "documents");
+              documentosEnderecoUrls.push(url);
             }
           }
-          console.log('Documentos de endereço enviados:', documentosEnderecoUrls)
+          console.log(
+            "Documentos de endereço enviados:",
+            documentosEnderecoUrls
+          );
         }
 
         // Upload de documentos do responsável (array)
-        if (data.responsavelLegalDocumentosUrls && Array.isArray(data.responsavelLegalDocumentosUrls)) {
-          setUploadProgress('Enviando documentos do responsável...')
+        if (
+          data.responsavelLegalDocumentosUrls &&
+          Array.isArray(data.responsavelLegalDocumentosUrls)
+        ) {
+          setUploadProgress("Enviando documentos do responsável...");
           for (const file of data.responsavelLegalDocumentosUrls) {
             if (file instanceof File) {
-              const url = await uploadFile(file, 'documents')
-              documentosResponsavelUrls.push(url)
+              const url = await uploadFile(file, "documents");
+              documentosResponsavelUrls.push(url);
             }
           }
-          console.log('Documentos do responsável enviados:', documentosResponsavelUrls)
+          console.log(
+            "Documentos do responsável enviados:",
+            documentosResponsavelUrls
+          );
         }
 
         // Upload de laudo médico
         if (data.laudoMedico && data.laudoMedico instanceof File) {
-          setUploadProgress('Enviando laudo médico...')
-          laudoMedicoUrl = await uploadFile(data.laudoMedico, 'medical')
-          console.log('Laudo médico enviado:', laudoMedicoUrl)
+          setUploadProgress("Enviando laudo médico...");
+          laudoMedicoUrl = await uploadFile(data.laudoMedico, "medical");
+          console.log("Laudo médico enviado:", laudoMedicoUrl);
         }
 
         // Upload de arquivo do convênio
-        if (data.convenios?.[0]?.arquivo && data.convenios[0].arquivo instanceof File) {
-          setUploadProgress('Enviando arquivo do convênio...')
-          convenioArquivoUrl = await uploadFile(data.convenios[0].arquivo, 'documents')
-          console.log('Arquivo do convênio enviado:', convenioArquivoUrl)
+        if (
+          data.convenios?.[0]?.arquivo &&
+          data.convenios[0].arquivo instanceof File
+        ) {
+          setUploadProgress("Enviando arquivo do convênio...");
+          convenioArquivoUrl = await uploadFile(
+            data.convenios[0].arquivo,
+            "documents"
+          );
+          console.log("Arquivo do convênio enviado:", convenioArquivoUrl);
         }
 
         // Upload de termo de admissão
         if (data.termoAdmissao && data.termoAdmissao instanceof File) {
-          setUploadProgress('Enviando termo de admissão...')
-          termoAdmissaoUrl = await uploadFile(data.termoAdmissao, 'documents')
-          console.log('Termo de admissão enviado:', termoAdmissaoUrl)
+          setUploadProgress("Enviando termo de admissão...");
+          termoAdmissaoUrl = await uploadFile(data.termoAdmissao, "documents");
+          console.log("Termo de admissão enviado:", termoAdmissaoUrl);
         }
 
         // Upload de consentimento LGPD
         if (data.consentimentoLgpd && data.consentimentoLgpd instanceof File) {
-          setUploadProgress('Enviando consentimento LGPD...')
-          const url = await uploadFile(data.consentimentoLgpd, 'documents')
-          consentimentosUrls.push(url)
-          console.log('Consentimento LGPD enviado:', url)
+          setUploadProgress("Enviando consentimento LGPD...");
+          const url = await uploadFile(data.consentimentoLgpd, "documents");
+          consentimentosUrls.push(url);
+          console.log("Consentimento LGPD enviado:", url);
         }
 
         // Upload de consentimento de imagem
-        if (data.consentimentoImagem && data.consentimentoImagem instanceof File) {
-          setUploadProgress('Enviando consentimento de imagem...')
-          const url = await uploadFile(data.consentimentoImagem, 'documents')
-          consentimentosUrls.push(url)
-          console.log('Consentimento de imagem enviado:', url)
+        if (
+          data.consentimentoImagem &&
+          data.consentimentoImagem instanceof File
+        ) {
+          setUploadProgress("Enviando consentimento de imagem...");
+          const url = await uploadFile(data.consentimentoImagem, "documents");
+          consentimentosUrls.push(url);
+          console.log("Consentimento de imagem enviado:", url);
         }
 
-        setUploadProgress('Uploads concluídos! Salvando residente...')
+        setUploadProgress("Uploads concluídos! Salvando residente...");
       } catch (uploadError: any) {
-        console.error('Erro ao fazer upload:', uploadError)
-        alert(`❌ Erro ao fazer upload dos arquivos: ${uploadError.message}`)
-        setIsUploading(false)
-        setUploadProgress('')
-        return
+        console.error("Erro ao fazer upload:", uploadError);
+        alert(`❌ Erro ao fazer upload dos arquivos: ${uploadError.message}`);
+        setIsUploading(false);
+        setUploadProgress("");
+        return;
       }
 
       // ========================================
@@ -668,9 +906,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
       // Validar tenantId
       if (!tenantId) {
-        console.error('❌ TenantId não encontrado')
-        alert('Erro: Sessão inválida. Faça login novamente.')
-        return
+        console.error("❌ TenantId não encontrado");
+        alert("Erro: Sessão inválida. Faça login novamente.");
+        return;
       }
 
       const payload: any = {
@@ -680,17 +918,18 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         // 1. Dados Pessoais - NOMES EM INGLÊS (camelCase)
         fullName: data.nome,
         socialName: data.nomeSocial || null,
+        email: data.email || null,
         cpf: data.cpf || null,
         rg: data.rg || null,
         rgIssuer: data.orgaoExpedidor || null,
         education: data.escolaridade || null,
         profession: data.profissao || null,
-        cns: data.cns?.replace(/\s/g, '') || null,
-        gender: data.genero || 'NAO_INFORMADO',
+        cns: data.cns?.replace(/\s/g, "") || null,
+        gender: data.genero || "NAO_INFORMADO",
         civilStatus: mapEstadoCivilToBackend(data.estadoCivil),
         religion: data.religiao || null,
         birthDate: displayToDate(data.dataNascimento),
-        nationality: data.nacionalidade || 'Brasileira',
+        nationality: data.nacionalidade || "Brasileira",
         birthCity: data.naturalidade || null,
         birthState: data.ufNascimento || null,
         motherName: data.nomeMae || null,
@@ -708,31 +947,28 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         currentDistrict: data.bairroAtual || null,
         currentPhone: data.telefoneAtual || null,
 
-        // Endereço de Procedência - NOMES EM INGLÊS
-        originCep: data.cepProcedencia || null,
-        originState: data.estadoProcedencia || null,
-        originCity: data.cidadeProcedencia || null,
-        originStreet: data.logradouroProcedencia || null,
-        originNumber: data.numeroProcedencia || null,
-        originComplement: data.complementoProcedencia || null,
-        originDistrict: data.bairroProcedencia || null,
-        originPhone: data.telefoneProcedencia || null,
+        // Procedência - Campo livre
+        origin: data.procedencia || null,
 
         // 3. Contatos de Emergência - Array JSON
         emergencyContacts: (data.contatosEmergencia || [])
-          .filter(c => c.nome || c.telefone || c.parentesco)
-          .map(c => ({
-            name: c.nome || '',
-            phone: c.telefone || '',
-            relationship: c.parentesco || ''
+          .filter((c) => c.nome || c.telefone || c.parentesco)
+          .map((c) => ({
+            name: c.nome || "",
+            phone: c.telefone || "",
+            relationship: c.parentesco || "",
           })),
 
         // 4. Responsável Legal - NOMES EM INGLÊS
         legalGuardianName: data.responsavelLegalNome || null,
+        legalGuardianEmail: data.responsavelLegalEmail || null,
         legalGuardianCpf: data.responsavelLegalCpf || null,
         legalGuardianRg: data.responsavelLegalRg || null,
         legalGuardianPhone: data.responsavelLegalTelefone || null,
-        legalGuardianType: data.responsavelLegalTipo && data.responsavelLegalTipo.trim() ? data.responsavelLegalTipo : undefined,
+        legalGuardianType:
+          data.responsavelLegalTipo && data.responsavelLegalTipo.trim()
+            ? data.responsavelLegalTipo
+            : undefined,
         legalGuardianCep: data.responsavelLegalCep || null,
         legalGuardianState: data.responsavelLegalUf || null,
         legalGuardianCity: data.responsavelLegalCidade || null,
@@ -743,7 +979,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         // 5. Admissão - NOMES EM INGLÊS
         admissionDate: displayToDate(data.dataAdmissao),
-        admissionType: data.tipoAdmissao && data.tipoAdmissao.trim() ? data.tipoAdmissao : undefined,
+        admissionType:
+          data.tipoAdmissao && data.tipoAdmissao.trim()
+            ? data.tipoAdmissao
+            : undefined,
         admissionReason: data.motivoAdmissao || null,
         admissionConditions: data.condicoesAdmissao || null,
         dischargeDate: displayToDate(data.dataDesligamento) || null,
@@ -753,133 +992,144 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         bloodType: mapTipoSanguineoToBackend(data.tipoSanguineo),
         // Converter altura de centímetros para metros antes de salvar (ex: 170 → 1.70)
         height: data.altura ? parseFloat(data.altura) / 100 : null,
-        weight: data.peso ? parseFloat(data.peso.replace(',', '.')) : null,
+        weight: data.peso ? parseFloat(data.peso.replace(",", ".")) : null,
         dependencyLevel: data.grauDependencia || null,
         mobilityAid: data.necessitaAuxilioMobilidade || false,
-        medicationsOnAdmission: (data.medicamentos || [])
-          .filter(m => m.nome && m.nome.trim())
-          .map(m => m.nome.trim())
-          .join(', ') || null,
+        medicationsOnAdmission:
+          (data.medicamentos || [])
+            .filter((m) => m.nome && m.nome.trim())
+            .map((m) => m.nome.trim())
+            .join(", ") || null,
 
         // 7. Convênios/Planos de Saúde - Array JSON
         healthPlans: (data.convenios || [])
-          .filter(c => c.nome || c.numero)
+          .filter((c) => c.nome || c.numero)
           .map((c, index) => ({
-            name: c.nome || '',
+            name: c.nome || "",
             cardNumber: c.numero || null,
-            cardUrl: index === 0 && convenioArquivoUrl ? convenioArquivoUrl : null
+            cardUrl:
+              index === 0 && convenioArquivoUrl ? convenioArquivoUrl : null,
           })),
 
         // 8. Pertences - Array de strings
         belongings: data.pertences
-          ? data.pertences.map(p => p.nome).filter(nome => nome && nome.trim())
+          ? data.pertences
+              .map((p) => p.nome)
+              .filter((nome) => nome && nome.trim())
           : [],
 
         // 9. Acomodação - Apenas o bedId é necessário
         // O backend pode obter o roomId através do bedId
-        bedId: data.leitoNumero && data.leitoNumero.trim() &&
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.leitoNumero.trim())
-          ? data.leitoNumero.trim() : undefined,
+        bedId:
+          data.leitoNumero &&
+          data.leitoNumero.trim() &&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            data.leitoNumero.trim()
+          )
+            ? data.leitoNumero.trim()
+            : undefined,
         // roomId não é mais necessário pois pode ser obtido pelo bedId
-
-      }
+      };
 
       // ========================================
       // Em modo edição, adicionar status e changeReason
       // ========================================
       if (isEditMode) {
         if (data.status) {
-          payload.status = data.status
+          payload.status = data.status;
         }
         // changeReason é OBRIGATÓRIO no modo edição (RDC 502/2021 Art. 39)
-        payload.changeReason = data.changeReason
+        payload.changeReason = data.changeReason;
       }
 
-      console.log('✅ Payload para API:', payload)
+      console.log("✅ Payload para API:", payload);
 
       // ========================================
       // FASE 3: Enviar para backend (POST ou PATCH)
       // ========================================
-      let response
+      let response;
 
       if (isEditMode) {
         // MODO EDIÇÃO: PATCH /residents/:id
-        console.log(`🌐 Enviando PATCH para /residents/${id}`)
-        setUploadProgress('Atualizando residente...')
-        response = await api.patch(`/residents/${id}`, payload)
-        console.log('✅ Residente atualizado:', response.data)
+        console.log(`🌐 Enviando PATCH para /residents/${id}`);
+        setUploadProgress("Atualizando residente...");
+        response = await api.patch(`/residents/${id}`, payload);
+        console.log("✅ Residente atualizado:", response.data);
       } else {
         // MODO CRIAÇÃO: POST /residents
-        console.log('🌐 Enviando POST para /residents')
-        setUploadProgress('Criando residente...')
-        response = await api.post('/residents', payload)
-        console.log('✅ Residente criado:', response.data)
+        console.log("🌐 Enviando POST para /residents");
+        setUploadProgress("Criando residente...");
+        response = await api.post("/residents", payload);
+        console.log("✅ Residente criado:", response.data);
       }
 
-      setIsUploading(false)
-      setUploadProgress('')
+      setIsUploading(false);
+      setUploadProgress("");
 
       // Invalidar cache do React Query para atualizar a lista
-      queryClient.invalidateQueries({ queryKey: ['residents'] })
+      queryClient.invalidateQueries({ queryKey: ["residents"] });
 
       // Mostrar toast de sucesso
-      toast.success(isEditMode ? 'Residente atualizado com sucesso!' : 'Residente criado com sucesso!')
+      toast.success(
+        isEditMode
+          ? "Residente atualizado com sucesso!"
+          : "Residente criado com sucesso!"
+      );
 
       // Redirecionar para lista
       if (isEditMode) {
         // Modo edição: apenas volta para lista
-        navigate('/dashboard/residentes')
+        navigate("/dashboard/residentes");
       } else {
         // Modo criação: redireciona para lista com state para abrir modal de documentos
-        navigate('/dashboard/residentes', {
+        navigate("/dashboard/residentes", {
           state: {
             openDocumentsModal: true,
             residentId: response.data.id,
             residentName: response.data.fullName,
-          }
-        })
+          },
+        });
       }
-
     } catch (error: unknown) {
-      console.error('❌ Erro ao salvar residente:', error)
+      console.error("❌ Erro ao salvar residente:", error);
 
       // Extrair mensagem de erro do backend ou fallback
-      let mensagem = 'Erro desconhecido'
+      let mensagem = "Erro desconhecido";
       if (error.response?.data?.message) {
-        mensagem = error.response.data.message
+        mensagem = error.response.data.message;
       } else if (error.response?.data?.error) {
-        mensagem = error.response.data.error
+        mensagem = error.response.data.error;
       } else if (error.message) {
-        mensagem = error.message
+        mensagem = error.message;
       }
 
       // Log detalhado para debug
-      console.log('Erro completo:', {
+      console.log("Erro completo:", {
         statusCode: error.response?.status,
         message: mensagem,
         data: error.response?.data,
-      })
+      });
 
       // Mostrar toast de erro
-      toast.error(`Erro ao salvar residente: ${mensagem}`)
-      setIsUploading(false)
-      setUploadProgress('')
+      toast.error(`Erro ao salvar residente: ${mensagem}`);
+      setIsUploading(false);
+      setUploadProgress("");
     }
-  }
+  };
 
   const handleCancel = () => {
     // Cancelar e voltar para a lista
-    navigate('/dashboard/residentes')
-  }
+    navigate("/dashboard/residentes");
+  };
 
   const handleClearForm = () => {
     // Limpar o formulário (recarrega a página)
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   const handleVoltar = () => {
-    window.location.href = '/dashboard/residentes'
-  }
+    window.location.href = "/dashboard/residentes";
+  };
 
   return (
     <Page maxWidth="wide">
@@ -901,13 +1151,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       )}
 
       <PageHeader
-        title={readOnly ? 'Visualizar Residente' : isEditMode ? 'Editar Residente' : 'Novo Residente'}
+        title={
+          readOnly
+            ? "Visualizar Residente"
+            : isEditMode
+            ? "Editar Residente"
+            : "Novo Residente"
+        }
         subtitle={
           readOnly
-            ? 'Visualização dos dados cadastrais do residente'
+            ? "Visualização dos dados cadastrais do residente"
             : isEditMode
-            ? 'Atualize as informações do residente'
-            : 'Cadastre um novo residente na ILPI'
+            ? "Atualize as informações do residente"
+            : "Cadastre um novo residente na ILPI"
         }
         onBack={handleVoltar}
         actions={
@@ -917,36 +1173,36 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 <Button
                   onClick={() => navigate(`/dashboard/residentes/${id}`)}
                   variant="default"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Prontuário
-              </Button>
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Prontuário
+                </Button>
+                <Button
+                  onClick={() => setHistoryDrawerOpen(true)}
+                  variant="outline"
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  Histórico
+                </Button>
+                <Button
+                  onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
+                  variant="default"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              </>
+            )}
+            {isEditMode && !readOnly && id && (
               <Button
                 onClick={() => setHistoryDrawerOpen(true)}
                 variant="outline"
+                type="button"
               >
                 <History className="h-4 w-4 mr-2" />
                 Histórico
               </Button>
-              <Button
-                onClick={() => navigate(`/dashboard/residentes/${id}/edit`)}
-                variant="default"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
-            </>
-          )}
-          {isEditMode && !readOnly && id && (
-            <Button
-              onClick={() => setHistoryDrawerOpen(true)}
-              variant="outline"
-              type="button"
-            >
-              <History className="h-4 w-4 mr-2" />
-              Histórico
-            </Button>
-          )}
+            )}
           </div>
         }
       />
@@ -954,7 +1210,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       {/* Loading State durante carregamento de dados */}
       {isLoading && (
         <div className="text-center p-8 bg-info/10 rounded-lg border border-info/30">
-          <p className="text-info font-semibold">Carregando dados do residente...</p>
+          <p className="text-info font-semibold">
+            Carregando dados do residente...
+          </p>
         </div>
       )}
 
@@ -973,22 +1231,26 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   <div className="flex gap-2">
                     <Button
                       type="button"
-                      variant={field.value === 'Ativo' ? 'success' : 'outline'}
-                      onClick={() => field.onChange('Ativo')}
+                      variant={field.value === "Ativo" ? "success" : "outline"}
+                      onClick={() => field.onChange("Ativo")}
                     >
                       Ativo
                     </Button>
                     <Button
                       type="button"
-                      variant={field.value === 'Inativo' ? 'warning' : 'outline'}
-                      onClick={() => field.onChange('Inativo')}
+                      variant={
+                        field.value === "Inativo" ? "warning" : "outline"
+                      }
+                      onClick={() => field.onChange("Inativo")}
                     >
                       Inativo
                     </Button>
                     <Button
                       type="button"
-                      variant={field.value === 'Falecido' ? 'danger' : 'outline'}
-                      onClick={() => field.onChange('Falecido')}
+                      variant={
+                        field.value === "Falecido" ? "danger" : "outline"
+                      }
+                      onClick={() => field.onChange("Falecido")}
                     >
                       Falecido
                     </Button>
@@ -996,7 +1258,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 )}
               />
               {errors.status && (
-                <p className="text-sm text-danger mt-2">{errors.status.message}</p>
+                <p className="text-sm text-danger mt-2">
+                  {errors.status.message}
+                </p>
               )}
             </div>
           </CardContent>
@@ -1012,22 +1276,26 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 Motivo da Alteração <span className="text-danger">*</span>
               </Label>
               <p className="text-sm text-muted-foreground">
-                Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo de qualquer alteração no prontuário do residente.
+                Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo
+                de qualquer alteração no prontuário do residente.
               </p>
               <Textarea
                 id="changeReason"
                 placeholder="Ex: Atualização do endereço conforme solicitação da família em 12/12/2025..."
-                {...register('changeReason')}
+                {...register("changeReason")}
                 className={cn(
-                  'min-h-[100px]',
-                  errors.changeReason && 'border-danger focus:border-danger'
+                  "min-h-[100px]",
+                  errors.changeReason && "border-danger focus:border-danger"
                 )}
               />
               {errors.changeReason && (
-                <p className="text-sm text-danger mt-2">{errors.changeReason.message}</p>
+                <p className="text-sm text-danger mt-2">
+                  {errors.changeReason.message}
+                </p>
               )}
               <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
+                Mínimo de 10 caracteres. Este motivo ficará registrado
+                permanentemente no histórico de alterações.
               </p>
             </div>
           </CardContent>
@@ -1035,43 +1303,45 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       )}
 
       {/* Tabs/Abas */}
-      <form onSubmit={handleSubmit(
-        onSubmit,
-        (errors) => {
-          console.error('❌ Erros de validação detectados:', errors)
+      <form
+        onSubmit={handleSubmit(onSubmit, (errors) => {
+          console.error("❌ Erros de validação detectados:", errors);
           // Mostrar o primeiro erro encontrado
-          const firstError = Object.entries(errors)[0]
+          const firstError = Object.entries(errors)[0];
           if (firstError) {
-            const [field, error] = firstError
-            toast.error(`Erro no campo "${field}": ${error.message}`)
+            const [field, error] = firstError;
+            toast.error(`Erro no campo "${field}": ${error.message}`);
           }
-        }
-      )}>
+        })}
+      >
         {/* ========== FORMULÁRIO TABULAR (4 ABAS) ========== */}
         <Tabs defaultValue="tab1" className="mb-8">
-            {/* ========== NAVEGAÇÃO DE ABAS ========== */}
-            <div className="overflow-x-auto mb-6">
-              <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
-                <TabsTrigger value="tab1" className="whitespace-nowrap">
-                  1. Dados & Contatos
-                </TabsTrigger>
-                <TabsTrigger value="tab2" className="whitespace-nowrap">
-                  2. Endereços & Responsável
-                </TabsTrigger>
-                <TabsTrigger value="tab3" className="whitespace-nowrap">
-                  3. Saúde & Convênios
-                </TabsTrigger>
-                <TabsTrigger value="tab4" className="whitespace-nowrap">
-                  4. Admissão & Acomodação
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          {/* ========== NAVEGAÇÃO DE ABAS ========== */}
+          <div className="overflow-x-auto mb-6">
+            <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
+              <TabsTrigger value="tab1" className="whitespace-nowrap">
+                1. Dados & Contatos
+              </TabsTrigger>
+              <TabsTrigger value="tab2" className="whitespace-nowrap">
+                2. Endereços & Responsável
+              </TabsTrigger>
+              <TabsTrigger value="tab3" className="whitespace-nowrap">
+                3. Saúde & Convênios
+              </TabsTrigger>
+              <TabsTrigger value="tab4" className="whitespace-nowrap">
+                4. Admissão & Acomodação
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-            <fieldset disabled={readOnly}>
-
+          <fieldset disabled={readOnly}>
             {/* ========== ABA 1: DADOS PESSOAIS + CONTATOS ========== */}
             {/* Aba 1 - Dados Pessoais */}
-            <TabsContent value="tab1" forceMount className="data-[state=inactive]:hidden">
+            <TabsContent
+              value="tab1"
+              forceMount
+              className="data-[state=inactive]:hidden"
+            >
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Informações Básicas" defaultOpen={true}>
@@ -1080,11 +1350,13 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <div className="col-span-12 md:col-span-3">
                         <PhotoUploadNew
                           onPhotoSelect={(file) => {
-                            setValue('foto', file);
+                            setValue("foto", file);
                             if (file) {
                               const reader = new FileReader();
                               reader.onload = (event) => {
-                                setCurrentPhotoUrl(event.target?.result as string);
+                                setCurrentPhotoUrl(
+                                  event.target?.result as string
+                                );
                               };
                               reader.readAsDataURL(file);
                             } else {
@@ -1105,14 +1377,33 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
                               Nome completo
                             </Label>
-                            <Input {...register('nome')} className="mt-2" />
+                            <Input {...register("nome")} className="mt-2" />
                             {errors.nome && (
-                              <p className="text-sm text-danger mt-1">{errors.nome.message}</p>
+                              <p className="text-sm text-danger mt-1">
+                                {errors.nome.message}
+                              </p>
                             )}
                           </div>
                           <div>
                             <Label>Nome social</Label>
-                            <Input {...register('nomeSocial')} className="mt-2" />
+                            <Input
+                              {...register("nomeSocial")}
+                              className="mt-2"
+                            />
+                          </div>
+                          <div>
+                            <Label>Email</Label>
+                            <Input
+                              {...register("email")}
+                              type="email"
+                              placeholder="email@exemplo.com"
+                              className="mt-2"
+                            />
+                            {errors.email && (
+                              <p className="text-sm text-danger mt-1">
+                                {errors.email.message}
+                              </p>
+                            )}
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -1154,7 +1445,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           )}
                         />
                         {errors.cpf && (
-                          <p className="text-sm text-danger mt-1">{errors.cpf.message}</p>
+                          <p className="text-sm text-danger mt-1">
+                            {errors.cpf.message}
+                          </p>
                         )}
                       </div>
 
@@ -1176,17 +1469,20 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                       <div className="col-span-12 md:col-span-4">
                         <Label>Órgão Expedidor</Label>
-                        <Input {...register('orgaoExpedidor')} className="mt-2" />
+                        <Input
+                          {...register("orgaoExpedidor")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
                         <Label>Escolaridade</Label>
-                        <Input {...register('escolaridade')} className="mt-2" />
+                        <Input {...register("escolaridade")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
                         <Label>Profissão</Label>
-                        <Input {...register('profissao')} className="mt-2" />
+                        <Input {...register("profissao")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
@@ -1197,20 +1493,29 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           name="genero"
                           control={control}
                           render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="MASCULINO">Masculino</SelectItem>
-                                <SelectItem value="FEMININO">Feminino</SelectItem>
+                                <SelectItem value="MASCULINO">
+                                  Masculino
+                                </SelectItem>
+                                <SelectItem value="FEMININO">
+                                  Feminino
+                                </SelectItem>
                                 <SelectItem value="OUTRO">Outro</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
                         />
                         {errors.genero && (
-                          <p className="text-sm text-danger mt-1">{errors.genero.message}</p>
+                          <p className="text-sm text-danger mt-1">
+                            {errors.genero.message}
+                          </p>
                         )}
                       </div>
 
@@ -1220,16 +1525,29 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           name="estadoCivil"
                           control={control}
                           render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Solteiro(a)">Solteiro(a)</SelectItem>
-                                <SelectItem value="Casado(a)">Casado(a)</SelectItem>
-                                <SelectItem value="Divorciado(a)">Divorciado(a)</SelectItem>
-                                <SelectItem value="Viúvo(a)">Viúvo(a)</SelectItem>
-                                <SelectItem value="União Estável">União Estável</SelectItem>
+                                <SelectItem value="Solteiro(a)">
+                                  Solteiro(a)
+                                </SelectItem>
+                                <SelectItem value="Casado(a)">
+                                  Casado(a)
+                                </SelectItem>
+                                <SelectItem value="Divorciado(a)">
+                                  Divorciado(a)
+                                </SelectItem>
+                                <SelectItem value="Viúvo(a)">
+                                  Viúvo(a)
+                                </SelectItem>
+                                <SelectItem value="União Estável">
+                                  União Estável
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -1238,7 +1556,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                       <div className="col-span-12 md:col-span-4">
                         <Label>Religião</Label>
-                        <Input {...register('religiao')} className="mt-2" />
+                        <Input {...register("religiao")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-4">
@@ -1258,55 +1576,79 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             />
                           )}
                         />
-                        {errors.dataNascimento && (
-                          <p className="text-sm text-danger mt-1">{errors.dataNascimento.message}</p>
-                        )}
+                        {(() => {
+                          const feedback = getBirthDateFeedback();
+                          if (!feedback) return null;
+
+                          // Define cor: verde (success) se válido e mostra idade, vermelho se inválido, cinza se informativo
+                          const colorClass = feedback.message.startsWith('✓')
+                            ? 'text-success'
+                            : (feedback.isError ? 'text-danger' : 'text-muted-foreground');
+
+                          return (
+                            <p className={`text-xs mt-1 ${colorClass}`}>
+                              {feedback.message}
+                            </p>
+                          );
+                        })()}
                       </div>
 
                       <div className="col-span-12 md:col-span-4">
                         <Label>Nacionalidade</Label>
-                        <Input {...register('nacionalidade')} className="mt-2" />
+                        <Input
+                          {...register("nacionalidade")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-5">
                         <Label>Local de Nascimento</Label>
-                        <Input {...register('naturalidade')} className="mt-2" />
+                        <Input {...register("naturalidade")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
                         <Label>UF</Label>
                         <Input
-                          {...register('ufNascimento')}
+                          {...register("ufNascimento")}
                           maxLength={2}
                           className="mt-2 uppercase"
                           onChange={(e) => {
-                            e.target.value = e.target.value.toUpperCase()
-                            register('ufNascimento').onChange(e)
+                            e.target.value = e.target.value.toUpperCase();
+                            register("ufNascimento").onChange(e);
                           }}
                         />
                       </div>
 
                       <div className="col-span-12 md:col-span-6">
                         <Label>Nome da Mãe</Label>
-                        <Input {...register('nomeMae')} className="mt-2" />
+                        <Input {...register("nomeMae")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-6">
                         <Label>Nome do Pai</Label>
-                        <Input {...register('nomePai')} className="mt-2" />
+                        <Input {...register("nomePai")} className="mt-2" />
                       </div>
                     </div>
                   </Collapsible>
 
-                  <Collapsible title="Contatos de Emergência" defaultOpen={false}>
+                  <Collapsible
+                    title="Contatos de Emergência"
+                    defaultOpen={false}
+                  >
                     <div className="space-y-3 mb-4">
                       {contatosFields.map((field, index) => (
-                        <div key={field.id} className="flex gap-3 items-end p-4 bg-muted rounded-lg">
+                        <div
+                          key={field.id}
+                          className="flex gap-3 items-end p-4 bg-muted rounded-lg"
+                        >
                           <div className="flex-1">
                             <Label className="text-xs">Nome completo</Label>
-                            <Input {...register(`contatosEmergencia.${index}.nome`)} className="mt-1" />
+                            <Input
+                              {...register(`contatosEmergencia.${index}.nome`)}
+                              className="mt-1"
+                            />
                           </div>
-                          <div style={{ width: '180px' }}>
+                          <div style={{ width: "180px" }}>
                             <Label className="text-xs">Telefone</Label>
                             <Controller
                               name={`contatosEmergencia.${index}.telefone`}
@@ -1324,7 +1666,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           </div>
                           <div className="flex-1">
                             <Label className="text-xs">Parentesco</Label>
-                            <Input {...register(`contatosEmergencia.${index}.parentesco`)} className="mt-1" />
+                            <Input
+                              {...register(
+                                `contatosEmergencia.${index}.parentesco`
+                              )}
+                              className="mt-1"
+                            />
                           </div>
                           <Button
                             type="button"
@@ -1342,7 +1689,13 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendContato({ nome: '', telefone: '', parentesco: '' })}
+                      onClick={() =>
+                        appendContato({
+                          nome: "",
+                          telefone: "",
+                          parentesco: "",
+                        })
+                      }
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Adicionar Contato
@@ -1353,7 +1706,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             </TabsContent>
 
             {/* ========== ABA 2: ENDEREÇOS + RESPONSÁVEL ========== */}
-            <TabsContent value="tab2" forceMount className="data-[state=inactive]:hidden">
+            <TabsContent
+              value="tab2"
+              forceMount
+              className="data-[state=inactive]:hidden"
+            >
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Endereço Atual" defaultOpen={true}>
@@ -1368,8 +1725,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                               mask="99999-999"
                               value={field.value}
                               onChange={(e) => {
-                                field.onChange(e)
-                                handleBuscarCep(e.target.value, 'atual')
+                                field.onChange(e);
+                                handleBuscarCep(e.target.value, "atual");
                               }}
                               className="mt-2"
                             />
@@ -1380,39 +1737,49 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <div className="col-span-12 md:col-span-2">
                         <Label>UF</Label>
                         <Input
-                          {...register('estadoAtual')}
+                          {...register("estadoAtual")}
                           maxLength={2}
                           className="mt-2 uppercase"
                           onChange={(e) => {
-                            e.target.value = e.target.value.toUpperCase()
-                            register('estadoAtual').onChange(e)
+                            e.target.value = e.target.value.toUpperCase();
+                            register("estadoAtual").onChange(e);
                           }}
                         />
                       </div>
 
                       <div className="col-span-12 md:col-span-7">
                         <Label>Cidade</Label>
-                        <Input {...register('cidadeAtual')} className="mt-2" />
+                        <Input {...register("cidadeAtual")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-6">
                         <Label>Logradouro</Label>
-                        <Input {...register('logradouroAtual')} className="mt-2" />
+                        <Input
+                          {...register("logradouroAtual")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-2">
                         <Label>Número</Label>
-                        <Input {...register('numeroAtual')} placeholder="S/N" className="mt-2" />
+                        <Input
+                          {...register("numeroAtual")}
+                          placeholder="S/N"
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-4">
                         <Label>Complemento</Label>
-                        <Input {...register('complementoAtual')} className="mt-2" />
+                        <Input
+                          {...register("complementoAtual")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-5">
                         <Label>Bairro</Label>
-                        <Input {...register('bairroAtual')} className="mt-2" />
+                        <Input {...register("bairroAtual")} className="mt-2" />
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
@@ -1433,113 +1800,46 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     </div>
                   </Collapsible>
 
-                  <div className="border border-border rounded-lg mb-4 overflow-hidden">
-                    <div className="bg-muted px-5 py-4 font-semibold flex justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <span>Endereço de Procedência</span>
-                        <div className="flex items-center gap-2">
-                          <Controller
-                            name="endProcedenciaDiferente"
-                            control={control}
-                            render={({ field }) => (
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                id="endProcedenciaDiferente"
-                              />
-                            )}
-                          />
-                          <Label htmlFor="endProcedenciaDiferente" className="font-normal cursor-pointer">
-                            Diferente do atual
-                          </Label>
-                        </div>
+                  <Collapsible title="Procedência" defaultOpen={true}>
+                    <div className="grid grid-cols-12 gap-4 mb-6">
+                      <div className="col-span-12">
+                        <Label>Procedência do Residente</Label>
+                        <Input
+                          {...register("procedencia")}
+                          placeholder="Ex: Domicílio próprio, residência de familiar, hospital, outra ILPI..."
+                          maxLength={255}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Origem do residente antes da admissão
+                        </p>
                       </div>
                     </div>
-                    {watchEndProcedenciaDiferente && (
-                      <div className="p-5">
-                        <div className="grid grid-cols-12 gap-4">
-                          <div className="col-span-12 md:col-span-3">
-                            <Label>CEP</Label>
-                            <Controller
-                              name="cepProcedencia"
-                              control={control}
-                              render={({ field }) => (
-                                <MaskedInput
-                                  mask="99999-999"
-                                  value={field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e)
-                                    handleBuscarCep(e.target.value, 'procedencia')
-                                  }}
-                                  className="mt-2"
-                                />
-                              )}
-                            />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-2">
-                            <Label>UF</Label>
-                            <Input
-                              {...register('estadoProcedencia')}
-                              maxLength={2}
-                              className="mt-2 uppercase"
-                              onChange={(e) => {
-                                e.target.value = e.target.value.toUpperCase()
-                                register('estadoProcedencia').onChange(e)
-                              }}
-                            />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-7">
-                            <Label>Cidade</Label>
-                            <Input {...register('cidadeProcedencia')} className="mt-2" />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-6">
-                            <Label>Logradouro</Label>
-                            <Input {...register('logradouroProcedencia')} className="mt-2" />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-2">
-                            <Label>Número</Label>
-                            <Input {...register('numeroProcedencia')} placeholder="S/N" className="mt-2" />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-4">
-                            <Label>Complemento</Label>
-                            <Input {...register('complementoProcedencia')} className="mt-2" />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-5">
-                            <Label>Bairro</Label>
-                            <Input {...register('bairroProcedencia')} className="mt-2" />
-                          </div>
-
-                          <div className="col-span-12 md:col-span-3">
-                            <Label>Telefone</Label>
-                            <Controller
-                              name="telefoneProcedencia"
-                              control={control}
-                              render={({ field }) => (
-                                <MaskedInput
-                                  mask="(99) 99999-9999"
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  className="mt-2"
-                                />
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  </Collapsible>
 
                   <Collapsible title="Responsável Legal" defaultOpen={true}>
                     <div className="grid grid-cols-12 gap-4 mb-6">
                       <div className="col-span-12 md:col-span-6">
                         <Label>Nome Completo</Label>
-                        <Input {...register('responsavelLegalNome')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalNome")}
+                          className="mt-2"
+                        />
+                      </div>
+
+                      <div className="col-span-12 md:col-span-6">
+                        <Label>Email</Label>
+                        <Input
+                          {...register("responsavelLegalEmail")}
+                          type="email"
+                          placeholder="email@exemplo.com"
+                          className="mt-2"
+                        />
+                        {errors.responsavelLegalEmail && (
+                          <p className="text-sm text-danger mt-1">
+                            {errors.responsavelLegalEmail.message}
+                          </p>
+                        )}
                       </div>
 
                       <div className="col-span-12 md:col-span-3">
@@ -1596,14 +1896,21 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           name="responsavelLegalTipo"
                           control={control}
                           render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="Curador">Curador</SelectItem>
-                                <SelectItem value="Procurador">Procurador</SelectItem>
-                                <SelectItem value="Responsável Familiar (Convencional)">Responsável Familiar (Convencional)</SelectItem>
+                                <SelectItem value="Procurador">
+                                  Procurador
+                                </SelectItem>
+                                <SelectItem value="Responsável Familiar (Convencional)">
+                                  Responsável Familiar (Convencional)
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           )}
@@ -1611,7 +1918,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       </div>
                     </div>
 
-                    <h3 className="text-lg font-semibold mb-4 mt-6">Endereço do Responsável</h3>
+                    <h3 className="text-lg font-semibold mb-4 mt-6">
+                      Endereço do Responsável
+                    </h3>
 
                     <div className="grid grid-cols-12 gap-4 mb-6">
                       <div className="col-span-12 md:col-span-3">
@@ -1624,8 +1933,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                               mask="99999-999"
                               value={field.value}
                               onChange={(e) => {
-                                field.onChange(e)
-                                handleBuscarCep(e.target.value, 'responsavelLegal')
+                                field.onChange(e);
+                                handleBuscarCep(
+                                  e.target.value,
+                                  "responsavelLegal"
+                                );
                               }}
                               className="mt-2"
                             />
@@ -1636,39 +1948,54 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <div className="col-span-12 md:col-span-2">
                         <Label>UF</Label>
                         <Input
-                          {...register('responsavelLegalUf')}
+                          {...register("responsavelLegalUf")}
                           maxLength={2}
                           className="mt-2 uppercase"
                           onChange={(e) => {
-                            e.target.value = e.target.value.toUpperCase()
-                            register('responsavelLegalUf').onChange(e)
+                            e.target.value = e.target.value.toUpperCase();
+                            register("responsavelLegalUf").onChange(e);
                           }}
                         />
                       </div>
 
                       <div className="col-span-12 md:col-span-7">
                         <Label>Cidade</Label>
-                        <Input {...register('responsavelLegalCidade')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalCidade")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-6">
                         <Label>Logradouro</Label>
-                        <Input {...register('responsavelLegalLogradouro')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalLogradouro")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-2">
                         <Label>Número</Label>
-                        <Input {...register('responsavelLegalNumero')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalNumero")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12 md:col-span-4">
                         <Label>Complemento</Label>
-                        <Input {...register('responsavelLegalComplemento')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalComplemento")}
+                          className="mt-2"
+                        />
                       </div>
 
                       <div className="col-span-12">
                         <Label>Bairro</Label>
-                        <Input {...register('responsavelLegalBairro')} className="mt-2" />
+                        <Input
+                          {...register("responsavelLegalBairro")}
+                          className="mt-2"
+                        />
                       </div>
                     </div>
                   </Collapsible>
@@ -1677,13 +2004,19 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             </TabsContent>
 
             {/* ========== ABA 3: SAÚDE + CONVÊNIOS ========== */}
-            <TabsContent value="tab3" forceMount className="data-[state=inactive]:hidden">
+            <TabsContent
+              value="tab3"
+              forceMount
+              className="data-[state=inactive]:hidden"
+            >
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <Collapsible title="Dados de Saúde" defaultOpen={true}>
                     {/* Seção 1: Dados Antropométricos */}
                     <div className="bg-muted border border-border rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Dados Antropométricos</h3>
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">
+                        Dados Antropométricos
+                      </h3>
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12 md:col-span-3">
                           <Label>Tipo Sanguíneo</Label>
@@ -1691,7 +2024,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             name="tipoSanguineo"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
                                 <SelectTrigger className="mt-2">
                                   <SelectValue placeholder="..." />
                                 </SelectTrigger>
@@ -1713,25 +2049,29 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         <div className="col-span-12 md:col-span-3">
                           <Label>Altura (cm)</Label>
                           <Input
-                            {...register('altura')}
+                            {...register("altura")}
                             type="text"
                             inputMode="numeric"
                             placeholder="170"
                             className="mt-2"
                             onChange={(e) => {
                               // Remove tudo que não é dígito
-                              const value = e.target.value.replace(/\D/g, '')
+                              const value = e.target.value.replace(/\D/g, "");
                               // Limita a 3 dígitos (máximo 300 cm)
-                              const limited = value.slice(0, 3)
-                              e.target.value = limited
-                              register('altura').onChange(e)
+                              const limited = value.slice(0, 3);
+                              e.target.value = limited;
+                              register("altura").onChange(e);
                             }}
                           />
                         </div>
 
                         <div className="col-span-12 md:col-span-3">
                           <Label>Peso (kg)</Label>
-                          <Input {...register('peso')} placeholder="70,5" className="mt-2" />
+                          <Input
+                            {...register("peso")}
+                            placeholder="70,5"
+                            className="mt-2"
+                          />
                         </div>
 
                         <div className="col-span-12 md:col-span-3">
@@ -1740,14 +2080,23 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             name="grauDependencia"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                              >
                                 <SelectTrigger className="mt-2">
                                   <SelectValue placeholder="..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Grau I - Independente">Grau I - Independente</SelectItem>
-                                  <SelectItem value="Grau II - Parcialmente Dependente">Grau II - Parcialmente Dependente</SelectItem>
-                                  <SelectItem value="Grau III - Totalmente Dependente">Grau III - Totalmente Dependente</SelectItem>
+                                  <SelectItem value="Grau I - Independente">
+                                    Grau I - Independente
+                                  </SelectItem>
+                                  <SelectItem value="Grau II - Parcialmente Dependente">
+                                    Grau II - Parcialmente Dependente
+                                  </SelectItem>
+                                  <SelectItem value="Grau III - Totalmente Dependente">
+                                    Grau III - Totalmente Dependente
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             )}
@@ -1758,23 +2107,36 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                     {/* Seção 2: Situação de Saúde */}
                     <div className="bg-muted border border-border rounded-lg p-4 mb-4">
-                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">Situação de Saúde</h3>
+                      <h3 className="text-sm font-bold text-foreground mb-4 pb-2 border-b border-border">
+                        Situação de Saúde
+                      </h3>
                       <div className="grid grid-cols-12 gap-4">
                         {/* Medicamentos com Badges */}
                         <div className="col-span-12 md:col-span-4">
-                          <Label className="text-sm font-semibold mb-2 block">Medicamentos</Label>
+                          <Label className="text-sm font-semibold mb-2 block">
+                            Medicamentos
+                          </Label>
                           {medicamentosFields.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-2 p-2 bg-info/10 border border-info/30 rounded min-h-[40px]">
                               {medicamentosFields.map((field, index) => {
-                                const nome = watch(`medicamentos.${index}.nome`)
+                                const nome = watch(
+                                  `medicamentos.${index}.nome`
+                                );
                                 return nome && nome.trim() ? (
-                                  <div key={field.id} className="flex items-center gap-1 bg-info text-info-foreground px-2 py-0.5 rounded-full text-xs font-medium">
+                                  <div
+                                    key={field.id}
+                                    className="flex items-center gap-1 bg-info text-info-foreground px-2 py-0.5 rounded-full text-xs font-medium"
+                                  >
                                     <span>{nome}</span>
-                                    <button type="button" onClick={() => removeMedicamento(index)} className="hover:opacity-80">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeMedicamento(index)}
+                                      className="hover:opacity-80"
+                                    >
                                       <X className="w-3 h-3" />
                                     </button>
                                   </div>
-                                ) : null
+                                ) : null;
                               })}
                             </div>
                           )}
@@ -1784,19 +2146,33 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                               placeholder="Adicionar..."
                               className="text-xs h-8"
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                  e.preventDefault()
-                                  appendMedicamento({ nome: e.currentTarget.value })
-                                  e.currentTarget.value = ''
+                                if (
+                                  e.key === "Enter" &&
+                                  e.currentTarget.value.trim()
+                                ) {
+                                  e.preventDefault();
+                                  appendMedicamento({
+                                    nome: e.currentTarget.value,
+                                  });
+                                  e.currentTarget.value = "";
                                 }
                               }}
                             />
-                            <Button type="button" size="sm" className="h-8 px-2 text-xs" onClick={() => {
-                              if (medicamentosInputRef.current?.value.trim()) {
-                                appendMedicamento({ nome: medicamentosInputRef.current.value })
-                                medicamentosInputRef.current.value = ''
-                              }
-                            }}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => {
+                                if (
+                                  medicamentosInputRef.current?.value.trim()
+                                ) {
+                                  appendMedicamento({
+                                    nome: medicamentosInputRef.current.value,
+                                  });
+                                  medicamentosInputRef.current.value = "";
+                                }
+                              }}
+                            >
                               <Plus className="w-3 h-3" />
                             </Button>
                           </div>
@@ -1817,7 +2193,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                                 />
                               )}
                             />
-                            <Label htmlFor="necessitaAuxilioMobilidade" className="font-semibold cursor-pointer text-sm">
+                            <Label
+                              htmlFor="necessitaAuxilioMobilidade"
+                              className="font-semibold cursor-pointer text-sm"
+                            >
                               Necessita auxílio para mobilidade
                             </Label>
                           </div>
@@ -1829,15 +2208,28 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   <Collapsible title="Convênios" defaultOpen={false}>
                     <div className="space-y-3 mb-4">
                       {conveniosFields.map((field, index) => (
-                        <div key={field.id} className="border border-border rounded-lg p-4">
+                        <div
+                          key={field.id}
+                          className="border border-border rounded-lg p-4"
+                        >
                           <div className="grid grid-cols-12 gap-3 items-center">
                             <div className="col-span-12 md:col-span-5">
-                              <Label className="text-xs">Nome do Convênio</Label>
-                              <Input {...register(`convenios.${index}.nome`)} className="mt-1" />
+                              <Label className="text-xs">
+                                Nome do Convênio
+                              </Label>
+                              <Input
+                                {...register(`convenios.${index}.nome`)}
+                                className="mt-1"
+                              />
                             </div>
                             <div className="col-span-12 md:col-span-5">
-                              <Label className="text-xs">Número da Carteirinha</Label>
-                              <Input {...register(`convenios.${index}.numero`)} className="mt-1" />
+                              <Label className="text-xs">
+                                Número da Carteirinha
+                              </Label>
+                              <Input
+                                {...register(`convenios.${index}.numero`)}
+                                className="mt-1"
+                              />
                             </div>
                             <div className="col-span-12 md:col-span-1 flex items-end">
                               <Button
@@ -1858,7 +2250,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => appendConvenio({ nome: '', numero: '' })}
+                      onClick={() => appendConvenio({ nome: "", numero: "" })}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Adicionar Convênio
@@ -1869,7 +2261,11 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             </TabsContent>
 
             {/* ========== ABA 4: ADMISSÃO + PERTENCES + ACOMODAÇÃO ========== */}
-            <TabsContent value="tab4" forceMount className="data-[state=inactive]:hidden">
+            <TabsContent
+              value="tab4"
+              forceMount
+              className="data-[state=inactive]:hidden"
+            >
               <Card className="shadow-lg">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-12 gap-4">
@@ -1891,7 +2287,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         )}
                       />
                       {errors.dataAdmissao && (
-                        <p className="text-sm text-danger mt-1">{errors.dataAdmissao.message}</p>
+                        <p className="text-sm text-danger mt-1">
+                          {errors.dataAdmissao.message}
+                        </p>
                       )}
                     </div>
 
@@ -1901,13 +2299,20 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         name="tipoAdmissao"
                         control={control}
                         render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
                             <SelectTrigger className="mt-2">
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Voluntária">Voluntária</SelectItem>
-                              <SelectItem value="Involuntária">Involuntária</SelectItem>
+                              <SelectItem value="Voluntária">
+                                Voluntária
+                              </SelectItem>
+                              <SelectItem value="Involuntária">
+                                Involuntária
+                              </SelectItem>
                               <SelectItem value="Judicial">Judicial</SelectItem>
                             </SelectContent>
                           </Select>
@@ -1917,12 +2322,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                     <div className="col-span-12 md:col-span-5">
                       <Label>Motivo da Admissão</Label>
-                      <Input {...register('motivoAdmissao')} className="mt-2" />
+                      <Input {...register("motivoAdmissao")} className="mt-2" />
                     </div>
 
                     <div className="col-span-12">
                       <Label>Condições de Admissão</Label>
-                      <Textarea {...register('condicoesAdmissao')} rows={2} className="mt-2" />
+                      <Textarea
+                        {...register("condicoesAdmissao")}
+                        rows={2}
+                        className="mt-2"
+                      />
                     </div>
 
                     <div className="col-span-12 md:col-span-3">
@@ -1944,26 +2353,37 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                     <div className="col-span-12 md:col-span-9">
                       <Label>Motivo do Desligamento</Label>
-                      <Input {...register('motivoDesligamento')} className="mt-2" />
+                      <Input
+                        {...register("motivoDesligamento")}
+                        className="mt-2"
+                      />
                     </div>
-
                   </div>
 
                   {/* Seção: Pertences do Residente */}
-                  <h3 className="text-lg font-semibold mb-4 mt-8">Pertences do Residente</h3>
+                  <h3 className="text-lg font-semibold mb-4 mt-8">
+                    Pertences do Residente
+                  </h3>
                   <div className="mb-6">
                     {pertencesFields.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3 p-3 bg-primary/5 border border-primary/20 rounded min-h-[60px]">
                         {pertencesFields.map((field, index) => {
-                          const nome = watch(`pertences.${index}.nome`)
+                          const nome = watch(`pertences.${index}.nome`);
                           return nome && nome.trim() ? (
-                            <div key={field.id} className="flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium">
+                            <div
+                              key={field.id}
+                              className="flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium"
+                            >
                               <span>{nome}</span>
-                              <button type="button" onClick={() => removePertence(index)} className="hover:opacity-80 ml-1">
+                              <button
+                                type="button"
+                                onClick={() => removePertence(index)}
+                                className="hover:opacity-80 ml-1"
+                              >
                                 <X className="w-4 h-4" />
                               </button>
                             </div>
-                          ) : null
+                          ) : null;
                         })}
                       </div>
                     )}
@@ -1973,20 +2393,29 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         placeholder="Adicionar pertence (ex: Roupas, Documentos, Objetos pessoais...)"
                         className="flex-1"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                            e.preventDefault()
-                            appendPertence({ nome: e.currentTarget.value })
-                            e.currentTarget.value = ''
+                          if (
+                            e.key === "Enter" &&
+                            e.currentTarget.value.trim()
+                          ) {
+                            e.preventDefault();
+                            appendPertence({ nome: e.currentTarget.value });
+                            e.currentTarget.value = "";
                           }
                         }}
                       />
-                      <Button type="button" size="default" onClick={() => {
-                        if (pertencesInputRef.current?.value.trim()) {
-                          appendPertence({ nome: pertencesInputRef.current.value })
-                          pertencesInputRef.current.value = ''
-                          pertencesInputRef.current.focus()
-                        }
-                      }}>
+                      <Button
+                        type="button"
+                        size="default"
+                        onClick={() => {
+                          if (pertencesInputRef.current?.value.trim()) {
+                            appendPertence({
+                              nome: pertencesInputRef.current.value,
+                            });
+                            pertencesInputRef.current.value = "";
+                            pertencesInputRef.current.focus();
+                          }
+                        }}
+                      >
                         <Plus className="w-4 h-4 mr-2" />
                         Adicionar
                       </Button>
@@ -2002,7 +2431,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                       <BedSearchCombobox
                         value={field.value}
                         onValueChange={(bedId) => {
-                          field.onChange(bedId)
+                          field.onChange(bedId);
                         }}
                         disabled={readOnly}
                         placeholder="Digite o código do leito, prédio ou quarto..."
@@ -2012,8 +2441,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 </CardContent>
               </Card>
             </TabsContent>
-
-            </fieldset>
+          </fieldset>
         </Tabs>
 
         {/* ========== FEEDBACK DE UPLOAD ========== */}
@@ -2028,7 +2456,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           <Card className="bg-info/10 border-info/30 mb-6">
             <CardContent className="p-4">
               <p className="text-sm text-info">
-                O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
+                O preenchimento dos dados é exigido pelo{" "}
+                <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo{" "}
+                <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
               </p>
             </CardContent>
           </Card>
@@ -2036,7 +2466,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           <Card className="bg-info/10 border-info/30 mb-6">
             <CardContent className="p-4">
               <p className="text-sm text-info">
-                A instituição deve manter <strong>ficha individual completa e atualizada</strong>, incluindo identificação, histórico de saúde, contatos e responsável legal.
+                A instituição deve manter{" "}
+                <strong>ficha individual completa e atualizada</strong>,
+                incluindo identificação, histórico de saúde, contatos e
+                responsável legal.
               </p>
             </CardContent>
           </Card>
@@ -2051,14 +2484,22 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               variant="default"
               className="hover:shadow-lg hover:-translate-y-0.5 transition-all px-8 py-6 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
-                console.log('🔘 Botão clicado! isLoading:', isLoading, 'isUploading:', isUploading)
-                console.log('🔘 Botão disabled:', isUploading || isLoading)
+                console.log(
+                  "🔘 Botão clicado! isLoading:",
+                  isLoading,
+                  "isUploading:",
+                  isUploading
+                );
+                console.log("🔘 Botão disabled:", isUploading || isLoading);
               }}
             >
               {isUploading
-                ? (isEditMode ? 'Atualizando...' : 'Salvando...')
-                : (isEditMode ? 'Atualizar Residente' : 'Salvar Residente')
-              }
+                ? isEditMode
+                  ? "Atualizando..."
+                  : "Salvando..."
+                : isEditMode
+                ? "Atualizar Residente"
+                : "Salvar Residente"}
             </Button>
 
             <Button
@@ -2095,7 +2536,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         onOpenChange={setHistoryDrawerOpen}
       />
     </Page>
-  )
+  );
 }
 
-export default ResidentForm
+export default ResidentForm;

@@ -77,3 +77,59 @@ export function IsTimeString(validationOptions?: ValidationOptions) {
     });
   };
 }
+
+/**
+ * Validator para idade mínima (RDC 502/2021 Art. 2º)
+ * Valida que o residente tem idade igual ou superior a 60 anos
+ */
+@ValidatorConstraint({ async: false })
+export class MinimumAgeConstraint implements ValidatorConstraintInterface {
+  validate(birthDateStr: any) {
+    if (!birthDateStr || typeof birthDateStr !== 'string') return false;
+
+    // Valida formato YYYY-MM-DD
+    if (!isValidDateOnly(birthDateStr)) return false;
+
+    // Calcula idade
+    const birthDate = new Date(birthDateStr);
+    const today = new Date();
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+
+    // Ajusta se ainda não fez aniversário este ano
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age--;
+    }
+
+    return age >= 60;
+  }
+
+  defaultMessage() {
+    return 'Residente deve ter idade igual ou superior a 60 anos (RDC 502/2021 Art. 2º)';
+  }
+}
+
+/**
+ * Decorator @IsMinimumAge()
+ * Valida que a data de nascimento resulta em idade >= 60 anos
+ *
+ * @example
+ * export class CreateResidentDto {
+ *   @IsDateOnly()
+ *   @IsMinimumAge()
+ *   birthDate: string; // "1950-01-01"
+ * }
+ */
+export function IsMinimumAge(validationOptions?: ValidationOptions) {
+  return function (object: Object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      constraints: [],
+      validator: MinimumAgeConstraint,
+    });
+  };
+}

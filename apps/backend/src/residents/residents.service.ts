@@ -334,6 +334,7 @@ export class ResidentsService {
             // 1. Dados Pessoais
             fullName: createResidentDto.fullName,
             socialName: createResidentDto.socialName,
+            email: createResidentDto.email,
             cpf: createResidentDto.cpf,
             rg: createResidentDto.rg,
             rgIssuer: createResidentDto.rgIssuer,
@@ -361,20 +362,14 @@ export class ResidentsService {
             currentDistrict: createResidentDto.currentDistrict,
             currentPhone: createResidentDto.currentPhone,
 
-            originCep: createResidentDto.originCep,
-            originState: createResidentDto.originState,
-            originCity: createResidentDto.originCity,
-            originStreet: createResidentDto.originStreet,
-            originNumber: createResidentDto.originNumber,
-            originComplement: createResidentDto.originComplement,
-            originDistrict: createResidentDto.originDistrict,
-            originPhone: createResidentDto.originPhone,
+            origin: createResidentDto.origin,
 
             // 3. Contatos de Emergência
             emergencyContacts: (createResidentDto.emergencyContacts || []) as any,
 
             // 4. Responsável Legal
             legalGuardianName: createResidentDto.legalGuardianName,
+            legalGuardianEmail: createResidentDto.legalGuardianEmail,
             legalGuardianCpf: createResidentDto.legalGuardianCpf,
             legalGuardianRg: createResidentDto.legalGuardianRg,
             legalGuardianPhone: createResidentDto.legalGuardianPhone,

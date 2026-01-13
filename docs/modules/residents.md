@@ -1,9 +1,27 @@
 # Módulo: Residentes
 
 **Status:** ✅ Implementado
-**Versão:** 1.1.1
+**Versão:** 1.2.0
 **Última atualização:** 12/01/2026
 
+> **📝 Atualização 1.2.0 (12/01/2026):**
+>
+> **Campos de Email e Procedência Simplificada:**
+>
+> - Adicionado campo `email` (String?, opcional) para contato do residente
+> - Adicionado campo `legalGuardianEmail` (String?, opcional) para contato do responsável legal
+> - **BREAKING CHANGE:** Substituídos 8 campos de endereço de procedência por campo único `origin` (String?, texto livre)
+>   - Removidos: `originCep`, `originState`, `originCity`, `originStreet`, `originNumber`, `originComplement`, `originDistrict`, `originPhone`
+>   - Adicionado: `origin` - campo livre para registrar origem (ex: "Vindo da Clínica X", "Diretamente da residência")
+> - Migration aplicada: `20260112234101_add_resident_emails_and_origin_field`
+>
+> **Validação de Idade RDC 502/2021:**
+>
+> - Implementada validação de idade mínima (60 anos) conforme RDC 502/2021 Art. 2º
+> - Frontend: Feedback visual em tempo real com cálculo de idade (✓ Idade: 81 anos)
+> - Backend: Custom validator `@IsMinimumAge()` no DTO
+> - Validação em 3 camadas: UX (frontend), Zod (client-side), class-validator (server-side)
+>
 > **📝 Atualização 1.1.1 (12/01/2026):**
 >
 > - Corrigido tipo de campos de data no schema (`@db.Date` em vez de `@db.Timestamptz(3)`)
