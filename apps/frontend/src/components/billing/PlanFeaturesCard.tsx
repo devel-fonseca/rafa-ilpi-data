@@ -41,7 +41,11 @@ export function PlanFeaturesCard() {
   }
 
   // Separar features habilitadas e desabilitadas
-  const allFeatureKeys = Object.keys(FEATURES_MAP).filter(key => !key.includes(' ')) // Apenas snake_case
+  // Pegar apenas chaves técnicas (snake_case ou lowercase sem espaços/acentos)
+  // Exclui labels humanizados que começam com maiúscula
+  const allFeatureKeys = Object.keys(FEATURES_MAP).filter(
+    key => key === key.toLowerCase() && !key.includes(' ')
+  )
   const enabledFeatures = allFeatureKeys.filter(key => features[key] === true)
   const disabledFeatures = allFeatureKeys.filter(key => features[key] !== true)
 
