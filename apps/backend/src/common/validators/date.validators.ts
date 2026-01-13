@@ -11,7 +11,7 @@ import { isValidDateOnly, isValidTime } from '../../utils/date.helpers';
  */
 @ValidatorConstraint({ async: false })
 export class IsDateOnlyConstraint implements ValidatorConstraintInterface {
-  validate(dateStr: any) {
+  validate(dateStr: unknown) {
     return typeof dateStr === 'string' && isValidDateOnly(dateStr);
   }
 
@@ -31,7 +31,7 @@ export class IsDateOnlyConstraint implements ValidatorConstraintInterface {
  * }
  */
 export function IsDateOnly(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -47,7 +47,7 @@ export function IsDateOnly(validationOptions?: ValidationOptions) {
  */
 @ValidatorConstraint({ async: false })
 export class IsTimeStringConstraint implements ValidatorConstraintInterface {
-  validate(timeStr: any) {
+  validate(timeStr: unknown) {
     return typeof timeStr === 'string' && isValidTime(timeStr);
   }
 
@@ -67,7 +67,7 @@ export class IsTimeStringConstraint implements ValidatorConstraintInterface {
  * }
  */
 export function IsTimeString(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,
@@ -84,13 +84,14 @@ export function IsTimeString(validationOptions?: ValidationOptions) {
  */
 @ValidatorConstraint({ async: false })
 export class MinimumAgeConstraint implements ValidatorConstraintInterface {
-  validate(birthDateStr: any) {
+  validate(birthDateStr: unknown) {
     if (!birthDateStr || typeof birthDateStr !== 'string') return false;
 
     // Valida formato YYYY-MM-DD
     if (!isValidDateOnly(birthDateStr)) return false;
 
-    // Calcula idade
+    // Calcula idade (new Date() é seguro aqui pois birthDateStr já foi validado como YYYY-MM-DD)
+    // eslint-disable-next-line no-restricted-syntax
     const birthDate = new Date(birthDateStr);
     const today = new Date();
 
@@ -123,7 +124,7 @@ export class MinimumAgeConstraint implements ValidatorConstraintInterface {
  * }
  */
 export function IsMinimumAge(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       target: object.constructor,
       propertyName: propertyName,

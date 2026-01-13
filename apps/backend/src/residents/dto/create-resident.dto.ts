@@ -10,7 +10,6 @@ import {
   IsArray,
   ValidateNested,
   IsUUID,
-  ArrayMinSize,
   Min,
   Max,
 } from 'class-validator';
@@ -36,18 +35,6 @@ class EmergencyContactDto {
   @IsString()
   @IsNotEmpty()
   relationship: string;
-}
-
-class MedicalReportDto {
-  @ApiProperty({ example: 'https://...' })
-  @IsString()
-  @IsNotEmpty()
-  url: string;
-
-  @ApiProperty({ example: '2025-01-15' })
-  @IsDateOnly()
-  @IsNotEmpty()
-  date: string;
 }
 
 class HealthPlanDto {

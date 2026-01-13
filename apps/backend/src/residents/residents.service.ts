@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -108,6 +107,7 @@ export class ResidentsService {
     const formatDate = (date: Date | null | undefined): string | null => {
       if (!date) return null;
       // Garantir que é um objeto Date
+      // eslint-disable-next-line no-restricted-syntax
       const d = date instanceof Date ? date : new Date(date);
       // Formatar como YYYY-MM-DD usando UTC para evitar timezone shift
       const year = d.getUTCFullYear();
@@ -982,6 +982,7 @@ export class ResidentsService {
       const previousData = JSON.parse(JSON.stringify(existingResident));
 
       // Extrair campos JSON para tratamento explícito (conversão de tipo necessária para Prisma)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const {
         emergencyContacts,
         documents,
@@ -990,8 +991,8 @@ export class ResidentsService {
         medicalReport,
         healthPlans,
         belongings,
-        roomId,
-        bedId,
+        roomId: _roomId,
+        bedId: _bedId,
         tenantId: _tenantId, // Remove tenantId pois não pode ser atualizado
         changeReason: _changeReason, // Remove changeReason pois não é campo do modelo
         ...restDto
@@ -999,7 +1000,8 @@ export class ResidentsService {
 
       // Construir objeto de atualização com tipos corretos
       const dataToUpdate: any = Object.fromEntries(
-        Object.entries(restDto).filter(([_, value]) => value !== undefined)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        Object.entries(restDto).filter(([_key, value]) => value !== undefined)
       );
 
       // Converter campos DATE de string YYYY-MM-DD para Date objects

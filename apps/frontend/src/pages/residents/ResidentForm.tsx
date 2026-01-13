@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Plus,
   X,
-  ArrowLeft,
   FileText,
   Edit,
   History,
@@ -35,9 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Page, PageHeader } from "@/design-system/components";
 import { PhotoUploadNew } from "@/components/form/PhotoUploadNew";
-import { PhotoViewer } from "@/components/form/PhotoViewer";
 import { MaskedInput } from "@/components/form/MaskedInput";
-import { FileUpload } from "@/components/form/FileUpload";
 import {
   validarCPF,
   getMensagemValidacaoCPF,
@@ -55,13 +52,10 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/auth.store";
-import { uploadFile, getSignedFileUrl } from "@/services/upload";
-import { useRooms } from "@/hooks/useRooms";
-import { useBeds } from "@/hooks/useBeds";
+import { uploadFile } from "@/services/upload";
 import { BedSearchCombobox } from "@/components/beds/BedSearchCombobox";
 import { ResidentHistoryDrawer } from "@/components/residents/ResidentHistoryDrawer";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/utils/errorHandling";
 import { PlanLimitWarningDialog } from "@/components/admin/PlanLimitWarningDialog";
 import { useMySubscription } from "@/hooks/useTenant";
 
