@@ -145,7 +145,7 @@ export function PlansList() {
             {/* Popular Badge */}
             {plan.isPopular && (
               <div className="absolute -top-3 -right-3">
-                <Badge className="bg-warning text-warning/95 border-0 shadow-lg">
+                <Badge className="bg-warning text-warning-foreground border-0 shadow-lg">
                   <Star className="h-3 w-3 mr-1" fill="currentColor" />
                   Popular
                 </Badge>
