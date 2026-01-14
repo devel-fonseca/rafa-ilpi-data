@@ -526,11 +526,11 @@ export function DashboardLayout() {
                       }`}
                     >
                       <Bed className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Gestão de Leitos'}
+                      {!preferences.sidebarCollapsed && 'Estrutura de Leitos'}
                     </Link>
                   </TooltipTrigger>
                   {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Gestão de Leitos</TooltipContent>
+                    <TooltipContent side="right">Estrutura de Leitos</TooltipContent>
                   )}
                 </Tooltip>
               )}
@@ -731,7 +731,7 @@ export function DashboardLayout() {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Bed className="h-4 w-4" />
-                  Gestão de Leitos
+                  Estrutura de Leitos
                 </Link>
               )}
               <Link

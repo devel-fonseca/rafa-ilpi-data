@@ -1,7 +1,7 @@
 # Guia do Sistema Híbrido de Permissões v2.0
 
 > **Versão:** 2.0 | **Última atualização:** Janeiro 2026
-> **Total de Permissões:** 78 permissões granulares
+> **Total de Permissões:** 84 permissões granulares
 
 ## Índice
 
@@ -29,7 +29,7 @@ O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas 
 │                                                 │
 │  1️⃣  Role (ADMIN/MANAGER/STAFF/VIEWER)          │
 │     └─ Permissões globais do sistema           │
-│        ADMIN = TODAS as 78 permissões           │
+│        ADMIN = TODAS as 84 permissões           │
 │                                                 │
 │  2️⃣  PositionCode (Cargo ILPI)                  │
 │     └─ Permissões herdadas automaticamente      │
@@ -44,7 +44,7 @@ O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas 
 
 ### Hierarquia de Permissões
 
-1. **ADMIN** (Role) → TODAS as 78 permissões automaticamente
+1. **ADMIN** (Role) → TODAS as 84 permissões automaticamente
 2. **Position Code** (Cargo ILPI) → Permissões padrão do cargo
 3. **Custom Permissions** → Ajustes manuais por usuário
 
@@ -181,7 +181,7 @@ O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas 
 | `UPDATE_DIETARY_RESTRICTIONS` | Editar restrições |
 | `DELETE_DIETARY_RESTRICTIONS` | Remover restrições |
 
-### 🛏️ Gestão de Leitos (2 permissões)
+### 🛏️ Estrutura de Leitos (2 permissões)
 
 | Permissão | Descrição |
 |-----------|-----------|
@@ -253,6 +253,30 @@ O sistema de permissões da Rafa ILPI é **híbrido**, combinando três camadas 
 | `DELETE_POPS` | Deletar POPs em rascunho | Gestores |
 | `PUBLISH_POPS` | Publicar, versionar, marcar obsoleto | **Apenas RT** |
 | `MANAGE_POPS` | Controle total sobre POPs | RT |
+
+### 📑 Contratos de Prestação de Serviços (6 permissões)
+
+> **Digitalização de contratos físicos:** Sistema de upload, processamento automático com carimbo institucional, armazenamento criptografado e validação pública por hash SHA-256.
+
+| Permissão | Descrição | Acesso |
+|-----------|-----------|--------|
+| `VIEW_CONTRACTS` | Visualizar contratos digitalizados e metadados | Gestores, RT |
+| `CREATE_CONTRACTS` | Fazer upload de novos contratos (foto ou PDF) | Gestores, RT |
+| `UPDATE_CONTRACTS` | Atualizar metadados do contrato (valor, vencimento, etc.) | Gestores, RT |
+| `REPLACE_CONTRACTS` | Substituir arquivo do contrato (nova versão) | Gestores, RT |
+| `DELETE_CONTRACTS` | Remover contratos digitalizados | **Apenas ADMIN** |
+| `VALIDATE_CONTRACTS` | Validar autenticidade de contratos por hash | **Endpoint público** |
+
+**Recursos:**
+
+- **Upload flexível:** Aceita imagens (JPG, PNG, WEBP) ou PDFs
+- **Processamento automático:** Backend converte imagem → PDF + adiciona carimbo institucional
+- **Dual-file storage:** Original + processado com carimbo (ambos criptografados SSE-C)
+- **Versionamento completo:** Histórico de substituições com motivo
+- **Metadados:** Número contrato, vigência, valor mensal, dia vencimento, reajuste, signatários
+- **Status automático:** VIGENTE, VENCENDO_EM_30_DIAS, VENCIDO (calculado por data)
+- **Validação pública:** Endpoint `/api/contracts/validate/:id?hash=...` sem autenticação
+- **Auditoria completa:** ContractHistory com snapshots e changedFields
 
 ### 📅 Agenda do Residente (2 permissões)
 
@@ -684,7 +708,7 @@ export function DashboardLayout() {
       {canManageInfrastructure && (
         <SidebarItem href="/dashboard/beds">
           <Building className="h-4 w-4" />
-          Gestão de Leitos
+          Estrutura de Leitos
         </SidebarItem>
       )}
     </Sidebar>

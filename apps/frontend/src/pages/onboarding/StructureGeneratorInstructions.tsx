@@ -118,7 +118,7 @@ export function StructureGeneratorInstructions({
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               <strong>Você pode pular esta etapa</strong> e criar a estrutura manualmente depois
-              em <strong>Gestão de Leitos</strong>. Mas o gerador automático economiza muito tempo! ⚡
+              em <strong>Estrutura de Leitos</strong>. Mas o gerador automático economiza muito tempo! ⚡
             </AlertDescription>
           </Alert>
         </CardContent>

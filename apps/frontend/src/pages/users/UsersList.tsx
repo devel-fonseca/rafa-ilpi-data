@@ -262,32 +262,6 @@ export default function UsersList() {
     return profiles.find((p) => p.userId === userId);
   };
 
-  const getRoleBadgeVariant = (role: string) => {
-    switch (role.toUpperCase()) {
-      case "ADMIN":
-        return "destructive";
-      case "MANAGER":
-        return "default";
-      default:
-        return "secondary";
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role.toUpperCase()) {
-      case "ADMIN":
-        return "Administrador";
-      case "MANAGER":
-        return "Gerente";
-      case "USER":
-        return "Usuário";
-      case "VIEWER":
-        return "Visualizador";
-      default:
-        return role;
-    }
-  };
-
   if (loading) {
     return (
       <Page>

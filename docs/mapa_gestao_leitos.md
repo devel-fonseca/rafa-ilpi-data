@@ -1,4 +1,4 @@
-# Sistema de Gestão de Leitos - RAFA ILPI Data
+# Sistema de Estrutura de Leitos - RAFA ILPI Data
 
 **Data:** 2025-11-20
 **Responsável:** Dr. E. (Emanuel)
@@ -8,7 +8,7 @@
 
 ## 1. Resumo Executivo
 
-O **Sistema de Gestão de Leitos** é um módulo completo do RAFA ILPI Data que permite o gerenciamento hierárquico da estrutura física da instituição e o mapeamento da ocupação de leitos por residentes.
+O **Sistema de Estrutura de Leitos** é um módulo completo do RAFA ILPI Data que permite o gerenciamento hierárquico da estrutura física da instituição e o mapeamento da ocupação de leitos por residentes.
 
 ### Objetivo
 
@@ -201,7 +201,7 @@ enum BedStatus {
 
 ### 3.1 Cadastro da Estrutura Física
 
-1. **Acessar "Gestão de Leitos"** (`/dashboard/beds/structure`)
+1. **Acessar "Estrutura de Leitos"** (`/dashboard/beds/structure`)
 2. **Criar Prédio**
    - Clicar em "Novo Prédio"
    - Preencher nome e código (opcional)

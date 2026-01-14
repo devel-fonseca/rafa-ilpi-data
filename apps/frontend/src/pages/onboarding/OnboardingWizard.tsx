@@ -179,7 +179,7 @@ export function OnboardingWizard() {
    * Pula gerador de estrutura e vai direto para o dashboard
    */
   const handleSkipGenerator = () => {
-    toast.info('Você pode criar a estrutura física depois em Gestão de Leitos')
+    toast.info('Você pode criar a estrutura física depois em Estrutura de Leitos')
     navigate('/dashboard')
   }
 
