@@ -30,6 +30,7 @@ import InstitutionalDocumentManagement from '@/pages/compliance/InstitutionalDoc
 
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
+import ResidentsHub from '@/pages/residents/ResidentsHub'
 import ResidentForm from '@/pages/residents/ResidentForm'
 import ResidentView from '@/pages/residents/ResidentView'
 import ResidentMedicalRecord from '@/pages/residents/ResidentMedicalRecord'
@@ -175,6 +176,10 @@ export const router = createBrowserRouter([
       {
         path: 'residentes',
         element: <ResidentsList />,
+      },
+      {
+        path: 'residentes-hub',
+        element: <ResidentsHub />,
       },
       {
         path: 'residentes/new',

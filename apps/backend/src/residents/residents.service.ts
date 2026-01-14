@@ -532,6 +532,11 @@ export class ResidentsService {
             bedId: true,
             cns: true,
             mobilityAid: true,
+            // Dados antropométricos (necessários para alertas do dashboard)
+            height: true,
+            weight: true,
+            bloodType: true,
+            dependencyLevel: true,
             createdAt: true,
             updatedAt: true,
           },
