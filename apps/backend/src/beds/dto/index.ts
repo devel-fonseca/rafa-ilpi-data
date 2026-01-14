@@ -1,2 +1,5 @@
 export { CreateBedDto } from './create-bed.dto'
 export { UpdateBedDto } from './update-bed.dto'
+export { ReserveBedDto } from './reserve-bed.dto'
+export { BlockBedDto } from './block-bed.dto'
+export { ReleaseBedDto } from './release-bed.dto'

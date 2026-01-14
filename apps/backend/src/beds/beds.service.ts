@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { CreateBedDto, UpdateBedDto } from './dto'
+import { CreateBedDto, UpdateBedDto, ReserveBedDto, BlockBedDto, ReleaseBedDto } from './dto'
 
 @Injectable()
 export class BedsService {
@@ -339,5 +339,269 @@ export class BedsService {
     }
 
     return { buildings: buildingsWithStats, stats }
+  }
+
+  /**
+   * Reserva um leito para futuro residente
+   */
+  async reserveBed(
+    tenantId: string,
+    bedId: string,
+    userId: string,
+    reserveBedDto: ReserveBedDto
+  ) {
+    // Validar que o leito existe e está disponível
+    const bed = await this.prisma.bed.findFirst({
+      where: { id: bedId, tenantId, deletedAt: null },
+    })
+
+    if (!bed) {
+      throw new NotFoundException(`Leito com ID ${bedId} não encontrado`)
+    }
+
+    if (bed.status !== 'Disponível') {
+      throw new BadRequestException(
+        `Leito ${bed.code} não está disponível. Status atual: ${bed.status}`
+      )
+    }
+
+    // Preparar metadata
+    const metadata: any = {}
+    if (reserveBedDto.futureResidentName) {
+      metadata.futureResidentName = reserveBedDto.futureResidentName
+    }
+    if (reserveBedDto.expectedAdmissionDate) {
+      metadata.expectedAdmissionDate = reserveBedDto.expectedAdmissionDate
+    }
+
+    // Preparar notes
+    let notes = 'Leito reservado'
+    if (reserveBedDto.futureResidentName) {
+      notes += ` para ${reserveBedDto.futureResidentName}`
+    }
+    if (reserveBedDto.expectedAdmissionDate) {
+      notes += ` - Admissão prevista: ${reserveBedDto.expectedAdmissionDate}`
+    }
+    if (reserveBedDto.notes) {
+      notes += ` - ${reserveBedDto.notes}`
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Atualizar status do leito
+      const updatedBed = await prisma.bed.update({
+        where: { id: bedId },
+        data: {
+          status: 'Reservado',
+          notes,
+        },
+      })
+
+      // Criar registro no histórico de status
+      await prisma.bedStatusHistory.create({
+        data: {
+          tenantId,
+          bedId,
+          previousStatus: bed.status,
+          newStatus: 'Reservado',
+          reason: reserveBedDto.notes || notes,
+          metadata,
+          changedBy: userId,
+        },
+      })
+
+      return {
+        bed: updatedBed,
+        message: `Leito ${bed.code} reservado com sucesso`,
+      }
+    })
+  }
+
+  /**
+   * Bloqueia um leito para manutenção
+   */
+  async blockBed(
+    tenantId: string,
+    bedId: string,
+    userId: string,
+    blockBedDto: BlockBedDto
+  ) {
+    // Validar que o leito existe
+    const bed = await this.prisma.bed.findFirst({
+      where: { id: bedId, tenantId, deletedAt: null },
+    })
+
+    if (!bed) {
+      throw new NotFoundException(`Leito com ID ${bedId} não encontrado`)
+    }
+
+    // Não pode bloquear leito ocupado
+    if (bed.status === 'Ocupado') {
+      throw new BadRequestException(
+        `Leito ${bed.code} está ocupado e não pode ser bloqueado para manutenção`
+      )
+    }
+
+    // Preparar metadata
+    const metadata: any = {}
+    if (blockBedDto.expectedReleaseDate) {
+      metadata.expectedReleaseDate = blockBedDto.expectedReleaseDate
+    }
+
+    // Preparar notes
+    let notes = `Bloqueado para manutenção: ${blockBedDto.reason}`
+    if (blockBedDto.expectedReleaseDate) {
+      notes += ` - Previsão de liberação: ${blockBedDto.expectedReleaseDate}`
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Atualizar status do leito
+      const updatedBed = await prisma.bed.update({
+        where: { id: bedId },
+        data: {
+          status: 'Manutenção',
+          notes,
+        },
+      })
+
+      // Criar registro no histórico de status
+      await prisma.bedStatusHistory.create({
+        data: {
+          tenantId,
+          bedId,
+          previousStatus: bed.status,
+          newStatus: 'Manutenção',
+          reason: blockBedDto.reason,
+          metadata,
+          changedBy: userId,
+        },
+      })
+
+      return {
+        bed: updatedBed,
+        message: `Leito ${bed.code} bloqueado para manutenção`,
+      }
+    })
+  }
+
+  /**
+   * Libera um leito (Reservado ou Manutenção → Disponível)
+   */
+  async releaseBed(
+    tenantId: string,
+    bedId: string,
+    userId: string,
+    releaseBedDto: ReleaseBedDto
+  ) {
+    // Validar que o leito existe
+    const bed = await this.prisma.bed.findFirst({
+      where: { id: bedId, tenantId, deletedAt: null },
+    })
+
+    if (!bed) {
+      throw new NotFoundException(`Leito com ID ${bedId} não encontrado`)
+    }
+
+    // Só pode liberar leitos em Manutenção ou Reservado
+    if (bed.status !== 'Manutenção' && bed.status !== 'Reservado') {
+      throw new BadRequestException(
+        `Leito ${bed.code} não pode ser liberado. Status atual: ${bed.status}`
+      )
+    }
+
+    const reason = releaseBedDto.reason ||
+      (bed.status === 'Manutenção' ? 'Manutenção concluída' : 'Reserva cancelada')
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Atualizar status do leito
+      const updatedBed = await prisma.bed.update({
+        where: { id: bedId },
+        data: {
+          status: 'Disponível',
+          notes: null, // Limpar observações ao liberar
+        },
+      })
+
+      // Criar registro no histórico de status
+      await prisma.bedStatusHistory.create({
+        data: {
+          tenantId,
+          bedId,
+          previousStatus: bed.status,
+          newStatus: 'Disponível',
+          reason,
+          metadata: null,
+          changedBy: userId,
+        },
+      })
+
+      return {
+        bed: updatedBed,
+        message: `Leito ${bed.code} liberado e agora está disponível`,
+      }
+    })
+  }
+
+  /**
+   * Busca histórico de mudanças de status de um leito
+   */
+  async getBedStatusHistory(
+    tenantId: string,
+    bedId?: string,
+    skip: number = 0,
+    take: number = 50
+  ) {
+    const where: any = { tenantId }
+    if (bedId) {
+      where.bedId = bedId
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.bedStatusHistory.findMany({
+        where,
+        include: {
+          bed: {
+            select: {
+              id: true,
+              code: true,
+              room: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  roomNumber: true,
+                  floor: {
+                    select: {
+                      id: true,
+                      name: true,
+                      code: true,
+                      building: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { changedAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.bedStatusHistory.count({ where }),
+    ])
+
+    return { data, total, skip, take }
   }
 }

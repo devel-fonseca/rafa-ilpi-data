@@ -1,0 +1,2826 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "prismaSchemaFolder"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model access_logs {
+  id        String       @id @db.Uuid
+  userId    String       @db.Uuid
+  tenantId  String       @db.Uuid
+  action    AccessAction
+  status    String       @db.VarChar(20)
+  reason    String?      @db.VarChar(100)
+  ipAddress String       @db.VarChar(45)
+  userAgent String
+  device    String?      @db.VarChar(100)
+  metadata  Json?
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+  tenants   tenants      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users     users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+model allergies {
+  id                               String            @id @db.Uuid
+  tenantId                         String            @db.Uuid
+  residentId                       String            @db.Uuid
+  substance                        String
+  reaction                         String?
+  severity                         AllergySeverity?
+  notes                            String?
+  createdAt                        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt                        DateTime          @db.Timestamptz(3)
+  deletedAt                        DateTime?         @db.Timestamptz(3)
+  createdBy                        String            @db.Uuid
+  updatedBy                        String?           @db.Uuid
+  versionNumber                    Int               @default(1)
+  users_allergies_createdByTousers users             @relation("allergies_createdByTousers", fields: [createdBy], references: [id])
+  residents                        residents         @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                          tenants           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_allergies_updatedByTousers users?            @relation("allergies_updatedByTousers", fields: [updatedBy], references: [id])
+  allergy_history                  allergy_history[]
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([residentId])
+  @@index([substance])
+  @@index([tenantId, residentId])
+  @@index([updatedBy])
+}
+
+model allergy_history {
+  id            String     @id @db.Uuid
+  tenantId      String     @db.Uuid
+  allergyId     String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  previousData  Json?
+  newData       Json
+  changedFields String[]   @default([])
+  changedAt     DateTime   @db.Timestamptz(3)
+  changedBy     String     @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  allergies     allergies  @relation(fields: [allergyId], references: [id], onDelete: Cascade)
+  users         users      @relation(fields: [changedBy], references: [id])
+  tenants       tenants    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, allergyId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+}
+
+model audit_logs {
+  id          Int      @id @default(autoincrement())
+  tenant_id   String   @db.Uuid
+  entity_type String   @db.VarChar(50)
+  entity_id   String?  @db.VarChar(255)
+  action      String   @db.VarChar(50)
+  user_id     String   @db.VarChar(255)
+  user_name   String   @db.VarChar(255)
+  details     Json?
+  ip_address  String?  @db.VarChar(45)
+  user_agent  String?
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  tenants     tenants  @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([entity_type])
+  @@index([tenant_id, created_at(sort: Desc)])
+  @@index([user_id])
+}
+
+model bed_transfer_history {
+  id                                        String    @id @db.Uuid
+  tenantId                                  String    @db.Uuid
+  residentId                                String    @db.Uuid
+  fromBedId                                 String    @db.Uuid
+  toBedId                                   String    @db.Uuid
+  reason                                    String
+  transferredAt                             DateTime  @default(now()) @db.Timestamptz(3)
+  transferredBy                             String    @db.Uuid
+  createdAt                                 DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt                                 DateTime? @db.Timestamptz(3)
+  beds_bed_transfer_history_fromBedIdTobeds beds      @relation("bed_transfer_history_fromBedIdTobeds", fields: [fromBedId], references: [id])
+  residents                                 residents @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                   tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  beds_bed_transfer_history_toBedIdTobeds   beds      @relation("bed_transfer_history_toBedIdTobeds", fields: [toBedId], references: [id])
+  users                                     users     @relation(fields: [transferredBy], references: [id])
+
+  @@index([deletedAt])
+  @@index([fromBedId])
+  @@index([residentId, transferredAt(sort: Desc)])
+  @@index([tenantId, residentId])
+  @@index([toBedId])
+}
+
+model beds {
+  id                                                        String                 @id @db.Uuid
+  tenantId                                                  String                 @db.Uuid
+  roomId                                                    String                 @db.Uuid
+  code                                                      String
+  status                                                    String                 @default("Disponível")
+  notes                                                     String?
+  isActive                                                  Boolean                @default(true)
+  createdAt                                                 DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt                                                 DateTime               @db.Timestamptz(3)
+  deletedAt                                                 DateTime?              @db.Timestamptz(3)
+  bed_status_history                                        bed_status_history[]
+  bed_transfer_history_bed_transfer_history_fromBedIdTobeds bed_transfer_history[] @relation("bed_transfer_history_fromBedIdTobeds")
+  bed_transfer_history_bed_transfer_history_toBedIdTobeds   bed_transfer_history[] @relation("bed_transfer_history_toBedIdTobeds")
+  rooms                                                     rooms                  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenants                                                   tenants                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residents                                                 residents?
+
+  @@unique([tenantId, code])
+  @@index([deletedAt])
+  @@index([roomId, status])
+  @@index([tenantId, roomId])
+  @@index([tenantId, status])
+}
+
+model buildings {
+  id          String    @id @db.Uuid
+  tenantId    String    @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  code        String
+  tenants     tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floors      floors[]
+
+  @@index([tenantId, isActive])
+}
+
+model clinical_note_documents {
+  id             String         @id @db.Uuid
+  tenantId       String         @db.Uuid
+  noteId         String         @db.Uuid
+  residentId     String         @db.Uuid
+  title          String         @db.VarChar(255)
+  type           String?        @db.VarChar(100)
+  documentDate   DateTime       @db.Timestamptz(3)
+  htmlContent    String
+  pdfFileUrl     String?
+  pdfFileKey     String?
+  pdfFileName    String?        @db.VarChar(255)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime       @db.Timestamptz(3)
+  createdBy      String         @db.Uuid
+  users          users          @relation(fields: [createdBy], references: [id])
+  clinical_notes clinical_notes @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  residents      residents      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants        tenants        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@index([tenantId, residentId])
+}
+
+model clinical_notes {
+  id                      String                    @id @db.Uuid
+  tenantId                String                    @db.Uuid
+  residentId              String                    @db.Uuid
+  professionalId          String                    @db.Uuid
+  profession              ClinicalProfession
+  noteDate                DateTime                  @default(now()) @db.Timestamptz(3)
+  subjective              String?
+  objective               String?
+  assessment              String?
+  plan                    String?
+  tags                    String[]                  @default([])
+  createdAt               DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                  @db.Timestamptz(3)
+  createdBy               String                    @db.Uuid
+  updatedBy               String?                   @db.Uuid
+  version                 Int                       @default(1)
+  isAmended               Boolean                   @default(false)
+  editableUntil           DateTime                  @db.Timestamptz(3)
+  vitalSignAlertId        String?                   @db.Uuid
+  clinical_note_documents clinical_note_documents[]
+  users                   users                     @relation(fields: [professionalId], references: [id])
+  residents               residents                 @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                 tenants                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vital_sign_alerts       vital_sign_alerts?        @relation(fields: [vitalSignAlertId], references: [id])
+  clinical_notes_history  clinical_notes_history[]
+
+  @@index([isAmended])
+  @@index([noteDate])
+  @@index([profession])
+  @@index([tags])
+  @@index([tenantId, professionalId])
+  @@index([tenantId, residentId, noteDate(sort: Desc)])
+  @@index([vitalSignAlertId])
+}
+
+model clinical_notes_history {
+  id                                                 String             @id @db.Uuid
+  noteId                                             String             @db.Uuid
+  version                                            Int
+  tenantId                                           String             @db.Uuid
+  residentId                                         String             @db.Uuid
+  professionalId                                     String             @db.Uuid
+  profession                                         ClinicalProfession
+  noteDate                                           DateTime           @db.Timestamptz(3)
+  subjective                                         String?
+  objective                                          String?
+  assessment                                         String?
+  plan                                               String?
+  tags                                               String[]           @default([])
+  changeReason                                       String
+  changedAt                                          DateTime           @default(now()) @db.Timestamptz(3)
+  changedBy                                          String             @db.Uuid
+  users_clinical_notes_history_changedByTousers      users              @relation("clinical_notes_history_changedByTousers", fields: [changedBy], references: [id])
+  clinical_notes                                     clinical_notes     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  users_clinical_notes_history_professionalIdTousers users              @relation("clinical_notes_history_professionalIdTousers", fields: [professionalId], references: [id])
+  residents                                          residents          @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                            tenants            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changedAt])
+  @@index([noteId, version])
+  @@index([tenantId, residentId])
+}
+
+model clinical_profile_history {
+  id                String            @id @db.Uuid
+  tenantId          String            @db.Uuid
+  clinicalProfileId String            @db.Uuid
+  versionNumber     Int
+  changeType        ChangeType
+  changeReason      String
+  previousData      Json?
+  newData           Json
+  changedFields     String[]          @default([])
+  changedAt         DateTime          @db.Timestamptz(3)
+  changedBy         String            @db.Uuid
+  changedByName     String?
+  ipAddress         String?
+  userAgent         String?
+  metadata          Json?
+  users             users             @relation(fields: [changedBy], references: [id])
+  clinical_profiles clinical_profiles @relation(fields: [clinicalProfileId], references: [id], onDelete: Cascade)
+  tenants           tenants           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, clinicalProfileId, versionNumber(sort: Desc)])
+}
+
+model clinical_profiles {
+  id                                       String                     @id @db.Uuid
+  tenantId                                 String                     @db.Uuid
+  residentId                               String                     @unique @db.Uuid
+  healthStatus                             String?
+  specialNeeds                             String?
+  functionalAspects                        String?
+  createdAt                                DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                                DateTime                   @db.Timestamptz(3)
+  deletedAt                                DateTime?                  @db.Timestamptz(3)
+  updatedBy                                String?                    @db.Uuid
+  createdBy                                String?                    @db.Uuid
+  versionNumber                            Int                        @default(1)
+  clinical_profile_history                 clinical_profile_history[]
+  users_clinical_profiles_createdByTousers users?                     @relation("clinical_profiles_createdByTousers", fields: [createdBy], references: [id])
+  residents                                residents                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                  tenants                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_clinical_profiles_updatedByTousers users?                     @relation("clinical_profiles_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([tenantId, residentId])
+  @@index([updatedBy])
+}
+
+model condition_history {
+  id            String     @id @db.Uuid
+  tenantId      String     @db.Uuid
+  conditionId   String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  previousData  Json?
+  newData       Json
+  changedFields String[]   @default([])
+  changedAt     DateTime   @db.Timestamptz(3)
+  changedBy     String     @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  users         users      @relation(fields: [changedBy], references: [id])
+  conditions    conditions @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  tenants       tenants    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, conditionId, versionNumber(sort: Desc)])
+}
+
+model conditions {
+  id                                String              @id @db.Uuid
+  tenantId                          String              @db.Uuid
+  residentId                        String              @db.Uuid
+  condition                         String
+  icdCode                           String?             @db.VarChar(10)
+  notes                             String?
+  createdAt                         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt                         DateTime            @db.Timestamptz(3)
+  deletedAt                         DateTime?           @db.Timestamptz(3)
+  createdBy                         String              @db.Uuid
+  updatedBy                         String?             @db.Uuid
+  versionNumber                     Int                 @default(1)
+  condition_history                 condition_history[]
+  users_conditions_createdByTousers users               @relation("conditions_createdByTousers", fields: [createdBy], references: [id])
+  residents                         residents           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                           tenants             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_conditions_updatedByTousers users?              @relation("conditions_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([condition])
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([residentId])
+  @@index([tenantId, residentId])
+  @@index([updatedBy])
+}
+
+model contract_acceptances {
+  id                String            @id @db.Uuid
+  contractId        String            @db.Uuid
+  tenantId          String            @unique @db.Uuid
+  userId            String            @db.Uuid
+  acceptedAt        DateTime          @default(now()) @db.Timestamptz(3)
+  ipAddress         String            @db.VarChar(45)
+  userAgent         String
+  contractVersion   String            @db.VarChar(50)
+  contractHash      String            @db.VarChar(64)
+  contractContent   String
+  service_contracts service_contracts @relation(fields: [contractId], references: [id])
+  tenants           tenants           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users             users             @relation(fields: [userId], references: [id])
+
+  @@index([acceptedAt])
+  @@index([contractId])
+}
+
+model daily_record_history {
+  id            String        @id @db.Uuid
+  recordId      String        @db.Uuid
+  tenantId      String        @db.Uuid
+  versionNumber Int
+  previousData  Json
+  newData       Json
+  changedFields Json          @default("[]")
+  changeType    String
+  changeReason  String
+  changedBy     String        @db.Uuid
+  changedByName String
+  changedAt     DateTime      @default(now()) @db.Timestamptz(3)
+  ipAddress     String?       @db.VarChar(45)
+  userAgent     String?
+  daily_records daily_records @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  tenants       tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changedBy])
+  @@index([recordId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+}
+
+model daily_records {
+  id                           String                         @id @db.Uuid
+  tenantId                     String                         @db.Uuid
+  residentId                   String                         @db.Uuid
+  type                         RecordType
+  date                         DateTime                       @db.Date
+  time                         String
+  data                         Json                           @default("{}")
+  recordedBy                   String
+  userId                       String                         @db.Uuid
+  notes                        String?
+  createdAt                    DateTime                       @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime                       @db.Timestamptz(3)
+  deletedAt                    DateTime?                      @db.Timestamptz(3)
+  dataNotificacao              DateTime?                      @db.Timestamptz(3)
+  incidentCategory             IncidentCategory?
+  incidentSeverity             IncidentSeverity?
+  incidentSubtypeAdmin         IncidentSubtypeAdministrativa?
+  incidentSubtypeAssist        IncidentSubtypeAssistencial?
+  incidentSubtypeClinical      IncidentSubtypeClinical?
+  isDoencaNotificavel          Boolean                        @default(false)
+  isEventoSentinela            Boolean                        @default(false)
+  notificadoVigilancia         Boolean                        @default(false)
+  protocoloNotificacao         String?                        @db.VarChar(100)
+  rdcIndicators                Json                           @default("[]")
+  daily_record_history         daily_record_history[]
+  residents                    residents                      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                      tenants                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users                        users                          @relation(fields: [userId], references: [id])
+  sentinel_event_notifications sentinel_event_notifications[]
+
+  @@index([deletedAt])
+  @@index([residentId, date(sort: Desc), time])
+  @@index([residentId, type, date(sort: Desc)])
+  @@index([tenantId, date, deletedAt])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, residentId, date(sort: Desc)])
+  @@index([tenantId, type, date(sort: Desc)])
+}
+
+model dietary_restriction_history {
+  id                   String               @id @db.Uuid
+  tenantId             String               @db.Uuid
+  dietaryRestrictionId String               @db.Uuid
+  versionNumber        Int
+  changeType           ChangeType
+  changeReason         String
+  previousData         Json?
+  newData              Json
+  changedFields        String[]             @default([])
+  changedAt            DateTime             @db.Timestamptz(3)
+  changedBy            String               @db.Uuid
+  changedByName        String?
+  ipAddress            String?
+  userAgent            String?
+  metadata             Json?
+  users                users                @relation(fields: [changedBy], references: [id])
+  dietary_restrictions dietary_restrictions @relation(fields: [dietaryRestrictionId], references: [id], onDelete: Cascade)
+  tenants              tenants              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, dietaryRestrictionId, versionNumber(sort: Desc)])
+}
+
+model dietary_restrictions {
+  id                                          String                        @id @db.Uuid
+  tenantId                                    String                        @db.Uuid
+  residentId                                  String                        @db.Uuid
+  restrictionType                             RestrictionType
+  description                                 String
+  notes                                       String?
+  createdAt                                   DateTime                      @default(now()) @db.Timestamptz(3)
+  updatedAt                                   DateTime                      @db.Timestamptz(3)
+  deletedAt                                   DateTime?                     @db.Timestamptz(3)
+  createdBy                                   String                        @db.Uuid
+  updatedBy                                   String?                       @db.Uuid
+  versionNumber                               Int                           @default(1)
+  dietary_restriction_history                 dietary_restriction_history[]
+  users_dietary_restrictions_createdByTousers users                         @relation("dietary_restrictions_createdByTousers", fields: [createdBy], references: [id])
+  residents                                   residents                     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                     tenants                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_dietary_restrictions_updatedByTousers users?                        @relation("dietary_restrictions_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([residentId])
+  @@index([restrictionType])
+  @@index([tenantId, residentId])
+  @@index([updatedBy])
+}
+
+model document_history {
+  id               String           @id @db.Uuid
+  tenantId         String           @db.Uuid
+  documentId       String           @db.Uuid
+  action           DocumentAction
+  reason           String?
+  previousData     Json?
+  newData          Json?
+  changedFields    String[]         @default([])
+  changedBy        String           @db.Uuid
+  changedAt        DateTime         @default(now()) @db.Timestamptz(3)
+  tenant_documents tenant_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tenants          tenants          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([changedAt])
+  @@index([documentId])
+  @@index([tenantId, documentId])
+}
+
+model email_logs {
+  id             String      @id @db.Uuid
+  templateKey    String?     @db.VarChar(100)
+  recipientEmail String      @db.VarChar(255)
+  recipientName  String?     @db.VarChar(255)
+  subject        String      @db.VarChar(500)
+  tenantId       String?     @db.Uuid
+  resendId       String?     @db.VarChar(255)
+  status         EmailStatus
+  errorMessage   String?
+  sentAt         DateTime    @default(now()) @db.Timestamptz(3)
+  tenants        tenants?    @relation(fields: [tenantId], references: [id])
+
+  @@index([recipientEmail])
+  @@index([sentAt(sort: Desc)])
+  @@index([status])
+  @@index([templateKey])
+  @@index([tenantId])
+}
+
+model email_template_versions {
+  id              String          @id @db.Uuid
+  templateId      String          @db.Uuid
+  versionNumber   Int
+  jsonContent     Json
+  subject         String          @db.VarChar(500)
+  createdBy       String          @db.Uuid
+  changeNote      String?
+  createdAt       DateTime        @default(now()) @db.Timestamptz(3)
+  email_templates email_templates @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([versionNumber])
+}
+
+model email_templates {
+  id                      String                    @id @db.Uuid
+  key                     String                    @unique @db.VarChar(100)
+  name                    String                    @db.VarChar(255)
+  subject                 String                    @db.VarChar(500)
+  description             String?
+  jsonContent             Json
+  variables               Json
+  version                 Int                       @default(1)
+  isActive                Boolean                   @default(true)
+  category                EmailTemplateCategory
+  createdAt               DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                  @db.Timestamptz(3)
+  email_template_versions email_template_versions[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([key])
+}
+
+model floors {
+  id          String    @id @db.Uuid
+  tenantId    String    @db.Uuid
+  buildingId  String    @db.Uuid
+  name        String
+  orderIndex  Int       @default(0)
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  code        String
+  buildings   buildings @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  tenants     tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rooms       rooms[]
+
+  @@index([buildingId, orderIndex])
+  @@index([deletedAt])
+  @@index([tenantId, buildingId])
+}
+
+model incident_monthly_indicators {
+  id            String           @id @db.Uuid
+  tenantId      String           @db.Uuid
+  year          Int
+  month         Int
+  indicatorType RdcIndicatorType
+  numerator     Int
+  denominator   Int
+  rate          Float
+  incidentIds   Json             @default("[]")
+  metadata      Json?
+  calculatedAt  DateTime         @default(now()) @db.Timestamptz(3)
+  calculatedBy  String?          @db.Uuid
+  users         users?           @relation(fields: [calculatedBy], references: [id])
+  tenants       tenants          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, year, month, indicatorType])
+  @@index([indicatorType])
+  @@index([tenantId, year(sort: Desc), month(sort: Desc)])
+}
+
+model institutional_events {
+  id                                          String                       @id @db.Uuid
+  tenantId                                    String                       @db.Uuid
+  eventType                                   InstitutionalEventType
+  visibility                                  InstitutionalEventVisibility @default(ALL_USERS)
+  title                                       String
+  description                                 String?
+  scheduledDate                               DateTime                     @db.Date
+  scheduledTime                               String?
+  allDay                                      Boolean                      @default(false)
+  status                                      ScheduledEventStatus         @default(SCHEDULED)
+  completedAt                                 DateTime?                    @db.Timestamptz(3)
+  notes                                       String?
+  documentType                                String?
+  documentNumber                              String?
+  expiryDate                                  DateTime?                    @db.Date
+  responsible                                 String?
+  trainingTopic                               String?
+  instructor                                  String?
+  targetAudience                              String?
+  location                                    String?
+  metadata                                    Json?
+  createdAt                                   DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                                   DateTime                     @db.Timestamptz(3)
+  deletedAt                                   DateTime?                    @db.Timestamptz(3)
+  createdBy                                   String                       @db.Uuid
+  updatedBy                                   String?                      @db.Uuid
+  users_institutional_events_createdByTousers users                        @relation("institutional_events_createdByTousers", fields: [createdBy], references: [id])
+  tenants                                     tenants                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_institutional_events_updatedByTousers users?                       @relation("institutional_events_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([deletedAt])
+  @@index([eventType])
+  @@index([expiryDate])
+  @@index([scheduledDate])
+  @@index([status])
+  @@index([tenantId, eventType, scheduledDate])
+  @@index([tenantId])
+  @@index([tenantId, scheduledDate])
+  @@index([visibility])
+}
+
+model invoices {
+  id               String        @id @db.Uuid
+  tenantId         String        @db.Uuid
+  subscriptionId   String        @db.Uuid
+  invoiceNumber    String        @unique @db.VarChar(50)
+  amount           Decimal       @db.Decimal(10, 2)
+  currency         String        @default("BRL") @db.VarChar(3)
+  status           InvoiceStatus
+  dueDate          DateTime      @db.Date
+  paidAt           DateTime?     @db.Timestamptz(3)
+  asaasInvoiceId   String?       @unique @db.VarChar(255)
+  paymentUrl       String?
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @db.Timestamptz(3)
+  original_amount  Decimal?      @db.Decimal(10, 2)
+  discount_percent Decimal?      @db.Decimal(5, 2)
+  discount_reason  String?       @db.VarChar(255)
+  billing_cycle    String?       @db.VarChar(20)
+  description      String?
+  subscriptions    subscriptions @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  tenants          tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments         payments[]
+
+  @@index([asaasInvoiceId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([subscriptionId])
+  @@index([tenantId, status])
+}
+
+model medication_administrations {
+  id              String        @id @db.Uuid
+  tenantId        String        @db.Uuid
+  prescriptionId  String        @db.Uuid
+  medicationId    String        @db.Uuid
+  residentId      String        @db.Uuid
+  date            DateTime      @db.Date
+  scheduledTime   String
+  actualTime      String?
+  wasAdministered Boolean       @default(false)
+  reason          String?
+  administeredBy  String
+  userId          String        @db.Uuid
+  checkedBy       String?
+  checkedByUserId String?       @db.Uuid
+  notes           String?
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @db.Timestamptz(3)
+  medications     medications   @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  prescriptions   prescriptions @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  residents       residents     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants         tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           users         @relation(fields: [userId], references: [id])
+
+  @@index([medicationId, date])
+  @@index([residentId, date(sort: Desc)])
+  @@index([residentId, date, wasAdministered])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, date, wasAdministered])
+  @@index([wasAdministered])
+}
+
+model medication_history {
+  id            String      @id @db.Uuid
+  tenantId      String      @db.Uuid
+  medicationId  String      @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  previousData  Json?
+  newData       Json
+  changedFields String[]    @default([])
+  changedAt     DateTime    @db.Timestamptz(3)
+  changedBy     String      @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  users         users       @relation(fields: [changedBy], references: [id])
+  medications   medications @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  tenants       tenants     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, medicationId, versionNumber(sort: Desc)])
+}
+
+model medications {
+  id                                 String                       @id @db.Uuid
+  prescriptionId                     String                       @db.Uuid
+  name                               String
+  presentation                       MedicationPresentation
+  concentration                      String
+  dose                               String
+  route                              AdministrationRoute
+  frequency                          MedicationFrequency
+  scheduledTimes                     Json                         @default("[]")
+  startDate                          DateTime                     @db.Date
+  endDate                            DateTime?                    @db.Date
+  isControlled                       Boolean                      @default(false)
+  isHighRisk                         Boolean                      @default(false)
+  requiresDoubleCheck                Boolean                      @default(false)
+  instructions                       String?
+  createdAt                          DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                          DateTime                     @db.Timestamptz(3)
+  deletedAt                          DateTime?                    @db.Timestamptz(3)
+  createdBy                          String                       @db.Uuid
+  updatedBy                          String?                      @db.Uuid
+  versionNumber                      Int                          @default(1)
+  medication_administrations         medication_administrations[]
+  medication_history                 medication_history[]
+  users_medications_createdByTousers users                        @relation("medications_createdByTousers", fields: [createdBy], references: [id])
+  prescriptions                      prescriptions                @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  users_medications_updatedByTousers users?                       @relation("medications_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([isControlled])
+  @@index([prescriptionId, deletedAt])
+  @@index([prescriptionId])
+  @@index([prescriptionId, startDate, endDate])
+  @@index([startDate, endDate])
+  @@index([updatedBy])
+}
+
+model message_attachments {
+  id         String   @id @db.Uuid
+  messageId  String   @db.Uuid
+  tenantId   String   @db.Uuid
+  fileName   String   @db.VarChar(255)
+  fileSize   Int
+  mimeType   String   @db.VarChar(100)
+  fileUrl    String
+  s3Key      String
+  uploadedBy String   @db.Uuid
+  uploadedAt DateTime @default(now()) @db.Timestamptz(3)
+  messages   messages @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenants    tenants  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users      users    @relation(fields: [uploadedBy], references: [id])
+
+  @@index([messageId])
+  @@index([tenantId])
+}
+
+model message_recipients {
+  id        String        @id @db.Uuid
+  messageId String        @db.Uuid
+  userId    String        @db.Uuid
+  tenantId  String        @db.Uuid
+  status    MessageStatus @default(SENT)
+  readAt    DateTime?     @db.Timestamptz(3)
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime      @db.Timestamptz(3)
+  messages  messages      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenants   tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users     users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([tenantId, userId, status])
+  @@index([userId, status, createdAt(sort: Desc)])
+}
+
+model messages {
+  id                  String                @id @db.Uuid
+  tenantId            String                @db.Uuid
+  senderId            String                @db.Uuid
+  type                MessageType
+  subject             String                @db.VarChar(255)
+  body                String
+  threadId            String?               @db.Uuid
+  isReply             Boolean               @default(false)
+  metadata            Json?
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime              @db.Timestamptz(3)
+  deletedAt           DateTime?             @db.Timestamptz(3)
+  deletedBy           String?               @db.Uuid
+  message_attachments message_attachments[]
+  message_recipients  message_recipients[]
+  users               users                 @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  tenants             tenants               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages            messages?             @relation("messagesTomessages", fields: [threadId], references: [id])
+  other_messages      messages[]            @relation("messagesTomessages")
+
+  @@index([deletedAt])
+  @@index([tenantId, senderId, createdAt(sort: Desc)])
+  @@index([tenantId, threadId])
+}
+
+model notification_reads {
+  id             String        @id @db.Uuid
+  notificationId String        @db.Uuid
+  userId         String        @db.Uuid
+  readAt         DateTime      @default(now()) @db.Timestamptz(3)
+  notifications  notifications @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  users          users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@index([notificationId])
+  @@index([userId, readAt(sort: Desc)])
+}
+
+model notifications {
+  id                           String                         @id @db.Uuid
+  tenantId                     String                         @db.Uuid
+  type                         SystemNotificationType
+  category                     NotificationCategory
+  severity                     NotificationSeverity
+  title                        String                         @db.VarChar(255)
+  message                      String
+  actionUrl                    String?
+  entityType                   String?                        @db.VarChar(50)
+  entityId                     String?                        @db.Uuid
+  metadata                     Json?
+  expiresAt                    DateTime?                      @db.Timestamptz(3)
+  createdAt                    DateTime                       @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime                       @db.Timestamptz(3)
+  notification_reads           notification_reads[]
+  tenants                      tenants                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentinel_event_notifications sentinel_event_notifications[]
+  vital_sign_alerts            vital_sign_alerts[]
+
+  @@index([category])
+  @@index([entityType, entityId])
+  @@index([expiresAt])
+  @@index([severity])
+  @@index([tenantId, category, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, severity, createdAt(sort: Desc)])
+  @@index([tenantId, type])
+  @@index([type])
+}
+
+model password_reset_tokens {
+  id        String    @id @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress String?   @db.VarChar(45)
+  users     users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([token])
+  @@index([userId])
+}
+
+model payments {
+  id        String         @id @db.Uuid
+  invoiceId String         @db.Uuid
+  amount    Decimal        @db.Decimal(10, 2)
+  currency  String         @default("BRL") @db.VarChar(3)
+  gateway   PaymentGateway
+  gatewayId String?        @db.VarChar(255)
+  method    PaymentMethod
+  status    PaymentStatus
+  paidAt    DateTime?      @db.Timestamptz(3)
+  metadata  Json?
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  invoices  invoices       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([gateway, gatewayId])
+  @@index([invoiceId])
+  @@index([status])
+}
+
+model plans {
+  id                      String              @id @db.Uuid
+  name                    String              @unique
+  type                    PlanType
+  maxResidents            Int
+  maxUsers                Int
+  price                   Decimal?            @db.Decimal(10, 2)
+  features                Json                @default("{}")
+  createdAt               DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime            @db.Timestamptz(3)
+  displayName             String
+  trialDays               Int                 @default(0)
+  isPopular               Boolean             @default(false)
+  billingCycle            BillingCycle        @default(MONTHLY)
+  isActive                Boolean             @default(true)
+  annual_discount_percent Decimal?            @default(0) @db.Decimal(5, 2)
+  service_contracts       service_contracts[]
+  subscriptions           subscriptions[]
+}
+
+model pop_attachments {
+  id          String    @id @db.Uuid
+  tenantId    String    @db.Uuid
+  popId       String    @db.Uuid
+  fileUrl     String
+  fileKey     String?
+  fileName    String    @db.VarChar(255)
+  fileSize    Int?
+  mimeType    String?   @db.VarChar(100)
+  description String?
+  type        String?   @db.VarChar(50)
+  uploadedBy  String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  pops        pops      @relation(fields: [popId], references: [id], onDelete: Cascade)
+  tenants     tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([popId])
+  @@index([tenantId, popId])
+}
+
+model pop_history {
+  id            String    @id @db.Uuid
+  tenantId      String    @db.Uuid
+  popId         String    @db.Uuid
+  action        PopAction
+  reason        String?
+  previousData  Json?
+  newData       Json?
+  changedFields String[]  @default([])
+  changedBy     String    @db.Uuid
+  changedByName String    @db.VarChar(255)
+  changedAt     DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress     String?   @db.VarChar(45)
+  userAgent     String?
+  pops          pops      @relation(fields: [popId], references: [id], onDelete: Cascade)
+  tenants       tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([changedAt(sort: Desc)])
+  @@index([popId, action])
+  @@index([tenantId, popId, changedAt(sort: Desc)])
+}
+
+model pops {
+  id                   String            @id @db.Uuid
+  tenantId             String            @db.Uuid
+  title                String            @db.VarChar(255)
+  category             PopCategory
+  templateId           String?           @db.VarChar(100)
+  content              String
+  status               PopStatus         @default(DRAFT)
+  version              Int               @default(1)
+  replacedById         String?           @db.Uuid
+  replacedAt           DateTime?         @db.Timestamptz(3)
+  reviewIntervalMonths Int?
+  lastReviewedAt       DateTime?         @db.Timestamptz(3)
+  nextReviewDate       DateTime?         @db.Timestamptz(3)
+  requiresReview       Boolean           @default(false)
+  notes                String?
+  createdBy            String            @db.Uuid
+  updatedBy            String?           @db.Uuid
+  publishedBy          String?           @db.Uuid
+  publishedAt          DateTime?         @db.Timestamptz(3)
+  createdAt            DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime          @db.Timestamptz(3)
+  deletedAt            DateTime?         @db.Timestamptz(3)
+  pop_attachments      pop_attachments[]
+  pop_history          pop_history[]
+  pops                 pops?             @relation("popsTopops", fields: [replacedById], references: [id])
+  other_pops           pops[]            @relation("popsTopops")
+  tenants              tenants           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([deletedAt])
+  @@index([nextReviewDate])
+  @@index([replacedById])
+  @@index([requiresReview])
+  @@index([status])
+  @@index([tenantId, category, status])
+  @@index([tenantId, status])
+  @@index([tenantId, templateId])
+}
+
+model prescription_history {
+  id             String        @id @db.Uuid
+  tenantId       String        @db.Uuid
+  prescriptionId String        @db.Uuid
+  versionNumber  Int
+  changeType     ChangeType
+  changeReason   String
+  previousData   Json?
+  newData        Json
+  changedFields  String[]      @default([])
+  changedAt      DateTime      @db.Timestamptz(3)
+  changedBy      String        @db.Uuid
+  changedByName  String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  users          users         @relation(fields: [changedBy], references: [id])
+  prescriptions  prescriptions @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  tenants        tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, prescriptionId, versionNumber(sort: Desc)])
+}
+
+model prescriptions {
+  id                         String                       @id @db.Uuid
+  tenantId                   String                       @db.Uuid
+  residentId                 String                       @db.Uuid
+  doctorName                 String
+  doctorCrm                  String
+  doctorCrmState             String
+  prescriptionDate           DateTime                     @db.Date
+  prescriptionType           PrescriptionType
+  validUntil                 DateTime?                    @db.Date
+  controlledClass            ControlledClass?
+  notificationNumber         String?
+  notificationType           NotificationType?
+  prescriptionImageUrl       String?
+  notes                      String?
+  isActive                   Boolean                      @default(true)
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime                     @db.Timestamptz(3)
+  deletedAt                  DateTime?                    @db.Timestamptz(3)
+  createdBy                  String                       @db.Uuid
+  reviewDate                 DateTime?                    @db.Date
+  updatedBy                  String?                      @db.Uuid
+  versionNumber              Int                          @default(1)
+  lastMedicalReviewDate      DateTime?                    @db.Date
+  lastReviewedByDoctor       String?
+  lastReviewDoctorCrm        String?
+  lastReviewDoctorState      String?
+  lastReviewNotes            String?
+  medication_administrations medication_administrations[]
+  medications                medications[]
+  prescription_history       prescription_history[]
+  residents                  residents                    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                    tenants                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sos_administrations        sos_administrations[]
+  sos_medications            sos_medications[]
+
+  @@index([deletedAt])
+  @@index([tenantId, isActive])
+  @@index([tenantId, isActive, validUntil])
+  @@index([tenantId, lastMedicalReviewDate])
+  @@index([tenantId, residentId])
+  @@index([tenantId, residentId, isActive])
+  @@index([tenantId, validUntil])
+}
+
+model privacy_policy_acceptances {
+  id                             String   @id @db.Uuid
+  tenantId                       String   @unique @db.Uuid
+  userId                         String   @db.Uuid
+  acceptedAt                     DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress                      String   @db.VarChar(45)
+  userAgent                      String
+  policyVersion                  String   @db.VarChar(50)
+  policyEffectiveDate            String   @db.VarChar(50)
+  policyContent                  String
+  lgpdIsDataController           Boolean  @default(false)
+  lgpdHasLegalBasis              Boolean  @default(false)
+  lgpdAcknowledgesResponsibility Boolean  @default(false)
+  tenants                        tenants  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users                          users    @relation(fields: [userId], references: [id])
+
+  @@index([acceptedAt])
+  @@index([tenantId])
+}
+
+model refresh_tokens {
+  id             String   @id @db.Uuid
+  userId         String   @db.Uuid
+  token          String   @unique
+  expiresAt      DateTime @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  device         String?  @db.VarChar(100)
+  ipAddress      String?  @db.VarChar(45)
+  lastActivityAt DateTime @default(now()) @db.Timestamptz(3)
+  userAgent      String?
+  users          users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model resident_contracts {
+  id                         String                       @id @db.Uuid
+  tenantId                   String                       @db.Uuid
+  residentId                 String                       @db.Uuid
+  contractNumber             String                       @db.VarChar(100)
+  startDate                  DateTime                     @db.Date
+  endDate                    DateTime                     @db.Date
+  monthlyAmount              Decimal                      @db.Decimal(10, 2)
+  dueDay                     Int
+  status                     ContractDocumentStatus
+  adjustmentIndex            String?                      @db.VarChar(50)
+  adjustmentRate             Decimal?                     @db.Decimal(5, 2)
+  lastAdjustmentDate         DateTime?                    @db.Date
+  signatories                Json
+  originalFileUrl            String
+  originalFileKey            String
+  originalFileName           String
+  originalFileSize           Int
+  originalFileMimeType       String                       @db.VarChar(100)
+  originalFileHash           String                       @db.VarChar(64)
+  processedFileUrl           String
+  processedFileKey           String
+  processedFileName          String
+  processedFileSize          Int
+  processedFileHash          String                       @db.VarChar(64)
+  notes                      String?
+  version                    Int                          @default(1)
+  replacedById               String?                      @db.Uuid
+  replacedAt                 DateTime?                    @db.Timestamptz(3)
+  uploadedBy                 String                       @db.Uuid
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime                     @db.Timestamptz(3)
+  deletedAt                  DateTime?                    @db.Timestamptz(3)
+  publicToken                String                       @unique(map: "resident_contracts_publictoken_key") @db.Uuid
+  resident_contracts         resident_contracts?          @relation("resident_contractsToresident_contracts", fields: [replacedById], references: [id])
+  other_resident_contracts   resident_contracts[]         @relation("resident_contractsToresident_contracts")
+  residents                  residents                    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                    tenants                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users                      users                        @relation(fields: [uploadedBy], references: [id])
+  resident_contracts_history resident_contracts_history[]
+
+  @@unique([tenantId, contractNumber])
+  @@index([deletedAt])
+  @@index([endDate])
+  @@index([processedFileHash])
+  @@index([publicToken], map: "resident_contracts_publictoken_idx")
+  @@index([replacedById])
+  @@index([residentId])
+  @@index([status])
+  @@index([tenantId, endDate])
+  @@index([tenantId, residentId])
+  @@index([tenantId, status])
+  @@index([version])
+}
+
+model resident_contracts_history {
+  id                 String                @id @db.Uuid
+  tenantId           String                @db.Uuid
+  contractId         String                @db.Uuid
+  action             ContractHistoryAction
+  reason             String?
+  previousData       Json?
+  newData            Json?
+  changedFields      String[]              @default([])
+  changedBy          String                @db.Uuid
+  changedAt          DateTime              @default(now()) @db.Timestamptz(3)
+  users              users                 @relation(fields: [changedBy], references: [id])
+  resident_contracts resident_contracts    @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tenants            tenants               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([changedAt])
+  @@index([contractId])
+  @@index([tenantId, contractId])
+}
+
+model resident_documents {
+  id         String    @id @db.Uuid
+  tenantId   String    @db.Uuid
+  residentId String    @db.Uuid
+  type       String    @db.VarChar(100)
+  fileUrl    String
+  fileKey    String?
+  fileName   String
+  fileSize   Int?
+  mimeType   String?   @db.VarChar(100)
+  details    String?
+  uploadedBy String    @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+  residents  residents @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants    tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([residentId, type])
+  @@index([tenantId, residentId])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resident_history {
+  id            String     @id @db.Uuid
+  tenantId      String     @db.Uuid
+  residentId    String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  changedFields String[]   @default([])
+  previousData  Json?
+  newData       Json
+  changedAt     DateTime   @db.Timestamptz(3)
+  changedBy     String     @db.Uuid
+  metadata      Json?      @default("{}")
+  users         users      @relation(fields: [changedBy], references: [id])
+  residents     residents  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants       tenants    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, residentId, versionNumber(sort: Desc)])
+}
+
+model resident_schedule_configs {
+  id                                               String            @id @db.Uuid
+  tenantId                                         String            @db.Uuid
+  residentId                                       String            @db.Uuid
+  recordType                                       RecordType
+  frequency                                        ScheduleFrequency
+  dayOfWeek                                        Int?
+  dayOfMonth                                       Int?
+  suggestedTimes                                   Json              @default("[]")
+  isActive                                         Boolean           @default(true)
+  notes                                            String?
+  createdBy                                        String            @db.Uuid
+  updatedBy                                        String?           @db.Uuid
+  createdAt                                        DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt                                        DateTime          @db.Timestamptz(3)
+  deletedAt                                        DateTime?         @db.Timestamptz(3)
+  metadata                                         Json?             @default("{}")
+  users_resident_schedule_configs_createdByTousers users             @relation("resident_schedule_configs_createdByTousers", fields: [createdBy], references: [id])
+  residents                                        residents         @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                          tenants           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_resident_schedule_configs_updatedByTousers users?            @relation("resident_schedule_configs_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([deletedAt])
+  @@index([recordType])
+  @@index([residentId, isActive])
+  @@index([residentId, recordType, isActive])
+  @@index([tenantId, recordType, isActive])
+  @@index([tenantId, residentId])
+}
+
+model resident_scheduled_events {
+  id                                               String               @id @db.Uuid
+  tenantId                                         String               @db.Uuid
+  residentId                                       String               @db.Uuid
+  eventType                                        ScheduledEventType
+  scheduledDate                                    DateTime             @db.Date
+  scheduledTime                                    String
+  title                                            String
+  description                                      String?
+  vaccineData                                      Json?
+  status                                           ScheduledEventStatus @default(SCHEDULED)
+  completedRecordId                                String?              @db.Uuid
+  completedAt                                      DateTime?            @db.Timestamptz(3)
+  notes                                            String?
+  createdBy                                        String               @db.Uuid
+  updatedBy                                        String?              @db.Uuid
+  createdAt                                        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                                        DateTime             @db.Timestamptz(3)
+  deletedAt                                        DateTime?            @db.Timestamptz(3)
+  users_resident_scheduled_events_createdByTousers users                @relation("resident_scheduled_events_createdByTousers", fields: [createdBy], references: [id])
+  residents                                        residents            @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                                          tenants              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_resident_scheduled_events_updatedByTousers users?               @relation("resident_scheduled_events_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([deletedAt])
+  @@index([eventType])
+  @@index([residentId, scheduledDate])
+  @@index([residentId, status, scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([tenantId, eventType, scheduledDate])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, status, scheduledDate])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model residents {
+  id                               String                       @id @db.Uuid
+  tenantId                         String                       @db.Uuid
+  status                           String                       @default("Ativo")
+  fullName                         String
+  socialName                       String?
+  cpf                              String
+  rg                               String?
+  rgIssuer                         String?
+  education                        String?
+  profession                       String?
+  cns                              String?
+  gender                           Gender
+  civilStatus                      CivilStatus?
+  religion                         String?
+  birthDate                        DateTime                     @db.Date
+  nationality                      String                       @default("Brasileira")
+  birthCity                        String?
+  birthState                       String?
+  motherName                       String?
+  fatherName                       String?
+  currentCep                       String?
+  currentState                     String?
+  currentCity                      String?
+  currentStreet                    String?
+  currentNumber                    String?
+  currentComplement                String?
+  currentDistrict                  String?
+  currentPhone                     String?
+  emergencyContacts                Json                         @default("[]")
+  legalGuardianName                String?
+  legalGuardianCpf                 String?
+  legalGuardianRg                  String?
+  legalGuardianPhone               String?
+  legalGuardianType                String?
+  legalGuardianCep                 String?
+  legalGuardianState               String?
+  legalGuardianCity                String?
+  legalGuardianStreet              String?
+  legalGuardianNumber              String?
+  legalGuardianComplement          String?
+  legalGuardianDistrict            String?
+  admissionDate                    DateTime                     @db.Date
+  admissionType                    String?
+  admissionReason                  String?
+  admissionConditions              String?
+  dischargeDate                    DateTime?                    @db.Date
+  dischargeReason                  String?
+  bloodType                        BloodType                    @default(NAO_INFORMADO)
+  height                           Decimal?                     @db.Decimal(5, 2)
+  weight                           Decimal?                     @db.Decimal(5, 1)
+  dependencyLevel                  String?
+  mobilityAid                      Boolean?
+  medicationsOnAdmission           String?
+  healthPlans                      Json                         @default("[]")
+  belongings                       Json                         @default("[]")
+  createdAt                        DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                        DateTime                     @db.Timestamptz(3)
+  deletedAt                        DateTime?                    @db.Timestamptz(3)
+  fotoUrl                          String?
+  roomId                           String?                      @db.Uuid
+  bedId                            String?                      @unique @db.Uuid
+  versionNumber                    Int                          @default(1)
+  createdBy                        String                       @db.Uuid
+  updatedBy                        String?                      @db.Uuid
+  email                            String?
+  legalGuardianEmail               String?
+  origin                           String?
+  allergies                        allergies[]
+  bed_transfer_history             bed_transfer_history[]
+  clinical_note_documents          clinical_note_documents[]
+  clinical_notes                   clinical_notes[]
+  clinical_notes_history           clinical_notes_history[]
+  clinical_profiles                clinical_profiles?
+  conditions                       conditions[]
+  daily_records                    daily_records[]
+  dietary_restrictions             dietary_restrictions[]
+  medication_administrations       medication_administrations[]
+  prescriptions                    prescriptions[]
+  resident_contracts               resident_contracts[]
+  resident_documents               resident_documents[]
+  resident_history                 resident_history[]
+  resident_schedule_configs        resident_schedule_configs[]
+  resident_scheduled_events        resident_scheduled_events[]
+  beds                             beds?                        @relation(fields: [bedId], references: [id])
+  users_residents_createdByTousers users                        @relation("residents_createdByTousers", fields: [createdBy], references: [id])
+  tenants                          tenants                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_residents_updatedByTousers users?                       @relation("residents_updatedByTousers", fields: [updatedBy], references: [id])
+  sos_administrations              sos_administrations[]
+  vaccinations                     vaccinations[]
+  vital_sign_alerts                vital_sign_alerts[]
+  vital_signs                      vital_signs[]
+
+  @@unique([tenantId, cpf])
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([tenantId, admissionDate(sort: Desc)])
+  @@index([tenantId, status])
+  @@index([updatedBy])
+}
+
+model rooms {
+  id                 String    @id @db.Uuid
+  tenantId           String    @db.Uuid
+  floorId            String    @db.Uuid
+  name               String
+  capacity           Int       @default(1)
+  roomType           String?
+  genderRestriction  String?
+  hasBathroom        Boolean   @default(false)
+  notes              String?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @db.Timestamptz(3)
+  deletedAt          DateTime? @db.Timestamptz(3)
+  code               String
+  roomNumber         String
+  hasPrivateBathroom Boolean   @default(false)
+  accessible         Boolean   @default(false)
+  observations       String?
+  beds               beds[]
+  floors             floors    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  tenants            tenants   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([floorId, isActive])
+  @@index([tenantId, floorId])
+}
+
+model sentinel_event_notifications {
+  id                 String        @id @db.Uuid
+  tenantId           String        @db.Uuid
+  dailyRecordId      String        @db.Uuid
+  notificationId     String        @db.Uuid
+  eventType          String        @db.VarChar(100)
+  status             String        @default("PENDENTE") @db.VarChar(50)
+  protocolo          String?       @db.VarChar(100)
+  dataEnvio          DateTime?     @db.Timestamptz(3)
+  dataConfirmacao    DateTime?     @db.Timestamptz(3)
+  responsavelEnvio   String?       @db.Uuid
+  emailEnviado       Boolean       @default(false)
+  emailEnviadoEm     DateTime?     @db.Timestamptz(3)
+  emailDestinatarios Json?         @default("[]")
+  observacoes        String?
+  metadata           Json?
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @db.Timestamptz(3)
+  daily_records      daily_records @relation(fields: [dailyRecordId], references: [id], onDelete: Cascade)
+  notifications      notifications @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  users              users?        @relation(fields: [responsavelEnvio], references: [id])
+  tenants            tenants       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([dailyRecordId])
+  @@index([status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, status])
+}
+
+model service_contracts {
+  id                                       String                 @id @db.Uuid
+  version                                  String
+  planId                                   String?                @db.Uuid
+  status                                   ContractStatus         @default(DRAFT)
+  effectiveFrom                            DateTime?              @db.Timestamptz(3)
+  title                                    String                 @db.VarChar(255)
+  content                                  String
+  contentHash                              String                 @db.VarChar(64)
+  createdBy                                String                 @db.Uuid
+  createdAt                                DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt                                DateTime               @db.Timestamptz(3)
+  revokedAt                                DateTime?              @db.Timestamptz(3)
+  revokedBy                                String?                @db.Uuid
+  contract_acceptances                     contract_acceptances[]
+  users_service_contracts_createdByTousers users                  @relation("service_contracts_createdByTousers", fields: [createdBy], references: [id])
+  plans                                    plans?                 @relation(fields: [planId], references: [id])
+  users_service_contracts_revokedByTousers users?                 @relation("service_contracts_revokedByTousers", fields: [revokedBy], references: [id], onDelete: Restrict)
+
+  @@unique([version, planId])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@index([status])
+}
+
+model sos_administrations {
+  id              String          @id @db.Uuid
+  tenantId        String          @db.Uuid
+  prescriptionId  String          @db.Uuid
+  sosMedicationId String          @db.Uuid
+  residentId      String          @db.Uuid
+  date            DateTime        @db.Date
+  time            String
+  indication      String
+  administeredBy  String
+  userId          String          @db.Uuid
+  notes           String?
+  createdAt       DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime        @db.Timestamptz(3)
+  prescriptions   prescriptions   @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  residents       residents       @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  sos_medications sos_medications @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  tenants         tenants         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           users           @relation(fields: [userId], references: [id])
+
+  @@index([residentId, date(sort: Desc)])
+  @@index([sosMedicationId, date])
+  @@index([tenantId, date(sort: Desc)])
+}
+
+model sos_medication_history {
+  id              String          @id @db.Uuid
+  tenantId        String          @db.Uuid
+  sosMedicationId String          @db.Uuid
+  versionNumber   Int
+  changeType      ChangeType
+  changeReason    String
+  previousData    Json?
+  newData         Json
+  changedFields   String[]        @default([])
+  changedAt       DateTime        @db.Timestamptz(3)
+  changedBy       String          @db.Uuid
+  changedByName   String?
+  ipAddress       String?
+  userAgent       String?
+  metadata        Json?
+  users           users           @relation(fields: [changedBy], references: [id])
+  sos_medications sos_medications @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  tenants         tenants         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, sosMedicationId, versionNumber(sort: Desc)])
+}
+
+model sos_medications {
+  id                                     String                   @id @db.Uuid
+  prescriptionId                         String                   @db.Uuid
+  name                                   String
+  presentation                           MedicationPresentation
+  concentration                          String
+  dose                                   String
+  route                                  AdministrationRoute
+  indication                             SOSIndicationType
+  indicationDetails                      String?
+  minInterval                            String
+  maxDailyDoses                          Int
+  startDate                              DateTime                 @db.Date
+  endDate                                DateTime?                @db.Date
+  instructions                           String?
+  createdAt                              DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                              DateTime                 @db.Timestamptz(3)
+  deletedAt                              DateTime?                @db.Timestamptz(3)
+  versionNumber                          Int                      @default(1)
+  createdBy                              String                   @db.Uuid
+  updatedBy                              String?                  @db.Uuid
+  sos_administrations                    sos_administrations[]
+  sos_medication_history                 sos_medication_history[]
+  users_sos_medications_createdByTousers users                    @relation("sos_medications_createdByTousers", fields: [createdBy], references: [id])
+  prescriptions                          prescriptions            @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  users_sos_medications_updatedByTousers users?                   @relation("sos_medications_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([indication])
+  @@index([prescriptionId])
+  @@index([updatedBy])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscriptions {
+  id                       String     @id @db.Uuid
+  tenantId                 String     @db.Uuid
+  planId                   String     @db.Uuid
+  startDate                DateTime   @default(now()) @db.Timestamptz(3)
+  endDate                  DateTime?  @db.Timestamptz(3)
+  currentPeriodStart       DateTime?  @db.Timestamptz(3)
+  currentPeriodEnd         DateTime?  @db.Timestamptz(3)
+  trialEndDate             DateTime?  @db.Timestamptz(3)
+  status                   String
+  createdAt                DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime   @db.Timestamptz(3)
+  asaasSubscriptionId      String?    @unique @db.VarChar(255)
+  discountPercent          Decimal?   @db.Decimal(5, 2)
+  discountReason           String?
+  customPrice              Decimal?   @db.Decimal(10, 2)
+  billing_cycle            String?    @db.VarChar(20)
+  preferred_payment_method String?    @db.VarChar(50)
+  trial_alert_7_sent       Boolean    @default(false)
+  trial_alert_3_sent       Boolean    @default(false)
+  trial_alert_1_sent       Boolean    @default(false)
+  invoices                 invoices[]
+  plans                    plans      @relation(fields: [planId], references: [id])
+  tenants                  tenants    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model system_alerts {
+  id        String        @id @db.Uuid
+  type      AlertType
+  severity  AlertSeverity
+  title     String        @db.VarChar(255)
+  message   String
+  metadata  Json?
+  tenantId  String?       @db.Uuid
+  read      Boolean       @default(false)
+  readAt    DateTime?     @db.Timestamptz(3)
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  tenants   tenants?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([read])
+  @@index([tenantId])
+  @@index([tenantId, read, createdAt(sort: Desc)])
+  @@index([type, read, createdAt(sort: Desc)])
+  @@index([type, severity])
+}
+
+model tenant_documents {
+  id                     String             @id @db.Uuid
+  tenantId               String             @db.Uuid
+  type                   String             @db.VarChar(100)
+  fileUrl                String
+  fileKey                String?
+  fileName               String
+  fileSize               Int?
+  mimeType               String?            @db.VarChar(100)
+  issuedAt               DateTime?          @db.Date
+  expiresAt              DateTime?          @db.Date
+  status                 DocumentStatus     @default(PENDENTE)
+  notes                  String?
+  uploadedBy             String             @db.Uuid
+  createdAt              DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime           @db.Timestamptz(3)
+  deletedAt              DateTime?          @db.Timestamptz(3)
+  documentNumber         String?            @db.VarChar(100)
+  issuerEntity           String?            @db.VarChar(200)
+  replacedAt             DateTime?          @db.Timestamptz(3)
+  replacedById           String?            @db.Uuid
+  tags                   String[]           @default([])
+  version                Int                @default(1)
+  document_history       document_history[]
+  tenant_documents       tenant_documents?  @relation("tenant_documentsTotenant_documents", fields: [replacedById], references: [id])
+  other_tenant_documents tenant_documents[] @relation("tenant_documentsTotenant_documents")
+  tenants                tenants            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([expiresAt])
+  @@index([replacedById])
+  @@index([status])
+  @@index([tenantId, expiresAt])
+  @@index([tenantId, status])
+  @@index([tenantId, type])
+  @@index([version])
+}
+
+model tenant_messages {
+  id                String                 @id @db.Uuid
+  title             String                 @db.VarChar(255)
+  subject           String                 @db.VarChar(500)
+  htmlContent       String
+  recipientFilter   MessageRecipientFilter
+  specificTenantIds String[]               @db.Uuid
+  scheduledFor      DateTime?              @db.Timestamptz(3)
+  sentAt            DateTime?              @db.Timestamptz(3)
+  status            TenantMessageStatus    @default(DRAFT)
+  sentCount         Int                    @default(0)
+  failedCount       Int                    @default(0)
+  createdBy         String                 @db.Uuid
+  createdAt         DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime               @db.Timestamptz(3)
+  users             users                  @relation(fields: [createdBy], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@index([createdBy])
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+model tenant_profiles {
+  id               String       @id @db.Uuid
+  tenantId         String       @unique @db.Uuid
+  logoUrl          String?
+  logoKey          String?
+  legalNature      LegalNature?
+  tradeName        String?
+  cnesCode         String?      @db.VarChar(20)
+  capacityDeclared Int?
+  capacityLicensed Int?
+  contactPhone     String?
+  contactEmail     String?
+  websiteUrl       String?
+  foundedAt        DateTime?    @db.Date
+  mission          String?
+  vision           String?
+  values           String?
+  notes            String?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime     @db.Timestamptz(3)
+  deletedAt        DateTime?    @db.Timestamptz(3)
+  tenants          tenants      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([legalNature])
+  @@index([tenantId])
+}
+
+model tenants {
+  id                           String                         @id @db.Uuid
+  name                         String
+  slug                         String                         @unique
+  cnpj                         String?                        @unique
+  email                        String
+  phone                        String?
+  status                       TenantStatus                   @default(TRIAL)
+  schemaName                   String                         @unique
+  addressCity                  String?
+  addressDistrict              String?
+  addressNumber                String?
+  addressComplement            String?
+  addressState                 String?
+  addressZipCode               String?
+  deletedAt                    DateTime?                      @db.Timestamptz(3)
+  createdAt                    DateTime                       @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime                       @db.Timestamptz(3)
+  addressStreet                String?
+  asaasCustomerId              String?                        @unique @db.VarChar(255)
+  timezone                     String                         @default("America/Sao_Paulo") @db.VarChar(50)
+  access_logs                  access_logs[]
+  allergies                    allergies[]
+  allergy_history              allergy_history[]
+  audit_logs                   audit_logs[]
+  bed_status_history           bed_status_history[]
+  bed_transfer_history         bed_transfer_history[]
+  beds                         beds[]
+  buildings                    buildings[]
+  clinical_note_documents      clinical_note_documents[]
+  clinical_notes               clinical_notes[]
+  clinical_notes_history       clinical_notes_history[]
+  clinical_profile_history     clinical_profile_history[]
+  clinical_profiles            clinical_profiles[]
+  condition_history            condition_history[]
+  conditions                   conditions[]
+  contract_acceptances         contract_acceptances?
+  daily_record_history         daily_record_history[]
+  daily_records                daily_records[]
+  dietary_restriction_history  dietary_restriction_history[]
+  dietary_restrictions         dietary_restrictions[]
+  document_history             document_history[]
+  email_logs                   email_logs[]
+  floors                       floors[]
+  incident_monthly_indicators  incident_monthly_indicators[]
+  institutional_events         institutional_events[]
+  invoices                     invoices[]
+  medication_administrations   medication_administrations[]
+  medication_history           medication_history[]
+  message_attachments          message_attachments[]
+  message_recipients           message_recipients[]
+  messages                     messages[]
+  notifications                notifications[]
+  pop_attachments              pop_attachments[]
+  pop_history                  pop_history[]
+  pops                         pops[]
+  prescription_history         prescription_history[]
+  prescriptions                prescriptions[]
+  privacy_policy_acceptances   privacy_policy_acceptances?
+  resident_contracts           resident_contracts[]
+  resident_contracts_history   resident_contracts_history[]
+  resident_documents           resident_documents[]
+  resident_history             resident_history[]
+  resident_schedule_configs    resident_schedule_configs[]
+  resident_scheduled_events    resident_scheduled_events[]
+  residents                    residents[]
+  rooms                        rooms[]
+  sentinel_event_notifications sentinel_event_notifications[]
+  sos_administrations          sos_administrations[]
+  sos_medication_history       sos_medication_history[]
+  subscriptions                subscriptions[]
+  system_alerts                system_alerts[]
+  tenant_documents             tenant_documents[]
+  tenant_profiles              tenant_profiles?
+  usage_metrics                usage_metrics[]
+  user_history                 user_history[]
+  user_profiles                user_profiles[]
+  users                        users[]
+  vaccination_history          vaccination_history[]
+  vaccinations                 vaccinations[]
+  vital_sign_alerts            vital_sign_alerts[]
+  vital_sign_history           vital_sign_history[]
+  vital_signs                  vital_signs[]
+
+  @@index([timezone])
+}
+
+model usage_metrics {
+  id              String   @id @db.Uuid
+  tenantId        String   @db.Uuid
+  month           DateTime @db.Date
+  activeResidents Int      @default(0)
+  activeUsers     Int      @default(0)
+  dailyRecords    Int      @default(0)
+  prescriptions   Int      @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  tenants         tenants  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, month])
+  @@index([tenantId, month])
+}
+
+model user_history {
+  id                                  String     @id @db.Uuid
+  tenantId                            String     @db.Uuid
+  userId                              String     @db.Uuid
+  versionNumber                       Int
+  changeType                          ChangeType
+  changeReason                        String
+  changedFields                       String[]   @default([])
+  previousData                        Json?
+  newData                             Json
+  changedAt                           DateTime   @db.Timestamptz(3)
+  changedBy                           String     @db.Uuid
+  changedByName                       String?
+  ipAddress                           String?    @db.VarChar(45)
+  userAgent                           String?
+  metadata                            Json?
+  users_user_history_changedByTousers users      @relation("user_history_changedByTousers", fields: [changedBy], references: [id])
+  tenants                             tenants    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_user_history_userIdTousers    users      @relation("user_history_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, userId, versionNumber(sort: Desc)])
+}
+
+model user_permissions {
+  id            String         @id @db.Uuid
+  userProfileId String         @db.Uuid
+  tenantId      String         @db.Uuid
+  permission    PermissionType
+  isGranted     Boolean        @default(true)
+  grantedBy     String         @db.Uuid
+  grantedAt     DateTime       @default(now()) @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @db.Timestamptz(3)
+  user_profiles user_profiles  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, permission])
+  @@index([permission])
+  @@index([tenantId, userProfileId])
+}
+
+model user_profiles {
+  id                   String             @id @db.Uuid
+  userId               String             @unique @db.Uuid
+  tenantId             String             @db.Uuid
+  profilePhoto         String?
+  phone                String?
+  department           String?
+  birthDate            DateTime?          @db.Date
+  notes                String?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @db.Timestamptz(3)
+  createdBy            String             @db.Uuid
+  updatedBy            String?            @db.Uuid
+  isNursingCoordinator Boolean            @default(false)
+  isTechnicalManager   Boolean            @default(false)
+  positionCode         PositionCode?
+  registrationNumber   String?
+  registrationState    String?
+  registrationType     RegistrationType?
+  preferences          Json?              @default("{}")
+  cpf                  String?
+  user_permissions     user_permissions[]
+  tenants              tenants            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users                users              @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id                                                                   String                         @id @db.Uuid
+  tenantId                                                             String?                        @db.Uuid
+  name                                                                 String
+  email                                                                String
+  password                                                             String
+  role                                                                 String
+  isActive                                                             Boolean                        @default(true)
+  lastLogin                                                            DateTime?                      @db.Timestamptz(3)
+  passwordResetRequired                                                Boolean                        @default(false)
+  deletedAt                                                            DateTime?                      @db.Timestamptz(3)
+  createdAt                                                            DateTime                       @default(now()) @db.Timestamptz(3)
+  updatedAt                                                            DateTime                       @db.Timestamptz(3)
+  createdBy                                                            String?                        @db.Uuid
+  updatedBy                                                            String?                        @db.Uuid
+  versionNumber                                                        Int                            @default(1)
+  cpf                                                                  String?
+  access_logs                                                          access_logs[]
+  allergies_allergies_createdByTousers                                 allergies[]                    @relation("allergies_createdByTousers")
+  allergies_allergies_updatedByTousers                                 allergies[]                    @relation("allergies_updatedByTousers")
+  allergy_history                                                      allergy_history[]
+  bed_status_history                                                   bed_status_history[]
+  bed_transfer_history                                                 bed_transfer_history[]
+  clinical_note_documents                                              clinical_note_documents[]
+  clinical_notes                                                       clinical_notes[]
+  clinical_notes_history_clinical_notes_history_changedByTousers       clinical_notes_history[]       @relation("clinical_notes_history_changedByTousers")
+  clinical_notes_history_clinical_notes_history_professionalIdTousers  clinical_notes_history[]       @relation("clinical_notes_history_professionalIdTousers")
+  clinical_profile_history                                             clinical_profile_history[]
+  clinical_profiles_clinical_profiles_createdByTousers                 clinical_profiles[]            @relation("clinical_profiles_createdByTousers")
+  clinical_profiles_clinical_profiles_updatedByTousers                 clinical_profiles[]            @relation("clinical_profiles_updatedByTousers")
+  condition_history                                                    condition_history[]
+  conditions_conditions_createdByTousers                               conditions[]                   @relation("conditions_createdByTousers")
+  conditions_conditions_updatedByTousers                               conditions[]                   @relation("conditions_updatedByTousers")
+  contract_acceptances                                                 contract_acceptances[]
+  daily_records                                                        daily_records[]
+  dietary_restriction_history                                          dietary_restriction_history[]
+  dietary_restrictions_dietary_restrictions_createdByTousers           dietary_restrictions[]         @relation("dietary_restrictions_createdByTousers")
+  dietary_restrictions_dietary_restrictions_updatedByTousers           dietary_restrictions[]         @relation("dietary_restrictions_updatedByTousers")
+  incident_monthly_indicators                                          incident_monthly_indicators[]
+  institutional_events_institutional_events_createdByTousers           institutional_events[]         @relation("institutional_events_createdByTousers")
+  institutional_events_institutional_events_updatedByTousers           institutional_events[]         @relation("institutional_events_updatedByTousers")
+  medication_administrations                                           medication_administrations[]
+  medication_history                                                   medication_history[]
+  medications_medications_createdByTousers                             medications[]                  @relation("medications_createdByTousers")
+  medications_medications_updatedByTousers                             medications[]                  @relation("medications_updatedByTousers")
+  message_attachments                                                  message_attachments[]
+  message_recipients                                                   message_recipients[]
+  messages                                                             messages[]
+  notification_reads                                                   notification_reads[]
+  password_reset_tokens                                                password_reset_tokens[]
+  prescription_history                                                 prescription_history[]
+  privacy_policy_acceptances                                           privacy_policy_acceptances[]
+  refresh_tokens                                                       refresh_tokens[]
+  resident_contracts                                                   resident_contracts[]
+  resident_contracts_history                                           resident_contracts_history[]
+  resident_history                                                     resident_history[]
+  resident_schedule_configs_resident_schedule_configs_createdByTousers resident_schedule_configs[]    @relation("resident_schedule_configs_createdByTousers")
+  resident_schedule_configs_resident_schedule_configs_updatedByTousers resident_schedule_configs[]    @relation("resident_schedule_configs_updatedByTousers")
+  resident_scheduled_events_resident_scheduled_events_createdByTousers resident_scheduled_events[]    @relation("resident_scheduled_events_createdByTousers")
+  resident_scheduled_events_resident_scheduled_events_updatedByTousers resident_scheduled_events[]    @relation("resident_scheduled_events_updatedByTousers")
+  residents_residents_createdByTousers                                 residents[]                    @relation("residents_createdByTousers")
+  residents_residents_updatedByTousers                                 residents[]                    @relation("residents_updatedByTousers")
+  sentinel_event_notifications                                         sentinel_event_notifications[]
+  service_contracts_service_contracts_createdByTousers                 service_contracts[]            @relation("service_contracts_createdByTousers")
+  service_contracts_service_contracts_revokedByTousers                 service_contracts[]            @relation("service_contracts_revokedByTousers")
+  sos_administrations                                                  sos_administrations[]
+  sos_medication_history                                               sos_medication_history[]
+  sos_medications_sos_medications_createdByTousers                     sos_medications[]              @relation("sos_medications_createdByTousers")
+  sos_medications_sos_medications_updatedByTousers                     sos_medications[]              @relation("sos_medications_updatedByTousers")
+  tenant_messages                                                      tenant_messages[]
+  user_history_user_history_changedByTousers                           user_history[]                 @relation("user_history_changedByTousers")
+  user_history_user_history_userIdTousers                              user_history[]                 @relation("user_history_userIdTousers")
+  user_profiles                                                        user_profiles?
+  users_users_createdByTousers                                         users?                         @relation("users_createdByTousers", fields: [createdBy], references: [id])
+  other_users_users_createdByTousers                                   users[]                        @relation("users_createdByTousers")
+  tenants                                                              tenants?                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_users_updatedByTousers                                         users?                         @relation("users_updatedByTousers", fields: [updatedBy], references: [id])
+  other_users_users_updatedByTousers                                   users[]                        @relation("users_updatedByTousers")
+  vaccination_history                                                  vaccination_history[]
+  vaccinations_vaccinations_createdByTousers                           vaccinations[]                 @relation("vaccinations_createdByTousers")
+  vaccinations_vaccinations_updatedByTousers                           vaccinations[]                 @relation("vaccinations_updatedByTousers")
+  vital_sign_alert_history_vital_sign_alert_history_assigned_toTousers vital_sign_alert_history[]     @relation("vital_sign_alert_history_assigned_toTousers")
+  vital_sign_alert_history_vital_sign_alert_history_changed_byTousers  vital_sign_alert_history[]     @relation("vital_sign_alert_history_changed_byTousers")
+  vital_sign_alerts_vital_sign_alerts_assignedToTousers                vital_sign_alerts[]            @relation("vital_sign_alerts_assignedToTousers")
+  vital_sign_alerts_vital_sign_alerts_resolvedByTousers                vital_sign_alerts[]            @relation("vital_sign_alerts_resolvedByTousers")
+  vital_sign_history                                                   vital_sign_history[]
+  vital_signs_vital_signs_createdByTousers                             vital_signs[]                  @relation("vital_signs_createdByTousers")
+  vital_signs_vital_signs_updatedByTousers                             vital_signs[]                  @relation("vital_signs_updatedByTousers")
+  vital_signs_vital_signs_userIdTousers                                vital_signs[]                  @relation("vital_signs_userIdTousers")
+
+  @@unique([tenantId, email])
+  @@index([createdBy])
+  @@index([updatedBy])
+}
+
+model vaccination_history {
+  id            String       @id @db.Uuid
+  tenantId      String       @db.Uuid
+  vaccinationId String       @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  previousData  Json?
+  newData       Json
+  changedFields String[]     @default([])
+  changedAt     DateTime     @db.Timestamptz(3)
+  changedBy     String       @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  users         users        @relation(fields: [changedBy], references: [id])
+  tenants       tenants      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vaccinations  vaccinations @relation(fields: [vaccinationId], references: [id], onDelete: Cascade)
+
+  @@index([changeType])
+  @@index([changedBy])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, vaccinationId, versionNumber(sort: Desc)])
+}
+
+model vaccinations {
+  id                                  String                @id @db.Uuid
+  tenantId                            String                @db.Uuid
+  residentId                          String                @db.Uuid
+  vaccine                             String
+  dose                                String
+  date                                DateTime              @db.Date
+  batch                               String
+  manufacturer                        String
+  cnes                                String
+  healthUnit                          String
+  municipality                        String
+  state                               String
+  certificateUrl                      String?
+  notes                               String?
+  createdAt                           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                           DateTime              @db.Timestamptz(3)
+  deletedAt                           DateTime?             @db.Timestamptz(3)
+  createdBy                           String                @db.Uuid
+  updatedBy                           String?               @db.Uuid
+  versionNumber                       Int                   @default(1)
+  vaccination_history                 vaccination_history[]
+  users_vaccinations_createdByTousers users                 @relation("vaccinations_createdByTousers", fields: [createdBy], references: [id])
+  residents                           residents             @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                             tenants               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_vaccinations_updatedByTousers users?                @relation("vaccinations_updatedByTousers", fields: [updatedBy], references: [id])
+
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([tenantId, residentId])
+  @@index([updatedBy])
+}
+
+model vital_sign_alert_history {
+  id                                                String            @id @db.Uuid
+  alert_id                                          String            @db.Uuid
+  status                                            String            @db.VarChar(50)
+  assigned_to                                       String?           @db.Uuid
+  medical_notes                                     String?
+  action_taken                                      String?
+  changed_by                                        String            @db.Uuid
+  change_reason                                     String?
+  change_type                                       String            @db.VarChar(50)
+  changed_at                                        DateTime          @default(now()) @db.Timestamptz(3)
+  vital_sign_alerts                                 vital_sign_alerts @relation(fields: [alert_id], references: [id], onDelete: Cascade)
+  users_vital_sign_alert_history_assigned_toTousers users?            @relation("vital_sign_alert_history_assigned_toTousers", fields: [assigned_to], references: [id])
+  users_vital_sign_alert_history_changed_byTousers  users             @relation("vital_sign_alert_history_changed_byTousers", fields: [changed_by], references: [id], onDelete: SetNull)
+
+  @@index([alert_id, changed_at(sort: Desc)])
+  @@index([changed_by])
+}
+
+model vital_sign_alerts {
+  id                                        String                     @id @db.Uuid
+  tenantId                                  String                     @db.Uuid
+  residentId                                String                     @db.Uuid
+  vitalSignId                               String                     @db.Uuid
+  notificationId                            String?                    @db.Uuid
+  type                                      VitalSignAlertType
+  severity                                  AlertSeverity
+  title                                     String                     @db.VarChar(255)
+  description                               String
+  value                                     String                     @db.VarChar(100)
+  metadata                                  Json
+  status                                    AlertStatus                @default(ACTIVE)
+  priority                                  Int                        @default(0)
+  assignedTo                                String?                    @db.Uuid
+  medicalNotes                              String?
+  actionTaken                               String?
+  createdAt                                 DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                                 DateTime                   @db.Timestamptz(3)
+  resolvedAt                                DateTime?                  @db.Timestamptz(3)
+  resolvedBy                                String?                    @db.Uuid
+  createdBy                                 String?                    @db.Uuid
+  clinical_notes                            clinical_notes[]
+  vital_sign_alert_history                  vital_sign_alert_history[]
+  users_vital_sign_alerts_assignedToTousers users?                     @relation("vital_sign_alerts_assignedToTousers", fields: [assignedTo], references: [id])
+  notifications                             notifications?             @relation(fields: [notificationId], references: [id])
+  residents                                 residents                  @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  users_vital_sign_alerts_resolvedByTousers users?                     @relation("vital_sign_alerts_resolvedByTousers", fields: [resolvedBy], references: [id])
+  tenants                                   tenants                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vital_signs                               vital_signs                @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+
+  @@index([assignedTo])
+  @@index([notificationId])
+  @@index([residentId, status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, residentId])
+  @@index([tenantId, status])
+  @@index([vitalSignId])
+}
+
+model vital_sign_history {
+  id            String      @id @db.Uuid
+  tenantId      String      @db.Uuid
+  vitalSignId   String      @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String
+  previousData  Json?
+  newData       Json?
+  changedFields String[]
+  changedAt     DateTime    @db.Timestamptz(3)
+  changedBy     String      @db.Uuid
+  users         users       @relation(fields: [changedBy], references: [id])
+  tenants       tenants     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vital_signs   vital_signs @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([vitalSignId, versionNumber])
+}
+
+model vital_signs {
+  id                                 String               @id @db.Uuid
+  tenantId                           String               @db.Uuid
+  residentId                         String               @db.Uuid
+  userId                             String               @db.Uuid
+  timestamp                          DateTime             @db.Timestamptz(3)
+  systolicBloodPressure              Float?
+  diastolicBloodPressure             Float?
+  temperature                        Float?
+  heartRate                          Int?
+  oxygenSaturation                   Float?
+  bloodGlucose                       Float?
+  createdAt                          DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                          DateTime             @db.Timestamptz(3)
+  deletedAt                          DateTime?            @db.Timestamptz(3)
+  versionNumber                      Int                  @default(1)
+  createdBy                          String               @db.Uuid
+  updatedBy                          String?              @db.Uuid
+  vital_sign_alerts                  vital_sign_alerts[]
+  vital_sign_history                 vital_sign_history[]
+  users_vital_signs_createdByTousers users                @relation("vital_signs_createdByTousers", fields: [createdBy], references: [id])
+  residents                          residents            @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  tenants                            tenants              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users_vital_signs_updatedByTousers users?               @relation("vital_signs_updatedByTousers", fields: [updatedBy], references: [id], onDelete: Restrict)
+  users_vital_signs_userIdTousers    users                @relation("vital_signs_userIdTousers", fields: [userId], references: [id])
+
+  @@index([deletedAt])
+  @@index([residentId, timestamp(sort: Desc)])
+  @@index([tenantId, residentId, timestamp(sort: Desc)])
+  @@index([tenantId, timestamp(sort: Desc)])
+}
+
+model webhook_events {
+  id             String         @id @db.Uuid
+  gateway        PaymentGateway
+  eventType      String         @db.VarChar(100)
+  gatewayEventId String?        @db.VarChar(255)
+  payload        Json
+  processed      Boolean        @default(false)
+  processedAt    DateTime?      @db.Timestamptz(3)
+  error          String?
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([gateway, gatewayEventId])
+  @@index([processed])
+}
+
+model bed_status_history {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @db.Uuid
+  bedId          String   @db.Uuid
+  previousStatus String   @db.VarChar(50)
+  newStatus      String   @db.VarChar(50)
+  reason         String?
+  metadata       Json?
+  changedBy      String   @db.Uuid
+  changedAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  beds           beds     @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  users          users    @relation(fields: [changedBy], references: [id])
+  tenants        tenants  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([bedId, changedAt(sort: Desc)])
+  @@index([tenantId, bedId])
+  @@index([tenantId, changedAt(sort: Desc)])
+}
+
+enum AccessAction {
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGED
+  SESSION_REVOKED
+  FORCE_PASSWORD_CHANGE
+}
+
+enum AdministrationRoute {
+  VO
+  IM
+  EV
+  SC
+  TOPICA
+  SL
+  RETAL
+  OCULAR
+  NASAL
+  INALATORIA
+  OUTRA
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  ACTIVE
+  IN_TREATMENT
+  MONITORING
+  RESOLVED
+  IGNORED
+}
+
+enum AlertType {
+  PAYMENT_FAILED
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_CANCELLED
+  USAGE_LIMIT_EXCEEDED
+  TENANT_SUSPENDED
+  SYSTEM_ERROR
+  PAYMENT_OVERDUE
+}
+
+enum AllergySeverity {
+  LEVE
+  MODERADA
+  GRAVE
+  ANAFILAXIA
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum BloodType {
+  A_POSITIVO
+  A_NEGATIVO
+  B_POSITIVO
+  B_NEGATIVO
+  AB_POSITIVO
+  AB_NEGATIVO
+  O_POSITIVO
+  O_NEGATIVO
+  NAO_INFORMADO
+}
+
+enum ChangeType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum CivilStatus {
+  SOLTEIRO
+  CASADO
+  DIVORCIADO
+  VIUVO
+  UNIAO_ESTAVEL
+}
+
+enum ClinicalProfession {
+  MEDICINE
+  NURSING
+  NUTRITION
+  PHYSIOTHERAPY
+  PSYCHOLOGY
+  SOCIAL_WORK
+  SPEECH_THERAPY
+  OCCUPATIONAL_THERAPY
+}
+
+enum ContractDocumentStatus {
+  VIGENTE
+  VENCENDO_EM_30_DIAS
+  VENCIDO
+}
+
+enum ContractHistoryAction {
+  CREATED
+  UPDATED
+  REPLACED
+  DELETED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  REVOKED
+}
+
+enum ControlledClass {
+  BZD
+  PSICOFARMACO
+  OPIOIDE
+  ANTICONVULSIVANTE
+  OUTRO
+}
+
+enum DocumentAction {
+  CREATED
+  UPDATED
+  REPLACED
+  DELETED
+}
+
+enum DocumentStatus {
+  OK
+  PENDENTE
+  VENCENDO
+  VENCIDO
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum EmailTemplateCategory {
+  ONBOARDING
+  BILLING
+  LIFECYCLE
+  SYSTEM
+  INCIDENT
+}
+
+enum Gender {
+  MASCULINO
+  FEMININO
+  OUTRO
+  NAO_INFORMADO
+}
+
+enum IncidentCategory {
+  CLINICA
+  ASSISTENCIAL
+  ADMINISTRATIVA
+}
+
+enum IncidentSeverity {
+  LEVE
+  MODERADA
+  GRAVE
+  CRITICA
+}
+
+enum IncidentSubtypeAdministrativa {
+  AUSENCIA_PROFISSIONAL
+  FALTA_INSUMO
+  FALTA_MEDICAMENTO
+  EQUIPAMENTO_QUEBRADO
+  PROBLEMA_INFRAESTRUTURA
+  RECLAMACAO_FAMILIAR
+  CONFLITO_EQUIPE
+  OUTRA_ADMINISTRATIVA
+}
+
+enum IncidentSubtypeAssistencial {
+  ERRO_MEDICACAO
+  RECUSA_MEDICACAO
+  RECUSA_ALIMENTACAO
+  RECUSA_HIGIENE
+  RECUSA_BANHO
+  AGITACAO_PSICOMOTORA
+  AGRESSIVIDADE
+  FUGA_EVASAO
+  PERDA_OBJETOS
+  DANO_EQUIPAMENTO
+  OUTRA_ASSISTENCIAL
+}
+
+enum IncidentSubtypeClinical {
+  QUEDA_COM_LESAO
+  QUEDA_SEM_LESAO
+  TENTATIVA_SUICIDIO
+  DOENCA_DIARREICA_AGUDA
+  DESIDRATACAO
+  ULCERA_DECUBITO
+  DESNUTRICAO
+  ESCABIOSE
+  FEBRE_HIPERTERMIA
+  HIPOTERMIA
+  HIPOGLICEMIA
+  HIPERGLICEMIA
+  CONVULSAO
+  ALTERACAO_CONSCIENCIA
+  DOR_TORACICA
+  DISPNEIA
+  VOMITO
+  SANGRAMENTO
+  REACAO_ALERGICA
+  OBITO
+  OUTRA_CLINICA
+}
+
+enum InstitutionalEventType {
+  DOCUMENT_EXPIRY
+  TRAINING
+  MEETING
+  INSPECTION
+  MAINTENANCE
+  OTHER
+}
+
+enum InstitutionalEventVisibility {
+  ADMIN_ONLY
+  RT_ONLY
+  ALL_USERS
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+  OVERDUE
+}
+
+enum LegalNature {
+  ASSOCIACAO
+  FUNDACAO
+  EMPRESA_PRIVADA
+  MEI
+}
+
+enum MedicationFrequency {
+  UMA_VEZ_DIA
+  DUAS_VEZES_DIA
+  SEIS_SEIS_H
+  OITO_OITO_H
+  DOZE_DOZE_H
+  PERSONALIZADO
+}
+
+enum MedicationPresentation {
+  COMPRIMIDO
+  CAPSULA
+  AMPOLA
+  GOTAS
+  SOLUCAO
+  SUSPENSAO
+  POMADA
+  CREME
+  SPRAY
+  INALADOR
+  ADESIVO
+  SUPOSITORIO
+  OUTRO
+}
+
+enum MessageRecipientFilter {
+  ALL_TENANTS
+  ACTIVE_ONLY
+  TRIAL_ONLY
+  OVERDUE_ONLY
+  SPECIFIC_TENANTS
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum MessageType {
+  DIRECT
+  BROADCAST
+}
+
+enum NotificationCategory {
+  PRESCRIPTION
+  VITAL_SIGN
+  DOCUMENT
+  DAILY_RECORD
+  MEDICATION
+  SYSTEM
+  POP
+  SCHEDULED_EVENT
+  INSTITUTIONAL_EVENT
+  INCIDENT
+}
+
+enum NotificationSeverity {
+  CRITICAL
+  WARNING
+  INFO
+  SUCCESS
+}
+
+enum NotificationType {
+  AMARELA
+  AZUL
+  BRANCA_ESPECIAL
+  NAO_APLICA
+}
+
+enum PaymentGateway {
+  ASAAS
+  MANUAL
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  BOLETO
+  PIX
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PermissionType {
+  VIEW_RESIDENTS
+  CREATE_RESIDENTS
+  UPDATE_RESIDENTS
+  DELETE_RESIDENTS
+  VIEW_DAILY_RECORDS
+  CREATE_DAILY_RECORDS
+  UPDATE_DAILY_RECORDS
+  DELETE_DAILY_RECORDS
+  VIEW_PRESCRIPTIONS
+  CREATE_PRESCRIPTIONS
+  UPDATE_PRESCRIPTIONS
+  DELETE_PRESCRIPTIONS
+  VIEW_MEDICATIONS
+  ADMINISTER_MEDICATIONS
+  ADMINISTER_CONTROLLED_MEDICATIONS
+  VIEW_VITAL_SIGNS
+  RECORD_VITAL_SIGNS
+  VIEW_VACCINATIONS
+  CREATE_VACCINATIONS
+  UPDATE_VACCINATIONS
+  DELETE_VACCINATIONS
+  VIEW_CLINICAL_NOTES
+  CREATE_CLINICAL_NOTES
+  UPDATE_CLINICAL_NOTES
+  DELETE_CLINICAL_NOTES
+  VIEW_CLINICAL_PROFILE
+  UPDATE_CLINICAL_PROFILE
+  VIEW_ALLERGIES
+  CREATE_ALLERGIES
+  UPDATE_ALLERGIES
+  DELETE_ALLERGIES
+  VIEW_CONDITIONS
+  CREATE_CONDITIONS
+  UPDATE_CONDITIONS
+  DELETE_CONDITIONS
+  VIEW_DIETARY_RESTRICTIONS
+  CREATE_DIETARY_RESTRICTIONS
+  UPDATE_DIETARY_RESTRICTIONS
+  DELETE_DIETARY_RESTRICTIONS
+  VIEW_BEDS
+  MANAGE_BEDS
+  MANAGE_INFRASTRUCTURE
+  VIEW_DOCUMENTS
+  UPLOAD_DOCUMENTS
+  DELETE_DOCUMENTS
+  VIEW_USERS
+  CREATE_USERS
+  UPDATE_USERS
+  DELETE_USERS
+  MANAGE_PERMISSIONS
+  VIEW_REPORTS
+  EXPORT_DATA
+  VIEW_AUDIT_LOGS
+  VIEW_INSTITUTIONAL_SETTINGS
+  UPDATE_INSTITUTIONAL_SETTINGS
+  VIEW_INSTITUTIONAL_PROFILE
+  UPDATE_INSTITUTIONAL_PROFILE
+  VIEW_POPS
+  CREATE_POPS
+  UPDATE_POPS
+  DELETE_POPS
+  PUBLISH_POPS
+  MANAGE_POPS
+  VIEW_RESIDENT_SCHEDULE
+  MANAGE_RESIDENT_SCHEDULE
+  VIEW_MESSAGES
+  SEND_MESSAGES
+  DELETE_MESSAGES
+  BROADCAST_MESSAGES
+  VIEW_INSTITUTIONAL_EVENTS
+  CREATE_INSTITUTIONAL_EVENTS
+  UPDATE_INSTITUTIONAL_EVENTS
+  DELETE_INSTITUTIONAL_EVENTS
+  CREATE_CLINICAL_PROFILE
+  VIEW_COMPLIANCE_DASHBOARD
+  VIEW_SENTINEL_EVENTS
+  VIEW_CONTRACTS
+  CREATE_CONTRACTS
+  UPDATE_CONTRACTS
+  REPLACE_CONTRACTS
+  DELETE_CONTRACTS
+  VALIDATE_CONTRACTS
+}
+
+enum PlanType {
+  FREE
+  BASICO
+  PROFISSIONAL
+  ENTERPRISE
+}
+
+enum PopAction {
+  CREATED
+  UPDATED
+  PUBLISHED
+  VERSIONED
+  OBSOLETED
+  DELETED
+}
+
+enum PopCategory {
+  GESTAO_OPERACAO
+  ENFERMAGEM_CUIDADOS
+}
+
+enum PopStatus {
+  DRAFT
+  PUBLISHED
+  OBSOLETE
+}
+
+enum PositionCode {
+  ADMINISTRATOR
+  TECHNICAL_MANAGER
+  NURSING_COORDINATOR
+  NURSE
+  NURSING_TECHNICIAN
+  DOCTOR
+  NUTRITIONIST
+  PHYSIOTHERAPIST
+  PSYCHOLOGIST
+  SPEECH_THERAPIST
+  SOCIAL_WORKER
+  CAREGIVER
+  ADMINISTRATIVE_ASSISTANT
+  OTHER
+  NURSING_ASSISTANT
+  ADMINISTRATIVE
+  OCCUPATIONAL_THERAPIST
+}
+
+enum PrescriptionType {
+  ROTINA
+  ALTERACAO_PONTUAL
+  ANTIBIOTICO
+  ALTO_RISCO
+  CONTROLADO
+  OUTRO
+}
+
+enum RdcIndicatorType {
+  MORTALIDADE
+  DIARREIA_AGUDA
+  ESCABIOSE
+  DESIDRATACAO
+  ULCERA_DECUBITO
+  DESNUTRICAO
+}
+
+enum RecordType {
+  HIGIENE
+  ALIMENTACAO
+  HIDRATACAO
+  MONITORAMENTO
+  ELIMINACAO
+  COMPORTAMENTO
+  INTERCORRENCIA
+  ATIVIDADES
+  VISITA
+  OUTROS
+  HUMOR
+  SONO
+  PESO
+}
+
+enum RegistrationType {
+  COREN
+  CRM
+  CRN
+  CREFITO
+  CRP
+  CREFONO
+  CRESS
+  NONE
+}
+
+enum RestrictionType {
+  ALERGIA_ALIMENTAR
+  INTOLERANCIA
+  RESTRICAO_MEDICA
+  RESTRICAO_RELIGIOSA
+  DISFAGIA
+  DIABETES
+  HIPERTENSAO
+  OUTRA
+}
+
+enum SOSIndicationType {
+  DOR
+  FEBRE
+  ANSIEDADE
+  AGITACAO
+  NAUSEA
+  INSONIA
+  OUTRO
+}
+
+enum ScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ScheduledEventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  MISSED
+}
+
+enum ScheduledEventType {
+  VACCINATION
+  CONSULTATION
+  EXAM
+  PROCEDURE
+  OTHER
+}
+
+enum SignatoryRole {
+  RESIDENTE
+  RESPONSAVEL_LEGAL
+  TESTEMUNHA
+  ILPI
+  RESPONSAVEL_CONTRATUAL
+}
+
+enum SystemNotificationType {
+  PRESCRIPTION_EXPIRED
+  PRESCRIPTION_EXPIRING
+  PRESCRIPTION_MISSING_RECEIPT
+  PRESCRIPTION_CONTROLLED_NO_RECEIPT
+  VITAL_SIGN_ABNORMAL_BP
+  VITAL_SIGN_ABNORMAL_GLUCOSE
+  VITAL_SIGN_ABNORMAL_TEMPERATURE
+  VITAL_SIGN_ABNORMAL_HEART_RATE
+  VITAL_SIGN_ABNORMAL_RESPIRATORY_RATE
+  DOCUMENT_EXPIRED
+  DOCUMENT_EXPIRING
+  DAILY_RECORD_MISSING
+  MEDICATION_ADMINISTRATION_MISSED
+  MEDICATION_ADMINISTRATION_LATE
+  SYSTEM_UPDATE
+  SYSTEM_MAINTENANCE
+  USER_MENTION
+  POP_REVIEW_DUE
+  SCHEDULED_EVENT_DUE
+  SCHEDULED_EVENT_MISSED
+  INSTITUTIONAL_EVENT_CREATED
+  INSTITUTIONAL_EVENT_UPDATED
+  INSTITUTIONAL_EVENT_DUE
+  INCIDENT_CREATED
+  INCIDENT_SENTINEL_EVENT
+  INCIDENT_RDC_INDICATOR_ALERT
+}
+
+enum TenantMessageStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+}
+
+enum VitalSignAlertType {
+  PRESSURE_HIGH
+  PRESSURE_LOW
+  GLUCOSE_HIGH
+  GLUCOSE_LOW
+  TEMPERATURE_HIGH
+  TEMPERATURE_LOW
+  OXYGEN_LOW
+  HEART_RATE_HIGH
+  HEART_RATE_LOW
+}

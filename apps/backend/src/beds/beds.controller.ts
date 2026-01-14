@@ -8,9 +8,11 @@ import {
   Delete,
   Query,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
 import { BedsService } from './beds.service'
-import { CreateBedDto, UpdateBedDto } from './dto'
+import { CreateBedDto, UpdateBedDto, ReserveBedDto, BlockBedDto, ReleaseBedDto } from './dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
@@ -89,5 +91,60 @@ export class BedsController {
   @AuditAction('DELETE')
   remove(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
     return this.bedsService.remove(tenantId, id)
+  }
+
+  @Post(':id/reserve')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
+  @AuditAction('RESERVE_BED')
+  @HttpCode(HttpStatus.OK)
+  reserveBed(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Body() reserveBedDto: ReserveBedDto
+  ) {
+    return this.bedsService.reserveBed(tenantId, id, userId, reserveBedDto)
+  }
+
+  @Post(':id/block')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
+  @AuditAction('BLOCK_BED')
+  @HttpCode(HttpStatus.OK)
+  blockBed(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Body() blockBedDto: BlockBedDto
+  ) {
+    return this.bedsService.blockBed(tenantId, id, userId, blockBedDto)
+  }
+
+  @Post(':id/release')
+  @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
+  @AuditAction('RELEASE_BED')
+  @HttpCode(HttpStatus.OK)
+  releaseBed(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('id') userId: string,
+    @Param('id') id: string,
+    @Body() releaseBedDto: ReleaseBedDto
+  ) {
+    return this.bedsService.releaseBed(tenantId, id, userId, releaseBedDto)
+  }
+
+  @Get('status-history')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
+  getBedStatusHistory(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('bedId') bedId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string
+  ) {
+    return this.bedsService.getBedStatusHistory(
+      tenantId,
+      bedId,
+      parseInt(skip || '0'),
+      parseInt(take || '50')
+    )
   }
 }
