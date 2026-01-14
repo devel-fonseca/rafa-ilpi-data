@@ -11,12 +11,12 @@ export function BedsMapPage() {
     return (
       <Page>
         <PageHeader
-          title="Mapa de Leitos"
+          title="Mapa de Ocupação"
           subtitle="Carregando informações..."
         />
         <EmptyState
           icon={Loader2}
-          title="Carregando mapa de leitos..."
+          title="Carregando mapa de ocupação..."
           description="Aguarde enquanto buscamos a estrutura de leitos"
           variant="loading"
         />
@@ -28,12 +28,12 @@ export function BedsMapPage() {
     return (
       <Page>
         <PageHeader
-          title="Mapa de Leitos"
+          title="Mapa de Ocupação"
           subtitle="Erro ao carregar dados"
         />
         <EmptyState
           icon={AlertCircle}
-          title="Erro ao carregar o mapa de leitos"
+          title="Erro ao carregar o mapa de ocupação"
           description="Ocorreu um erro ao buscar a estrutura de leitos. Tente novamente mais tarde."
           variant="error"
         />
@@ -45,7 +45,7 @@ export function BedsMapPage() {
     return (
       <Page>
         <PageHeader
-          title="Mapa de Leitos"
+          title="Mapa de Ocupação"
           subtitle="Sem dados disponíveis"
         />
         <EmptyState
@@ -60,7 +60,7 @@ export function BedsMapPage() {
   return (
     <Page>
       <PageHeader
-        title="Mapa de Leitos"
+        title="Mapa de Ocupação"
         subtitle="Visualização hierárquica completa da estrutura de leitos"
       />
 

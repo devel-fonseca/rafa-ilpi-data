@@ -544,11 +544,11 @@ export function DashboardLayout() {
                     }`}
                   >
                     <Building2 className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Mapa de Leitos'}
+                    {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
                   </Link>
                 </TooltipTrigger>
                 {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Mapa de Leitos</TooltipContent>
+                  <TooltipContent side="right">Mapa de Ocupação</TooltipContent>
                 )}
               </Tooltip>
 
@@ -740,7 +740,7 @@ export function DashboardLayout() {
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
                 <Building2 className="h-4 w-4" />
-                Mapa de Leitos
+                Mapa de Ocupação
               </Link>
               {canViewInstitutionalProfile && (
                 <Link

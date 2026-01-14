@@ -227,7 +227,7 @@ enum BedStatus {
 
 ### 3.2 Visualização do Mapa de Ocupação
 
-1. **Acessar "Mapa de Leitos"** (`/dashboard/beds/map`)
+1. **Acessar "Mapa de Ocupação"** (`/dashboard/beds/map`)
 2. **Visualizar hierarquia**
    - Accordion com 4 níveis
    - Cores de status em tempo real
