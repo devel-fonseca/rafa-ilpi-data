@@ -529,7 +529,7 @@ export class BedsService {
           previousStatus: bed.status,
           newStatus: 'Disponível',
           reason,
-          metadata: null,
+          metadata: undefined,
           changedBy: userId,
         },
       })
@@ -585,13 +585,6 @@ export class BedsService {
                   },
                 },
               },
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
             },
           },
         },

@@ -257,6 +257,79 @@ export class ResidentsService {
   }
 
   /**
+   * Atualiza status do leito E cria registro no histórico de status
+   * Deve ser usado dentro de transações para garantir atomicidade
+   */
+  private async updateBedStatusWithHistory(
+    bedId: string,
+    newStatus: 'Ocupado' | 'Disponível',
+    reason: string,
+    tenantId: string,
+    userId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    this.logger.info('🔄 Iniciando updateBedStatusWithHistory', {
+      bedId,
+      newStatus,
+      tenantId,
+      userId,
+    })
+
+    // Buscar status atual do leito
+    const bed = await tx.bed.findFirst({
+      where: { id: bedId, tenantId, deletedAt: null },
+      select: { id: true, code: true, status: true },
+    })
+
+    if (!bed) {
+      this.logger.warn('❌ Leito não encontrado para atualização de status com histórico', {
+        bedId,
+        tenantId,
+      })
+      return
+    }
+
+    const previousStatus = bed.status
+
+    this.logger.info('📊 Status atual do leito', {
+      bedCode: bed.code,
+      previousStatus,
+      newStatus,
+    })
+
+    // Atualizar status do leito
+    await tx.bed.update({
+      where: { id: bedId },
+      data: { status: newStatus },
+    })
+
+    this.logger.info('✅ Status do leito atualizado no banco')
+
+    // Criar registro no histórico de status
+    const historyRecord = await tx.bedStatusHistory.create({
+      data: {
+        tenantId,
+        bedId,
+        previousStatus,
+        newStatus,
+        reason,
+        metadata: undefined,
+        changedBy: userId,
+      },
+    })
+
+    this.logger.info('✅ Registro criado em bed_status_history', {
+      historyId: historyRecord.id,
+      bedId,
+      bedCode: bed.code,
+      previousStatus,
+      newStatus,
+      reason,
+      userId,
+    })
+  }
+
+  /**
    * Cria um novo residente usando o Prisma Client
    */
   async create(createResidentDto: CreateResidentDto, tenantId: string, userId: string) {
@@ -425,10 +498,14 @@ export class ResidentsService {
 
         // Atualizar status do leito para "Ocupado" se foi atribuído
         if (accommodation.bedId) {
-          await tx.bed.update({
-            where: { id: accommodation.bedId },
-            data: { status: 'Ocupado' },
-          });
+          await this.updateBedStatusWithHistory(
+            accommodation.bedId,
+            'Ocupado',
+            `Designação inicial de leito no cadastro do residente ${newResident.fullName}`,
+            tenantId,
+            userId,
+            tx,
+          );
         }
 
         // Criar ClinicalProfile se campos clínicos foram fornecidos
@@ -1062,29 +1139,46 @@ export class ResidentsService {
 
         // Atualizar status do leito se mudou
         if (oldBedId && newBedId && oldBedId !== newBedId) {
+          // Caso 1: Mudança de leito (transferência via edição)
           // Liberar leito antigo
-          await tx.bed.update({
-            where: { id: oldBedId },
-            data: { status: 'Disponível' },
-          });
+          await this.updateBedStatusWithHistory(
+            oldBedId,
+            'Disponível',
+            `Residente ${updatedResident.fullName} saiu do leito (editado por usuário). Motivo: ${changeReason}`,
+            tenantId,
+            userId,
+            tx,
+          );
 
           // Ocupar novo leito
-          await tx.bed.update({
-            where: { id: newBedId },
-            data: { status: 'Ocupado' },
-          });
+          await this.updateBedStatusWithHistory(
+            newBedId,
+            'Ocupado',
+            `Residente ${updatedResident.fullName} designado ao leito (editado por usuário). Motivo: ${changeReason}`,
+            tenantId,
+            userId,
+            tx,
+          );
         } else if (oldBedId && !newBedId) {
-          // Liberar leito se foi removido
-          await tx.bed.update({
-            where: { id: oldBedId },
-            data: { status: 'Disponível' },
-          });
+          // Caso 2: Remoção de leito
+          await this.updateBedStatusWithHistory(
+            oldBedId,
+            'Disponível',
+            `Residente ${updatedResident.fullName} removido do leito (editado por usuário). Motivo: ${changeReason}`,
+            tenantId,
+            userId,
+            tx,
+          );
         } else if (!oldBedId && newBedId) {
-          // Ocupar novo leito se foi adicionado
-          await tx.bed.update({
-            where: { id: newBedId },
-            data: { status: 'Ocupado' },
-          });
+          // Caso 3: Designação de leito via edição (residente não tinha leito antes)
+          await this.updateBedStatusWithHistory(
+            newBedId,
+            'Ocupado',
+            `Residente ${updatedResident.fullName} designado ao leito (editado por usuário). Motivo: ${changeReason}`,
+            tenantId,
+            userId,
+            tx,
+          );
         }
 
         return updatedResident;
@@ -1481,16 +1575,24 @@ export class ResidentsService {
         }
 
         // 5. Atualizar status do leito de origem para Disponível
-        await prisma.bed.update({
-          where: { id: resident.bedId },
-          data: { status: 'Disponível' },
-        });
+        await this.updateBedStatusWithHistory(
+          resident.bedId,
+          'Disponível',
+          `Residente ${resident.fullName} transferido para outro leito. Motivo da transferência: ${transferBedDto.reason}`,
+          tenantId,
+          userId,
+          prisma,
+        );
 
         // 6. Atualizar status do leito de destino para Ocupado
-        await prisma.bed.update({
-          where: { id: transferBedDto.toBedId },
-          data: { status: 'Ocupado' },
-        });
+        await this.updateBedStatusWithHistory(
+          transferBedDto.toBedId,
+          'Ocupado',
+          `Residente ${resident.fullName} transferido para este leito. Motivo da transferência: ${transferBedDto.reason}`,
+          tenantId,
+          userId,
+          prisma,
+        );
 
         // 7. Atualizar bedId do residente
         const updatedResident = await prisma.resident.update({
