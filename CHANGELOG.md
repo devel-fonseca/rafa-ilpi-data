@@ -6,6 +6,114 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-13] - Central de Gestão de Residentes 🎯
+
+### ✨ Adicionado
+
+**FRONTEND - Central de Gestão (ResidentsHub):**
+
+- **Página central de monitoramento** - Dashboard unificado substituindo navegação direta para lista
+  - **Rota:** `/dashboard/residentes-hub`
+  - **Acesso:** Menu lateral "Gestão de Residentes"
+- **4 StatCards de métricas principais:**
+  - Total de residentes ativos
+  - Média de idade calculada
+  - Tempo médio de permanência (dias desde admissão)
+  - Taxa de ocupação de leitos (%)
+- **Sistema de alertas inteligentes com 3 níveis:**
+  - 🔴 **Críticos:** Sem foto, sem contato emergência, cadastro incompleto
+  - 🟡 **Avisos:** Dados antropométricos incompletos
+  - 🔵 **Informativos:** Aniversariantes do mês
+- **Modais de alerta clicáveis:**
+  - Lista de residentes afetados com foto, nome, acomodação e status
+  - Links diretos para cadastro de cada residente
+  - Contextualização visual sem sair da página
+- **Gráfico de distribuição por grau de dependência:**
+  - Barra empilhada visual com proporções
+  - Lista detalhada (Grau I, II, III) com contagens
+  - Interatividade: click navega para residentes filtrados
+- **Grid de ações rápidas (6 atalhos):**
+  - Novo residente, lista completa, relatórios, documentos, acomodações, agenda
+  - Responsivo: 2 cols mobile → 3 cols tablet → 6 cols desktop
+- **Lista de residentes recentes (10 mais recentes):**
+  - Foto, nome, acomodação (hierarquia completa), status
+  - Badge de auxílio à mobilidade
+  - Links clicáveis para visualização
+
+**COMPONENTES CRIADOS:**
+
+- `ResidentsHub.tsx` - Página principal da central
+- `AlertGrid.tsx` - Grid de alertas com controle de modais
+- `AlertCard.tsx` - Card individual de alerta com cores por tipo
+- `ResidentAlertModal.tsx` - Modal shadcn/ui com lista de residentes
+- `DependencyChart.tsx` - Gráfico de dependência interativo
+- `QuickActionGrid.tsx` - Grid de ações rápidas
+- `CompactResidentsList.tsx` - Lista compacta com fotos e badges
+
+**HOOK CRIADO:**
+
+- `useResidentAlerts.ts` - Lógica centralizada de cálculo de alertas e métricas
+  - Filtra residentes ativos
+  - Calcula 5 tipos de alertas com lista de residentes afetados
+  - Calcula métricas agregadas (idade média, ocupação, etc)
+  - Otimizado com `useMemo` para evitar recálculos
+
+**BACKEND - API de Residentes:**
+
+- **Campos antropométricos adicionados ao select:**
+  - `height`, `weight`, `bloodType`, `dependencyLevel`
+  - Necessários para alertas do dashboard
+  - Corrigida API que retornava `undefined` mesmo com dados no banco
+
+**DESIGN RESPONSIVO MOBILE-FIRST:**
+
+- Todos os componentes otimizados para mobile com breakpoints Tailwind (sm, md, lg)
+- Padding reduzido em mobile (p-2 → sm:p-3)
+- Badges menores (text-[9px] → sm:text-[10px])
+- Ícones proporcionais (h-3 → sm:h-4)
+- Separadores `•` ocultos em mobile
+- Correções de overflow: `min-w-0`, `truncate`, `line-clamp-2`, `flex-wrap`, `whitespace-nowrap`
+
+### 📝 Alterado
+
+**NAVEGAÇÃO:**
+
+- **Menu lateral:**
+  - Antes: "Residentes" → `/dashboard/residentes` (lista direta)
+  - Depois: "Gestão de Residentes" → `/dashboard/residentes-hub` (central)
+- **Rota criada:** `residentes-hub` (ResidentsHub)
+- **Rota mantida:** `residentes` (ResidentsList) para acesso direto
+
+### 🔧 Corrigido
+
+**Hook useResidentAlerts:**
+
+- **Validação de dados antropométricos:** Usa `r.height == null` ao invés de `!r.height`
+  - **Motivo:** Evitar tratar `0` como valor ausente (falsy)
+  - **Afeta:** Alertas de altura e peso
+
+**API de Residentes:**
+
+- **Select do Prisma:** Adicionados campos antropométricos que estavam ausentes
+  - Backend retornava `undefined` mesmo com dados salvos
+  - Frontend recebia campos vazios incorretamente
+
+### 📚 Documentação
+
+- **Seção completa adicionada em `docs/modules/residents.md`:**
+  - Visão geral da Central de Gestão
+  - Componentes e arquitetura técnica
+  - Sistema de alertas e modais
+  - Considerações de performance e escala
+  - Design responsivo mobile-first
+  - Tabela de componentes e utilitários
+
+### 🎨 Insight Técnico
+
+A Central de Gestão utiliza composição de componentes reutilizáveis do design system (StatCard, PhotoViewer) com novos componentes especializados. O hook `useResidentAlerts` centraliza toda a lógica de negócio, mantendo os componentes puramente apresentacionais. Performance otimizada com `useMemo` e React Query cache de 2 minutos, preparado para escalar até 50.000 residentes multi-tenant.
+
+---
+
 ## [2026-01-13] - Digitalização de Contratos de Prestação de Serviços 📄
 
 ### ✨ Adicionado

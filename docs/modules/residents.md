@@ -34,6 +34,16 @@
 
 Sistema completo de cadastro e gestão de residentes com prontuário médico integrado. Gerencia dados pessoais, familiares, saúde, acomodação e documentação, servindo como núcleo central do sistema ILPI.
 
+### Central de Gestão de Residentes (Hub)
+
+**Status:** ✅ Implementado
+**Versão:** 1.3.0
+**Data:** 13/01/2026
+
+Dashboard centralizado de monitoramento e gestão de residentes com métricas em tempo real, sistema de alertas inteligentes e ações rápidas. Substitui a navegação direta para lista, oferecendo visão holística do status dos residentes.
+
+**Acesso:** `/dashboard/residentes-hub` (menu lateral: "Gestão de Residentes")
+
 ## Funcionalidades Principais
 
 - ✅ **Cadastro completo**: 70+ campos organizados em 4 abas
@@ -52,6 +62,272 @@ Sistema completo de cadastro e gestão de residentes com prontuário médico int
 - ✅ **Criptografia LGPD**: Campos sensíveis (CPF, RG, CNS) criptografados
 - ✅ **Auditoria completa**: Log de todas as operações
 - ✅ **Estatísticas**: Dashboard com métricas agregadas
+- ✅ **Central de Gestão (Hub)**: Dashboard com alertas inteligentes e ações rápidas
+
+## Central de Gestão de Residentes (ResidentsHub)
+
+### Componentes da Central
+
+A Central de Gestão é composta por 5 seções principais que oferecem visão completa do status dos residentes:
+
+#### 1. Métricas Principais (StatCards)
+
+Quatro cards com indicadores essenciais:
+
+- **Total de Residentes**: Contagem total de residentes ativos
+- **Média de Idade**: Idade média calculada a partir da data de nascimento
+- **Tempo Médio**: Dias médios de permanência desde admissão
+- **Taxa de Ocupação**: Percentual de leitos ocupados vs disponíveis
+
+**Componente:** [StatCard](../../apps/frontend/src/components/dashboard/StatCard.tsx) (reutilizado do design system)
+
+#### 2. Ações Rápidas (QuickActionGrid)
+
+Grid responsivo (2 cols mobile, 3 cols tablet, 6 cols desktop) com atalhos para:
+
+- **Novo Residente**: Criar novo cadastro
+- **Lista Completa**: Ver todos os residentes
+- **Relatórios**: Gerar relatórios (em desenvolvimento)
+- **Documentos**: Gerenciar documentos (em desenvolvimento)
+- **Acomodações**: Gerenciar leitos
+- **Agenda**: Rotina de atividades (em desenvolvimento)
+
+**Componente:** [QuickActionGrid.tsx](../../apps/frontend/src/components/residents/QuickActionGrid.tsx)
+
+#### 3. Alertas e Verificações (AlertGrid)
+
+Sistema de alertas inteligentes com 3 níveis de criticidade:
+
+**🔴 Críticos:**
+
+- Residentes sem foto cadastrada
+- Residentes sem contato de emergência (sem `legalGuardianPhone`)
+- Cadastros incompletos (faltam CPF, admissionDate ou birthDate)
+
+**🟡 Avisos:**
+
+- Dados antropométricos incompletos (altura, peso, tipo sanguíneo ou grau de dependência ausentes)
+
+**🔵 Informativos:**
+
+- Aniversariantes do mês atual
+
+**Funcionalidade:** Cada alerta é clicável e abre modal com lista dos residentes afetados. Cada residente no modal possui link para seu cadastro.
+
+**Componentes:**
+
+- [AlertGrid.tsx](../../apps/frontend/src/components/residents/AlertGrid.tsx) - Grid de cards de alertas
+- [AlertCard.tsx](../../apps/frontend/src/components/residents/AlertCard.tsx) - Card individual de alerta
+- [ResidentAlertModal.tsx](../../apps/frontend/src/components/residents/ResidentAlertModal.tsx) - Modal com lista de residentes
+
+**Hook:** [useResidentAlerts.ts](../../apps/frontend/src/hooks/useResidentAlerts.ts) - Lógica de cálculo de alertas e métricas
+
+#### 4. Gráfico de Dependência (DependencyChart)
+
+Visualização da distribuição de residentes por grau de dependência:
+
+- **Barra empilhada**: Proporção visual dos 3 graus
+- **Lista detalhada**: Grau I (Independente), Grau II (Dependência Parcial), Grau III (Dependência Total)
+- **Interatividade**: Click no gráfico ou lista navega para residentes filtrados
+
+**Componente:** [DependencyChart.tsx](../../apps/frontend/src/components/residents/DependencyChart.tsx)
+
+#### 5. Residentes Recentes (CompactResidentsList)
+
+Lista dos 10 residentes mais recentemente cadastrados, exibindo:
+
+- **Foto**: Avatar com PhotoViewer
+- **Nome completo**: Link clicável para visualização
+- **Acomodação**: Formatação hierárquica (Prédio > Andar > Quarto > Leito)
+- **Badge de Auxílio**: Indicador de necessidade de auxílio à mobilidade
+- **Status**: Badge colorido (Ativo, Inativo, Alta, Óbito, Transferido)
+- **Botão de visualização**: Ícone de olho para acesso direto
+
+**Componente:** [CompactResidentsList.tsx](../../apps/frontend/src/components/residents/CompactResidentsList.tsx)
+
+### Arquitetura Técnica da Central
+
+#### Hook de Alertas (useResidentAlerts)
+
+**Localização:** [apps/frontend/src/hooks/useResidentAlerts.ts](../../apps/frontend/src/hooks/useResidentAlerts.ts)
+
+Centraliza toda a lógica de cálculo de alertas e métricas:
+
+```typescript
+interface UseResidentAlertsReturn {
+  alerts: ResidentAlert[]       // Lista de alertas com residentes afetados
+  metrics: ResidentMetrics      // Métricas calculadas
+  isLoading: boolean
+  error: Error | null
+  totalResidents: number
+}
+```
+
+**Alertas Calculados:**
+
+1. **Sem Foto**: `!r.fotoUrl`
+2. **Sem Contato de Emergência**: `!r.legalGuardianPhone || r.legalGuardianPhone.trim() === ''`
+3. **Cadastro Incompleto**: Faltam `cpf`, `admissionDate` ou `birthDate`
+4. **Dados Antropométricos Incompletos**:
+   - ⚠️ **IMPORTANTE**: Usa `r.height == null` ao invés de `!r.height` para evitar tratar `0` como falsy
+   - Verifica: `height`, `weight`, `bloodType`, `dependencyLevel`
+5. **Aniversariantes do Mês**: `new Date(r.birthDate).getMonth() === currentMonth`
+
+**Métricas Calculadas:**
+
+```typescript
+{
+  averageAge: number,           // Média de idade em anos
+  averageStayDays: number,      // Média de dias desde admissão
+  occupancyRate: number,        // Taxa de ocupação (%)
+  grauI: number,                // Contagem Grau I
+  grauII: number,               // Contagem Grau II
+  grauIII: number               // Contagem Grau III
+}
+```
+
+**Otimização de Performance:**
+
+- Usa `useMemo` para evitar recálculos desnecessários
+- Filtra apenas residentes ativos (`status === 'ATIVO'`)
+- React Query cacheia dados de residentes por 2 minutos
+
+#### Considerações de Escala
+
+**Cenário:** 50.000 residentes distribuídos entre múltiplos tenants
+
+**Otimizações Implementadas:**
+
+- ✅ Queries filtradas por `tenantId` (multi-tenancy)
+- ✅ Select parcial no backend (apenas campos necessários)
+- ✅ Paginação na listagem geral
+- ✅ Cache de React Query (2 minutos)
+
+**Otimizações Futuras (se necessário):**
+
+- [ ] Redis cache para métricas agregadas
+- [ ] Índices compostos: `(tenant_id, status)`, `(tenant_id, admissionDate)`
+- [ ] Endpoint dedicado `/api/residents/dashboard-summary`
+- [ ] Virtual scrolling para listas longas
+
+### Sistema de Modais de Alerta
+
+**Fluxo de Interação:**
+
+1. Usuário visualiza card de alerta (ex: "3 residentes sem foto")
+2. Click no card abre `ResidentAlertModal`
+3. Modal exibe lista de residentes afetados com:
+   - Foto/avatar
+   - Nome completo (clicável)
+   - Acomodação (se houver)
+   - Status
+4. Click no residente navega para `/dashboard/residentes/:id/view`
+5. Modal fecha automaticamente ao navegar
+
+**Benefícios sobre Navegação Direta:**
+
+- ✅ Contexto visual sem sair da página
+- ✅ Preview rápido dos residentes afetados
+- ✅ Menos navegação entre páginas
+- ✅ Melhor UX para triagem rápida
+
+### Design Responsivo (Mobile-First)
+
+Todos os componentes da central foram otimizados para mobile:
+
+**Breakpoints Tailwind:**
+
+- `sm:` - 640px+ (tablet)
+- `md:` - 768px+ (tablet landscape)
+- `lg:` - 1024px+ (desktop)
+
+**Ajustes Aplicados:**
+
+1. **StatCards**: Grid 1 col → 2 cols (sm) → 4 cols (lg)
+2. **QuickActionGrid**: Grid 2 cols → 3 cols (sm) → 6 cols (lg)
+3. **CompactResidentsList**:
+   - Padding reduzido em mobile (p-2 → sm:p-3)
+   - Badges menores (text-[9px] → sm:text-[10px])
+   - Ícones proporcionais (h-3 → sm:h-4)
+   - `whitespace-nowrap` em badges de status
+   - Separadores `•` ocultos em mobile (`hidden sm:inline`)
+4. **AlertCard**:
+   - Padding responsivo (p-3 → sm:p-4)
+   - Ícones escaláveis (h-4 → sm:h-5)
+5. **DependencyChart**:
+   - Títulos responsivos (text-base → sm:text-lg)
+   - Espaçamento reduzido (mb-4 → sm:mb-6)
+
+**Correções de Overflow:**
+
+- Uso de `min-w-0` em containers flex
+- `truncate` em textos longos
+- `line-clamp-2` em descrições
+- `flex-wrap` em badges
+- `shrink-0` em elementos fixos
+
+### Navegação e Rotas
+
+**Atualização do Sidebar:**
+
+- **Antes**: Link "Residentes" → `/dashboard/residentes` (lista)
+- **Depois**: Link "Gestão de Residentes" → `/dashboard/residentes-hub` (central)
+
+**Rotas Configuradas:**
+
+```typescript
+{
+  path: 'residentes-hub',
+  element: <ResidentsHub />,
+},
+{
+  path: 'residentes',
+  element: <ResidentsList />,
+},
+```
+
+**Breadcrumb:** Dashboard → Gestão de Residentes
+
+### Backend - Campos Adicionados à API
+
+Para suportar os alertas de dados antropométricos, foram adicionados ao `select` da API:
+
+**Arquivo:** [apps/backend/src/residents/residents.service.ts](../../apps/backend/src/residents/residents.service.ts) (linhas 535-539)
+
+```typescript
+// Dados antropométricos (necessários para alertas do dashboard)
+height: true,
+weight: true,
+bloodType: true,
+dependencyLevel: true,
+```
+
+**Motivo:** O TypeScript interface define esses campos, mas a query Prisma não os retornava, causando `undefined` no frontend.
+
+### Tabela de Componentes da Central
+
+Todos localizados em [apps/frontend/src/components/residents/](../../apps/frontend/src/components/residents/):
+
+| Componente | Propósito | Props Principais |
+| ---------- | --------- | ---------------- |
+| `ResidentsHub.tsx` | Página principal da central | - |
+| `AlertGrid.tsx` | Grid de alertas com modais | `alerts: ResidentAlert[]` |
+| `AlertCard.tsx` | Card individual de alerta | `type, title, count, description, onClick` |
+| `ResidentAlertModal.tsx` | Modal com lista de residentes | `isOpen, onClose, title, residents, type` |
+| `DependencyChart.tsx` | Gráfico de dependência | `stats: ResidentStats` |
+| `QuickActionGrid.tsx` | Grid de ações rápidas | - |
+| `CompactResidentsList.tsx` | Lista compacta de residentes | `residents, title?, limit?` |
+
+### Utilitários Reutilizados
+
+- **formatBedFromResident**: [utils/formatters.ts](../../apps/frontend/src/utils/formatters.ts)
+  - Formata hierarquia de acomodação: `Edifício X > 1º Andar > Q101 > L02`
+- **PhotoViewer**: [components/form/PhotoViewer.tsx](../../apps/frontend/src/components/form/PhotoViewer.tsx)
+  - Avatar com fallback de iniciais
+- **StatCard**: [components/dashboard/StatCard.tsx](../../apps/frontend/src/components/dashboard/StatCard.tsx)
+  - Card de métrica com ícone, título, valor e variante de cor
+
+---
 
 ## Arquitetura
 
