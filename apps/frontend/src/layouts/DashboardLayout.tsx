@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -516,6 +516,25 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
+              {hasFeature('gestao_leitos') && canManageInfrastructure && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/beds/management"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <GitBranch className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Gestão de Leitos'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Gestão de Leitos</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {canManageInfrastructure && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -535,22 +554,24 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/beds/map"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Building2 className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Mapa de Ocupação</TooltipContent>
-                )}
-              </Tooltip>
+              {hasFeature('mapa_leitos') && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/beds/map"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Building2 className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Mapa de Ocupação</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
               {canViewInstitutionalProfile && (
                 <Tooltip>
@@ -724,6 +745,16 @@ export function DashboardLayout() {
                 <Bell className="h-4 w-4" />
                 Notificações
               </Link>
+              {hasFeature('gestao_leitos') && canManageInfrastructure && (
+                <Link
+                  to="/dashboard/beds/management"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <GitBranch className="h-4 w-4" />
+                  Gestão de Leitos
+                </Link>
+              )}
               {canManageInfrastructure && (
                 <Link
                   to="/dashboard/beds/structure"
@@ -734,14 +765,16 @@ export function DashboardLayout() {
                   Estrutura de Leitos
                 </Link>
               )}
-              <Link
-                to="/dashboard/beds/map"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Building2 className="h-4 w-4" />
-                Mapa de Ocupação
-              </Link>
+              {hasFeature('mapa_leitos') && (
+                <Link
+                  to="/dashboard/beds/map"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Mapa de Ocupação
+                </Link>
+              )}
               {canViewInstitutionalProfile && (
                 <Link
                   to="/dashboard/perfil-institucional"

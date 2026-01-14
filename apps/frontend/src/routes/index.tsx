@@ -59,6 +59,7 @@ import ActiveMedicationsPage from '@/pages/medications/ActiveMedicationsPage'
 
 // Beds Pages
 import { BedsStructurePage, BedsMapPage } from '@/pages/beds'
+import BedsManagementHub from '@/pages/beds-management/BedsManagementHub'
 
 // Institutional Profile Pages
 import InstitutionalProfile from '@/pages/institutional-profile/InstitutionalProfile'
@@ -364,6 +365,14 @@ export const router = createBrowserRouter([
         element: (
           <FeatureGate featureKey="medicacoes">
             <ActiveMedicationsPage />
+          </FeatureGate>
+        ),
+      },
+      {
+        path: 'beds/management',
+        element: (
+          <FeatureGate featureKey="gestao_leitos">
+            <BedsManagementHub />
           </FeatureGate>
         ),
       },
