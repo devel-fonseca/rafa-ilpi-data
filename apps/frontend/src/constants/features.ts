@@ -42,7 +42,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Gestão e operações
   'agenda': 'Agenda de atividades',
-  'quartos': 'Gestão de leitos',
+  'quartos': 'Estrutura de Leitos',
   'mapa_leitos': 'Mapa de leitos',
   'pops': 'POPs (Procedimentos Operacionais Padrão)',
   'contratos': 'Contratos do residente',
@@ -74,7 +74,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Operações
   'Agenda de atividades': 'Agenda de atividades',
-  'Gestão de leitos': 'Gestão de leitos',
+  'Estrutura de Leitos': 'Estrutura de Leitos',
   'Mapa de leitos': 'Mapa de leitos',
   'POPs (Procedimentos Operacionais Padrão)': 'POPs (Procedimentos Operacionais Padrão)',
   'Contratos do residente': 'Contratos do residente',
@@ -130,7 +130,7 @@ export const AVAILABLE_FEATURES = [
   // GESTÃO E OPERAÇÕES
   // ═══════════════════════════════════════════════════════════════
   'Agenda de atividades',
-  'Gestão de leitos',
+  'Estrutura de Leitos',
   'Mapa de leitos',
   'POPs (Procedimentos Operacionais Padrão)',
   'Contratos do residente',
