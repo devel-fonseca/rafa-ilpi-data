@@ -210,7 +210,7 @@ const LegalGuardianTypeSchema = z.enum([
 ]);
 
 // Endereço (reutilizável)
-const AddressSchema = z.object({
+const _AddressSchema = z.object({
   cep: z.string().refine(validateCEP).optional(),
   state: z.string().refine(validateUF).optional(),
   city: z.string().optional(),

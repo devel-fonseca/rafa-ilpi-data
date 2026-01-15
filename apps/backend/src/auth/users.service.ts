@@ -404,7 +404,7 @@ export class UsersService {
     const newVersionNumber = user.versionNumber + 1;
 
     // Atualizar senha em transação atômica com histórico
-    const result = await this.tenantContext.client.$transaction(async (tx) => {
+    await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar senha
       const updatedUser = await tx.user.update({
         where: { id: userId },

@@ -17,7 +17,7 @@ export function IsCPF(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, _args: ValidationArguments) {
           if (typeof value !== 'string') return false;
 
           // Remove formatação (pontos e traços)
@@ -30,7 +30,7 @@ export function IsCPF(validationOptions?: ValidationOptions) {
           // Validação dos dígitos verificadores
           return validateCPFCheckDigits(cpf);
         },
-        defaultMessage(args: ValidationArguments) {
+        defaultMessage(_args: ValidationArguments) {
           return 'CPF inválido. Formato esperado: xxx.xxx.xxx-xx ou apenas 11 dígitos numéricos';
         },
       },

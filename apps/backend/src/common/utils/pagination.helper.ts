@@ -1,4 +1,4 @@
-import { PaginationDto, PaginatedResponse, PaginationMeta } from '../dto/pagination.dto'
+import { PaginationDto, PaginatedResponse } from '../dto/pagination.dto'
 
 /**
  * Helper para paginação com Prisma

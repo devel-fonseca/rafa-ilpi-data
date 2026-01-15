@@ -117,7 +117,7 @@ export class ClinicalNotesController {
     if (typeof body.data === 'string') {
       try {
         createDto = JSON.parse(body.data)
-      } catch (e) {
+      } catch (_e) {
         throw new Error('Invalid JSON in data field')
       }
     } else {

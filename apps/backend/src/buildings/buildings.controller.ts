@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common'
 import { BuildingsService } from './buildings.service'
 import { CreateBuildingDto, UpdateBuildingDto } from './dto'
-import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'

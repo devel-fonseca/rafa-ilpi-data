@@ -73,7 +73,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
   @ApiResponse({ status: 200, description: 'Histórico consultado com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async getHistory(@Param('id') id: string, @Request() req: any) {
+  async getHistory(@Param('id') id: string, @Request() _req: any) {
     return this.usersService.getHistory(id);
   }
 
@@ -89,7 +89,7 @@ export class UsersController {
   async getHistoryVersion(
     @Param('id') id: string,
     @Param('version') version: string,
-    @Request() req: any,
+    @Request() _req: any,
   ) {
     return this.usersService.getHistoryVersion(
       id,
@@ -131,7 +131,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async getActiveSessions(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() _req: any,
   ) {
     // Nota: não temos como pegar o currentTokenId do JWT payload diretamente
     // Vamos retornar todas as sessões e o frontend identifica pela data/hora mais recente
@@ -154,7 +154,7 @@ export class UsersController {
   async revokeSession(
     @Param('id') id: string,
     @Param('sessionId') sessionId: string,
-    @Request() req: any,
+    @Request() _req: any,
   ) {
     return this.usersService.revokeSession(
       id,
@@ -172,7 +172,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Sessões encerradas com sucesso' })
   async revokeAllOtherSessions(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() _req: any,
   ) {
     return this.usersService.revokeAllOtherSessions(
       id,

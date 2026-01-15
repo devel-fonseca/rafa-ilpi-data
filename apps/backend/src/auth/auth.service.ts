@@ -488,7 +488,7 @@ export class AuthService {
         });
 
       return tokens;
-    } catch (error) {
+    } catch (_error) {
       throw new UnauthorizedException('Refresh token inválido');
     }
   }
@@ -526,7 +526,7 @@ export class AuthService {
             user = tenantUser;
             break;
           }
-        } catch (error) {
+        } catch (_error) {
           // Schema pode não existir, continuar
           continue;
         }
@@ -687,7 +687,7 @@ export class AuthService {
             });
             break;
           }
-        } catch (error) {
+        } catch (_error) {
           // Schema pode não existir, continuar
           continue;
         }

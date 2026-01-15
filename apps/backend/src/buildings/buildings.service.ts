@@ -138,7 +138,7 @@ export class BuildingsService {
 
   async remove(id: string) {
     // Validar que o building existe
-    const building = await this.findOne(id)
+    await this.findOne(id)
 
     // Verificar se tem andares ativos
     const activeFloors = await this.tenantContext.client.floor.count({

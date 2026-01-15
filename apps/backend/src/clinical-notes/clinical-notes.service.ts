@@ -11,7 +11,7 @@ import { CreateClinicalNoteDto } from './dto/create-clinical-note.dto'
 import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
 import { QueryClinicalNoteDto } from './dto/query-clinical-note.dto'
 import { DeleteClinicalNoteDto } from './dto/delete-clinical-note.dto'
-import { ClinicalNote, ClinicalNoteHistory } from '@prisma/client'
+import { ClinicalNote } from '@prisma/client'
 import {
   ClinicalProfession,
   isAuthorizedForProfession,
