@@ -41,6 +41,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
 import { PermissionType } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import { getAuthorizedProfessions } from './professional-authorization.config'
 
 /**
@@ -66,6 +67,7 @@ export class ClinicalNotesController {
   constructor(
     private readonly clinicalNotesService: ClinicalNotesService,
     private readonly prisma: PrismaService,
+    private readonly tenantContext: TenantContextService,
   ) {}
 
   /**
@@ -174,7 +176,7 @@ export class ClinicalNotesController {
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   async getAuthorizedProfessionsForUser(@CurrentUser() user: any) {
     // Buscar positionCode e registrationType do usuário
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: {
         userId: user.id,
       },

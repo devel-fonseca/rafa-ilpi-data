@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import { FilesService } from '../files/files.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { DocumentStatus } from '@prisma/client'
@@ -11,6 +12,7 @@ import { formatDateOnly } from '../utils/date.helpers'
 export class InstitutionalProfileService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly tenantContext: TenantContextService,
     private readonly filesService: FilesService
   ) {}
 
@@ -23,7 +25,7 @@ export class InstitutionalProfileService {
    * Retorna null se não existir
    */
   async getProfile(tenantId: string) {
-    return this.prisma.tenantProfile.findFirst({
+    return this.tenantContext.client.tenantProfile.findFirst({
       where: { tenantId, deletedAt: null },
     })
   }
@@ -86,7 +88,7 @@ export class InstitutionalProfileService {
       data.foundedAt = new Date(data.foundedAt)
     }
 
-    return this.prisma.tenantProfile.upsert({
+    return this.tenantContext.client.tenantProfile.upsert({
       where: { tenantId },
       create: {
         tenantId,
@@ -216,7 +218,7 @@ export class InstitutionalProfileService {
     )
 
     // Atualizar perfil diretamente no banco com nova URL do logo
-    return this.prisma.tenantProfile.upsert({
+    return this.tenantContext.client.tenantProfile.upsert({
       where: { tenantId },
       create: {
         tenantId,

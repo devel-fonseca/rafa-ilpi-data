@@ -787,7 +787,7 @@ export class PopsService {
     const today = new Date()
 
     // Buscar POPs PUBLISHED que precisam de revisão (GLOBAL - sem tenant context)
-    const popsToUpdate = await this.prisma.pop.findMany({
+    const popsToUpdate = await this.tenantContext.client.pop.findMany({
       where: {
         status: PopStatus.PUBLISHED,
         nextReviewDate: {
@@ -803,7 +803,7 @@ export class PopsService {
     }
 
     // Marcar como precisando revisão (GLOBAL)
-    await this.prisma.pop.updateMany({
+    await this.tenantContext.client.pop.updateMany({
       where: {
         id: {
           in: popsToUpdate.map((p) => p.id),

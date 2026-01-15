@@ -42,15 +42,17 @@ export class NotificationsCronService {
       let totalMissed = 0
 
       for (const tenant of tenants) {
+        // Obter tenant client para isolamento de schema
+        const tenantClient = this.prisma.getTenantClient(tenant.id)
+
         // ✅ Obter data atual no timezone do tenant (recordDate é DATE)
         const todayStr = getCurrentDateInTz(
           tenant.timezone || DEFAULT_TIMEZONE,
         )
 
         // Buscar eventos agendados para hoje (status SCHEDULED)
-        const eventsToday = await this.prisma.residentScheduledEvent.findMany({
+        const eventsToday = await tenantClient.residentScheduledEvent.findMany({
           where: {
-            tenantId: tenant.id,
             status: 'SCHEDULED',
             scheduledDate: todayStr, // Comparação direta com DATE
             deletedAt: null,
@@ -68,9 +70,8 @@ export class NotificationsCronService {
         // Criar notificações para eventos do dia
         for (const event of eventsToday) {
           // Verificar se já existe notificação para hoje (createdAt é TIMESTAMPTZ)
-          const existing = await this.prisma.notification.findFirst({
+          const existing = await tenantClient.notification.findFirst({
             where: {
-              tenantId: tenant.id,
               entityType: 'SCHEDULED_EVENT',
               entityId: event.id,
               type: 'SCHEDULED_EVENT_DUE',
@@ -94,9 +95,8 @@ export class NotificationsCronService {
         }
 
         // Buscar eventos passados não concluídos (status SCHEDULED)
-        const missedEvents = await this.prisma.residentScheduledEvent.findMany({
+        const missedEvents = await tenantClient.residentScheduledEvent.findMany({
           where: {
-            tenantId: tenant.id,
             status: 'SCHEDULED',
             scheduledDate: {
               lt: todayStr, // Antes de hoje (comparação de DATE strings)
@@ -116,9 +116,8 @@ export class NotificationsCronService {
         // Criar notificações para eventos perdidos
         for (const event of missedEvents) {
           // Verificar se já existe notificação para evitar duplicatas
-          const existing = await this.prisma.notification.findFirst({
+          const existing = await tenantClient.notification.findFirst({
             where: {
-              tenantId: tenant.id,
               entityType: 'SCHEDULED_EVENT',
               entityId: event.id,
               type: 'SCHEDULED_EVENT_MISSED',
@@ -168,15 +167,17 @@ export class NotificationsCronService {
       let totalExpiring = 0
 
       for (const tenant of tenants) {
+        // Obter tenant client para isolamento de schema
+        const tenantClient = this.prisma.getTenantClient(tenant.id)
+
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
           tenant.timezone || DEFAULT_TIMEZONE,
         )
 
         // Buscar prescrições ativas
-        const prescriptions = await this.prisma.prescription.findMany({
+        const prescriptions = await tenantClient.prescription.findMany({
           where: {
-            tenantId: tenant.id,
             isActive: true,
             deletedAt: null,
           },
@@ -206,9 +207,8 @@ export class NotificationsCronService {
           // Prescrição vencida (< 0 dias)
           if (diffDays < 0) {
             // Verificar se já existe notificação para evitar duplicatas
-            const existing = await this.prisma.notification.findFirst({
+            const existing = await tenantClient.notification.findFirst({
               where: {
-                tenantId: tenant.id,
                 entityType: 'PRESCRIPTION',
                 entityId: prescription.id,
                 type: 'PRESCRIPTION_EXPIRED',
@@ -230,9 +230,8 @@ export class NotificationsCronService {
           // Prescrição vencendo em 5 dias ou menos (0 a 5 dias)
           else if (diffDays >= 0 && diffDays <= 5) {
             // Verificar se já existe notificação para evitar duplicatas
-            const existing = await this.prisma.notification.findFirst({
+            const existing = await tenantClient.notification.findFirst({
               where: {
-                tenantId: tenant.id,
                 entityType: 'PRESCRIPTION',
                 entityId: prescription.id,
                 type: 'PRESCRIPTION_EXPIRING',
@@ -287,15 +286,17 @@ export class NotificationsCronService {
       let totalExpiring = 0
 
       for (const tenant of tenants) {
+        // Obter tenant client para isolamento de schema
+        const tenantClient = this.prisma.getTenantClient(tenant.id)
+
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
           tenant.timezone || DEFAULT_TIMEZONE,
         )
 
         // Verificar documentos institucionais
-        const tenantDocs = await this.prisma.tenantDocument.findMany({
+        const tenantDocs = await tenantClient.tenantDocument.findMany({
           where: {
-            tenantId: tenant.id,
             deletedAt: null,
             expiresAt: { not: null },
           },
@@ -315,9 +316,8 @@ export class NotificationsCronService {
 
           // Documento vencido
           if (diffDays < 0) {
-            const existing = await this.prisma.notification.findFirst({
+            const existing = await tenantClient.notification.findFirst({
               where: {
-                tenantId: tenant.id,
                 entityType: 'TENANT_DOCUMENT',
                 entityId: doc.id,
                 type: 'DOCUMENT_EXPIRED',
@@ -342,9 +342,8 @@ export class NotificationsCronService {
           // Documento vencendo - verificar se está em janela de alerta configurada
           else if (diffDays >= 0 && shouldTriggerAlert(doc.type, diffDays)) {
             // Verificar se já foi enviado alerta para esta janela específica
-            const existing = await this.prisma.notification.findFirst({
+            const existing = await tenantClient.notification.findFirst({
               where: {
-                tenantId: tenant.id,
                 entityType: 'TENANT_DOCUMENT',
                 entityId: doc.id,
                 type: 'DOCUMENT_EXPIRING',
@@ -410,6 +409,9 @@ export class NotificationsCronService {
       let totalMarkedForReview = 0
 
       for (const tenant of tenants) {
+        // Obter tenant client para isolamento de schema
+        const tenantClient = this.prisma.getTenantClient(tenant.id)
+
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
           tenant.timezone || DEFAULT_TIMEZONE,
@@ -420,9 +422,8 @@ export class NotificationsCronService {
         const inThirtyDays = new Date(todayDate)
         inThirtyDays.setDate(inThirtyDays.getDate() + 30)
 
-        const popsNeedingReview = await this.prisma.pop.findMany({
+        const popsNeedingReview = await tenantClient.pop.findMany({
           where: {
-            tenantId: tenant.id,
             status: 'PUBLISHED',
             nextReviewDate: {
               lte: inThirtyDays,
@@ -453,9 +454,8 @@ export class NotificationsCronService {
           if (alertWindows.includes(daysUntilReview)) {
             // Verificar se já existe notificação para hoje
             const existingNotification =
-              await this.prisma.notification.findFirst({
+              await tenantClient.notification.findFirst({
                 where: {
-                  tenantId: tenant.id,
                   type: 'POP_REVIEW_DUE',
                   entityType: 'POP',
                   entityId: pop.id,
@@ -478,7 +478,7 @@ export class NotificationsCronService {
 
           // Se vencido (dias <= 0), marcar requiresReview = true
           if (daysUntilReview <= 0 && !pop.requiresReview) {
-            await this.prisma.pop.update({
+            await tenantClient.pop.update({
               where: { id: pop.id },
               data: { requiresReview: true },
             })
