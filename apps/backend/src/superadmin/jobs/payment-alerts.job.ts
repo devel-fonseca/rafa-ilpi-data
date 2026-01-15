@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
+import { subDays, addDays, parseISO } from 'date-fns'
 import { PrismaService } from '../../prisma/prisma.service'
 import { AlertsService } from '../services/alerts.service'
 import { InvoiceStatus } from '@prisma/client'
@@ -35,8 +36,7 @@ export class PaymentAlertsJob {
 
     try {
       const now = new Date()
-      const yesterday = new Date(now)
-      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterday = subDays(now, 1)
 
       // Buscar invoices que mudaram para VOID nas últimas 24h
       const voidInvoices = await this.prisma.invoice.findMany({
@@ -127,8 +127,7 @@ export class PaymentAlertsJob {
 
     try {
       const now = new Date()
-      const yesterday = new Date(now)
-      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterday = subDays(now, 1)
 
       // Buscar todas as faturas vencidas e ainda abertas
       const overdueInvoices = await this.prisma.invoice.findMany({
@@ -155,8 +154,9 @@ export class PaymentAlertsJob {
       const milestones = [1, 7, 15, 30, 60] // Marcos em dias
 
       for (const invoice of overdueInvoices) {
+        const dueDateObj = parseISO(`${invoice.dueDate}T12:00:00.000`)
         const daysOverdue = Math.floor(
-          (now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+          (now.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24),
         )
 
         // Verificar se hoje é um marco de alerta
@@ -221,8 +221,7 @@ export class PaymentAlertsJob {
 
     try {
       const now = new Date()
-      const threeDaysFromNow = new Date(now)
-      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3)
+      const threeDaysFromNow = addDays(now, 3)
 
       // Buscar invoices OPEN que vencem nos próximos 3 dias
       const upcomingInvoices = await this.prisma.invoice.findMany({
@@ -248,8 +247,9 @@ export class PaymentAlertsJob {
 
       // Log para análise (não cria alertas, apenas monitora)
       for (const invoice of upcomingInvoices) {
+        const dueDateObj = parseISO(`${invoice.dueDate}T12:00:00.000`)
         const daysUntilDue = Math.ceil(
-          (new Date(invoice.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          (dueDateObj.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         )
         this.logger.log(
           `Invoice ${invoice.invoiceNumber} for ${invoice.tenant.name} due in ${daysUntilDue} days`,

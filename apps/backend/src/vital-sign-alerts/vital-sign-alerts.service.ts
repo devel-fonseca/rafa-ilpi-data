@@ -3,6 +3,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common'
+import { parseISO } from 'date-fns'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import {
@@ -126,8 +127,8 @@ export class VitalSignAlertsService {
     // Adicionar filtro de data se fornecido
     if (startDate || endDate) {
       where.createdAt = {}
-      if (startDate) where.createdAt.gte = new Date(startDate)
-      if (endDate) where.createdAt.lte = new Date(endDate)
+      if (startDate) where.createdAt.gte = parseISO(startDate)
+      if (endDate) where.createdAt.lte = parseISO(endDate)
     }
 
     const [alerts, total] = await Promise.all([

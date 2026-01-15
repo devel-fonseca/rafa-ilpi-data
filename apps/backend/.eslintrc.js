@@ -42,17 +42,17 @@ module.exports = {
       {
         // Prevenir: new Date(variável) em contextos de criação/update
         selector: "NewExpression[callee.name='Date'][arguments.length=1][arguments.0.type='Identifier']",
-        message: '⚠️ Evite new Date(variável) para campos date-only. Use parseISO(`${date}T12:00:00.000`). Veja docs/GUIA-PADROES-DATA.md',
+        message: '⚠️ Evite new Date(variável) para campos date-only. Use parseISO(`${date}T12:00:00.000`). Veja docs/standards/DATETIME_STANDARD.md',
       },
       {
         // Prevenir: date.setHours() que é frágil para timezone
         selector: "CallExpression[callee.property.name='setHours']",
-        message: '⚠️ Evite setHours() - Use startOfDay/endOfDay do date-fns. Veja docs/GUIA-PADROES-DATA.md',
+        message: '⚠️ Evite setHours() - Use startOfDay/endOfDay do date-fns. Veja docs/standards/DATETIME_STANDARD.md',
       },
       {
         // Prevenir: Date.now() + aritmética manual
         selector: "BinaryExpression[operator=/^[+\\-]$/][left.callee.object.name='Date'][left.callee.property.name='now']",
-        message: '⚠️ Evite Date.now() + aritmética manual - Use addDays/addMonths do date-fns. Veja docs/GUIA-PADROES-DATA.md',
+        message: '⚠️ Evite Date.now() + aritmética manual - Use addDays/addMonths do date-fns. Veja docs/standards/DATETIME_STANDARD.md',
       },
 
       // ✅ Regras de Arquitetura Multi-Tenant (Schema Isolation)

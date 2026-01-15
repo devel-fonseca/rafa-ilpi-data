@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { addMilliseconds } from 'date-fns';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -710,7 +711,7 @@ export class AuthService {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     // Expiração: 1 hora
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const expiresAt = addMilliseconds(new Date(), 60 * 60 * 1000);
 
     // Invalidar tokens anteriores não utilizados deste usuário
     await this.prisma.passwordResetToken.deleteMany({
@@ -914,7 +915,7 @@ export class AuthService {
     const expiresIn =
       this.configService.get('JWT_REFRESH_EXPIRES_IN') || '7d';
     const expiresInMs = this.parseTimeToMs(expiresIn);
-    const expiresAt = new Date(Date.now() + expiresInMs);
+    const expiresAt = addMilliseconds(new Date(), expiresInMs);
 
     const device = this.parseUserAgent(userAgent);
 

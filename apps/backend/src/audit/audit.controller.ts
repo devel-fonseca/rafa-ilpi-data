@@ -1,4 +1,5 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { parseISO } from 'date-fns';
 import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express';
@@ -48,8 +49,8 @@ export class AuditController {
     if (entityType) filters.entityType = entityType;
     if (userId) filters.userId = userId;
     if (action) filters.action = action;
-    if (startDate) filters.startDate = new Date(startDate);
-    if (endDate) filters.endDate = new Date(endDate);
+    if (startDate) filters.startDate = parseISO(startDate);
+    if (endDate) filters.endDate = parseISO(endDate);
 
     const logs = await this.auditService.getAuditLogs(filters);
 
@@ -67,8 +68,8 @@ export class AuditController {
     @Query('endDate') endDate?: string,
   ) {
     const stats = await this.auditService.getAuditLogStats(
-      startDate ? new Date(startDate) : undefined,
-      endDate ? new Date(endDate) : undefined,
+      startDate ? parseISO(startDate) : undefined,
+      endDate ? parseISO(endDate) : undefined,
     );
 
     return stats;

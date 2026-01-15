@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
+import { subDays, addDays, parseISO } from 'date-fns'
 import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsHelperService } from './notifications-helper.service'
 import {
@@ -199,8 +200,8 @@ export class NotificationsCronService {
           const validUntilStr = parseDateOnly(prescription.validUntil as any)
 
           // Calcular diferença de dias entre duas datas civil
-          const todayDate = new Date(todayStr + 'T00:00:00')
-          const validDate = new Date(validUntilStr + 'T00:00:00')
+          const todayDate = parseISO(todayStr + 'T00:00:00')
+          const validDate = parseISO(validUntilStr + 'T00:00:00')
           const diffTime = validDate.getTime() - todayDate.getTime()
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
@@ -213,7 +214,7 @@ export class NotificationsCronService {
                 entityId: prescription.id,
                 type: 'PRESCRIPTION_EXPIRED',
                 createdAt: {
-                  gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Última 24h
+                  gte: subDays(new Date(), 1), // Última 24h
                 },
               },
             })
@@ -236,7 +237,7 @@ export class NotificationsCronService {
                 entityId: prescription.id,
                 type: 'PRESCRIPTION_EXPIRING',
                 createdAt: {
-                  gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Última 24h
+                  gte: subDays(new Date(), 1), // Última 24h
                 },
               },
             })
@@ -309,8 +310,8 @@ export class NotificationsCronService {
           const expiresAtStr = parseDateOnly(doc.expiresAt as any)
 
           // Calcular diferença de dias entre duas datas civil
-          const todayDate = new Date(todayStr + 'T00:00:00')
-          const expiresDate = new Date(expiresAtStr + 'T00:00:00')
+          const todayDate = parseISO(todayStr + 'T00:00:00')
+          const expiresDate = parseISO(expiresAtStr + 'T00:00:00')
           const diffTime = expiresDate.getTime() - todayDate.getTime()
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
@@ -322,7 +323,7 @@ export class NotificationsCronService {
                 entityId: doc.id,
                 type: 'DOCUMENT_EXPIRED',
                 createdAt: {
-                  gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                  gte: subDays(new Date(), 7),
                 },
               },
             })
@@ -355,7 +356,7 @@ export class NotificationsCronService {
                 },
                 createdAt: {
                   // Evita duplicatas recentes (últimas 48h)
-                  gte: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                  gte: subDays(new Date(), 2),
                 },
               },
             })
@@ -418,9 +419,8 @@ export class NotificationsCronService {
         )
 
         // Buscar POPs PUBLISHED com nextReviewDate <= hoje + 30 dias
-        const todayDate = new Date(todayStr + 'T00:00:00')
-        const inThirtyDays = new Date(todayDate)
-        inThirtyDays.setDate(inThirtyDays.getDate() + 30)
+        const todayDate = parseISO(todayStr + 'T00:00:00')
+        const inThirtyDays = addDays(todayDate, 30)
 
         const popsNeedingReview = await tenantClient.pop.findMany({
           where: {
@@ -443,7 +443,7 @@ export class NotificationsCronService {
 
           // ✅ nextReviewDate pode ser DATE ou TIMESTAMPTZ, normalizar
           const reviewDateStr = parseDateOnly(pop.nextReviewDate as any)
-          const reviewDate = new Date(reviewDateStr + 'T00:00:00')
+          const reviewDate = parseISO(reviewDateStr + 'T00:00:00')
 
           const diffTime = reviewDate.getTime() - todayDate.getTime()
           const daysUntilReview = Math.ceil(diffTime / (1000 * 60 * 60 * 24))

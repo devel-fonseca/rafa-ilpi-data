@@ -1,4 +1,5 @@
 import { Controller, Get, Query, Param, UseGuards } from '@nestjs/common';
+import { parseISO } from 'date-fns';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -31,8 +32,8 @@ export class EmailLogsController {
       tenantId,
       status,
       recipientEmail,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseISO(startDate) : undefined,
+      endDate: endDate ? parseISO(endDate) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     });
@@ -63,8 +64,8 @@ export class EmailLogsController {
     return this.emailLogsService.getStats({
       templateKey,
       tenantId,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseISO(startDate) : undefined,
+      endDate: endDate ? parseISO(endDate) : undefined,
     });
   }
 }

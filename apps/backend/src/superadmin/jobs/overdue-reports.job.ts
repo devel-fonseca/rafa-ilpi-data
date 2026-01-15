@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
+import { subDays, parseISO } from 'date-fns'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { InvoiceStatus } from '@prisma/client'
@@ -23,8 +24,7 @@ export class OverdueReportsJob {
 
     try {
       const today = new Date()
-      const yesterday = new Date(today)
-      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterday = subDays(today, 1)
 
       const reportData = await this.getOverdueData(yesterday, today)
 
@@ -62,8 +62,7 @@ export class OverdueReportsJob {
 
     try {
       const endDate = new Date()
-      const startDate = new Date(endDate)
-      startDate.setDate(startDate.getDate() - 7)
+      const startDate = subDays(endDate, 7)
 
       const reportData = await this.getOverdueData(startDate, endDate)
 
@@ -116,8 +115,9 @@ export class OverdueReportsJob {
     >()
 
     for (const invoice of overdueInvoices) {
+      const dueDateObj = parseISO(`${invoice.dueDate}T12:00:00.000`)
       const daysOverdue = Math.floor(
-        (now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+        (now.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24),
       )
 
       if (!tenantMap.has(invoice.tenantId)) {
