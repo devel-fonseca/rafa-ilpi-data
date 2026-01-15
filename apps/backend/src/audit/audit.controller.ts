@@ -17,10 +17,7 @@ export class AuditController {
     @Req() req: Request,
     @Query('limit') limit?: string,
   ) {
-    const user = req.user as any;
-    const tenantId = user.tenantId;
-
-    const logs = await this.auditService.getAuditLogs(tenantId, {
+    const logs = await this.auditService.getAuditLogs({
       limit: limit ? parseInt(limit, 10) : 10,
       page: 1,
     });
@@ -43,9 +40,6 @@ export class AuditController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const user = req.user as any;
-    const tenantId = user.tenantId;
-
     const filters: any = {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 50,
@@ -57,7 +51,7 @@ export class AuditController {
     if (startDate) filters.startDate = new Date(startDate);
     if (endDate) filters.endDate = new Date(endDate);
 
-    const logs = await this.auditService.getAuditLogs(tenantId, filters);
+    const logs = await this.auditService.getAuditLogs(filters);
 
     return logs;
   }
@@ -72,11 +66,7 @@ export class AuditController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const user = req.user as any;
-    const tenantId = user.tenantId;
-
     const stats = await this.auditService.getAuditLogStats(
-      tenantId,
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
     );

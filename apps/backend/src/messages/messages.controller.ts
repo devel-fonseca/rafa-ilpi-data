@@ -42,11 +42,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Criar nova mensagem' })
   @ApiResponse({ status: 201, description: 'Mensagem criada com sucesso' })
   create(@Body() createMessageDto: CreateMessageDto, @CurrentUser() user: any) {
-    return this.messagesService.create(
-      createMessageDto,
-      user.tenantId,
-      user.id,
-    );
+    return this.messagesService.create(createMessageDto, user.id);
   }
 
   @Get('inbox')
@@ -55,7 +51,7 @@ export class MessagesController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findInbox(@Query() query: QueryMessagesDto, @CurrentUser() user: any) {
-    return this.messagesService.findInbox(query, user.tenantId, user.id);
+    return this.messagesService.findInbox(query, user.id);
   }
 
   @Get('sent')
@@ -64,21 +60,21 @@ export class MessagesController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   findSent(@Query() query: QueryMessagesDto, @CurrentUser() user: any) {
-    return this.messagesService.findSent(query, user.tenantId, user.id);
+    return this.messagesService.findSent(query, user.id);
   }
 
   @Get('unread/count')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Contar mensagens não lidas' })
   countUnread(@CurrentUser() user: any) {
-    return this.messagesService.countUnread(user.tenantId, user.id);
+    return this.messagesService.countUnread(user.id);
   }
 
   @Get('stats')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Estatísticas de mensagens' })
   getStats(@CurrentUser() user: any) {
-    return this.messagesService.getStats(user.tenantId, user.id);
+    return this.messagesService.getStats(user.id);
   }
 
   @Get(':id/read-stats')
@@ -90,7 +86,7 @@ export class MessagesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.messagesService.getReadStats(id, user.tenantId, user.id);
+    return this.messagesService.getReadStats(id, user.id);
   }
 
   @Get('thread/:threadId')
@@ -100,7 +96,7 @@ export class MessagesController {
     @Param('threadId', ParseUUIDPipe) threadId: string,
     @CurrentUser() user: any,
   ) {
-    return this.messagesService.findThread(threadId, user.tenantId, user.id);
+    return this.messagesService.findThread(threadId, user.id);
   }
 
   @Get(':id')
@@ -110,18 +106,14 @@ export class MessagesController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.messagesService.findOne(id, user.tenantId, user.id);
+    return this.messagesService.findOne(id, user.id);
   }
 
   @Post('read')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Marcar mensagens como lidas' })
   markAsRead(@Body() markAsReadDto: MarkAsReadDto, @CurrentUser() user: any) {
-    return this.messagesService.markAsRead(
-      markAsReadDto,
-      user.tenantId,
-      user.id,
-    );
+    return this.messagesService.markAsRead(markAsReadDto, user.id);
   }
 
   @Delete(':id')
@@ -132,11 +124,6 @@ export class MessagesController {
     @Body() deleteMessageDto: DeleteMessageDto,
     @CurrentUser() user: any,
   ) {
-    return this.messagesService.delete(
-      id,
-      deleteMessageDto,
-      user.tenantId,
-      user.id,
-    );
+    return this.messagesService.delete(id, deleteMessageDto, user.id);
   }
 }

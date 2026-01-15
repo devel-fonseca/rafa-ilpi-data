@@ -15,14 +15,34 @@ import {
  *
  * Implementa as regras da RDC 502/2021 da ANVISA para detecção de
  * Eventos Sentinela e Indicadores obrigatórios.
+ *
+ * CONTEXTO ESPECIAL: Este serviço opera FORA do request scope normal.
+ * Usa getTenantClient() para acessar schemas isolados, similar ao RdcIndicatorsService.
  */
 @Injectable()
 export class IncidentInterceptorService {
   private readonly logger = new Logger(IncidentInterceptorService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED e obter tenant client
   ) {}
+
+  /**
+   * Obtém o client específico do tenant usando getTenantClient
+   * Necessário porque este serviço opera fora do REQUEST scope
+   */
+  private async getTenantClient(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    });
+
+    if (!tenant) {
+      throw new Error(`Tenant ${tenantId} não encontrado`);
+    }
+
+    return this.prisma.getTenantClient(tenant.schemaName);
+  }
 
   /**
    * Analisa um registro diário e cria intercorrências automaticamente
@@ -30,7 +50,6 @@ export class IncidentInterceptorService {
    */
   async analyzeAndCreateIncidents(
     record: DailyRecord,
-    tenantId: string,
     userId: string,
   ): Promise<void> {
     this.logger.debug(
@@ -45,16 +64,16 @@ export class IncidentInterceptorService {
     try {
       switch (record.type) {
         case 'ELIMINACAO':
-          await this.checkEliminacao(record, tenantId, userId);
+          await this.checkEliminacao(record, userId);
           break;
         case 'ALIMENTACAO':
-          await this.checkAlimentacao(record, tenantId, userId);
+          await this.checkAlimentacao(record, userId);
           break;
         case 'COMPORTAMENTO':
-          await this.checkComportamento(record, tenantId, userId);
+          await this.checkComportamento(record, userId);
           break;
         case 'HIGIENE':
-          await this.checkHigiene(record, tenantId, userId);
+          await this.checkHigiene(record, userId);
           break;
         // Outros tipos podem ser adicionados conforme necessário
         default:
@@ -79,9 +98,10 @@ export class IncidentInterceptorService {
    */
   private async checkEliminacao(
     record: DailyRecord,
-    tenantId: string,
     userId: string,
   ): Promise<void> {
+    // Obter tenant client baseado no tenantId do record
+    const tenantClient = await this.getTenantClient(record.tenantId);
     const data = record.data as any;
 
     // Detectar diarreia (Indicador RDC obrigatório)
@@ -94,7 +114,7 @@ export class IncidentInterceptorService {
       // Critério: consistência diarréica OU múltiplas evacuações no mesmo dia
       if (consistenciaDiarreica) {
         await this.createAutoIncident({
-          tenantId,
+          tenantId: record.tenantId,
           residentId: record.residentId,
           date: record.date,
           time: record.time,
@@ -112,9 +132,8 @@ export class IncidentInterceptorService {
       }
 
       // Verificar se há múltiplas evacuações diarreicas no mesmo dia
-      const evacuacoesNoDia = await this.prisma.dailyRecord.count({
+      const evacuacoesNoDia = await tenantClient.dailyRecord.count({
         where: {
-          tenantId,
           residentId: record.residentId,
           type: 'ELIMINACAO',
           date: record.date,
@@ -124,9 +143,8 @@ export class IncidentInterceptorService {
 
       if (evacuacoesNoDia >= 3 && consistenciaDiarreica) {
         // Verificar se já não criamos um alerta de desidratação hoje
-        const desidratacaoExiste = await this.prisma.dailyRecord.findFirst({
+        const desidratacaoExiste = await tenantClient.dailyRecord.findFirst({
           where: {
-            tenantId,
             residentId: record.residentId,
             type: 'INTERCORRENCIA',
             date: record.date,
@@ -138,7 +156,7 @@ export class IncidentInterceptorService {
 
         if (!desidratacaoExiste) {
           await this.createAutoIncident({
-            tenantId,
+            tenantId: record.tenantId,
             residentId: record.residentId,
             date: record.date,
             time: record.time,
@@ -165,15 +183,16 @@ export class IncidentInterceptorService {
    */
   private async checkAlimentacao(
     record: DailyRecord,
-    tenantId: string,
     userId: string,
   ): Promise<void> {
+    // Obter tenant client baseado no tenantId do record
+    const tenantClient = await this.getTenantClient(record.tenantId);
     const data = record.data as any;
 
     // Detectar recusa alimentar (0% de ingestão)
     if (data.ingeriu === 'Recusou' || data.ingeriu === '<25%') {
       await this.createAutoIncident({
-        tenantId,
+        tenantId: record.tenantId,
         residentId: record.residentId,
         date: record.date,
         time: record.time,
@@ -193,9 +212,8 @@ export class IncidentInterceptorService {
       });
 
       // Verificar padrão de recusa alimentar (múltiplas refeições no dia)
-      const recusasNoDia = await this.prisma.dailyRecord.count({
+      const recusasNoDia = await tenantClient.dailyRecord.count({
         where: {
-          tenantId,
           residentId: record.residentId,
           type: 'ALIMENTACAO',
           date: record.date,
@@ -209,9 +227,8 @@ export class IncidentInterceptorService {
 
       if (recusasNoDia >= 2) {
         // Verificar se já não criamos um alerta de desnutrição hoje
-        const desnutricaoExiste = await this.prisma.dailyRecord.findFirst({
+        const desnutricaoExiste = await tenantClient.dailyRecord.findFirst({
           where: {
-            tenantId,
             residentId: record.residentId,
             type: 'INTERCORRENCIA',
             date: record.date,
@@ -223,7 +240,7 @@ export class IncidentInterceptorService {
 
         if (!desnutricaoExiste) {
           await this.createAutoIncident({
-            tenantId,
+            tenantId: record.tenantId,
             residentId: record.residentId,
             date: record.date,
             time: record.time,
@@ -260,7 +277,7 @@ export class IncidentInterceptorService {
       };
 
       await this.createAutoIncident({
-        tenantId,
+        tenantId: record.tenantId,
         residentId: record.residentId,
         date: record.date,
         time: record.time,
@@ -288,7 +305,6 @@ export class IncidentInterceptorService {
    */
   private async checkComportamento(
     record: DailyRecord,
-    tenantId: string,
     userId: string,
   ): Promise<void> {
     const data = record.data as any;
@@ -326,7 +342,7 @@ export class IncidentInterceptorService {
       const mapping = estadoEmocionalMap[data.estadoEmocional];
 
       await this.createAutoIncident({
-        tenantId,
+        tenantId: record.tenantId,
         residentId: record.residentId,
         date: record.date,
         time: record.time,
@@ -349,7 +365,6 @@ export class IncidentInterceptorService {
    */
   private async checkHigiene(
     record: DailyRecord,
-    tenantId: string,
     userId: string,
   ): Promise<void> {
     const data = record.data as any;
@@ -376,7 +391,7 @@ export class IncidentInterceptorService {
 
     if (encontrouLesao) {
       await this.createAutoIncident({
-        tenantId,
+        tenantId: record.tenantId,
         residentId: record.residentId,
         date: record.date,
         time: record.time,
@@ -430,10 +445,12 @@ export class IncidentInterceptorService {
       sourceRecordId,
     } = params;
 
+    // Obter tenant client usando getTenantClient
+    const tenantClient = await this.getTenantClient(tenantId);
+
     // Verificar se já não existe uma intercorrência idêntica
-    const existingIncident = await this.prisma.dailyRecord.findFirst({
+    const existingIncident = await tenantClient.dailyRecord.findFirst({
       where: {
-        tenantId,
         residentId,
         type: 'INTERCORRENCIA',
         date,
@@ -473,9 +490,9 @@ export class IncidentInterceptorService {
       rdcIndicators,
     });
 
-    const incidentRecord = await this.prisma.dailyRecord.create({
+    const incidentRecord = await tenantClient.dailyRecord.create({
       data: {
-        tenantId,
+        tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
         residentId,
         type: 'INTERCORRENCIA',
         date,

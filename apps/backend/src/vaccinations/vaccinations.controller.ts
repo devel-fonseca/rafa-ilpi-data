@@ -47,7 +47,7 @@ export class VaccinationsController {
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(@Body() createDto: CreateVaccinationDto, @CurrentUser() user: any) {
-    return this.vaccinationsService.create(createDto, user.tenantId, user.id)
+    return this.vaccinationsService.create(createDto, user.id)
   }
 
   /**
@@ -66,9 +66,8 @@ export class VaccinationsController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   findByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.findByResident(residentId, user.tenantId)
+    return this.vaccinationsService.findByResident(residentId)
   }
 
   /**
@@ -81,9 +80,8 @@ export class VaccinationsController {
   @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.findOne(id, user.tenantId)
+    return this.vaccinationsService.findOne(id)
   }
 
   /**
@@ -102,7 +100,7 @@ export class VaccinationsController {
     @Body() updateDto: UpdateVaccinationDto,
     @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.update(id, updateDto, user.tenantId, user.id)
+    return this.vaccinationsService.update(id, updateDto, user.id)
   }
 
   /**
@@ -125,7 +123,7 @@ export class VaccinationsController {
     @Body() deleteDto: DeleteVaccinationDto,
     @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.remove(id, user.tenantId, user.id, deleteDto.deleteReason);
+    return this.vaccinationsService.remove(id, user.id, deleteDto.deleteReason);
   }
 
   /**
@@ -141,9 +139,8 @@ export class VaccinationsController {
   @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
   ) {
-    return this.vaccinationsService.getHistory(id, user.tenantId);
+    return this.vaccinationsService.getHistory(id);
   }
 
   /**
@@ -161,12 +158,10 @@ export class VaccinationsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() user: any,
   ) {
     return this.vaccinationsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

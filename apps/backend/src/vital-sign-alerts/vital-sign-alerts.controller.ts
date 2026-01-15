@@ -36,10 +36,9 @@ export class VitalSignAlertsController {
   @AuditAction('CREATE')
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req: any, @Body() dto: CreateVitalSignAlertDto) {
-    const tenantId = req.user.tenantId
     const userId = req.user.sub
 
-    return this.vitalSignAlertsService.create(tenantId, dto, userId)
+    return this.vitalSignAlertsService.create(dto, userId)
   }
 
   /**
@@ -47,9 +46,8 @@ export class VitalSignAlertsController {
    * Listar alertas com filtros e paginação
    */
   @Get()
-  async findAll(@Request() req: any, @Query() query: QueryVitalSignAlertsDto) {
-    const tenantId = req.user.tenantId
-    return this.vitalSignAlertsService.findAll(tenantId, query)
+  async findAll(@Query() query: QueryVitalSignAlertsDto) {
+    return this.vitalSignAlertsService.findAll(query)
   }
 
   /**
@@ -57,9 +55,8 @@ export class VitalSignAlertsController {
    * Estatísticas de alertas por status
    */
   @Get('stats')
-  async getStats(@Request() req: any) {
-    const tenantId = req.user.tenantId
-    return this.vitalSignAlertsService.countByStatus(tenantId)
+  async getStats() {
+    return this.vitalSignAlertsService.countByStatus()
   }
 
   /**
@@ -68,14 +65,9 @@ export class VitalSignAlertsController {
    */
   @Get('resident/:residentId/active')
   async findActiveByResident(
-    @Request() req: any,
     @Param('residentId') residentId: string,
   ) {
-    const tenantId = req.user.tenantId
-    return this.vitalSignAlertsService.findActiveByResident(
-      tenantId,
-      residentId,
-    )
+    return this.vitalSignAlertsService.findActiveByResident(residentId)
   }
 
   /**
@@ -83,9 +75,8 @@ export class VitalSignAlertsController {
    * Buscar alerta por ID
    */
   @Get(':id')
-  async findOne(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user.tenantId
-    return this.vitalSignAlertsService.findOne(tenantId, id)
+  async findOne(@Param('id') id: string) {
+    return this.vitalSignAlertsService.findOne(id)
   }
 
   /**
@@ -99,10 +90,9 @@ export class VitalSignAlertsController {
     @Param('id') id: string,
     @Body() dto: UpdateVitalSignAlertDto,
   ) {
-    const tenantId = req.user.tenantId
     const userId = req.user.sub
 
-    return this.vitalSignAlertsService.update(tenantId, id, dto, userId)
+    return this.vitalSignAlertsService.update(id, dto, userId)
   }
 
   /**
@@ -110,8 +100,7 @@ export class VitalSignAlertsController {
    * Buscar histórico de alterações de um alerta
    */
   @Get(':id/history')
-  async getHistory(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user.tenantId
-    return this.vitalSignAlertsService.getHistory(tenantId, id)
+  async getHistory(@Param('id') id: string) {
+    return this.vitalSignAlertsService.getHistory(id)
   }
 }

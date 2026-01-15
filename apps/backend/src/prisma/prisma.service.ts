@@ -4,10 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { createEncryptionMiddleware } from './middleware/encryption.middleware';
 import { createCpfSyncMiddleware } from './middleware/cpf-sync.middleware';
 import { queryLoggerMiddleware } from './middleware/query-logger.middleware';
+import { PrismaQueryLoggerMiddleware } from './prisma-query-logger.middleware';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private tenantClients: Map<string, PrismaClient> = new Map();
+  private readonly multiTenantQueryLogger = new PrismaQueryLoggerMiddleware();
 
   constructor(private readonly configService: ConfigService) {
     super({
@@ -18,6 +20,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     this.registerQueryLoggerMiddleware();
     this.registerEncryptionMiddleware();
     this.registerCpfSyncMiddleware();
+    this.registerMultiTenantMonitorMiddleware(); // ✅ Novo
   }
 
   /**
@@ -49,6 +52,23 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    */
   private registerCpfSyncMiddleware(): void {
     this.$use(createCpfSyncMiddleware());
+  }
+
+  /**
+   * Registrar middleware de monitoramento multi-tenant
+   * Detecta violações arquiteturais em runtime (WHERE tenantId, cross-schema JOINs, etc.)
+   *
+   * ⚠️ Apenas em DEV/TEST - em PROD desabilitar por performance
+   */
+  private registerMultiTenantMonitorMiddleware(): void {
+    const nodeEnv = process.env.NODE_ENV || 'development';
+
+    // Apenas em desenvolvimento e test, não em produção
+    if (nodeEnv === 'development' || nodeEnv === 'test') {
+      this.$use(async (params, next) => {
+        return this.multiTenantQueryLogger.middleware(params, next);
+      });
+    }
   }
 
   async onModuleInit() {

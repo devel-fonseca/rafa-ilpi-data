@@ -5,18 +5,19 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { parseISO, startOfDay } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
-import { DeleteVaccinationDto } from './dto/delete-vaccination.dto';
 import { ChangeType } from '@prisma/client';
 
 @Injectable()
 export class VaccinationsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -27,15 +28,13 @@ export class VaccinationsService {
    */
   async create(
     dto: CreateVaccinationDto,
-    tenantId: string,
     userId: string,
   ) {
     try {
-      // Verificar se residente existe e pertence ao tenant
-      const resident = await this.prisma.resident.findFirst({
+      // Verificar se residente existe
+      const resident = await this.tenantContext.client.resident.findFirst({
         where: {
           id: dto.residentId,
-          tenantId,
           deletedAt: null,
         },
       });
@@ -64,11 +63,11 @@ export class VaccinationsService {
     }
 
     // Criar registro com transação para incluir documento se houver comprovante
-    const vaccination = await this.prisma.$transaction(async (tx) => {
+    const vaccination = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Criar registro de vacinação COM versionamento
       const vaccinationRecord = await tx.vaccination.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           residentId: dto.residentId,
           vaccine: dto.vaccine,
           dose: dto.dose,
@@ -106,7 +105,7 @@ export class VaccinationsService {
 
         await tx.residentDocument.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             residentId: dto.residentId,
             type: 'COMPROVANTE_VACINACAO',
             fileUrl: dto.certificateUrl,
@@ -124,7 +123,7 @@ export class VaccinationsService {
       vaccinationId: vaccination.id,
       residentId: dto.residentId,
       vaccine: dto.vaccine,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -138,7 +137,7 @@ export class VaccinationsService {
           date: dto.date,
           residentId: dto.residentId,
         },
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -148,12 +147,11 @@ export class VaccinationsService {
   /**
    * Listar vacinações por residente (ordenadas por data DESC)
    */
-  async findByResident(residentId: string, tenantId: string) {
+  async findByResident(residentId: string) {
     // Verificar se residente existe
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -162,10 +160,9 @@ export class VaccinationsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const vaccinations = await this.prisma.vaccination.findMany({
+    const vaccinations = await this.tenantContext.client.vaccination.findMany({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       orderBy: {
@@ -203,11 +200,10 @@ export class VaccinationsService {
   /**
    * Obter um registro de vacinação por ID
    */
-  async findOne(id: string, tenantId: string) {
-    const vaccination = await this.prisma.vaccination.findFirst({
+  async findOne(id: string) {
+    const vaccination = await this.tenantContext.client.vaccination.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -240,21 +236,20 @@ export class VaccinationsService {
   async update(
     id: string,
     updateVaccinationDto: UpdateVaccinationDto,
-    tenantId: string,
     userId: string,
   ) {
     const { changeReason, ...updateData } = updateVaccinationDto;
 
     // Buscar vacinação existente
-    const vaccination = await this.prisma.vaccination.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const vaccination = await this.tenantContext.client.vaccination.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!vaccination) {
       this.logger.error('Erro ao atualizar vacinação', {
         error: 'Vacinação não encontrada',
         vaccinationId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Vacinação não encontrada');
@@ -262,10 +257,9 @@ export class VaccinationsService {
 
     // Se trocar residente, validar novo residente
     if (updateData.residentId && updateData.residentId !== vaccination.residentId) {
-      const resident = await this.prisma.resident.findFirst({
+      const resident = await this.tenantContext.client.resident.findFirst({
         where: {
           id: updateData.residentId,
-          tenantId,
           deletedAt: null,
         },
       });
@@ -330,7 +324,7 @@ export class VaccinationsService {
     const newVersionNumber = vaccination.versionNumber + 1;
 
     // Executar update e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar vacinação
       const updatedVaccination = await tx.vaccination.update({
         where: { id },
@@ -365,7 +359,7 @@ export class VaccinationsService {
       // 3. Criar entrada no histórico
       await tx.vaccinationHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           vaccinationId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -385,7 +379,7 @@ export class VaccinationsService {
       vaccinationId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -397,20 +391,19 @@ export class VaccinationsService {
    */
   async remove(
     id: string,
-    tenantId: string,
     userId: string,
     deleteReason: string,
   ) {
     // Buscar vacinação existente
-    const vaccination = await this.prisma.vaccination.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const vaccination = await this.tenantContext.client.vaccination.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!vaccination) {
       this.logger.error('Erro ao remover vacinação', {
         error: 'Vacinação não encontrada',
         vaccinationId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Vacinação não encontrada');
@@ -438,7 +431,7 @@ export class VaccinationsService {
     const newVersionNumber = vaccination.versionNumber + 1;
 
     // Executar soft delete e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Soft delete
       const deletedVaccination = await tx.vaccination.update({
         where: { id },
@@ -452,7 +445,7 @@ export class VaccinationsService {
       // 2. Criar entrada no histórico
       await tx.vaccinationHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           vaccinationId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -475,7 +468,7 @@ export class VaccinationsService {
     this.logger.info('Vacinação removida com versionamento', {
       vaccinationId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -488,26 +481,25 @@ export class VaccinationsService {
   /**
    * Consultar histórico completo de vacinação
    */
-  async getHistory(vaccinationId: string, tenantId: string) {
+  async getHistory(vaccinationId: string) {
     // Verificar se a vacinação existe
-    const vaccination = await this.prisma.vaccination.findFirst({
-      where: { id: vaccinationId, tenantId },
+    const vaccination = await this.tenantContext.client.vaccination.findFirst({
+      where: { id: vaccinationId },
     });
 
     if (!vaccination) {
       this.logger.error('Erro ao consultar histórico de vacinação', {
         error: 'Vacinação não encontrada',
         vaccinationId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Vacinação não encontrada');
     }
 
     // Buscar histórico ordenado por versão decrescente
-    const history = await this.prisma.vaccinationHistory.findMany({
+    const history = await this.tenantContext.client.vaccinationHistory.findMany({
       where: {
         vaccinationId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -517,7 +509,7 @@ export class VaccinationsService {
     this.logger.info('Histórico de vacinação consultado', {
       vaccinationId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -536,11 +528,10 @@ export class VaccinationsService {
   async getHistoryVersion(
     vaccinationId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
     // Verificar se a vacinação existe
-    const vaccination = await this.prisma.vaccination.findFirst({
-      where: { id: vaccinationId, tenantId },
+    const vaccination = await this.tenantContext.client.vaccination.findFirst({
+      where: { id: vaccinationId },
     });
 
     if (!vaccination) {
@@ -548,17 +539,16 @@ export class VaccinationsService {
         error: 'Vacinação não encontrada',
         vaccinationId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Vacinação não encontrada');
     }
 
     // Buscar versão específica
-    const historyVersion = await this.prisma.vaccinationHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.vaccinationHistory.findFirst({
       where: {
         vaccinationId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -567,7 +557,7 @@ export class VaccinationsService {
         error: `Versão ${versionNumber} não encontrada para esta vacinação`,
         vaccinationId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para esta vacinação`,
@@ -577,7 +567,7 @@ export class VaccinationsService {
     this.logger.info('Versão específica do histórico consultada', {
       vaccinationId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

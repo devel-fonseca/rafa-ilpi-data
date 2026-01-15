@@ -17,6 +17,8 @@ import { VaccinationsModule } from './vaccinations/vaccinations.module';
 import { ClinicalNotesModule } from './clinical-notes/clinical-notes.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
+import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
+import { TenantContextService } from './prisma/tenant-context.service';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { winstonConfig } from './common/config/winston.config';
@@ -40,7 +42,7 @@ import { PopsModule } from './pops/pops.module';
 import { MedicationsModule } from './medications/medications.module';
 import { SOSMedicationsModule } from './sos-medications/sos-medications.module';
 import { ResidentScheduleModule } from './resident-schedule/resident-schedule.module';
-import { ContractsModule } from './contracts/contracts.module';
+import { ResidentContractsModule } from './resident-contracts/resident-contracts.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
@@ -123,7 +125,7 @@ import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
     NotificationsModule,
     PopsModule,
     ResidentScheduleModule,
-    ContractsModule,
+    ResidentContractsModule,
     SuperAdminModule,
     PaymentsModule,
     AdminModule,
@@ -148,6 +150,13 @@ import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // Tenant Context Service - REQUEST-scoped para isolamento de dados
+    TenantContextService,
+    // Interceptor global de tenant context (DEVE vir ANTES do AuditInterceptor)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TenantContextInterceptor,
     },
     // Interceptor global de auditoria
     {

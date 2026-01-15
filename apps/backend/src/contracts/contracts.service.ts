@@ -55,13 +55,8 @@ export class ContractsService {
       },
       include: {
         plan: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED creator include - User está em schema de tenant, não pode fazer JOIN com ServiceContract (public schema)
+        // Para obter dados do creator, fazer query separada usando getTenantClient() se necessário
       },
     });
 
@@ -142,13 +137,7 @@ export class ContractsService {
       },
       include: {
         plan: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED creator include - User está em schema de tenant, não pode fazer JOIN com ServiceContract (public schema)
       },
     });
 
@@ -201,13 +190,7 @@ export class ContractsService {
       },
       include: {
         plan: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED creator include - User está em schema de tenant, não pode fazer JOIN com ServiceContract (public schema)
       },
     });
 
@@ -266,13 +249,7 @@ export class ContractsService {
             displayName: true,
           },
         },
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED creator include - User está em schema de tenant, não pode fazer JOIN com ServiceContract (public schema)
         _count: {
           select: {
             acceptances: true,
@@ -295,20 +272,7 @@ export class ContractsService {
       where: { id },
       include: {
         plan: true,
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        revoker: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED creator/revoker includes - User está em schema de tenant, não pode fazer JOIN com ServiceContract (public schema)
         _count: {
           select: {
             acceptances: true,
@@ -422,13 +386,7 @@ export class ContractsService {
             email: true,
           },
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED user include - User está em schema de tenant, não pode fazer JOIN com ContractAcceptance (public schema)
       },
       orderBy: {
         acceptedAt: 'desc',
@@ -452,13 +410,7 @@ export class ContractsService {
             title: true,
           },
         },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // ⚠️ REMOVED user include - User está em schema de tenant, não pode fazer JOIN com ContractAcceptance (public schema)
       },
     });
 

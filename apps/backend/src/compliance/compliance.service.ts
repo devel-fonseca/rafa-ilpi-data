@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
 import { DailyComplianceResponseDto } from './dto';
 
 @Injectable()
 export class ComplianceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
-  async getDailySummary(tenantId: string): Promise<DailyComplianceResponseDto> {
+  async getDailySummary(): Promise<DailyComplianceResponseDto> {
 
-    // Buscar timezone do tenant
+    // Buscar timezone do tenant (tabela SHARED)
     const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+      where: { id: this.tenantContext.tenantId },
       select: { timezone: true },
     })
     const timezone = tenant?.timezone || 'America/Sao_Paulo'
@@ -23,23 +27,20 @@ export class ComplianceService {
     const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone)
 
     // 1. Contar residentes ativos
-    const activeResidents = await this.prisma.resident.count({
+    const activeResidents = await this.tenantContext.client.resident.count({
       where: {
-        tenantId,
         status: 'Ativo',
       },
     })
 
     // 2. Calcular medicamentos programados e administrados
     const medicationsData = await this.getMedicationsCompliance(
-      tenantId,
       today,
       tomorrow,
     )
 
     // 3. Calcular registros obrigatórios esperados e realizados
     const recordsData = await this.getMandatoryRecordsCompliance(
-      tenantId,
       today,
       tomorrow,
     )
@@ -52,15 +53,13 @@ export class ComplianceService {
   }
 
   private async getMedicationsCompliance(
-    tenantId: string,
     today: Date,
     tomorrow: Date,
   ) {
     // Buscar todas as administrações programadas para hoje
     const scheduledMedications =
-      await this.prisma.medicationAdministration.findMany({
+      await this.tenantContext.client.medicationAdministration.findMany({
         where: {
-          tenantId,
           date: {
             gte: today,
             lt: tomorrow,
@@ -81,14 +80,12 @@ export class ComplianceService {
   }
 
   private async getMandatoryRecordsCompliance(
-    tenantId: string,
     today: Date,
     tomorrow: Date,
   ) {
     // Buscar configurações de agendamento recorrente ativas
-    const activeConfigs = await this.prisma.residentScheduleConfig.findMany({
+    const activeConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         isActive: true,
         resident: {
           status: 'Ativo',
@@ -111,9 +108,8 @@ export class ComplianceService {
     }
 
     // Contar registros diários realizados hoje
-    const completedRecords = await this.prisma.dailyRecord.count({
+    const completedRecords = await this.tenantContext.client.dailyRecord.count({
       where: {
-        tenantId,
         date: {
           gte: today,
           lt: tomorrow,

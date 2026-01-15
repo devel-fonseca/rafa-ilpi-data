@@ -5,6 +5,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -30,7 +31,8 @@ import {
 @Injectable()
 export class PrescriptionsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
     private readonly notificationsService: NotificationsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
@@ -42,7 +44,6 @@ export class PrescriptionsService {
    */
   private async createPrescriptionHistoryRecord(
     prescriptionId: string,
-    tenantId: string,
     changeType: 'CREATE' | 'UPDATE' | 'DELETE',
     changeReason: string,
     changedBy: string,
@@ -56,7 +57,7 @@ export class PrescriptionsService {
   ): Promise<void> {
     await tx.prescriptionHistory.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         prescriptionId,
         versionNumber: newData.versionNumber,
         changeType,
@@ -144,15 +145,13 @@ export class PrescriptionsService {
    */
   async create(
     createPrescriptionDto: CreatePrescriptionDto,
-    tenantId: string,
     userId: string,
   ) {
     try {
-      // 1. Verificar se residente existe e pertence ao tenant
-      const resident = await this.prisma.resident.findFirst({
+      // 1. Verificar se residente existe
+      const resident = await this.tenantContext.client.resident.findFirst({
         where: {
           id: createPrescriptionDto.residentId,
-          tenantId,
           deletedAt: null,
         },
       });
@@ -172,11 +171,11 @@ export class PrescriptionsService {
       }
 
       // 4. Criar prescrição com medicamentos e SOS em transação
-      const prescription = await this.prisma.$transaction(async (tx) => {
+      const prescription = await this.tenantContext.client.$transaction(async (tx) => {
         // 4.1 Criar a prescrição
         const newPrescription = await tx.prescription.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             residentId: createPrescriptionDto.residentId,
             doctorName: createPrescriptionDto.doctorName,
             doctorCrm: createPrescriptionDto.doctorCrm,
@@ -260,7 +259,6 @@ export class PrescriptionsService {
         // 4.3 Criar entrada de histórico (CREATE)
         await this.createPrescriptionHistoryRecord(
           newPrescription.id,
-          tenantId,
           'CREATE',
           'Criação inicial da prescrição médica',
           userId,
@@ -278,7 +276,7 @@ export class PrescriptionsService {
 
           await tx.residentDocument.create({
             data: {
-              tenantId,
+              tenantId: this.tenantContext.tenantId,
               residentId: createPrescriptionDto.residentId,
               type: 'PRESCRICAO_MEDICA',
               fileUrl: createPrescriptionDto.prescriptionImageUrl,
@@ -294,7 +292,7 @@ export class PrescriptionsService {
 
       this.logger.info('Prescrição criada', {
         prescriptionId: prescription.id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
 
@@ -302,7 +300,7 @@ export class PrescriptionsService {
     } catch (error) {
       this.logger.error('Erro ao criar prescrição', {
         error: error.message,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -312,13 +310,12 @@ export class PrescriptionsService {
   /**
    * Lista prescrições com filtros e paginação
    */
-  async findAll(query: QueryPrescriptionDto, tenantId: string) {
+  async findAll(query: QueryPrescriptionDto) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
 
     const where: any = {
-      tenantId,
       deletedAt: null,
     };
 
@@ -378,7 +375,7 @@ export class PrescriptionsService {
     }
 
     const [prescriptions, total] = await Promise.all([
-      this.prisma.prescription.findMany({
+      this.tenantContext.client.prescription.findMany({
         where,
         include: {
           resident: {
@@ -437,7 +434,7 @@ export class PrescriptionsService {
         skip,
         take: limit,
       }),
-      this.prisma.prescription.count({ where }),
+      this.tenantContext.client.prescription.count({ where }),
     ]);
 
     // Processar URLs assinadas para prescriptionImageUrl
@@ -470,11 +467,10 @@ export class PrescriptionsService {
   /**
    * Busca uma prescrição por ID
    */
-  async findOne(id: string, tenantId: string) {
-    const prescription = await this.prisma.prescription.findFirst({
+  async findOne(id: string) {
+    const prescription = await this.tenantContext.client.prescription.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -555,7 +551,6 @@ export class PrescriptionsService {
   async update(
     id: string,
     updatePrescriptionDto: UpdatePrescriptionDto,
-    tenantId: string,
     userId: string,
   ) {
     try {
@@ -567,10 +562,9 @@ export class PrescriptionsService {
       }
 
       // 2. Buscar prescrição existente com includes para snapshot completo
-      const existing = await this.prisma.prescription.findFirst({
+      const existing = await this.tenantContext.client.prescription.findFirst({
         where: {
           id,
-          tenantId,
           deletedAt: null,
         },
         include: {
@@ -592,7 +586,7 @@ export class PrescriptionsService {
       const previousData = JSON.parse(JSON.stringify(existing));
 
       // 5. Atualizar prescrição em transação com histórico
-      const updated = await this.prisma.$transaction(async (tx) => {
+      const updated = await this.tenantContext.client.$transaction(async (tx) => {
         // 5.1 Atualizar prescrição com versionNumber incrementado
         const updatedPrescription = await tx.prescription.update({
           where: { id },
@@ -646,7 +640,6 @@ export class PrescriptionsService {
         // 5.5 Criar entrada de histórico (UPDATE)
         await this.createPrescriptionHistoryRecord(
           id,
-          tenantId,
           'UPDATE',
           updatePrescriptionDto.changeReason,
           userId,
@@ -664,7 +657,7 @@ export class PrescriptionsService {
         prescriptionId: id,
         versionNumber: updated.versionNumber,
         changedFields: this.calculateChangedFields(previousData, updated),
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
 
@@ -673,7 +666,7 @@ export class PrescriptionsService {
       this.logger.error('Erro ao atualizar prescrição', {
         error: error.message,
         prescriptionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -688,16 +681,14 @@ export class PrescriptionsService {
     id: string,
     dto: MedicalReviewPrescriptionDto,
     userId: string,
-    tenantId: string,
     ipAddress?: string,
     userAgent?: string,
   ) {
     try {
       // 1. Buscar prescrição existente
-      const prescription = await this.prisma.prescription.findFirst({
+      const prescription = await this.tenantContext.client.prescription.findFirst({
         where: {
           id,
-          tenantId,
           deletedAt: null,
         },
         include: {
@@ -721,7 +712,7 @@ export class PrescriptionsService {
       const previousData = JSON.parse(JSON.stringify(prescription));
 
       // 4. Atualizar prescrição em transação com histórico
-      const updated = await this.prisma.$transaction(async (tx) => {
+      const updated = await this.tenantContext.client.$transaction(async (tx) => {
         // 4.1 Atualizar campos de revisão médica + versionNumber
         const updatedPrescription = await tx.prescription.update({
           where: { id },
@@ -757,7 +748,6 @@ export class PrescriptionsService {
         // 4.5 Criar entrada no histórico
         await this.createPrescriptionHistoryRecord(
           id,
-          tenantId,
           'UPDATE',
           `Revisão médica realizada em ${dto.medicalReviewDate}`,
           userId,
@@ -775,7 +765,7 @@ export class PrescriptionsService {
 
       this.logger.log(
         `Revisão médica registrada: Prescrição ${id} | Médico: ${dto.reviewedByDoctor} (CRM ${dto.reviewDoctorCrm}-${dto.reviewDoctorState})`,
-        { tenantId, userId },
+        { tenantId: this.tenantContext.tenantId, userId },
       );
 
       return updated;
@@ -783,7 +773,7 @@ export class PrescriptionsService {
       this.logger.error('Erro ao registrar revisão médica de prescrição', {
         error,
         prescriptionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -793,7 +783,7 @@ export class PrescriptionsService {
   /**
    * Remove (soft delete) uma prescrição
    */
-  async remove(id: string, tenantId: string, userId: string, changeReason: string) {
+  async remove(id: string, userId: string, changeReason: string) {
     try {
       // 1. Validar changeReason obrigatório
       if (!changeReason || changeReason.trim().length < 10) {
@@ -803,10 +793,9 @@ export class PrescriptionsService {
       }
 
       // 2. Buscar prescrição existente com includes para snapshot completo
-      const prescription = await this.prisma.prescription.findFirst({
+      const prescription = await this.tenantContext.client.prescription.findFirst({
         where: {
           id,
-          tenantId,
           deletedAt: null,
         },
         include: {
@@ -823,7 +812,7 @@ export class PrescriptionsService {
       const previousData = JSON.parse(JSON.stringify(prescription));
 
       // 4. Realizar soft delete em transação com histórico
-      const deleted = await this.prisma.$transaction(async (tx) => {
+      const deleted = await this.tenantContext.client.$transaction(async (tx) => {
         // 4.1 Soft delete da prescrição com versionNumber incrementado
         const deletedPrescription = await tx.prescription.update({
           where: { id },
@@ -846,7 +835,6 @@ export class PrescriptionsService {
         // 4.4 Criar entrada de histórico (DELETE)
         await this.createPrescriptionHistoryRecord(
           id,
-          tenantId,
           'DELETE',
           changeReason,
           userId,
@@ -863,7 +851,7 @@ export class PrescriptionsService {
       this.logger.info('Prescrição removida com versionamento', {
         prescriptionId: id,
         versionNumber: deleted.versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
 
@@ -872,7 +860,7 @@ export class PrescriptionsService {
       this.logger.error('Erro ao remover prescrição', {
         error: error.message,
         prescriptionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -884,16 +872,14 @@ export class PrescriptionsService {
    * Retorna todas as alterações registradas no audit trail
    *
    * @param prescriptionId - ID da prescrição
-   * @param tenantId - ID do tenant (isolamento multi-tenant)
    * @returns Prescrição atual + histórico completo ordenado por versionNumber DESC
    */
-  async getHistory(prescriptionId: string, tenantId: string) {
+  async getHistory(prescriptionId: string) {
     try {
       // 1. Buscar prescrição (incluindo soft deleted para permitir acesso ao histórico)
-      const prescription = await this.prisma.prescription.findFirst({
+      const prescription = await this.tenantContext.client.prescription.findFirst({
         where: {
           id: prescriptionId,
-          tenantId,
         },
         include: {
           resident: {
@@ -912,10 +898,9 @@ export class PrescriptionsService {
       }
 
       // 2. Buscar histórico completo
-      const history = await this.prisma.prescriptionHistory.findMany({
+      const history = await this.tenantContext.client.prescriptionHistory.findMany({
         where: {
           prescriptionId,
-          tenantId,
         },
         include: {
           user: {
@@ -934,7 +919,6 @@ export class PrescriptionsService {
       this.logger.info('Histórico de prescrição consultado', {
         prescriptionId,
         totalVersions: history.length,
-        tenantId,
       });
 
       return {
@@ -963,7 +947,7 @@ export class PrescriptionsService {
       this.logger.error('Erro ao consultar histórico de prescrição', {
         error: error.message,
         prescriptionId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }
@@ -975,21 +959,18 @@ export class PrescriptionsService {
    *
    * @param prescriptionId - ID da prescrição
    * @param versionNumber - Número da versão (1, 2, 3, ...)
-   * @param tenantId - ID do tenant (isolamento multi-tenant)
    * @returns Versão específica com dados completos de previousData e newData
    */
   async getHistoryVersion(
     prescriptionId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
     try {
       // 1. Buscar versão específica do histórico
-      const version = await this.prisma.prescriptionHistory.findFirst({
+      const version = await this.tenantContext.client.prescriptionHistory.findFirst({
         where: {
           prescriptionId,
           versionNumber,
-          tenantId,
         },
         include: {
           user: {
@@ -1024,7 +1005,7 @@ export class PrescriptionsService {
       this.logger.info('Versão específica do histórico consultada', {
         prescriptionId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
 
       return {
@@ -1056,7 +1037,6 @@ export class PrescriptionsService {
         error: error.message,
         prescriptionId,
         versionNumber,
-        tenantId,
       });
       throw error;
     }
@@ -1065,19 +1045,18 @@ export class PrescriptionsService {
   /**
    * Obtém estatísticas do dashboard
    */
-  async getDashboardStats(tenantId: string) {
+  async getDashboardStats() {
     const [
       totalActive,
       expiringIn5Days,
       activeAntibiotics,
       activeControlled,
     ] = await Promise.all([
-      this.prisma.prescription.count({
-        where: { tenantId, isActive: true, deletedAt: null },
+      this.tenantContext.client.prescription.count({
+        where: { isActive: true, deletedAt: null },
       }),
-      this.prisma.prescription.count({
+      this.tenantContext.client.prescription.count({
         where: {
-          tenantId,
           isActive: true,
           deletedAt: null,
           // FIX TIMESTAMPTZ: Usar endOfDay para incluir todo o dia final na contagem
@@ -1087,17 +1066,15 @@ export class PrescriptionsService {
           },
         },
       }),
-      this.prisma.prescription.count({
+      this.tenantContext.client.prescription.count({
         where: {
-          tenantId,
           isActive: true,
           deletedAt: null,
           prescriptionType: 'ANTIBIOTICO',
         },
       }),
-      this.prisma.prescription.count({
+      this.tenantContext.client.prescription.count({
         where: {
-          tenantId,
           isActive: true,
           deletedAt: null,
           prescriptionType: 'CONTROLADO',
@@ -1116,7 +1093,7 @@ export class PrescriptionsService {
   /**
    * Obtém alertas críticos com detalhes completos de cada prescrição
    */
-  async getCriticalAlerts(tenantId: string) {
+  async getCriticalAlerts() {
     const alerts = [];
     const now = new Date();
     // FIX TIMESTAMPTZ: Usar startOfDay para comparar corretamente prescrições que expiram à meia-noite
@@ -1124,9 +1101,8 @@ export class PrescriptionsService {
     const startOfToday = startOfDay(now);
 
     // Prescrições vencidas
-    const expiredPrescriptions = await this.prisma.prescription.findMany({
+    const expiredPrescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         validUntil: { lt: startOfToday },
         deletedAt: null,
@@ -1163,9 +1139,8 @@ export class PrescriptionsService {
     }
 
     // Controlados sem receita anexada
-    const controlledWithoutReceipt = await this.prisma.prescription.findMany({
+    const controlledWithoutReceipt = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         prescriptionType: 'CONTROLADO',
         prescriptionImageUrl: null,
@@ -1196,10 +1171,9 @@ export class PrescriptionsService {
     }
 
     // Antibióticos sem validade registrada
-    const antibioticsWithoutValidity = await this.prisma.prescription.findMany(
+    const antibioticsWithoutValidity = await this.tenantContext.client.prescription.findMany(
       {
         where: {
-          tenantId,
           isActive: true,
           prescriptionType: 'ANTIBIOTICO',
           validUntil: null,
@@ -1231,9 +1205,8 @@ export class PrescriptionsService {
     }
 
     // Prescrições que precisam revisão em até 30 dias
-    const reviewNeeded = await this.prisma.prescription.findMany({
+    const reviewNeeded = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         reviewDate: {
@@ -1282,15 +1255,14 @@ export class PrescriptionsService {
   /**
    * Obtém prescrições próximas do vencimento
    */
-  async getExpiringPrescriptions(days: number, tenantId: string) {
+  async getExpiringPrescriptions(days: number) {
     // FIX TIMESTAMPTZ: Usar endOfDay para incluir prescrições que expiram em qualquer hora do último dia
     const today = new Date();
     const futureDate = endOfDay(addDays(today, days));
     const todayStart = startOfDay(today);
 
-    const prescriptions = await this.prisma.prescription.findMany({
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         validUntil: {
@@ -1342,10 +1314,9 @@ export class PrescriptionsService {
   /**
    * Obtém residentes com medicamentos controlados
    */
-  async getResidentsWithControlled(tenantId: string) {
-    const prescriptions = await this.prisma.prescription.findMany({
+  async getResidentsWithControlled() {
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         prescriptionType: 'CONTROLADO',
@@ -1389,13 +1360,12 @@ export class PrescriptionsService {
   /**
    * Obtém prescrições que precisam de revisão
    */
-  async getReviewNeededPrescriptions(days: number, tenantId: string) {
+  async getReviewNeededPrescriptions(days: number) {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
 
-    const prescriptions = await this.prisma.prescription.findMany({
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         reviewDate: {
@@ -1449,16 +1419,14 @@ export class PrescriptionsService {
    */
   async administerMedication(
     dto: AdministerMedicationDto,
-    tenantId: string,
     userId: string,
   ) {
     // Buscar medicamento e validar
-    const medication = await this.prisma.medication.findFirst({
+    const medication = await this.tenantContext.client.medication.findFirst({
       where: {
         id: dto.medicationId,
         deletedAt: null,
         prescription: {
-          tenantId,
           isActive: true,
           deletedAt: null,
         },
@@ -1478,9 +1446,9 @@ export class PrescriptionsService {
 
     // Criar registro de administração
     // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
-    const administration = await this.prisma.medicationAdministration.create({
+    const administration = await this.tenantContext.client.medicationAdministration.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         prescriptionId: medication.prescriptionId,
         medicationId: dto.medicationId,
         residentId: medication.prescription.residentId,
@@ -1500,7 +1468,7 @@ export class PrescriptionsService {
     this.logger.info('Medicamento administrado', {
       administrationId: administration.id,
       medicationId: dto.medicationId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -1512,16 +1480,14 @@ export class PrescriptionsService {
    */
   async administerSOSMedication(
     dto: AdministerSOSDto,
-    tenantId: string,
     userId: string,
   ) {
     // Buscar medicação SOS e validar
-    const sosMedication = await this.prisma.sOSMedication.findFirst({
+    const sosMedication = await this.tenantContext.client.sOSMedication.findFirst({
       where: {
         id: dto.sosMedicationId,
         deletedAt: null,
         prescription: {
-          tenantId,
           isActive: true,
           deletedAt: null,
         },
@@ -1545,7 +1511,7 @@ export class PrescriptionsService {
     const dayStart = startOfDay(dateObj);
     const dayEnd = endOfDay(dateObj);
 
-    const todayCount = await this.prisma.sOSAdministration.count({
+    const todayCount = await this.tenantContext.client.sOSAdministration.count({
       where: {
         sosMedicationId: dto.sosMedicationId,
         date: {
@@ -1563,9 +1529,9 @@ export class PrescriptionsService {
 
     // Criar registro de administração SOS
     // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
-    const administration = await this.prisma.sOSAdministration.create({
+    const administration = await this.tenantContext.client.sOSAdministration.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         prescriptionId: sosMedication.prescriptionId,
         sosMedicationId: dto.sosMedicationId,
         residentId: sosMedication.prescription.residentId,
@@ -1581,7 +1547,7 @@ export class PrescriptionsService {
     this.logger.info('Medicação SOS administrada', {
       administrationId: administration.id,
       sosMedicationId: dto.sosMedicationId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -1651,10 +1617,9 @@ export class PrescriptionsService {
     residentId: string,
     year: number,
     month: number,
-    tenantId: string,
   ): Promise<string[]> {
-    // Validar residente existe e pertence ao tenant
-    await this.validateResidentExists(residentId, tenantId);
+    // Validar residente existe
+    await this.validateResidentExists(residentId);
 
     // FIX TIMESTAMPTZ: Calcular primeiro e último dia do mês usando date-fns
     const referenceDate = new Date(year, month - 1, 1);
@@ -1662,9 +1627,8 @@ export class PrescriptionsService {
     const lastDay = endOfMonth(referenceDate);
 
     // Buscar administrações contínuas do residente no período
-    const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
+    const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
       where: {
-        tenantId,
         residentId,
         date: {
           gte: firstDay,
@@ -1681,9 +1645,8 @@ export class PrescriptionsService {
     });
 
     // Buscar administrações SOS do residente no período
-    const sosAdministrations = await this.prisma.sOSAdministration.findMany({
+    const sosAdministrations = await this.tenantContext.client.sOSAdministration.findMany({
       where: {
-        tenantId,
         residentId,
         date: {
           gte: firstDay,
@@ -1731,10 +1694,9 @@ export class PrescriptionsService {
   async getMedicationAdministrationsByDate(
     residentId: string,
     dateStr: string, // Formato: YYYY-MM-DD
-    tenantId: string,
   ) {
-    // Validar residente existe e pertence ao tenant
-    await this.validateResidentExists(residentId, tenantId);
+    // Validar residente existe
+    await this.validateResidentExists(residentId);
 
     // Validar formato da data
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -1748,9 +1710,8 @@ export class PrescriptionsService {
     const dayEnd = endOfDay(dateObj);
 
     // Buscar administrações contínuas da data (usando range para compatibilidade com TIMESTAMPTZ)
-    const continuousAdministrations = await this.prisma.medicationAdministration.findMany({
+    const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
       where: {
-        tenantId,
         residentId,
         date: {
           gte: dayStart,
@@ -1778,9 +1739,8 @@ export class PrescriptionsService {
     });
 
     // Buscar administrações SOS da data (usando range para compatibilidade com TIMESTAMPTZ)
-    const sosAdministrations = await this.prisma.sOSAdministration.findMany({
+    const sosAdministrations = await this.tenantContext.client.sOSAdministration.findMany({
       where: {
-        tenantId,
         residentId,
         date: {
           gte: dayStart,
@@ -1880,16 +1840,14 @@ export class PrescriptionsService {
   }
 
   /**
-   * Valida se o residente existe e pertence ao tenant
+   * Valida se o residente existe no tenant atual
    */
   private async validateResidentExists(
     residentId: string,
-    tenantId: string,
   ): Promise<void> {
-    const resident = await this.prisma.resident.findUnique({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });

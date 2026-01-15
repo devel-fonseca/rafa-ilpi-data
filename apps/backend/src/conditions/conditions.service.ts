@@ -4,6 +4,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition-versioned.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -13,7 +14,8 @@ import { ChangeType } from '@prisma/client';
 @Injectable()
 export class ConditionsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -21,14 +23,12 @@ export class ConditionsService {
    * Criar nova condição COM versionamento
    */
   async create(
-    tenantId: string,
     userId: string,
     createDto: CreateConditionDto,
   ) {
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: createDto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -37,9 +37,9 @@ export class ConditionsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const condition = await this.prisma.condition.create({
+    const condition = await this.tenantContext.client.condition.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId: createDto.residentId,
         condition: createDto.condition,
         icdCode: createDto.icdCode,
@@ -67,7 +67,7 @@ export class ConditionsService {
       conditionId: condition.id,
       residentId: createDto.residentId,
       condition: createDto.condition,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -77,11 +77,10 @@ export class ConditionsService {
   /**
    * Listar todas as condições de um residente
    */
-  async findByResidentId(tenantId: string, residentId: string) {
-    return this.prisma.condition.findMany({
+  async findByResidentId(residentId: string) {
+    return this.tenantContext.client.condition.findMany({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -107,11 +106,10 @@ export class ConditionsService {
   /**
    * Buscar uma condição específica
    */
-  async findOne(tenantId: string, id: string) {
-    const condition = await this.prisma.condition.findFirst({
+  async findOne(id: string) {
+    const condition = await this.tenantContext.client.condition.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -141,22 +139,21 @@ export class ConditionsService {
    * Atualizar condição COM versionamento
    */
   async update(
-    tenantId: string,
     userId: string,
     id: string,
     updateDto: UpdateConditionDto,
   ) {
     const { changeReason, ...updateData } = updateDto;
 
-    const condition = await this.prisma.condition.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const condition = await this.tenantContext.client.condition.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!condition) {
       this.logger.error('Erro ao atualizar condição', {
         error: 'Condição não encontrada',
         conditionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Condição não encontrada');
@@ -185,7 +182,7 @@ export class ConditionsService {
 
     const newVersionNumber = condition.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const updatedCondition = await tx.condition.update({
         where: { id },
         data: {
@@ -205,7 +202,7 @@ export class ConditionsService {
 
       await tx.conditionHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           conditionId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -225,7 +222,7 @@ export class ConditionsService {
       conditionId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -236,20 +233,19 @@ export class ConditionsService {
    * Soft delete de condição COM versionamento
    */
   async remove(
-    tenantId: string,
     userId: string,
     id: string,
     deleteReason: string,
   ) {
-    const condition = await this.prisma.condition.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const condition = await this.tenantContext.client.condition.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!condition) {
       this.logger.error('Erro ao remover condição', {
         error: 'Condição não encontrada',
         conditionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Condição não encontrada');
@@ -266,7 +262,7 @@ export class ConditionsService {
 
     const newVersionNumber = condition.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const deletedCondition = await tx.condition.update({
         where: { id },
         data: {
@@ -278,7 +274,7 @@ export class ConditionsService {
 
       await tx.conditionHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           conditionId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -301,7 +297,7 @@ export class ConditionsService {
     this.logger.info('Condição removida com versionamento', {
       conditionId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -314,24 +310,23 @@ export class ConditionsService {
   /**
    * Consultar histórico completo de condição
    */
-  async getHistory(conditionId: string, tenantId: string) {
-    const condition = await this.prisma.condition.findFirst({
-      where: { id: conditionId, tenantId },
+  async getHistory(conditionId: string) {
+    const condition = await this.tenantContext.client.condition.findFirst({
+      where: { id: conditionId },
     });
 
     if (!condition) {
       this.logger.error('Erro ao consultar histórico de condição', {
         error: 'Condição não encontrada',
         conditionId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Condição não encontrada');
     }
 
-    const history = await this.prisma.conditionHistory.findMany({
+    const history = await this.tenantContext.client.conditionHistory.findMany({
       where: {
         conditionId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -341,7 +336,7 @@ export class ConditionsService {
     this.logger.info('Histórico de condição consultado', {
       conditionId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -360,10 +355,9 @@ export class ConditionsService {
   async getHistoryVersion(
     conditionId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
-    const condition = await this.prisma.condition.findFirst({
-      where: { id: conditionId, tenantId },
+    const condition = await this.tenantContext.client.condition.findFirst({
+      where: { id: conditionId },
     });
 
     if (!condition) {
@@ -371,16 +365,15 @@ export class ConditionsService {
         error: 'Condição não encontrada',
         conditionId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Condição não encontrada');
     }
 
-    const historyVersion = await this.prisma.conditionHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.conditionHistory.findFirst({
       where: {
         conditionId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -389,7 +382,7 @@ export class ConditionsService {
         error: `Versão ${versionNumber} não encontrada para esta condição`,
         conditionId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para esta condição`,
@@ -399,7 +392,7 @@ export class ConditionsService {
     this.logger.info('Versão específica do histórico consultada', {
       conditionId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

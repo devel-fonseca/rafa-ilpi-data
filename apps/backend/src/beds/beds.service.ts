@@ -1,49 +1,63 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import { CreateBedDto, UpdateBedDto, ReserveBedDto, BlockBedDto, ReleaseBedDto } from './dto'
+import { TenantContextService } from '../prisma/tenant-context.service'
+import {
+  CreateBedDto,
+  UpdateBedDto,
+  ReserveBedDto,
+  BlockBedDto,
+  ReleaseBedDto,
+} from './dto'
 
+/**
+ * Service para gerenciamento de leitos.
+ *
+ * PADRÃO MULTI-TENANCY COM SCHEMA ISOLATION:
+ * - Usa `tenantContext.client` para acessar dados isolados no schema do tenant
+ * - NÃO recebe `tenantId` como parâmetro (schema já isola)
+ * - NÃO filtra por `tenantId` nas queries (desnecessário)
+ * - Usa `prisma` (public client) apenas para tabelas SHARED (Tenant, Plan, etc.)
+ *
+ * @see TenantContextService - Gerencia o client isolado por tenant
+ * @see TenantContextInterceptor - Inicializa automaticamente o contexto
+ */
 @Injectable()
 export class BedsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
-  async create(tenantId: string, createBedDto: CreateBedDto) {
-    // Validar que o room existe
-    const room = await this.prisma.room.findFirst({
-      where: { id: createBedDto.roomId, tenantId, deletedAt: null },
+  async create(createBedDto: CreateBedDto) {
+    // ✅ Validar que o room existe (usando tenant client)
+    const room = await this.tenantContext.client.room.findFirst({
+      where: { id: createBedDto.roomId, deletedAt: null },
     })
 
     if (!room) {
       throw new NotFoundException(`Quarto com ID ${createBedDto.roomId} não encontrado`)
     }
 
-    // Verificar se o code já existe para este tenant
-    const existingBed = await this.prisma.bed.findFirst({
-      where: { tenantId, code: createBedDto.code, deletedAt: null },
+    // ✅ Verificar se o code já existe (sem filtro tenantId!)
+    const existingBed = await this.tenantContext.client.bed.findFirst({
+      where: { code: createBedDto.code, deletedAt: null },
     })
 
     if (existingBed) {
-      throw new BadRequestException(
-        `Já existe um leito com o código ${createBedDto.code}`
-      )
+      throw new BadRequestException(`Já existe um leito com o código ${createBedDto.code}`)
     }
 
-    return this.prisma.bed.create({
+    return this.tenantContext.client.bed.create({
       data: {
         ...createBedDto,
+        tenantId: this.tenantContext.tenantId, // Schema isolation já funciona, mas campo ainda é obrigatório
         status: createBedDto.status || 'Disponível',
-        tenantId,
       },
     })
   }
 
-  async findAll(
-    tenantId: string,
-    skip: number = 0,
-    take: number = 50,
-    roomId?: string,
-    status?: string
-  ) {
-    const where: any = { tenantId, deletedAt: null }
+  async findAll(skip: number = 0, take: number = 50, roomId?: string, status?: string) {
+    const where: any = { deletedAt: null } // ✅ Sem tenantId!
     if (roomId) {
       where.roomId = roomId
     }
@@ -52,7 +66,7 @@ export class BedsService {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.bed.findMany({
+      this.tenantContext.client.bed.findMany({
         where,
         include: {
           room: {
@@ -80,15 +94,15 @@ export class BedsService {
         take,
         orderBy: { code: 'asc' },
       }),
-      this.prisma.bed.count({ where }),
+      this.tenantContext.client.bed.count({ where }),
     ])
 
     return { data, total, skip, take }
   }
 
-  async findOne(tenantId: string, id: string) {
-    const bed = await this.prisma.bed.findFirst({
-      where: { id, tenantId, deletedAt: null },
+  async findOne(id: string) {
+    const bed = await this.tenantContext.client.bed.findFirst({
+      where: { id, deletedAt: null },
       include: {
         room: {
           select: {
@@ -119,8 +133,8 @@ export class BedsService {
 
     // Se estiver ocupado, buscar o residente
     if (bed.status === 'Ocupado') {
-      const resident = await this.prisma.resident.findFirst({
-        where: { bedId: id, tenantId, deletedAt: null },
+      const resident = await this.tenantContext.client.resident.findFirst({
+        where: { bedId: id, deletedAt: null },
         select: { id: true, fullName: true, status: true },
       })
 
@@ -130,14 +144,14 @@ export class BedsService {
     return bed
   }
 
-  async update(tenantId: string, id: string, updateBedDto: UpdateBedDto) {
+  async update(id: string, updateBedDto: UpdateBedDto) {
     // Validar que o bed existe
-    await this.findOne(tenantId, id)
+    await this.findOne(id)
 
     // Se está mudando o roomId, validar que o novo room existe
     if (updateBedDto.roomId) {
-      const room = await this.prisma.room.findFirst({
-        where: { id: updateBedDto.roomId, tenantId, deletedAt: null },
+      const room = await this.tenantContext.client.room.findFirst({
+        where: { id: updateBedDto.roomId, deletedAt: null },
       })
 
       if (!room) {
@@ -147,9 +161,8 @@ export class BedsService {
 
     // Se está mudando o code, validar se já não existe
     if (updateBedDto.code) {
-      const existingBed = await this.prisma.bed.findFirst({
+      const existingBed = await this.tenantContext.client.bed.findFirst({
         where: {
-          tenantId,
           code: updateBedDto.code,
           id: { not: id },
           deletedAt: null,
@@ -157,50 +170,48 @@ export class BedsService {
       })
 
       if (existingBed) {
-        throw new BadRequestException(
-          `Já existe um leito com o código ${updateBedDto.code}`
-        )
+        throw new BadRequestException(`Já existe um leito com o código ${updateBedDto.code}`)
       }
     }
 
-    return this.prisma.bed.update({
+    return this.tenantContext.client.bed.update({
       where: { id },
       data: updateBedDto,
     })
   }
 
-  async remove(tenantId: string, id: string) {
+  async remove(id: string) {
     // Validar que o bed existe
-    const bed = await this.findOne(tenantId, id)
+    const bed = await this.findOne(id)
 
     // Verificar se está ocupado
     if (bed.status === 'Ocupado') {
       throw new BadRequestException(
-        'Não é possível remover um leito ocupado. Libere o leito primeiro.'
+        'Não é possível remover um leito ocupado. Libere o leito primeiro.',
       )
     }
 
-    return this.prisma.bed.update({
+    return this.tenantContext.client.bed.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
   }
 
-  async getOccupancyStats(tenantId: string) {
-    const total = await this.prisma.bed.count({
-      where: { tenantId, deletedAt: null },
+  async getOccupancyStats() {
+    const total = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null },
     })
 
-    const occupied = await this.prisma.bed.count({
-      where: { tenantId, status: 'Ocupado', deletedAt: null },
+    const occupied = await this.tenantContext.client.bed.count({
+      where: { status: 'Ocupado', deletedAt: null },
     })
 
-    const available = await this.prisma.bed.count({
-      where: { tenantId, status: 'Disponível', deletedAt: null },
+    const available = await this.tenantContext.client.bed.count({
+      where: { status: 'Disponível', deletedAt: null },
     })
 
-    const maintenance = await this.prisma.bed.count({
-      where: { tenantId, status: 'Manutenção', deletedAt: null },
+    const maintenance = await this.tenantContext.client.bed.count({
+      where: { status: 'Manutenção', deletedAt: null },
     })
 
     return {
@@ -212,13 +223,13 @@ export class BedsService {
     }
   }
 
-  async getFullMap(tenantId: string, buildingId?: string) {
-    const where: any = { tenantId, deletedAt: null }
+  async getFullMap(buildingId?: string) {
+    const where: any = { deletedAt: null }
     if (buildingId) {
       where.id = buildingId
     }
 
-    const buildings = await this.prisma.building.findMany({
+    const buildings = await this.tenantContext.client.building.findMany({
       where,
       include: {
         floors: {
@@ -242,9 +253,8 @@ export class BedsService {
     })
 
     // Buscar todos os residentes que ocupam leitos
-    const residents = await this.prisma.resident.findMany({
+    const residents = await this.tenantContext.client.resident.findMany({
       where: {
-        tenantId,
         bedId: { not: null },
         deletedAt: null,
       },
@@ -258,7 +268,7 @@ export class BedsService {
 
     // Criar mapa de bedId -> resident para lookup rápido
     const residentsByBedId = new Map(
-      residents.map((r) => [r.bedId, { id: r.id, fullName: r.fullName, fotoUrl: r.fotoUrl }])
+      residents.map((r) => [r.bedId, { id: r.id, fullName: r.fullName, fotoUrl: r.fotoUrl }]),
     )
 
     // Adicionar contagens calculadas para cada nível da hierarquia
@@ -318,8 +328,8 @@ export class BedsService {
     const occupiedBeds = buildingsWithStats.reduce((sum, b) => sum + b.occupiedBeds, 0)
 
     // Contar leitos por status
-    const bedStatuses = await this.prisma.bed.findMany({
-      where: { tenantId, deletedAt: null },
+    const bedStatuses = await this.tenantContext.client.bed.findMany({
+      where: { deletedAt: null },
       select: { status: true },
     })
 
@@ -344,15 +354,10 @@ export class BedsService {
   /**
    * Reserva um leito para futuro residente
    */
-  async reserveBed(
-    tenantId: string,
-    bedId: string,
-    userId: string,
-    reserveBedDto: ReserveBedDto
-  ) {
+  async reserveBed(bedId: string, userId: string, reserveBedDto: ReserveBedDto) {
     // Validar que o leito existe e está disponível
-    const bed = await this.prisma.bed.findFirst({
-      where: { id: bedId, tenantId, deletedAt: null },
+    const bed = await this.tenantContext.client.bed.findFirst({
+      where: { id: bedId, deletedAt: null },
     })
 
     if (!bed) {
@@ -361,7 +366,7 @@ export class BedsService {
 
     if (bed.status !== 'Disponível') {
       throw new BadRequestException(
-        `Leito ${bed.code} não está disponível. Status atual: ${bed.status}`
+        `Leito ${bed.code} não está disponível. Status atual: ${bed.status}`,
       )
     }
 
@@ -386,7 +391,8 @@ export class BedsService {
       notes += ` - ${reserveBedDto.notes}`
     }
 
-    return await this.prisma.$transaction(async (prisma) => {
+    // ✅ Usar $transaction do tenant client
+    return await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -399,8 +405,8 @@ export class BedsService {
       // Criar registro no histórico de status
       await prisma.bedStatusHistory.create({
         data: {
-          tenantId,
           bedId,
+          tenantId: this.tenantContext.tenantId,
           previousStatus: bed.status,
           newStatus: 'Reservado',
           reason: reserveBedDto.notes || notes,
@@ -419,15 +425,10 @@ export class BedsService {
   /**
    * Bloqueia um leito para manutenção
    */
-  async blockBed(
-    tenantId: string,
-    bedId: string,
-    userId: string,
-    blockBedDto: BlockBedDto
-  ) {
+  async blockBed(bedId: string, userId: string, blockBedDto: BlockBedDto) {
     // Validar que o leito existe
-    const bed = await this.prisma.bed.findFirst({
-      where: { id: bedId, tenantId, deletedAt: null },
+    const bed = await this.tenantContext.client.bed.findFirst({
+      where: { id: bedId, deletedAt: null },
     })
 
     if (!bed) {
@@ -437,7 +438,7 @@ export class BedsService {
     // Não pode bloquear leito ocupado
     if (bed.status === 'Ocupado') {
       throw new BadRequestException(
-        `Leito ${bed.code} está ocupado e não pode ser bloqueado para manutenção`
+        `Leito ${bed.code} está ocupado e não pode ser bloqueado para manutenção`,
       )
     }
 
@@ -453,7 +454,7 @@ export class BedsService {
       notes += ` - Previsão de liberação: ${blockBedDto.expectedReleaseDate}`
     }
 
-    return await this.prisma.$transaction(async (prisma) => {
+    return await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -466,8 +467,8 @@ export class BedsService {
       // Criar registro no histórico de status
       await prisma.bedStatusHistory.create({
         data: {
-          tenantId,
           bedId,
+          tenantId: this.tenantContext.tenantId,
           previousStatus: bed.status,
           newStatus: 'Manutenção',
           reason: blockBedDto.reason,
@@ -486,15 +487,10 @@ export class BedsService {
   /**
    * Libera um leito (Reservado ou Manutenção → Disponível)
    */
-  async releaseBed(
-    tenantId: string,
-    bedId: string,
-    userId: string,
-    releaseBedDto: ReleaseBedDto
-  ) {
+  async releaseBed(bedId: string, userId: string, releaseBedDto: ReleaseBedDto) {
     // Validar que o leito existe
-    const bed = await this.prisma.bed.findFirst({
-      where: { id: bedId, tenantId, deletedAt: null },
+    const bed = await this.tenantContext.client.bed.findFirst({
+      where: { id: bedId, deletedAt: null },
     })
 
     if (!bed) {
@@ -504,14 +500,15 @@ export class BedsService {
     // Só pode liberar leitos em Manutenção ou Reservado
     if (bed.status !== 'Manutenção' && bed.status !== 'Reservado') {
       throw new BadRequestException(
-        `Leito ${bed.code} não pode ser liberado. Status atual: ${bed.status}`
+        `Leito ${bed.code} não pode ser liberado. Status atual: ${bed.status}`,
       )
     }
 
-    const reason = releaseBedDto.reason ||
+    const reason =
+      releaseBedDto.reason ||
       (bed.status === 'Manutenção' ? 'Manutenção concluída' : 'Reserva cancelada')
 
-    return await this.prisma.$transaction(async (prisma) => {
+    return await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -524,8 +521,8 @@ export class BedsService {
       // Criar registro no histórico de status
       await prisma.bedStatusHistory.create({
         data: {
-          tenantId,
           bedId,
+          tenantId: this.tenantContext.tenantId,
           previousStatus: bed.status,
           newStatus: 'Disponível',
           reason,
@@ -544,19 +541,14 @@ export class BedsService {
   /**
    * Busca histórico de mudanças de status de um leito
    */
-  async getBedStatusHistory(
-    tenantId: string,
-    bedId?: string,
-    skip: number = 0,
-    take: number = 50
-  ) {
-    const where: any = { tenantId }
+  async getBedStatusHistory(bedId?: string, skip: number = 0, take: number = 50) {
+    const where: any = { deletedAt: null } // ✅ Sem tenantId!
     if (bedId) {
       where.bedId = bedId
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.bedStatusHistory.findMany({
+      this.tenantContext.client.bedStatusHistory.findMany({
         where,
         include: {
           bed: {
@@ -592,7 +584,7 @@ export class BedsService {
         skip,
         take,
       }),
-      this.prisma.bedStatusHistory.count({ where }),
+      this.tenantContext.client.bedStatusHistory.count({ where }),
     ])
 
     return { data, total, skip, take }

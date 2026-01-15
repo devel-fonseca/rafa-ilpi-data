@@ -28,22 +28,19 @@ export class RoomsController {
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
-    @CurrentUser('tenantId') tenantId: string,
     @Body() createRoomDto: CreateRoomDto
   ) {
-    return this.roomsService.create(tenantId, createRoomDto)
+    return this.roomsService.create(createRoomDto)
   }
 
   @Get()
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
-    @CurrentUser('tenantId') tenantId: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('floorId') floorId?: string
   ) {
     return this.roomsService.findAll(
-      tenantId,
       parseInt(skip || '0'),
       parseInt(take || '50'),
       floorId
@@ -52,25 +49,24 @@ export class RoomsController {
 
   @Get(':id')
   @RequirePermissions(PermissionType.VIEW_BEDS)
-  findOne(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.roomsService.findOne(tenantId, id)
+  findOne(@Param('id') id: string) {
+    return this.roomsService.findOne(id)
   }
 
   @Patch(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
-    @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string,
     @Body() updateRoomDto: UpdateRoomDto
   ) {
-    return this.roomsService.update(tenantId, id, updateRoomDto)
+    return this.roomsService.update(id, updateRoomDto)
   }
 
   @Delete(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
-  remove(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.roomsService.remove(tenantId, id)
+  remove(@Param('id') id: string) {
+    return this.roomsService.remove(id)
   }
 }

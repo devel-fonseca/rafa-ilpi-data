@@ -60,7 +60,6 @@ export class ResidentsController {
   ) {
     return this.residentsService.create(
       createResidentDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -79,7 +78,7 @@ export class ResidentsController {
     @Query() query: QueryResidentDto,
     @CurrentUser() user: any,
   ) {
-    return this.residentsService.findAll(query, user.tenantId);
+    return this.residentsService.findAll(query);
   }
 
   @Get(':id')
@@ -93,7 +92,7 @@ export class ResidentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.residentsService.findOne(id, user.tenantId);
+    return this.residentsService.findOne(id);
   }
 
   @Patch(':id')
@@ -114,7 +113,6 @@ export class ResidentsController {
     return this.residentsService.update(
       id,
       updateResidentDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -137,7 +135,6 @@ export class ResidentsController {
   ) {
     return this.residentsService.remove(
       id,
-      user.tenantId,
       user.id,
       deleteResidentDto.changeReason,
     );
@@ -154,7 +151,7 @@ export class ResidentsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.residentsService.getHistory(id, user.tenantId);
+    return this.residentsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -173,7 +170,6 @@ export class ResidentsController {
     return this.residentsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 
@@ -183,7 +179,7 @@ export class ResidentsController {
   @ApiResponse({ status: 200, description: 'Estatísticas dos residentes' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   async getStats(@CurrentUser() user: any) {
-    return this.residentsService.getStats(user.tenantId);
+    return this.residentsService.getStats();
   }
 
   @Post(':id/transfer-bed')
@@ -211,7 +207,6 @@ export class ResidentsController {
     return this.residentsService.transferBed(
       id,
       transferBedDto,
-      user.tenantId,
       user.id,
     );
   }

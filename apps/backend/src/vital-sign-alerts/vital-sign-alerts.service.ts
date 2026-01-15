@@ -4,6 +4,7 @@ import {
   Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import {
   CreateVitalSignAlertDto,
   UpdateVitalSignAlertDto,
@@ -15,14 +16,16 @@ import { AlertStatus, Prisma } from '@prisma/client'
 export class VitalSignAlertsService {
   private readonly logger = new Logger(VitalSignAlertsService.name)
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   /**
    * Criar novo alerta médico de sinal vital
    * Usado pelo sistema quando detecta anomalias
    */
   async create(
-    tenantId: string,
     dto: CreateVitalSignAlertDto,
     createdBy?: string,
   ) {
@@ -34,10 +37,10 @@ export class VitalSignAlertsService {
     const priority = this.calculatePriority(dto.severity, dto.type)
 
     // Criar alerta e primeira entrada de histórico em transação
-    const alert = await this.prisma.$transaction(async (prisma) => {
+    const alert = await this.tenantContext.client.$transaction(async (prisma) => {
       const newAlert = await prisma.vitalSignAlert.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
           residentId: dto.residentId,
           vitalSignId: dto.vitalSignId,
           notificationId: dto.notificationId,
@@ -99,7 +102,7 @@ export class VitalSignAlertsService {
   /**
    * Buscar alertas com filtros e paginação
    */
-  async findAll(tenantId: string, query: QueryVitalSignAlertsDto) {
+  async findAll(query: QueryVitalSignAlertsDto) {
     const {
       residentId,
       status,
@@ -113,7 +116,6 @@ export class VitalSignAlertsService {
     } = query
 
     const where: Prisma.VitalSignAlertWhereInput = {
-      tenantId,
       ...(residentId && { residentId }),
       ...(status && { status }),
       ...(type && { type }),
@@ -129,7 +131,7 @@ export class VitalSignAlertsService {
     }
 
     const [alerts, total] = await Promise.all([
-      this.prisma.vitalSignAlert.findMany({
+      this.tenantContext.client.vitalSignAlert.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
@@ -183,7 +185,7 @@ export class VitalSignAlertsService {
           },
         },
       }),
-      this.prisma.vitalSignAlert.count({ where }),
+      this.tenantContext.client.vitalSignAlert.count({ where }),
     ])
 
     return {
@@ -200,11 +202,10 @@ export class VitalSignAlertsService {
   /**
    * Buscar alerta por ID
    */
-  async findOne(tenantId: string, id: string) {
-    const alert = await this.prisma.vitalSignAlert.findFirst({
+  async findOne(id: string) {
+    const alert = await this.tenantContext.client.vitalSignAlert.findFirst({
       where: {
         id,
-        tenantId,
       },
       include: {
         resident: {
@@ -290,13 +291,12 @@ export class VitalSignAlertsService {
    * Atualizar alerta médico
    */
   async update(
-    tenantId: string,
     id: string,
     dto: UpdateVitalSignAlertDto,
     userId: string,
   ) {
     // Verificar se alerta existe
-    const existingAlert = await this.findOne(tenantId, id)
+    const existingAlert = await this.findOne(id)
 
     // Preparar dados de atualização
     const updateData: any = {}
@@ -350,7 +350,7 @@ export class VitalSignAlertsService {
     }
 
     // Atualizar alerta e criar entrada de histórico em uma transação
-    const result = await this.prisma.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar alerta
       const updatedAlert = await prisma.vitalSignAlert.update({
         where: { id },
@@ -401,10 +401,9 @@ export class VitalSignAlertsService {
   /**
    * Buscar alertas ativos de um residente
    */
-  async findActiveByResident(tenantId: string, residentId: string) {
-    return this.prisma.vitalSignAlert.findMany({
+  async findActiveByResident(residentId: string) {
+    return this.tenantContext.client.vitalSignAlert.findMany({
       where: {
-        tenantId,
         residentId,
         status: {
           in: [AlertStatus.ACTIVE, AlertStatus.IN_TREATMENT, AlertStatus.MONITORING],
@@ -425,23 +424,23 @@ export class VitalSignAlertsService {
   /**
    * Contar alertas por status
    */
-  async countByStatus(tenantId: string) {
+  async countByStatus() {
     const [active, inTreatment, monitoring, resolved, ignored] =
       await Promise.all([
-        this.prisma.vitalSignAlert.count({
-          where: { tenantId, status: AlertStatus.ACTIVE },
+        this.tenantContext.client.vitalSignAlert.count({
+          where: { status: AlertStatus.ACTIVE },
         }),
-        this.prisma.vitalSignAlert.count({
-          where: { tenantId, status: AlertStatus.IN_TREATMENT },
+        this.tenantContext.client.vitalSignAlert.count({
+          where: { status: AlertStatus.IN_TREATMENT },
         }),
-        this.prisma.vitalSignAlert.count({
-          where: { tenantId, status: AlertStatus.MONITORING },
+        this.tenantContext.client.vitalSignAlert.count({
+          where: { status: AlertStatus.MONITORING },
         }),
-        this.prisma.vitalSignAlert.count({
-          where: { tenantId, status: AlertStatus.RESOLVED },
+        this.tenantContext.client.vitalSignAlert.count({
+          where: { status: AlertStatus.RESOLVED },
         }),
-        this.prisma.vitalSignAlert.count({
-          where: { tenantId, status: AlertStatus.IGNORED },
+        this.tenantContext.client.vitalSignAlert.count({
+          where: { status: AlertStatus.IGNORED },
         }),
       ])
 
@@ -486,12 +485,11 @@ export class VitalSignAlertsService {
    * Buscar histórico de alterações de um alerta
    * Retorna todas as mudanças em ordem cronológica para exibição ao usuário
    */
-  async getHistory(tenantId: string, alertId: string) {
-    // Verificar se alerta existe e pertence ao tenant
-    const alert = await this.prisma.vitalSignAlert.findFirst({
+  async getHistory(alertId: string) {
+    // Verificar se alerta existe
+    const alert = await this.tenantContext.client.vitalSignAlert.findFirst({
       where: {
         id: alertId,
-        tenantId,
       },
     })
 
@@ -500,7 +498,7 @@ export class VitalSignAlertsService {
     }
 
     // Buscar histórico de alterações
-    const history = await this.prisma.vitalSignAlertHistory.findMany({
+    const history = await this.tenantContext.client.vitalSignAlertHistory.findMany({
       where: {
         alertId,
       },

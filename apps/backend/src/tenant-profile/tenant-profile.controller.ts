@@ -75,7 +75,7 @@ export class TenantProfileController {
     @CurrentUser() user: any,
     @Body() dto: CreateTenantProfileDto,
   ) {
-    return this.tenantProfileService.upsert(user.tenantId, dto);
+    return this.tenantProfileService.upsert(dto);
   }
 
   /**
@@ -96,7 +96,7 @@ export class TenantProfileController {
     description: 'Perfil não encontrado',
   })
   async getMyProfile(@CurrentUser() user: any) {
-    return this.tenantProfileService.findByTenantId(user.tenantId);
+    return this.tenantProfileService.findByTenantId();
   }
 
   /**
@@ -122,9 +122,7 @@ export class TenantProfileController {
     },
   })
   async checkCompletion(@CurrentUser() user: any) {
-    return this.tenantProfileService.checkCompletionStatus(
-      user.tenantId,
-    );
+    return this.tenantProfileService.checkCompletionStatus();
   }
 
   /**
@@ -154,7 +152,7 @@ export class TenantProfileController {
     @CurrentUser() user: any,
     @Body() dto: UpdateTenantProfileDto,
   ) {
-    return this.tenantProfileService.update(user.tenantId, dto);
+    return this.tenantProfileService.update(dto);
   }
 
   /**
@@ -177,6 +175,6 @@ export class TenantProfileController {
     description: 'Perfil não encontrado',
   })
   async softDelete(@CurrentUser() user: any) {
-    await this.tenantProfileService.softDelete(user.tenantId);
+    await this.tenantProfileService.softDelete();
   }
 }

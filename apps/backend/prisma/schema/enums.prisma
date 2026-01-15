@@ -198,6 +198,13 @@ enum PermissionType {
   DELETE_MESSAGES
   BROADCAST_MESSAGES
 
+  // Contratos de Residentes
+  VIEW_CONTRACTS
+  CREATE_CONTRACTS
+  UPDATE_CONTRACTS
+  DELETE_CONTRACTS
+  REPLACE_CONTRACTS
+
   @@map("PermissionType")
 }
 
@@ -715,6 +722,18 @@ enum AlertSeverity {
   CRITICAL
 
   @@map("AlertSeverity")
+}
+
+// ==========================================
+// CONTRATOS DE RESIDENTES (1 enum)
+// ==========================================
+
+enum ContractDocumentStatus {
+  VIGENTE // Contrato vigente/ativo
+  VENCENDO_EM_30_DIAS // Contrato vence em 30 dias ou menos
+  VENCIDO // Contrato vencido
+
+  @@map("ContractDocumentStatus")
 }
 
 // ==========================================

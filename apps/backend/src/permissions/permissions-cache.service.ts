@@ -97,11 +97,69 @@ export class PermissionsCacheService {
    * Busca dados de permissões do banco
    *
    * Mesma query usada em PermissionsService.hasPermission, getUserEffectivePermissions, etc
+   *
+   * ARQUITETURA MULTI-TENANT:
+   * Este é um serviço singleton que precisa acessar User (TENANT table) tendo apenas userId.
+   * Solução: Query SQL raw otimizada que busca em UNION de todos os tenant schemas.
    */
   private async fetchFromDatabase(
     userId: string,
   ): Promise<CachedUserPermissions | null> {
-    const user = await this.prisma.user.findUnique({
+    // STEP 1: Buscar tenantId do user via query raw (User tem tenantId mesmo em schema de tenant)
+    // Query otimizada: buscar em todos os schemas via UNION ALL
+    const tenants = await this.prisma.tenant.findMany({
+      where: { deletedAt: null },
+      select: { schemaName: true },
+    });
+
+    if (tenants.length === 0) {
+      this.logger.warn('Nenhum tenant ativo encontrado');
+      return null;
+    }
+
+    // Construir UNION ALL de todos os schemas
+    const unionQuery = tenants
+      .map(
+        (t) =>
+          `SELECT id, tenant_id as "tenantId", role FROM "${t.schemaName}".users WHERE id = $1 AND deleted_at IS NULL`,
+      )
+      .join(' UNION ALL ');
+
+    type UserBasicInfo = {
+      id: string;
+      tenantId: string;
+      role: string;
+    };
+
+    const results = await this.prisma.$queryRawUnsafe<UserBasicInfo[]>(
+      unionQuery,
+      userId,
+    );
+
+    if (results.length === 0) {
+      this.logger.debug(`User ${userId} não encontrado em nenhum tenant schema`);
+      return null;
+    }
+
+    const basicInfo = results[0]; // Pegar primeiro resultado (user deve existir em apenas 1 schema)
+
+    // STEP 2: Buscar tenant para obter schemaName
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: basicInfo.tenantId },
+      select: { schemaName: true },
+    });
+
+    if (!tenant) {
+      this.logger.error(
+        `Tenant ${basicInfo.tenantId} não encontrado para user ${userId}`,
+      );
+      return null;
+    }
+
+    // STEP 3: Usar tenant client para buscar dados completos (profile + customPermissions)
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
+    const user = await tenantClient.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -123,6 +181,10 @@ export class PermissionsCacheService {
     });
 
     if (!user) {
+      // Improvável acontecer (já verificamos que existe), mas tratar
+      this.logger.error(
+        `User ${userId} não encontrado no schema ${tenant.schemaName} na segunda query`,
+      );
       return null;
     }
 

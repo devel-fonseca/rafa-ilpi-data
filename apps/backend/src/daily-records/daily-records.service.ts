@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
 import { UpdateDailyRecordDto } from './dto/update-daily-record.dto';
 import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
@@ -20,19 +21,19 @@ import { localToUTC } from '../utils/date.helpers';
 @Injectable()
 export class DailyRecordsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly vitalSignsService: VitalSignsService,
     private readonly incidentInterceptorService: IncidentInterceptorService,
     private readonly eventEmitter: EventEmitter2,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
-  async create(dto: CreateDailyRecordDto, tenantId: string, userId: string) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+  async create(dto: CreateDailyRecordDto, userId: string) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: dto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -48,7 +49,7 @@ export class DailyRecordsService {
     }
 
     // Criar registro
-    const record = await this.prisma.dailyRecord.create({
+    const record = await this.tenantContext.client.dailyRecord.create({
       data: {
         type: dto.type as any, // Cast para RecordType
         // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
@@ -68,7 +69,7 @@ export class DailyRecordsService {
         isDoencaNotificavel: dto.isDoencaNotificavel,
         rdcIndicators: dto.rdcIndicators as any,
         tenant: {
-          connect: { id: tenantId },
+          connect: { id: this.tenantContext.tenantId },
         },
         resident: {
           connect: { id: dto.residentId },
@@ -92,7 +93,7 @@ export class DailyRecordsService {
       recordId: record.id,
       residentId: dto.residentId,
       type: dto.type,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -101,7 +102,6 @@ export class DailyRecordsService {
     try {
       await this.incidentInterceptorService.analyzeAndCreateIncidents(
         record,
-        tenantId,
         userId,
       );
     } catch (error) {
@@ -117,7 +117,7 @@ export class DailyRecordsService {
     // O SentinelEventsService está escutando este evento via @OnEvent
     this.eventEmitter.emit(
       'daily-record.created',
-      new DailyRecordCreatedEvent(record, tenantId, userId),
+      new DailyRecordCreatedEvent(record, this.tenantContext.tenantId, userId),
     );
 
     this.logger.info('Evento daily-record.created emitido', {
@@ -130,7 +130,7 @@ export class DailyRecordsService {
       try {
         // Buscar timezone do tenant para construir timestamp corretamente
         const tenant = await this.prisma.tenant.findUnique({
-          where: { id: tenantId },
+          where: { id: this.tenantContext.tenantId },
           select: { timezone: true },
         });
         const timezone = tenant?.timezone || 'America/Sao_Paulo';
@@ -139,7 +139,7 @@ export class DailyRecordsService {
         const timestamp = this.buildTimestamp(dto.date, dto.time, timezone);
 
         // Usar VitalSignsService do NestJS que já tem detecção de anomalias integrada
-        await this.vitalSignsService.create(tenantId, userId, {
+        await this.vitalSignsService.create(userId, {
           residentId: dto.residentId,
           userId,
           timestamp,
@@ -212,14 +212,13 @@ export class DailyRecordsService {
     return localToUTC(dateStr, timeStr, timezone);
   }
 
-  async findAll(query: QueryDailyRecordDto, tenantId: string) {
+  async findAll(query: QueryDailyRecordDto) {
     const page = parseInt(query.page || '1');
     const limit = parseInt(query.limit || '50');
     const skip = (page - 1) * limit;
 
     // Construir filtros
     const where: any = {
-      tenantId,
       deletedAt: null,
     };
 
@@ -250,7 +249,7 @@ export class DailyRecordsService {
     }
 
     const [records, total] = await Promise.all([
-      this.prisma.dailyRecord.findMany({
+      this.tenantContext.client.dailyRecord.findMany({
         where,
         skip,
         take: limit,
@@ -268,7 +267,7 @@ export class DailyRecordsService {
           },
         },
       }),
-      this.prisma.dailyRecord.count({ where }),
+      this.tenantContext.client.dailyRecord.count({ where }),
     ]);
 
     return {
@@ -282,11 +281,10 @@ export class DailyRecordsService {
     };
   }
 
-  async findOne(id: string, tenantId: string) {
-    const record = await this.prisma.dailyRecord.findFirst({
+  async findOne(id: string) {
+    const record = await this.tenantContext.client.dailyRecord.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -310,13 +308,11 @@ export class DailyRecordsService {
   async findByResidentAndDate(
     residentId: string,
     date: string,
-    tenantId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -330,10 +326,9 @@ export class DailyRecordsService {
     // independente do horário armazenado no TIMESTAMPTZ
     const dateObj = parseISO(date);
 
-    const records = await this.prisma.dailyRecord.findMany({
+    const records = await this.tenantContext.client.dailyRecord.findMany({
       where: {
         residentId,
-        tenantId,
         date: {
           gte: startOfDay(dateObj),
           lte: endOfDay(dateObj),
@@ -360,15 +355,13 @@ export class DailyRecordsService {
   async update(
     id: string,
     dto: UpdateDailyRecordDto,
-    tenantId: string,
     userId: string,
     userName: string,
   ) {
-    // Verificar se registro existe e pertence ao tenant
-    const existing = await this.prisma.dailyRecord.findFirst({
+    // Verificar se registro existe
+    const existing = await this.tenantContext.client.dailyRecord.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -386,7 +379,7 @@ export class DailyRecordsService {
     }
 
     // Calcular próximo número de versão
-    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+    const lastVersion = await this.tenantContext.client.dailyRecordHistory.findFirst({
       where: { recordId: id },
       orderBy: { versionNumber: 'desc' },
       select: { versionNumber: true },
@@ -422,12 +415,12 @@ export class DailyRecordsService {
     };
 
     // Usar transação para garantir consistência
-    const result = await this.prisma.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // 1. Salvar versão anterior no histórico
       await prisma.dailyRecordHistory.create({
         data: {
           recordId: id,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           versionNumber: nextVersionNumber,
           previousData: previousSnapshot,
           newData,
@@ -470,7 +463,7 @@ export class DailyRecordsService {
       versionNumber: nextVersionNumber,
       changedFields,
       reason: dto.editReason,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -479,7 +472,7 @@ export class DailyRecordsService {
       try {
         // Buscar timezone do tenant para construir timestamp corretamente
         const tenant = await this.prisma.tenant.findUnique({
-          where: { id: tenantId },
+          where: { id: this.tenantContext.tenantId },
           select: { timezone: true },
         });
         const timezone = tenant?.timezone || 'America/Sao_Paulo';
@@ -492,9 +485,8 @@ export class DailyRecordsService {
         );
 
         // Buscar VitalSign existente por timestamp
-        const existingVitalSign = await this.prisma.vitalSign.findFirst({
+        const existingVitalSign = await this.tenantContext.client.vitalSign.findFirst({
           where: {
-            tenantId,
             residentId: result.residentId,
             timestamp,
             deletedAt: null,
@@ -504,7 +496,6 @@ export class DailyRecordsService {
         if (existingVitalSign) {
           // Atualizar usando VitalSignsService do NestJS (com detecção de anomalias)
           await this.vitalSignsService.update(
-            tenantId,
             userId,
             existingVitalSign.id,
             { ...vitalSignData, changeReason: dto.editReason || 'Atualização via Registro Diário' },
@@ -536,15 +527,13 @@ export class DailyRecordsService {
   async remove(
     id: string,
     deleteDto: { deleteReason: string },
-    tenantId: string,
     userId: string,
     userName: string,
   ) {
-    // Verificar se registro existe e pertence ao tenant
-    const existing = await this.prisma.dailyRecord.findFirst({
+    // Verificar se registro existe
+    const existing = await this.tenantContext.client.dailyRecord.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -554,7 +543,7 @@ export class DailyRecordsService {
     }
 
     // Calcular próximo número de versão
-    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+    const lastVersion = await this.tenantContext.client.dailyRecordHistory.findFirst({
       where: { recordId: id },
       orderBy: { versionNumber: 'desc' },
       select: { versionNumber: true },
@@ -573,12 +562,12 @@ export class DailyRecordsService {
     };
 
     // Usar transação
-    await this.prisma.$transaction(async (prisma) => {
+    await this.tenantContext.client.$transaction(async (prisma) => {
       // 1. Salvar no histórico antes de deletar
       await prisma.dailyRecordHistory.create({
         data: {
           recordId: id,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           versionNumber: nextVersionNumber,
           previousData: finalSnapshot,
           newData: { deleted: true },
@@ -603,7 +592,7 @@ export class DailyRecordsService {
       recordId: id,
       versionNumber: nextVersionNumber,
       reason: deleteDto.deleteReason,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -612,7 +601,7 @@ export class DailyRecordsService {
       try {
         // Buscar timezone do tenant para construir timestamp corretamente
         const tenant = await this.prisma.tenant.findUnique({
-          where: { id: tenantId },
+          where: { id: this.tenantContext.tenantId },
           select: { timezone: true },
         });
         const timezone = tenant?.timezone || 'America/Sao_Paulo';
@@ -624,9 +613,8 @@ export class DailyRecordsService {
         );
 
         // Buscar VitalSign existente por timestamp
-        const existingVitalSign = await this.prisma.vitalSign.findFirst({
+        const existingVitalSign = await this.tenantContext.client.vitalSign.findFirst({
           where: {
-            tenantId,
             residentId: existing.residentId,
             timestamp,
             deletedAt: null,
@@ -636,7 +624,6 @@ export class DailyRecordsService {
         if (existingVitalSign) {
           // Deletar usando VitalSignsService do NestJS (com versionamento)
           await this.vitalSignsService.remove(
-            tenantId,
             userId,
             existingVitalSign.id,
             deleteDto.deleteReason || 'Remoção via Registro Diário',
@@ -668,12 +655,11 @@ export class DailyRecordsService {
   /**
    * Busca o histórico de versões de um registro
    */
-  async getHistory(id: string, tenantId: string) {
+  async getHistory(id: string) {
     // Verificar se registro existe
-    const record = await this.prisma.dailyRecord.findFirst({
+    const record = await this.tenantContext.client.dailyRecord.findFirst({
       where: {
         id,
-        tenantId,
       },
       select: {
         id: true,
@@ -686,10 +672,9 @@ export class DailyRecordsService {
     }
 
     // Buscar histórico ordenado por versão (mais recente primeiro)
-    const history = await this.prisma.dailyRecordHistory.findMany({
+    const history = await this.tenantContext.client.dailyRecordHistory.findMany({
       where: {
         recordId: id,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -711,7 +696,6 @@ export class DailyRecordsService {
    * @param recordId - ID do registro que será restaurado
    * @param versionId - ID da versão do histórico que será restaurada
    * @param restoreReason - Motivo da restauração (compliance)
-   * @param tenantId - ID do tenant
    * @param userId - ID do usuário que está restaurando
    * @param userName - Nome do usuário que está restaurando
    */
@@ -719,13 +703,12 @@ export class DailyRecordsService {
     recordId: string,
     versionId: string,
     restoreReason: string,
-    tenantId: string,
     userId: string,
     userName: string,
   ) {
     // Buscar registro atual
-    const record = await this.prisma.dailyRecord.findFirst({
-      where: { id: recordId, tenantId },
+    const record = await this.tenantContext.client.dailyRecord.findFirst({
+      where: { id: recordId },
     });
 
     if (!record) {
@@ -733,11 +716,10 @@ export class DailyRecordsService {
     }
 
     // Buscar versão do histórico que será restaurada
-    const versionToRestore = await this.prisma.dailyRecordHistory.findFirst({
+    const versionToRestore = await this.tenantContext.client.dailyRecordHistory.findFirst({
       where: {
         id: versionId,
         recordId,
-        tenantId,
       },
     });
 
@@ -746,7 +728,7 @@ export class DailyRecordsService {
     }
 
     // Calcular próximo número de versão
-    const lastVersion = await this.prisma.dailyRecordHistory.findFirst({
+    const lastVersion = await this.tenantContext.client.dailyRecordHistory.findFirst({
       where: { recordId },
       orderBy: { versionNumber: 'desc' },
       select: { versionNumber: true },
@@ -779,12 +761,12 @@ export class DailyRecordsService {
     });
 
     // Usar transação para garantir consistência
-    const result = await this.prisma.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // Criar registro no histórico indicando a restauração
       await prisma.dailyRecordHistory.create({
         data: {
           recordId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           versionNumber: nextVersionNumber,
           previousData: previousSnapshot,
           newData: dataToRestore,
@@ -829,10 +811,19 @@ export class DailyRecordsService {
    * Busca o último registro diário de cada residente do tenant
    * Query otimizada usando SQL RAW para melhor performance
    */
-  async findLatestByResidents(tenantId: string) {
+  async findLatestByResidents() {
+    const tenantSchemaName = (await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { schemaName: true },
+    }))?.schemaName;
+
+    if (!tenantSchemaName) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
     // Query SQL otimizada que busca o último registro de cada residente
     // usando window function DISTINCT ON (mais eficiente que GROUP BY + subquery)
-    const latestRecords = await this.prisma.$queryRaw<
+    const latestRecords = await this.tenantContext.client.$queryRawUnsafe<
       Array<{
         residentId: string;
         type: string;
@@ -840,18 +831,17 @@ export class DailyRecordsService {
         time: string;
         createdAt: Date;
       }>
-    >`
+    >(`
       SELECT DISTINCT ON (dr."residentId")
         dr."residentId",
         dr.type,
         dr.date,
         dr.time,
         dr."createdAt"
-      FROM daily_records dr
-      WHERE dr."tenantId" = ${tenantId}::uuid
-        AND dr."deletedAt" IS NULL
+      FROM "${tenantSchemaName}".daily_records dr
+      WHERE dr."deletedAt" IS NULL
       ORDER BY dr."residentId", dr.date DESC, dr.time DESC, dr."createdAt" DESC
-    `;
+    `);
 
     // Retornar resultado diretamente (já está no formato correto)
     return latestRecords;
@@ -863,14 +853,12 @@ export class DailyRecordsService {
    */
   async findLatestByResident(
     residentId: string,
-    tenantId: string,
     limit: number = 3,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -880,10 +868,9 @@ export class DailyRecordsService {
     }
 
     // Buscar últimos N registros ordenados por data DESC, time DESC
-    const latestRecords = await this.prisma.dailyRecord.findMany({
+    const latestRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       select: {
@@ -911,15 +898,13 @@ export class DailyRecordsService {
    */
   async findDatesWithRecordsByResident(
     residentId: string,
-    tenantId: string,
     year: number,
     month: number,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -935,10 +920,9 @@ export class DailyRecordsService {
     const lastDay = endOfMonth(referenceDate);
 
     // Buscar datas únicas que têm registros
-    const datesWithRecords = await this.prisma.dailyRecord.findMany({
+    const datesWithRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
         residentId,
-        tenantId,
         date: {
           gte: firstDay,
           lte: lastDay,
@@ -965,12 +949,11 @@ export class DailyRecordsService {
    * Busca o último registro de Monitoramento Vital de um residente
    * Otimizado para não carregar todos os registros (apenas o mais recente)
    */
-  async findLastVitalSign(residentId: string, tenantId: string) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+  async findLastVitalSign(residentId: string) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -980,10 +963,9 @@ export class DailyRecordsService {
     }
 
     // Buscar último sinal vital da tabela VitalSign
-    const vitalSign = await this.prisma.vitalSign.findFirst({
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       orderBy: [
@@ -1008,12 +990,11 @@ export class DailyRecordsService {
    * Busca os últimos valores registrados de cada parâmetro vital
    * Consolida valores de diferentes registros para exibição rápida
    */
-  async findConsolidatedVitalSigns(residentId: string, tenantId: string) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+  async findConsolidatedVitalSigns(residentId: string) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -1032,10 +1013,9 @@ export class DailyRecordsService {
       lastHeartRate,
     ] = await Promise.all([
       // Pressão Arterial (PA)
-      this.prisma.vitalSign.findFirst({
+      this.tenantContext.client.vitalSign.findFirst({
         where: {
           residentId,
-          tenantId,
           deletedAt: null,
           systolicBloodPressure: { not: null },
           diastolicBloodPressure: { not: null },
@@ -1049,10 +1029,9 @@ export class DailyRecordsService {
       }),
 
       // Glicemia
-      this.prisma.vitalSign.findFirst({
+      this.tenantContext.client.vitalSign.findFirst({
         where: {
           residentId,
-          tenantId,
           deletedAt: null,
           bloodGlucose: { not: null },
         },
@@ -1064,10 +1043,9 @@ export class DailyRecordsService {
       }),
 
       // Temperatura
-      this.prisma.vitalSign.findFirst({
+      this.tenantContext.client.vitalSign.findFirst({
         where: {
           residentId,
-          tenantId,
           deletedAt: null,
           temperature: { not: null },
         },
@@ -1079,10 +1057,9 @@ export class DailyRecordsService {
       }),
 
       // Saturação de Oxigênio (SpO2)
-      this.prisma.vitalSign.findFirst({
+      this.tenantContext.client.vitalSign.findFirst({
         where: {
           residentId,
-          tenantId,
           deletedAt: null,
           oxygenSaturation: { not: null },
         },
@@ -1094,10 +1071,9 @@ export class DailyRecordsService {
       }),
 
       // Frequência Cardíaca (FC)
-      this.prisma.vitalSign.findFirst({
+      this.tenantContext.client.vitalSign.findFirst({
         where: {
           residentId,
-          tenantId,
           deletedAt: null,
           heartRate: { not: null },
         },

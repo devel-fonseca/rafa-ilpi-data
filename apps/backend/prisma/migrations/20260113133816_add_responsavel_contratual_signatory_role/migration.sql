@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "SignatoryRole" ADD VALUE 'RESPONSAVEL_CONTRATUAL';

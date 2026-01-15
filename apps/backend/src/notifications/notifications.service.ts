@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import {
   SystemNotificationType,
   NotificationCategory,
@@ -13,21 +14,24 @@ import { formatDateOnly } from '../utils/date.helpers'
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name)
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   /**
    * Criar nova notificação
    * NOTA: userId foi removido do schema - agora todas notificações são broadcast por padrão
    *       e o rastreamento de leitura é feito via NotificationRead
    */
-  async create(tenantId: string, dto: CreateNotificationDto) {
+  async create(dto: CreateNotificationDto) {
     this.logger.log(
-      `Creating notification for tenant ${tenantId}, type: ${dto.type}`,
+      `Creating notification for tenant ${this.tenantContext.tenantId}, type: ${dto.type}`,
     )
 
-    const notification = await this.prisma.notification.create({
+    const notification = await this.tenantContext.client.notification.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         type: dto.type,
         category: dto.category,
         severity: dto.severity,
@@ -49,7 +53,7 @@ export class NotificationsService {
    * Buscar notificações com filtros e paginação
    * Agora usa NotificationRead para determinar se usuário leu ou não
    */
-  async findAll(tenantId: string, userId: string, query: QueryNotificationDto) {
+  async findAll(userId: string, query: QueryNotificationDto) {
     const {
       page = 1,
       limit = 20,
@@ -62,9 +66,8 @@ export class NotificationsService {
 
     const skip = (page - 1) * limit
 
-    // Construir filtros base (todas notificações do tenant não expiradas)
+    // Construir filtros base (todas notificações não expiradas)
     const where: any = {
-      tenantId,
       AND: [
         {
           OR: [
@@ -114,7 +117,7 @@ export class NotificationsService {
     }
 
     // Buscar notificações com LEFT JOIN para NotificationRead
-    const notifications = await this.prisma.notification.findMany({
+    const notifications = await this.tenantContext.client.notification.findMany({
       where,
       skip,
       take: limit,
@@ -137,7 +140,7 @@ export class NotificationsService {
     }))
 
     // Contar total (sem paginação) - já filtrado pela query `where`
-    const total = await this.prisma.notification.count({
+    const total = await this.tenantContext.client.notification.count({
       where,
     })
 
@@ -157,19 +160,18 @@ export class NotificationsService {
   /**
    * Contar notificações não lidas (que NÃO têm registro em NotificationRead para este usuário)
    */
-  async countUnread(tenantId: string, userId: string) {
+  async countUnread(userId: string) {
     // Buscar IDs de notificações que o usuário já leu
-    const readNotificationIds = await this.prisma.notificationRead.findMany({
+    const readNotificationIds = await this.tenantContext.client.notificationRead.findMany({
       where: { userId },
       select: { notificationId: true },
     })
 
     const readIds = readNotificationIds.map((r) => r.notificationId)
 
-    // Contar notificações do tenant que NÃO estão na lista de lidas e não expiraram
-    const count = await this.prisma.notification.count({
+    // Contar notificações que NÃO estão na lista de lidas e não expiraram
+    const count = await this.tenantContext.client.notification.count({
       where: {
-        tenantId,
         id: {
           notIn: readIds.length > 0 ? readIds : undefined, // Se não leu nada, não filtrar
         },
@@ -190,12 +192,11 @@ export class NotificationsService {
   /**
    * Marcar notificação como lida (criar registro em NotificationRead)
    */
-  async markAsRead(tenantId: string, userId: string, id: string) {
-    // Verificar se a notificação existe e pertence ao tenant
-    const notification = await this.prisma.notification.findFirst({
+  async markAsRead(userId: string, id: string) {
+    // Verificar se a notificação existe
+    const notification = await this.tenantContext.client.notification.findFirst({
       where: {
         id,
-        tenantId,
       },
     })
 
@@ -204,7 +205,7 @@ export class NotificationsService {
     }
 
     // Criar registro em NotificationRead (upsert para evitar duplicatas)
-    await this.prisma.notificationRead.upsert({
+    await this.tenantContext.client.notificationRead.upsert({
       where: {
         notificationId_userId: {
           notificationId: id,
@@ -234,19 +235,18 @@ export class NotificationsService {
   /**
    * Marcar todas as notificações como lidas (criar registros em NotificationRead para todas não lidas)
    */
-  async markAllAsRead(tenantId: string, userId: string) {
+  async markAllAsRead(userId: string) {
     // Buscar IDs de notificações que o usuário já leu
-    const readNotificationIds = await this.prisma.notificationRead.findMany({
+    const readNotificationIds = await this.tenantContext.client.notificationRead.findMany({
       where: { userId },
       select: { notificationId: true },
     })
 
     const readIds = readNotificationIds.map((r) => r.notificationId)
 
-    // Buscar todas notificações não lidas do tenant
-    const unreadNotifications = await this.prisma.notification.findMany({
+    // Buscar todas notificações não lidas
+    const unreadNotifications = await this.tenantContext.client.notification.findMany({
       where: {
-        tenantId,
         id: {
           notIn: readIds.length > 0 ? readIds : undefined,
         },
@@ -266,7 +266,7 @@ export class NotificationsService {
 
     // Criar registros em NotificationRead para todas as não lidas
     if (unreadNotifications.length > 0) {
-      await this.prisma.notificationRead.createMany({
+      await this.tenantContext.client.notificationRead.createMany({
         data: unreadNotifications.map((n) => ({
           notificationId: n.id,
           userId,
@@ -284,12 +284,11 @@ export class NotificationsService {
    * Deletar notificação
    * NOTA: CASCADE irá deletar automaticamente os registros em NotificationRead
    */
-  async delete(tenantId: string, userId: string, id: string) {
-    // Verificar se a notificação existe e pertence ao tenant
-    const notification = await this.prisma.notification.findFirst({
+  async delete(userId: string, id: string) {
+    // Verificar se a notificação existe
+    const notification = await this.tenantContext.client.notification.findFirst({
       where: {
         id,
-        tenantId,
       },
     })
 
@@ -297,7 +296,7 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found')
     }
 
-    await this.prisma.notification.delete({
+    await this.tenantContext.client.notification.delete({
       where: { id },
     })
 
@@ -306,19 +305,39 @@ export class NotificationsService {
   }
 
   /**
-   * Limpar notificações expiradas (chamado por cron)
+   * Limpar notificações expiradas (chamado por cron - sem contexto de tenant)
+   * IMPORTANTE: Este método acessa TODOS os tenants
    */
   async cleanupExpired() {
-    const result = await this.prisma.notification.deleteMany({
-      where: {
-        expiresAt: {
-          lte: new Date(),
-        },
-      },
+    // Buscar todos os tenants ativos
+    const tenants = await this.prisma.tenant.findMany({
+      where: { deletedAt: null },
+      select: { id: true, schemaName: true },
     })
 
-    this.logger.log(`Cleaned up ${result.count} expired notifications`)
-    return { count: result.count }
+    let totalCount = 0
+
+    // Iterar sobre cada tenant e limpar suas notificações expiradas
+    for (const tenant of tenants) {
+      try {
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+        const result = await tenantClient.notification.deleteMany({
+          where: {
+            expiresAt: {
+              lte: new Date(),
+            },
+          },
+        })
+
+        totalCount += result.count
+        this.logger.log(`Cleaned up ${result.count} expired notifications for tenant ${tenant.id}`)
+      } catch (error) {
+        this.logger.error(`Error cleaning notifications for tenant ${tenant.id}:`, error)
+      }
+    }
+
+    this.logger.log(`Total cleaned up: ${totalCount} expired notifications across ${tenants.length} tenants`)
+    return { count: totalCount }
   }
 
   // ============================================
@@ -329,11 +348,10 @@ export class NotificationsService {
    * Criar notificação de prescrição vencida
    */
   async createPrescriptionExpiredNotification(
-    tenantId: string,
     prescriptionId: string,
     residentName: string,
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.PRESCRIPTION_EXPIRED,
       category: NotificationCategory.PRESCRIPTION,
       severity: NotificationSeverity.CRITICAL,
@@ -350,12 +368,11 @@ export class NotificationsService {
    * Criar notificação de prescrição vencendo
    */
   async createPrescriptionExpiringNotification(
-    tenantId: string,
     prescriptionId: string,
     residentName: string,
     daysLeft: number,
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.PRESCRIPTION_EXPIRING,
       category: NotificationCategory.PRESCRIPTION,
       severity: NotificationSeverity.WARNING,
@@ -372,13 +389,12 @@ export class NotificationsService {
    * Criar notificação de sinal vital anormal
    */
   async createAbnormalVitalSignNotification(
-    tenantId: string,
     vitalSignId: string,
     residentName: string,
     vitalType: string,
     value: string,
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
       category: NotificationCategory.VITAL_SIGN,
       severity: NotificationSeverity.CRITICAL,
@@ -395,12 +411,11 @@ export class NotificationsService {
    * Criar notificação de documento vencido
    */
   async createDocumentExpiredNotification(
-    tenantId: string,
     documentId: string,
     documentName: string,
     entityType: 'TENANT_DOCUMENT' | 'RESIDENT_DOCUMENT',
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.DOCUMENT_EXPIRED,
       category: NotificationCategory.DOCUMENT,
       severity: NotificationSeverity.CRITICAL,
@@ -417,13 +432,12 @@ export class NotificationsService {
    * Criar notificação de documento vencendo
    */
   async createDocumentExpiringNotification(
-    tenantId: string,
     documentId: string,
     documentName: string,
     daysLeft: number,
     entityType: 'TENANT_DOCUMENT' | 'RESIDENT_DOCUMENT',
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.DOCUMENT_EXPIRING,
       category: NotificationCategory.DOCUMENT,
       severity: NotificationSeverity.WARNING,
@@ -440,7 +454,6 @@ export class NotificationsService {
    * Cria notificação para POP que precisa de revisão
    */
   async createPopReviewNotification(
-    tenantId: string,
     popId: string,
     popTitle: string,
     daysUntilReview: number,
@@ -459,7 +472,7 @@ export class NotificationsService {
       severity = NotificationSeverity.INFO
     }
 
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.POP_REVIEW_DUE,
       category: NotificationCategory.POP,
       severity,
@@ -476,14 +489,13 @@ export class NotificationsService {
    * Criar notificação de evento agendado (hoje)
    */
   async createScheduledEventDueNotification(
-    tenantId: string,
     eventId: string,
     residentId: string,
     residentName: string,
     eventTitle: string,
     scheduledTime: string,
   ) {
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.SCHEDULED_EVENT_DUE,
       category: NotificationCategory.SCHEDULED_EVENT,
       severity: NotificationSeverity.INFO,
@@ -500,7 +512,6 @@ export class NotificationsService {
    * Criar notificação de evento perdido (não concluído)
    */
   async createScheduledEventMissedNotification(
-    tenantId: string,
     eventId: string,
     residentId: string,
     residentName: string,
@@ -509,7 +520,7 @@ export class NotificationsService {
   ) {
     const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
 
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.SCHEDULED_EVENT_MISSED,
       category: NotificationCategory.SCHEDULED_EVENT,
       severity: NotificationSeverity.WARNING,
@@ -527,7 +538,6 @@ export class NotificationsService {
    * A notificação é broadcast (vai para todos do tenant)
    */
   async createInstitutionalEventCreatedNotification(
-    tenantId: string,
     eventId: string,
     eventTitle: string,
     eventType: string,
@@ -539,7 +549,7 @@ export class NotificationsService {
     const [year, month, day] = dateOnlyStr.split('-')
     const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.INSTITUTIONAL_EVENT_CREATED,
       category: NotificationCategory.INSTITUTIONAL_EVENT,
       severity: NotificationSeverity.INFO,
@@ -556,7 +566,6 @@ export class NotificationsService {
    * Criar notificação de evento institucional atualizado
    */
   async createInstitutionalEventUpdatedNotification(
-    tenantId: string,
     eventId: string,
     eventTitle: string,
     eventType: string,
@@ -568,7 +577,7 @@ export class NotificationsService {
     const [year, month, day] = dateOnlyStr.split('-')
     const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
-    return this.create(tenantId, {
+    return this.create({
       type: SystemNotificationType.INSTITUTIONAL_EVENT_UPDATED,
       category: NotificationCategory.INSTITUTIONAL_EVENT,
       severity: NotificationSeverity.INFO,

@@ -63,7 +63,6 @@ export class SOSMedicationsController {
     return this.sosMedicationsService.update(
       id,
       updateSOSMedicationDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -97,7 +96,6 @@ export class SOSMedicationsController {
   ) {
     return this.sosMedicationsService.remove(
       id,
-      user.tenantId,
       user.id,
       deleteSOSMedicationDto.deleteReason,
     );
@@ -122,7 +120,7 @@ export class SOSMedicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.sosMedicationsService.getHistory(id, user.tenantId);
+    return this.sosMedicationsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -146,7 +144,6 @@ export class SOSMedicationsController {
     return this.sosMedicationsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

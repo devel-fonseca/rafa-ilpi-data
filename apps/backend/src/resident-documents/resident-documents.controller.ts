@@ -45,7 +45,7 @@ export class ResidentDocumentsController {
     @Req() req: Request,
   ) {
     const user = req.user as any;
-    return this.documentsService.findAll(residentId, user.tenantId, type);
+    return this.documentsService.findAll(residentId, type);
   }
 
   /**
@@ -62,7 +62,7 @@ export class ResidentDocumentsController {
     @Req() req: Request,
   ) {
     const user = req.user as any;
-    return this.documentsService.findOne(id, residentId, user.tenantId);
+    return this.documentsService.findOne(id, residentId);
   }
 
   /**
@@ -121,7 +121,6 @@ export class ResidentDocumentsController {
     const user = req.user as any;
     return this.documentsService.uploadDocument(
       residentId,
-      user.tenantId,
       user.id,
       file,
       metadata,
@@ -143,7 +142,7 @@ export class ResidentDocumentsController {
     @Req() req: Request,
   ) {
     const user = req.user as any;
-    return this.documentsService.updateMetadata(id, residentId, user.tenantId, updateDto);
+    return this.documentsService.updateMetadata(id, residentId, updateDto);
   }
 
   /**
@@ -182,7 +181,7 @@ export class ResidentDocumentsController {
     @Req() req: Request,
   ) {
     const user = req.user as any;
-    return this.documentsService.replaceFile(id, residentId, user.tenantId, file);
+    return this.documentsService.replaceFile(id, residentId, file);
   }
 
   /**
@@ -199,6 +198,6 @@ export class ResidentDocumentsController {
     @Req() req: Request,
   ) {
     const user = req.user as any;
-    return this.documentsService.deleteDocument(id, residentId, user.tenantId);
+    return this.documentsService.deleteDocument(id, residentId);
   }
 }

@@ -58,7 +58,6 @@ export class MedicationsController {
     return this.medicationsService.update(
       id,
       updateMedicationDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -86,7 +85,6 @@ export class MedicationsController {
   ) {
     return this.medicationsService.remove(
       id,
-      user.tenantId,
       user.id,
       deleteMedicationDto.deleteReason,
     );
@@ -108,7 +106,7 @@ export class MedicationsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.medicationsService.getHistory(id, user.tenantId);
+    return this.medicationsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -132,7 +130,6 @@ export class MedicationsController {
     return this.medicationsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

@@ -6,6 +6,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -14,28 +15,26 @@ import { Logger } from 'winston';
 @Injectable()
 export class UserProfilesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   /**
    * Cria um perfil para um usuário
    * @param userId ID do usuário
-   * @param tenantId ID do tenant
    * @param createUserProfileDto Dados do perfil
    * @param createdBy ID do usuário que está criando
    */
   async create(
     userId: string,
-    tenantId: string,
     createUserProfileDto: CreateUserProfileDto,
     createdBy: string,
   ) {
-    // Verificar se o usuário existe e pertence ao tenant
-    const user = await this.prisma.user.findFirst({
+    // Verificar se o usuário existe
+    const user = await this.tenantContext.client.user.findFirst({
       where: {
         id: userId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -45,7 +44,7 @@ export class UserProfilesService {
     }
 
     // Verificar se já existe perfil para este usuário
-    const existingProfile = await this.prisma.userProfile.findUnique({
+    const existingProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId },
     });
 
@@ -54,12 +53,12 @@ export class UserProfilesService {
     }
 
     // Criar o perfil e sincronizar CPF se necessário
-    const profile = await this.prisma.$transaction(async (tx) => {
+    const profile = await this.tenantContext.client.$transaction(async (tx) => {
       // Criar o perfil
       const newProfile = await tx.userProfile.create({
         data: {
           userId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           profilePhoto: createUserProfileDto.profilePhoto,
           phone: createUserProfileDto.phone,
           cpf: createUserProfileDto.cpf,
@@ -108,7 +107,7 @@ export class UserProfilesService {
     this.logger.info('Perfil de usuário criado', {
       profileId: profile.id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       createdBy,
     });
 
@@ -118,13 +117,11 @@ export class UserProfilesService {
   /**
    * Busca o perfil de um usuário
    * @param userId ID do usuário
-   * @param tenantId ID do tenant (para validação)
    */
-  async findOne(userId: string, tenantId: string) {
-    const profile = await this.prisma.userProfile.findFirst({
+  async findOne(userId: string) {
+    const profile = await this.tenantContext.client.userProfile.findFirst({
       where: {
         userId,
-        tenantId,
       },
       include: {
         user: {
@@ -149,21 +146,17 @@ export class UserProfilesService {
   /**
    * Busca o perfil do usuário autenticado
    * @param userId ID do usuário autenticado
-   * @param tenantId ID do tenant
    */
-  async findMyProfile(userId: string, tenantId: string) {
-    return this.findOne(userId, tenantId);
+  async findMyProfile(userId: string) {
+    return this.findOne(userId);
   }
 
   /**
    * Lista todos os perfis de usuários de um tenant
-   * @param tenantId ID do tenant
    */
-  async findAll(tenantId: string) {
-    const profiles = await this.prisma.userProfile.findMany({
-      where: {
-        tenantId,
-      },
+  async findAll() {
+    const profiles = await this.tenantContext.client.userProfile.findMany({
+      where: {},
       include: {
         user: {
           select: {
@@ -187,7 +180,6 @@ export class UserProfilesService {
   /**
    * Atualiza o perfil de um usuário
    * @param userId ID do usuário
-   * @param tenantId ID do tenant
    * @param updateUserProfileDto Dados para atualizar
    * @param updatedBy ID do usuário que está atualizando
    * @param currentUserId ID do usuário autenticado (para validação de permissão)
@@ -195,17 +187,15 @@ export class UserProfilesService {
    */
   async update(
     userId: string,
-    tenantId: string,
     updateUserProfileDto: UpdateUserProfileDto,
     updatedBy: string,
     currentUserId: string,
     currentUserRole: string,
   ) {
     // Verificar se o perfil existe
-    const profile = await this.prisma.userProfile.findFirst({
+    const profile = await this.tenantContext.client.userProfile.findFirst({
       where: {
         userId,
-        tenantId,
       },
     });
 
@@ -224,7 +214,7 @@ export class UserProfilesService {
     }
 
     // Atualizar perfil e sincronizar campos com User
-    const updatedProfile = await this.prisma.$transaction(async (tx) => {
+    const updatedProfile = await this.tenantContext.client.$transaction(async (tx) => {
       // Atualizar o nome do usuário se fornecido
       if (updateUserProfileDto.name) {
         await tx.user.update({
@@ -286,7 +276,7 @@ export class UserProfilesService {
     this.logger.info('Perfil de usuário atualizado', {
       profileId: updatedProfile.id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       updatedBy,
     });
 
@@ -296,10 +286,9 @@ export class UserProfilesService {
   /**
    * Remove o perfil de um usuário (soft delete não aplicável, apenas remove registro)
    * @param userId ID do usuário
-   * @param tenantId ID do tenant
    * @param currentUserRole Role do usuário que está deletando
    */
-  async remove(userId: string, tenantId: string, currentUserRole: string) {
+  async remove(userId: string, currentUserRole: string) {
     // Apenas ADMINs podem deletar perfis
     if (currentUserRole?.toLowerCase() !== 'admin') {
       throw new ForbiddenException(
@@ -307,10 +296,9 @@ export class UserProfilesService {
       );
     }
 
-    const profile = await this.prisma.userProfile.findFirst({
+    const profile = await this.tenantContext.client.userProfile.findFirst({
       where: {
         userId,
-        tenantId,
       },
     });
 
@@ -318,14 +306,14 @@ export class UserProfilesService {
       throw new NotFoundException('Perfil não encontrado');
     }
 
-    await this.prisma.userProfile.delete({
+    await this.tenantContext.client.userProfile.delete({
       where: { id: profile.id },
     });
 
     this.logger.info('Perfil de usuário removido', {
       profileId: profile.id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { message: 'Perfil removido com sucesso' };

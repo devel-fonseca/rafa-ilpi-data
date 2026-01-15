@@ -4,6 +4,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -22,7 +23,8 @@ import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.s
 @Injectable()
 export class VitalSignsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly notificationsService: NotificationsService,
     private readonly vitalSignAlertsService: VitalSignAlertsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
@@ -32,14 +34,12 @@ export class VitalSignsService {
    * Criar registro de sinais vitais COM versionamento
    */
   async create(
-    tenantId: string,
     userId: string,
     createDto: CreateVitalSignDto,
   ) {
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: createDto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -48,9 +48,9 @@ export class VitalSignsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const vitalSign = await this.prisma.vitalSign.create({
+    const vitalSign = await this.tenantContext.client.vitalSign.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
         residentId: createDto.residentId,
         userId: createDto.userId || userId,
         timestamp: createDto.timestamp,
@@ -88,13 +88,11 @@ export class VitalSignsService {
     this.logger.info('Sinal vital criado com sucesso', {
       vitalSignId: vitalSign.id,
       residentId: createDto.residentId,
-      tenantId,
       userId,
     });
 
     // Detectar anomalias e criar notificações automaticamente
     await this.detectAndNotifyAnomalies(
-      tenantId,
       vitalSign.id,
       resident.id,
       resident.fullName,
@@ -107,11 +105,10 @@ export class VitalSignsService {
   /**
    * Buscar sinal vital por ID
    */
-  async findOne(tenantId: string, id: string) {
-    const vitalSign = await this.prisma.vitalSign.findFirst({
+  async findOne(id: string) {
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -153,13 +150,11 @@ export class VitalSignsService {
    * Buscar sinais vitais de um residente
    */
   async findByResident(
-    tenantId: string,
     residentId: string,
     startDate?: Date,
     endDate?: Date,
   ) {
     const where: any = {
-      tenantId,
       residentId,
       deletedAt: null,
     };
@@ -170,7 +165,7 @@ export class VitalSignsService {
       if (endDate) where.timestamp.lte = endDate;
     }
 
-    return await this.prisma.vitalSign.findMany({
+    return await this.tenantContext.client.vitalSign.findMany({
       where,
       orderBy: {
         timestamp: 'desc',
@@ -190,22 +185,20 @@ export class VitalSignsService {
    * Atualizar sinal vital COM versionamento
    */
   async update(
-    tenantId: string,
     userId: string,
     id: string,
     updateDto: UpdateVitalSignDto,
   ) {
     const { changeReason, ...updateData } = updateDto;
 
-    const vitalSign = await this.prisma.vitalSign.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!vitalSign) {
       this.logger.error('Erro ao atualizar sinal vital', {
         error: 'Sinal vital não encontrado',
         vitalSignId: id,
-        tenantId,
         userId,
       });
       throw new NotFoundException('Sinal vital não encontrado');
@@ -237,7 +230,7 @@ export class VitalSignsService {
 
     const newVersionNumber = vitalSign.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const updatedVitalSign = await tx.vitalSign.update({
         where: { id },
         data: {
@@ -260,7 +253,7 @@ export class VitalSignsService {
 
       await tx.vitalSignHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
           vitalSignId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -280,19 +273,17 @@ export class VitalSignsService {
       vitalSignId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
       userId,
     });
 
     // Detectar anomalias nos valores atualizados
-    const resident = await this.prisma.resident.findUnique({
+    const resident = await this.tenantContext.client.resident.findUnique({
       where: { id: vitalSign.residentId },
       select: { fullName: true },
     });
 
     if (resident) {
       await this.detectAndNotifyAnomalies(
-        tenantId,
         id,
         vitalSign.residentId,
         resident.fullName,
@@ -307,20 +298,18 @@ export class VitalSignsService {
    * Soft delete de sinal vital COM versionamento
    */
   async remove(
-    tenantId: string,
     userId: string,
     id: string,
     deleteReason: string,
   ) {
-    const vitalSign = await this.prisma.vitalSign.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!vitalSign) {
       this.logger.error('Erro ao remover sinal vital', {
         error: 'Sinal vital não encontrado',
         vitalSignId: id,
-        tenantId,
         userId,
       });
       throw new NotFoundException('Sinal vital não encontrado');
@@ -340,7 +329,7 @@ export class VitalSignsService {
 
     const newVersionNumber = vitalSign.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const deletedVitalSign = await tx.vitalSign.update({
         where: { id },
         data: {
@@ -352,7 +341,7 @@ export class VitalSignsService {
 
       await tx.vitalSignHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
           vitalSignId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -375,7 +364,6 @@ export class VitalSignsService {
     this.logger.info('Sinal vital removido com versionamento', {
       vitalSignId: id,
       versionNumber: newVersionNumber,
-      tenantId,
       userId,
     });
 
@@ -388,24 +376,22 @@ export class VitalSignsService {
   /**
    * Consultar histórico completo de sinal vital
    */
-  async getHistory(vitalSignId: string, tenantId: string) {
-    const vitalSign = await this.prisma.vitalSign.findFirst({
-      where: { id: vitalSignId, tenantId },
+  async getHistory(vitalSignId: string) {
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
+      where: { id: vitalSignId },
     });
 
     if (!vitalSign) {
       this.logger.error('Erro ao consultar histórico de sinal vital', {
         error: 'Sinal vital não encontrado',
         vitalSignId,
-        tenantId,
       });
       throw new NotFoundException('Sinal vital não encontrado');
     }
 
-    const history = await this.prisma.vitalSignHistory.findMany({
+    const history = await this.tenantContext.client.vitalSignHistory.findMany({
       where: {
         vitalSignId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -415,7 +401,6 @@ export class VitalSignsService {
     this.logger.info('Histórico de sinal vital consultado', {
       vitalSignId,
       totalVersions: history.length,
-      tenantId,
     });
 
     return {
@@ -440,10 +425,9 @@ export class VitalSignsService {
   async getHistoryVersion(
     vitalSignId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
-    const vitalSign = await this.prisma.vitalSign.findFirst({
-      where: { id: vitalSignId, tenantId },
+    const vitalSign = await this.tenantContext.client.vitalSign.findFirst({
+      where: { id: vitalSignId },
     });
 
     if (!vitalSign) {
@@ -451,16 +435,14 @@ export class VitalSignsService {
         error: 'Sinal vital não encontrado',
         vitalSignId,
         versionNumber,
-        tenantId,
       });
       throw new NotFoundException('Sinal vital não encontrado');
     }
 
-    const historyVersion = await this.prisma.vitalSignHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.vitalSignHistory.findFirst({
       where: {
         vitalSignId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -469,7 +451,6 @@ export class VitalSignsService {
         error: `Versão ${versionNumber} não encontrada para este sinal vital`,
         vitalSignId,
         versionNumber,
-        tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para este sinal vital`,
@@ -479,7 +460,6 @@ export class VitalSignsService {
     this.logger.info('Versão específica do histórico consultada', {
       vitalSignId,
       versionNumber,
-      tenantId,
     });
 
     return historyVersion;
@@ -490,7 +470,6 @@ export class VitalSignsService {
    * PRIVADO - chamado automaticamente em create() e update()
    */
   private async detectAndNotifyAnomalies(
-    tenantId: string,
     vitalSignId: string,
     residentId: string,
     residentName: string,
@@ -500,7 +479,7 @@ export class VitalSignsService {
       // Pressão Arterial Sistólica
       if (data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null) {
         if (data.systolicBloodPressure >= 160 || data.systolicBloodPressure < 80) {
-          const notification = await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -521,7 +500,7 @@ export class VitalSignsService {
             ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
             : `${data.systolicBloodPressure} mmHg`;
 
-          await this.vitalSignAlertsService.create(tenantId, {
+          await this.vitalSignAlertsService.create({
             residentId,
             vitalSignId,
             notificationId: notification.id,
@@ -539,7 +518,7 @@ export class VitalSignsService {
             },
           });
         } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
-          const notification = await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -560,7 +539,7 @@ export class VitalSignsService {
             ? `${data.systolicBloodPressure}/${data.diastolicBloodPressure} mmHg`
             : `${data.systolicBloodPressure} mmHg`;
 
-          await this.vitalSignAlertsService.create(tenantId, {
+          await this.vitalSignAlertsService.create({
             residentId,
             vitalSignId,
             notificationId: notification.id,
@@ -583,7 +562,7 @@ export class VitalSignsService {
       // Glicemia
       if (data.bloodGlucose !== undefined && data.bloodGlucose !== null) {
         if (data.bloodGlucose >= 250 || data.bloodGlucose < 60) {
-          const notification = await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -596,7 +575,7 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: Glicemia Crítica', { residentName, value: data.bloodGlucose });
 
-          await this.vitalSignAlertsService.create(tenantId, {
+          await this.vitalSignAlertsService.create({
             residentId,
             vitalSignId,
             notificationId: notification.id,
@@ -613,7 +592,7 @@ export class VitalSignsService {
             },
           });
         } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
-          const notification = await this.notificationsService.create(tenantId, {
+          const notification = await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -626,7 +605,7 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: Glicemia Anormal', { residentName, value: data.bloodGlucose });
 
-          await this.vitalSignAlertsService.create(tenantId, {
+          await this.vitalSignAlertsService.create({
             residentId,
             vitalSignId,
             notificationId: notification.id,
@@ -648,7 +627,7 @@ export class VitalSignsService {
       // Temperatura
       if (data.temperature !== undefined && data.temperature !== null) {
         if (data.temperature >= 39 || data.temperature < 35) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -661,7 +640,7 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: Temperatura Crítica', { residentName, value: data.temperature });
         } else if (data.temperature >= 38 || data.temperature < 35.5) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -679,7 +658,7 @@ export class VitalSignsService {
       // Saturação de Oxigênio
       if (data.oxygenSaturation !== undefined && data.oxygenSaturation !== null) {
         if (data.oxygenSaturation < 90) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -692,7 +671,7 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: SpO₂ Crítica', { residentName, value: data.oxygenSaturation });
         } else if (data.oxygenSaturation < 92) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -710,7 +689,7 @@ export class VitalSignsService {
       // Frequência Cardíaca
       if (data.heartRate !== undefined && data.heartRate !== null) {
         if (data.heartRate > 120 || data.heartRate < 50) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -723,7 +702,7 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: FC Crítica', { residentName, value: data.heartRate });
         } else if (data.heartRate > 100 || data.heartRate < 60) {
-          await this.notificationsService.create(tenantId, {
+          await this.notificationsService.create({
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -743,7 +722,6 @@ export class VitalSignsService {
         error: error instanceof Error ? error.message : String(error),
         vitalSignId,
         residentId,
-        tenantId,
       });
     }
   }

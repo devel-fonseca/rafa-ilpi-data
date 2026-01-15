@@ -4,6 +4,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateDietaryRestrictionDto } from './dto/create-dietary-restriction.dto';
 import { UpdateDietaryRestrictionDto } from './dto/update-dietary-restriction.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -13,7 +14,8 @@ import { ChangeType } from '@prisma/client';
 @Injectable()
 export class DietaryRestrictionsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -21,14 +23,12 @@ export class DietaryRestrictionsService {
    * Criar nova restrição alimentar COM versionamento
    */
   async create(
-    tenantId: string,
     userId: string,
     createDto: CreateDietaryRestrictionDto,
   ) {
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: createDto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -37,9 +37,9 @@ export class DietaryRestrictionsService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const dietaryRestriction = await this.prisma.dietaryRestriction.create({
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId: createDto.residentId,
         restrictionType: createDto.restrictionType,
         description: createDto.description,
@@ -67,7 +67,7 @@ export class DietaryRestrictionsService {
       dietaryRestrictionId: dietaryRestriction.id,
       residentId: createDto.residentId,
       restrictionType: createDto.restrictionType,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -77,11 +77,10 @@ export class DietaryRestrictionsService {
   /**
    * Listar todas as restrições alimentares de um residente
    */
-  async findByResidentId(tenantId: string, residentId: string) {
-    return this.prisma.dietaryRestriction.findMany({
+  async findByResidentId(residentId: string) {
+    return this.tenantContext.client.dietaryRestriction.findMany({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -107,11 +106,10 @@ export class DietaryRestrictionsService {
   /**
    * Buscar uma restrição alimentar específica
    */
-  async findOne(tenantId: string, id: string) {
-    const dietaryRestriction = await this.prisma.dietaryRestriction.findFirst({
+  async findOne(id: string) {
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -141,22 +139,21 @@ export class DietaryRestrictionsService {
    * Atualizar restrição alimentar COM versionamento
    */
   async update(
-    tenantId: string,
     userId: string,
     id: string,
     updateDto: UpdateDietaryRestrictionDto,
   ) {
     const { changeReason, ...updateData } = updateDto;
 
-    const dietaryRestriction = await this.prisma.dietaryRestriction.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!dietaryRestriction) {
       this.logger.error('Erro ao atualizar restrição alimentar', {
         error: 'Restrição alimentar não encontrada',
         dietaryRestrictionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Restrição alimentar não encontrada');
@@ -185,7 +182,7 @@ export class DietaryRestrictionsService {
 
     const newVersionNumber = dietaryRestriction.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const updated = await tx.dietaryRestriction.update({
         where: { id },
         data: {
@@ -205,7 +202,7 @@ export class DietaryRestrictionsService {
 
       await tx.dietaryRestrictionHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           dietaryRestrictionId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -225,7 +222,7 @@ export class DietaryRestrictionsService {
       dietaryRestrictionId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -236,20 +233,19 @@ export class DietaryRestrictionsService {
    * Soft delete de restrição alimentar COM versionamento
    */
   async remove(
-    tenantId: string,
     userId: string,
     id: string,
     deleteReason: string,
   ) {
-    const dietaryRestriction = await this.prisma.dietaryRestriction.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!dietaryRestriction) {
       this.logger.error('Erro ao remover restrição alimentar', {
         error: 'Restrição alimentar não encontrada',
         dietaryRestrictionId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Restrição alimentar não encontrada');
@@ -266,7 +262,7 @@ export class DietaryRestrictionsService {
 
     const newVersionNumber = dietaryRestriction.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const deleted = await tx.dietaryRestriction.update({
         where: { id },
         data: {
@@ -278,7 +274,7 @@ export class DietaryRestrictionsService {
 
       await tx.dietaryRestrictionHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           dietaryRestrictionId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -301,7 +297,7 @@ export class DietaryRestrictionsService {
     this.logger.info('Restrição alimentar removida com versionamento', {
       dietaryRestrictionId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -314,24 +310,23 @@ export class DietaryRestrictionsService {
   /**
    * Consultar histórico completo de restrição alimentar
    */
-  async getHistory(dietaryRestrictionId: string, tenantId: string) {
-    const dietaryRestriction = await this.prisma.dietaryRestriction.findFirst({
-      where: { id: dietaryRestrictionId, tenantId },
+  async getHistory(dietaryRestrictionId: string) {
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.findFirst({
+      where: { id: dietaryRestrictionId },
     });
 
     if (!dietaryRestriction) {
       this.logger.error('Erro ao consultar histórico de restrição alimentar', {
         error: 'Restrição alimentar não encontrada',
         dietaryRestrictionId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Restrição alimentar não encontrada');
     }
 
-    const history = await this.prisma.dietaryRestrictionHistory.findMany({
+    const history = await this.tenantContext.client.dietaryRestrictionHistory.findMany({
       where: {
         dietaryRestrictionId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -341,7 +336,7 @@ export class DietaryRestrictionsService {
     this.logger.info('Histórico de restrição alimentar consultado', {
       dietaryRestrictionId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -361,10 +356,9 @@ export class DietaryRestrictionsService {
   async getHistoryVersion(
     dietaryRestrictionId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
-    const dietaryRestriction = await this.prisma.dietaryRestriction.findFirst({
-      where: { id: dietaryRestrictionId, tenantId },
+    const dietaryRestriction = await this.tenantContext.client.dietaryRestriction.findFirst({
+      where: { id: dietaryRestrictionId },
     });
 
     if (!dietaryRestriction) {
@@ -372,16 +366,15 @@ export class DietaryRestrictionsService {
         error: 'Restrição alimentar não encontrada',
         dietaryRestrictionId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Restrição alimentar não encontrada');
     }
 
-    const historyVersion = await this.prisma.dietaryRestrictionHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.dietaryRestrictionHistory.findFirst({
       where: {
         dietaryRestrictionId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -390,7 +383,7 @@ export class DietaryRestrictionsService {
         error: `Versão ${versionNumber} não encontrada para esta restrição alimentar`,
         dietaryRestrictionId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para esta restrição alimentar`,
@@ -400,7 +393,7 @@ export class DietaryRestrictionsService {
     this.logger.info('Versão específica do histórico consultada', {
       dietaryRestrictionId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

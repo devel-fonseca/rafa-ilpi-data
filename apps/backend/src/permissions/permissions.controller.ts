@@ -52,10 +52,7 @@ export class PermissionsController {
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   async getMyPermissions(@CurrentUser() user: any) {
-    return await this.permissionsService.getUserAllPermissions(
-      user.id,
-      user.tenantId,
-    );
+    return await this.permissionsService.getUserAllPermissions(user.id);
   }
 
   @Get('user/:userId')
@@ -81,10 +78,7 @@ export class PermissionsController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @CurrentUser() user: any,
   ) {
-    return await this.permissionsService.getUserAllPermissions(
-      userId,
-      user.tenantId,
-    );
+    return await this.permissionsService.getUserAllPermissions(userId);
   }
 
   @Get('position/:positionCode')
@@ -150,7 +144,6 @@ export class PermissionsController {
     for (const permission of body.permissions) {
       await this.permissionsService.grantCustomPermission(
         userId,
-        user.tenantId,
         permission,
         user.id,
       );
@@ -195,7 +188,6 @@ export class PermissionsController {
     for (const permission of body.permissions) {
       await this.permissionsService.removeCustomPermission(
         userId,
-        user.tenantId,
         permission,
       );
     }
@@ -251,7 +243,6 @@ export class PermissionsController {
         for (const permission of body.add) {
           await this.permissionsService.grantCustomPermission(
             userId,
-            user.tenantId,
             permission,
             user.id,
           );
@@ -263,7 +254,6 @@ export class PermissionsController {
         for (const permission of body.remove) {
           await this.permissionsService.removeCustomPermission(
             userId,
-            user.tenantId,
             permission,
           );
           removed.push(permission);

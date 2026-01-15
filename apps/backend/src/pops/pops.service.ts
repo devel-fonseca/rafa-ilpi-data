@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import {
   Pop,
   PopStatus,
@@ -36,17 +37,19 @@ import { getPositionProfile } from '../permissions/position-profiles.config'
  */
 @Injectable()
 export class PopsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   /**
    * Cria um novo POP no status DRAFT
    */
   async create(
-    tenantId: string,
     userId: string,
     dto: CreatePopDto,
   ): Promise<Pop> {
-    console.log('🔍 [POPs] create() chamado:', { tenantId, userId, dto })
+    console.log('🔍 [POPs] create() chamado:', { tenantId: this.tenantContext.tenantId, userId, dto })
 
     // Calcular próxima data de revisão se intervalo definido
     const nextReviewDate = dto.reviewIntervalMonths
@@ -57,9 +60,9 @@ export class PopsService {
     console.log('⏰ [POPs] Criando com now:', now)
 
     try {
-      const pop = await this.prisma.pop.create({
+      const pop = await this.tenantContext.client.pop.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           title: dto.title,
           category: dto.category as PopCategory,
           templateId: dto.templateId,
@@ -88,7 +91,6 @@ export class PopsService {
 
       // Criar registro de histórico
       await this.createHistoryRecord(
-        tenantId,
         pop.id,
         PopAction.CREATED,
         userId,
@@ -109,10 +111,9 @@ export class PopsService {
   /**
    * Retorna categorias únicas usadas pelos POPs do tenant
    */
-  async getUniqueCategories(tenantId: string): Promise<string[]> {
-    const pops = await this.prisma.pop.findMany({
+  async getUniqueCategories(): Promise<string[]> {
+    const pops = await this.tenantContext.client.pop.findMany({
       where: {
-        tenantId,
         deletedAt: null,
       },
       select: {
@@ -128,11 +129,9 @@ export class PopsService {
    * Busca todos os POPs de um tenant com filtros
    */
   async findAll(
-    tenantId: string,
     filters?: FilterPopsDto,
   ): Promise<Pop[]> {
     const where: Prisma.PopWhereInput = {
-      tenantId,
       deletedAt: null,
     }
 
@@ -159,7 +158,7 @@ export class PopsService {
       }
     }
 
-    return this.prisma.pop.findMany({
+    return this.tenantContext.client.pop.findMany({
       where,
       include: {
         attachments: {
@@ -190,10 +189,9 @@ export class PopsService {
   /**
    * Busca apenas POPs publicados (vigentes)
    */
-  async findPublished(tenantId: string): Promise<Pop[]> {
-    return this.prisma.pop.findMany({
+  async findPublished(): Promise<Pop[]> {
+    return this.tenantContext.client.pop.findMany({
       where: {
-        tenantId,
         status: PopStatus.PUBLISHED,
         deletedAt: null,
       },
@@ -209,11 +207,10 @@ export class PopsService {
   /**
    * Busca um POP por ID
    */
-  async findOne(tenantId: string, popId: string): Promise<Pop> {
-    const pop = await this.prisma.pop.findFirst({
+  async findOne(popId: string): Promise<Pop> {
+    const pop = await this.tenantContext.client.pop.findFirst({
       where: {
         id: popId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -256,14 +253,12 @@ export class PopsService {
    * - POPs DRAFT/OBSOLETE: Apenas usuários com VIEW_POPS
    */
   async findOnePublic(
-    tenantId: string,
     popId: string,
     userId: string,
   ): Promise<Pop> {
-    const pop = await this.prisma.pop.findFirst({
+    const pop = await this.tenantContext.client.pop.findFirst({
       where: {
         id: popId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -300,7 +295,7 @@ export class PopsService {
     // Se o POP não está publicado, bloqueia acesso de usuários comuns
     if (pop.status !== PopStatus.PUBLISHED) {
       // Verificar se usuário tem permissão VIEW_POPS ou role=admin
-      const user = await this.prisma.user.findUnique({
+      const user = await this.tenantContext.client.user.findUnique({
         where: { id: userId },
         select: {
           role: true,
@@ -362,12 +357,11 @@ export class PopsService {
    * Atualiza um POP (apenas se status = DRAFT)
    */
   async update(
-    tenantId: string,
     popId: string,
     userId: string,
     dto: UpdatePopDto,
   ): Promise<Pop> {
-    const existingPop = await this.findOne(tenantId, popId)
+    const existingPop = await this.findOne(popId)
 
     if (existingPop.status !== PopStatus.DRAFT) {
       throw new BadRequestException(
@@ -390,7 +384,7 @@ export class PopsService {
         : null
     }
 
-    const updatedPop = await this.prisma.pop.update({
+    const updatedPop = await this.tenantContext.client.pop.update({
       where: { id: popId },
       data: updateData,
       include: {
@@ -402,7 +396,6 @@ export class PopsService {
 
     // Criar registro de histórico
     await this.createHistoryRecord(
-      tenantId,
       popId,
       PopAction.UPDATED,
       userId,
@@ -418,8 +411,8 @@ export class PopsService {
   /**
    * Remove um POP (soft delete)
    */
-  async remove(tenantId: string, popId: string, userId: string): Promise<void> {
-    const pop = await this.findOne(tenantId, popId)
+  async remove(popId: string, userId: string): Promise<void> {
+    const pop = await this.findOne(popId)
 
     if (pop.status === PopStatus.PUBLISHED) {
       throw new BadRequestException(
@@ -427,7 +420,7 @@ export class PopsService {
       )
     }
 
-    await this.prisma.pop.update({
+    await this.tenantContext.client.pop.update({
       where: { id: popId },
       data: {
         deletedAt: new Date(),
@@ -437,7 +430,6 @@ export class PopsService {
 
     // Criar registro de histórico
     await this.createHistoryRecord(
-      tenantId,
       popId,
       PopAction.DELETED,
       userId,
@@ -456,12 +448,11 @@ export class PopsService {
    * 3. Cria 2 registros de histórico (OBSOLETED + VERSIONED)
    */
   async createNewVersion(
-    tenantId: string,
     popId: string,
     userId: string,
     dto: CreatePopVersionDto,
   ): Promise<Pop> {
-    const existingPop = await this.findOne(tenantId, popId)
+    const existingPop = await this.findOne(popId)
 
     if (existingPop.status !== PopStatus.PUBLISHED) {
       throw new BadRequestException(
@@ -470,11 +461,11 @@ export class PopsService {
     }
 
     // Executar em transação para garantir consistência
-    return this.prisma.$transaction(async (tx) => {
+    return this.tenantContext.client.$transaction(async (tx) => {
       // 1. Criar novo POP com versão incrementada
       const newVersion = await tx.pop.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           title: dto.newTitle || existingPop.title,
           category: existingPop.category,
           templateId: existingPop.templateId,
@@ -511,7 +502,7 @@ export class PopsService {
       await tx.popHistory.createMany({
         data: [
           {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             popId: existingPop.id,
             action: PopAction.OBSOLETED,
             reason: dto.reason,
@@ -522,7 +513,7 @@ export class PopsService {
             changedByName: 'Sistema', // Atualizar com nome real do usuário
           },
           {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             popId: newVersion.id,
             action: PopAction.VERSIONED,
             reason: dto.reason,
@@ -561,13 +552,12 @@ export class PopsService {
   /**
    * Busca histórico de versões de um POP
    */
-  async getVersionHistory(tenantId: string, popId: string): Promise<Pop[]> {
-    const pop = await this.findOne(tenantId, popId)
+  async getVersionHistory(popId: string): Promise<Pop[]> {
+    const pop = await this.findOne(popId)
 
     // Buscar toda a cadeia de versões (anteriores e posteriores)
-    const allVersions = await this.prisma.pop.findMany({
+    const allVersions = await this.tenantContext.client.pop.findMany({
       where: {
-        tenantId,
         templateId: pop.templateId,
         deletedAt: null,
       },
@@ -592,8 +582,8 @@ export class PopsService {
   /**
    * Publica um POP (DRAFT → PUBLISHED)
    */
-  async publish(tenantId: string, popId: string, userId: string): Promise<Pop> {
-    const pop = await this.findOne(tenantId, popId)
+  async publish(popId: string, userId: string): Promise<Pop> {
+    const pop = await this.findOne(popId)
 
     if (pop.status !== PopStatus.DRAFT) {
       throw new BadRequestException('Apenas POPs em rascunho podem ser publicados')
@@ -604,7 +594,7 @@ export class PopsService {
       ? addMonths(now, pop.reviewIntervalMonths)
       : null
 
-    const publishedPop = await this.prisma.pop.update({
+    const publishedPop = await this.tenantContext.client.pop.update({
       where: { id: popId },
       data: {
         status: PopStatus.PUBLISHED,
@@ -624,7 +614,6 @@ export class PopsService {
 
     // Criar registro de histórico
     await this.createHistoryRecord(
-      tenantId,
       popId,
       PopAction.PUBLISHED,
       userId,
@@ -641,12 +630,11 @@ export class PopsService {
    * Marca um POP como obsoleto
    */
   async markObsolete(
-    tenantId: string,
     popId: string,
     userId: string,
     reason: string,
   ): Promise<Pop> {
-    const pop = await this.findOne(tenantId, popId)
+    const pop = await this.findOne(popId)
 
     if (pop.status !== PopStatus.PUBLISHED) {
       throw new BadRequestException(
@@ -654,7 +642,7 @@ export class PopsService {
       )
     }
 
-    const obsoletePop = await this.prisma.pop.update({
+    const obsoletePop = await this.tenantContext.client.pop.update({
       where: { id: popId },
       data: {
         status: PopStatus.OBSOLETE,
@@ -665,7 +653,6 @@ export class PopsService {
 
     // Criar registro de histórico
     await this.createHistoryRecord(
-      tenantId,
       popId,
       PopAction.OBSOLETED,
       userId,
@@ -682,7 +669,6 @@ export class PopsService {
    * Adiciona anexo a um POP
    */
   async addAttachment(
-    tenantId: string,
     popId: string,
     userId: string,
     fileUrl: string,
@@ -692,11 +678,11 @@ export class PopsService {
     dto?: AddAttachmentDto,
   ): Promise<PopAttachment> {
     // Verificar se POP existe
-    await this.findOne(tenantId, popId)
+    await this.findOne(popId)
 
-    return this.prisma.popAttachment.create({
+    return this.tenantContext.client.popAttachment.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         popId,
         fileUrl,
         fileName,
@@ -713,13 +699,11 @@ export class PopsService {
    * Remove anexo de um POP (soft delete)
    */
   async removeAttachment(
-    tenantId: string,
     attachmentId: string,
   ): Promise<void> {
-    const attachment = await this.prisma.popAttachment.findFirst({
+    const attachment = await this.tenantContext.client.popAttachment.findFirst({
       where: {
         id: attachmentId,
-        tenantId,
         deletedAt: null,
       },
     })
@@ -728,7 +712,7 @@ export class PopsService {
       throw new NotFoundException('Anexo não encontrado')
     }
 
-    await this.prisma.popAttachment.update({
+    await this.tenantContext.client.popAttachment.update({
       where: { id: attachmentId },
       data: { deletedAt: new Date() },
     })
@@ -738,14 +722,12 @@ export class PopsService {
    * Busca histórico de alterações de um POP
    */
   async getPopHistory(
-    tenantId: string,
     popId: string,
   ): Promise<PopHistory[]> {
-    await this.findOne(tenantId, popId) // Valida existência
+    await this.findOne(popId) // Valida existência
 
-    return this.prisma.popHistory.findMany({
+    return this.tenantContext.client.popHistory.findMany({
       where: {
-        tenantId,
         popId,
       },
       orderBy: { changedAt: 'desc' },
@@ -756,11 +738,10 @@ export class PopsService {
    * Marca um POP como revisado (atualiza datas de revisão)
    */
   async markAsReviewed(
-    tenantId: string,
     popId: string,
     userId: string,
   ): Promise<Pop> {
-    const pop = await this.findOne(tenantId, popId)
+    const pop = await this.findOne(popId)
 
     if (pop.status !== PopStatus.PUBLISHED) {
       throw new BadRequestException(
@@ -773,7 +754,7 @@ export class PopsService {
       ? addMonths(now, pop.reviewIntervalMonths)
       : null
 
-    const reviewedPop = await this.prisma.pop.update({
+    const reviewedPop = await this.tenantContext.client.pop.update({
       where: { id: popId },
       data: {
         lastReviewedAt: now,
@@ -785,7 +766,6 @@ export class PopsService {
 
     // Criar registro de histórico
     await this.createHistoryRecord(
-      tenantId,
       popId,
       PopAction.UPDATED,
       userId,
@@ -801,11 +781,12 @@ export class PopsService {
   /**
    * Atualiza flags de revisão para POPs que necessitam revisão
    * (Chamado pelo cron job diário)
+   * NOTA: Este método é executado globalmente para todos os tenants (não usa tenant context)
    */
   async updateReviewFlags(): Promise<{ updated: number }> {
     const today = new Date()
 
-    // Buscar POPs PUBLISHED que precisam de revisão
+    // Buscar POPs PUBLISHED que precisam de revisão (GLOBAL - sem tenant context)
     const popsToUpdate = await this.prisma.pop.findMany({
       where: {
         status: PopStatus.PUBLISHED,
@@ -821,7 +802,7 @@ export class PopsService {
       return { updated: 0 }
     }
 
-    // Marcar como precisando revisão
+    // Marcar como precisando revisão (GLOBAL)
     await this.prisma.pop.updateMany({
       where: {
         id: {
@@ -841,7 +822,6 @@ export class PopsService {
    * (Método privado auxiliar)
    */
   private async createHistoryRecord(
-    tenantId: string,
     popId: string,
     action: PopAction,
     userId: string,
@@ -850,9 +830,9 @@ export class PopsService {
     reason?: string,
     changedFields: string[] = [],
   ): Promise<void> {
-    await this.prisma.popHistory.create({
+    await this.tenantContext.client.popHistory.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         popId,
         action,
         reason,

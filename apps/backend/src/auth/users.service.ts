@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
+import { JwtCacheService } from './jwt-cache.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeType, AccessAction } from '@prisma/client';
@@ -9,27 +11,30 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly jwtCache: JwtCacheService, // Cache JWT para invalidação
+  ) {}
 
   // ==================== UPDATE com Versionamento ====================
   async update(
     id: string,
     updateUserDto: UpdateUserDto,
-    tenantId: string,
     currentUserId: string,
   ) {
     const { changeReason, password, ...updateData } = updateUserDto;
 
     // Buscar usuário existente
-    const user = await this.prisma.user.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!user) {
       this.logger.error('Erro ao atualizar usuário', {
         error: 'Usuário não encontrado',
         userId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         currentUserId,
       });
       throw new NotFoundException('Usuário não encontrado');
@@ -78,7 +83,7 @@ export class UsersService {
     const newVersionNumber = user.versionNumber + 1;
 
     // Executar update e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar usuário
       const updatedUser = await tx.user.update({
         where: { id },
@@ -114,14 +119,14 @@ export class UsersService {
 
       // 3. Buscar nome do usuário que fez a alteração
       const changedByUser = await tx.user.findFirst({
-        where: { id: currentUserId, tenantId },
+        where: { id: currentUserId },
         select: { name: true },
       });
 
       // 4. Criar entrada no histórico
       await tx.userHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           userId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -142,9 +147,21 @@ export class UsersService {
       userId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       currentUserId,
     });
+
+    // ✅ OTIMIZAÇÃO: Invalidar cache JWT se campos críticos mudaram
+    // (email, role, isActive, password afetam autenticação)
+    const criticalFields = ['email', 'role', 'isActive', 'password'];
+    const criticalFieldChanged = changedFields.some((field) =>
+      criticalFields.includes(field),
+    );
+
+    if (criticalFieldChanged) {
+      this.jwtCache.invalidate(id);
+      this.logger.debug(`Cache JWT invalidado para usuário ${id} (campos críticos alterados)`);
+    }
 
     // Remover password do retorno
     const { password: _, ...userWithoutPassword } = result;
@@ -154,20 +171,19 @@ export class UsersService {
   // ==================== DELETE (Soft) com Versionamento ====================
   async remove(
     id: string,
-    tenantId: string,
     currentUserId: string,
     deleteReason: string,
   ) {
     // Buscar usuário existente
-    const user = await this.prisma.user.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!user) {
       this.logger.error('Erro ao remover usuário', {
         error: 'Usuário não encontrado',
         userId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         currentUserId,
       });
       throw new NotFoundException('Usuário não encontrado');
@@ -193,7 +209,7 @@ export class UsersService {
     const newVersionNumber = user.versionNumber + 1;
 
     // Executar soft delete e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Soft delete do usuário
       const deletedUser = await tx.user.update({
         where: { id },
@@ -206,14 +222,14 @@ export class UsersService {
 
       // 2. Buscar nome do usuário que fez a exclusão
       const changedByUser = await tx.user.findFirst({
-        where: { id: currentUserId, tenantId },
+        where: { id: currentUserId },
         select: { name: true },
       });
 
       // 3. Criar entrada no histórico
       await tx.userHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           userId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -237,34 +253,37 @@ export class UsersService {
     this.logger.log('Usuário removido com versionamento', {
       userId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       currentUserId,
     });
+
+    // ✅ OTIMIZAÇÃO: Invalidar cache JWT (usuário deletado não deve mais autenticar)
+    this.jwtCache.invalidate(id);
+    this.logger.debug(`Cache JWT invalidado para usuário ${id} (soft delete)`);
 
     return { message: 'Usuário removido com sucesso', user: { id: result.id, name: result.name } };
   }
 
   // ==================== HISTÓRICO ====================
-  async getHistory(userId: string, tenantId: string) {
+  async getHistory(userId: string) {
     // Verificar se o usuário existe
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id: userId },
     });
 
     if (!user) {
       this.logger.error('Erro ao consultar histórico de usuário', {
         error: 'Usuário não encontrado',
         userId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Usuário não encontrado');
     }
 
     // Buscar histórico ordenado por versão decrescente
-    const history = await this.prisma.userHistory.findMany({
+    const history = await this.tenantContext.client.userHistory.findMany({
       where: {
         userId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -274,7 +293,7 @@ export class UsersService {
     this.logger.log('Histórico de usuário consultado', {
       userId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -290,11 +309,10 @@ export class UsersService {
   async getHistoryVersion(
     userId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
     // Verificar se o usuário existe
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id: userId },
     });
 
     if (!user) {
@@ -302,17 +320,16 @@ export class UsersService {
         error: 'Usuário não encontrado',
         userId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Usuário não encontrado');
     }
 
     // Buscar versão específica
-    const historyVersion = await this.prisma.userHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.userHistory.findFirst({
       where: {
         userId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -321,7 +338,7 @@ export class UsersService {
         error: `Versão ${versionNumber} não encontrada para este usuário`,
         userId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para este usuário`,
@@ -331,7 +348,7 @@ export class UsersService {
     this.logger.log('Versão específica do histórico consultada', {
       userId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;
@@ -342,27 +359,26 @@ export class UsersService {
     userId: string,
     changePasswordDto: ChangePasswordDto,
     currentUserId: string,
-    tenantId: string,
   ) {
     // Verificar se o usuário está alterando a própria senha
     if (userId !== currentUserId) {
       this.logger.error('Tentativa de alterar senha de outro usuário', {
         userId,
         currentUserId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new ForbiddenException('Você só pode alterar sua própria senha');
     }
 
     // Buscar usuário
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId, deletedAt: null },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id: userId, deletedAt: null },
     });
 
     if (!user) {
       this.logger.error('Usuário não encontrado ao alterar senha', {
         userId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Usuário não encontrado');
     }
@@ -376,7 +392,7 @@ export class UsersService {
     if (!isPasswordValid) {
       this.logger.warn('Senha atual incorreta ao tentar alterar senha', {
         userId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new BadRequestException('Senha atual incorreta');
     }
@@ -388,7 +404,7 @@ export class UsersService {
     const newVersionNumber = user.versionNumber + 1;
 
     // Atualizar senha em transação atômica com histórico
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar senha
       const updatedUser = await tx.user.update({
         where: { id: userId },
@@ -403,7 +419,7 @@ export class UsersService {
       // 2. Criar entrada no histórico
       await tx.userHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           userId,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -427,7 +443,7 @@ export class UsersService {
       await tx.accessLog.create({
         data: {
           userId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           action: AccessAction.PASSWORD_CHANGED,
           status: 'SUCCESS',
           reason: 'Troca de senha pelo usuário',
@@ -442,7 +458,7 @@ export class UsersService {
     this.logger.log('Senha alterada com sucesso', {
       userId,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { message: 'Senha alterada com sucesso' };
@@ -453,8 +469,8 @@ export class UsersService {
   /**
    * Listar sessões ativas do usuário
    */
-  async getActiveSessions(userId: string, currentTokenId?: string, tenantId?: string) {
-    const sessions = await this.prisma.refreshToken.findMany({
+  async getActiveSessions(userId: string, currentTokenId?: string) {
+    const sessions = await this.tenantContext.client.refreshToken.findMany({
       where: {
         userId,
         expiresAt: {
@@ -482,14 +498,14 @@ export class UsersService {
   /**
    * Revogar sessão específica (deletar refresh token)
    */
-  async revokeSession(userId: string, sessionId: string, currentTokenId: string, tenantId: string) {
+  async revokeSession(userId: string, sessionId: string, currentTokenId: string) {
     // Não permitir revogar sessão atual
     if (sessionId === currentTokenId) {
       throw new BadRequestException('Não é possível revogar a sessão atual');
     }
 
     // Verificar se a sessão pertence ao usuário
-    const session = await this.prisma.refreshToken.findUnique({
+    const session = await this.tenantContext.client.refreshToken.findUnique({
       where: { id: sessionId },
     });
 
@@ -498,15 +514,15 @@ export class UsersService {
     }
 
     // Deletar sessão
-    await this.prisma.refreshToken.delete({
+    await this.tenantContext.client.refreshToken.delete({
       where: { id: sessionId },
     });
 
     // Registrar log de acesso (SESSION_REVOKED)
-    await this.prisma.accessLog.create({
+    await this.tenantContext.client.accessLog.create({
       data: {
         userId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         action: AccessAction.SESSION_REVOKED,
         status: 'SUCCESS',
         reason: 'Sessão revogada manualmente pelo usuário',
@@ -523,12 +539,12 @@ export class UsersService {
   /**
    * Revogar todas as outras sessões (exceto a atual)
    */
-  async revokeAllOtherSessions(userId: string, currentTokenId: string | null, tenantId: string) {
+  async revokeAllOtherSessions(userId: string, currentTokenId: string | null) {
     // Se currentTokenId não foi fornecido, buscar a sessão mais recente (provavelmente a atual)
     let tokenIdToKeep = currentTokenId;
 
     if (!currentTokenId || currentTokenId === 'current') {
-      const mostRecentSession = await this.prisma.refreshToken.findFirst({
+      const mostRecentSession = await this.tenantContext.client.refreshToken.findFirst({
         where: { userId },
         orderBy: { lastActivityAt: 'desc' },
         select: { id: true },
@@ -538,7 +554,7 @@ export class UsersService {
     }
 
     // Deletar todas as sessões exceto a mais recente
-    const result = await this.prisma.refreshToken.deleteMany({
+    const result = await this.tenantContext.client.refreshToken.deleteMany({
       where: {
         userId,
         ...(tokenIdToKeep && {
@@ -551,10 +567,10 @@ export class UsersService {
 
     // Registrar log de acesso (SESSION_REVOKED) se alguma sessão foi encerrada
     if (result.count > 0) {
-      await this.prisma.accessLog.create({
+      await this.tenantContext.client.accessLog.create({
         data: {
           userId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           action: AccessAction.SESSION_REVOKED,
           status: 'SUCCESS',
           reason: `${result.count} sessão(ões) revogada(s) - Encerrar todas as outras sessões`,
@@ -578,14 +594,13 @@ export class UsersService {
    */
   async getAccessLogs(
     userId: string,
-    tenantId: string,
     limit: number = 30,
     offset: number = 0,
     action?: string,
   ) {
     // Verificar se usuário existe e pertence ao tenant
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, tenantId, deletedAt: null },
+    const user = await this.tenantContext.client.user.findFirst({
+      where: { id: userId, deletedAt: null },
     });
 
     if (!user) {
@@ -595,7 +610,6 @@ export class UsersService {
     // Filtros
     const where: any = {
       userId,
-      tenantId,
     };
 
     // Filtro por ação (opcional)
@@ -605,7 +619,7 @@ export class UsersService {
 
     // Buscar logs com paginação
     const [logs, total] = await Promise.all([
-      this.prisma.accessLog.findMany({
+      this.tenantContext.client.accessLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -620,7 +634,7 @@ export class UsersService {
           createdAt: true,
         },
       }),
-      this.prisma.accessLog.count({ where }),
+      this.tenantContext.client.accessLog.count({ where }),
     ]);
 
     return {

@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO, startOfDay, format } from 'date-fns';
@@ -25,7 +26,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 @Injectable()
 export class ResidentScheduleService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
@@ -40,14 +42,12 @@ export class ResidentScheduleService {
    */
   async createConfig(
     dto: CreateScheduleConfigDto,
-    tenantId: string,
     userId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: dto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -60,9 +60,8 @@ export class ResidentScheduleService {
     this.validateFrequencyFields(dto.frequency, dto.dayOfWeek, dto.dayOfMonth);
 
     // Verificar duplicata: mesmo residente + recordType + frequency + dayOfWeek/dayOfMonth
-    const existing = await this.prisma.residentScheduleConfig.findFirst({
+    const existing = await this.tenantContext.client.residentScheduleConfig.findFirst({
       where: {
-        tenantId,
         residentId: dto.residentId,
         recordType: dto.recordType,
         frequency: dto.frequency,
@@ -79,9 +78,9 @@ export class ResidentScheduleService {
     }
 
     // Criar configuração
-    const config = await this.prisma.residentScheduleConfig.create({
+    const config = await this.tenantContext.client.residentScheduleConfig.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
         residentId: dto.residentId,
         recordType: dto.recordType,
         frequency: dto.frequency,
@@ -114,7 +113,7 @@ export class ResidentScheduleService {
       recordType: dto.recordType,
       frequency: dto.frequency,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return config;
@@ -125,14 +124,12 @@ export class ResidentScheduleService {
    */
   async createAlimentacaoConfigs(
     dto: CreateAlimentacaoConfigDto,
-    tenantId: string,
     userId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: dto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -142,9 +139,8 @@ export class ResidentScheduleService {
     }
 
     // Verificar se já existem configs de alimentação para este residente
-    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+    const existingConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         residentId: dto.residentId,
         recordType: 'ALIMENTACAO',
         frequency: 'DAILY',
@@ -169,11 +165,11 @@ export class ResidentScheduleService {
     };
 
     // Criar as 6 configs em batch usando transaction
-    const configs = await this.prisma.$transaction(
+    const configs = await this.tenantContext.client.$transaction(
       MEAL_TYPES.map((mealType) => {
-        return this.prisma.residentScheduleConfig.create({
+        return this.tenantContext.client.residentScheduleConfig.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
             residentId: dto.residentId,
             recordType: 'ALIMENTACAO',
             frequency: 'DAILY',
@@ -206,7 +202,7 @@ export class ResidentScheduleService {
     this.logger.info('6 ResidentScheduleConfigs created for ALIMENTACAO', {
       residentId: dto.residentId,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return configs;
@@ -218,14 +214,12 @@ export class ResidentScheduleService {
   async updateAlimentacaoConfigs(
     residentId: string,
     dto: UpdateAlimentacaoConfigDto,
-    tenantId: string,
     userId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -235,9 +229,8 @@ export class ResidentScheduleService {
     }
 
     // Buscar todas as configs de alimentação atuais
-    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+    const existingConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         residentId,
         recordType: 'ALIMENTACAO',
         frequency: 'DAILY',
@@ -262,13 +255,13 @@ export class ResidentScheduleService {
     };
 
     // Atualizar todas as 6 configs em transaction
-    const updatedConfigs = await this.prisma.$transaction(
+    const updatedConfigs = await this.tenantContext.client.$transaction(
       existingConfigs.map((config) => {
         const metadata = config.metadata as { mealType: string };
         const mealType = metadata.mealType;
         const newTime = mealTimesMap[mealType];
 
-        return this.prisma.residentScheduleConfig.update({
+        return this.tenantContext.client.residentScheduleConfig.update({
           where: { id: config.id },
           data: {
             suggestedTimes: [newTime],
@@ -297,7 +290,7 @@ export class ResidentScheduleService {
     this.logger.info('6 ResidentScheduleConfigs updated for ALIMENTACAO', {
       residentId,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return updatedConfigs;
@@ -308,14 +301,12 @@ export class ResidentScheduleService {
    */
   async deleteAlimentacaoConfigs(
     residentId: string,
-    tenantId: string,
     userId: string,
   ) {
     // Verificar se residente existe
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -325,9 +316,8 @@ export class ResidentScheduleService {
     }
 
     // Buscar todas as configs de alimentação
-    const existingConfigs = await this.prisma.residentScheduleConfig.findMany({
+    const existingConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         residentId,
         recordType: 'ALIMENTACAO',
         frequency: 'DAILY',
@@ -342,9 +332,8 @@ export class ResidentScheduleService {
     }
 
     // Soft delete de todas as 6 configs
-    await this.prisma.residentScheduleConfig.updateMany({
+    await this.tenantContext.client.residentScheduleConfig.updateMany({
       where: {
-        tenantId,
         residentId,
         recordType: 'ALIMENTACAO',
         frequency: 'DAILY',
@@ -359,7 +348,7 @@ export class ResidentScheduleService {
     this.logger.info('6 ResidentScheduleConfigs deleted for ALIMENTACAO', {
       residentId,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { message: 'Configurações de alimentação removidas com sucesso' };
@@ -368,12 +357,11 @@ export class ResidentScheduleService {
   /**
    * Buscar configurações de um residente
    */
-  async getConfigsByResident(residentId: string, tenantId: string) {
+  async getConfigsByResident(residentId: string) {
     // Verificar se residente existe
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -382,9 +370,8 @@ export class ResidentScheduleService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    return this.prisma.residentScheduleConfig.findMany({
+    return this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         residentId,
         deletedAt: null,
       },
@@ -414,10 +401,9 @@ export class ResidentScheduleService {
    * Buscar todas as configurações ativas de registros obrigatórios do tenant
    * Usado para cálculo de cobertura de registros obrigatórios
    */
-  async getAllActiveConfigs(tenantId: string) {
-    return this.prisma.residentScheduleConfig.findMany({
+  async getAllActiveConfigs() {
+    return this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         resident: {
@@ -448,14 +434,12 @@ export class ResidentScheduleService {
   async updateConfig(
     id: string,
     dto: UpdateScheduleConfigDto,
-    tenantId: string,
     userId: string,
   ) {
     // Buscar configuração
-    const config = await this.prisma.residentScheduleConfig.findFirst({
+    const config = await this.tenantContext.client.residentScheduleConfig.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -475,10 +459,9 @@ export class ResidentScheduleService {
 
     // Verificar duplicata se campos-chave estiverem sendo alterados
     if (dto.recordType || dto.frequency || dto.dayOfWeek || dto.dayOfMonth) {
-      const existing = await this.prisma.residentScheduleConfig.findFirst({
+      const existing = await this.tenantContext.client.residentScheduleConfig.findFirst({
         where: {
           id: { not: id },
-          tenantId,
           residentId: config.residentId,
           recordType: dto.recordType ?? config.recordType,
           frequency: dto.frequency ?? config.frequency,
@@ -496,7 +479,7 @@ export class ResidentScheduleService {
     }
 
     // Atualizar
-    const updated = await this.prisma.residentScheduleConfig.update({
+    const updated = await this.tenantContext.client.residentScheduleConfig.update({
       where: { id },
       data: {
         recordType: dto.recordType,
@@ -527,7 +510,7 @@ export class ResidentScheduleService {
     this.logger.info('ResidentScheduleConfig updated', {
       configId: id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return updated;
@@ -536,11 +519,10 @@ export class ResidentScheduleService {
   /**
    * Deletar configuração (soft delete)
    */
-  async deleteConfig(id: string, tenantId: string, userId: string) {
-    const config = await this.prisma.residentScheduleConfig.findFirst({
+  async deleteConfig(id: string, userId: string) {
+    const config = await this.tenantContext.client.residentScheduleConfig.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -549,7 +531,7 @@ export class ResidentScheduleService {
       throw new NotFoundException('Configuração não encontrada');
     }
 
-    await this.prisma.residentScheduleConfig.update({
+    await this.tenantContext.client.residentScheduleConfig.update({
       where: { id },
       data: {
         deletedAt: new Date(),
@@ -560,7 +542,7 @@ export class ResidentScheduleService {
     this.logger.info('ResidentScheduleConfig deleted', {
       configId: id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { message: 'Configuração removida com sucesso' };
@@ -575,14 +557,12 @@ export class ResidentScheduleService {
    */
   async createEvent(
     dto: CreateScheduledEventDto,
-    tenantId: string,
     userId: string,
   ) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: dto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -595,9 +575,9 @@ export class ResidentScheduleService {
     const scheduledDate = parseISO(`${dto.scheduledDate}T12:00:00.000`);
 
     // Criar evento
-    const event = await this.prisma.residentScheduledEvent.create({
+    const event = await this.tenantContext.client.residentScheduledEvent.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
         residentId: dto.residentId,
         eventType: dto.eventType,
         scheduledDate,
@@ -630,13 +610,12 @@ export class ResidentScheduleService {
       eventType: dto.eventType,
       scheduledDate: dto.scheduledDate,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     // Criar notificação de evento agendado
     try {
       await this.notificationsService.createScheduledEventDueNotification(
-        tenantId,
         event.id,
         resident.id,
         resident.fullName,
@@ -656,12 +635,11 @@ export class ResidentScheduleService {
   /**
    * Buscar agendamentos de um residente
    */
-  async getEventsByResident(residentId: string, tenantId: string) {
+  async getEventsByResident(residentId: string) {
     // Verificar se residente existe
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -670,9 +648,8 @@ export class ResidentScheduleService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    return this.prisma.residentScheduledEvent.findMany({
+    return this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
-        tenantId,
         residentId,
         deletedAt: null,
       },
@@ -700,13 +677,11 @@ export class ResidentScheduleService {
   async updateEvent(
     id: string,
     dto: UpdateScheduledEventDto,
-    tenantId: string,
     userId: string,
   ) {
-    const event = await this.prisma.residentScheduledEvent.findFirst({
+    const event = await this.tenantContext.client.residentScheduledEvent.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -720,7 +695,7 @@ export class ResidentScheduleService {
       ? parseISO(`${dto.scheduledDate}T12:00:00.000`)
       : undefined;
 
-    const updated = await this.prisma.residentScheduledEvent.update({
+    const updated = await this.tenantContext.client.residentScheduledEvent.update({
       where: { id },
       data: {
         eventType: dto.eventType,
@@ -754,7 +729,7 @@ export class ResidentScheduleService {
     this.logger.info('ResidentScheduledEvent updated', {
       eventId: id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     // Se houve mudança de data/horário (reagendamento), criar notificação
@@ -764,7 +739,6 @@ export class ResidentScheduleService {
     if (dateChanged || timeChanged) {
       try {
         await this.notificationsService.createScheduledEventDueNotification(
-          tenantId,
           updated.id,
           updated.resident.id,
           updated.resident.fullName,
@@ -785,11 +759,10 @@ export class ResidentScheduleService {
   /**
    * Deletar agendamento (soft delete)
    */
-  async deleteEvent(id: string, tenantId: string, userId: string) {
-    const event = await this.prisma.residentScheduledEvent.findFirst({
+  async deleteEvent(id: string, userId: string) {
+    const event = await this.tenantContext.client.residentScheduledEvent.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -798,7 +771,7 @@ export class ResidentScheduleService {
       throw new NotFoundException('Agendamento não encontrado');
     }
 
-    await this.prisma.residentScheduledEvent.update({
+    await this.tenantContext.client.residentScheduledEvent.update({
       where: { id },
       data: {
         deletedAt: new Date(),
@@ -809,7 +782,7 @@ export class ResidentScheduleService {
     this.logger.info('ResidentScheduledEvent deleted', {
       eventId: id,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { message: 'Agendamento removido com sucesso' };

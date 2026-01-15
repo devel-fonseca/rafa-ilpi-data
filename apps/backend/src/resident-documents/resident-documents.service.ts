@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { CreateResidentDocumentDto } from './dto/create-resident-document.dto';
 import { UpdateResidentDocumentDto } from './dto/update-resident-document.dto';
@@ -9,18 +10,18 @@ export class ResidentDocumentsService {
   private readonly logger = new Logger(ResidentDocumentsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
   ) {}
 
   /**
    * Lista documentos de um residente com filtros opcionais
    */
-  async findAll(residentId: string, tenantId: string, type?: string) {
-    const documents = await this.prisma.residentDocument.findMany({
+  async findAll(residentId: string, type?: string) {
+    const documents = await this.tenantContext.client.residentDocument.findMany({
       where: {
         residentId,
-        tenantId,
         ...(type && { type }),
         deletedAt: null,
       },
@@ -43,12 +44,11 @@ export class ResidentDocumentsService {
   /**
    * Busca um documento específico
    */
-  async findOne(documentId: string, residentId: string, tenantId: string) {
-    const document = await this.prisma.residentDocument.findFirst({
+  async findOne(documentId: string, residentId: string) {
+    const document = await this.tenantContext.client.residentDocument.findFirst({
       where: {
         id: documentId,
         residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -69,16 +69,14 @@ export class ResidentDocumentsService {
    */
   async uploadDocument(
     residentId: string,
-    tenantId: string,
     userId: string,
     file: Express.Multer.File,
     metadata: CreateResidentDocumentDto,
   ) {
-    // Verificar se o residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+    // Verificar se o residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -88,12 +86,12 @@ export class ResidentDocumentsService {
     }
 
     // Upload do arquivo para o MinIO
-    const uploadResult = await this.filesService.uploadFile(tenantId, file, 'documents', residentId);
+    const uploadResult = await this.filesService.uploadFile(this.tenantContext.tenantId, file, 'documents', residentId);
 
     // Criar registro no banco
-    const document = await this.prisma.residentDocument.create({
+    const document = await this.tenantContext.client.residentDocument.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId,
         type: metadata.type,
         details: metadata.details,
@@ -121,14 +119,12 @@ export class ResidentDocumentsService {
   async updateMetadata(
     documentId: string,
     residentId: string,
-    tenantId: string,
     updateDto: UpdateResidentDocumentDto,
   ) {
-    const document = await this.prisma.residentDocument.findFirst({
+    const document = await this.tenantContext.client.residentDocument.findFirst({
       where: {
         id: documentId,
         residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -137,7 +133,7 @@ export class ResidentDocumentsService {
       throw new NotFoundException('Documento não encontrado');
     }
 
-    const updated = await this.prisma.residentDocument.update({
+    const updated = await this.tenantContext.client.residentDocument.update({
       where: { id: documentId },
       data: {
         ...(updateDto.type && { type: updateDto.type }),
@@ -159,14 +155,12 @@ export class ResidentDocumentsService {
   async replaceFile(
     documentId: string,
     residentId: string,
-    tenantId: string,
     file: Express.Multer.File,
   ) {
-    const document = await this.prisma.residentDocument.findFirst({
+    const document = await this.tenantContext.client.residentDocument.findFirst({
       where: {
         id: documentId,
         residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -183,10 +177,10 @@ export class ResidentDocumentsService {
     }
 
     // Upload do novo arquivo
-    const uploadResult = await this.filesService.uploadFile(tenantId, file, 'documents', residentId);
+    const uploadResult = await this.filesService.uploadFile(this.tenantContext.tenantId, file, 'documents', residentId);
 
     // Atualizar registro
-    const updated = await this.prisma.residentDocument.update({
+    const updated = await this.tenantContext.client.residentDocument.update({
       where: { id: documentId },
       data: {
         fileUrl: uploadResult.fileUrl,
@@ -208,12 +202,11 @@ export class ResidentDocumentsService {
   /**
    * Deleta um documento (soft delete)
    */
-  async deleteDocument(documentId: string, residentId: string, tenantId: string) {
-    const document = await this.prisma.residentDocument.findFirst({
+  async deleteDocument(documentId: string, residentId: string) {
+    const document = await this.tenantContext.client.residentDocument.findFirst({
       where: {
         id: documentId,
         residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -223,7 +216,7 @@ export class ResidentDocumentsService {
     }
 
     // Soft delete
-    await this.prisma.residentDocument.update({
+    await this.tenantContext.client.residentDocument.update({
       where: { id: documentId },
       data: {
         deletedAt: new Date(),

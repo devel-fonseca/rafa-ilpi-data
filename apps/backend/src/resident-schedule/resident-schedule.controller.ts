@@ -69,7 +69,7 @@ export class ResidentScheduleController {
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   @ApiResponse({ status: 409, description: 'Configuração duplicada' })
   create(@Body() dto: CreateScheduleConfigDto, @CurrentUser() user: any) {
-    return this.scheduleService.createConfig(dto, user.tenantId, user.id);
+    return this.scheduleService.createConfig(dto, user.id);
   }
 
   @Get('configs')
@@ -80,7 +80,7 @@ export class ResidentScheduleController {
   })
   @ApiResponse({ status: 200, description: 'Lista de configurações' })
   getAllActiveConfigs(@CurrentUser() user: any) {
-    return this.scheduleService.getAllActiveConfigs(user.tenantId);
+    return this.scheduleService.getAllActiveConfigs();
   }
 
   @Get('configs/resident/:residentId')
@@ -96,7 +96,7 @@ export class ResidentScheduleController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.getConfigsByResident(residentId, user.tenantId);
+    return this.scheduleService.getConfigsByResident(residentId);
   }
 
   @Patch('configs/:id')
@@ -112,7 +112,7 @@ export class ResidentScheduleController {
     @Body() dto: UpdateScheduleConfigDto,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.updateConfig(id, dto, user.tenantId, user.id);
+    return this.scheduleService.updateConfig(id, dto, user.id);
   }
 
   @Delete('configs/:id')
@@ -127,7 +127,7 @@ export class ResidentScheduleController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.deleteConfig(id, user.tenantId, user.id);
+    return this.scheduleService.deleteConfig(id, user.id);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -158,7 +158,6 @@ export class ResidentScheduleController {
   ) {
     return this.scheduleService.createAlimentacaoConfigs(
       dto,
-      user.tenantId,
       user.id,
     );
   }
@@ -185,7 +184,6 @@ export class ResidentScheduleController {
     return this.scheduleService.updateAlimentacaoConfigs(
       residentId,
       dto,
-      user.tenantId,
       user.id,
     );
   }
@@ -210,7 +208,6 @@ export class ResidentScheduleController {
   ) {
     return this.scheduleService.deleteAlimentacaoConfigs(
       residentId,
-      user.tenantId,
       user.id,
     );
   }
@@ -227,7 +224,7 @@ export class ResidentScheduleController {
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   createEvent(@Body() dto: CreateScheduledEventDto, @CurrentUser() user: any) {
-    return this.scheduleService.createEvent(dto, user.tenantId, user.id);
+    return this.scheduleService.createEvent(dto, user.id);
   }
 
   @Get('events/resident/:residentId')
@@ -243,7 +240,7 @@ export class ResidentScheduleController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.getEventsByResident(residentId, user.tenantId);
+    return this.scheduleService.getEventsByResident(residentId);
   }
 
   @Patch('events/:id')
@@ -258,7 +255,7 @@ export class ResidentScheduleController {
     @Body() dto: UpdateScheduledEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.updateEvent(id, dto, user.tenantId, user.id);
+    return this.scheduleService.updateEvent(id, dto, user.id);
   }
 
   @Delete('events/:id')
@@ -273,7 +270,7 @@ export class ResidentScheduleController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.scheduleService.deleteEvent(id, user.tenantId, user.id);
+    return this.scheduleService.deleteEvent(id, user.id);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -301,7 +298,6 @@ export class ResidentScheduleController {
   ) {
     return this.tasksService.getDailyTasksByResident(
       residentId,
-      user.tenantId,
       query.date,
     );
   }
@@ -320,7 +316,7 @@ export class ResidentScheduleController {
     required: false,
   })
   getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() user: any) {
-    return this.tasksService.getDailyTasks(user.tenantId, query.date);
+    return this.tasksService.getDailyTasks(query.date);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -367,7 +363,7 @@ export class ResidentScheduleController {
     example: 'medications,vaccinations,feeding',
   })
   getAgendaItems(@Query() query: GetAgendaItemsDto, @CurrentUser() user: any) {
-    return this.agendaService.getAgendaItems(query, user.tenantId);
+    return this.agendaService.getAgendaItems(query);
   }
 
   @Get('agenda/institutional-events')
@@ -425,17 +421,11 @@ export class ResidentScheduleController {
     }
 
     // Verificar se usuário é RT
-    const userProfile = await this.agendaService['prisma'].userProfile.findUnique({
-      where: { userId: user.id },
-      select: { isTechnicalManager: true },
-    });
-
-    const isRT = userProfile?.isTechnicalManager || false;
+    const isRT = await this.agendaService.isUserRT(user.id);
 
     return this.agendaService.getInstitutionalEvents(
       targetStartDate,
       targetEndDate,
-      user.tenantId,
       user.role,
       isRT,
     );

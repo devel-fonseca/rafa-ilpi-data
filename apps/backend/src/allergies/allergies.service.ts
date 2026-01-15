@@ -4,6 +4,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateAllergyDto } from './dto/create-allergy.dto';
 import { UpdateAllergyDto } from './dto/update-allergy-versioned.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -13,19 +14,19 @@ import { ChangeType } from '@prisma/client';
 @Injectable()
 export class AllergiesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
   /**
    * Criar nova alergia COM versionamento
    */
-  async create(tenantId: string, userId: string, createDto: CreateAllergyDto) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findFirst({
+  async create(userId: string, createDto: CreateAllergyDto) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: createDto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -35,9 +36,9 @@ export class AllergiesService {
     }
 
     // Criar alergia
-    const allergy = await this.prisma.allergy.create({
+    const allergy = await this.tenantContext.client.allergy.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId: createDto.residentId,
         substance: createDto.substance,
         reaction: createDto.reaction,
@@ -66,7 +67,7 @@ export class AllergiesService {
       allergyId: allergy.id,
       residentId: createDto.residentId,
       substance: createDto.substance,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -76,11 +77,10 @@ export class AllergiesService {
   /**
    * Listar todas as alergias de um residente
    */
-  async findByResidentId(tenantId: string, residentId: string) {
-    return this.prisma.allergy.findMany({
+  async findByResidentId(residentId: string) {
+    return this.tenantContext.client.allergy.findMany({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -106,11 +106,10 @@ export class AllergiesService {
   /**
    * Buscar uma alergia específica
    */
-  async findOne(tenantId: string, id: string) {
-    const allergy = await this.prisma.allergy.findFirst({
+  async findOne(id: string) {
+    const allergy = await this.tenantContext.client.allergy.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -140,7 +139,6 @@ export class AllergiesService {
    * Atualizar alergia COM versionamento
    */
   async update(
-    tenantId: string,
     userId: string,
     id: string,
     updateDto: UpdateAllergyDto,
@@ -148,15 +146,15 @@ export class AllergiesService {
     const { changeReason, ...updateData } = updateDto;
 
     // Buscar alergia existente
-    const allergy = await this.prisma.allergy.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const allergy = await this.tenantContext.client.allergy.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!allergy) {
       this.logger.error('Erro ao atualizar alergia', {
         error: 'Alergia não encontrada',
         allergyId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Alergia não encontrada');
@@ -189,7 +187,7 @@ export class AllergiesService {
     const newVersionNumber = allergy.versionNumber + 1;
 
     // Executar update e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const updatedAllergy = await tx.allergy.update({
         where: { id },
         data: {
@@ -210,7 +208,7 @@ export class AllergiesService {
 
       await tx.allergyHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           allergyId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -230,7 +228,7 @@ export class AllergiesService {
       allergyId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -241,20 +239,19 @@ export class AllergiesService {
    * Soft delete de alergia COM versionamento
    */
   async remove(
-    tenantId: string,
     userId: string,
     id: string,
     deleteReason: string,
   ) {
-    const allergy = await this.prisma.allergy.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const allergy = await this.tenantContext.client.allergy.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!allergy) {
       this.logger.error('Erro ao remover alergia', {
         error: 'Alergia não encontrada',
         allergyId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Alergia não encontrada');
@@ -272,7 +269,7 @@ export class AllergiesService {
 
     const newVersionNumber = allergy.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const deletedAllergy = await tx.allergy.update({
         where: { id },
         data: {
@@ -284,7 +281,7 @@ export class AllergiesService {
 
       await tx.allergyHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           allergyId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -307,7 +304,7 @@ export class AllergiesService {
     this.logger.info('Alergia removida com versionamento', {
       allergyId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -320,24 +317,23 @@ export class AllergiesService {
   /**
    * Consultar histórico completo de alergia
    */
-  async getHistory(allergyId: string, tenantId: string) {
-    const allergy = await this.prisma.allergy.findFirst({
-      where: { id: allergyId, tenantId },
+  async getHistory(allergyId: string) {
+    const allergy = await this.tenantContext.client.allergy.findFirst({
+      where: { id: allergyId },
     });
 
     if (!allergy) {
       this.logger.error('Erro ao consultar histórico de alergia', {
         error: 'Alergia não encontrada',
         allergyId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Alergia não encontrada');
     }
 
-    const history = await this.prisma.allergyHistory.findMany({
+    const history = await this.tenantContext.client.allergyHistory.findMany({
       where: {
         allergyId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -347,7 +343,7 @@ export class AllergiesService {
     this.logger.info('Histórico de alergia consultado', {
       allergyId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -366,10 +362,9 @@ export class AllergiesService {
   async getHistoryVersion(
     allergyId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
-    const allergy = await this.prisma.allergy.findFirst({
-      where: { id: allergyId, tenantId },
+    const allergy = await this.tenantContext.client.allergy.findFirst({
+      where: { id: allergyId },
     });
 
     if (!allergy) {
@@ -377,16 +372,15 @@ export class AllergiesService {
         error: 'Alergia não encontrada',
         allergyId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Alergia não encontrada');
     }
 
-    const historyVersion = await this.prisma.allergyHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.allergyHistory.findFirst({
       where: {
         allergyId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -395,7 +389,7 @@ export class AllergiesService {
         error: `Versão ${versionNumber} não encontrada para esta alergia`,
         allergyId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para esta alergia`,
@@ -405,7 +399,7 @@ export class AllergiesService {
     this.logger.info('Versão específica do histórico consultada', {
       allergyId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

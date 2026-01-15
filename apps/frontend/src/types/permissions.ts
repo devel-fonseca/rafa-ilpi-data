@@ -123,6 +123,14 @@ export enum PermissionType {
   PUBLISH_POPS = 'PUBLISH_POPS',
   MANAGE_POPS = 'MANAGE_POPS',
 
+  // Contratos de Prestação de Serviços
+  VIEW_CONTRACTS = 'VIEW_CONTRACTS',
+  CREATE_CONTRACTS = 'CREATE_CONTRACTS',
+  UPDATE_CONTRACTS = 'UPDATE_CONTRACTS',
+  REPLACE_CONTRACTS = 'REPLACE_CONTRACTS',
+  DELETE_CONTRACTS = 'DELETE_CONTRACTS',
+  VALIDATE_CONTRACTS = 'VALIDATE_CONTRACTS',
+
   // Agenda do Residente
   VIEW_RESIDENT_SCHEDULE = 'VIEW_RESIDENT_SCHEDULE',
   MANAGE_RESIDENT_SCHEDULE = 'MANAGE_RESIDENT_SCHEDULE',
@@ -264,6 +272,13 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.PUBLISH_POPS]: 'Publicar POPs',
   [PermissionType.MANAGE_POPS]: 'Gerenciar POPs',
 
+  [PermissionType.VIEW_CONTRACTS]: 'Visualizar contratos',
+  [PermissionType.CREATE_CONTRACTS]: 'Cadastrar contratos',
+  [PermissionType.UPDATE_CONTRACTS]: 'Editar contratos',
+  [PermissionType.REPLACE_CONTRACTS]: 'Substituir arquivo do contrato',
+  [PermissionType.DELETE_CONTRACTS]: 'Excluir contratos',
+  [PermissionType.VALIDATE_CONTRACTS]: 'Validar autenticidade de contratos',
+
   [PermissionType.VIEW_RESIDENT_SCHEDULE]: 'Visualizar agenda do residente',
   [PermissionType.MANAGE_RESIDENT_SCHEDULE]: 'Gerenciar agenda do residente',
 
@@ -351,6 +366,17 @@ export const PERMISSION_GROUPS = {
       PermissionType.DELETE_POPS,
       PermissionType.PUBLISH_POPS,
       PermissionType.MANAGE_POPS,
+    ],
+  },
+  contracts: {
+    label: 'Contratos de Prestação de Serviços',
+    permissions: [
+      PermissionType.VIEW_CONTRACTS,
+      PermissionType.CREATE_CONTRACTS,
+      PermissionType.UPDATE_CONTRACTS,
+      PermissionType.REPLACE_CONTRACTS,
+      PermissionType.DELETE_CONTRACTS,
+      PermissionType.VALIDATE_CONTRACTS,
     ],
   },
   residentSchedule: {

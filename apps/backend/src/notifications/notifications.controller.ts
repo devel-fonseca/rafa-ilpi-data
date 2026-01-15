@@ -25,9 +25,8 @@ export class NotificationsController {
    * Criar nova notificação (normalmente chamado internamente por outros services)
    */
   @Post()
-  async create(@Request() req: any, @Body() dto: CreateNotificationDto) {
-    const tenantId = req.user.tenantId
-    return this.notificationsService.create(tenantId, dto)
+  async create(@Body() dto: CreateNotificationDto) {
+    return this.notificationsService.create(dto)
   }
 
   /**
@@ -36,9 +35,8 @@ export class NotificationsController {
    */
   @Get()
   async findAll(@Request() req: any, @Query() query: QueryNotificationDto) {
-    const tenantId = req.user.tenantId
     const userId = req.user.id
-    return this.notificationsService.findAll(tenantId, userId, query)
+    return this.notificationsService.findAll(userId, query)
   }
 
   /**
@@ -47,9 +45,8 @@ export class NotificationsController {
    */
   @Get('unread/count')
   async countUnread(@Request() req: any) {
-    const tenantId = req.user.tenantId
     const userId = req.user.id
-    return this.notificationsService.countUnread(tenantId, userId)
+    return this.notificationsService.countUnread(userId)
   }
 
   /**
@@ -58,9 +55,8 @@ export class NotificationsController {
    */
   @Patch(':id/read')
   async markAsRead(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user.tenantId
     const userId = req.user.id
-    return this.notificationsService.markAsRead(tenantId, userId, id)
+    return this.notificationsService.markAsRead(userId, id)
   }
 
   /**
@@ -69,9 +65,8 @@ export class NotificationsController {
    */
   @Patch('read-all')
   async markAllAsRead(@Request() req: any) {
-    const tenantId = req.user.tenantId
     const userId = req.user.id
-    return this.notificationsService.markAllAsRead(tenantId, userId)
+    return this.notificationsService.markAllAsRead(userId)
   }
 
   /**
@@ -80,8 +75,7 @@ export class NotificationsController {
    */
   @Delete(':id')
   async delete(@Request() req: any, @Param('id') id: string) {
-    const tenantId = req.user.tenantId
     const userId = req.user.id
-    return this.notificationsService.delete(tenantId, userId, id)
+    return this.notificationsService.delete(userId, id)
   }
 }

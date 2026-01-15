@@ -12,6 +12,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserProfilesService } from '../user-profiles/user-profiles.service';
 import { EmailService } from '../email/email.service';
+import { JwtCacheService } from './jwt-cache.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly userProfilesService: UserProfilesService,
     private readonly emailService: EmailService,
+    private readonly jwtCache: JwtCacheService,
   ) {}
 
   /**
@@ -45,13 +47,14 @@ export class AuthService {
       throw new BadRequestException('Tenant não encontrado');
     }
 
+    // ✅ Obter tenant client para acessar User no schema de tenant
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
     // Verificar se email já existe para este tenant
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await tenantClient.user.findFirst({
       where: {
-        tenantId_email: {
-          tenantId,
-          email,
-        },
+        email,
+        deletedAt: null,
       },
     });
 
@@ -60,8 +63,8 @@ export class AuthService {
     }
 
     // Verificar limite de usuários do plano
-    const userCount = await this.prisma.user.count({
-      where: { tenantId },
+    const userCount = await tenantClient.user.count({
+      where: { deletedAt: null },
     });
 
     const maxUsers = tenant.subscriptions[0]?.plan.maxUsers || 0;
@@ -75,9 +78,9 @@ export class AuthService {
     const hashedPassword = await this.hashPassword(password);
 
     // Criar usuário E perfil em transação atômica (tudo ou nada)
-    const user = await this.prisma.$transaction(async (prisma) => {
+    const user = await tenantClient.$transaction(async (tx) => {
       // 1. Criar usuário
-      const newUser = await prisma.user.create({
+      const newUser = await tx.user.create({
         data: {
           tenantId,
           name,
@@ -98,7 +101,7 @@ export class AuthService {
 
       // 2. Criar perfil automaticamente para o usuário (exceto SUPERADMIN)
       if (newUser.tenantId) {
-        await prisma.userProfile.create({
+        await tx.userProfile.create({
           data: {
             userId: newUser.id,
             tenantId: newUser.tenantId,
@@ -118,18 +121,26 @@ export class AuthService {
 
   /**
    * Login do usuário - Verifica se tem múltiplos tenants
+   *
+   * ARQUITETURA MULTI-TENANT:
+   * Busca users por email em AMBOS os contextos:
+   * - public.users (SUPERADMIN com tenantId=null)
+   * - tenant_xyz.users (users de tenants)
    */
   async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string) {
     const { email, password } = loginDto;
 
     // Buscar todos os cadastros do usuário (pode ter múltiplos tenants ou SUPERADMIN)
-    const users = await this.prisma.user.findMany({
+    // STEP 1: Buscar em public schema (SUPERADMIN)
+    // eslint-disable-next-line no-restricted-syntax
+    const superAdminUsers = await this.prisma.user.findMany({
       where: {
         email,
         isActive: true,
+        tenantId: null, // Apenas SUPERADMIN
       },
       include: {
-        profile: true, // Incluir perfil do usuário (positionCode, etc)
+        profile: true,
         tenant: {
           include: {
             profile: {
@@ -154,6 +165,67 @@ export class AuthService {
       },
     });
 
+    // STEP 2: Buscar em todos os tenant schemas
+    const tenants = await this.prisma.tenant.findMany({
+      where: { deletedAt: null },
+      select: { id: true, schemaName: true, name: true, status: true },
+    });
+
+    const tenantUsersPromises = tenants.map(async (tenant) => {
+      try {
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+        const user = await tenantClient.user.findFirst({
+          where: {
+            email,
+            isActive: true,
+            deletedAt: null,
+          },
+          include: {
+            profile: true,
+          },
+        });
+
+        if (!user) return null;
+
+        // Buscar dados do tenant no public schema
+        const fullTenant = await this.prisma.tenant.findUnique({
+          where: { id: tenant.id },
+          include: {
+            profile: {
+              select: {
+                tradeName: true,
+              },
+            },
+            subscriptions: {
+              include: { plan: true },
+              where: {
+                status: {
+                  in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
+                },
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 1,
+            },
+          },
+        });
+
+        return {
+          ...user,
+          tenant: fullTenant,
+        };
+      } catch (error) {
+        console.error(`Erro ao buscar user em ${tenant.schemaName}:`, error.message);
+        return null;
+      }
+    });
+
+    const tenantUsers = (await Promise.all(tenantUsersPromises)).filter((u) => u !== null);
+
+    // STEP 3: Combinar resultados
+    const users = [...superAdminUsers, ...tenantUsers];
+
     if (users.length === 0) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
@@ -177,10 +249,27 @@ export class AuthService {
       const user = users[0];
 
       // Atualizar lastLogin
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { lastLogin: new Date() },
-      });
+      // ✅ Usar client correto baseado em tenantId
+      if (user.tenantId) {
+        const tenant = await this.prisma.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: { schemaName: true },
+        });
+        if (tenant) {
+          const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+          await tenantClient.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() },
+          });
+        }
+      } else {
+        // SUPERADMIN (tenantId = null)
+        // eslint-disable-next-line no-restricted-syntax
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
+        });
+      }
 
       // Gerar tokens
       const tokens = await this.generateTokens(user);
@@ -240,37 +329,43 @@ export class AuthService {
   async selectTenant(selectTenantDto: SelectTenantDto, ipAddress?: string, userAgent?: string) {
     const { email, password, tenantId } = selectTenantDto;
 
-    // Buscar usuário no tenant específico
-    const user = await this.prisma.user.findUnique({
-      where: {
-        tenantId_email: {
-          tenantId,
-          email,
+    // Buscar tenant e obter schema name
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        profile: {
+          select: {
+            tradeName: true,
+          },
         },
+        subscriptions: {
+          include: { plan: true },
+          where: {
+            status: {
+              in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    // ✅ Usar tenant client para buscar usuário
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+    const user = await tenantClient.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
       },
       include: {
         profile: true, // Incluir perfil do usuário (positionCode, etc)
-        tenant: {
-          include: {
-            profile: {
-              select: {
-                tradeName: true,
-              },
-            },
-            subscriptions: {
-              include: { plan: true },
-              where: {
-                status: {
-                  in: ['ACTIVE', 'TRIAL', 'active', 'trialing'],
-                },
-              },
-              orderBy: {
-                createdAt: 'desc',
-              },
-              take: 1,
-            },
-          },
-        },
       },
     });
 
@@ -290,7 +385,7 @@ export class AuthService {
     }
 
     // Atualizar lastLogin
-    await this.prisma.user.update({
+    await tenantClient.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
@@ -314,13 +409,13 @@ export class AuthService {
     }
 
     // Remover senha do retorno e adicionar plan no tenant
-    const { password: _password2, tenant, ...userWithoutPassword } = user;
+    const { password: _password2, ...userWithoutPassword } = user;
 
     // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
-    const tenantWithPlan = tenant ? {
+    const tenantWithPlan = {
       ...tenant,
       plan: tenant.subscriptions[0]?.plan?.name || 'Free',
-    } : null;
+    };
 
     return {
       user: {
@@ -405,10 +500,38 @@ export class AuthService {
    */
   async logout(userId: string, refreshToken?: string, ipAddress?: string, userAgent?: string) {
     // Buscar usuário para obter tenantId
-    const user = await this.prisma.user.findUnique({
+    // ✅ Tentar primeiro em public (SUPERADMIN)
+    // eslint-disable-next-line no-restricted-syntax
+    let user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, tenantId: true },
     });
+
+    // Se não encontrou em public, buscar em tenant schemas
+    if (!user) {
+      const tenants = await this.prisma.tenant.findMany({
+        where: { deletedAt: null },
+        select: { schemaName: true },
+      });
+
+      for (const tenant of tenants) {
+        try {
+          const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+          const tenantUser = await tenantClient.user.findUnique({
+            where: { id: userId },
+            select: { id: true, tenantId: true },
+          });
+
+          if (tenantUser) {
+            user = tenantUser;
+            break;
+          }
+        } catch (error) {
+          // Schema pode não existir, continuar
+          continue;
+        }
+      }
+    }
 
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
@@ -446,6 +569,9 @@ export class AuthService {
         userAgent,
       );
     }
+
+    // ✅ OTIMIZAÇÃO: Invalidar cache JWT para forçar nova validação
+    this.jwtCache.invalidate(userId);
 
     return { message: 'Logout realizado com sucesso' };
   }
@@ -500,27 +626,73 @@ export class AuthService {
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto, ipAddress?: string) {
     const { email } = forgotPasswordDto;
 
-    // Buscar usuário por email (qualquer tenant)
-    const user = await this.prisma.user.findFirst({
+    // Buscar usuário por email (qualquer tenant ou SUPERADMIN)
+    // ✅ STEP 1: Buscar em public (SUPERADMIN)
+    // eslint-disable-next-line no-restricted-syntax
+    let user = await this.prisma.user.findFirst({
       where: {
         email,
         deletedAt: null,
         isActive: true,
+        tenantId: null, // Apenas SUPERADMIN
       },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            profile: {
-              select: {
-                tradeName: true,
-              },
-            },
-          },
-        },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        tenantId: true,
       },
     });
+
+    let tenant: any = null;
+
+    // STEP 2: Se não encontrou em public, buscar em tenant schemas
+    if (!user) {
+      const tenants = await this.prisma.tenant.findMany({
+        where: { deletedAt: null },
+        select: { id: true, schemaName: true, name: true },
+      });
+
+      for (const t of tenants) {
+        try {
+          const tenantClient = this.prisma.getTenantClient(t.schemaName);
+          const tenantUser = await tenantClient.user.findFirst({
+            where: {
+              email,
+              deletedAt: null,
+              isActive: true,
+            },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              tenantId: true,
+            },
+          });
+
+          if (tenantUser) {
+            user = tenantUser;
+            // Buscar tenant completo
+            tenant = await this.prisma.tenant.findUnique({
+              where: { id: t.id },
+              select: {
+                id: true,
+                name: true,
+                profile: {
+                  select: {
+                    tradeName: true,
+                  },
+                },
+              },
+            });
+            break;
+          }
+        } catch (error) {
+          // Schema pode não existir, continuar
+          continue;
+        }
+      }
+    }
 
     // ✅ SEGURANÇA: SEMPRE retornar sucesso, mesmo se usuário não existe
     // Isso previne que atacantes enumerem emails válidos no sistema
@@ -561,7 +733,7 @@ export class AuthService {
     // Enviar email com link de recuperação
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password/${token}`;
-    const tenantName = user.tenant?.profile?.tradeName || user.tenant?.name || 'Rafa ILPI';
+    const tenantName = tenant?.profile?.tradeName || tenant?.name || 'Rafa ILPI';
 
     // Formatar data de expiração
     const expiresAtFormatted = new Intl.DateTimeFormat('pt-BR', {

@@ -5,6 +5,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';
@@ -17,7 +18,8 @@ import { ChangeType, Prisma } from '@prisma/client';
 @Injectable()
 export class ResidentsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -28,7 +30,6 @@ export class ResidentsService {
    */
   private async createHistoryRecord(
     residentId: string,
-    tenantId: string,
     changeType: ChangeType,
     changeReason: string,
     changedBy: string,
@@ -40,7 +41,7 @@ export class ResidentsService {
     await tx.residentHistory.create({
       data: {
         residentId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId, // ✅ Pega do contexto
         versionNumber: newData.versionNumber,
         changeType,
         changeReason,
@@ -57,7 +58,7 @@ export class ResidentsService {
 
     this.logger.info('History record created', {
       residentId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       changeType,
       versionNumber: newData.versionNumber,
     });
@@ -131,7 +132,6 @@ export class ResidentsService {
   private async validateAndProcessAccommodation(
     roomId: string | undefined,
     bedId: string | undefined,
-    tenantId: string,
     currentResidentId?: string, // Para saber qual residente está sendo atualizado
   ) {
     // Se não há acomodação a definir, retorna undefined
@@ -142,11 +142,10 @@ export class ResidentsService {
     // Se há bedId, validar
     if (bedId) {
       // Verificar se o leito existe
-      const bed = await this.prisma.bed.findFirst({
+      const bed = await this.tenantContext.client.bed.findFirst({
         where: {
           id: bedId,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: { id: true, code: true, status: true, roomId: true }, // Otimização: trazer apenas campos necessários
       });
@@ -156,11 +155,10 @@ export class ResidentsService {
       }
 
       // Verificar se já existe um residente ocupando este leito
-      const existingResident = await this.prisma.resident.findFirst({
+      const existingResident = await this.tenantContext.client.resident.findFirst({
         where: {
           bedId,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: { id: true }, // Otimização: trazer apenas ID para validação
       });
@@ -178,7 +176,7 @@ export class ResidentsService {
         this.logger.warn('Inconsistência detectada: leito marcado como ocupado sem residente associado', {
           bedId: bed.id,
           bedCode: bed.code,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
         });
       }
 
@@ -190,11 +188,10 @@ export class ResidentsService {
 
     // Se há roomId, validar
     if (roomId) {
-      const room = await this.prisma.room.findFirst({
+      const room = await this.tenantContext.client.room.findFirst({
         where: {
           id: roomId,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: { id: true }, // Otimização: trazer apenas ID para validação
       });
@@ -213,29 +210,27 @@ export class ResidentsService {
   private async updateBedStatus(
     bedId: string | undefined,
     newStatus: 'Ocupado' | 'Disponível',
-    tenantId: string,
   ) {
     if (!bedId) return;
 
     try {
       // Verificar se o leito existe antes de atualizar
-      const bed = await this.prisma.bed.findFirst({
+      const bed = await this.tenantContext.client.bed.findFirst({
         where: {
           id: bedId,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
       });
 
       if (!bed) {
         this.logger.warn(`Leito não encontrado para atualização de status`, {
           bedId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
         });
         return;
       }
 
-      await this.prisma.bed.update({
+      await this.tenantContext.client.bed.update({
         where: { id: bedId },
         data: { status: newStatus },
       });
@@ -243,13 +238,13 @@ export class ResidentsService {
       this.logger.info(`Bed status atualizado`, {
         bedId,
         newStatus,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
     } catch (error) {
       this.logger.warn(`Erro ao atualizar status do leito`, {
         bedId,
         newStatus,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         error: error.message,
       });
       // Não propagar o erro para não bloquear a operação principal
@@ -264,27 +259,26 @@ export class ResidentsService {
     bedId: string,
     newStatus: 'Ocupado' | 'Disponível',
     reason: string,
-    tenantId: string,
     userId: string,
     tx: Prisma.TransactionClient,
   ) {
     this.logger.info('🔄 Iniciando updateBedStatusWithHistory', {
       bedId,
       newStatus,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     })
 
     // Buscar status atual do leito
     const bed = await tx.bed.findFirst({
-      where: { id: bedId, tenantId, deletedAt: null },
+      where: { id: bedId, deletedAt: null }, // ✅ Sem tenantId
       select: { id: true, code: true, status: true },
     })
 
     if (!bed) {
       this.logger.warn('❌ Leito não encontrado para atualização de status com histórico', {
         bedId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       })
       return
     }
@@ -308,7 +302,7 @@ export class ResidentsService {
     // Criar registro no histórico de status
     const historyRecord = await tx.bedStatusHistory.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         bedId,
         previousStatus,
         newStatus,
@@ -332,11 +326,11 @@ export class ResidentsService {
   /**
    * Cria um novo residente usando o Prisma Client
    */
-  async create(createResidentDto: CreateResidentDto, tenantId: string, userId: string) {
+  async create(createResidentDto: CreateResidentDto, userId: string) {
     try {
-      // Buscar o tenant
+      // Buscar o tenant (tabela SHARED - usa this.prisma)
       const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
+        where: { id: this.tenantContext.tenantId },
         include: {
           subscriptions: {
             where: {
@@ -354,10 +348,9 @@ export class ResidentsService {
 
       // Verificar limite de residentes
       if (tenant.subscriptions[0]?.plan) {
-        const currentCount = await this.prisma.resident.count({
+        const currentCount = await this.tenantContext.client.resident.count({
           where: {
-            tenantId,
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId - schema já isola
           },
         });
 
@@ -371,11 +364,10 @@ export class ResidentsService {
 
       // Verificar CPF duplicado
       if (createResidentDto.cpf) {
-        const existingCpf = await this.prisma.resident.findFirst({
+        const existingCpf = await this.tenantContext.client.resident.findFirst({
           where: {
-            tenantId,
             cpf: createResidentDto.cpf,
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: { id: true }, // Otimização: trazer apenas ID para validação
         });
@@ -389,15 +381,14 @@ export class ResidentsService {
       const accommodation = await this.validateAndProcessAccommodation(
         createResidentDto.roomId,
         createResidentDto.bedId,
-        tenantId,
       );
 
       // Usar transação para garantir atomicidade (Resident + ResidentHistory)
-      const resident = await this.prisma.$transaction(async (tx) => {
+      const resident = await this.tenantContext.client.$transaction(async (tx) => {
         // Criar o residente
         const newResident = await tx.resident.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId, // Schema isolation já funciona, mas campo ainda é obrigatório
             createdBy: userId, // Auditoria: quem criou
             versionNumber: 1, // Primeira versão
 
@@ -486,7 +477,6 @@ export class ResidentsService {
         // Criar histórico de criação (RDC 502/2021 - rastreabilidade completa)
         await this.createHistoryRecord(
           newResident.id,
-          tenantId,
           ChangeType.CREATE,
           'Criação inicial do registro do residente',
           userId,
@@ -502,7 +492,6 @@ export class ResidentsService {
             accommodation.bedId,
             'Ocupado',
             `Designação inicial de leito no cadastro do residente ${newResident.fullName}`,
-            tenantId,
             userId,
             tx,
           );
@@ -517,7 +506,7 @@ export class ResidentsService {
         ) {
           await tx.clinicalProfile.create({
             data: {
-              tenantId,
+              tenantId: this.tenantContext.tenantId,
               residentId: newResident.id,
               healthStatus: createResidentDto.healthStatus,
               specialNeeds: createResidentDto.specialNeeds,
@@ -535,7 +524,7 @@ export class ResidentsService {
 
       this.logger.info('Residente criado com histórico', {
         residentId: resident.id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
         bedId: accommodation.bedId,
         versionNumber: 1,
@@ -545,7 +534,7 @@ export class ResidentsService {
     } catch (error) {
       this.logger.error('Erro ao criar residente', {
         error: error.message,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -555,7 +544,7 @@ export class ResidentsService {
   /**
    * Lista todos os residentes do tenant com filtros e paginação
    */
-  async findAll(query: QueryResidentDto, tenantId: string) {
+  async findAll(query: QueryResidentDto) {
     try {
       const page = parseInt(query.page || '1');
       const limit = parseInt(query.limit || '10');
@@ -563,8 +552,7 @@ export class ResidentsService {
 
       // Construir filtros
       const where: any = {
-        tenantId,
-        deletedAt: null,
+        deletedAt: null, // ✅ Sem tenantId
       };
 
       if (query.search) {
@@ -584,7 +572,7 @@ export class ResidentsService {
 
       // Buscar residentes (sem relações - hierarquia é buscada manualmente)
       const [residents, total] = await Promise.all([
-        this.prisma.resident.findMany({
+        this.tenantContext.client.resident.findMany({
           where,
           skip,
           take: limit,
@@ -618,7 +606,7 @@ export class ResidentsService {
             updatedAt: true,
           },
         }),
-        this.prisma.resident.count({ where }),
+        this.tenantContext.client.resident.count({ where }),
       ]);
 
       // Buscar dados de acomodação para todos os residentes que têm bedId
@@ -627,10 +615,10 @@ export class ResidentsService {
 
       const bedsMap = new Map();
       if (bedIds.length > 0) {
-        const beds = await this.prisma.bed.findMany({
+        const beds = await this.tenantContext.client.bed.findMany({
           where: {
             id: { in: bedIds },
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: {
             id: true,
@@ -641,10 +629,10 @@ export class ResidentsService {
         });
 
         const roomIds = beds.map(b => b.roomId);
-        const rooms = await this.prisma.room.findMany({
+        const rooms = await this.tenantContext.client.room.findMany({
           where: {
             id: { in: roomIds },
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: {
             id: true,
@@ -655,10 +643,10 @@ export class ResidentsService {
         });
 
         const floorIds = rooms.map(r => r.floorId);
-        const floors = await this.prisma.floor.findMany({
+        const floors = await this.tenantContext.client.floor.findMany({
           where: {
             id: { in: floorIds },
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: {
             id: true,
@@ -669,10 +657,10 @@ export class ResidentsService {
         });
 
         const buildingIds = floors.map(f => f.buildingId);
-        const buildings = await this.prisma.building.findMany({
+        const buildings = await this.tenantContext.client.building.findMany({
           where: {
             id: { in: buildingIds },
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: {
             id: true,
@@ -741,7 +729,7 @@ export class ResidentsService {
     } catch (error) {
       this.logger.error('Erro ao listar residentes', {
         error: error.message,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }
@@ -750,13 +738,12 @@ export class ResidentsService {
   /**
    * Busca um residente específico
    */
-  async findOne(id: string, tenantId: string) {
+  async findOne(id: string) {
     try {
-      const resident = await this.prisma.resident.findFirst({
+      const resident = await this.tenantContext.client.resident.findFirst({
         where: {
           id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
       });
 
@@ -772,8 +759,8 @@ export class ResidentsService {
 
       if (resident.bedId) {
         // Buscar bed com toda a hierarquia
-        bed = await this.prisma.bed.findFirst({
-          where: { id: resident.bedId, deletedAt: null },
+        bed = await this.tenantContext.client.bed.findFirst({
+          where: { id: resident.bedId, deletedAt: null }, // ✅ Sem tenantId
           select: {
             id: true,
             code: true,
@@ -835,8 +822,8 @@ export class ResidentsService {
         }
       } else if (resident.roomId) {
         // Buscar apenas room se não tem bed (caso legado)
-        room = await this.prisma.room.findFirst({
-          where: { id: resident.roomId, deletedAt: null },
+        room = await this.tenantContext.client.room.findFirst({
+          where: { id: resident.roomId, deletedAt: null }, // ✅ Sem tenantId
           select: { id: true, name: true, code: true },
         });
       }
@@ -887,11 +874,10 @@ export class ResidentsService {
       }
 
       // Buscar alergias da tabela Allergy
-      const allergies = await this.prisma.allergy.findMany({
+      const allergies = await this.tenantContext.client.allergy.findMany({
         where: {
           residentId: id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: {
           id: true,
@@ -906,11 +892,10 @@ export class ResidentsService {
       });
 
       // Buscar restrições alimentares da tabela DietaryRestriction
-      const dietaryRestrictions = await this.prisma.dietaryRestriction.findMany({
+      const dietaryRestrictions = await this.tenantContext.client.dietaryRestriction.findMany({
         where: {
           residentId: id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: {
           id: true,
@@ -924,11 +909,10 @@ export class ResidentsService {
       });
 
       // Buscar condições crônicas da tabela Condition
-      const conditions = await this.prisma.condition.findMany({
+      const conditions = await this.tenantContext.client.condition.findMany({
         where: {
           residentId: id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
         select: {
           id: true,
@@ -942,13 +926,12 @@ export class ResidentsService {
       });
 
       // Verificar se possui medicações controladas ativas
-      const hasControlledMedication = await this.prisma.medication.findFirst({
+      const hasControlledMedication = await this.tenantContext.client.medication.findFirst({
         where: {
           prescription: {
             residentId: id,
-            tenantId,
             isActive: true,
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId na nested relation
           },
           isControlled: true,
           deletedAt: null,
@@ -976,7 +959,7 @@ export class ResidentsService {
       this.logger.error('Erro ao buscar residente', {
         error: error.message,
         residentId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }
@@ -986,7 +969,7 @@ export class ResidentsService {
    * Atualiza um residente COM VERSIONAMENTO
    * IMPORTANTE: updateResidentDto DEVE conter changeReason (validado no DTO)
    */
-  async update(id: string, updateResidentDto: UpdateResidentDto, tenantId: string, userId: string) {
+  async update(id: string, updateResidentDto: UpdateResidentDto, userId: string) {
     try {
       // Extrair changeReason do DTO (será validado no DTO layer)
       const changeReason = (updateResidentDto as any).changeReason;
@@ -999,11 +982,10 @@ export class ResidentsService {
 
       // Verificar se residente existe
       // Nota: Precisa buscar todos os campos pois são usados para criar o histórico de versões
-      const existingResident = await this.prisma.resident.findFirst({
+      const existingResident = await this.tenantContext.client.resident.findFirst({
         where: {
           id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
       });
 
@@ -1013,12 +995,11 @@ export class ResidentsService {
 
       // Verificar CPF duplicado (se estiver sendo atualizado)
       if (updateResidentDto.cpf && updateResidentDto.cpf !== existingResident.cpf) {
-        const existingCpf = await this.prisma.resident.findFirst({
+        const existingCpf = await this.tenantContext.client.resident.findFirst({
           where: {
-            tenantId,
             cpf: updateResidentDto.cpf,
             id: { not: id },
-            deletedAt: null,
+            deletedAt: null, // ✅ Sem tenantId
           },
           select: { id: true }, // Otimização: trazer apenas ID para validação
         });
@@ -1037,7 +1018,6 @@ export class ResidentsService {
         accommodationToUpdate = await this.validateAndProcessAccommodation(
           updateResidentDto.roomId,
           updateResidentDto.bedId,
-          tenantId,
           id, // currentResidentId
         );
 
@@ -1045,18 +1025,18 @@ export class ResidentsService {
 
         // Se está mudando de leito, liberar o antigo
         if (oldBedId && newBedId && oldBedId !== newBedId) {
-          await this.updateBedStatus(oldBedId, 'Disponível', tenantId);
+          await this.updateBedStatus(oldBedId, 'Disponível');
           this.logger.info('Leito antigo liberado', {
             residentId: id,
             oldBedId,
             newBedId,
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
           });
         }
 
         // Se está sendo removido de leito
         if (oldBedId && !newBedId) {
-          await this.updateBedStatus(oldBedId, 'Disponível', tenantId);
+          await this.updateBedStatus(oldBedId, 'Disponível');
         }
       }
 
@@ -1111,7 +1091,7 @@ export class ResidentsService {
       dataToUpdate.versionNumber = existingResident.versionNumber + 1;
 
       // Usar transação para garantir atomicidade (UPDATE + HISTORY + BED STATUS)
-      const updated = await this.prisma.$transaction(async (tx) => {
+      const updated = await this.tenantContext.client.$transaction(async (tx) => {
         // Atualizar o residente
         const updatedResident = await tx.resident.update({
           where: { id },
@@ -1127,7 +1107,6 @@ export class ResidentsService {
         // Criar histórico da alteração
         await this.createHistoryRecord(
           id,
-          tenantId,
           ChangeType.UPDATE,
           changeReason,
           userId,
@@ -1145,7 +1124,6 @@ export class ResidentsService {
             oldBedId,
             'Disponível',
             `Residente ${updatedResident.fullName} saiu do leito (editado por usuário). Motivo: ${changeReason}`,
-            tenantId,
             userId,
             tx,
           );
@@ -1155,7 +1133,6 @@ export class ResidentsService {
             newBedId,
             'Ocupado',
             `Residente ${updatedResident.fullName} designado ao leito (editado por usuário). Motivo: ${changeReason}`,
-            tenantId,
             userId,
             tx,
           );
@@ -1165,7 +1142,6 @@ export class ResidentsService {
             oldBedId,
             'Disponível',
             `Residente ${updatedResident.fullName} removido do leito (editado por usuário). Motivo: ${changeReason}`,
-            tenantId,
             userId,
             tx,
           );
@@ -1175,7 +1151,6 @@ export class ResidentsService {
             newBedId,
             'Ocupado',
             `Residente ${updatedResident.fullName} designado ao leito (editado por usuário). Motivo: ${changeReason}`,
-            tenantId,
             userId,
             tx,
           );
@@ -1186,7 +1161,7 @@ export class ResidentsService {
 
       this.logger.info('Residente atualizado com versionamento', {
         residentId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
         oldBedId,
         newBedId,
@@ -1199,7 +1174,7 @@ export class ResidentsService {
       this.logger.error('Erro ao atualizar residente', {
         error: error.message,
         residentId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -1210,7 +1185,7 @@ export class ResidentsService {
    * Remove um residente (soft delete COM VERSIONAMENTO)
    * IMPORTANTE: Requer changeReason para documentar o motivo da exclusão
    */
-  async remove(id: string, tenantId: string, userId: string, changeReason: string) {
+  async remove(id: string, userId: string, changeReason: string) {
     try {
       // Validar changeReason
       if (!changeReason || changeReason.trim().length < 10) {
@@ -1221,11 +1196,10 @@ export class ResidentsService {
 
       // Verificar se residente existe
       // Nota: Precisa buscar todos os campos pois são usados para criar o histórico de versões
-      const existingResident = await this.prisma.resident.findFirst({
+      const existingResident = await this.tenantContext.client.resident.findFirst({
         where: {
           id,
-          tenantId,
-          deletedAt: null,
+          deletedAt: null, // ✅ Sem tenantId
         },
       });
 
@@ -1237,7 +1211,7 @@ export class ResidentsService {
       const previousData = JSON.parse(JSON.stringify(existingResident));
 
       // Usar transação para soft delete + histórico
-      const deleted = await this.prisma.$transaction(async (tx) => {
+      const deleted = await this.tenantContext.client.$transaction(async (tx) => {
         // Soft delete
         const deletedResident = await tx.resident.update({
           where: { id },
@@ -1254,7 +1228,6 @@ export class ResidentsService {
         // Criar histórico da deleção
         await this.createHistoryRecord(
           id,
-          tenantId,
           ChangeType.DELETE,
           changeReason,
           userId,
@@ -1277,7 +1250,7 @@ export class ResidentsService {
 
       this.logger.info('Residente removido (soft delete) com versionamento', {
         residentId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
         versionNumber: deleted.versionNumber,
       });
@@ -1287,7 +1260,7 @@ export class ResidentsService {
       this.logger.error('Erro ao remover residente', {
         error: error.message,
         residentId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw error;
@@ -1297,27 +1270,26 @@ export class ResidentsService {
   /**
    * Retorna estatísticas dos residentes
    */
-  async getStats(tenantId: string) {
+  async getStats() {
     const where = {
-      tenantId,
-      deletedAt: null,
+      deletedAt: null, // ✅ Sem tenantId
     };
 
     // Total de residentes
-    const total = await this.prisma.resident.count({ where });
+    const total = await this.tenantContext.client.resident.count({ where });
 
     // Ativos
-    const ativos = await this.prisma.resident.count({
+    const ativos = await this.tenantContext.client.resident.count({
       where: { ...where, status: 'Ativo' },
     });
 
     // Inativos
-    const inativos = await this.prisma.resident.count({
+    const inativos = await this.tenantContext.client.resident.count({
       where: { ...where, status: 'Inativo' },
     });
 
     // Por grau de dependência (somente ativos)
-    const grauI = await this.prisma.resident.count({
+    const grauI = await this.tenantContext.client.resident.count({
       where: {
         ...where,
         status: 'Ativo',
@@ -1325,7 +1297,7 @@ export class ResidentsService {
       },
     });
 
-    const grauII = await this.prisma.resident.count({
+    const grauII = await this.tenantContext.client.resident.count({
       where: {
         ...where,
         status: 'Ativo',
@@ -1333,7 +1305,7 @@ export class ResidentsService {
       },
     });
 
-    const grauIII = await this.prisma.resident.count({
+    const grauIII = await this.tenantContext.client.resident.count({
       where: {
         ...where,
         status: 'Ativo',
@@ -1342,11 +1314,11 @@ export class ResidentsService {
     });
 
     // Por gênero
-    const masculino = await this.prisma.resident.count({
+    const masculino = await this.tenantContext.client.resident.count({
       where: { ...where, gender: 'MASCULINO' },
     });
 
-    const feminino = await this.prisma.resident.count({
+    const feminino = await this.tenantContext.client.resident.count({
       where: { ...where, gender: 'FEMININO' },
     });
 
@@ -1364,15 +1336,14 @@ export class ResidentsService {
 
   /**
    * Retorna o histórico completo de alterações de um residente
-   * Ordenado por versionNumber DESC (mais recente primeiro)
+   * Ordenado por versionNumber DESC (mais recente primeira)
    */
-  async getHistory(residentId: string, tenantId: string) {
+  async getHistory(residentId: string) {
     try {
       // Verificar se residente existe (permitir deletados para ver histórico completo)
-      const resident = await this.prisma.resident.findFirst({
+      const resident = await this.tenantContext.client.resident.findFirst({
         where: {
           id: residentId,
-          tenantId,
         },
         select: {
           id: true,
@@ -1389,10 +1360,9 @@ export class ResidentsService {
       }
 
       // Buscar histórico completo com informações do usuário que fez a alteração
-      const history = await this.prisma.residentHistory.findMany({
+      const history = await this.tenantContext.client.residentHistory.findMany({
         where: {
           residentId,
-          tenantId,
         },
         include: {
           user: {
@@ -1438,7 +1408,7 @@ export class ResidentsService {
       this.logger.error('Erro ao buscar histórico do residente', {
         error: error.message,
         residentId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }
@@ -1447,13 +1417,12 @@ export class ResidentsService {
   /**
    * Retorna uma versão específica do histórico com snapshots completos
    */
-  async getHistoryVersion(residentId: string, versionNumber: number, tenantId: string) {
+  async getHistoryVersion(residentId: string, versionNumber: number) {
     try {
-      const historyEntry = await this.prisma.residentHistory.findFirst({
+      const historyEntry = await this.tenantContext.client.residentHistory.findFirst({
         where: {
           residentId,
           versionNumber,
-          tenantId,
         },
         include: {
           user: {
@@ -1491,7 +1460,7 @@ export class ResidentsService {
         error: error.message,
         residentId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }
@@ -1504,23 +1473,21 @@ export class ResidentsService {
   async transferBed(
     residentId: string,
     transferBedDto: TransferBedDto,
-    tenantId: string,
     userId: string,
   ) {
     try {
       this.logger.info('Iniciando transferência de leito', {
         residentId,
         toBedId: transferBedDto.toBedId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
 
-      return await this.prisma.$transaction(async (prisma) => {
+      return await this.tenantContext.client.$transaction(async (prisma) => {
         // 1. Buscar residente com bed atual
         const resident = await prisma.resident.findFirst({
           where: {
             id: residentId,
-            tenantId,
             deletedAt: null,
           },
           include: {
@@ -1549,7 +1516,6 @@ export class ResidentsService {
         const toBed = await prisma.bed.findFirst({
           where: {
             id: transferBedDto.toBedId,
-            tenantId,
             deletedAt: null,
           },
           include: {
@@ -1579,7 +1545,6 @@ export class ResidentsService {
           resident.bedId,
           'Disponível',
           `Residente ${resident.fullName} transferido para outro leito. Motivo da transferência: ${transferBedDto.reason}`,
-          tenantId,
           userId,
           prisma,
         );
@@ -1589,7 +1554,6 @@ export class ResidentsService {
           transferBedDto.toBedId,
           'Ocupado',
           `Residente ${resident.fullName} transferido para este leito. Motivo da transferência: ${transferBedDto.reason}`,
-          tenantId,
           userId,
           prisma,
         );
@@ -1621,7 +1585,7 @@ export class ResidentsService {
         // 8. Criar registro de histórico de transferência
         const transferHistory = await prisma.bedTransferHistory.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             residentId,
             fromBedId: resident.bedId,
             toBedId: transferBedDto.toBedId,
@@ -1686,7 +1650,7 @@ export class ResidentsService {
         error: error.message,
         residentId,
         toBedId: transferBedDto.toBedId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw error;
     }

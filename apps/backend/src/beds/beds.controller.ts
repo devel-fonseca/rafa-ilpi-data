@@ -30,23 +30,20 @@ export class BedsController {
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
-    @CurrentUser('tenantId') tenantId: string,
     @Body() createBedDto: CreateBedDto
   ) {
-    return this.bedsService.create(tenantId, createBedDto)
+    return this.bedsService.create(createBedDto)
   }
 
   @Get()
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
-    @CurrentUser('tenantId') tenantId: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('roomId') roomId?: string,
     @Query('status') status?: string
   ) {
     return this.bedsService.findAll(
-      tenantId,
       parseInt(skip || '0'),
       parseInt(take || '50'),
       roomId,
@@ -56,41 +53,39 @@ export class BedsController {
 
   @Get('stats/occupancy')
   @RequirePermissions(PermissionType.VIEW_BEDS)
-  getOccupancyStats(@CurrentUser('tenantId') tenantId: string) {
-    return this.bedsService.getOccupancyStats(tenantId)
+  getOccupancyStats() {
+    return this.bedsService.getOccupancyStats()
   }
 
   @Get('map/full')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getFullMap(
-    @CurrentUser('tenantId') tenantId: string,
     @Query('buildingId') buildingId?: string
   ) {
-    return this.bedsService.getFullMap(tenantId, buildingId)
+    return this.bedsService.getFullMap(buildingId)
   }
 
   @Get(':id')
   @RequirePermissions(PermissionType.VIEW_BEDS)
-  findOne(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.bedsService.findOne(tenantId, id)
+  findOne(@Param('id') id: string) {
+    return this.bedsService.findOne(id)
   }
 
   @Patch(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
-    @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string,
     @Body() updateBedDto: UpdateBedDto
   ) {
-    return this.bedsService.update(tenantId, id, updateBedDto)
+    return this.bedsService.update(id, updateBedDto)
   }
 
   @Delete(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
-  remove(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.bedsService.remove(tenantId, id)
+  remove(@Param('id') id: string) {
+    return this.bedsService.remove(id)
   }
 
   @Post(':id/reserve')
@@ -98,12 +93,11 @@ export class BedsController {
   @AuditAction('RESERVE_BED')
   @HttpCode(HttpStatus.OK)
   reserveBed(
-    @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
     @Param('id') id: string,
     @Body() reserveBedDto: ReserveBedDto
   ) {
-    return this.bedsService.reserveBed(tenantId, id, userId, reserveBedDto)
+    return this.bedsService.reserveBed(id, userId, reserveBedDto)
   }
 
   @Post(':id/block')
@@ -111,12 +105,11 @@ export class BedsController {
   @AuditAction('BLOCK_BED')
   @HttpCode(HttpStatus.OK)
   blockBed(
-    @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
     @Param('id') id: string,
     @Body() blockBedDto: BlockBedDto
   ) {
-    return this.bedsService.blockBed(tenantId, id, userId, blockBedDto)
+    return this.bedsService.blockBed(id, userId, blockBedDto)
   }
 
   @Post(':id/release')
@@ -124,24 +117,21 @@ export class BedsController {
   @AuditAction('RELEASE_BED')
   @HttpCode(HttpStatus.OK)
   releaseBed(
-    @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('id') userId: string,
     @Param('id') id: string,
     @Body() releaseBedDto: ReleaseBedDto
   ) {
-    return this.bedsService.releaseBed(tenantId, id, userId, releaseBedDto)
+    return this.bedsService.releaseBed(id, userId, releaseBedDto)
   }
 
   @Get('status-history')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getBedStatusHistory(
-    @CurrentUser('tenantId') tenantId: string,
     @Query('bedId') bedId?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string
   ) {
     return this.bedsService.getBedStatusHistory(
-      tenantId,
       bedId,
       parseInt(skip || '0'),
       parseInt(take || '50')

@@ -339,7 +339,6 @@ export default function BedsManagementHub() {
                     </div>
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
-                    <div>{entry.user.name}</div>
                     <div>
                       {format(new Date(entry.changedAt), "dd 'de' MMMM 'às' HH:mm", {
                         locale: ptBR,

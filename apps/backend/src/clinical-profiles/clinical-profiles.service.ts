@@ -5,6 +5,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateClinicalProfileDto } from './dto/create-clinical-profile.dto';
 import { UpdateClinicalProfileDto } from './dto/update-clinical-profile.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -14,7 +15,8 @@ import { ChangeType } from '@prisma/client';
 @Injectable()
 export class ClinicalProfilesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -22,14 +24,12 @@ export class ClinicalProfilesService {
    * Criar perfil clínico COM versionamento
    */
   async create(
-    tenantId: string,
     userId: string,
     createDto: CreateClinicalProfileDto,
   ) {
-    const resident = await this.prisma.resident.findFirst({
+    const resident = await this.tenantContext.client.resident.findFirst({
       where: {
         id: createDto.residentId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -38,7 +38,7 @@ export class ClinicalProfilesService {
       throw new NotFoundException('Residente não encontrado');
     }
 
-    const existing = await this.prisma.clinicalProfile.findFirst({
+    const existing = await this.tenantContext.client.clinicalProfile.findFirst({
       where: {
         residentId: createDto.residentId,
         deletedAt: null,
@@ -51,9 +51,9 @@ export class ClinicalProfilesService {
       );
     }
 
-    const profile = await this.prisma.clinicalProfile.create({
+    const profile = await this.tenantContext.client.clinicalProfile.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId: createDto.residentId,
         healthStatus: createDto.healthStatus,
         specialNeeds: createDto.specialNeeds,
@@ -80,7 +80,7 @@ export class ClinicalProfilesService {
     this.logger.info('Perfil clínico criado com sucesso', {
       profileId: profile.id,
       residentId: createDto.residentId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -90,11 +90,10 @@ export class ClinicalProfilesService {
   /**
    * Buscar perfil clínico de um residente
    */
-  async findByResidentId(tenantId: string, residentId: string) {
-    const profile = await this.prisma.clinicalProfile.findFirst({
+  async findByResidentId(residentId: string) {
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
       where: {
         residentId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -131,11 +130,10 @@ export class ClinicalProfilesService {
   /**
    * Buscar perfil clínico por ID
    */
-  async findOne(tenantId: string, id: string) {
-    const profile = await this.prisma.clinicalProfile.findFirst({
+  async findOne(id: string) {
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -171,15 +169,14 @@ export class ClinicalProfilesService {
    * Atualizar perfil clínico COM versionamento
    */
   async update(
-    tenantId: string,
     userId: string,
     id: string,
     updateDto: UpdateClinicalProfileDto,
   ) {
     const { changeReason, mobilityAid, ...updateData } = updateDto;
 
-    const profile = await this.prisma.clinicalProfile.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
+      where: { id, deletedAt: null },
       include: {
         resident: true,
       },
@@ -189,7 +186,7 @@ export class ClinicalProfilesService {
       this.logger.error('Erro ao atualizar perfil clínico', {
         error: 'Perfil clínico não encontrado',
         profileId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Perfil clínico não encontrado');
@@ -218,7 +215,7 @@ export class ClinicalProfilesService {
 
     const newVersionNumber = profile.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar o perfil clínico
       const updatedProfile = await tx.clinicalProfile.update({
         where: { id },
@@ -240,7 +237,7 @@ export class ClinicalProfilesService {
       // 2. Criar histórico do perfil clínico
       await tx.clinicalProfileHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           clinicalProfileId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -270,7 +267,7 @@ export class ClinicalProfilesService {
         // 4. Criar histórico no residente
         await tx.residentHistory.create({
           data: {
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             residentId: profile.residentId,
             versionNumber: residentVersionNumber,
             changeType: ChangeType.UPDATE,
@@ -295,7 +292,7 @@ export class ClinicalProfilesService {
           previousValue: residentPreviousMobilityAid,
           newValue: mobilityAid,
           versionNumber: residentVersionNumber,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           userId,
         });
       }
@@ -308,7 +305,7 @@ export class ClinicalProfilesService {
       versionNumber: newVersionNumber,
       changedFields,
       mobilityAidUpdated: mobilityAid !== undefined,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -319,20 +316,19 @@ export class ClinicalProfilesService {
    * Soft delete de perfil clínico COM versionamento
    */
   async remove(
-    tenantId: string,
     userId: string,
     id: string,
     deleteReason: string,
   ) {
-    const profile = await this.prisma.clinicalProfile.findFirst({
-      where: { id, tenantId, deletedAt: null },
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
+      where: { id, deletedAt: null },
     });
 
     if (!profile) {
       this.logger.error('Erro ao remover perfil clínico', {
         error: 'Perfil clínico não encontrado',
         profileId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Perfil clínico não encontrado');
@@ -349,7 +345,7 @@ export class ClinicalProfilesService {
 
     const newVersionNumber = profile.versionNumber + 1;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       const deletedProfile = await tx.clinicalProfile.update({
         where: { id },
         data: {
@@ -361,7 +357,7 @@ export class ClinicalProfilesService {
 
       await tx.clinicalProfileHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           clinicalProfileId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -384,7 +380,7 @@ export class ClinicalProfilesService {
     this.logger.info('Perfil clínico removido com versionamento', {
       profileId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -397,24 +393,23 @@ export class ClinicalProfilesService {
   /**
    * Consultar histórico completo de perfil clínico
    */
-  async getHistory(profileId: string, tenantId: string) {
-    const profile = await this.prisma.clinicalProfile.findFirst({
-      where: { id: profileId, tenantId },
+  async getHistory(profileId: string) {
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
+      where: { id: profileId },
     });
 
     if (!profile) {
       this.logger.error('Erro ao consultar histórico de perfil clínico', {
         error: 'Perfil clínico não encontrado',
         profileId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Perfil clínico não encontrado');
     }
 
-    const history = await this.prisma.clinicalProfileHistory.findMany({
+    const history = await this.tenantContext.client.clinicalProfileHistory.findMany({
       where: {
         clinicalProfileId: profileId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -424,7 +419,7 @@ export class ClinicalProfilesService {
     this.logger.info('Histórico de perfil clínico consultado', {
       profileId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -443,10 +438,9 @@ export class ClinicalProfilesService {
   async getHistoryVersion(
     profileId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
-    const profile = await this.prisma.clinicalProfile.findFirst({
-      where: { id: profileId, tenantId },
+    const profile = await this.tenantContext.client.clinicalProfile.findFirst({
+      where: { id: profileId },
     });
 
     if (!profile) {
@@ -454,16 +448,15 @@ export class ClinicalProfilesService {
         error: 'Perfil clínico não encontrado',
         profileId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Perfil clínico não encontrado');
     }
 
-    const historyVersion = await this.prisma.clinicalProfileHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.clinicalProfileHistory.findFirst({
       where: {
         clinicalProfileId: profileId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -472,7 +465,7 @@ export class ClinicalProfilesService {
         error: `Versão ${versionNumber} não encontrada para este perfil clínico`,
         profileId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para este perfil clínico`,
@@ -482,7 +475,7 @@ export class ClinicalProfilesService {
     this.logger.info('Versão específica do histórico consultada', {
       profileId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

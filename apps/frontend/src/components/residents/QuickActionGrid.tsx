@@ -17,7 +17,7 @@ export function QuickActionGrid() {
       icon: Users,
       label: 'Lista Completa',
       description: 'Ver todos os residentes',
-      color: 'bg-accent/10 text-accent hover:bg-accent/20',
+      color: 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300',
       onClick: () => navigate('/dashboard/residentes'),
     },
     {

@@ -50,7 +50,6 @@ export class DietaryRestrictionsController {
     @Body() createDto: CreateDietaryRestrictionDto,
   ) {
     return this.dietaryRestrictionsService.create(
-      user.tenantId,
       user.id,
       createDto,
     );
@@ -67,7 +66,6 @@ export class DietaryRestrictionsController {
     @Param('residentId') residentId: string,
   ) {
     return this.dietaryRestrictionsService.findByResidentId(
-      user.tenantId,
       residentId,
     );
   }
@@ -81,7 +79,7 @@ export class DietaryRestrictionsController {
     description: 'Restrição alimentar não encontrada',
   })
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.dietaryRestrictionsService.findOne(user.tenantId, id);
+    return this.dietaryRestrictionsService.findOne(id);
   }
 
   @Patch(':id')
@@ -101,7 +99,6 @@ export class DietaryRestrictionsController {
     @Body() updateDto: UpdateDietaryRestrictionDto,
   ) {
     return this.dietaryRestrictionsService.update(
-      user.tenantId,
       user.id,
       id,
       updateDto,
@@ -125,7 +122,6 @@ export class DietaryRestrictionsController {
     @Body() deleteDto: DeleteDietaryRestrictionDto,
   ) {
     return this.dietaryRestrictionsService.remove(
-      user.tenantId,
       user.id,
       id,
       deleteDto.deleteReason,
@@ -145,7 +141,7 @@ export class DietaryRestrictionsController {
     @CurrentUser() user: any,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.dietaryRestrictionsService.getHistory(id, user.tenantId);
+    return this.dietaryRestrictionsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -166,7 +162,6 @@ export class DietaryRestrictionsController {
     return this.dietaryRestrictionsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

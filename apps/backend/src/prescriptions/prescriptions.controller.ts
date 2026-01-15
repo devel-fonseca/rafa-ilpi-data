@@ -64,7 +64,6 @@ export class PrescriptionsController {
   ) {
     return this.prescriptionsService.create(
       createPrescriptionDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -77,9 +76,8 @@ export class PrescriptionsController {
   })
   findAll(
     @Query() query: QueryPrescriptionDto,
-    @CurrentUser() user: any,
   ) {
-    return this.prescriptionsService.findAll(query, user.tenantId);
+    return this.prescriptionsService.findAll(query);
   }
 
   @Get(':id')
@@ -89,9 +87,8 @@ export class PrescriptionsController {
   @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
   ) {
-    return this.prescriptionsService.findOne(id, user.tenantId);
+    return this.prescriptionsService.findOne(id);
   }
 
   @Patch(':id')
@@ -109,7 +106,6 @@ export class PrescriptionsController {
     return this.prescriptionsService.update(
       id,
       updatePrescriptionDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -135,7 +131,6 @@ export class PrescriptionsController {
       id,
       medicalReviewDto,
       user.id,
-      user.tenantId,
       req.ip,
       req.headers['user-agent'],
     );
@@ -157,7 +152,6 @@ export class PrescriptionsController {
   ) {
     return this.prescriptionsService.remove(
       id,
-      user.tenantId,
       user.id,
       deletePrescriptionDto.deleteReason,
     );
@@ -175,9 +169,8 @@ export class PrescriptionsController {
   @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
   ) {
-    return this.prescriptionsService.getHistory(id, user.tenantId);
+    return this.prescriptionsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -192,12 +185,10 @@ export class PrescriptionsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() user: any,
   ) {
     return this.prescriptionsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 
@@ -209,8 +200,8 @@ export class PrescriptionsController {
     status: 200,
     description: 'Estatísticas de prescrições ativas, vencimentos, etc.',
   })
-  getDashboardStats(@CurrentUser() user: any) {
-    return this.prescriptionsService.getDashboardStats(user.tenantId);
+  getDashboardStats() {
+    return this.prescriptionsService.getDashboardStats();
   }
 
   @Get('alerts/critical')
@@ -219,8 +210,8 @@ export class PrescriptionsController {
     status: 200,
     description: 'Lista de alertas (prescrições vencidas, sem receita, etc.)',
   })
-  getCriticalAlerts(@CurrentUser() user: any) {
-    return this.prescriptionsService.getCriticalAlerts(user.tenantId);
+  getCriticalAlerts() {
+    return this.prescriptionsService.getCriticalAlerts();
   }
 
   @Get('expiring/list')
@@ -237,11 +228,9 @@ export class PrescriptionsController {
   })
   getExpiringPrescriptions(
     @Query('days') days: string = '5',
-    @CurrentUser() user: any,
   ) {
     return this.prescriptionsService.getExpiringPrescriptions(
       parseInt(days, 10),
-      user.tenantId,
     );
   }
 
@@ -251,8 +240,8 @@ export class PrescriptionsController {
     status: 200,
     description: 'Lista de residentes e seus medicamentos controlados',
   })
-  getResidentsWithControlled(@CurrentUser() user: any) {
-    return this.prescriptionsService.getResidentsWithControlled(user.tenantId);
+  getResidentsWithControlled() {
+    return this.prescriptionsService.getResidentsWithControlled();
   }
 
   @Get('review-needed/list')
@@ -269,11 +258,9 @@ export class PrescriptionsController {
   })
   getReviewNeededPrescriptions(
     @Query('days') days: string = '30',
-    @CurrentUser() user: any,
   ) {
     return this.prescriptionsService.getReviewNeededPrescriptions(
       parseInt(days, 10),
-      user.tenantId,
     );
   }
 
@@ -294,7 +281,6 @@ export class PrescriptionsController {
   ) {
     return this.prescriptionsService.administerMedication(
       administerMedicationDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -315,7 +301,6 @@ export class PrescriptionsController {
   ) {
     return this.prescriptionsService.administerSOSMedication(
       administerSOSDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -335,13 +320,11 @@ export class PrescriptionsController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Query('year') year: string,
     @Query('month') month: string,
-    @CurrentUser() user: any,
   ) {
     return this.prescriptionsService.getMedicationAdministrationDates(
       residentId,
       parseInt(year, 10),
       parseInt(month, 10),
-      user.tenantId,
     );
   }
 
@@ -356,12 +339,10 @@ export class PrescriptionsController {
   getMedicationAdministrationsByDate(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Param('date') date: string,
-    @CurrentUser() user: any,
   ) {
     return this.prescriptionsService.getMedicationAdministrationsByDate(
       residentId,
       date,
-      user.tenantId,
     );
   }
 }

@@ -10,6 +10,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { PermissionType, PositionCode } from '@prisma/client';
 import { getPositionPermissions } from './position-profiles.config';
 import { PermissionsCacheService } from './permissions-cache.service';
@@ -19,7 +20,8 @@ export class PermissionsService {
   private readonly logger = new Logger(PermissionsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly permissionsCacheService: PermissionsCacheService,
   ) {}
 
@@ -37,7 +39,6 @@ export class PermissionsService {
    */
   async hasPermission(
     userId: string,
-    tenantId: string,
     permission: PermissionType,
   ): Promise<boolean> {
     try {
@@ -45,7 +46,7 @@ export class PermissionsService {
       const hasPermCached =
         await this.permissionsCacheService.hasPermission(
           userId,
-          tenantId,
+          this.tenantContext.tenantId,
           permission,
         );
       return hasPermCached;
@@ -63,11 +64,10 @@ export class PermissionsService {
    */
   async hasAllPermissions(
     userId: string,
-    tenantId: string,
     permissions: PermissionType[],
   ): Promise<boolean> {
     const results = await Promise.all(
-      permissions.map((perm) => this.hasPermission(userId, tenantId, perm)),
+      permissions.map((perm) => this.hasPermission(userId, perm)),
     );
     return results.every((result) => result === true);
   }
@@ -77,11 +77,10 @@ export class PermissionsService {
    */
   async hasAnyPermission(
     userId: string,
-    tenantId: string,
     permissions: PermissionType[],
   ): Promise<boolean> {
     const results = await Promise.all(
-      permissions.map((perm) => this.hasPermission(userId, tenantId, perm)),
+      permissions.map((perm) => this.hasPermission(userId, perm)),
     );
     return results.some((result) => result === true);
   }
@@ -93,12 +92,11 @@ export class PermissionsService {
    */
   async getUserEffectivePermissions(
     userId: string,
-    tenantId: string,
   ): Promise<PermissionType[]> {
     try {
       const userPermData = await this.permissionsCacheService.get(userId);
 
-      if (!userPermData || userPermData.tenantId !== tenantId) {
+      if (!userPermData || userPermData.tenantId !== this.tenantContext.tenantId) {
         return [];
       }
 
@@ -119,12 +117,11 @@ export class PermissionsService {
    */
   async grantPermission(
     userId: string,
-    tenantId: string,
     permission: PermissionType,
     grantedBy: string,
   ): Promise<void> {
     try {
-      const userProfile = await this.prisma.userProfile.findUnique({
+      const userProfile = await this.tenantContext.client.userProfile.findUnique({
         where: { userId },
       });
 
@@ -133,14 +130,7 @@ export class PermissionsService {
         throw new Error('Perfil de usuário não encontrado');
       }
 
-      if (userProfile.tenantId !== tenantId) {
-        this.logger.error(
-          `TenantId incompatível: userProfile.tenantId=${userProfile.tenantId}, tenantId=${tenantId}`,
-        );
-        throw new Error('Perfil de usuário não encontrado');
-      }
-
-      await this.prisma.userPermission.upsert({
+      await this.tenantContext.client.userPermission.upsert({
         where: {
           userProfileId_permission: {
             userProfileId: userProfile.id,
@@ -149,7 +139,7 @@ export class PermissionsService {
         },
         create: {
           userProfileId: userProfile.id,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           permission,
           isGranted: true,
           grantedBy,
@@ -172,7 +162,7 @@ export class PermissionsService {
         `Erro ao conceder permissão ${permission} para userId ${userId}:`,
         {
           userId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           permission,
           grantedBy,
           error: error.message,
@@ -188,19 +178,18 @@ export class PermissionsService {
    */
   async revokePermission(
     userId: string,
-    tenantId: string,
     permission: PermissionType,
     revokedBy: string,
   ): Promise<void> {
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId },
     });
 
-    if (!userProfile || userProfile.tenantId !== tenantId) {
+    if (!userProfile) {
       throw new Error('Perfil de usuário não encontrado');
     }
 
-    await this.prisma.userPermission.upsert({
+    await this.tenantContext.client.userPermission.upsert({
       where: {
         userProfileId_permission: {
           userProfileId: userProfile.id,
@@ -209,7 +198,7 @@ export class PermissionsService {
       },
       create: {
         userProfileId: userProfile.id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         permission,
         isGranted: false,
         grantedBy: revokedBy,
@@ -234,18 +223,17 @@ export class PermissionsService {
    */
   async removeCustomPermission(
     userId: string,
-    tenantId: string,
     permission: PermissionType,
   ): Promise<void> {
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId },
     });
 
-    if (!userProfile || userProfile.tenantId !== tenantId) {
+    if (!userProfile) {
       throw new Error('Perfil de usuário não encontrado');
     }
 
-    await this.prisma.userPermission.deleteMany({
+    await this.tenantContext.client.userPermission.deleteMany({
       where: {
         userProfileId: userProfile.id,
         permission,
@@ -265,22 +253,21 @@ export class PermissionsService {
    */
   async updateUserPosition(
     userId: string,
-    tenantId: string,
     positionCode: PositionCode,
     registrationType?: string,
     registrationNumber?: string,
     registrationState?: string,
     updatedBy?: string,
   ): Promise<void> {
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId },
     });
 
-    if (!userProfile || userProfile.tenantId !== tenantId) {
+    if (!userProfile) {
       throw new Error('Perfil de usuário não encontrado');
     }
 
-    await this.prisma.userProfile.update({
+    await this.tenantContext.client.userProfile.update({
       where: { id: userProfile.id },
       data: {
         positionCode,
@@ -306,7 +293,6 @@ export class PermissionsService {
    */
   async getUserAllPermissions(
     userId: string,
-    tenantId: string,
   ): Promise<{
     inherited: PermissionType[];
     custom: PermissionType[];
@@ -315,7 +301,7 @@ export class PermissionsService {
     try {
       const userPermData = await this.permissionsCacheService.get(userId);
 
-      if (!userPermData || userPermData.tenantId !== tenantId) {
+      if (!userPermData || userPermData.tenantId !== this.tenantContext.tenantId) {
         return { inherited: [], custom: [], all: [] };
       }
 
@@ -383,10 +369,9 @@ export class PermissionsService {
    */
   async grantCustomPermission(
     userId: string,
-    tenantId: string,
     permission: PermissionType,
     grantedBy: string,
   ): Promise<void> {
-    return this.grantPermission(userId, tenantId, permission, grantedBy);
+    return this.grantPermission(userId, permission, grantedBy);
   }
 }

@@ -442,13 +442,10 @@ export class TenantsService {
    * Adiciona um novo usuário ao tenant
    */
   async addUser(tenantId: string, addUserDto: AddUserToTenantDto, currentUserId: string) {
-    // Verificar se tenant existe e usuário é admin
+    // Verificar se tenant existe
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: {
-        users: {
-          where: { id: currentUserId },
-        },
         subscriptions: {
           include: {
             plan: true,
@@ -467,15 +464,24 @@ export class TenantsService {
       throw new NotFoundException('Tenant não encontrado');
     }
 
-    if (!tenant.users[0] || tenant.users[0].role !== UserRole.ADMIN) {
+    // Obter tenant client para acessar User (TENANT table)
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
+    // Verificar se usuário atual é admin (usando tenant client)
+    const currentUser = await tenantClient.user.findUnique({
+      where: { id: currentUserId },
+      select: { role: true },
+    });
+
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Apenas administradores podem adicionar usuários');
     }
 
     // Verificar limite de usuários do plano
     const plan = tenant.subscriptions[0]?.plan;
     if (plan) {
-      const currentUserCount = await this.prisma.user.count({
-        where: { tenantId, isActive: true },
+      const currentUserCount = await tenantClient.user.count({
+        where: { isActive: true },
       });
 
       if (plan.maxUsers !== -1 && currentUserCount >= plan.maxUsers) {
@@ -485,13 +491,11 @@ export class TenantsService {
       }
     }
 
-    // Verificar se email já existe neste tenant
-    const existingUser = await this.prisma.user.findUnique({
+    // Verificar se email já existe neste tenant (usando tenant client)
+    const existingUser = await tenantClient.user.findFirst({
       where: {
-        tenantId_email: {
-          tenantId,
-          email: addUserDto.email,
-        },
+        email: addUserDto.email,
+        deletedAt: null,
       },
     });
 
@@ -506,10 +510,10 @@ export class TenantsService {
 
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
 
-    // Criar usuário E perfil em transação atômica (tudo ou nada)
-    const result = await this.prisma.$transaction(async (prisma) => {
+    // Criar usuário E perfil em transação atômica usando tenant client
+    const result = await tenantClient.$transaction(async (tx) => {
       // 1. Criar o usuário
-      const user = await prisma.user.create({
+      const user = await tx.user.create({
         data: {
           tenantId,
           name: addUserDto.name,
@@ -531,7 +535,7 @@ export class TenantsService {
       });
 
       // 2. Criar perfil na MESMA transação (sincronizar CPF)
-      await prisma.userProfile.create({
+      await tx.userProfile.create({
         data: {
           userId: user.id,
           tenantId,
@@ -581,11 +585,23 @@ export class TenantsService {
    * Lista usuários de um tenant
    */
   async listUsers(tenantId: string, currentUserId: string) {
+    // Obter tenant para pegar schemaName
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
     // Verificar se usuário pertence ao tenant
-    const user = await this.prisma.user.findFirst({
+    const user = await tenantClient.user.findFirst({
       where: {
         id: currentUserId,
-        tenantId,
+        deletedAt: null,
       },
     });
 
@@ -593,9 +609,9 @@ export class TenantsService {
       throw new ForbiddenException('Acesso negado');
     }
 
-    return this.prisma.user.findMany({
+    return tenantClient.user.findMany({
       where: {
-        tenantId,
+        deletedAt: null,
       },
       select: {
         id: true,
@@ -617,11 +633,23 @@ export class TenantsService {
    * Remove um usuário do tenant
    */
   async removeUser(tenantId: string, userId: string, currentUserId: string) {
-    // Verificar se tenant existe e usuário atual é admin
-    const currentUser = await this.prisma.user.findFirst({
+    // Obter tenant para pegar schemaName
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
+    // Verificar se usuário atual é admin
+    const currentUser = await tenantClient.user.findFirst({
       where: {
         id: currentUserId,
-        tenantId,
+        deletedAt: null,
       },
     });
 
@@ -635,10 +663,10 @@ export class TenantsService {
     }
 
     // Verificar se usuário a ser removido existe
-    const userToRemove = await this.prisma.user.findFirst({
+    const userToRemove = await tenantClient.user.findFirst({
       where: {
         id: userId,
-        tenantId,
+        deletedAt: null,
       },
     });
 
@@ -648,11 +676,11 @@ export class TenantsService {
 
     // Verificar se não é o último admin
     if (userToRemove.role === UserRole.ADMIN) {
-      const adminCount = await this.prisma.user.count({
+      const adminCount = await tenantClient.user.count({
         where: {
-          tenantId,
           role: UserRole.ADMIN,
           isActive: true,
+          deletedAt: null,
         },
       });
 
@@ -662,7 +690,7 @@ export class TenantsService {
     }
 
     // Soft delete - desativar usuário
-    return this.prisma.user.update({
+    return tenantClient.user.update({
       where: { id: userId },
       data: {
         isActive: false,
@@ -864,7 +892,7 @@ export class TenantsService {
    * Busca subscription ativa do tenant com contagens de usuários e residentes
    */
   async getMySubscription(tenantId: string) {
-    // Buscar subscription ativa mais recente
+    // Buscar subscription ativa mais recente (SHARED table)
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId,
@@ -884,29 +912,35 @@ export class TenantsService {
       throw new NotFoundException('Nenhuma subscription ativa encontrada');
     }
 
-    // Contar usuários ativos
-    const activeUsersCount = await this.prisma.user.count({
+    // Buscar tenant para pegar schemaName e status (SHARED table)
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        status: true,
+        schemaName: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    // Obter client do tenant para acessar dados isolados
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+
+    // Contar usuários ativos (TENANT table)
+    const activeUsersCount = await tenantClient.user.count({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
       },
     });
 
-    // Contar residentes ativos
-    const activeResidentsCount = await this.prisma.resident.count({
+    // Contar residentes ativos (TENANT table)
+    const activeResidentsCount = await tenantClient.resident.count({
       where: {
-        tenantId,
         status: 'Ativo',
         deletedAt: null,
-      },
-    });
-
-    // Buscar tenant para pegar o status
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: {
-        status: true,
       },
     });
 

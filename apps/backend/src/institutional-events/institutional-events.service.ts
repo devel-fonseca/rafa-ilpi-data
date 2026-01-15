@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import {
@@ -24,7 +25,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 @Injectable()
 export class InstitutionalEventsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
@@ -39,15 +41,14 @@ export class InstitutionalEventsService {
    */
   async create(
     dto: CreateInstitutionalEventDto,
-    tenantId: string,
     userId: string,
   ) {
     // Validar campos obrigatórios por tipo de evento
     this.validateEventFields(dto.eventType, dto);
 
-    const event = await this.prisma.institutionalEvent.create({
+    const event = await this.tenantContext.client.institutionalEvent.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         eventType: dto.eventType,
         visibility: dto.visibility ?? InstitutionalEventVisibility.ALL_USERS,
         title: dto.title,
@@ -84,7 +85,7 @@ export class InstitutionalEventsService {
 
     this.logger.info('Evento institucional criado', {
       eventId: event.id,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       eventType: event.eventType,
       userId,
     });
@@ -94,7 +95,6 @@ export class InstitutionalEventsService {
     // O frontend filtra baseado na visibilidade do evento
     try {
       await this.notificationsService.createInstitutionalEventCreatedNotification(
-        tenantId,
         event.id,
         event.title,
         event.eventType,
@@ -112,9 +112,8 @@ export class InstitutionalEventsService {
   /**
    * Listar eventos institucionais com filtros
    */
-  async findAll(dto: GetInstitutionalEventsDto, tenantId: string) {
+  async findAll(dto: GetInstitutionalEventsDto) {
     const where: any = {
-      tenantId,
       deletedAt: null,
     };
 
@@ -149,7 +148,7 @@ export class InstitutionalEventsService {
       };
     }
 
-    const events = await this.prisma.institutionalEvent.findMany({
+    const events = await this.tenantContext.client.institutionalEvent.findMany({
       where,
       include: {
         createdByUser: {
@@ -178,11 +177,10 @@ export class InstitutionalEventsService {
   /**
    * Buscar evento por ID
    */
-  async findOne(id: string, tenantId: string) {
-    const event = await this.prisma.institutionalEvent.findFirst({
+  async findOne(id: string) {
+    const event = await this.tenantContext.client.institutionalEvent.findFirst({
       where: {
         id,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -216,17 +214,16 @@ export class InstitutionalEventsService {
   async update(
     id: string,
     dto: UpdateInstitutionalEventDto,
-    tenantId: string,
     userId: string,
   ) {
     // Verificar se evento existe
-    const existing = await this.findOne(id, tenantId);
+    const existing = await this.findOne(id);
 
     // Validar campos obrigatórios por tipo de evento (se tipo for alterado)
     const eventType = dto.eventType ?? existing.eventType;
     this.validateEventFields(eventType, { ...existing, ...dto });
 
-    const event = await this.prisma.institutionalEvent.update({
+    const event = await this.tenantContext.client.institutionalEvent.update({
       where: { id },
       data: {
         eventType: dto.eventType,
@@ -273,14 +270,13 @@ export class InstitutionalEventsService {
 
     this.logger.info('Evento institucional atualizado', {
       eventId: event.id,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
     // Criar notificação de atualização
     try {
       await this.notificationsService.createInstitutionalEventUpdatedNotification(
-        tenantId,
         event.id,
         event.title,
         event.eventType,
@@ -298,11 +294,11 @@ export class InstitutionalEventsService {
   /**
    * Deletar evento institucional (soft delete)
    */
-  async remove(id: string, tenantId: string, userId: string) {
+  async remove(id: string, userId: string) {
     // Verificar se evento existe
-    await this.findOne(id, tenantId);
+    await this.findOne(id);
 
-    await this.prisma.institutionalEvent.update({
+    await this.tenantContext.client.institutionalEvent.update({
       where: { id },
       data: {
         deletedAt: new Date(),
@@ -312,7 +308,7 @@ export class InstitutionalEventsService {
 
     this.logger.info('Evento institucional deletado', {
       eventId: id,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -322,11 +318,11 @@ export class InstitutionalEventsService {
   /**
    * Marcar evento como concluído
    */
-  async markAsCompleted(id: string, tenantId: string, userId: string) {
+  async markAsCompleted(id: string, userId: string) {
     // Verificar se evento existe
-    await this.findOne(id, tenantId);
+    await this.findOne(id);
 
-    const event = await this.prisma.institutionalEvent.update({
+    const event = await this.tenantContext.client.institutionalEvent.update({
       where: { id },
       data: {
         status: ScheduledEventStatus.COMPLETED,
@@ -353,7 +349,7 @@ export class InstitutionalEventsService {
 
     this.logger.info('Evento institucional marcado como concluído', {
       eventId: id,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -363,13 +359,12 @@ export class InstitutionalEventsService {
   /**
    * Buscar documentos com vencimento próximo
    */
-  async findExpiringDocuments(tenantId: string, daysAhead: number = 30) {
+  async findExpiringDocuments(daysAhead: number = 30) {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + daysAhead);
 
-    const events = await this.prisma.institutionalEvent.findMany({
+    const events = await this.tenantContext.client.institutionalEvent.findMany({
       where: {
-        tenantId,
         eventType: InstitutionalEventType.DOCUMENT_EXPIRY,
         expiryDate: {
           lte: futureDate,

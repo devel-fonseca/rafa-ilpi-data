@@ -66,7 +66,7 @@ export class PopsController {
   @Post()
   @RequirePermissions(PermissionType.CREATE_POPS)
   async create(@Req() req: any, @Body() dto: CreatePopDto) {
-    return this.popsService.create(req.user.tenantId, req.user.id, dto)
+    return this.popsService.create(req.user.id, dto)
   }
 
   /**
@@ -75,8 +75,8 @@ export class PopsController {
    */
   @Get()
   @RequirePermissions(PermissionType.VIEW_POPS)
-  async findAll(@Req() req: any, @Query() filters: FilterPopsDto) {
-    return this.popsService.findAll(req.user.tenantId, filters)
+  async findAll(@Query() filters: FilterPopsDto) {
+    return this.popsService.findAll(filters)
   }
 
   /**
@@ -86,8 +86,8 @@ export class PopsController {
    * POPs são documentos institucionais obrigatórios (RDC 502/2021)
    */
   @Get('published')
-  async findPublished(@Req() req: any) {
-    return this.popsService.findPublished(req.user.tenantId)
+  async findPublished() {
+    return this.popsService.findPublished()
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -100,8 +100,8 @@ export class PopsController {
    * ⚠️ ROTA PÚBLICA: Necessário para filtros de visualização
    */
   @Get('categories')
-  async getCategories(@Req() req: any) {
-    return this.popsService.getUniqueCategories(req.user.tenantId)
+  async getCategories() {
+    return this.popsService.getUniqueCategories()
   }
 
   /**
@@ -160,7 +160,7 @@ export class PopsController {
    */
   @Get(':id')
   async findOne(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.findOnePublic(req.user.tenantId, id, req.user.id)
+    return this.popsService.findOnePublic(id, req.user.id)
   }
 
   /**
@@ -174,7 +174,7 @@ export class PopsController {
     @Param('id') id: string,
     @Body() dto: UpdatePopDto,
   ) {
-    return this.popsService.update(req.user.tenantId, id, req.user.id, dto)
+    return this.popsService.update(id, req.user.id, dto)
   }
 
   /**
@@ -184,7 +184,7 @@ export class PopsController {
   @Delete(':id')
   @RequirePermissions(PermissionType.DELETE_POPS)
   async remove(@Req() req: any, @Param('id') id: string) {
-    await this.popsService.remove(req.user.tenantId, id, req.user.id)
+    await this.popsService.remove(id, req.user.id)
     return { message: 'POP removido com sucesso' }
   }
 
@@ -203,12 +203,7 @@ export class PopsController {
     @Param('id') id: string,
     @Body() dto: CreatePopVersionDto,
   ) {
-    return this.popsService.createNewVersion(
-      req.user.tenantId,
-      id,
-      req.user.id,
-      dto,
-    )
+    return this.popsService.createNewVersion(id, req.user.id, dto)
   }
 
   /**
@@ -217,8 +212,8 @@ export class PopsController {
    */
   @Get(':id/versions')
   @RequirePermissions(PermissionType.VIEW_POPS)
-  async getVersionHistory(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.getVersionHistory(req.user.tenantId, id)
+  async getVersionHistory(@Param('id') id: string) {
+    return this.popsService.getVersionHistory(id)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -232,7 +227,7 @@ export class PopsController {
   @Post(':id/publish')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
   async publish(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.publish(req.user.tenantId, id, req.user.id)
+    return this.popsService.publish(id, req.user.id)
   }
 
   /**
@@ -246,12 +241,7 @@ export class PopsController {
     @Param('id') id: string,
     @Body() dto: MarkObsoleteDto,
   ) {
-    return this.popsService.markObsolete(
-      req.user.tenantId,
-      id,
-      req.user.id,
-      dto.reason,
-    )
+    return this.popsService.markObsolete(id, req.user.id, dto.reason)
   }
 
   /**
@@ -261,11 +251,7 @@ export class PopsController {
   @Post(':id/mark-reviewed')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
   async markAsReviewed(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.markAsReviewed(
-      req.user.tenantId,
-      id,
-      req.user.id,
-    )
+    return this.popsService.markAsReviewed(id, req.user.id)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -290,6 +276,7 @@ export class PopsController {
     }
 
     // Upload do arquivo para MinIO
+    // NOTA: filesService.uploadFile ainda usa tenantId (FilesService não foi refatorado)
     const uploadResult = await this.filesService.uploadFile(
       req.user.tenantId,
       file,
@@ -299,7 +286,6 @@ export class PopsController {
 
     // Criar registro de anexo
     return this.popsService.addAttachment(
-      req.user.tenantId,
       popId,
       req.user.id,
       uploadResult.fileUrl,
@@ -320,7 +306,7 @@ export class PopsController {
     @Req() req: any,
     @Param('attachmentId') attachmentId: string,
   ) {
-    await this.popsService.removeAttachment(req.user.tenantId, attachmentId)
+    await this.popsService.removeAttachment(attachmentId)
     return { message: 'Anexo removido com sucesso' }
   }
 
@@ -334,7 +320,7 @@ export class PopsController {
    */
   @Get(':id/history')
   @RequirePermissions(PermissionType.VIEW_POPS)
-  async getHistory(@Req() req: any, @Param('id') id: string) {
-    return this.popsService.getPopHistory(req.user.tenantId, id)
+  async getHistory(@Param('id') id: string) {
+    return this.popsService.getPopHistory(id)
   }
 }

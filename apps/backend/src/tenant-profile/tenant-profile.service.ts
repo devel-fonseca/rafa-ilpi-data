@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import {
   CreateTenantProfileDto,
   UpdateTenantProfileDto,
@@ -11,13 +12,16 @@ import {
 
 @Injectable()
 export class TenantProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   /**
    * Criar ou atualizar perfil do tenant (upsert)
    * Se já existe, atualiza. Se não existe, cria.
    */
-  async upsert(tenantId: string, dto: CreateTenantProfileDto) {
+  async upsert(dto: CreateTenantProfileDto) {
     // Validação: capacityLicensed não pode ser maior que capacityDeclared
     if (
       dto.capacityDeclared &&
@@ -35,10 +39,10 @@ export class TenantProfileService {
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };
 
-    return this.prisma.tenantProfile.upsert({
-      where: { tenantId },
+    return this.tenantContext.client.tenantProfile.upsert({
+      where: { tenantId: this.tenantContext.tenantId },
       create: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         ...data,
       },
       update: data,
@@ -46,22 +50,19 @@ export class TenantProfileService {
   }
 
   /**
-   * Buscar perfil por tenantId
+   * Buscar perfil do tenant atual
    */
-  async findByTenantId(tenantId: string) {
-    return this.prisma.tenantProfile.findUnique({
-      where: { tenantId },
+  async findByTenantId() {
+    return this.tenantContext.client.tenantProfile.findUnique({
+      where: { tenantId: this.tenantContext.tenantId },
     });
   }
 
   /**
    * Atualizar perfil existente
    */
-  async update(
-    tenantId: string,
-    dto: UpdateTenantProfileDto,
-  ) {
-    const existing = await this.findByTenantId(tenantId);
+  async update(dto: UpdateTenantProfileDto) {
+    const existing = await this.findByTenantId();
 
     if (!existing) {
       throw new NotFoundException(
@@ -89,8 +90,8 @@ export class TenantProfileService {
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };
 
-    return this.prisma.tenantProfile.update({
-      where: { tenantId },
+    return this.tenantContext.client.tenantProfile.update({
+      where: { tenantId: this.tenantContext.tenantId },
       data,
     });
   }
@@ -99,8 +100,8 @@ export class TenantProfileService {
    * Verificar status de completude do perfil
    * Considera completo se legalNature foi preenchida
    */
-  async checkCompletionStatus(tenantId: string) {
-    const profile = await this.findByTenantId(tenantId);
+  async checkCompletionStatus() {
+    const profile = await this.findByTenantId();
 
     return {
       isComplete: !!profile?.legalNature,
@@ -112,15 +113,15 @@ export class TenantProfileService {
   /**
    * Soft delete do perfil
    */
-  async softDelete(tenantId: string) {
-    const existing = await this.findByTenantId(tenantId);
+  async softDelete() {
+    const existing = await this.findByTenantId();
 
     if (!existing) {
       throw new NotFoundException('Perfil não encontrado');
     }
 
-    return this.prisma.tenantProfile.update({
-      where: { tenantId },
+    return this.tenantContext.client.tenantProfile.update({
+      where: { tenantId: this.tenantContext.tenantId },
       data: {
         deletedAt: new Date(),
       },

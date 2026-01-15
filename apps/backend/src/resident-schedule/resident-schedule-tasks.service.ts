@@ -1,5 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO } from 'date-fns';
@@ -32,7 +33,8 @@ export interface DailyTask {
 @Injectable()
 export class ResidentScheduleTasksService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -41,7 +43,6 @@ export class ResidentScheduleTasksService {
    */
   async getDailyTasksByResident(
     residentId: string,
-    tenantId: string,
     dateStr?: string,
   ): Promise<DailyTask[]> {
     // ✅ Parse da data (usa data atual no timezone do tenant se não informada)
@@ -49,9 +50,9 @@ export class ResidentScheduleTasksService {
     if (dateStr) {
       targetDateStr = dateStr; // YYYY-MM-DD já fornecido
     } else {
-      // Obter tenant para pegar timezone
+      // Obter tenant para pegar timezone (tabela SHARED)
       const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
+        where: { id: this.tenantContext.tenantId },
         select: { timezone: true },
       });
       targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
@@ -62,9 +63,8 @@ export class ResidentScheduleTasksService {
     const dayOfMonth = targetDate.getDate(); // 1-31
 
     // 1. Buscar configurações ativas do residente
-    const configs = await this.prisma.residentScheduleConfig.findMany({
+    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         residentId,
         isActive: true,
         deletedAt: null,
@@ -84,9 +84,8 @@ export class ResidentScheduleTasksService {
     );
 
     // 3. Buscar registros já feitos no dia
-    const existingRecords = await this.prisma.dailyRecord.findMany({
+    const existingRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
-        tenantId,
         residentId,
         date: targetDate,
         deletedAt: null,
@@ -177,9 +176,8 @@ export class ResidentScheduleTasksService {
     });
 
     // 4. Buscar eventos agendados para a data
-    const events = await this.prisma.residentScheduledEvent.findMany({
+    const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
-        tenantId,
         residentId,
         scheduledDate: targetDate,
         deletedAt: null,
@@ -213,7 +211,6 @@ export class ResidentScheduleTasksService {
    * Buscar tarefas diárias de todos os residentes do tenant
    */
   async getDailyTasks(
-    tenantId: string,
     dateStr?: string,
   ): Promise<DailyTask[]> {
     // ✅ Parse da data (usa data atual no timezone do tenant se não informada)
@@ -221,9 +218,9 @@ export class ResidentScheduleTasksService {
     if (dateStr) {
       targetDateStr = dateStr; // YYYY-MM-DD já fornecido
     } else {
-      // Obter tenant para pegar timezone
+      // Obter tenant para pegar timezone (tabela SHARED)
       const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
+        where: { id: this.tenantContext.tenantId },
         select: { timezone: true },
       });
       targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
@@ -234,9 +231,8 @@ export class ResidentScheduleTasksService {
     const dayOfMonth = targetDate.getDate();
 
     // 1. Buscar todas as configurações ativas do tenant
-    const configs = await this.prisma.residentScheduleConfig.findMany({
+    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
       },
@@ -250,9 +246,8 @@ export class ResidentScheduleTasksService {
     });
 
     // 2. Buscar TODOS os registros existentes na data para verificar conclusão
-    const existingRecords = await this.prisma.dailyRecord.findMany({
+    const existingRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
-        tenantId,
         date: targetDate,
         deletedAt: null,
       },
@@ -343,9 +338,8 @@ export class ResidentScheduleTasksService {
     );
 
     // 3. Buscar todos eventos agendados para a data
-    const events = await this.prisma.residentScheduledEvent.findMany({
+    const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
-        tenantId,
         scheduledDate: targetDate,
         deletedAt: null,
       },

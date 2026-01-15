@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
 
 @Injectable()
 export class FloorsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
-  async create(tenantId: string, createFloorDto: CreateFloorDto) {
+  async create(createFloorDto: CreateFloorDto) {
     // Validar que o building existe
-    const building = await this.prisma.building.findFirst({
-      where: { id: createFloorDto.buildingId, tenantId, deletedAt: null },
+    const building = await this.tenantContext.client.building.findFirst({
+      where: { id: createFloorDto.buildingId, deletedAt: null },
     })
 
     if (!building) {
@@ -18,7 +22,7 @@ export class FloorsService {
       )
     }
 
-    return this.prisma.floor.create({
+    return this.tenantContext.client.floor.create({
       data: {
         name: createFloorDto.name,
         code: createFloorDto.code,
@@ -26,24 +30,23 @@ export class FloorsService {
         buildingId: createFloorDto.buildingId,
         description: createFloorDto.description,
         isActive: createFloorDto.isActive,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       },
     })
   }
 
   async findAll(
-    tenantId: string,
     skip: number = 0,
     take: number = 50,
     buildingId?: string
   ) {
-    const where: any = { tenantId, deletedAt: null }
+    const where: any = { deletedAt: null }
     if (buildingId) {
       where.buildingId = buildingId
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.floor.findMany({
+      this.tenantContext.client.floor.findMany({
         where,
         include: {
           building: {
@@ -58,15 +61,14 @@ export class FloorsService {
         take,
         orderBy: [{ buildingId: 'asc' }, { orderIndex: 'asc' }],
       }),
-      this.prisma.floor.count({ where }),
+      this.tenantContext.client.floor.count({ where }),
     ])
 
     // Enriquecer com contagem de quartos e leitos
     const enriched = await Promise.all(
       data.map(async (floor: any) => {
-        const beds = await this.prisma.bed.count({
+        const beds = await this.tenantContext.client.bed.count({
           where: {
-            tenantId,
             room: {
               floorId: floor.id,
               deletedAt: null
@@ -75,9 +77,8 @@ export class FloorsService {
           },
         })
 
-        const occupiedBeds = await this.prisma.bed.count({
+        const occupiedBeds = await this.tenantContext.client.bed.count({
           where: {
-            tenantId,
             status: 'Ocupado',
             room: {
               floorId: floor.id,
@@ -102,9 +103,9 @@ export class FloorsService {
     return { data: enriched, total, skip, take }
   }
 
-  async findOne(tenantId: string, id: string) {
-    const floor = await this.prisma.floor.findFirst({
-      where: { id, tenantId, deletedAt: null },
+  async findOne(id: string) {
+    const floor = await this.tenantContext.client.floor.findFirst({
+      where: { id, deletedAt: null },
       include: {
         building: {
           select: { id: true, name: true },
@@ -123,14 +124,14 @@ export class FloorsService {
     return floor
   }
 
-  async update(tenantId: string, id: string, updateFloorDto: UpdateFloorDto) {
+  async update(id: string, updateFloorDto: UpdateFloorDto) {
     // Validar que o floor existe
-    await this.findOne(tenantId, id)
+    await this.findOne(id)
 
     // Se está mudando o buildingId, validar que o novo building existe
     if (updateFloorDto.buildingId) {
-      const building = await this.prisma.building.findFirst({
-        where: { id: updateFloorDto.buildingId, tenantId, deletedAt: null },
+      const building = await this.tenantContext.client.building.findFirst({
+        where: { id: updateFloorDto.buildingId, deletedAt: null },
       })
 
       if (!building) {
@@ -147,18 +148,18 @@ export class FloorsService {
       delete dataToUpdate.floorNumber
     }
 
-    return this.prisma.floor.update({
+    return this.tenantContext.client.floor.update({
       where: { id },
       data: dataToUpdate,
     })
   }
 
-  async remove(tenantId: string, id: string) {
+  async remove(id: string) {
     // Validar que o floor existe
-    await this.findOne(tenantId, id)
+    await this.findOne(id)
 
     // Verificar se tem quartos ativos
-    const activeRooms = await this.prisma.room.count({
+    const activeRooms = await this.tenantContext.client.room.count({
       where: { floorId: id, deletedAt: null },
     })
 
@@ -168,27 +169,27 @@ export class FloorsService {
       )
     }
 
-    return this.prisma.floor.update({
+    return this.tenantContext.client.floor.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
   }
 
-  async getStats(tenantId: string) {
-    const floors = await this.prisma.floor.count({
-      where: { tenantId, deletedAt: null },
+  async getStats() {
+    const floors = await this.tenantContext.client.floor.count({
+      where: { deletedAt: null },
     })
 
-    const rooms = await this.prisma.room.count({
-      where: { tenantId, deletedAt: null },
+    const rooms = await this.tenantContext.client.room.count({
+      where: { deletedAt: null },
     })
 
-    const beds = await this.prisma.bed.count({
-      where: { tenantId, deletedAt: null },
+    const beds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null },
     })
 
-    const occupiedBeds = await this.prisma.bed.count({
-      where: { tenantId, status: 'Ocupado', deletedAt: null },
+    const occupiedBeds = await this.tenantContext.client.bed.count({
+      where: { status: 'Ocupado', deletedAt: null },
     })
 
     return {

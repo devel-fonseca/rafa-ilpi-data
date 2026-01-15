@@ -53,7 +53,6 @@ export class DailyRecordsController {
   create(@Body() createDto: CreateDailyRecordDto, @CurrentUser() user: any) {
     return this.dailyRecordsService.create(
       createDto,
-      user.tenantId,
       user.id,
     );
   }
@@ -65,7 +64,7 @@ export class DailyRecordsController {
     description: 'Lista de registros com paginação',
   })
   findAll(@Query() query: QueryDailyRecordDto, @CurrentUser() user: any) {
-    return this.dailyRecordsService.findAll(query, user.tenantId);
+    return this.dailyRecordsService.findAll(query);
   }
 
   @Get('latest/by-residents')
@@ -92,7 +91,7 @@ export class DailyRecordsController {
     },
   })
   findLatestByResidents(@CurrentUser() user: any) {
-    return this.dailyRecordsService.findLatestByResidents(user.tenantId);
+    return this.dailyRecordsService.findLatestByResidents();
   }
 
   @Get('resident/:residentId/latest')
@@ -110,7 +109,6 @@ export class DailyRecordsController {
   ) {
     return this.dailyRecordsService.findLatestByResident(
       residentId,
-      user.tenantId,
       parseInt(limit, 10),
     );
   }
@@ -127,7 +125,7 @@ export class DailyRecordsController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    const vitalSign = await this.dailyRecordsService.findLastVitalSign(residentId, user.tenantId);
+    const vitalSign = await this.dailyRecordsService.findLastVitalSign(residentId);
 
     if (!vitalSign) {
       return null;
@@ -158,7 +156,7 @@ export class DailyRecordsController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @CurrentUser() user: any,
   ) {
-    return this.dailyRecordsService.findConsolidatedVitalSigns(residentId, user.tenantId);
+    return this.dailyRecordsService.findConsolidatedVitalSigns(residentId);
   }
 
   @Get('resident/:residentId/date/:date')
@@ -181,7 +179,6 @@ export class DailyRecordsController {
     return this.dailyRecordsService.findByResidentAndDate(
       residentId,
       date,
-      user.tenantId,
     );
   }
 
@@ -210,7 +207,6 @@ export class DailyRecordsController {
   ) {
     return this.dailyRecordsService.findDatesWithRecordsByResident(
       residentId,
-      user.tenantId,
       parseInt(year),
       parseInt(month),
     );
@@ -232,7 +228,7 @@ export class DailyRecordsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.dailyRecordsService.getHistory(id, user.tenantId);
+    return this.dailyRecordsService.getHistory(id);
   }
 
   @Post(':id/restore')
@@ -265,7 +261,6 @@ export class DailyRecordsController {
       id,
       restoreDto.versionId,
       restoreDto.restoreReason,
-      user.tenantId,
       user.id,
       user.name,
     );
@@ -281,7 +276,7 @@ export class DailyRecordsController {
   @ApiResponse({ status: 404, description: 'Registro não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.dailyRecordsService.findOne(id, user.tenantId);
+    return this.dailyRecordsService.findOne(id);
   }
 
   @Patch(':id')
@@ -300,7 +295,6 @@ export class DailyRecordsController {
     return this.dailyRecordsService.update(
       id,
       updateDto,
-      user.tenantId,
       user.id,
       user.name,
     );
@@ -323,7 +317,6 @@ export class DailyRecordsController {
     return this.dailyRecordsService.remove(
       id,
       deleteDto,
-      user.tenantId,
       user.id,
       user.name,
     );

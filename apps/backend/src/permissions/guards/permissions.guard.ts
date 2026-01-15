@@ -57,8 +57,6 @@ export class PermissionsGuard implements CanActivate {
     }
 
     const userId = user.id;
-    const tenantId = user.tenantId;
-
     // Validar permissões
     try {
       let hasPermission: boolean;
@@ -67,14 +65,12 @@ export class PermissionsGuard implements CanActivate {
         // Exige TODAS as permissões
         hasPermission = await this.permissionsService.hasAllPermissions(
           userId,
-          tenantId,
           requiredPermissions,
         );
       } else {
         // Exige QUALQUER uma das permissões
         hasPermission = await this.permissionsService.hasAnyPermission(
           userId,
-          tenantId,
           requiredPermissions,
         );
       }

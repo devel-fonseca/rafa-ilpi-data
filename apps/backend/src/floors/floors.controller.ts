@@ -28,22 +28,19 @@ export class FloorsController {
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
-    @CurrentUser('tenantId') tenantId: string,
     @Body() createFloorDto: CreateFloorDto
   ) {
-    return this.floorsService.create(tenantId, createFloorDto)
+    return this.floorsService.create(createFloorDto)
   }
 
   @Get()
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
-    @CurrentUser('tenantId') tenantId: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
     @Query('buildingId') buildingId?: string
   ) {
     return this.floorsService.findAll(
-      tenantId,
       parseInt(skip || '0'),
       parseInt(take || '50'),
       buildingId
@@ -52,31 +49,30 @@ export class FloorsController {
 
   @Get('stats/summary')
   @RequirePermissions(PermissionType.VIEW_BEDS)
-  getStats(@CurrentUser('tenantId') tenantId: string) {
-    return this.floorsService.getStats(tenantId)
+  getStats() {
+    return this.floorsService.getStats()
   }
 
   @Get(':id')
   @RequirePermissions(PermissionType.VIEW_BEDS)
-  findOne(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.floorsService.findOne(tenantId, id)
+  findOne(@Param('id') id: string) {
+    return this.floorsService.findOne(id)
   }
 
   @Patch(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
-    @CurrentUser('tenantId') tenantId: string,
     @Param('id') id: string,
     @Body() updateFloorDto: UpdateFloorDto
   ) {
-    return this.floorsService.update(tenantId, id, updateFloorDto)
+    return this.floorsService.update(id, updateFloorDto)
   }
 
   @Delete(':id')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
-  remove(@CurrentUser('tenantId') tenantId: string, @Param('id') id: string) {
-    return this.floorsService.remove(tenantId, id)
+  remove(@Param('id') id: string) {
+    return this.floorsService.remove(id)
   }
 }

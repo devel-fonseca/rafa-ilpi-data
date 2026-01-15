@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { UpdateMedicationDto } from '../prescriptions/dto/update-medication.dto';
 import { DeleteMedicationDto } from '../prescriptions/dto/delete-medication.dto';
 import { ChangeType } from '@prisma/client';
@@ -8,20 +9,22 @@ import { ChangeType } from '@prisma/client';
 export class MedicationsService {
   private readonly logger = new Logger(MedicationsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   // ==================== UPDATE com Versionamento ====================
   async update(
     id: string,
     updateMedicationDto: UpdateMedicationDto,
-    tenantId: string,
     userId: string,
   ) {
     const { changeReason, ...updateData } = updateMedicationDto;
 
     // Buscar medicamento existente
-    const medication = await this.prisma.medication.findFirst({
-      where: { id, prescription: { tenantId }, deletedAt: null },
+    const medication = await this.tenantContext.client.medication.findFirst({
+      where: { id, deletedAt: null },
       include: { prescription: true },
     });
 
@@ -29,7 +32,7 @@ export class MedicationsService {
       this.logger.error('Erro ao atualizar medicamento', {
         error: 'Medicamento não encontrado',
         medicationId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Medicamento não encontrado');
@@ -68,7 +71,7 @@ export class MedicationsService {
     const newVersionNumber = medication.versionNumber + 1;
 
     // Executar update e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Atualizar medicamento
       const updatedMedication = await tx.medication.update({
         where: { id },
@@ -101,7 +104,7 @@ export class MedicationsService {
       // 3. Criar entrada no histórico
       await tx.medicationHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           medicationId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
@@ -121,7 +124,7 @@ export class MedicationsService {
       medicationId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -131,13 +134,12 @@ export class MedicationsService {
   // ==================== DELETE (Soft) com Versionamento ====================
   async remove(
     id: string,
-    tenantId: string,
     userId: string,
     deleteReason: string,
   ) {
     // Buscar medicamento existente
-    const medication = await this.prisma.medication.findFirst({
-      where: { id, prescription: { tenantId }, deletedAt: null },
+    const medication = await this.tenantContext.client.medication.findFirst({
+      where: { id, deletedAt: null },
       include: { prescription: true },
     });
 
@@ -145,7 +147,7 @@ export class MedicationsService {
       this.logger.error('Erro ao remover medicamento', {
         error: 'Medicamento não encontrado',
         medicationId: id,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         userId,
       });
       throw new NotFoundException('Medicamento não encontrado');
@@ -174,7 +176,7 @@ export class MedicationsService {
     const newVersionNumber = medication.versionNumber + 1;
 
     // Executar soft delete e criar histórico em transação atômica
-    const result = await this.prisma.$transaction(async (tx) => {
+    const result = await this.tenantContext.client.$transaction(async (tx) => {
       // 1. Soft delete do medicamento
       const deletedMedication = await tx.medication.update({
         where: { id },
@@ -189,7 +191,7 @@ export class MedicationsService {
       // 2. Criar entrada no histórico
       await tx.medicationHistory.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           medicationId: id,
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
@@ -212,7 +214,7 @@ export class MedicationsService {
     this.logger.log('Medicamento removido com versionamento', {
       medicationId: id,
       versionNumber: newVersionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -220,10 +222,10 @@ export class MedicationsService {
   }
 
   // ==================== HISTÓRICO ====================
-  async getHistory(medicationId: string, tenantId: string) {
+  async getHistory(medicationId: string) {
     // Verificar se o medicamento existe
-    const medication = await this.prisma.medication.findFirst({
-      where: { id: medicationId, prescription: { tenantId } },
+    const medication = await this.tenantContext.client.medication.findFirst({
+      where: { id: medicationId },
       include: { prescription: true },
     });
 
@@ -231,16 +233,15 @@ export class MedicationsService {
       this.logger.error('Erro ao consultar histórico de medicamento', {
         error: 'Medicamento não encontrado',
         medicationId,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Medicamento não encontrado');
     }
 
     // Buscar histórico ordenado por versão decrescente
-    const history = await this.prisma.medicationHistory.findMany({
+    const history = await this.tenantContext.client.medicationHistory.findMany({
       where: {
         medicationId,
-        tenantId,
       },
       orderBy: {
         versionNumber: 'desc',
@@ -250,7 +251,7 @@ export class MedicationsService {
     this.logger.log('Histórico de medicamento consultado', {
       medicationId,
       totalVersions: history.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return {
@@ -265,11 +266,10 @@ export class MedicationsService {
   async getHistoryVersion(
     medicationId: string,
     versionNumber: number,
-    tenantId: string,
   ) {
     // Verificar se o medicamento existe
-    const medication = await this.prisma.medication.findFirst({
-      where: { id: medicationId, prescription: { tenantId } },
+    const medication = await this.tenantContext.client.medication.findFirst({
+      where: { id: medicationId },
       include: { prescription: true },
     });
 
@@ -278,17 +278,16 @@ export class MedicationsService {
         error: 'Medicamento não encontrado',
         medicationId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException('Medicamento não encontrado');
     }
 
     // Buscar versão específica
-    const historyVersion = await this.prisma.medicationHistory.findFirst({
+    const historyVersion = await this.tenantContext.client.medicationHistory.findFirst({
       where: {
         medicationId,
         versionNumber,
-        tenantId,
       },
     });
 
@@ -297,7 +296,7 @@ export class MedicationsService {
         error: `Versão ${versionNumber} não encontrada para este medicamento`,
         medicationId,
         versionNumber,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       });
       throw new NotFoundException(
         `Versão ${versionNumber} não encontrada para este medicamento`,
@@ -307,7 +306,7 @@ export class MedicationsService {
     this.logger.log('Versão específica do histórico consultada', {
       medicationId,
       versionNumber,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return historyVersion;

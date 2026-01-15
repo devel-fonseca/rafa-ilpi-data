@@ -41,7 +41,7 @@ export class AllergiesController {
   @ApiResponse({ status: 201, description: 'Alergia registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(@CurrentUser() user: any, @Body() createDto: CreateAllergyDto) {
-    return this.allergiesService.create(user.tenantId, user.id, createDto);
+    return this.allergiesService.create(user.id, createDto);
   }
 
   @Get('resident/:residentId')
@@ -52,7 +52,7 @@ export class AllergiesController {
     @CurrentUser() user: any,
     @Param('residentId') residentId: string,
   ) {
-    return this.allergiesService.findByResidentId(user.tenantId, residentId);
+    return this.allergiesService.findByResidentId(residentId);
   }
 
   @Get(':id')
@@ -61,7 +61,7 @@ export class AllergiesController {
   @ApiResponse({ status: 200, description: 'Alergia encontrada' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.allergiesService.findOne(user.tenantId, id);
+    return this.allergiesService.findOne(id);
   }
 
   @Patch(':id')
@@ -74,7 +74,7 @@ export class AllergiesController {
     @Param('id') id: string,
     @Body() updateDto: UpdateAllergyDto,
   ) {
-    return this.allergiesService.update(user.tenantId, user.id, id, updateDto);
+    return this.allergiesService.update(user.id, id, updateDto);
   }
 
   @Delete(':id')
@@ -93,7 +93,7 @@ export class AllergiesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteAllergyDto,
   ) {
-    return this.allergiesService.remove(user.tenantId, user.id, id, deleteDto.deleteReason);
+    return this.allergiesService.remove(user.id, id, deleteDto.deleteReason);
   }
 
   @Get(':id/history')
@@ -109,7 +109,7 @@ export class AllergiesController {
     @CurrentUser() user: any,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.allergiesService.getHistory(id, user.tenantId);
+    return this.allergiesService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -130,7 +130,6 @@ export class AllergiesController {
     return this.allergiesService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

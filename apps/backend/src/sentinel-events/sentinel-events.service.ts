@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
 import {
@@ -31,7 +32,8 @@ export class SentinelEventsService {
   private readonly logger = new Logger(SentinelEventsService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly notificationsService: NotificationsService,
     private readonly emailService: EmailService,
   ) {}
@@ -55,7 +57,7 @@ export class SentinelEventsService {
     });
 
     // Processar workflow de evento sentinela
-    await this.triggerSentinelEventWorkflow(record.id, tenantId);
+    await this.triggerSentinelEventWorkflow(record.id);
   }
 
   /**
@@ -64,16 +66,15 @@ export class SentinelEventsService {
    */
   async triggerSentinelEventWorkflow(
     dailyRecordId: string,
-    tenantId: string,
   ): Promise<void> {
     this.logger.warn('⚠️  EVENTO SENTINELA DETECTADO', {
       dailyRecordId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     try {
       // Buscar o registro completo com dados do residente
-      const record = await this.prisma.dailyRecord.findUnique({
+      const record = await this.tenantContext.client.dailyRecord.findUnique({
         where: { id: dailyRecordId },
         include: {
           resident: {
@@ -100,7 +101,6 @@ export class SentinelEventsService {
 
       // 1. Criar notificação CRÍTICA (broadcast para todo o tenant)
       const notification = await this.createSentinelNotification(
-        tenantId,
         record,
         eventType,
       );
@@ -110,9 +110,9 @@ export class SentinelEventsService {
       });
 
       // 2. Criar registro de rastreamento
-      const sentinelTracking = await this.prisma.sentinelEventNotification.create({
+      const sentinelTracking = await this.tenantContext.client.sentinelEventNotification.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           dailyRecordId: record.id,
           notificationId: notification.id,
           eventType: record.incidentSubtypeClinical || 'UNKNOWN',
@@ -132,7 +132,7 @@ export class SentinelEventsService {
       });
 
       // 3. Enviar email para Responsável Técnico (RT)
-      await this.sendRTAlert(tenantId, record, eventType, sentinelTracking.id);
+      await this.sendRTAlert(record, eventType, sentinelTracking.id);
 
       this.logger.warn('✅ Workflow de Evento Sentinela concluído', {
         dailyRecordId,
@@ -152,14 +152,13 @@ export class SentinelEventsService {
    * Cria notificação CRÍTICA broadcast para todo o tenant
    */
   private async createSentinelNotification(
-    tenantId: string,
     record: any,
     eventType: string,
   ): Promise<any> {
     const title = `🚨 EVENTO SENTINELA: ${eventType}`;
     const message = `Residente ${record.resident.fullName} - Notificação obrigatória à vigilância epidemiológica conforme RDC 502/2021 Art. 55. Prazo: 24 horas.`;
 
-    return this.notificationsService.create(tenantId, {
+    return this.notificationsService.create({
       type: SystemNotificationType.INCIDENT_SENTINEL_EVENT,
       category: NotificationCategory.INCIDENT,
       severity: NotificationSeverity.CRITICAL,
@@ -185,16 +184,14 @@ export class SentinelEventsService {
    * Envia email de alerta para o Responsável Técnico
    */
   private async sendRTAlert(
-    tenantId: string,
     record: any,
     eventType: string,
     trackingId: string,
   ): Promise<void> {
     try {
       // Buscar Responsável Técnico (RT) do tenant
-      const rt = await this.prisma.user.findFirst({
+      const rt = await this.tenantContext.client.user.findFirst({
         where: {
-          tenantId,
           profile: {
             positionCode: 'TECHNICAL_MANAGER',
           },
@@ -210,7 +207,7 @@ export class SentinelEventsService {
 
       if (!rt) {
         this.logger.warn('Responsável Técnico não encontrado para envio de email', {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
         });
         return;
       }
@@ -219,7 +216,7 @@ export class SentinelEventsService {
 
       if (emailSent) {
         // Atualizar rastreamento com informações de envio
-        await this.prisma.sentinelEventNotification.update({
+        await this.tenantContext.client.sentinelEventNotification.update({
           where: { id: trackingId },
           data: {
             emailEnviado: true,
@@ -246,16 +243,13 @@ export class SentinelEventsService {
    * Lista todos os eventos sentinela com filtros
    */
   async findAllSentinelEvents(
-    tenantId: string,
     filters?: {
       status?: string;
       startDate?: string;
       endDate?: string;
     },
   ): Promise<any[]> {
-    const where: any = {
-      tenantId,
-    };
+    const where: any = {};
 
     if (filters?.status) {
       where.status = filters.status;
@@ -275,7 +269,7 @@ export class SentinelEventsService {
       };
     }
 
-    const events = await this.prisma.sentinelEventNotification.findMany({
+    const events = await this.tenantContext.client.sentinelEventNotification.findMany({
       where,
       include: {
         dailyRecord: {
@@ -329,7 +323,6 @@ export class SentinelEventsService {
    */
   async updateSentinelEventStatus(
     eventId: string,
-    tenantId: string,
     updateData: {
       status: 'ENVIADO' | 'CONFIRMADO';
       protocolo?: string;
@@ -338,10 +331,9 @@ export class SentinelEventsService {
     },
   ): Promise<any> {
     // Verificar se evento existe e pertence ao tenant
-    const event = await this.prisma.sentinelEventNotification.findFirst({
+    const event = await this.tenantContext.client.sentinelEventNotification.findFirst({
       where: {
         id: eventId,
-        tenantId,
       },
     });
 
@@ -366,7 +358,7 @@ export class SentinelEventsService {
       data.dataConfirmacao = new Date();
     }
 
-    const updated = await this.prisma.sentinelEventNotification.update({
+    const updated = await this.tenantContext.client.sentinelEventNotification.update({
       where: { id: eventId },
       data,
     });

@@ -10,7 +10,6 @@ import { DailyComplianceResponseDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
 
@@ -36,7 +35,7 @@ export class ComplianceController {
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
-  async getDailySummary(@CurrentUser() user: any): Promise<DailyComplianceResponseDto> {
-    return this.complianceService.getDailySummary(user.tenantId);
+  async getDailySummary(): Promise<DailyComplianceResponseDto> {
+    return this.complianceService.getDailySummary();
   }
 }

@@ -1,20 +1,23 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateBuildingDto, UpdateBuildingDto } from './dto'
 import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
 
 @Injectable()
 export class BuildingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
-  async create(tenantId: string, createBuildingDto: CreateBuildingDto) {
+  async create(createBuildingDto: CreateBuildingDto) {
     // Se não foi fornecido código, gera automaticamente
     let code = createBuildingDto.code
 
     if (!code) {
       // Busca códigos existentes para evitar duplicados
-      const existingBuildings = await this.prisma.building.findMany({
-        where: { tenantId },
+      const existingBuildings = await this.tenantContext.client.building.findMany({
         select: { code: true }
       })
       const existingCodes = existingBuildings.map(b => b.code)
@@ -23,19 +26,19 @@ export class BuildingsService {
       code = generateBuildingCode(createBuildingDto.name, existingCodes)
     }
 
-    return this.prisma.building.create({
+    return this.tenantContext.client.building.create({
       data: {
         ...createBuildingDto,
         code,
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
       },
     })
   }
 
-  async findAll(tenantId: string, skip: number = 0, take: number = 50) {
+  async findAll(skip: number = 0, take: number = 50) {
     const [data, total] = await Promise.all([
-      this.prisma.building.findMany({
-        where: { tenantId, deletedAt: null },
+      this.tenantContext.client.building.findMany({
+        where: { deletedAt: null },
         include: {
           _count: {
             select: { floors: true },
@@ -45,17 +48,16 @@ export class BuildingsService {
         take,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.building.count({
-        where: { tenantId, deletedAt: null },
+      this.tenantContext.client.building.count({
+        where: { deletedAt: null },
       }),
     ])
 
     // Enriquecer com contagem de quartos e leitos
     const enriched = await Promise.all(
       data.map(async (building: any) => {
-        const rooms = await this.prisma.room.count({
+        const rooms = await this.tenantContext.client.room.count({
           where: {
-            tenantId,
             floor: {
               buildingId: building.id,
               deletedAt: null
@@ -64,9 +66,8 @@ export class BuildingsService {
           },
         })
 
-        const beds = await this.prisma.bed.count({
+        const beds = await this.tenantContext.client.bed.count({
           where: {
-            tenantId,
             room: {
               floor: {
                 buildingId: building.id,
@@ -78,9 +79,8 @@ export class BuildingsService {
           },
         })
 
-        const occupiedBeds = await this.prisma.bed.count({
+        const occupiedBeds = await this.tenantContext.client.bed.count({
           where: {
-            tenantId,
             status: 'Ocupado',
             room: {
               floor: {
@@ -108,9 +108,9 @@ export class BuildingsService {
     return { data: enriched, total, skip, take }
   }
 
-  async findOne(tenantId: string, id: string) {
-    const building = await this.prisma.building.findFirst({
-      where: { id, tenantId, deletedAt: null },
+  async findOne(id: string) {
+    const building = await this.tenantContext.client.building.findFirst({
+      where: { id, deletedAt: null },
       include: {
         floors: {
           where: { deletedAt: null },
@@ -126,22 +126,22 @@ export class BuildingsService {
     return building
   }
 
-  async update(tenantId: string, id: string, updateBuildingDto: UpdateBuildingDto) {
+  async update(id: string, updateBuildingDto: UpdateBuildingDto) {
     // Validar que o building existe
-    await this.findOne(tenantId, id)
+    await this.findOne(id)
 
-    return this.prisma.building.update({
+    return this.tenantContext.client.building.update({
       where: { id },
       data: updateBuildingDto,
     })
   }
 
-  async remove(tenantId: string, id: string) {
+  async remove(id: string) {
     // Validar que o building existe
-    const building = await this.findOne(tenantId, id)
+    const building = await this.findOne(id)
 
     // Verificar se tem andares ativos
-    const activeFloors = await this.prisma.floor.count({
+    const activeFloors = await this.tenantContext.client.floor.count({
       where: { buildingId: id, deletedAt: null },
     })
 
@@ -151,39 +151,39 @@ export class BuildingsService {
       )
     }
 
-    return this.prisma.building.update({
+    return this.tenantContext.client.building.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
   }
 
-  async getStats(tenantId: string) {
-    const buildings = await this.prisma.building.count({
-      where: { tenantId, deletedAt: null },
+  async getStats() {
+    const buildings = await this.tenantContext.client.building.count({
+      where: { deletedAt: null },
     })
 
-    const floors = await this.prisma.floor.count({
-      where: { tenantId, deletedAt: null },
+    const floors = await this.tenantContext.client.floor.count({
+      where: { deletedAt: null },
     })
 
-    const rooms = await this.prisma.room.count({
-      where: { tenantId, deletedAt: null },
+    const rooms = await this.tenantContext.client.room.count({
+      where: { deletedAt: null },
     })
 
-    const beds = await this.prisma.bed.count({
-      where: { tenantId, deletedAt: null },
+    const beds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null },
     })
 
-    const occupiedBeds = await this.prisma.bed.count({
-      where: { tenantId, status: 'Ocupado', deletedAt: null },
+    const occupiedBeds = await this.tenantContext.client.bed.count({
+      where: { status: 'Ocupado', deletedAt: null },
     })
 
-    const availableBeds = await this.prisma.bed.count({
-      where: { tenantId, status: 'Disponível', deletedAt: null },
+    const availableBeds = await this.tenantContext.client.bed.count({
+      where: { status: 'Disponível', deletedAt: null },
     })
 
-    const maintenanceBeds = await this.prisma.bed.count({
-      where: { tenantId, status: 'Manutenção', deletedAt: null },
+    const maintenanceBeds = await this.tenantContext.client.bed.count({
+      where: { status: 'Manutenção', deletedAt: null },
     })
 
     return {
@@ -198,7 +198,7 @@ export class BuildingsService {
     }
   }
 
-  async createBuildingStructure(tenantId: string, data: any) {
+  async createBuildingStructure(data: any) {
     try {
       // Validação de dados de entrada
       if (!data.buildingName || !data.floors || data.floors.length === 0) {
@@ -212,8 +212,7 @@ export class BuildingsService {
 
       if (!buildingCode) {
         // Buscar códigos de prédios existentes
-        const existingBuildings = await this.prisma.building.findMany({
-          where: { tenantId },
+        const existingBuildings = await this.tenantContext.client.building.findMany({
           select: { code: true }
         })
         const existingBuildingCodes = existingBuildings.map(b => b.code)
@@ -221,11 +220,11 @@ export class BuildingsService {
       }
 
       // Criar prédio
-      const building = await this.prisma.building.create({
+      const building = await this.tenantContext.client.building.create({
         data: {
           name: data.buildingName,
           code: buildingCode,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
         },
       })
 
@@ -247,10 +246,10 @@ export class BuildingsService {
         // Usar floorCode fornecido ou gerar automaticamente
         const floorCode = floorConfig.floorCode || generateFloorCode(floorName, floorConfig.floorNumber)
 
-        const floor = await this.prisma.floor.create({
+        const floor = await this.tenantContext.client.floor.create({
           data: {
             buildingId: building.id,
-            tenantId,
+            tenantId: this.tenantContext.tenantId,
             name: floorName,
             code: floorCode,
             orderIndex: floorConfig.floorNumber,
@@ -270,10 +269,10 @@ export class BuildingsService {
           )
           existingRoomCodes.push(roomCode) // Adicionar para evitar duplicação no mesmo lote
 
-          const room = await this.prisma.room.create({
+          const room = await this.tenantContext.client.room.create({
             data: {
               floorId: floor.id,
-              tenantId,
+              tenantId: this.tenantContext.tenantId,
               name: roomConfig.roomName,
               code: roomCode,
               roomNumber: roomConfig.roomName,
@@ -305,10 +304,10 @@ export class BuildingsService {
             const fullBedCode = `${buildingCode}${floorCode}-${roomCode}-${bedCode}`
             existingBedCodes.push(fullBedCode)
 
-            const bed = await this.prisma.bed.create({
+            const bed = await this.tenantContext.client.bed.create({
               data: {
                 roomId: room.id,
-                tenantId,
+                tenantId: this.tenantContext.tenantId,
                 code: fullBedCode,
                 status: 'Disponível',
               },

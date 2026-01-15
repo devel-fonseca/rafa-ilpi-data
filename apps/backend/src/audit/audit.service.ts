@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 
 export interface AuditLogInput {
   entityType: string;
@@ -17,11 +18,14 @@ export interface AuditLogInput {
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   async log(auditLog: AuditLogInput): Promise<void> {
     try {
-      await this.prisma.auditLog.create({
+      await this.tenantContext.client.auditLog.create({
         data: {
           tenantId: auditLog.tenantId,
           entityType: auditLog.entityType,
@@ -45,7 +49,6 @@ export class AuditService {
   }
 
   async getAuditLogs(
-    tenantId: string,
     filters?: {
       entityType?: string;
       userId?: string;
@@ -61,7 +64,7 @@ export class AuditService {
       const limit = filters?.limit || 50;
       const skip = (page - 1) * limit;
 
-      const where: any = { tenantId };
+      const where: any = {};
 
       if (filters?.entityType) {
         where.entityType = filters.entityType;
@@ -85,7 +88,7 @@ export class AuditService {
         }
       }
 
-      const logs = await this.prisma.auditLog.findMany({
+      const logs = await this.tenantContext.client.auditLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -100,12 +103,11 @@ export class AuditService {
   }
 
   async getAuditLogStats(
-    tenantId: string,
     startDate?: Date,
     endDate?: Date
   ): Promise<any> {
     try {
-      const where: any = { tenantId };
+      const where: any = {};
 
       if (startDate || endDate) {
         where.createdAt = {};
@@ -118,7 +120,7 @@ export class AuditService {
       }
 
       // Estatísticas por tipo de entidade
-      const entityStats = await this.prisma.auditLog.groupBy({
+      const entityStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['entityType'],
         where,
         _count: { id: true },
@@ -126,7 +128,7 @@ export class AuditService {
       });
 
       // Estatísticas por ação
-      const actionStats = await this.prisma.auditLog.groupBy({
+      const actionStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['action'],
         where,
         _count: { id: true },
@@ -134,7 +136,7 @@ export class AuditService {
       });
 
       // Estatísticas por usuário (top 10)
-      const userStats = await this.prisma.auditLog.groupBy({
+      const userStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['userName'],
         where,
         _count: { id: true },
@@ -143,7 +145,7 @@ export class AuditService {
       });
 
       // Total de logs
-      const total = await this.prisma.auditLog.count({ where });
+      const total = await this.tenantContext.client.auditLog.count({ where });
 
       return {
         total,

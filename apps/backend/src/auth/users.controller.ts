@@ -40,7 +40,6 @@ export class UsersController {
     return this.usersService.update(
       id,
       updateUserDto,
-      req.user.tenantId,
       req.user.sub,
     );
   }
@@ -61,7 +60,6 @@ export class UsersController {
   ) {
     return this.usersService.remove(
       id,
-      req.user.tenantId,
       req.user.sub,
       deleteUserDto.deleteReason,
     );
@@ -76,7 +74,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Histórico consultado com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async getHistory(@Param('id') id: string, @Request() req: any) {
-    return this.usersService.getHistory(id, req.user.tenantId);
+    return this.usersService.getHistory(id);
   }
 
   @Get(':id/history/:version')
@@ -96,7 +94,6 @@ export class UsersController {
     return this.usersService.getHistoryVersion(
       id,
       parseInt(version, 10),
-      req.user.tenantId,
     );
   }
 
@@ -119,7 +116,6 @@ export class UsersController {
       id,
       changePasswordDto,
       req.user.sub,
-      req.user.tenantId,
     );
   }
 
@@ -142,7 +138,6 @@ export class UsersController {
     return this.usersService.getActiveSessions(
       id,
       undefined,
-      req.user.tenantId,
     );
   }
 
@@ -165,7 +160,6 @@ export class UsersController {
       id,
       sessionId,
       'current', // Placeholder - usuário não deve revogar sessão que está usando
-      req.user.tenantId,
     );
   }
 
@@ -183,7 +177,6 @@ export class UsersController {
     return this.usersService.revokeAllOtherSessions(
       id,
       'current', // Placeholder
-      req.user.tenantId,
     );
   }
 
@@ -209,7 +202,6 @@ export class UsersController {
 
     return this.usersService.getAccessLogs(
       id,
-      req.user.tenantId,
       limitNum,
       offsetNum,
       action,

@@ -95,9 +95,12 @@ model Tenant {
   floors                     Floor[]
   rooms                      Room[]
   beds                       Bed[]
+  bedStatusHistory           BedStatusHistory[]
   profile                    TenantProfile?
   documents                  TenantDocument[]
   residentDocuments          ResidentDocument[]
+  residentContracts          ResidentContract[] // Contratos de serviço dos residentes (NÃO confundir com ServiceContract de SaaS)
+  contractHistory            ContractHistory[] // Histórico de alterações nos contratos dos residentes
   notifications              Notification[]
   clinicalNoteDocuments      ClinicalNoteDocument[]
   documentHistory            DocumentHistory[]

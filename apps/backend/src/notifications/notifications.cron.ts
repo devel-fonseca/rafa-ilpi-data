@@ -82,7 +82,6 @@ export class NotificationsCronService {
 
           if (!existing) {
             await this.notificationsService.createScheduledEventDueNotification(
-              tenant.id,
               event.id,
               event.resident?.id || '',
               event.resident?.fullName || 'Residente',
@@ -127,7 +126,6 @@ export class NotificationsCronService {
 
           if (!existing) {
             await this.notificationsService.createScheduledEventMissedNotification(
-              tenant.id,
               event.id,
               event.resident?.id || '',
               event.resident?.fullName || 'Residente',
@@ -220,7 +218,6 @@ export class NotificationsCronService {
 
             if (!existing) {
               await this.notificationsService.createPrescriptionExpiredNotification(
-                tenant.id,
                 prescription.id,
                 prescription.resident?.fullName || 'Residente',
               )
@@ -244,7 +241,6 @@ export class NotificationsCronService {
 
             if (!existing) {
               await this.notificationsService.createPrescriptionExpiringNotification(
-                tenant.id,
                 prescription.id,
                 prescription.resident?.fullName || 'Residente',
                 diffDays,
@@ -331,7 +327,6 @@ export class NotificationsCronService {
               // Usar label amigável em vez do tipo técnico
               const documentLabel = getDocumentLabel(doc.type)
               await this.notificationsService.createDocumentExpiredNotification(
-                tenant.id,
                 doc.id,
                 documentLabel,
                 'TENANT_DOCUMENT',
@@ -365,7 +360,6 @@ export class NotificationsCronService {
               // Usar label amigável em vez do tipo técnico
               const documentLabel = getDocumentLabel(doc.type)
               await this.notificationsService.createDocumentExpiringNotification(
-                tenant.id,
                 doc.id,
                 documentLabel,
                 diffDays,
@@ -467,7 +461,6 @@ export class NotificationsCronService {
 
             if (!existingNotification) {
               await this.notificationsService.createPopReviewNotification(
-                tenant.id,
                 pop.id,
                 pop.title,
                 daysUntilReview,

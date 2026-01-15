@@ -54,7 +54,6 @@ export class UserProfilesController {
   ) {
     return this.userProfilesService.create(
       userId,
-      user.tenantId,
       createUserProfileDto,
       user.id,
     );
@@ -75,7 +74,7 @@ export class UserProfilesController {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    return await this.userProfilesService.findMyProfile(user.id, user.tenantId);
+    return await this.userProfilesService.findMyProfile(user.id);
   }
 
   @Patch('me/preferences')
@@ -98,7 +97,6 @@ export class UserProfilesController {
     // Buscar perfil atual
     const currentProfile = await this.userProfilesService.findMyProfile(
       user.id,
-      user.tenantId,
     );
 
     // Mesclar preferências existentes com as novas (merge parcial)
@@ -111,7 +109,6 @@ export class UserProfilesController {
     // Atualizar apenas o campo preferences
     return await this.userProfilesService.update(
       user.id,
-      user.tenantId,
       { preferences: updatedPreferences },
       user.id,
       user.id,
@@ -124,7 +121,7 @@ export class UserProfilesController {
   @ApiResponse({ status: 200, description: 'Lista de perfis de usuários' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   findAll(@CurrentUser() user: any) {
-    return this.userProfilesService.findAll(user.tenantId);
+    return this.userProfilesService.findAll();
   }
 
   @Get(':userId')
@@ -137,7 +134,7 @@ export class UserProfilesController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @CurrentUser() user: any,
   ) {
-    return this.userProfilesService.findOne(userId, user.tenantId);
+    return this.userProfilesService.findOne(userId);
   }
 
   @Patch(':userId')
@@ -156,7 +153,6 @@ export class UserProfilesController {
   ) {
     return this.userProfilesService.update(
       userId,
-      user.tenantId,
       updateUserProfileDto,
       user.id,
       user.id,
@@ -178,6 +174,6 @@ export class UserProfilesController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @CurrentUser() user: any,
   ) {
-    return this.userProfilesService.remove(userId, user.tenantId, user.role);
+    return this.userProfilesService.remove(userId, user.role);
   }
 }

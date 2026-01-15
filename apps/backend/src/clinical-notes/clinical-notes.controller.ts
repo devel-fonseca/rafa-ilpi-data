@@ -124,7 +124,7 @@ export class ClinicalNotesController {
       createDto = body
     }
 
-    return this.clinicalNotesService.create(createDto, user.id, user.tenantId, pdfFile)
+    return this.clinicalNotesService.create(createDto, user.id, pdfFile)
   }
 
   /**
@@ -149,8 +149,8 @@ export class ClinicalNotesController {
   })
   @ApiQuery({ name: 'page', required: false, description: 'Página (padrão: 1)' })
   @ApiQuery({ name: 'limit', required: false, description: 'Itens por página (padrão: 20)' })
-  findAll(@Query() queryDto: QueryClinicalNoteDto, @CurrentUser() user: any) {
-    return this.clinicalNotesService.findAll(queryDto, user.tenantId)
+  findAll(@Query() queryDto: QueryClinicalNoteDto) {
+    return this.clinicalNotesService.findAll(queryDto)
   }
 
   /**
@@ -229,9 +229,8 @@ export class ClinicalNotesController {
   findByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Query() queryDto: QueryClinicalNoteDto,
-    @CurrentUser() user: any,
   ) {
-    return this.clinicalNotesService.findByResident(residentId, user.tenantId, queryDto)
+    return this.clinicalNotesService.findByResident(residentId, queryDto)
   }
 
   /**
@@ -246,8 +245,8 @@ export class ClinicalNotesController {
   })
   @ApiResponse({ status: 200, description: 'Lista de tags disponíveis' })
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
-  getTagsSuggestions(@CurrentUser() user: any) {
-    return this.clinicalNotesService.getTagsSuggestions(user.tenantId)
+  getTagsSuggestions() {
+    return this.clinicalNotesService.getTagsSuggestions()
   }
 
   /**
@@ -266,9 +265,8 @@ export class ClinicalNotesController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   getDocumentsByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: any,
   ) {
-    return this.clinicalNotesService.getDocumentsByResident(residentId, user.tenantId)
+    return this.clinicalNotesService.getDocumentsByResident(residentId)
   }
 
   /**
@@ -285,8 +283,8 @@ export class ClinicalNotesController {
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   @ApiResponse({ status: 404, description: 'Evolução clínica não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da evolução clínica (UUID)' })
-  getHistory(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.clinicalNotesService.getHistory(id, user.tenantId)
+  getHistory(@Param('id', ParseUUIDPipe) id: string) {
+    return this.clinicalNotesService.getHistory(id)
   }
 
   /**
@@ -302,8 +300,8 @@ export class ClinicalNotesController {
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
   @ApiResponse({ status: 404, description: 'Evolução clínica não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da evolução clínica (UUID)' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.clinicalNotesService.findOne(id, user.tenantId)
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.clinicalNotesService.findOne(id)
   }
 
   /**
@@ -335,7 +333,7 @@ export class ClinicalNotesController {
     @Body() updateDto: UpdateClinicalNoteDto,
     @CurrentUser() user: any,
   ) {
-    return this.clinicalNotesService.update(id, updateDto, user.id, user.tenantId)
+    return this.clinicalNotesService.update(id, updateDto, user.id)
   }
 
   /**
@@ -368,7 +366,7 @@ export class ClinicalNotesController {
     @Body() deleteDto: DeleteClinicalNoteDto,
     @CurrentUser() user: any,
   ) {
-    await this.clinicalNotesService.softDelete(id, deleteDto, user.id, user.tenantId)
+    await this.clinicalNotesService.softDelete(id, deleteDto, user.id)
   }
 
   /**
@@ -389,8 +387,7 @@ export class ClinicalNotesController {
   @ApiParam({ name: 'alertId', description: 'ID do alerta de sinal vital (UUID)' })
   async prefillFromAlert(
     @Param('alertId', ParseUUIDPipe) alertId: string,
-    @CurrentUser() user: any,
   ) {
-    return this.clinicalNotesService.prefillFromAlert(alertId, user.tenantId)
+    return this.clinicalNotesService.prefillFromAlert(alertId)
   }
 }

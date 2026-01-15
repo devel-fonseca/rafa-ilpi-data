@@ -52,26 +52,23 @@ export class InstitutionalEventsController {
     @Body() dto: CreateInstitutionalEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.institutionalEventsService.create(dto, user.tenantId, user.id);
+    return this.institutionalEventsService.create(dto, user.id);
   }
 
   @Get()
   @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_EVENTS)
   @ApiOperation({ summary: 'Listar eventos institucionais com filtros' })
   @ApiResponse({ status: 200, description: 'Lista de eventos' })
-  findAll(@Query() dto: GetInstitutionalEventsDto, @CurrentUser() user: any) {
-    return this.institutionalEventsService.findAll(dto, user.tenantId);
+  findAll(@Query() dto: GetInstitutionalEventsDto) {
+    return this.institutionalEventsService.findAll(dto);
   }
 
   @Get('expiring-documents')
   @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_EVENTS)
   @ApiOperation({ summary: 'Buscar documentos com vencimento próximo' })
   @ApiResponse({ status: 200, description: 'Lista de documentos expirando' })
-  findExpiringDocuments(@CurrentUser() user: any) {
-    return this.institutionalEventsService.findExpiringDocuments(
-      user.tenantId,
-      30,
-    );
+  findExpiringDocuments() {
+    return this.institutionalEventsService.findExpiringDocuments(30);
   }
 
   @Get(':id')
@@ -80,8 +77,8 @@ export class InstitutionalEventsController {
   @ApiResponse({ status: 200, description: 'Evento encontrado' })
   @ApiResponse({ status: 404, description: 'Evento não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do evento (UUID)' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.institutionalEventsService.findOne(id, user.tenantId);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.institutionalEventsService.findOne(id);
   }
 
   @Patch(':id')
@@ -96,12 +93,7 @@ export class InstitutionalEventsController {
     @Body() dto: UpdateInstitutionalEventDto,
     @CurrentUser() user: any,
   ) {
-    return this.institutionalEventsService.update(
-      id,
-      dto,
-      user.tenantId,
-      user.id,
-    );
+    return this.institutionalEventsService.update(id, dto, user.id);
   }
 
   @Patch(':id/complete')
@@ -115,11 +107,7 @@ export class InstitutionalEventsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: any,
   ) {
-    return this.institutionalEventsService.markAsCompleted(
-      id,
-      user.tenantId,
-      user.id,
-    );
+    return this.institutionalEventsService.markAsCompleted(id, user.id);
   }
 
   @Delete(':id')
@@ -131,6 +119,6 @@ export class InstitutionalEventsController {
   @ApiResponse({ status: 404, description: 'Evento não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do evento (UUID)' })
   remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    return this.institutionalEventsService.remove(id, user.tenantId, user.id);
+    return this.institutionalEventsService.remove(id, user.id);
   }
 }

@@ -46,7 +46,7 @@ export class VitalSignsController {
   })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(@CurrentUser() user: any, @Body() createDto: CreateVitalSignDto) {
-    return this.vitalSignsService.create(user.tenantId, user.id, createDto);
+    return this.vitalSignsService.create(user.id, createDto);
   }
 
   @Get(':id')
@@ -55,7 +55,7 @@ export class VitalSignsController {
   @ApiResponse({ status: 200, description: 'Sinal vital encontrado' })
   @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.vitalSignsService.findOne(user.tenantId, id);
+    return this.vitalSignsService.findOne(id);
   }
 
   @Get('resident/:residentId')
@@ -73,7 +73,6 @@ export class VitalSignsController {
     const start = startDate ? new Date(startDate) : undefined;
     const end = endDate ? new Date(endDate) : undefined;
     return this.vitalSignsService.findByResident(
-      user.tenantId,
       residentId,
       start,
       end,
@@ -96,7 +95,7 @@ export class VitalSignsController {
     @Param('id') id: string,
     @Body() updateDto: UpdateVitalSignDto,
   ) {
-    return this.vitalSignsService.update(user.tenantId, user.id, id, updateDto);
+    return this.vitalSignsService.update(user.id, id, updateDto);
   }
 
   @Delete(':id')
@@ -117,7 +116,6 @@ export class VitalSignsController {
     @Body() deleteDto: DeleteVitalSignDto,
   ) {
     return this.vitalSignsService.remove(
-      user.tenantId,
       user.id,
       id,
       deleteDto.deleteReason,
@@ -137,7 +135,7 @@ export class VitalSignsController {
     @CurrentUser() user: any,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.vitalSignsService.getHistory(id, user.tenantId);
+    return this.vitalSignsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -162,7 +160,6 @@ export class VitalSignsController {
     return this.vitalSignsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

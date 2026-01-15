@@ -43,6 +43,10 @@ model User {
   notificationReads            NotificationRead[] // Rastreamento individual de leitura
   clinicalNoteDocumentsCreated ClinicalNoteDocument[]      @relation("ClinicalNoteDocumentCreator")
 
+  // Relações de contratos de residentes (NÃO confundir com ServiceContract de SaaS)
+  contractsUploaded ResidentContract[] @relation("ContractUploader") // Contratos de residentes que este usuário fez upload
+  contractHistory   ContractHistory[]  @relation("ContractHistoryUser") // Histórico de alterações que este usuário fez
+
   // Relações de versionamento (Resident)
   residentsCreated Resident[]        @relation("ResidentCreator")
   residentsUpdated Resident[]        @relation("ResidentUpdater")

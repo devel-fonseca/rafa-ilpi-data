@@ -116,6 +116,7 @@ model Resident {
   clinicalNotes             ClinicalNote[]
   clinicalNoteHistory       ClinicalNoteHistory[]
   residentDocuments         ResidentDocument[]
+  contracts                 ResidentContract[] // Contratos digitalizados de prestação de serviço da ILPI
   clinicalProfile           ClinicalProfile?
   allergies                 Allergy[]
   conditions                Condition[]

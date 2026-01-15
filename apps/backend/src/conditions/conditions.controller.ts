@@ -41,7 +41,7 @@ export class ConditionsController {
   @ApiResponse({ status: 201, description: 'Condição registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(@CurrentUser() user: any, @Body() createDto: CreateConditionDto) {
-    return this.conditionsService.create(user.tenantId, user.id, createDto);
+    return this.conditionsService.create(user.id, createDto);
   }
 
   @Get('resident/:residentId')
@@ -52,7 +52,7 @@ export class ConditionsController {
     @CurrentUser() user: any,
     @Param('residentId') residentId: string,
   ) {
-    return this.conditionsService.findByResidentId(user.tenantId, residentId);
+    return this.conditionsService.findByResidentId(residentId);
   }
 
   @Get(':id')
@@ -61,7 +61,7 @@ export class ConditionsController {
   @ApiResponse({ status: 200, description: 'Condição encontrada' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.conditionsService.findOne(user.tenantId, id);
+    return this.conditionsService.findOne(id);
   }
 
   @Patch(':id')
@@ -75,7 +75,6 @@ export class ConditionsController {
     @Body() updateDto: UpdateConditionDto,
   ) {
     return this.conditionsService.update(
-      user.tenantId,
       user.id,
       id,
       updateDto,
@@ -98,7 +97,7 @@ export class ConditionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteConditionDto,
   ) {
-    return this.conditionsService.remove(user.tenantId, user.id, id, deleteDto.deleteReason);
+    return this.conditionsService.remove(user.id, id, deleteDto.deleteReason);
   }
 
   @Get(':id/history')
@@ -114,7 +113,7 @@ export class ConditionsController {
     @CurrentUser() user: any,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.conditionsService.getHistory(id, user.tenantId);
+    return this.conditionsService.getHistory(id);
   }
 
   @Get(':id/history/:versionNumber')
@@ -135,7 +134,6 @@ export class ConditionsController {
     return this.conditionsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
-      user.tenantId,
     );
   }
 }

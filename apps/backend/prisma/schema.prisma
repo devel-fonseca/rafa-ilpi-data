@@ -1,0 +1,4013 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  Prisma Schema – Sistema Multi‑Tenant para Residências de Idosos
+//  Data: 15/11/2025
+//  Autor: @efonseca78 (BR)
+//
+//  CONFIGURAÇÃO BASE - Generators e Datasources
+//  Este arquivo deve ser processado primeiro (ordem alfabética garante isso)
+// ──────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "prismaSchemaFolder"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  AUDITORIA
+//
+//  Logs de auditoria geral do sistema
+// ──────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  tenantId   String   @map("tenant_id") @db.Uuid
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id") @db.VarChar(255)
+  action     String   @db.VarChar(50)
+  userId     String   @map("user_id") @db.VarChar(255)
+  userName   String   @map("user_name") @db.VarChar(255)
+  details    Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([entityType])
+  @@index([userId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  AUTENTICAÇÃO E CONTROLE DE ACESSO
+//
+//  Users, Tokens, Permissões e Logs de Acesso
+// ──────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  tenantId              String?   @db.Uuid // Optional: SUPERADMIN has NULL tenantId
+  name                  String
+  email                 String
+  password              String
+  cpf                   String? // CPF do usuário (identificação única nacional)
+  role                  String // admin | user | viewer (pode virar enum depois)
+  isActive              Boolean   @default(true)
+  lastLogin             DateTime? @db.Timestamptz(3)
+  passwordResetRequired Boolean   @default(false)
+  deletedAt             DateTime? @db.Timestamptz(3)
+
+  // Auditoria e Versionamento
+  versionNumber Int      @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  createdBy     String?  @db.Uuid // ID do usuário que criou (NULL para primeiro admin)
+  updatedBy     String?  @db.Uuid // ID do último usuário que alterou
+
+  tenant                       Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile                      UserProfile?
+  refreshTokens                RefreshToken[]
+  dailyRecords                 DailyRecord[]
+  medicationAdministrations    MedicationAdministration[]
+  sosAdministrations           SOSAdministration[]
+  vitalSigns                   VitalSign[]
+  clinicalNotes                ClinicalNote[]
+  clinicalNoteHistoryAuthor    ClinicalNoteHistory[]       @relation("ClinicalNoteHistoryProfessional")
+  clinicalNoteHistoryChanges   ClinicalNoteHistory[]       @relation("ClinicalNoteHistoryChangedBy")
+  clinicalProfilesCreated      ClinicalProfile[]           @relation("ClinicalProfileCreator")
+  clinicalProfilesUpdated      ClinicalProfile[]           @relation("ClinicalProfileUpdater")
+  clinicalProfileHistory       ClinicalProfileHistory[]    @relation("ClinicalProfileHistoryUser")
+  dietaryRestrictionsCreated   DietaryRestriction[]        @relation("DietaryRestrictionCreator")
+  dietaryRestrictionsUpdated   DietaryRestriction[]        @relation("DietaryRestrictionUpdater")
+  dietaryRestrictionHistory    DietaryRestrictionHistory[] @relation("DietaryRestrictionHistoryUser")
+  notificationReads            NotificationRead[] // Rastreamento individual de leitura
+  clinicalNoteDocumentsCreated ClinicalNoteDocument[]      @relation("ClinicalNoteDocumentCreator")
+
+  // Relações de contratos de residentes (NÃO confundir com ServiceContract de SaaS)
+  contractsUploaded ResidentContract[] @relation("ContractUploader") // Contratos de residentes que este usuário fez upload
+  contractHistory   ContractHistory[]  @relation("ContractHistoryUser") // Histórico de alterações que este usuário fez
+
+  // Relações de versionamento (Resident)
+  residentsCreated Resident[]        @relation("ResidentCreator")
+  residentsUpdated Resident[]        @relation("ResidentUpdater")
+  residentHistory  ResidentHistory[] @relation("ResidentHistoryUser")
+
+  // Relações de versionamento (Prescription)
+  prescriptionHistory PrescriptionHistory[] @relation("PrescriptionHistoryUser")
+
+  // Relações de versionamento (Medication)
+  medicationsCreated Medication[]        @relation("MedicationCreatedBy")
+  medicationsUpdated Medication[]        @relation("MedicationUpdatedBy")
+  medicationHistory  MedicationHistory[] @relation("MedicationHistoryUser")
+
+  // Relações de versionamento (SOSMedication)
+  sosMedicationsCreated SOSMedication[]        @relation("SOSMedicationCreatedBy")
+  sosMedicationsUpdated SOSMedication[]        @relation("SOSMedicationUpdatedBy")
+  sosMedicationHistory  SOSMedicationHistory[] @relation("SOSMedicationHistoryUser")
+
+  // Relações de versionamento (Vaccination)
+  vaccinationsCreated Vaccination[]        @relation("VaccinationCreatedBy")
+  vaccinationsUpdated Vaccination[]        @relation("VaccinationUpdatedBy")
+  vaccinationHistory  VaccinationHistory[] @relation("VaccinationHistoryUser")
+
+  // Relações de versionamento (Allergy)
+  allergiesCreated Allergy[]        @relation("AllergyCreatedBy")
+  allergiesUpdated Allergy[]        @relation("AllergyUpdatedBy")
+  allergyHistory   AllergyHistory[] @relation("AllergyHistoryUser")
+
+  // Relações de versionamento (Condition)
+  conditionsCreated Condition[]        @relation("ConditionCreatedBy")
+  conditionsUpdated Condition[]        @relation("ConditionUpdatedBy")
+  conditionHistory  ConditionHistory[] @relation("ConditionHistoryUser")
+
+  // Relações de versionamento (VitalSign)
+  vitalSignsCreated VitalSign[]        @relation("VitalSignCreator")
+  vitalSignsUpdated VitalSign[]        @relation("VitalSignUpdater")
+  vitalSignHistory  VitalSignHistory[] @relation("VitalSignHistoryUser")
+
+  // Relações de versionamento (User) - Self-referencing
+  createdByUser      User?                @relation("UserCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  updatedByUser      User?                @relation("UserUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  usersCreated       User[]               @relation("UserCreatedBy")
+  usersUpdated       User[]               @relation("UserUpdatedBy")
+  userHistory        UserHistory[]        @relation("UserHistoryForUser")
+  userHistoryChanges UserHistory[]        @relation("UserHistoryUser")
+  bedTransfers       BedTransferHistory[]
+
+  // Relações de versionamento (ResidentScheduleConfig)
+  scheduleConfigsCreated ResidentScheduleConfig[] @relation("ScheduleConfigCreatedBy")
+  scheduleConfigsUpdated ResidentScheduleConfig[] @relation("ScheduleConfigUpdatedBy")
+
+  // Relações de versionamento (ResidentScheduledEvent)
+  scheduledEventsCreated ResidentScheduledEvent[] @relation("ScheduledEventCreatedBy")
+  scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
+
+  // Relações de contratos e políticas
+  createdContracts         ServiceContract[]         @relation("ContractCreator")
+  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
+  contractAcceptances      ContractAcceptance[]
+  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+
+  // Mensagens Internas
+  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    MessageRecipient[]  @relation("ReceivedMessages")
+  uploadedAttachments MessageAttachment[] @relation("UploadedAttachments")
+
+  // Mensagens para Tenants (SuperAdmin)
+  tenantMessagesCreated TenantMessage[]
+
+  // Alertas de Sinais Vitais
+  assignedAlerts           VitalSignAlert[]        @relation("AssignedAlerts")
+  resolvedAlerts           VitalSignAlert[]        @relation("ResolvedAlerts")
+  alertHistoryChanged      VitalSignAlertHistory[] @relation("AlertChangedBy")
+  alertHistoryAssignedUser VitalSignAlertHistory[] @relation("AlertAssignedUser")
+
+  // Segurança e Auditoria
+  passwordResetTokens PasswordResetToken[]
+  accessLogs          AccessLog[]
+
+  // Eventos Institucionais
+  institutionalEventsCreated InstitutionalEvent[] @relation("InstitutionalEventCreatedBy")
+  institutionalEventsUpdated InstitutionalEvent[] @relation("InstitutionalEventUpdatedBy")
+
+  // Intercorrências e RDC 502/2021
+  incidentMonthlyIndicatorsCalculated IncidentMonthlyIndicator[]  @relation("IndicatorCalculatedBy")
+  sentinelEventNotifications          SentinelEventNotification[] @relation("SentinelEventResponsible")
+
+  @@unique([tenantId, email])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Campos para rastreamento de sessão
+  lastActivityAt DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress      String?  @db.VarChar(45)
+  userAgent      String?  @db.Text
+  device         String?  @db.VarChar(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  token     String    @unique // Hash SHA-256 do token original
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3) // Null enquanto não usado
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  ipAddress String?   @db.VarChar(45)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model AccessLog {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  tenantId  String       @db.Uuid
+  action    AccessAction // LOGIN | LOGOUT | PASSWORD_CHANGED | SESSION_REVOKED
+  status    String       @db.VarChar(20) // SUCCESS | FAILED
+  reason    String?      @db.VarChar(100) // Motivo de falha (ex: INVALID_PASSWORD)
+  ipAddress String       @db.VarChar(45)
+  userAgent String       @db.Text
+  device    String?      @db.VarChar(100) // Ex: "Chrome 120 on Windows"
+  metadata  Json?        @db.JsonB // Dados adicionais (opcional)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("access_logs")
+}
+
+model UserHistory {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  userId   String @db.Uuid
+
+  // Versionamento
+  versionNumber Int // Número da versão (1, 2, 3...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo da alteração (obrigatório, min 10 chars)
+
+  // Campos alterados (array de nomes de campos)
+  changedFields String[] @default([])
+
+  // Snapshot completo dos dados (ANTES e DEPOIS da alteração)
+  // IMPORTANTE: password sempre mascarado como { passwordChanged: true }
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado novo
+
+  // Auditoria
+  changedAt     DateTime @db.Timestamptz(3) // Data/hora da alteração
+  changedBy     String   @db.Uuid // Usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+
+  // Metadados opcionais (IP, User Agent, etc.)
+  ipAddress String? @db.VarChar(45)
+  userAgent String? @db.Text
+  metadata  Json?   @db.JsonB
+
+  // Relações
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User   @relation("UserHistoryForUser", fields: [userId], references: [id], onDelete: Cascade)
+  changedByUser User   @relation("UserHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices para consultas eficientes
+  @@index([tenantId, userId, versionNumber(sort: Desc)]) // Listar histórico por usuário
+  @@index([tenantId, changedAt(sort: Desc)]) // Auditoria geral por data
+  @@index([changedBy]) // Auditar por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("user_history")
+}
+
+model UserProfile {
+  id       String @id @default(uuid()) @db.Uuid
+  userId   String @unique @db.Uuid
+  tenantId String @db.Uuid
+
+  // Dados do Perfil
+  profilePhoto String? // URL ou path da foto de perfil
+  phone        String?
+  cpf          String? // CPF do usuário (sincronizado com User.cpf)
+  department   String? // Departamento
+  birthDate    DateTime? @db.Date
+  notes        String?   @db.Text
+  preferences  Json?     @default("{}") // Preferências do usuário (tema, sidebar, etc)
+
+  // Sistema de Permissões ILPI
+  positionCode       PositionCode? // Cargo padronizado ILPI
+  registrationType   RegistrationType? // Tipo de registro profissional (COREN, CRM, etc)
+  registrationNumber String? // Número do registro no conselho
+  registrationState  String? // UF do registro (ex: "SP", "RJ")
+
+  // Flags especiais
+  isTechnicalManager   Boolean @default(false) // Se é Responsável Técnico da ILPI
+  isNursingCoordinator Boolean @default(false) // Se é Coordenador de Enfermagem
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  createdBy String   @db.Uuid
+  updatedBy String?  @db.Uuid
+
+  // Relações
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customPermissions UserPermission[] // Permissões customizadas/sobrepostas
+
+  @@map("user_profiles")
+}
+
+model UserPermission {
+  id            String @id @default(uuid()) @db.Uuid
+  userProfileId String @db.Uuid
+  tenantId      String @db.Uuid
+
+  // Permissão específica
+  permission PermissionType
+
+  // Tipo de customização
+  isGranted Boolean @default(true) // true = concedida, false = revogada
+
+  // Auditoria
+  grantedBy String   @db.Uuid // ID do usuário que concedeu/revogou
+  grantedAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@unique([userProfileId, permission]) // Evita duplicatas de permissão por usuário
+  @@index([tenantId, userProfileId])
+  @@index([permission])
+  @@map("user_permissions")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  FATURAMENTO E PAGAMENTOS
+//
+//  Faturas, Pagamentos, Métricas de Uso e Webhooks (SuperAdmin)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  tenantId        String        @db.Uuid
+  subscriptionId  String        @db.Uuid
+  invoiceNumber   String        @unique @db.VarChar(50) // INV-2024-0001
+  amount          Decimal       @db.Decimal(10, 2)
+  originalAmount  Decimal?      @map("original_amount") @db.Decimal(10, 2) // Valor antes do desconto
+  discountPercent Decimal?      @map("discount_percent") @db.Decimal(5, 2) // Desconto aplicado (0-100%)
+  discountReason  String?       @map("discount_reason") @db.VarChar(255) // Motivo do desconto
+  billingCycle    String?       @map("billing_cycle") @db.VarChar(20) // MONTHLY | ANNUAL
+  description     String?       @db.Text // Descrição da fatura
+  currency        String        @default("BRL") @db.VarChar(3)
+  status          InvoiceStatus
+  dueDate         DateTime      @db.Date
+  paidAt          DateTime?     @db.Timestamptz(3)
+  asaasInvoiceId  String?       @unique @db.VarChar(255)
+  paymentUrl      String?       @db.Text
+  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payments     Payment[]
+
+  // Índices
+  @@index([tenantId, status])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([asaasInvoiceId])
+  @@map("invoices")
+}
+
+model Payment {
+  id        String         @id @default(uuid()) @db.Uuid
+  invoiceId String         @db.Uuid
+  amount    Decimal        @db.Decimal(10, 2)
+  currency  String         @default("BRL") @db.VarChar(3)
+  gateway   PaymentGateway
+  gatewayId String?        @db.VarChar(255) // ID externo (Asaas)
+  method    PaymentMethod
+  status    PaymentStatus
+  paidAt    DateTime?      @db.Timestamptz(3)
+  metadata  Json?          @db.JsonB
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([invoiceId])
+  @@index([status])
+  @@index([gateway, gatewayId])
+  @@map("payments")
+}
+
+model UsageMetrics {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @db.Uuid
+  month           DateTime @db.Date // Primeiro dia do mês
+  activeResidents Int      @default(0)
+  activeUsers     Int      @default(0)
+  dailyRecords    Int      @default(0)
+  prescriptions   Int      @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Constraint: Um registro por tenant por mês
+  @@unique([tenantId, month])
+  @@index([tenantId, month])
+  @@map("usage_metrics")
+}
+
+model WebhookEvent {
+  id             String         @id @default(uuid()) @db.Uuid
+  gateway        PaymentGateway
+  eventType      String         @db.VarChar(100)
+  gatewayEventId String?        @db.VarChar(255) // ID único do evento no gateway
+  payload        Json           @db.JsonB
+  processed      Boolean        @default(false)
+  processedAt    DateTime?      @db.Timestamptz(3)
+  error          String?        @db.Text
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+
+  // Índices
+  @@index([gateway, gatewayEventId])
+  @@index([processed])
+  @@index([createdAt(sort: Desc)])
+  @@map("webhook_events")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  EVOLUÇÕES CLÍNICAS (SOAP)
+//
+//  Notas clínicas multidisciplinares e documentos anexados
+// ──────────────────────────────────────────────────────────────────────────────
+
+model ClinicalNote {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  residentId     String @db.Uuid
+  professionalId String @db.Uuid
+
+  // Profissão do autor
+  profession ClinicalProfession
+
+  // Data/hora da evolução
+  noteDate DateTime @default(now()) @db.Timestamptz(3)
+
+  // Método SOAP
+  subjective String? @db.Text // S - Subjetivo
+  objective  String? @db.Text // O - Objetivo
+  assessment String? @db.Text // A - Avaliação
+  plan       String? @db.Text // P - Plano
+
+  // Tags para filtros e dashboards
+  tags String[] @default([])
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  createdBy String   @db.Uuid
+  updatedBy String?  @db.Uuid
+
+  // Versionamento
+  version   Int     @default(1)
+  isAmended Boolean @default(false) // Marcado como obsoleto
+
+  // Janela de edição (12 horas)
+  editableUntil DateTime @db.Timestamptz(3) // noteDate + 12h
+
+  // Vínculo com alerta de sinal vital (opcional)
+  vitalSignAlertId String? @db.Uuid
+
+  // Relações
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident       Resident               @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  professional   User                   @relation(fields: [professionalId], references: [id], onDelete: Restrict)
+  vitalSignAlert VitalSignAlert?        @relation(fields: [vitalSignAlertId], references: [id])
+  history        ClinicalNoteHistory[]
+  documents      ClinicalNoteDocument[]
+
+  // Índices
+  @@index([tenantId, residentId, noteDate(sort: Desc)])
+  @@index([tenantId, professionalId])
+  @@index([profession])
+  @@index([noteDate])
+  @@index([tags])
+  @@index([isAmended])
+  @@index([vitalSignAlertId])
+  @@map("clinical_notes")
+}
+
+model ClinicalNoteHistory {
+  id      String @id @default(uuid()) @db.Uuid
+  noteId  String @db.Uuid
+  version Int
+
+  // Snapshot completo
+  tenantId       String             @db.Uuid
+  residentId     String             @db.Uuid
+  professionalId String             @db.Uuid
+  profession     ClinicalProfession
+  noteDate       DateTime           @db.Timestamptz(3)
+  subjective     String?            @db.Text
+  objective      String?            @db.Text
+  assessment     String?            @db.Text
+  plan           String?            @db.Text
+  tags           String[]           @default([])
+
+  // Auditoria de alteração
+  changeReason String   @db.Text // Motivo obrigatório (minLength 10)
+  changedAt    DateTime @default(now()) @db.Timestamptz(3)
+  changedBy    String   @db.Uuid
+
+  // Relações
+  note          ClinicalNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  professional  User         @relation("ClinicalNoteHistoryProfessional", fields: [professionalId], references: [id], onDelete: Restrict)
+  changedByUser User         @relation("ClinicalNoteHistoryChangedBy", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([noteId, version])
+  @@index([tenantId, residentId])
+  @@index([changedAt])
+  @@map("clinical_notes_history")
+}
+
+model ClinicalNoteDocument {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  noteId     String @db.Uuid
+  residentId String @db.Uuid
+
+  title        String   @db.VarChar(255)
+  type         String?  @db.VarChar(100)
+  documentDate DateTime @db.Timestamptz(3)
+
+  // Conteúdo HTML (para futura edição)
+  htmlContent String @db.Text
+
+  // PDF no MinIO
+  pdfFileUrl  String?
+  pdfFileKey  String?
+  pdfFileName String? @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  createdBy String   @db.Uuid
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clinicalNote ClinicalNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator      User         @relation("ClinicalNoteDocumentCreator", fields: [createdBy], references: [id])
+
+  @@index([tenantId, residentId])
+  @@index([noteId])
+  @@map("clinical_note_documents")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERFIL CLÍNICO
+//
+//  Alergias, Condições Crônicas e Restrições Alimentares
+// ──────────────────────────────────────────────────────────────────────────────
+
+model ClinicalProfile {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @unique @db.Uuid
+
+  // Dados clínicos textuais
+  healthStatus      String? @db.Text
+  specialNeeds      String? @db.Text
+  functionalAspects String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String?   @db.Uuid // ID do usuário que criou (pode ser NULL se criado automaticamente)
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident                 @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator  User?                    @relation("ClinicalProfileCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater  User?                    @relation("ClinicalProfileUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history  ClinicalProfileHistory[] // Histórico de versões
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("clinical_profiles")
+}
+
+model ClinicalProfileHistory {
+  id                String     @id @default(uuid()) @db.Uuid
+  tenantId          String     @db.Uuid
+  clinicalProfileId String     @db.Uuid
+  versionNumber     Int // Número da versão (1, 2, 3, ...)
+  changeType        ChangeType // CREATE | UPDATE | DELETE
+  changeReason      String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["healthStatus", "specialNeeds", "functionalAspects"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clinicalProfile ClinicalProfile @relation(fields: [clinicalProfileId], references: [id], onDelete: Cascade)
+  user            User            @relation("ClinicalProfileHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, clinicalProfileId, versionNumber(sort: Desc)]) // Buscar histórico de um perfil
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("clinical_profile_history")
+}
+
+model Allergy {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados da alergia
+  substance String // Medicamento, alimento, látex, etc.
+  reaction  String?          @db.Text // Descrição da reação
+  severity  AllergySeverity?
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident         @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User             @relation("AllergyCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?            @relation("AllergyUpdatedBy", fields: [updatedBy], references: [id])
+  history       AllergyHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([substance])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("allergies")
+}
+
+model AllergyHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  allergyId     String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  allergy Allergy @relation(fields: [allergyId], references: [id], onDelete: Cascade)
+  user    User    @relation("AllergyHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, allergyId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("allergy_history")
+}
+
+model Condition {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados do diagnóstico
+  condition String // Nome da condição
+  icdCode   String? @db.VarChar(10) // CID-10 (opcional)
+  notes     String? @db.Text // Observações clínicas
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User               @relation("ConditionCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?              @relation("ConditionUpdatedBy", fields: [updatedBy], references: [id])
+  history       ConditionHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([condition])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("conditions")
+}
+
+model ConditionHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  conditionId   String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  condition Condition @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  user      User      @relation("ConditionHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, conditionId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("condition_history")
+}
+
+model DietaryRestriction {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados da restrição
+  restrictionType RestrictionType
+  description     String // Ex: "Sem glúten", "Dieta hipossódica"
+  notes           String?         @db.Text // Observações do nutricionista
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdBy     String    @db.Uuid // ID do usuário que criou o registro
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident                    @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator  User                        @relation("DietaryRestrictionCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater  User?                       @relation("DietaryRestrictionUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history  DietaryRestrictionHistory[] // Histórico de versões
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId])
+  @@index([restrictionType])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("dietary_restrictions")
+}
+
+model DietaryRestrictionHistory {
+  id                   String     @id @default(uuid()) @db.Uuid
+  tenantId             String     @db.Uuid
+  dietaryRestrictionId String     @db.Uuid
+  versionNumber        Int // Número da versão (1, 2, 3, ...)
+  changeType           ChangeType // CREATE | UPDATE | DELETE
+  changeReason         String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["restrictionType", "description", "notes"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dietaryRestriction DietaryRestriction @relation(fields: [dietaryRestrictionId], references: [id], onDelete: Cascade)
+  user               User               @relation("DietaryRestrictionHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, dietaryRestrictionId, versionNumber(sort: Desc)]) // Buscar histórico de uma restrição
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("dietary_restriction_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  COMUNICAÇÃO E TEMPLATES DE EMAIL
+//
+//  Templates de email, logs e sistema de mensagens internas
+// ──────────────────────────────────────────────────────────────────────────────
+
+model EmailTemplate {
+  id          String                @id @default(uuid()) @db.Uuid
+  key         String                @unique @db.VarChar(100) // "user-invite", "payment-reminder", etc.
+  name        String                @db.VarChar(255) // "Convite de Usuário"
+  subject     String                @db.VarChar(500) // "Acesso liberado ao sistema da {{tenantName}}"
+  description String?               @db.Text
+  jsonContent Json                  @db.JsonB // Easy Email JSON structure
+  variables   Json                  @db.JsonB // [{name: "tenantName", type: "string", required: true, description: "Nome da ILPI"}]
+  version     Int                   @default(1)
+  isActive    Boolean               @default(true)
+  category    EmailTemplateCategory
+  createdAt   DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  versions EmailTemplateVersion[]
+
+  // Índices
+  @@index([key])
+  @@index([category])
+  @@index([isActive])
+  @@map("email_templates")
+}
+
+model EmailTemplateVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  templateId    String   @db.Uuid
+  versionNumber Int
+  jsonContent   Json     @db.JsonB
+  subject       String   @db.VarChar(500)
+  createdBy     String   @db.Uuid // User ID do superadmin
+  changeNote    String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([templateId])
+  @@index([versionNumber])
+  @@map("email_template_versions")
+}
+
+model EmailLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  templateKey    String?     @db.VarChar(100) // "user-invite", "payment-reminder", etc. (null se não for de template)
+  recipientEmail String      @db.VarChar(255)
+  recipientName  String?     @db.VarChar(255)
+  subject        String      @db.VarChar(500)
+  tenantId       String?     @db.Uuid // Para emails vinculados a tenant
+  resendId       String?     @db.VarChar(255) // ID retornado pela Resend API
+  status         EmailStatus
+  errorMessage   String?     @db.Text
+  sentAt         DateTime    @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([templateKey])
+  @@index([tenantId])
+  @@index([sentAt(sort: Desc)])
+  @@index([status])
+  @@index([recipientEmail])
+  @@map("email_logs")
+}
+
+model TenantMessage {
+  id                String                 @id @default(uuid()) @db.Uuid
+  title             String                 @db.VarChar(255) // "Nova funcionalidade: Relatórios"
+  subject           String                 @db.VarChar(500) // Subject do email
+  htmlContent       String                 @db.Text // HTML completo do email
+  recipientFilter   MessageRecipientFilter
+  specificTenantIds String[]               @db.Uuid // Array de IDs (se SPECIFIC_TENANTS)
+  scheduledFor      DateTime?              @db.Timestamptz(3) // null = enviar agora
+  sentAt            DateTime?              @db.Timestamptz(3)
+  status            TenantMessageStatus    @default(DRAFT)
+  sentCount         Int                    @default(0)
+  failedCount       Int                    @default(0)
+  createdBy         String                 @db.Uuid
+  createdAt         DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime               @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  creator User @relation(fields: [createdBy], references: [id])
+
+  // Índices
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([createdBy])
+  @@index([createdAt(sort: Desc)])
+  @@map("tenant_messages")
+}
+
+model Message {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  senderId String @db.Uuid
+
+  // Tipo e conteúdo
+  type    MessageType
+  subject String      @db.VarChar(255)
+  body    String      @db.Text
+
+  // Thread/Conversação (opcional - para respostas)
+  threadId String? @db.Uuid // Se é resposta, aponta para mensagem original
+  isReply  Boolean @default(false)
+
+  // Metadata
+  metadata Json? @db.JsonB // Informações extras
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  deletedBy String?   @db.Uuid
+
+  // Relações
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sender       User                @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  parentThread Message?            @relation("MessageThread", fields: [threadId], references: [id], onDelete: SetNull)
+  replies      Message[]           @relation("MessageThread")
+  recipients   MessageRecipient[]
+  attachments  MessageAttachment[]
+
+  // Índices
+  @@index([tenantId, senderId, createdAt(sort: Desc)])
+  @@index([tenantId, threadId])
+  @@index([deletedAt])
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @db.Uuid
+  userId    String @db.Uuid
+  tenantId  String @db.Uuid
+
+  // Status individual
+  status MessageStatus @default(SENT)
+  readAt DateTime?     @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation("ReceivedMessages", fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Constraints
+  @@unique([messageId, userId])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([tenantId, userId, status])
+  @@map("message_recipients")
+}
+
+model MessageAttachment {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @db.Uuid
+  tenantId  String @db.Uuid
+
+  // Dados do arquivo
+  fileName String @db.VarChar(255)
+  fileSize Int // Bytes
+  mimeType String @db.VarChar(100)
+  fileUrl  String @db.Text // URL no MinIO
+  s3Key    String @db.Text // Chave no S3/MinIO
+
+  // Auditoria
+  uploadedBy String   @db.Uuid
+  uploadedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  message  Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploader User    @relation("UploadedAttachments", fields: [uploadedBy], references: [id])
+
+  @@index([messageId])
+  @@index([tenantId])
+  @@map("message_attachments")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  CONTRATOS DE SERVIÇO SaaS
+//
+//  Modelos para gerenciar contratos de serviço, aceites e compliance LGPD
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Contratos de Serviço (Templates Versionados)
+model ServiceContract {
+  id            String         @id @default(uuid()) @db.Uuid
+  version       String // "v1.0", "v1.1", "v2.0"
+  planId        String?        @db.Uuid // NULL = genérico para todos planos
+  status        ContractStatus @default(DRAFT)
+  effectiveFrom DateTime?      @db.Timestamptz(3)
+  title         String         @db.VarChar(255)
+  content       String // HTML/Markdown
+  contentHash   String         @db.VarChar(64) // SHA-256
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  revokedAt     DateTime?      @db.Timestamptz(3)
+  revokedBy     String?        @db.Uuid
+
+  // Relações
+  plan        Plan?                @relation(fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                 @relation("ContractCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                @relation("ContractRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  acceptances ContractAcceptance[]
+
+  @@unique([version, planId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@map("service_contracts")
+}
+
+// Registros de Aceite (Prova Jurídica)
+model ContractAcceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  contractId      String   @db.Uuid
+  tenantId        String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId          String   @db.Uuid
+  acceptedAt      DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress       String   @db.VarChar(45)
+  userAgent       String
+  contractVersion String   @db.VarChar(50) // Snapshot imutável
+  contractHash    String   @db.VarChar(64) // Snapshot imutável
+  contractContent String // Snapshot imutável
+
+  // Relações
+  contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([contractId])
+  @@index([acceptedAt])
+  @@map("contract_acceptances")
+}
+
+// Registros de Aceite da Política de Privacidade (Prova Jurídica LGPD)
+model PrivacyPolicyAcceptance {
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenantId            String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId              String   @db.Uuid
+  acceptedAt          DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress           String   @db.VarChar(45)
+  userAgent           String
+  policyVersion       String   @db.VarChar(50) // ex: "2.2"
+  policyEffectiveDate String   @db.VarChar(50) // ex: "24/12/2025"
+  policyContent       String   @db.Text // Snapshot completo Markdown
+
+  // Declarações LGPD registradas no onboarding
+  lgpdIsDataController           Boolean @default(false)
+  lgpdHasLegalBasis              Boolean @default(false)
+  lgpdAcknowledgesResponsibility Boolean @default(false)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([acceptedAt])
+  @@map("privacy_policy_acceptances")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  REGISTROS DIÁRIOS
+//
+//  Registros diários de cuidados e agenda do residente
+// ──────────────────────────────────────────────────────────────────────────────
+
+model DailyRecord {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo e metadados
+  type RecordType
+  date DateTime   @db.Date // Data do registro (sem hora)
+  time String // Hora no formato "HH:mm" (ex: "07:00", "14:30")
+
+  // Dados estruturados (JSON) - cada tipo tem sua própria estrutura
+  data Json @default("{}")
+
+  // ─────────────────────────────────────────────────────────────
+  // CAMPOS PARA INTERCORRÊNCIAS E RDC 502/2021 (opcionais)
+  // ─────────────────────────────────────────────────────────────
+  incidentCategory        IncidentCategory?
+  incidentSubtypeClinical IncidentSubtypeClinical?
+  incidentSubtypeAssist   IncidentSubtypeAssistencial?
+  incidentSubtypeAdmin    IncidentSubtypeAdministrativa?
+  incidentSeverity        IncidentSeverity?
+  isEventoSentinela       Boolean                        @default(false)
+  isDoencaNotificavel     Boolean                        @default(false)
+  rdcIndicators           Json                           @default("[]") // Array de RdcIndicatorType
+  notificadoVigilancia    Boolean                        @default(false)
+  dataNotificacao         DateTime?                      @db.Timestamptz(3)
+  protocoloNotificacao    String?                        @db.VarChar(100)
+
+  // Responsável pelo registro
+  recordedBy String // Nome do profissional
+  userId     String @db.Uuid // ID do usuário que fez o registro
+
+  // Observações gerais (opcional)
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Relação com histórico de versões
+  history DailyRecordHistory[]
+
+  // Relação com Eventos Sentinela
+  sentinelEventNotifications SentinelEventNotification[]
+
+  // Índices para performance
+  @@index([tenantId, residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc), time])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([tenantId, type, date(sort: Desc)]) // Registros por tipo (ex: ALIMENTACAO do dia)
+  @@index([residentId, type, date(sort: Desc)]) // Registros do residente por tipo
+  @@index([tenantId, date, deletedAt]) // Registros ativos do dia
+  @@map("daily_records")
+}
+
+model DailyRecordHistory {
+  id            String @id @default(uuid()) @db.Uuid
+  recordId      String @db.Uuid // FK para DailyRecord
+  tenantId      String @db.Uuid
+  versionNumber Int // Número sequencial da versão (1, 2, 3...)
+
+  // Dados da versão anterior (snapshot completo)
+  previousData Json // Snapshot completo do estado anterior
+
+  // Dados da nova versão (para comparação)
+  newData Json // Snapshot completo do novo estado
+
+  // Campos alterados (array de nomes de campos: ["time", "data.pressao"])
+  changedFields Json @default("[]")
+
+  // Auditoria da mudança
+  changeType    String // "UPDATE" ou "DELETE"
+  changeReason  String   @db.Text // Motivo obrigatório da mudança
+  changedBy     String   @db.Uuid // ID do usuário que fez a mudança
+  changedByName String // Nome do usuário que fez a mudança
+  changedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // IP e User Agent para auditoria adicional
+  ipAddress String? @db.VarChar(45)
+  userAgent String? @db.Text
+
+  // Relações
+  record DailyRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([recordId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("daily_record_history")
+}
+
+model ResidentScheduleConfig {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de registro obrigatório (usa enum RecordType existente)
+  recordType RecordType
+
+  // Frequência de recorrência
+  frequency ScheduleFrequency
+
+  // Configurações específicas por frequência
+  // Para WEEKLY: 0-6 (0=Domingo, 1=Segunda, ..., 6=Sábado)
+  // Para MONTHLY: 1-31 (dia do mês)
+  // Para DAILY: null
+  dayOfWeek  Int? // 0-6 (apenas para WEEKLY)
+  dayOfMonth Int? // 1-31 (apenas para MONTHLY)
+
+  // Horários sugeridos - array de strings "HH:mm"
+  // Ex: ["08:00", "14:00"] para 2x ao dia
+  suggestedTimes Json @default("[]")
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Observações
+  notes String? @db.Text
+
+  // Metadados extras (JSON) - usado para armazenar informações específicas por tipo
+  // Ex: para ALIMENTACAO: { "mealType": "Café da Manhã" }
+  metadata Json? @default("{}")
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("ScheduleConfigCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?    @relation("ScheduleConfigUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, isActive])
+  @@index([recordType])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([residentId, recordType, isActive]) // Configurações ativas do residente por tipo
+  @@index([tenantId, recordType, isActive]) // Configurações ativas do tenant por tipo
+  @@map("resident_schedule_configs")
+}
+
+model ResidentScheduledEvent {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de evento
+  eventType ScheduledEventType
+
+  // Data e hora do agendamento
+  scheduledDate DateTime @db.Date
+  scheduledTime String // HH:mm
+
+  // Detalhes do evento
+  title       String // Ex: "Vacina Influenza - 1ª dose"
+  description String? @db.Text
+
+  // Campos específicos para vacinas (quando eventType = VACCINATION)
+  vaccineData Json? // {vaccine, dose, manufacturer, etc}
+
+  // Status
+  status ScheduledEventStatus @default(SCHEDULED)
+
+  // Referência ao registro criado (quando status = COMPLETED)
+  completedRecordId String?   @db.Uuid
+  completedAt       DateTime? @db.Timestamptz(3)
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("ScheduledEventCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?    @relation("ScheduledEventUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([tenantId, scheduledDate])
+  @@index([residentId, scheduledDate])
+  @@index([status, scheduledDate])
+  @@index([eventType])
+  @@index([deletedAt])
+  // Índices compostos adicionais para queries frequentes
+  @@index([tenantId, status, scheduledDate]) // Eventos pendentes do dia
+  @@index([residentId, status, scheduledDate]) // Eventos pendentes do residente
+  @@index([tenantId, eventType, scheduledDate]) // Eventos por tipo (ex: VACINACAO)
+  @@map("resident_scheduled_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  GESTÃO DE INTERCORRÊNCIAS E CONFORMIDADE RDC 502/2021
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Indicadores mensais RDC 502/2021
+model IncidentMonthlyIndicator {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  year  Int // 2024, 2025, etc
+  month Int // 1-12
+
+  indicatorType RdcIndicatorType
+
+  numerator   Int // Casos identificados
+  denominator Int // Total de residentes (média do mês)
+  rate        Float // Taxa calculada (numerator/denominator * 100)
+
+  incidentIds Json  @default("[]") // Array de UUIDs
+  metadata    Json? @db.JsonB
+
+  calculatedAt DateTime @default(now()) @db.Timestamptz(3)
+  calculatedBy String?  @db.Uuid
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation("IndicatorCalculatedBy", fields: [calculatedBy], references: [id])
+
+  @@unique([tenantId, year, month, indicatorType])
+  @@index([tenantId, year(sort: Desc), month(sort: Desc)])
+  @@index([indicatorType])
+  @@map("incident_monthly_indicators")
+}
+
+// Rastreamento de notificações à vigilância (Eventos Sentinela)
+model SentinelEventNotification {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  dailyRecordId  String @db.Uuid
+  notificationId String @db.Uuid
+
+  eventType String @db.VarChar(100) // QUEDA_COM_LESAO, TENTATIVA_SUICIDIO
+
+  status String @default("PENDENTE") @db.VarChar(50) // PENDENTE, ENVIADO, CONFIRMADO
+
+  protocolo          String?   @db.VarChar(100)
+  dataEnvio          DateTime? @db.Timestamptz(3)
+  dataConfirmacao    DateTime? @db.Timestamptz(3)
+  responsavelEnvio   String?   @db.Uuid
+  emailEnviado       Boolean   @default(false)
+  emailEnviadoEm     DateTime? @db.Timestamptz(3)
+  emailDestinatarios Json?     @default("[]")
+
+  observacoes String? @db.Text
+  metadata    Json?   @db.JsonB
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  dailyRecord  DailyRecord  @relation(fields: [dailyRecordId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User?        @relation("SentinelEventResponsible", fields: [responsavelEnvio], references: [id])
+
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([dailyRecordId])
+  @@index([status])
+  @@map("sentinel_event_notifications")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  DOCUMENTAÇÃO INSTITUCIONAL
+//
+//  Perfil e documentos da instituição (CNPJ, alvarás, etc)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model TenantProfile {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @unique @db.Uuid
+
+  // Logo e identidade visual
+  logoUrl String? // URL do logo no S3/MinIO
+  logoKey String? // Chave do arquivo no S3 para deleção
+
+  // Natureza jurídica e dados básicos
+  legalNature LegalNature?
+  tradeName   String? // Nome fantasia
+
+  // Dados regulatórios
+  cnesCode         String? @db.VarChar(20) // Código CNES (Cadastro Nacional de Estabelecimentos de Saúde)
+  capacityDeclared Int? // Capacidade declarada de residentes
+  capacityLicensed Int? // Capacidade licenciada pela vigilância sanitária
+
+  // Contatos institucionais
+  contactPhone String?
+  contactEmail String?
+  websiteUrl   String?
+
+  // Informações complementares
+  foundedAt DateTime? @db.Date // Data de fundação
+  mission   String?   @db.Text // Missão institucional
+  vision    String?   @db.Text // Visão institucional
+  values    String?   @db.Text // Valores institucionais
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId])
+  @@index([legalNature])
+  @@index([deletedAt])
+  @@map("tenant_profiles")
+}
+
+model TenantDocument {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // Tipo de documento (baseado na natureza jurídica)
+  type String @db.VarChar(100) // ESTATUTO, CMI, CNPJ, ALVARA_USO, etc.
+
+  // Arquivo
+  fileUrl  String // URL completa do arquivo no S3/MinIO
+  fileKey  String? // Chave do arquivo no S3 para deleção
+  fileName String // Nome original do arquivo
+  fileSize Int? // Tamanho em bytes
+  mimeType String? @db.VarChar(100) // application/pdf, image/jpeg, etc.
+
+  // Metadados do documento
+  issuedAt       DateTime?      @db.Date // Data de emissão
+  expiresAt      DateTime?      @db.Date // Data de vencimento (se aplicável)
+  status         DocumentStatus @default(PENDENTE) // Calculado automaticamente
+  documentNumber String?        @db.VarChar(100) // Número do documento (ex: protocolo, número de alvará)
+  issuerEntity   String?        @db.VarChar(200) // Entidade emissora (ex: Vigilância Sanitária, Corpo de Bombeiros)
+  tags           String[]       @default([]) // Tags para categorização adicional
+
+  // Observações
+  notes String? @db.Text
+
+  // Versionamento e substituição
+  version      Int       @default(1) // Versão do documento (incrementa a cada substituição)
+  replacedById String?   @db.Uuid // ID do documento que substituiu este
+  replacedAt   DateTime? @db.Timestamptz(3) // Data em que foi substituído
+
+  // Auditoria
+  uploadedBy String    @db.Uuid // ID do usuário que fez upload
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  replacedBy TenantDocument?   @relation("DocumentReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   TenantDocument[]  @relation("DocumentReplacement")
+  history    DocumentHistory[]
+
+  // Índices
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@index([tenantId, expiresAt])
+  @@index([expiresAt])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([replacedById])
+  @@index([version])
+  @@map("tenant_documents")
+}
+
+model DocumentHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  documentId String @db.Uuid // Documento atual relacionado
+
+  // Ação realizada
+  action DocumentAction // CREATED, UPDATED, REPLACED, DELETED
+  reason String?        @db.Text // Motivo da alteração
+
+  // Snapshot dos dados anteriores (JSON)
+  previousData Json? // Estado anterior do documento
+  newData      Json? // Novo estado do documento
+
+  // Campos que mudaram
+  changedFields String[] @default([]) // Lista de campos alterados
+
+  // Auditoria
+  changedBy String   @db.Uuid // Usuário que realizou a ação
+  changedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  document TenantDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, documentId])
+  @@index([documentId])
+  @@index([action])
+  @@index([changedAt])
+  @@map("document_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS - Sistema Multi‑Tenant para Residências de Idosos
+//
+//  Este arquivo centraliza TODOS os 47 enums do sistema organizados por categoria
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ==========================================
+// NEGÓCIO E COMERCIAL (7 enums)
+// ==========================================
+
+enum PlanType {
+  FREE
+  BASICO
+  PROFISSIONAL
+  ENTERPRISE
+
+  @@map("PlanType")
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+
+  @@map("BillingCycle")
+}
+
+enum ContractStatus {
+  DRAFT // Edição (não afeta ninguém)
+  ACTIVE // Publicado (novos cadastros usam)
+  REVOKED // Revogado (não aceita mais)
+
+  @@map("ContractStatus")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  OVERDUE
+  VOID
+  UNCOLLECTIBLE
+
+  @@map("InvoiceStatus")
+}
+
+enum PaymentGateway {
+  ASAAS
+  MANUAL
+
+  @@map("PaymentGateway")
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  BOLETO
+  PIX
+  TRANSFER
+
+  @@map("PaymentMethod")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+
+  @@map("PaymentStatus")
+}
+
+// ==========================================
+// PERMISSÕES E SEGURANÇA (5 enums)
+// ==========================================
+
+// ENUM: Tipos de Permissões do Sistema (37 permissões granulares)
+enum PermissionType {
+  // Residentes
+  VIEW_RESIDENTS
+  CREATE_RESIDENTS
+  UPDATE_RESIDENTS
+  DELETE_RESIDENTS
+
+  // Registros Diários
+  VIEW_DAILY_RECORDS
+  CREATE_DAILY_RECORDS
+  UPDATE_DAILY_RECORDS
+  DELETE_DAILY_RECORDS
+
+  // Prescrições
+  VIEW_PRESCRIPTIONS
+  CREATE_PRESCRIPTIONS
+  UPDATE_PRESCRIPTIONS
+  DELETE_PRESCRIPTIONS
+
+  // Administração de Medicamentos
+  VIEW_MEDICATIONS
+  ADMINISTER_MEDICATIONS
+  ADMINISTER_CONTROLLED_MEDICATIONS
+
+  // Sinais Vitais
+  VIEW_VITAL_SIGNS
+  RECORD_VITAL_SIGNS
+
+  // Vacinações
+  VIEW_VACCINATIONS
+  CREATE_VACCINATIONS
+  UPDATE_VACCINATIONS
+  DELETE_VACCINATIONS
+
+  // Evoluções Clínicas (SOAP)
+  VIEW_CLINICAL_NOTES
+  CREATE_CLINICAL_NOTES
+  UPDATE_CLINICAL_NOTES
+  DELETE_CLINICAL_NOTES
+
+  // Perfis Clínicos
+  VIEW_CLINICAL_PROFILE
+  CREATE_CLINICAL_PROFILE
+  UPDATE_CLINICAL_PROFILE
+
+  // Alergias
+  VIEW_ALLERGIES
+  CREATE_ALLERGIES
+  UPDATE_ALLERGIES
+  DELETE_ALLERGIES
+
+  // Condições Crônicas
+  VIEW_CONDITIONS
+  CREATE_CONDITIONS
+  UPDATE_CONDITIONS
+  DELETE_CONDITIONS
+
+  // Restrições Alimentares
+  VIEW_DIETARY_RESTRICTIONS
+  CREATE_DIETARY_RESTRICTIONS
+  UPDATE_DIETARY_RESTRICTIONS
+  DELETE_DIETARY_RESTRICTIONS
+
+  // Gestão de Leitos
+  VIEW_BEDS
+  MANAGE_BEDS
+
+  // Infraestrutura (Prédios, Andares, Quartos, Leitos)
+  MANAGE_INFRASTRUCTURE
+
+  // Documentos
+  VIEW_DOCUMENTS
+  UPLOAD_DOCUMENTS
+  DELETE_DOCUMENTS
+
+  // Usuários e Permissões
+  VIEW_USERS
+  CREATE_USERS
+  UPDATE_USERS
+  DELETE_USERS
+  MANAGE_PERMISSIONS
+
+  // Relatórios e Auditoria
+  VIEW_REPORTS
+  EXPORT_DATA
+  VIEW_AUDIT_LOGS
+
+  // Conformidade RDC 502/2021 (acesso restrito a gestores)
+  VIEW_COMPLIANCE_DASHBOARD // Acessar dashboard de conformidade RDC
+  VIEW_SENTINEL_EVENTS // Visualizar e gerenciar eventos sentinela
+
+  // Configurações Institucionais
+  VIEW_INSTITUTIONAL_SETTINGS
+  UPDATE_INSTITUTIONAL_SETTINGS
+
+  // Perfil Institucional
+  VIEW_INSTITUTIONAL_PROFILE
+  UPDATE_INSTITUTIONAL_PROFILE
+
+  // POPs (Procedimentos Operacionais Padrão)
+  VIEW_POPS
+  CREATE_POPS
+  UPDATE_POPS
+  DELETE_POPS
+  PUBLISH_POPS
+  MANAGE_POPS
+
+  // Agenda do Residente
+  VIEW_RESIDENT_SCHEDULE
+  MANAGE_RESIDENT_SCHEDULE
+
+  // Eventos Institucionais (Documentos, Treinamentos, Reuniões, Inspeções, etc)
+  VIEW_INSTITUTIONAL_EVENTS
+  CREATE_INSTITUTIONAL_EVENTS
+  UPDATE_INSTITUTIONAL_EVENTS
+  DELETE_INSTITUTIONAL_EVENTS
+
+  // Mensagens Internas
+  VIEW_MESSAGES
+  SEND_MESSAGES
+  DELETE_MESSAGES
+  BROADCAST_MESSAGES
+
+  // Contratos de Residentes
+  VIEW_CONTRACTS
+  CREATE_CONTRACTS
+  UPDATE_CONTRACTS
+  DELETE_CONTRACTS
+  REPLACE_CONTRACTS
+
+  @@map("PermissionType")
+}
+
+// ENUM: Cargos ILPI (baseado em funções reais de uma ILPI)
+enum PositionCode {
+  ADMINISTRATOR // Administrador da ILPI
+  TECHNICAL_MANAGER // Responsável Técnico (nível superior)
+  NURSING_COORDINATOR // Coordenador de Enfermagem
+  NURSE // Enfermeiro
+  NURSING_TECHNICIAN // Técnico de Enfermagem
+  NURSING_ASSISTANT // Auxiliar de Enfermagem
+  DOCTOR // Médico
+  PSYCHOLOGIST // Psicólogo
+  SOCIAL_WORKER // Assistente Social
+  PHYSIOTHERAPIST // Fisioterapeuta
+  NUTRITIONIST // Nutricionista
+  SPEECH_THERAPIST // Fonoaudiólogo
+  OCCUPATIONAL_THERAPIST // Terapeuta Ocupacional
+  CAREGIVER // Cuidador de Idosos
+  ADMINISTRATIVE // Administrativo
+  ADMINISTRATIVE_ASSISTANT // Assistente Administrativo
+  OTHER // Outros
+
+  @@map("PositionCode")
+}
+
+// ENUM: Tipo de Registro Profissional
+enum RegistrationType {
+  COREN // Conselho Regional de Enfermagem
+  CRM // Conselho Regional de Medicina
+  CRN // Conselho Regional de Nutrição
+  CREFITO // Conselho Regional de Fisioterapia e Terapia Ocupacional
+  CRP // Conselho Regional de Psicologia
+  CREFONO // Conselho Regional de Fonoaudiologia
+  CRESS // Conselho Regional de Serviço Social
+  NONE // Sem registro (para cargos que não exigem)
+
+  @@map("RegistrationType")
+}
+
+// ENUM: Ações de Acesso para Logs de Auditoria
+enum AccessAction {
+  LOGIN // Login bem-sucedido
+  LOGOUT // Logout
+  PASSWORD_CHANGED // Senha alterada pelo usuário
+  SESSION_REVOKED // Sessão revogada manualmente
+  FORCE_PASSWORD_CHANGE // Troca forçada de senha (primeiro login)
+
+  @@map("AccessAction")
+}
+
+// Enum para versionamento - Tipo de alteração no histórico
+enum ChangeType {
+  CREATE // Criação inicial do registro
+  UPDATE // Atualização de campos
+  DELETE // Soft delete (marcação como deletado)
+
+  @@map("ChangeType")
+}
+
+// ==========================================
+// TENANT E STATUS (2 enums)
+// ==========================================
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  TRIAL
+
+  @@map("TenantStatus")
+}
+
+enum LegalNature {
+  ASSOCIACAO // Associação sem fins lucrativos
+  FUNDACAO // Fundação privada
+  EMPRESA_PRIVADA // Empresa privada
+  MEI // Microempreendedor Individual
+
+  @@map("LegalNature")
+}
+
+// ==========================================
+// DADOS DEMOGRÁFICOS (3 enums)
+// ==========================================
+
+enum Gender {
+  MASCULINO
+  FEMININO
+  OUTRO
+  NAO_INFORMADO
+
+  @@map("Gender")
+}
+
+enum CivilStatus {
+  SOLTEIRO
+  CASADO
+  DIVORCIADO
+  VIUVO
+  UNIAO_ESTAVEL
+
+  @@map("CivilStatus")
+}
+
+enum BloodType {
+  A_POSITIVO
+  A_NEGATIVO
+  B_POSITIVO
+  B_NEGATIVO
+  AB_POSITIVO
+  AB_NEGATIVO
+  O_POSITIVO
+  O_NEGATIVO
+  NAO_INFORMADO
+
+  @@map("BloodType")
+}
+
+// ==========================================
+// REGISTROS DIÁRIOS (4 enums)
+// ==========================================
+
+enum RecordType {
+  HIGIENE
+  ALIMENTACAO
+  HIDRATACAO
+  MONITORAMENTO
+  ELIMINACAO
+  COMPORTAMENTO
+  HUMOR
+  SONO
+  PESO
+  INTERCORRENCIA
+  ATIVIDADES
+  VISITA
+  OUTROS
+
+  @@map("RecordType")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS PARA GESTÃO DE INTERCORRÊNCIAS E RDC 502/2021
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum IncidentCategory {
+  CLINICA // Intercorrências clínicas (saúde)
+  ASSISTENCIAL // Intercorrências assistenciais (cuidados)
+  ADMINISTRATIVA // Intercorrências administrativas (gestão)
+
+  @@map("IncidentCategory")
+}
+
+enum IncidentSubtypeClinical {
+  QUEDA_COM_LESAO // Evento Sentinela - notificação obrigatória
+  QUEDA_SEM_LESAO
+  TENTATIVA_SUICIDIO // Evento Sentinela - notificação obrigatória
+  DOENCA_DIARREICA_AGUDA // Indicador RDC (incidência)
+  DESIDRATACAO // Indicador RDC (incidência)
+  ULCERA_DECUBITO // Indicador RDC (prevalência)
+  DESNUTRICAO // Indicador RDC (prevalência)
+  ESCABIOSE // Indicador RDC (incidência)
+  FEBRE_HIPERTERMIA
+  HIPOTERMIA
+  HIPOGLICEMIA
+  HIPERGLICEMIA
+  CONVULSAO
+  ALTERACAO_CONSCIENCIA
+  DOR_TORACICA
+  DISPNEIA
+  VOMITO
+  SANGRAMENTO
+  REACAO_ALERGICA
+  OBITO // Indicador RDC (mortalidade)
+  OUTRA_CLINICA
+
+  @@map("IncidentSubtypeClinical")
+}
+
+enum IncidentSubtypeAssistencial {
+  ERRO_MEDICACAO
+  RECUSA_MEDICACAO
+  RECUSA_ALIMENTACAO
+  RECUSA_HIGIENE
+  RECUSA_BANHO
+  AGITACAO_PSICOMOTORA
+  AGRESSIVIDADE
+  FUGA_EVASAO
+  PERDA_OBJETOS
+  DANO_EQUIPAMENTO
+  OUTRA_ASSISTENCIAL
+
+  @@map("IncidentSubtypeAssistencial")
+}
+
+enum IncidentSubtypeAdministrativa {
+  AUSENCIA_PROFISSIONAL
+  FALTA_INSUMO
+  FALTA_MEDICAMENTO
+  EQUIPAMENTO_QUEBRADO
+  PROBLEMA_INFRAESTRUTURA
+  RECLAMACAO_FAMILIAR
+  CONFLITO_EQUIPE
+  OUTRA_ADMINISTRATIVA
+
+  @@map("IncidentSubtypeAdministrativa")
+}
+
+enum IncidentSeverity {
+  LEVE // Sem impacto significativo
+  MODERADA // Requer atenção
+  GRAVE // Requer intervenção imediata
+  CRITICA // Risco de vida ou Evento Sentinela
+
+  @@map("IncidentSeverity")
+}
+
+enum RdcIndicatorType {
+  MORTALIDADE // Taxa de mortalidade
+  DIARREIA_AGUDA // Taxa de incidência de doença diarréica aguda
+  ESCABIOSE // Taxa de incidência de escabiose
+  DESIDRATACAO // Taxa de incidência de desidratação
+  ULCERA_DECUBITO // Taxa de prevalência de úlcera de decúbito
+  DESNUTRICAO // Taxa de prevalência de desnutrição
+
+  @@map("RdcIndicatorType")
+}
+
+enum ScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+
+  @@map("ScheduleFrequency")
+}
+
+enum ScheduledEventType {
+  VACCINATION
+  CONSULTATION
+  EXAM
+  PROCEDURE
+  OTHER
+
+  @@map("ScheduledEventType")
+}
+
+enum ScheduledEventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  MISSED
+
+  @@map("ScheduledEventStatus")
+}
+
+enum InstitutionalEventType {
+  DOCUMENT_EXPIRY // Vencimento de documentos
+  TRAINING // Treinamentos
+  MEETING // Reuniões
+  INSPECTION // Inspeções/Fiscalizações
+  MAINTENANCE // Manutenções
+  OTHER // Outros eventos
+
+  @@map("InstitutionalEventType")
+}
+
+enum InstitutionalEventVisibility {
+  ADMIN_ONLY // Apenas admin vê
+  RT_ONLY // Apenas RT (Responsável Técnico) vê
+  ALL_USERS // Todos os usuários veem
+
+  @@map("InstitutionalEventVisibility")
+}
+
+// ==========================================
+// MEDICAÇÕES E PRESCRIÇÕES (9 enums)
+// ==========================================
+
+enum PrescriptionType {
+  ROTINA
+  ALTERACAO_PONTUAL
+  ANTIBIOTICO
+  ALTO_RISCO
+  CONTROLADO
+  OUTRO
+
+  @@map("PrescriptionType")
+}
+
+enum AdministrationRoute {
+  VO
+  IM
+  EV
+  SC
+  TOPICA
+  SL
+  RETAL
+  OCULAR
+  NASAL
+  INALATORIA
+  OUTRA
+
+  @@map("AdministrationRoute")
+}
+
+enum MedicationPresentation {
+  COMPRIMIDO
+  CAPSULA
+  AMPOLA
+  GOTAS
+  SOLUCAO
+  SUSPENSAO
+  POMADA
+  CREME
+  SPRAY
+  INALADOR
+  ADESIVO
+  SUPOSITORIO
+  OUTRO
+
+  @@map("MedicationPresentation")
+}
+
+enum NotificationType {
+  AMARELA
+  AZUL
+  BRANCA_ESPECIAL
+  NAO_APLICA
+
+  @@map("NotificationType")
+}
+
+enum ControlledClass {
+  BZD
+  PSICOFARMACO
+  OPIOIDE
+  ANTICONVULSIVANTE
+  OUTRO
+
+  @@map("ControlledClass")
+}
+
+enum MedicationFrequency {
+  UMA_VEZ_DIA
+  DUAS_VEZES_DIA
+  SEIS_SEIS_H
+  OITO_OITO_H
+  DOZE_DOZE_H
+  PERSONALIZADO
+
+  @@map("MedicationFrequency")
+}
+
+enum SOSIndicationType {
+  DOR
+  FEBRE
+  ANSIEDADE
+  AGITACAO
+  NAUSEA
+  INSONIA
+  OUTRO
+
+  @@map("SOSIndicationType")
+}
+
+// ==========================================
+// SAÚDE E BEM-ESTAR (4 enums)
+// ==========================================
+
+// ENUM: Profissões para Evoluções Clínicas (SOAP)
+enum ClinicalProfession {
+  MEDICINE // Médico
+  NURSING // Enfermagem
+  NUTRITION // Nutrição
+  PHYSIOTHERAPY // Fisioterapia
+  PSYCHOLOGY // Psicologia
+  SOCIAL_WORK // Serviço Social
+  SPEECH_THERAPY // Fonoaudiologia
+  OCCUPATIONAL_THERAPY // Terapia Ocupacional
+
+  @@map("ClinicalProfession")
+}
+
+enum AllergySeverity {
+  LEVE
+  MODERADA
+  GRAVE
+  ANAFILAXIA
+
+  @@map("AllergySeverity")
+}
+
+enum RestrictionType {
+  ALERGIA_ALIMENTAR
+  INTOLERANCIA
+  RESTRICAO_MEDICA
+  RESTRICAO_RELIGIOSA
+  DISFAGIA
+  DIABETES
+  HIPERTENSAO
+  OUTRA
+
+  @@map("RestrictionType")
+}
+
+// ==========================================
+// DOCUMENTAÇÃO INSTITUCIONAL (2 enums)
+// ==========================================
+
+// ENUM: Status de compliance do documento
+enum DocumentStatus {
+  OK // Documento OK (sem vencimento ou com vencimento > 30 dias)
+  PENDENTE // Documento obrigatório não enviado
+  VENCENDO // Vence em <= 30 dias
+  VENCIDO // Vencimento ultrapassado
+
+  @@map("DocumentStatus")
+}
+
+// Enum para ações de histórico de documentos
+enum DocumentAction {
+  CREATED // Documento criado
+  UPDATED // Metadados atualizados
+  REPLACED // Arquivo substituído
+  DELETED // Documento deletado
+}
+
+// ==========================================
+// NOTIFICAÇÕES E ALERTAS (5 enums)
+// ==========================================
+
+enum SystemNotificationType {
+  // Prescrições
+  PRESCRIPTION_EXPIRED
+  PRESCRIPTION_EXPIRING
+  PRESCRIPTION_MISSING_RECEIPT
+  PRESCRIPTION_CONTROLLED_NO_RECEIPT
+
+  // Sinais Vitais
+  VITAL_SIGN_ABNORMAL_BP
+  VITAL_SIGN_ABNORMAL_GLUCOSE
+  VITAL_SIGN_ABNORMAL_TEMPERATURE
+  VITAL_SIGN_ABNORMAL_HEART_RATE
+  VITAL_SIGN_ABNORMAL_RESPIRATORY_RATE
+
+  // Documentos
+  DOCUMENT_EXPIRED
+  DOCUMENT_EXPIRING
+
+  // Registro Diário
+  DAILY_RECORD_MISSING
+
+  // Medicação
+  MEDICATION_ADMINISTRATION_MISSED
+  MEDICATION_ADMINISTRATION_LATE
+
+  // POPs
+  POP_REVIEW_DUE
+
+  // Sistema
+  SYSTEM_UPDATE
+  SYSTEM_MAINTENANCE
+  USER_MENTION
+
+  // Agendamentos
+  SCHEDULED_EVENT_DUE
+  SCHEDULED_EVENT_MISSED
+
+  // Eventos Institucionais
+  INSTITUTIONAL_EVENT_CREATED
+  INSTITUTIONAL_EVENT_UPDATED
+  INSTITUTIONAL_EVENT_DUE
+
+  // Intercorrências e Eventos Sentinela (RDC 502/2021)
+  INCIDENT_CREATED
+  INCIDENT_SENTINEL_EVENT
+  INCIDENT_RDC_INDICATOR_ALERT
+}
+
+enum NotificationCategory {
+  PRESCRIPTION
+  VITAL_SIGN
+  DOCUMENT
+  DAILY_RECORD
+  MEDICATION
+  POP
+  SYSTEM
+  SCHEDULED_EVENT
+  INSTITUTIONAL_EVENT
+  INCIDENT // Intercorrências e Eventos Sentinela
+}
+
+enum NotificationSeverity {
+  CRITICAL // Requer ação imediata (vermelho)
+  WARNING // Requer atenção (amarelo/laranja)
+  INFO // Informativo (azul)
+  SUCCESS // Sucesso (verde)
+}
+
+enum AlertType {
+  PAYMENT_FAILED
+  PAYMENT_OVERDUE
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_CANCELLED
+  USAGE_LIMIT_EXCEEDED
+  TENANT_SUSPENDED
+  SYSTEM_ERROR
+
+  @@map("AlertType")
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+
+  @@map("AlertSeverity")
+}
+
+// ==========================================
+// CONTRATOS DE RESIDENTES (1 enum)
+// ==========================================
+
+enum ContractDocumentStatus {
+  VIGENTE // Contrato vigente/ativo
+  VENCENDO_EM_30_DIAS // Contrato vence em 30 dias ou menos
+  VENCIDO // Contrato vencido
+
+  @@map("ContractDocumentStatus")
+}
+
+// ==========================================
+// POPs - PROCEDIMENTOS OPERACIONAIS PADRÃO (3 enums)
+// ==========================================
+
+enum PopStatus {
+  DRAFT // Rascunho (criado por RT ou sugestão de enfermeiro)
+  PUBLISHED // Publicado e vigente
+  OBSOLETE // Substituído ou descontinuado
+
+  @@map("PopStatus")
+}
+
+enum PopCategory {
+  GESTAO_OPERACAO // Gestão e Operação (8 templates)
+  ENFERMAGEM_CUIDADOS // Enfermagem e Cuidados (20 templates)
+
+  @@map("PopCategory")
+}
+
+enum PopAction {
+  CREATED // POP criado
+  UPDATED // Conteúdo atualizado
+  PUBLISHED // Publicado (de DRAFT para PUBLISHED)
+  VERSIONED // Nova versão criada
+  OBSOLETED // Marcado como obsoleto
+  DELETED // Soft delete
+
+  @@map("PopAction")
+}
+
+// ==========================================
+// COMUNICAÇÃO E EMAIL (6 enums)
+// ==========================================
+
+enum EmailTemplateCategory {
+  ONBOARDING // user-invite
+  BILLING // payment-reminder, overdue-report
+  LIFECYCLE // trial-expiring, trial-converted
+  INCIDENT // sentinel-event-alert, incident-notifications
+  SYSTEM // outros
+
+  @@map("EmailTemplateCategory")
+}
+
+// Enum: EmailStatus (Status de envio de email)
+enum EmailStatus {
+  SENT // Email enviado com sucesso
+  FAILED // Falha no envio
+  BOUNCED // Email retornou (bounce)
+
+  @@map("EmailStatus")
+}
+
+enum MessageType {
+  DIRECT // Mensagem 1:1 entre usuários
+  BROADCAST // Admin/RT → todos os usuários do tenant
+
+  @@map("MessageType")
+}
+
+enum MessageStatus {
+  SENT // Enviada
+  DELIVERED // Entregue (visualizada na lista)
+  READ // Lida (aberta pelo usuário)
+
+  @@map("MessageStatus")
+}
+
+// Enum: MessageRecipientFilter (Filtro de destinatários para TenantMessage)
+enum MessageRecipientFilter {
+  ALL_TENANTS // Todos os tenants
+  ACTIVE_ONLY // Apenas tenants com subscription ativa
+  TRIAL_ONLY // Apenas tenants em trial
+  OVERDUE_ONLY // Apenas tenants inadimplentes
+  SPECIFIC_TENANTS // Lista específica de tenants
+
+  @@map("MessageRecipientFilter")
+}
+
+// Enum: TenantMessageStatus (Status da mensagem aos tenants)
+enum TenantMessageStatus {
+  DRAFT // Rascunho (não enviado)
+  SCHEDULED // Agendado para envio futuro
+  SENDING // Enviando (em progresso)
+  SENT // Enviado com sucesso
+
+  @@map("TenantMessageStatus")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  INFRAESTRUTURA FÍSICA
+//
+//  Prédios, Andares, Quartos, Leitos e Transferências
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Building {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  name        String // "Casa Principal", "Bloco A"
+  code        String // "PRED-001", "BLOCO-A"
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floors Floor[]
+
+  @@index([tenantId, isActive])
+  @@map("buildings")
+}
+
+model Floor {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String    @db.Uuid
+  buildingId  String    @db.Uuid
+  name        String // "Térreo", "1º Andar", "Ala Feminina"
+  code        String // "PISO-0", "PISO-1"
+  orderIndex  Int       @default(0) // Ordenação visual (crescente)
+  description String?   @db.Text
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  building Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  rooms    Room[]
+
+  @@index([tenantId, buildingId])
+  @@index([buildingId, orderIndex])
+  @@index([deletedAt])
+  @@map("floors")
+}
+
+model Room {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @db.Uuid
+  floorId            String    @db.Uuid
+  name               String // "101", "Quarto 3"
+  code               String // "Q-101", "Q-102"
+  roomNumber         String // "101", "102"
+  capacity           Int       @default(1) // Número total de leitos (calculado automaticamente)
+  roomType           String? // "Coletivo", "Suíte", "Enfermaria", "Individual", "Duplo", "Triplo"
+  genderRestriction  String? // null, "M", "F"
+  hasBathroom        Boolean   @default(false) // Se o quarto tem banheiro
+  hasPrivateBathroom Boolean   @default(false) // Se tem banheiro privativo
+  accessible         Boolean   @default(false) // Se é acessível para PCD
+  observations       String?   @db.Text // Observações adicionais
+  notes              String?   @db.Text
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime? @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  beds   Bed[]
+
+  @@index([tenantId, floorId])
+  @@index([floorId, isActive])
+  @@index([deletedAt])
+  @@map("rooms")
+}
+
+model Bed {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @db.Uuid
+  roomId    String    @db.Uuid
+  code      String // "101-A", "101-B", "Leito 1"
+  status    String    @default("Disponível") // "Disponível", "Ocupado", "Manutenção" (calculado dinamicamente)
+  notes     String?   @db.Text
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room           Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resident       Resident?
+  transfersFrom  BedTransferHistory[] @relation("BedTransferFrom")
+  transfersTo    BedTransferHistory[] @relation("BedTransferTo")
+  statusHistory  BedStatusHistory[]
+
+  @@unique([tenantId, code]) // Código do leito único por tenant
+  @@index([tenantId, roomId])
+  @@index([roomId, status])
+  @@index([tenantId, status])
+  @@index([deletedAt])
+  @@map("beds")
+}
+
+model BedTransferHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Leitos
+  fromBedId String @db.Uuid
+  toBedId   String @db.Uuid
+
+  // Motivo da transferência
+  reason String @db.Text // Obrigatório, min 10 chars
+
+  // Data e hora da transferência
+  transferredAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Auditoria
+  transferredBy String    @db.Uuid // ID do usuário que realizou a transferência
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  fromBed  Bed      @relation("BedTransferFrom", fields: [fromBedId], references: [id], onDelete: Restrict)
+  toBed    Bed      @relation("BedTransferTo", fields: [toBedId], references: [id], onDelete: Restrict)
+  user     User     @relation(fields: [transferredBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, transferredAt(sort: Desc)])
+  @@index([fromBedId])
+  @@index([toBedId])
+  @@index([deletedAt])
+  @@map("bed_transfer_history")
+}
+
+model BedStatusHistory {
+  id             String   @id @default(uuid()) @db.Uuid
+  tenantId       String   @db.Uuid
+  bedId          String   @db.Uuid
+  previousStatus String   @db.VarChar(50)
+  newStatus      String   @db.VarChar(50)
+  reason         String?  @db.Text
+  metadata       Json?
+  changedBy      String   @db.Uuid
+  changedAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bed    Bed    @relation(fields: [bedId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([bedId, changedAt(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([tenantId, bedId])
+  @@map("bed_status_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  EVENTOS INSTITUCIONAIS
+//
+//  Eventos da própria instituição (vencimentos, treinamentos, reuniões, etc.)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model InstitutionalEvent {
+  id            String                       @id @default(uuid()) @db.Uuid
+  tenantId      String                       @db.Uuid
+  eventType     InstitutionalEventType
+  visibility    InstitutionalEventVisibility @default(ALL_USERS)
+  title         String
+  description   String?                      @db.Text
+  scheduledDate DateTime                     @db.Date
+  scheduledTime String? // Formato HH:mm
+  allDay        Boolean                      @default(false)
+  status        ScheduledEventStatus         @default(SCHEDULED)
+  completedAt   DateTime?                    @db.Timestamptz(3)
+  notes         String?                      @db.Text
+
+  // Campos específicos para vencimento de documentos
+  documentType   String?
+  documentNumber String?
+  expiryDate     DateTime? @db.Date
+  responsible    String?
+
+  // Campos específicos para treinamentos
+  trainingTopic  String?
+  instructor     String?
+  targetAudience String?
+  location       String?
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+
+  // Relações
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdByUser User   @relation("InstitutionalEventCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  updatedByUser User?  @relation("InstitutionalEventUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([tenantId])
+  @@index([scheduledDate])
+  @@index([eventType])
+  @@index([visibility])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([tenantId, scheduledDate])
+  @@index([tenantId, eventType, scheduledDate])
+  @@index([expiryDate])
+  @@map("institutional_events")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  MEDICAÇÕES E PRESCRIÇÕES
+//
+//  Prescrições, medicamentos regulares, SOS e administração
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Prescription {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados do Prescritor
+  doctorName       String
+  doctorCrm        String
+  doctorCrmState   String // UF
+  prescriptionDate DateTime         @db.Date
+  prescriptionType PrescriptionType
+  validUntil       DateTime?        @db.Date // Obrigatório para ANTIBIOTICO e CONTROLADO
+  reviewDate       DateTime?        @db.Date // Data estimada para revisão da prescrição
+
+  // Campos específicos para CONTROLADO
+  controlledClass    ControlledClass?
+  notificationNumber String?
+  notificationType   NotificationType?
+
+  // Anexos
+  prescriptionImageUrl String? // URL da receita médica (obrigatório para controlado)
+
+  // Observações gerais
+  notes String? @db.Text
+
+  // Revisão Médica (quando prescrição é revisada por médico)
+  lastMedicalReviewDate DateTime? @db.Date // Data da consulta médica
+  lastReviewedByDoctor  String? // Nome do médico que revisou
+  lastReviewDoctorCrm   String? // CRM do médico revisor
+  lastReviewDoctorState String? // UF do CRM do médico revisor
+  lastReviewNotes       String?   @db.Text // Observações da revisão
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementado a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String    @db.Uuid // ID do usuário que criou
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident           Resident                   @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  medications        Medication[]
+  sosMedications     SOSMedication[]
+  administrations    MedicationAdministration[]
+  sosAdministrations SOSAdministration[]
+  history            PrescriptionHistory[] // Histórico de versões da prescrição
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, validUntil])
+  @@index([tenantId, lastMedicalReviewDate])
+  @@index([deletedAt])
+  // Índices compostos para queries frequentes
+  @@index([tenantId, residentId, isActive]) // Listar prescrições ativas do residente
+  @@index([tenantId, isActive, validUntil]) // Prescrições ativas próximas do vencimento
+  @@map("prescriptions")
+}
+
+model PrescriptionHistory {
+  id             String     @id @default(uuid()) @db.Uuid
+  tenantId       String     @db.Uuid
+  prescriptionId String     @db.Uuid
+  versionNumber  Int // Número da versão (1, 2, 3, ...)
+  changeType     ChangeType // CREATE | UPDATE | DELETE
+  changeReason   String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["doctorName", "validUntil", "medications.0.dose"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  user         User         @relation("PrescriptionHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, prescriptionId, versionNumber(sort: Desc)]) // Buscar histórico de uma prescrição
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("prescription_history")
+}
+
+model Medication {
+  id             String @id @default(uuid()) @db.Uuid
+  prescriptionId String @db.Uuid
+
+  // Dados do medicamento
+  name           String // DCB (Denominação Comum Brasileira)
+  presentation   MedicationPresentation
+  concentration  String // Ex: "500mg", "5mg/mL"
+  dose           String // Ex: "1 cp", "20 gotas"
+  route          AdministrationRoute
+  frequency      MedicationFrequency
+  scheduledTimes Json                   @default("[]") // Array de horários: ["06:00", "14:00", "22:00"]
+
+  // Período
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date // null = uso contínuo
+
+  // Flags especiais
+  isControlled        Boolean @default(false)
+  isHighRisk          Boolean @default(false)
+  requiresDoubleCheck Boolean @default(false) // Exige dupla checagem
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription    Prescription               @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  administrations MedicationAdministration[]
+  history         MedicationHistory[]
+  createdByUser   User                       @relation("MedicationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?                      @relation("MedicationUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([isControlled])
+  @@index([startDate, endDate])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  // Índices compostos para queries frequentes
+  @@index([prescriptionId, deletedAt]) // Medicamentos ativos de uma prescrição
+  @@index([prescriptionId, startDate, endDate]) // Medicamentos vigentes de uma prescrição
+  @@map("medications")
+}
+
+model MedicationHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  medicationId  String     @db.Uuid
+  versionNumber Int // Número da versão (1, 2, 3, ...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["name", "dose", "frequency"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  user       User       @relation("MedicationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, medicationId, versionNumber(sort: Desc)]) // Buscar histórico de um medicamento
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("medication_history")
+}
+
+model SOSMedication {
+  id             String @id @default(uuid()) @db.Uuid
+  prescriptionId String @db.Uuid
+
+  // Dados do medicamento
+  name          String
+  presentation  MedicationPresentation
+  concentration String
+  dose          String
+  route         AdministrationRoute
+
+  // Indicação e limites
+  indication        SOSIndicationType
+  indicationDetails String? // Ex: "dor > 7", "febre > 38°C"
+  minInterval       String // Ex: "6 horas", "4 horas"
+  maxDailyDoses     Int // Limite diário (ex: 3)
+
+  // Período de validade
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date
+
+  // Observações
+  instructions String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  prescription       Prescription           @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosAdministrations SOSAdministration[]
+  history            SOSMedicationHistory[]
+  createdByUser      User                   @relation("SOSMedicationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser      User?                  @relation("SOSMedicationUpdatedBy", fields: [updatedBy], references: [id])
+
+  // Índices
+  @@index([prescriptionId])
+  @@index([indication])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("sos_medications")
+}
+
+model SOSMedicationHistory {
+  id              String     @id @default(uuid()) @db.Uuid
+  tenantId        String     @db.Uuid
+  sosMedicationId String     @db.Uuid
+  versionNumber   Int // Número da versão (1, 2, 3, ...)
+  changeType      ChangeType // CREATE | UPDATE | DELETE
+  changeReason    String     @db.Text // Motivo obrigatório da alteração
+
+  // Snapshots dos dados (JSON)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado atual após a alteração
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([]) // Ex: ["name", "dose", "indication"]
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3) // Timestamp da alteração
+  changedBy     String   @db.Uuid // ID do usuário que fez a alteração
+  changedByName String? // Nome do usuário (desnormalizado para performance)
+  ipAddress     String? // IP de onde veio a requisição
+  userAgent     String? // Browser/device usado
+
+  // Metadados adicionais (JSON flexível)
+  metadata Json? @db.JsonB // Dados extras: sessionId, requestId, etc.
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sosMedication SOSMedication @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  user          User          @relation("SOSMedicationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, sosMedicationId, versionNumber(sort: Desc)]) // Buscar histórico de um medicamento SOS
+  @@index([tenantId, changedAt(sort: Desc)]) // Buscar alterações recentes do tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("sos_medication_history")
+}
+
+model MedicationAdministration {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  prescriptionId String @db.Uuid
+  medicationId   String @db.Uuid
+  residentId     String @db.Uuid
+
+  // Data/hora da administração
+  date          DateTime @db.Date
+  scheduledTime String // Horário programado (ex: "06:00")
+  actualTime    String? // Horário real de administração (se diferente)
+
+  // Status
+  wasAdministered Boolean @default(false)
+  reason          String? // Motivo de não administração
+
+  // Checagem
+  administeredBy  String // Nome do profissional
+  userId          String  @db.Uuid
+  checkedBy       String? // Para dupla checagem
+  checkedByUserId String? @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medication   Medication   @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([medicationId, date])
+  @@index([wasAdministered])
+  // Índices compostos para queries frequentes
+  @@index([tenantId, date, wasAdministered]) // Administrações pendentes do dia
+  @@index([residentId, date, wasAdministered]) // Administrações pendentes do residente
+  @@map("medication_administrations")
+}
+
+model SOSAdministration {
+  id              String @id @default(uuid()) @db.Uuid
+  tenantId        String @db.Uuid
+  prescriptionId  String @db.Uuid
+  sosMedicationId String @db.Uuid
+  residentId      String @db.Uuid
+
+  // Data/hora
+  date DateTime @db.Date
+  time String // Horário da administração
+
+  // Motivo
+  indication String // Descrição do motivo (ex: "dor intensa no joelho")
+
+  // Checagem
+  administeredBy String
+  userId         String @db.Uuid
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  prescription  Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  sosMedication SOSMedication @relation(fields: [sosMedicationId], references: [id], onDelete: Cascade)
+  resident      Resident      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([tenantId, date(sort: Desc)])
+  @@index([residentId, date(sort: Desc)])
+  @@index([sosMedicationId, date])
+  @@map("sos_administrations")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  NOTIFICAÇÕES E ALERTAS
+//
+//  Sistema de notificações e alertas do sistema
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // Tipo e Categoria
+  type     SystemNotificationType
+  category NotificationCategory
+  severity NotificationSeverity
+
+  // Conteúdo
+  title     String  @db.VarChar(255)
+  message   String  @db.Text
+  actionUrl String? @db.Text // URL para navegação ao clicar
+
+  // Referência à entidade relacionada
+  entityType String? @db.VarChar(50) // Ex: "PRESCRIPTION", "VITAL_SIGN"
+  entityId   String? @db.Uuid
+
+  // Metadata flexível para informações adicionais
+  metadata Json? @db.JsonB
+
+  // Expiração automática
+  expiresAt DateTime? @db.Timestamptz(3)
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reads                      NotificationRead[] // Rastreamento individual de leitura
+  vitalSignAlerts            VitalSignAlert[] // Alertas médicos vinculados a esta notificação
+  sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
+
+  // Índices para performance
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, category, createdAt(sort: Desc)])
+  @@index([tenantId, severity, createdAt(sort: Desc)])
+  @@index([type])
+  @@index([category])
+  @@index([severity])
+  @@index([expiresAt])
+  @@index([tenantId, type]) // Notificações por tipo
+  @@index([entityType, entityId]) // Buscar notificações de uma entidade específica
+  @@map("notifications")
+}
+
+// Tabela de rastreamento individual de leitura de notificações
+model NotificationRead {
+  id             String   @id @default(uuid()) @db.Uuid
+  notificationId String   @db.Uuid
+  userId         String   @db.Uuid
+  readAt         DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@unique([notificationId, userId]) // Um usuário só pode marcar como lida uma vez
+  @@index([userId, readAt(sort: Desc)]) // Histórico de leituras do usuário
+  @@index([notificationId]) // Buscar leituras de uma notificação
+  @@map("notification_reads")
+}
+
+model SystemAlert {
+  id        String        @id @default(uuid()) @db.Uuid
+  type      AlertType
+  severity  AlertSeverity
+  title     String        @db.VarChar(255)
+  message   String        @db.Text
+  metadata  Json?         @db.JsonB
+  tenantId  String?       @db.Uuid
+  read      Boolean       @default(false)
+  readAt    DateTime?     @db.Timestamptz(3)
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([type, severity])
+  @@index([read])
+  @@index([tenantId])
+  @@index([createdAt(sort: Desc)])
+  // Índices compostos adicionais para queries frequentes
+  @@index([tenantId, read, createdAt(sort: Desc)]) // Alertas não lidos do tenant
+  @@index([type, read, createdAt(sort: Desc)]) // Alertas não lidos por tipo
+  @@map("system_alerts")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  POPs - PROCEDIMENTOS OPERACIONAIS PADRÃO
+//
+//  Gestão de POPs institucionais com versionamento
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Pop {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // Identificação
+  title      String      @db.VarChar(255)
+  category   PopCategory
+  templateId String?     @db.VarChar(100) // ID do template (ex: "POP_HIGIENIZACAO_MAOS")
+
+  // Conteúdo (HTML do Tiptap - headings, listas, tabelas)
+  content String @db.Text
+
+  // Status e Workflow
+  status PopStatus @default(DRAFT)
+
+  // Versionamento
+  version      Int       @default(1)
+  replacedById String?   @db.Uuid
+  replacedAt   DateTime? @db.Timestamptz(3)
+
+  // Revisão periódica
+  reviewIntervalMonths Int?
+  lastReviewedAt       DateTime? @db.Timestamptz(3)
+  nextReviewDate       DateTime? @db.Timestamptz(3)
+  requiresReview       Boolean   @default(false)
+
+  // Observações
+  notes String? @db.Text
+
+  // Auditoria
+  createdBy   String    @db.Uuid
+  updatedBy   String?   @db.Uuid
+  publishedBy String?   @db.Uuid
+  publishedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  replacedBy  Pop?            @relation("PopReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces    Pop[]           @relation("PopReplacement")
+  attachments PopAttachment[]
+  history     PopHistory[]
+
+  // Índices
+  @@index([tenantId, status])
+  @@index([tenantId, category, status])
+  @@index([tenantId, templateId])
+  @@index([status])
+  @@index([category])
+  @@index([nextReviewDate])
+  @@index([requiresReview])
+  @@index([replacedById])
+  @@index([deletedAt])
+  @@map("pops")
+}
+
+model PopHistory {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  popId    String @db.Uuid
+
+  // Ação e motivo
+  action PopAction
+  reason String?   @db.Text
+
+  // Snapshots para auditoria
+  previousData  Json?    @db.JsonB
+  newData       Json?    @db.JsonB
+  changedFields String[] @default([])
+
+  // Auditoria
+  changedBy     String   @db.Uuid
+  changedByName String   @db.VarChar(255)
+  changedAt     DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress     String?  @db.VarChar(45)
+  userAgent     String?  @db.Text
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pop    Pop    @relation(fields: [popId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, popId, changedAt(sort: Desc)])
+  @@index([popId, action])
+  @@index([changedAt(sort: Desc)])
+  @@index([action])
+  @@map("pop_history")
+}
+
+model PopAttachment {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+  popId    String @db.Uuid
+
+  // Arquivo
+  fileUrl  String  @db.Text
+  fileKey  String? @db.Text
+  fileName String  @db.VarChar(255)
+  fileSize Int?
+  mimeType String? @db.VarChar(100)
+
+  // Metadados opcionais
+  description String? @db.Text
+  type        String? @db.VarChar(50) // FORMULARIO, CHECKLIST, FLUXOGRAMA, etc.
+
+  // Auditoria
+  uploadedBy String    @db.Uuid
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pop    Pop    @relation(fields: [popId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, popId])
+  @@index([popId])
+  @@index([deletedAt])
+  @@map("pop_attachments")
+}
+
+
+// ============================================================================
+// RESIDENT CONTRACTS - Contratos Digitalizados dos Residentes
+// ============================================================================
+
+enum ContractHistoryAction {
+  CREATED
+  UPDATED
+  REPLACED
+  DELETED
+}
+
+enum SignatoryRole {
+  RESIDENTE
+  RESPONSAVEL_LEGAL
+  RESPONSAVEL_CONTRATUAL
+  TESTEMUNHA
+  ILPI
+}
+
+model ResidentContract {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  tenantId               String                  @db.Uuid
+  residentId             String                  @db.Uuid
+  contractNumber         String                  @db.VarChar(100)
+  startDate              DateTime                @db.Date
+  endDate                DateTime                @db.Date
+  monthlyAmount          Decimal                 @db.Decimal(10, 2)
+  dueDay                 Int
+  status                 ContractDocumentStatus
+  adjustmentIndex        String?                 @db.VarChar(50)
+  adjustmentRate         Decimal?                @db.Decimal(5, 2)
+  lastAdjustmentDate     DateTime?               @db.Date
+  signatories            Json                    @db.JsonB
+  originalFileUrl        String                  @db.Text
+  originalFileKey        String                  @db.Text
+  originalFileName       String                  @db.Text
+  originalFileSize       Int
+  originalFileMimeType   String                  @db.VarChar(100)
+  originalFileHash       String                  @db.VarChar(64)
+  processedFileUrl       String                  @db.Text
+  processedFileKey       String                  @db.Text
+  processedFileName      String                  @db.Text
+  processedFileSize      Int
+  processedFileHash      String                  @db.VarChar(64)
+  publicToken            String                  @unique @db.VarChar(64) // Token público para validação de autenticidade
+  notes                  String?                 @db.Text
+  version                Int                     @default(1)
+  replacedById           String?                 @db.Uuid
+  replacedAt             DateTime?               @db.Timestamptz(3)
+  uploadedBy             String                  @db.Uuid
+  createdAt              DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?               @db.Timestamptz(3)
+
+  // Relations
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident               Resident                @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  uploader               User                    @relation("ContractUploader", fields: [uploadedBy], references: [id])
+  replacedBy             ResidentContract?       @relation("ContractReplacements", fields: [replacedById], references: [id])
+  replacements           ResidentContract[]      @relation("ContractReplacements")
+  history                ContractHistory[]
+
+  @@unique([tenantId, contractNumber])
+  @@index([tenantId, residentId])
+  @@index([tenantId, status])
+  @@index([tenantId, endDate])
+  @@index([residentId])
+  @@index([endDate])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([replacedById])
+  @@index([version])
+  @@index([processedFileHash])
+  @@map("resident_contracts")
+}
+
+model ContractHistory {
+  id             String                 @id @default(uuid()) @db.Uuid
+  tenantId       String                 @db.Uuid
+  contractId     String                 @db.Uuid
+  action         ContractHistoryAction
+  reason         String?                @db.Text
+  previousData   Json?                  @db.JsonB
+  newData        Json?                  @db.JsonB
+  changedFields  String[]               @default([])
+  changedBy      String                 @db.Uuid
+  changedAt      DateTime               @default(now()) @db.Timestamptz(3)
+
+  // Relations
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contract       ResidentContract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user           User                   @relation("ContractHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, contractId])
+  @@index([contractId])
+  @@index([action])
+  @@index([changedAt])
+  @@map("resident_contracts_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  RESIDENTES
+//
+//  Dados demográficos e documentos dos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Resident {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid
+
+  // 0 – Status
+  status String @default("Ativo") // Ativo | Inativo | Falecido
+
+  // 1 – Dados Pessoais
+  fullName    String
+  socialName  String?
+  email       String? // Email do residente
+  cpf         String
+  rg          String?
+  rgIssuer    String?
+  education   String?
+  profession  String?
+  cns         String?
+  gender      Gender
+  civilStatus CivilStatus?
+  religion    String?
+  birthDate   DateTime     @db.Date
+  nationality String       @default("Brasileira")
+  birthCity   String?
+  birthState  String? // UF (2 letras)
+  motherName  String?
+  fatherName  String?
+  fotoUrl     String? // URL da foto do residente no MinIO
+
+  // 2 – Endereços
+  // Atual
+  currentCep        String?
+  currentState      String?
+  currentCity       String?
+  currentStreet     String?
+  currentNumber     String?
+  currentComplement String?
+  currentDistrict   String?
+  currentPhone      String?
+
+  // Procedência (texto livre)
+  origin String? // Ex: "Vindo da Clínica X", "Diretamente da residência", "Indicação judicial"
+
+  // 3 – Contatos de Emergência (array JSON)
+  emergencyContacts Json @default("[]")
+  // [{ "name": "...", "phone": "...", "relationship": "..." }]
+
+  // 4 – Responsável Legal
+  legalGuardianName       String?
+  legalGuardianEmail      String? // Email do responsável legal
+  legalGuardianCpf        String?
+  legalGuardianRg         String?
+  legalGuardianPhone      String?
+  legalGuardianType       String? // curador | procurador | responsável convencional
+  legalGuardianCep        String?
+  legalGuardianState      String?
+  legalGuardianCity       String?
+  legalGuardianStreet     String?
+  legalGuardianNumber     String?
+  legalGuardianComplement String?
+  legalGuardianDistrict   String?
+
+  // 5 – Admissão
+  admissionDate       DateTime  @db.Date
+  admissionType       String? // Voluntária | Involuntária | Judicial | outro
+  admissionReason     String?
+  admissionConditions String?
+  dischargeDate       DateTime? @db.Date
+  dischargeReason     String?
+
+  // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)
+  bloodType              BloodType @default(NAO_INFORMADO)
+  height                 Decimal?  @db.Decimal(5, 2) // metros
+  weight                 Decimal?  @db.Decimal(5, 1) // kg
+  dependencyLevel        String? // Grau I - Independente | Grau II - Semidependente | Grau III - Dependente
+  mobilityAid            Boolean?
+  medicationsOnAdmission String?
+
+  // 7 – Convênios / Planos de Saúde
+  healthPlans Json @default("[]")
+  // [{ "name": "...", "cardNumber": "...", "cardUrl": "..." }]
+
+  // 8 – Pertences
+  belongings Json @default("[]")
+  // ["Óculos", "Aparelho auditivo", ...]
+
+  // 9 – Acomodação
+  roomId String? @db.Uuid
+  bedId  String? @unique @db.Uuid
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+  createdBy     String    @db.Uuid // ID do usuário que criou o registro
+  updatedBy     String?   @db.Uuid // ID do último usuário que alterou
+
+  // Relações
+  tenant                    Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator                   User                       @relation("ResidentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater                   User?                      @relation("ResidentUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+  history                   ResidentHistory[] // Histórico de alterações (imutável)
+  bed                       Bed?                       @relation(fields: [bedId], references: [id])
+  dailyRecords              DailyRecord[]
+  prescriptions             Prescription[]
+  medicationAdministrations MedicationAdministration[]
+  sosAdministrations        SOSAdministration[]
+  vaccinations              Vaccination[]
+  vitalSigns                VitalSign[]
+  clinicalNotes             ClinicalNote[]
+  clinicalNoteHistory       ClinicalNoteHistory[]
+  residentDocuments         ResidentDocument[]
+  contracts                 ResidentContract[] // Contratos digitalizados de prestação de serviço da ILPI
+  clinicalProfile           ClinicalProfile?
+  allergies                 Allergy[]
+  conditions                Condition[]
+  dietaryRestrictions       DietaryRestriction[]
+  clinicalNoteDocuments     ClinicalNoteDocument[]
+  bedTransferHistory        BedTransferHistory[]
+  scheduleConfigs           ResidentScheduleConfig[]
+  scheduledEvents           ResidentScheduledEvent[]
+  vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
+
+  // Índices
+  @@unique([tenantId, cpf])
+  @@index([tenantId, status])
+  @@index([tenantId, admissionDate(sort: Desc)])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("residents")
+}
+
+model ResidentHistory {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Versionamento
+  versionNumber Int // Número da versão (1, 2, 3...)
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo da alteração (obrigatório, min 10 chars)
+
+  // Campos alterados (array de nomes de campos)
+  changedFields String[] @default([])
+
+  // Snapshot completo dos dados (ANTES e DEPOIS da alteração)
+  previousData Json? // Estado anterior (null em CREATE)
+  newData      Json // Estado novo
+
+  // Auditoria
+  changedAt DateTime @db.Timestamptz(3) // Data/hora da alteração
+  changedBy String   @db.Uuid // Usuário que fez a alteração
+
+  // Metadados opcionais (IP, User Agent, etc.)
+  metadata Json? @default("{}")
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User     @relation("ResidentHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices para consultas eficientes
+  @@index([tenantId, residentId, versionNumber(sort: Desc)]) // Listar histórico por residente
+  @@index([tenantId, changedAt(sort: Desc)]) // Auditoria geral por data
+  @@index([changedBy]) // Auditar por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("resident_history")
+}
+
+model ResidentDocument {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo de documento
+  type String @db.VarChar(100)
+  // Tipos possíveis:
+  // - CARTAO_CONVENIO
+  // - COMPROVANTE_RESIDENCIA_RESIDENTE
+  // - DOCUMENTOS_RESPONSAVEL_LEGAL
+  // - COMPROVANTE_RESIDENCIA_RESPONSAVEL
+  // - DOCUMENTOS_PESSOAIS
+  // - LAUDO_MEDICO
+  // - TERMO_ADMISSAO
+  // - TERMO_CONSENTIMENTO_IMAGEM
+  // - TERMO_CONSENTIMENTO_LGPD
+
+  // Arquivo
+  fileUrl  String // URL completa do arquivo no S3/MinIO
+  fileKey  String? // Chave do arquivo no S3 para deleção
+  fileName String // Nome original do arquivo
+  fileSize Int? // Tamanho em bytes
+  mimeType String? @db.VarChar(100) // application/pdf, image/jpeg, etc.
+
+  // Detalhes opcionais (ex: "Unimed", "Laudo de entrada", etc.)
+  details String? @db.Text
+
+  // Auditoria
+  uploadedBy String    @db.Uuid // ID do usuário que fez upload
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, type])
+  @@index([deletedAt])
+  @@map("resident_documents")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  NÚCLEO MULTI-TENANT
+//
+//  Plan, Tenant e Subscription - Hub central do sistema
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  PLANOS
+// ──────────────────────────────────────────────────────────────────────────────
+model Plan {
+  id                    String       @id @default(uuid()) @db.Uuid
+  name                  String       @unique
+  displayName           String
+  type                  PlanType
+  maxResidents          Int
+  maxUsers              Int
+  price                 Decimal?     @db.Decimal(10, 2)
+  annualDiscountPercent Decimal?     @default(0) @map("annual_discount_percent") @db.Decimal(5, 2) // Desconto para assinaturas anuais (0-100%)
+  trialDays             Int          @default(0)
+  isPopular             Boolean      @default(false)
+  isActive              Boolean      @default(true)
+  features              Json         @default("{}")
+  billingCycle          BillingCycle @default(MONTHLY) // MONTHLY | ANNUAL
+  createdAt             DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
+
+  subscriptions Subscription[]
+  contracts     ServiceContract[]
+
+  @@map("plans")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  TENANTS (Clínicas / Residências)
+// ──────────────────────────────────────────────────────────────────────────────
+model Tenant {
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String       @unique
+  cnpj       String?      @unique
+  email      String
+  phone      String?
+  status     TenantStatus @default(TRIAL)
+  schemaName String       @unique
+
+  // Asaas Integration
+  asaasCustomerId String? @unique @db.VarChar(255) // ID do cliente no Asaas
+
+  // Endereço detalhado
+  addressStreet     String?
+  addressNumber     String?
+  addressComplement String?
+  addressDistrict   String?
+  addressCity       String?
+  addressState      String?
+  addressZipCode    String?
+
+  // Timezone
+  timezone String @default("America/Sao_Paulo") @db.VarChar(50) // Timezone IANA do tenant
+
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  subscriptions              Subscription[]
+  users                      User[]
+  userProfiles               UserProfile[]
+  userHistory                UserHistory[] // Histórico de usuários
+  residents                  Resident[]
+  residentHistory            ResidentHistory[] // Histórico de residentes
+  dailyRecords               DailyRecord[]
+  dailyRecordHistory         DailyRecordHistory[]
+  vitalSigns                 VitalSign[]
+  prescriptions              Prescription[]
+  prescriptionHistory        PrescriptionHistory[] // Histórico de prescrições
+  medicationHistory          MedicationHistory[] // Histórico de medicamentos
+  sosMedicationHistory       SOSMedicationHistory[] // Histórico de medicamentos SOS
+  medicationAdministrations  MedicationAdministration[]
+  sosAdministrations         SOSAdministration[]
+  vaccinations               Vaccination[]
+  vaccinationHistory         VaccinationHistory[] // Histórico de vacinações
+  allergies                  Allergy[]
+  allergyHistory             AllergyHistory[] // Histórico de alergias
+  conditions                 Condition[]
+  conditionHistory           ConditionHistory[] // Histórico de condições
+  clinicalNotes              ClinicalNote[]
+  clinicalNoteHistory        ClinicalNoteHistory[]
+  clinicalProfiles           ClinicalProfile[]
+  clinicalProfileHistory     ClinicalProfileHistory[]
+  dietaryRestrictions        DietaryRestriction[]
+  dietaryRestrictionHistory  DietaryRestrictionHistory[]
+  auditLogs                  AuditLog[]
+  buildings                  Building[]
+  floors                     Floor[]
+  rooms                      Room[]
+  beds                       Bed[]
+  bedStatusHistory           BedStatusHistory[]
+  profile                    TenantProfile?
+  documents                  TenantDocument[]
+  residentDocuments          ResidentDocument[]
+  residentContracts          ResidentContract[] // Contratos de serviço dos residentes (NÃO confundir com ServiceContract de SaaS)
+  contractHistory            ContractHistory[] // Histórico de alterações nos contratos dos residentes
+  notifications              Notification[]
+  clinicalNoteDocuments      ClinicalNoteDocument[]
+  documentHistory            DocumentHistory[]
+  pops                       Pop[]
+  popAttachments             PopAttachment[]
+  popHistory                 PopHistory[]
+  VitalSignHistory           VitalSignHistory[]
+  bedTransferHistory         BedTransferHistory[]
+  residentScheduleConfigs    ResidentScheduleConfig[]
+  residentScheduledEvents    ResidentScheduledEvent[]
+  invoices                   Invoice[] // SuperAdmin - Faturas
+  usageMetrics               UsageMetrics[] // SuperAdmin - Métricas de uso
+  systemAlerts               SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance         ContractAcceptance?
+  privacyPolicyAcceptance    PrivacyPolicyAcceptance?
+  messages                   Message[]
+  messageRecipients          MessageRecipient[]
+  messageAttachments         MessageAttachment[]
+  emailLogs                  EmailLog[] // Auditoria de emails enviados
+  accessLogs                 AccessLog[] // Logs de acesso e auditoria de segurança
+  vitalSignAlerts            VitalSignAlert[] // Alertas médicos de sinais vitais
+  institutionalEvents        InstitutionalEvent[] // Eventos institucionais
+  incidentMonthlyIndicators  IncidentMonthlyIndicator[] // Indicadores mensais RDC 502/2021
+  sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
+
+  @@index([timezone])
+  @@map("tenants")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  SUBSCRIPTIONS (Stripe‑style)
+// ──────────────────────────────────────────────────────────────────────────────
+model Subscription {
+  id                 String    @id @default(uuid()) @db.Uuid
+  tenantId           String    @db.Uuid
+  planId             String    @db.Uuid
+  startDate          DateTime  @default(now()) @db.Timestamptz(3)
+  endDate            DateTime? @db.Timestamptz(3)
+  currentPeriodStart DateTime? @db.Timestamptz(3)
+  currentPeriodEnd   DateTime? @db.Timestamptz(3)
+  trialEndDate       DateTime? @db.Timestamptz(3)
+  status             String // trialing | active | past_due | canceled | unpaid | incomplete
+
+  // Asaas Integration
+  asaasSubscriptionId String? @unique @db.VarChar(255) // ID da assinatura no Asaas
+
+  // Pricing Overrides (Descontos e Preços Personalizados)
+  discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)
+  discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
+  customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
+
+  // Billing Preferences (Onboarding)
+  billingCycle           String? @map("billing_cycle") @db.VarChar(20) // MONTHLY | ANNUAL
+  preferredPaymentMethod String? @map("preferred_payment_method") @db.VarChar(50) // PIX | BOLETO | CREDIT_CARD
+
+  // Trial Alerts Control (Idempotência - evitar emails duplicados)
+  trialAlert7Sent Boolean @default(false) @map("trial_alert_7_sent") // Email D-7 enviado
+  trialAlert3Sent Boolean @default(false) @map("trial_alert_3_sent") // Email D-3 enviado
+  trialAlert1Sent Boolean @default(false) @map("trial_alert_1_sent") // Email D-1 enviado
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  invoices Invoice[] // SuperAdmin - Faturas da assinatura
+
+  @@map("subscriptions")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  VACINAÇÕES
+//
+//  Registro de vacinas administradas aos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Vaccination {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // 11 Campos obrigatórios (RDC 502/2021)
+  vaccine        String // 1) Vacina/Profilaxia (ex: "COVID-19", "Influenza")
+  dose           String // 3) Dose (ex: "1ª dose", "2ª dose", "Reforço")
+  date           DateTime @db.Date // 2) Data da vacinação
+  batch          String // 4) Lote do imunizante
+  manufacturer   String // 5) Fabricante
+  cnes           String // 6) CNES (Código Nacional do Estabelecimento de Saúde)
+  healthUnit     String // 7) Estabelecimento de Saúde
+  municipality   String // 8) Município
+  state          String // 9) UF (2 caracteres)
+  certificateUrl String? // 10) URL do comprovante (file upload)
+  notes          String?  @db.Text // 11) Observações adicionais
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3) // Soft delete
+
+  // Relações
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident             @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User                 @relation("VaccinationCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                @relation("VaccinationUpdatedBy", fields: [updatedBy], references: [id])
+  history       VaccinationHistory[]
+
+  // Índices para performance
+  @@index([tenantId, residentId])
+  @@index([residentId, date(sort: Desc)])
+  @@index([tenantId, date(sort: Desc)])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("vaccinations")
+}
+
+model VaccinationHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  vaccinationId String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+
+  // Snapshots dos dados (JSON)
+  previousData Json?
+  newData      Json
+
+  // Campos alterados (array de strings)
+  changedFields String[] @default([])
+
+  // Auditoria detalhada
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+
+  // Metadados adicionais
+  metadata Json? @db.JsonB
+
+  // Relações
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vaccination Vaccination @relation(fields: [vaccinationId], references: [id], onDelete: Cascade)
+  user        User        @relation("VaccinationHistoryUser", fields: [changedBy], references: [id])
+
+  // Índices para performance
+  @@index([tenantId, vaccinationId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("vaccination_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  HISTÓRICO DE ALERTAS DE SINAIS VITAIS
+//
+//  Rastreia todas as alterações feitas em alertas médicos para exibição ao usuário
+// ──────────────────────────────────────────────────────────────────────────────
+
+model VitalSignAlertHistory {
+  id      String @id @default(uuid()) @db.Uuid
+  alertId String @map("alert_id") @db.Uuid
+
+  // Dados históricos (snapshot)
+  status       String  @db.VarChar(50) // Status no momento da alteração
+  assignedTo   String? @map("assigned_to") @db.Uuid
+  medicalNotes String? @map("medical_notes") @db.Text
+  actionTaken  String? @map("action_taken") @db.Text
+
+  // Metadados da alteração
+  changedBy    String   @map("changed_by") @db.Uuid // Quem fez a alteração
+  changeReason String?  @map("change_reason") @db.Text // Motivo da alteração (opcional)
+  changeType   String   @map("change_type") @db.VarChar(50) // CREATED, STATUS_CHANGED, ASSIGNED, NOTES_ADDED, etc
+  changedAt    DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  // Relacionamentos
+  alert        VitalSignAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  changedUser  User           @relation("AlertChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  assignedUser User?          @relation("AlertAssignedUser", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  // Índices
+  @@index([alertId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("vital_sign_alert_history")
+}
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ALERTAS MÉDICOS DE SINAIS VITAIS
+//
+//  Sistema de alertas médicos persistentes vinculados a sinais vitais anormais.
+//  Complementa o sistema de notificações broadcast com registro clínico permanente.
+// ──────────────────────────────────────────────────────────────────────────────
+
+model VitalSignAlert {
+  id             String  @id @default(uuid()) @db.Uuid
+  tenantId       String  @db.Uuid
+  residentId     String  @db.Uuid
+  vitalSignId    String  @db.Uuid
+  notificationId String? @db.Uuid
+
+  // Tipo e severidade do alerta
+  type     VitalSignAlertType
+  severity AlertSeverity
+
+  // Descrição do alerta
+  title       String @db.VarChar(255)
+  description String @db.Text
+  value       String @db.VarChar(100) // Ex: "175/98 mmHg", "280 mg/dL"
+  metadata    Json   @db.JsonB // { threshold, expectedRange, detectedAt, etc }
+
+  // Gerenciamento do alerta
+  status     AlertStatus @default(ACTIVE)
+  priority   Int         @default(0) // 0-5 para ordenação (calculado automaticamente)
+  assignedTo String?     @db.Uuid // Profissional responsável
+
+  // Documentação médica
+  medicalNotes String? @db.Text // Observações da equipe
+  actionTaken  String? @db.Text // Conduta aplicada
+
+  // Auditoria
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+  resolvedBy String?   @db.Uuid
+  createdBy  String?   @db.Uuid // NULL = criado automaticamente pelo sistema
+
+  // Relacionamentos
+  tenant        Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  vitalSign     VitalSign               @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+  notification  Notification?           @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  clinicalNotes ClinicalNote[] // Um alerta pode gerar várias evoluções
+  assignedUser  User?                   @relation("AssignedAlerts", fields: [assignedTo], references: [id], onDelete: SetNull)
+  resolvedUser  User?                   @relation("ResolvedAlerts", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  history       VitalSignAlertHistory[] // Histórico de alterações para exibição ao usuário
+
+  // Índices para performance
+  @@index([tenantId, residentId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([residentId, status])
+  @@index([vitalSignId])
+  @@index([notificationId])
+  @@index([assignedTo])
+  @@map("vital_sign_alerts")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  ENUMS
+// ──────────────────────────────────────────────────────────────────────────────
+
+enum VitalSignAlertType {
+  PRESSURE_HIGH // PA sistólica elevada
+  PRESSURE_LOW // PA sistólica baixa
+  GLUCOSE_HIGH // Hiperglicemia
+  GLUCOSE_LOW // Hipoglicemia
+  TEMPERATURE_HIGH // Febre/Hipertermia
+  TEMPERATURE_LOW // Hipotermia
+  OXYGEN_LOW // Hipóxia
+  HEART_RATE_HIGH // Taquicardia
+  HEART_RATE_LOW // Bradicardia
+}
+
+enum AlertStatus {
+  ACTIVE // Aguardando conduta (recém-criado)
+  IN_TREATMENT // Em tratamento (conduta aplicada ou evolução criada)
+  MONITORING // Sob monitoramento contínuo
+  RESOLVED // Resolvido com sucesso
+  IGNORED // Ignorado (com justificativa em medicalNotes)
+}
+
+// NOTA: AlertSeverity já está definido em enums.prisma (linhas 583-589)
+// Reutilizando: INFO, WARNING, CRITICAL
+
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  SINAIS VITAIS
+//
+//  Monitoramento de sinais vitais dos residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model VitalSign {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+  userId     String @db.Uuid // ID do usuário que registrou
+
+  // Timestamp do registro (data + hora completa)
+  timestamp DateTime @db.Timestamptz(3)
+
+  // Sinais Vitais (todos opcionais - registra apenas os que foram aferidos)
+  systolicBloodPressure  Float? // Pressão arterial sistólica (mmHg)
+  diastolicBloodPressure Float? // Pressão arterial diastólica (mmHg)
+  temperature            Float? // Temperatura corporal (°C)
+  heartRate              Int? // Frequência cardíaca (bpm)
+  oxygenSaturation       Float? // Saturação periférica de O₂ (%)
+  bloodGlucose           Float? // Glicemia (mg/dL)
+
+  // Versionamento (RDC 502/2021 + LGPD)
+  versionNumber Int     @default(1)
+  createdBy     String  @db.Uuid
+  updatedBy     String? @db.Uuid
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident Resident           @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  creator  User               @relation("VitalSignCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  updater  User?              @relation("VitalSignUpdater", fields: [updatedBy], references: [id], onDelete: Restrict)
+  history  VitalSignHistory[]
+  alerts   VitalSignAlert[] // Alertas médicos gerados por este sinal vital
+
+  // Índices para consultas otimizadas
+  @@index([tenantId, residentId, timestamp(sort: Desc)])
+  @@index([residentId, timestamp(sort: Desc)])
+  @@index([tenantId, timestamp(sort: Desc)])
+  @@index([deletedAt])
+  @@map("vital_signs")
+}
+
+model VitalSignHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  vitalSignId   String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType
+  changeReason  String     @db.Text
+  previousData  Json?
+  newData       Json?
+  changedFields String[]
+  changedAt     DateTime   @db.Timestamptz(3)
+  changedBy     String     @db.Uuid
+
+  // Relações
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vitalSign VitalSign @relation(fields: [vitalSignId], references: [id], onDelete: Cascade)
+  user      User      @relation("VitalSignHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@index([vitalSignId, versionNumber])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@map("vital_sign_history")
+}

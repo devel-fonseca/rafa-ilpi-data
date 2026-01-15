@@ -5,6 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantContextService } from '../prisma/tenant-context.service'
 import { FilesService } from '../files/files.service'
 import { CreateClinicalNoteDto } from './dto/create-clinical-note.dto'
 import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
@@ -31,7 +32,8 @@ import {
 @Injectable()
 export class ClinicalNotesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
   ) {}
 
@@ -77,7 +79,6 @@ export class ClinicalNotesService {
   async create(
     createDto: CreateClinicalNoteDto,
     userId: string,
-    tenantId: string,
     pdfFile?: Express.Multer.File,
   ): Promise<ClinicalNote> {
     // Validar se ao menos 1 campo SOAP foi preenchido
@@ -94,7 +95,7 @@ export class ClinicalNotesService {
 
     // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL
     // Buscar positionCode do usuário (está na tabela user_profiles)
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId: userId },
       select: { positionCode: true },
     })
@@ -118,9 +119,9 @@ export class ClinicalNotesService {
     const editableUntil = new Date(noteDate.getTime() + 12 * 60 * 60 * 1000)
 
     // Criar evolução clínica
-    const clinicalNote = await this.prisma.clinicalNote.create({
+    const clinicalNote = await this.tenantContext.client.clinicalNote.create({
       data: {
-        tenantId,
+        tenantId: this.tenantContext.tenantId,
         residentId: createDto.residentId,
         professionalId: userId,
         profession: createDto.profession,
@@ -157,9 +158,9 @@ export class ClinicalNotesService {
     // Se documento foi fornecido, criar ClinicalNoteDocument e fazer upload do PDF
     if (createDto.document && pdfFile) {
       // 1. Criar registro do documento
-      const clinicalDoc = await this.prisma.clinicalNoteDocument.create({
+      const clinicalDoc = await this.tenantContext.client.clinicalNoteDocument.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           noteId: clinicalNote.id,
           residentId: createDto.residentId,
           title: createDto.document.title,
@@ -172,14 +173,14 @@ export class ClinicalNotesService {
 
       // 2. Upload do PDF para MinIO
       const uploadResult = await this.filesService.uploadFile(
-        tenantId,
+        this.tenantContext.tenantId,
         pdfFile,
         'clinical-documents',
         clinicalDoc.id,
       )
 
       // 3. Atualizar registro com informações do PDF
-      await this.prisma.clinicalNoteDocument.update({
+      await this.tenantContext.client.clinicalNoteDocument.update({
         where: { id: clinicalDoc.id },
         data: {
           pdfFileUrl: uploadResult.fileUrl,
@@ -195,11 +196,10 @@ export class ClinicalNotesService {
   /**
    * Busca evolução clínica por ID
    */
-  async findOne(id: string, tenantId: string): Promise<ClinicalNote | null> {
-    const note = await this.prisma.clinicalNote.findFirst({
+  async findOne(id: string): Promise<ClinicalNote | null> {
+    const note = await this.tenantContext.client.clinicalNote.findFirst({
       where: {
         id,
-        tenantId,
         isAmended: false, // Não retornar evoluções marcadas como obsoletas
       },
       include: {
@@ -242,7 +242,6 @@ export class ClinicalNotesService {
    */
   async findAll(
     queryDto: QueryClinicalNoteDto,
-    tenantId: string,
   ): Promise<{ data: ClinicalNote[]; total: number; page: number; limit: number }> {
     const page = queryDto.page || 1
     const limit = queryDto.limit || 20
@@ -250,7 +249,6 @@ export class ClinicalNotesService {
 
     // Construir filtros
     const where: any = {
-      tenantId,
       isAmended: false, // Não listar evoluções obsoletas
     }
 
@@ -276,7 +274,7 @@ export class ClinicalNotesService {
 
     // Buscar dados e contagem total
     const [data, total] = await Promise.all([
-      this.prisma.clinicalNote.findMany({
+      this.tenantContext.client.clinicalNote.findMany({
         where,
         skip,
         take: limit,
@@ -307,7 +305,7 @@ export class ClinicalNotesService {
           },
         },
       }),
-      this.prisma.clinicalNote.count({ where }),
+      this.tenantContext.client.clinicalNote.count({ where }),
     ])
 
     // Processar URLs dos documentos para todas as notas
@@ -328,7 +326,6 @@ export class ClinicalNotesService {
    */
   async findByResident(
     residentId: string,
-    tenantId: string,
     queryDto?: QueryClinicalNoteDto,
   ): Promise<{ data: ClinicalNote[]; total: number }> {
     const page = queryDto?.page || 1
@@ -336,7 +333,6 @@ export class ClinicalNotesService {
     const skip = (page - 1) * limit
 
     const where: any = {
-      tenantId,
       residentId,
       isAmended: false,
     }
@@ -352,7 +348,7 @@ export class ClinicalNotesService {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.clinicalNote.findMany({
+      this.tenantContext.client.clinicalNote.findMany({
         where,
         skip,
         take: limit,
@@ -383,7 +379,7 @@ export class ClinicalNotesService {
           },
         },
       }),
-      this.prisma.clinicalNote.count({ where }),
+      this.tenantContext.client.clinicalNote.count({ where }),
     ])
 
     // Processar URLs dos documentos para todas as notas
@@ -408,11 +404,10 @@ export class ClinicalNotesService {
     id: string,
     updateDto: UpdateClinicalNoteDto,
     userId: string,
-    tenantId: string,
   ): Promise<ClinicalNote> {
     // Buscar evolução clínica
-    const note = await this.prisma.clinicalNote.findFirst({
-      where: { id, tenantId, isAmended: false },
+    const note = await this.tenantContext.client.clinicalNote.findFirst({
+      where: { id, isAmended: false },
     })
 
     if (!note) {
@@ -426,7 +421,7 @@ export class ClinicalNotesService {
 
     // VALIDAÇÃO DE HABILITAÇÃO PROFISSIONAL (mesmo na edição)
     // Buscar positionCode do usuário (está na tabela user_profiles)
-    const userProfile = await this.prisma.userProfile.findUnique({
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: { userId: userId },
       select: { positionCode: true },
     })
@@ -466,7 +461,7 @@ export class ClinicalNotesService {
     // Criar snapshot no histórico
     const newVersion = note.version + 1
 
-    return this.prisma.$transaction(async (prisma) => {
+    return this.tenantContext.client.$transaction(async (prisma) => {
       // 1. Criar histórico
       await prisma.clinicalNoteHistory.create({
         data: {
@@ -531,17 +526,16 @@ export class ClinicalNotesService {
     id: string,
     deleteDto: DeleteClinicalNoteDto,
     userId: string,
-    tenantId: string,
   ): Promise<void> {
-    const note = await this.prisma.clinicalNote.findFirst({
-      where: { id, tenantId, isAmended: false },
+    const note = await this.tenantContext.client.clinicalNote.findFirst({
+      where: { id, isAmended: false },
     })
 
     if (!note) {
       throw new NotFoundException('Evolução clínica não encontrada')
     }
 
-    await this.prisma.$transaction(async (prisma) => {
+    await this.tenantContext.client.$transaction(async (prisma) => {
       // 1. Criar versão final no histórico
       await prisma.clinicalNoteHistory.create({
         data: {
@@ -576,19 +570,16 @@ export class ClinicalNotesService {
   /**
    * Busca histórico de versões de uma evolução clínica
    */
-  async getHistory(
-    noteId: string,
-    tenantId: string,
-  ) {
-    const note = await this.prisma.clinicalNote.findFirst({
-      where: { id: noteId, tenantId },
+  async getHistory(noteId: string) {
+    const note = await this.tenantContext.client.clinicalNote.findFirst({
+      where: { id: noteId },
     })
 
     if (!note) {
       throw new NotFoundException('Evolução clínica não encontrada')
     }
 
-    const history = await this.prisma.clinicalNoteHistory.findMany({
+    const history = await this.tenantContext.client.clinicalNoteHistory.findMany({
       where: { noteId },
       orderBy: { version: 'asc' },
       include: {
@@ -619,7 +610,7 @@ export class ClinicalNotesService {
   /**
    * Busca tags únicas usadas em evoluções clínicas (para sugestões)
    */
-  async getTagsSuggestions(tenantId: string): Promise<string[]> {
+  async getTagsSuggestions(): Promise<string[]> {
     // Tags pré-definidas para contexto geriátrico e clínico
     const predefinedTags = [
       // Urgência e Prioridade
@@ -701,8 +692,8 @@ export class ClinicalNotesService {
     ]
 
     // Buscar tags já utilizadas no tenant
-    const notes = await this.prisma.clinicalNote.findMany({
-      where: { tenantId, isAmended: false },
+    const notes = await this.tenantContext.client.clinicalNote.findMany({
+      where: { isAmended: false },
       select: { tags: true },
     })
 
@@ -721,12 +712,11 @@ export class ClinicalNotesService {
    * Busca documentos clínicos (Tiptap) de um residente
    * Retorna todos os documentos PDF criados junto com evoluções clínicas
    */
-  async getDocumentsByResident(residentId: string, tenantId: string) {
-    // Verificar se residente existe e pertence ao tenant
-    const resident = await this.prisma.resident.findUnique({
+  async getDocumentsByResident(residentId: string) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findUnique({
       where: {
         id: residentId,
-        tenantId,
       },
     })
 
@@ -735,10 +725,9 @@ export class ClinicalNotesService {
     }
 
     // Buscar documentos do residente com informações do profissional
-    const documents = await this.prisma.clinicalNoteDocument.findMany({
+    const documents = await this.tenantContext.client.clinicalNoteDocument.findMany({
       where: {
         residentId,
-        tenantId,
       },
       include: {
         clinicalNote: {
@@ -791,7 +780,6 @@ export class ClinicalNotesService {
    */
   async prefillFromAlert(
     alertId: string,
-    tenantId: string,
   ): Promise<{
     objective: string
     assessment: string
@@ -799,10 +787,9 @@ export class ClinicalNotesService {
     suggestedTags: string[]
   }> {
     // Buscar alerta com dados do sinal vital
-    const alert = await this.prisma.vitalSignAlert.findFirst({
+    const alert = await this.tenantContext.client.vitalSignAlert.findFirst({
       where: {
         id: alertId,
-        tenantId,
       },
       include: {
         vitalSign: true,

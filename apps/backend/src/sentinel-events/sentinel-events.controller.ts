@@ -21,7 +21,6 @@ import { QuerySentinelEventDto, UpdateSentinelEventStatusDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
 
@@ -46,8 +45,8 @@ export class SentinelEventsController {
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar eventos sentinela' })
-  async findAll(@Query() query: QuerySentinelEventDto, @CurrentUser() user: any) {
-    return this.sentinelEventsService.findAllSentinelEvents(user.tenantId, query);
+  async findAll(@Query() query: QuerySentinelEventDto) {
+    return this.sentinelEventsService.findAllSentinelEvents(query);
   }
 
   @Patch(':id')
@@ -72,12 +71,10 @@ export class SentinelEventsController {
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateSentinelEventStatusDto,
-    @CurrentUser() user: any,
   ) {
     try {
       return await this.sentinelEventsService.updateSentinelEventStatus(
         id,
-        user.tenantId,
         updateDto,
       );
     } catch (error) {

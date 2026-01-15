@@ -6,6 +6,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
@@ -18,7 +19,8 @@ import { Logger } from 'winston';
 @Injectable()
 export class MessagesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly permissionsService: PermissionsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -28,7 +30,6 @@ export class MessagesService {
    */
   async create(
     createMessageDto: CreateMessageDto,
-    tenantId: string,
     userId: string,
   ) {
     const { type, subject, body, recipientIds, threadId } = createMessageDto;
@@ -37,7 +38,6 @@ export class MessagesService {
     if (type === MessageType.BROADCAST) {
       const hasPermission = await this.permissionsService.hasPermission(
         userId,
-        tenantId,
         PermissionType.BROADCAST_MESSAGES,
       );
 
@@ -60,9 +60,8 @@ export class MessagesService {
       recipients = recipientIds;
     } else {
       // BROADCAST: buscar todos usuários ativos do tenant (exceto remetente)
-      const allUsers = await this.prisma.user.findMany({
+      const allUsers = await this.tenantContext.client.user.findMany({
         where: {
-          tenantId,
           isActive: true,
           deletedAt: null,
           id: { not: userId },
@@ -74,10 +73,9 @@ export class MessagesService {
 
     // Validar que destinatários existem e pertencem ao tenant
     for (const recipientId of recipients) {
-      const user = await this.prisma.user.findFirst({
+      const user = await this.tenantContext.client.user.findFirst({
         where: {
           id: recipientId,
-          tenantId,
           deletedAt: null,
         },
       });
@@ -91,10 +89,9 @@ export class MessagesService {
 
     // Validar threadId se for resposta
     if (threadId) {
-      const parentMessage = await this.prisma.message.findFirst({
+      const parentMessage = await this.tenantContext.client.message.findFirst({
         where: {
           id: threadId,
-          tenantId,
           deletedAt: null,
         },
       });
@@ -105,10 +102,10 @@ export class MessagesService {
     }
 
     // Criar mensagem e recipients em transação
-    const message = await this.prisma.$transaction(async (tx) => {
+    const message = await this.tenantContext.client.$transaction(async (tx) => {
       const newMessage = await tx.message.create({
         data: {
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           senderId: userId,
           type,
           subject,
@@ -137,7 +134,7 @@ export class MessagesService {
         data: recipients.map((recipientId) => ({
           messageId: newMessage.id,
           userId: recipientId,
-          tenantId,
+          tenantId: this.tenantContext.tenantId,
           status: MessageStatus.SENT,
         })),
       });
@@ -149,7 +146,7 @@ export class MessagesService {
       messageId: message.id,
       type,
       recipientsCount: recipients.length,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
@@ -159,12 +156,11 @@ export class MessagesService {
   /**
    * Obter estatísticas de leitura de uma mensagem (para remetentes)
    */
-  async getReadStats(messageId: string, tenantId: string, userId: string) {
+  async getReadStats(messageId: string, userId: string) {
     // Buscar mensagem e validar que o usuário é o remetente
-    const message = await this.prisma.message.findFirst({
+    const message = await this.tenantContext.client.message.findFirst({
       where: {
         id: messageId,
-        tenantId,
         senderId: userId,
         deletedAt: null,
       },
@@ -175,10 +171,9 @@ export class MessagesService {
     }
 
     // Buscar todos os destinatários com status de leitura
-    const recipients = await this.prisma.messageRecipient.findMany({
+    const recipients = await this.tenantContext.client.messageRecipient.findMany({
       where: {
         messageId,
-        tenantId,
       },
       include: {
         user: {
@@ -239,7 +234,6 @@ export class MessagesService {
    */
   async findInbox(
     query: QueryMessagesDto,
-    tenantId: string,
     userId: string,
   ) {
     const page = query.page || 1;
@@ -249,13 +243,12 @@ export class MessagesService {
     // DEBUG: Log
     this.logger.info('[INBOX] Query recebida', {
       query,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       userId,
     });
 
     // Construir filtros
     const where: any = {
-      tenantId,
       userId,
     };
 
@@ -288,7 +281,7 @@ export class MessagesService {
 
     // Buscar com paginação
     const [data, total] = await Promise.all([
-      this.prisma.messageRecipient.findMany({
+      this.tenantContext.client.messageRecipient.findMany({
         where,
         skip,
         take: limit,
@@ -314,7 +307,7 @@ export class MessagesService {
           },
         },
       }),
-      this.prisma.messageRecipient.count({ where }),
+      this.tenantContext.client.messageRecipient.count({ where }),
     ]);
 
     // DEBUG: Log dos resultados
@@ -341,14 +334,13 @@ export class MessagesService {
   /**
    * Listar mensagens enviadas
    */
-  async findSent(query: QueryMessagesDto, tenantId: string, userId: string) {
+  async findSent(query: QueryMessagesDto, userId: string) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
     // Construir filtros
     const where: any = {
-      tenantId,
       senderId: userId,
       deletedAt: null,
     };
@@ -366,7 +358,7 @@ export class MessagesService {
 
     // Buscar com paginação
     const [data, total] = await Promise.all([
-      this.prisma.message.findMany({
+      this.tenantContext.client.message.findMany({
         where,
         skip,
         take: limit,
@@ -394,7 +386,7 @@ export class MessagesService {
           },
         },
       }),
-      this.prisma.message.count({ where }),
+      this.tenantContext.client.message.count({ where }),
     ]);
 
     return {
@@ -411,11 +403,10 @@ export class MessagesService {
   /**
    * Buscar mensagem por ID (auto-marca como lida se for recipiente)
    */
-  async findOne(messageId: string, tenantId: string, userId: string) {
-    const message = await this.prisma.message.findFirst({
+  async findOne(messageId: string, userId: string) {
+    const message = await this.tenantContext.client.message.findFirst({
       where: {
         id: messageId,
-        tenantId,
         deletedAt: null,
       },
       include: {
@@ -468,7 +459,7 @@ export class MessagesService {
     if (isRecipient) {
       const recipient = message.recipients.find((r) => r.userId === userId);
       if (recipient && recipient.status !== MessageStatus.READ) {
-        await this.prisma.messageRecipient.update({
+        await this.tenantContext.client.messageRecipient.update({
           where: { id: recipient.id },
           data: {
             status: MessageStatus.READ,
@@ -484,15 +475,14 @@ export class MessagesService {
   /**
    * Buscar thread completa (mensagem original + respostas)
    */
-  async findThread(threadId: string, tenantId: string, userId: string) {
+  async findThread(threadId: string, userId: string) {
     // Buscar mensagem original
-    const originalMessage = await this.findOne(threadId, tenantId, userId);
+    const originalMessage = await this.findOne(threadId, userId);
 
     // Buscar respostas
-    const replies = await this.prisma.message.findMany({
+    const replies = await this.tenantContext.client.message.findMany({
       where: {
         threadId,
-        tenantId,
         deletedAt: null,
       },
       orderBy: {
@@ -523,10 +513,9 @@ export class MessagesService {
   /**
    * Contar mensagens não lidas
    */
-  async countUnread(tenantId: string, userId: string) {
-    const count = await this.prisma.messageRecipient.count({
+  async countUnread(userId: string) {
+    const count = await this.tenantContext.client.messageRecipient.count({
       where: {
-        tenantId,
         userId,
         status: { not: MessageStatus.READ },
         message: {
@@ -543,13 +532,11 @@ export class MessagesService {
    */
   async markAsRead(
     markAsReadDto: MarkAsReadDto,
-    tenantId: string,
     userId: string,
   ) {
     const { messageIds } = markAsReadDto;
 
     const where: any = {
-      tenantId,
       userId,
       status: { not: MessageStatus.READ },
       message: {
@@ -561,7 +548,7 @@ export class MessagesService {
       where.messageId = { in: messageIds };
     }
 
-    const result = await this.prisma.messageRecipient.updateMany({
+    const result = await this.tenantContext.client.messageRecipient.updateMany({
       where,
       data: {
         status: MessageStatus.READ,
@@ -572,7 +559,7 @@ export class MessagesService {
     this.logger.info('Mensagens marcadas como lidas', {
       count: result.count,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
     });
 
     return { updated: result.count };
@@ -584,13 +571,11 @@ export class MessagesService {
   async delete(
     messageId: string,
     deleteMessageDto: DeleteMessageDto,
-    tenantId: string,
     userId: string,
   ) {
-    const message = await this.prisma.message.findFirst({
+    const message = await this.tenantContext.client.message.findFirst({
       where: {
         id: messageId,
-        tenantId,
         deletedAt: null,
       },
     });
@@ -606,7 +591,7 @@ export class MessagesService {
       );
     }
 
-    await this.prisma.message.update({
+    await this.tenantContext.client.message.update({
       where: { id: messageId },
       data: {
         deletedAt: new Date(),
@@ -620,7 +605,7 @@ export class MessagesService {
     this.logger.info('Mensagem deletada', {
       messageId,
       userId,
-      tenantId,
+      tenantId: this.tenantContext.tenantId,
       reason: deleteMessageDto.deleteReason,
     });
 
@@ -630,26 +615,23 @@ export class MessagesService {
   /**
    * Estatísticas de mensagens
    */
-  async getStats(tenantId: string, userId: string) {
+  async getStats(userId: string) {
     const [unreadCount, receivedCount, sentCount] = await Promise.all([
-      this.prisma.messageRecipient.count({
+      this.tenantContext.client.messageRecipient.count({
         where: {
-          tenantId,
           userId,
           status: { not: MessageStatus.READ },
           message: { deletedAt: null },
         },
       }),
-      this.prisma.messageRecipient.count({
+      this.tenantContext.client.messageRecipient.count({
         where: {
-          tenantId,
           userId,
           message: { deletedAt: null },
         },
       }),
-      this.prisma.message.count({
+      this.tenantContext.client.message.count({
         where: {
-          tenantId,
           senderId: userId,
           deletedAt: null,
         },

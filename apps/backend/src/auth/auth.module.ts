@@ -8,6 +8,7 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { JwtCacheService } from './jwt-cache.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { UserProfilesModule } from '../user-profiles/user-profiles.module';
 import { EmailModule } from '../email/email.module';
@@ -32,7 +33,13 @@ import { TenantsModule } from '../tenants/tenants.module';
     TenantsModule,
   ],
   controllers: [AuthController, UsersController],
-  providers: [AuthService, UsersService, JwtStrategy, JwtRefreshStrategy],
-  exports: [AuthService, UsersService],
+  providers: [
+    AuthService,
+    UsersService,
+    JwtStrategy,
+    JwtRefreshStrategy,
+    JwtCacheService,
+  ],
+  exports: [AuthService, UsersService, JwtCacheService],
 })
 export class AuthModule {}

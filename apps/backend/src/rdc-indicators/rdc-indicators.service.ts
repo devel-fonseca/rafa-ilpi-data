@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import {
   RdcIndicatorType,
   IncidentSubtypeClinical,
@@ -27,7 +28,27 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 export class RdcIndicatorsService {
   private readonly logger = new Logger(RdcIndicatorsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
+
+  /**
+   * Obtém o client específico do tenant usando getTenantClient
+   * Usado em contextos sem REQUEST scope (CRON jobs)
+   */
+  private async getTenantClient(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    });
+
+    if (!tenant) {
+      throw new Error(`Tenant ${tenantId} não encontrado`);
+    }
+
+    return this.prisma.getTenantClient(tenant.schemaName);
+  }
 
   /**
    * Calcula todos os 6 indicadores RDC para um tenant em um mês específico
@@ -44,12 +65,15 @@ export class RdcIndicatorsService {
       month,
     });
 
+    // Obter tenant client para acessar schema isolado
+    const tenantClient = await this.getTenantClient(tenantId);
+
     const firstDay = startOfMonth(new Date(year, month - 1, 1));
     const lastDay = endOfMonth(firstDay);
 
     // Obter residentes ativos no mês (média mensal)
     const activeResidents = await this.getActiveResidentsInPeriod(
-      tenantId,
+      tenantClient,
       firstDay,
       lastDay,
     );
@@ -69,6 +93,7 @@ export class RdcIndicatorsService {
     // Calcular todos os 6 indicadores em paralelo
     await Promise.all([
       this.calculateMortalidade(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -78,6 +103,7 @@ export class RdcIndicatorsService {
         calculatedBy,
       ),
       this.calculateDiarreiaAguda(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -87,6 +113,7 @@ export class RdcIndicatorsService {
         calculatedBy,
       ),
       this.calculateEscabiose(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -96,6 +123,7 @@ export class RdcIndicatorsService {
         calculatedBy,
       ),
       this.calculateDesidratacao(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -105,6 +133,7 @@ export class RdcIndicatorsService {
         calculatedBy,
       ),
       this.calculateUlceraDecubito(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -114,6 +143,7 @@ export class RdcIndicatorsService {
         calculatedBy,
       ),
       this.calculateDesnutricao(
+        tenantClient,
         tenantId,
         year,
         month,
@@ -136,6 +166,7 @@ export class RdcIndicatorsService {
    * Fórmula: (óbitos no mês / residentes no mês) × 100
    */
   private async calculateMortalidade(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -144,9 +175,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const obitos = await this.prisma.dailyRecord.findMany({
+    const obitos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.OBITO,
         date: { gte: firstDay, lte: lastDay },
@@ -159,6 +189,7 @@ export class RdcIndicatorsService {
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -166,9 +197,9 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: obitos.map((o) => o.id),
+      incidentIds: obitos.map((o: any) => o.id),
       metadata: {
-        residents: obitos.map((o) => ({
+        residents: obitos.map((o: any) => ({
           residentId: o.residentId,
           date: o.date,
         })),
@@ -184,6 +215,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de diarreia / residentes no mês) × 100
    */
   private async calculateDiarreiaAguda(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -192,9 +224,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const casos = await this.prisma.dailyRecord.findMany({
+    const casos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.DOENCA_DIARREICA_AGUDA,
         date: { gte: firstDay, lte: lastDay },
@@ -204,11 +235,12 @@ export class RdcIndicatorsService {
     });
 
     // Contar residentes únicos (um residente pode ter múltiplos episódios)
-    const residentesUnicos = new Set(casos.map((c) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -216,7 +248,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c) => c.id),
+      incidentIds: casos.map((c: any) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -232,6 +264,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de escabiose / residentes no mês) × 100
    */
   private async calculateEscabiose(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -240,9 +273,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const casos = await this.prisma.dailyRecord.findMany({
+    const casos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.ESCABIOSE,
         date: { gte: firstDay, lte: lastDay },
@@ -251,11 +283,12 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -263,7 +296,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c) => c.id),
+      incidentIds: casos.map((c: any) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -279,6 +312,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de desidratação / residentes no mês) × 100
    */
   private async calculateDesidratacao(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -287,9 +321,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const casos = await this.prisma.dailyRecord.findMany({
+    const casos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.DESIDRATACAO,
         date: { gte: firstDay, lte: lastDay },
@@ -298,11 +331,12 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -310,7 +344,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c) => c.id),
+      incidentIds: casos.map((c: any) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -326,6 +360,7 @@ export class RdcIndicatorsService {
    * Fórmula: (residentes com úlcera / residentes no mês) × 100
    */
   private async calculateUlceraDecubito(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -334,9 +369,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const casos = await this.prisma.dailyRecord.findMany({
+    const casos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.ULCERA_DECUBITO,
         date: { gte: firstDay, lte: lastDay },
@@ -345,11 +379,12 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -357,7 +392,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c) => c.id),
+      incidentIds: casos.map((c: any) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -373,6 +408,7 @@ export class RdcIndicatorsService {
    * Fórmula: (residentes com desnutrição / residentes no mês) × 100
    */
   private async calculateDesnutricao(
+    tenantClient: any,
     tenantId: string,
     year: number,
     month: number,
@@ -381,9 +417,8 @@ export class RdcIndicatorsService {
     denominator: number,
     calculatedBy?: string,
   ): Promise<void> {
-    const casos = await this.prisma.dailyRecord.findMany({
+    const casos = await tenantClient.dailyRecord.findMany({
       where: {
-        tenantId,
         type: 'INTERCORRENCIA',
         incidentSubtypeClinical: IncidentSubtypeClinical.DESNUTRICAO,
         date: { gte: firstDay, lte: lastDay },
@@ -392,11 +427,12 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
     await this.upsertIndicator({
+      tenantClient,
       tenantId,
       year,
       month,
@@ -404,7 +440,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c) => c.id),
+      incidentIds: casos.map((c: any) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -419,13 +455,12 @@ export class RdcIndicatorsService {
    * Obtém residentes ativos no período (admitidos antes do fim do mês e não saíram antes do início)
    */
   private async getActiveResidentsInPeriod(
-    tenantId: string,
+    tenantClient: any,
     firstDay: Date,
     lastDay: Date,
   ): Promise<{ id: string }[]> {
-    return this.prisma.resident.findMany({
+    return tenantClient.resident.findMany({
       where: {
-        tenantId,
         admissionDate: { lte: lastDay },
         OR: [
           { dischargeDate: null }, // Ainda está na ILPI
@@ -441,6 +476,7 @@ export class RdcIndicatorsService {
    * Cria ou atualiza um indicador mensal
    */
   private async upsertIndicator(params: {
+    tenantClient: any;
     tenantId: string;
     year: number;
     month: number;
@@ -453,6 +489,7 @@ export class RdcIndicatorsService {
     calculatedBy?: string;
   }): Promise<void> {
     const {
+      tenantClient,
       tenantId,
       year,
       month,
@@ -465,7 +502,7 @@ export class RdcIndicatorsService {
       calculatedBy,
     } = params;
 
-    await this.prisma.incidentMonthlyIndicator.upsert({
+    await tenantClient.incidentMonthlyIndicator.upsert({
       where: {
         tenantId_year_month_indicatorType: {
           tenantId,
@@ -506,9 +543,11 @@ export class RdcIndicatorsService {
     year: number,
     month: number,
   ): Promise<any> {
-    const indicators = await this.prisma.incidentMonthlyIndicator.findMany({
+    // Obter tenant client para acessar schema isolado
+    const tenantClient = await this.getTenantClient(tenantId);
+
+    const indicators = await tenantClient.incidentMonthlyIndicator.findMany({
       where: {
-        tenantId,
         year,
         month,
       },
@@ -540,10 +579,11 @@ export class RdcIndicatorsService {
     tenantId: string,
     months: number = 12,
   ): Promise<any[]> {
-    const indicators = await this.prisma.incidentMonthlyIndicator.findMany({
-      where: {
-        tenantId,
-      },
+    // Obter tenant client para acessar schema isolado
+    const tenantClient = await this.getTenantClient(tenantId);
+
+    const indicators = await tenantClient.incidentMonthlyIndicator.findMany({
+      where: {},
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       take: months * 6, // 6 indicadores por mês
     });

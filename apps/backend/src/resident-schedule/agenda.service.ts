@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantContextService } from '../prisma/tenant-context.service';
 import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/get-agenda-items.dto';
 import { AgendaItem, AgendaItemType } from './interfaces/agenda-item.interface';
 import { parseISO, startOfDay, endOfDay, isWithinInterval, eachDayOfInterval, format, isPast, isBefore } from 'date-fns';
@@ -10,7 +11,10 @@ import { formatDateOnly } from '../utils/date.helpers';
 export class AgendaService {
   private readonly logger = new Logger(AgendaService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
+    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+  ) {}
 
   /**
    * Busca todos os itens da agenda (medicamentos, eventos agendados e registros recorrentes)
@@ -23,7 +27,6 @@ export class AgendaService {
    */
   async getAgendaItems(
     dto: GetAgendaItemsDto,
-    tenantId: string,
   ): Promise<AgendaItem[]> {
     // Determinar intervalo de datas baseado nos parâmetros
     let targetStartDate: Date;
@@ -34,7 +37,7 @@ export class AgendaService {
       targetStartDate = parseISO(`${dto.startDate}T00:00:00.000`);
       targetEndDate = parseISO(`${dto.endDate}T23:59:59.999`);
       this.logger.log(
-        `Buscando itens da agenda (RANGE) para tenant ${tenantId}, ${dto.startDate} a ${dto.endDate}, residentId: ${dto.residentId || 'todos'}`,
+        `Buscando itens da agenda (RANGE) para tenant ${this.tenantContext.tenantId}, ${dto.startDate} a ${dto.endDate}, residentId: ${dto.residentId || 'todos'}`,
       );
     } else if (dto.date) {
       // Modo Single Date (retrocompatível - visualização diária)
@@ -42,7 +45,7 @@ export class AgendaService {
       targetStartDate = startOfDay(singleDate);
       targetEndDate = endOfDay(singleDate);
       this.logger.log(
-        `Buscando itens da agenda (SINGLE) para tenant ${tenantId}, data: ${dto.date}, residentId: ${dto.residentId || 'todos'}`,
+        `Buscando itens da agenda (SINGLE) para tenant ${this.tenantContext.tenantId}, data: ${dto.date}, residentId: ${dto.residentId || 'todos'}`,
       );
     } else {
       // Modo Default: usa hoje
@@ -50,7 +53,7 @@ export class AgendaService {
       targetStartDate = startOfDay(today);
       targetEndDate = endOfDay(today);
       this.logger.log(
-        `Buscando itens da agenda (DEFAULT=hoje) para tenant ${tenantId}, residentId: ${dto.residentId || 'todos'}`,
+        `Buscando itens da agenda (DEFAULT=hoje) para tenant ${this.tenantContext.tenantId}, residentId: ${dto.residentId || 'todos'}`,
       );
     }
 
@@ -64,7 +67,6 @@ export class AgendaService {
       const medications = await this.getMedicationItems(
         targetStartDate,
         targetEndDate,
-        tenantId,
         dto.residentId,
       );
       items.push(...medications);
@@ -76,7 +78,6 @@ export class AgendaService {
       const events = await this.getScheduledEventItems(
         targetStartDate,
         targetEndDate,
-        tenantId,
         dto.residentId,
         eventTypes,
       );
@@ -89,7 +90,6 @@ export class AgendaService {
       const records = await this.getRecurringRecordItems(
         targetStartDate,
         targetEndDate,
-        tenantId,
         dto.residentId,
         recordTypes,
       );
@@ -135,15 +135,13 @@ export class AgendaService {
   private async getMedicationItems(
     startDate: Date,
     endDate: Date,
-    tenantId: string,
     residentId?: string,
   ): Promise<AgendaItem[]> {
     const items: AgendaItem[] = [];
 
     // Buscar prescrições ativas que estejam ativas em algum momento do intervalo
-    const prescriptions = await this.prisma.prescription.findMany({
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         ...(residentId && { residentId }),
@@ -212,7 +210,7 @@ export class AgendaService {
             for (const time of scheduledTimes) {
               // Verificar se já foi administrado neste horário e dia
               // Usar currentDay diretamente (T12:00) para match com medicationAdministration
-              const administration = await this.prisma.medicationAdministration.findFirst({
+              const administration = await this.tenantContext.client.medicationAdministration.findFirst({
                 where: {
                   medicationId: medication.id,
                   date: currentDay,
@@ -275,13 +273,11 @@ export class AgendaService {
   private async getScheduledEventItems(
     startDate: Date,
     endDate: Date,
-    tenantId: string,
     residentId?: string,
     eventTypes?: ScheduledEventType[],
   ): Promise<AgendaItem[]> {
-    const events = await this.prisma.residentScheduledEvent.findMany({
+    const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
-        tenantId,
         deletedAt: null,
         scheduledDate: {
           gte: startOfDay(startDate),
@@ -344,16 +340,14 @@ export class AgendaService {
   private async getRecurringRecordItems(
     startDate: Date,
     endDate: Date,
-    tenantId: string,
     residentId?: string,
     recordTypes?: RecordType[],
   ): Promise<AgendaItem[]> {
     const items: AgendaItem[] = [];
 
     // Buscar configurações ativas
-    const configs = await this.prisma.residentScheduleConfig.findMany({
+    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
       where: {
-        tenantId,
         isActive: true,
         deletedAt: null,
         ...(residentId && { residentId }),
@@ -409,9 +403,8 @@ export class AgendaService {
           ? (config.metadata as any).mealType
           : null;
 
-        const record = await this.prisma.dailyRecord.findFirst({
+        const record = await this.tenantContext.client.dailyRecord.findFirst({
           where: {
-            tenantId,
             residentId: config.residentId,
             type: config.recordType,
             date: targetDate,
@@ -595,7 +588,6 @@ export class AgendaService {
   async getInstitutionalEvents(
     startDate: Date,
     endDate: Date,
-    tenantId: string,
     userRole: string,
     isRT: boolean = false,
   ): Promise<AgendaItem[]> {
@@ -620,9 +612,8 @@ export class AgendaService {
       visibilityFilter = [InstitutionalEventVisibility.ALL_USERS];
     }
 
-    const events = await this.prisma.institutionalEvent.findMany({
+    const events = await this.tenantContext.client.institutionalEvent.findMany({
       where: {
-        tenantId,
         deletedAt: null,
         scheduledDate: {
           gte: startOfDay(startDate),
@@ -678,5 +669,16 @@ export class AgendaService {
         ...((event.metadata as any) || {}),
       },
     }));
+  }
+
+  /**
+   * Verifica se um usuário é Responsável Técnico (RT)
+   */
+  async isUserRT(userId: string): Promise<boolean> {
+    const userProfile = await this.tenantContext.client.userProfile.findUnique({
+      where: { userId },
+      select: { isTechnicalManager: true },
+    });
+    return userProfile?.isTechnicalManager || false;
   }
 }
