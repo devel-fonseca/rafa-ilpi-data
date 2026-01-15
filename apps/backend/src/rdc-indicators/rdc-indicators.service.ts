@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TenantContextService } from '../prisma/tenant-context.service';
 import {
   RdcIndicatorType,
   IncidentSubtypeClinical,
@@ -29,8 +28,7 @@ export class RdcIndicatorsService {
   private readonly logger = new Logger(RdcIndicatorsService.name);
 
   constructor(
-    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
-    private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema) e getTenantClient()
   ) {}
 
   /**

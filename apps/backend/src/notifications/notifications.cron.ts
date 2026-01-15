@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { Cron, CronExpression } from '@nestjs/schedule'
+import { Cron } from '@nestjs/schedule'
 import { PrismaService } from '../prisma/prisma.service'
-import { NotificationsService } from './notifications.service'
+import { NotificationsHelperService } from './notifications-helper.service'
 import {
   getDocumentLabel,
   shouldTriggerAlert,
@@ -18,7 +18,7 @@ export class NotificationsCronService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly notificationsHelper: NotificationsHelperService,
   ) {}
 
   /**
@@ -81,7 +81,8 @@ export class NotificationsCronService {
           })
 
           if (!existing) {
-            await this.notificationsService.createScheduledEventDueNotification(
+            await this.notificationsHelper.createScheduledEventDueNotificationForTenant(
+              tenant.id, // ✅ Passar tenantId explicitamente
               event.id,
               event.resident?.id || '',
               event.resident?.fullName || 'Residente',
@@ -125,12 +126,13 @@ export class NotificationsCronService {
           })
 
           if (!existing) {
-            await this.notificationsService.createScheduledEventMissedNotification(
+            await this.notificationsHelper.createScheduledEventMissedNotificationForTenant(
+              tenant.id, // ✅ Passar tenantId explicitamente
               event.id,
               event.resident?.id || '',
               event.resident?.fullName || 'Residente',
               event.title,
-              event.scheduledDate,
+              event.scheduledDate, // scheduledDate já é string (DATE no schema)
             )
             totalMissed++
           }
@@ -217,7 +219,8 @@ export class NotificationsCronService {
             })
 
             if (!existing) {
-              await this.notificationsService.createPrescriptionExpiredNotification(
+              await this.notificationsHelper.createPrescriptionExpiredNotificationForTenant(
+                tenant.id, // ✅ Passar tenantId explicitamente
                 prescription.id,
                 prescription.resident?.fullName || 'Residente',
               )
@@ -240,7 +243,8 @@ export class NotificationsCronService {
             })
 
             if (!existing) {
-              await this.notificationsService.createPrescriptionExpiringNotification(
+              await this.notificationsHelper.createPrescriptionExpiringNotificationForTenant(
+                tenant.id, // ✅ Passar tenantId explicitamente
                 prescription.id,
                 prescription.resident?.fullName || 'Residente',
                 diffDays,
@@ -326,7 +330,8 @@ export class NotificationsCronService {
             if (!existing) {
               // Usar label amigável em vez do tipo técnico
               const documentLabel = getDocumentLabel(doc.type)
-              await this.notificationsService.createDocumentExpiredNotification(
+              await this.notificationsHelper.createDocumentExpiredNotificationForTenant(
+                tenant.id, // ✅ Passar tenantId explicitamente
                 doc.id,
                 documentLabel,
                 'TENANT_DOCUMENT',
@@ -359,7 +364,8 @@ export class NotificationsCronService {
             if (!existing) {
               // Usar label amigável em vez do tipo técnico
               const documentLabel = getDocumentLabel(doc.type)
-              await this.notificationsService.createDocumentExpiringNotification(
+              await this.notificationsHelper.createDocumentExpiringNotificationForTenant(
+                tenant.id, // ✅ Passar tenantId explicitamente
                 doc.id,
                 documentLabel,
                 diffDays,
@@ -460,7 +466,8 @@ export class NotificationsCronService {
               })
 
             if (!existingNotification) {
-              await this.notificationsService.createPopReviewNotification(
+              await this.notificationsHelper.createPopReviewNotificationForTenant(
+                tenant.id, // ✅ Passar tenantId explicitamente
                 pop.id,
                 pop.title,
                 daysUntilReview,
@@ -500,9 +507,9 @@ export class NotificationsCronService {
     this.logger.log('🔔 Running cron: cleanupExpiredNotifications')
 
     try {
-      const result = await this.notificationsService.cleanupExpired()
+      const result = await this.notificationsHelper.cleanupExpired()
       this.logger.log(
-        `✅ Cron cleanupExpiredNotifications completed: ${result.count} notifications deleted`,
+        `✅ Cron cleanupExpiredNotifications completed: ${result.notificationsDeleted} notifications deleted`,
       )
     } catch (error) {
       this.logger.error(

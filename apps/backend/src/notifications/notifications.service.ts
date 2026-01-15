@@ -589,4 +589,215 @@ export class NotificationsService {
       metadata: { eventTitle, eventType, scheduledDate: dateStr, updatedByName },
     })
   }
+
+  // ========================================================================
+  // MÉTODOS AUXILIARES PARA USO EM CRONJOBS (não dependem de REQUEST)
+  // ========================================================================
+
+  /**
+   * Criar notificação DIRETAMENTE em schema de tenant específico
+   * Uso: CronJobs e outros contextos sem HTTP REQUEST
+   *
+   * ⚠️ IMPORTANTE: Esses métodos NÃO usam tenantContext (REQUEST-scoped)
+   * e recebem tenantId explicitamente para usar getTenantClient()
+   */
+  async createForTenant(tenantId: string, dto: CreateNotificationDto) {
+    // Buscar schema do tenant
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant ${tenantId} não encontrado`)
+    }
+
+    // Obter client do tenant
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+
+    // Criar notificação diretamente no schema do tenant
+    const notification = await tenantClient.notification.create({
+      data: {
+        tenantId,
+        type: dto.type,
+        category: dto.category,
+        severity: dto.severity,
+        title: dto.title,
+        message: dto.message,
+        actionUrl: dto.actionUrl,
+        entityType: dto.entityType,
+        entityId: dto.entityId,
+        metadata: dto.metadata || {},
+        expiresAt: dto.expiresAt,
+      },
+    })
+
+    this.logger.log(`Notification created for tenant ${tenantId}: ${notification.id}`)
+    return notification
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de evento agendado para hoje
+   */
+  async createScheduledEventDueNotificationForTenant(
+    tenantId: string,
+    eventId: string,
+    residentId: string,
+    residentName: string,
+    eventTitle: string,
+    scheduledTime: string,
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.SCHEDULED_EVENT_DUE,
+      category: NotificationCategory.SCHEDULED_EVENT,
+      severity: NotificationSeverity.INFO,
+      title: 'Evento Agendado Hoje',
+      message: `${residentName} tem um agendamento hoje às ${scheduledTime}: ${eventTitle}`,
+      actionUrl: `/dashboard/residentes/${residentId}`,
+      entityType: 'SCHEDULED_EVENT',
+      entityId: eventId,
+      metadata: { residentId, residentName, eventTitle, scheduledTime },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de evento agendado perdido
+   */
+  async createScheduledEventMissedNotificationForTenant(
+    tenantId: string,
+    eventId: string,
+    residentId: string,
+    residentName: string,
+    eventTitle: string,
+    scheduledDate: string,
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.SCHEDULED_EVENT_MISSED,
+      category: NotificationCategory.SCHEDULED_EVENT,
+      severity: NotificationSeverity.WARNING,
+      title: 'Evento Agendado Perdido',
+      message: `${residentName} perdeu o agendamento de ${scheduledDate}: ${eventTitle}`,
+      actionUrl: `/dashboard/residentes/${residentId}`,
+      entityType: 'SCHEDULED_EVENT',
+      entityId: eventId,
+      metadata: { residentId, residentName, eventTitle, scheduledDate },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de prescrição vencida
+   */
+  async createPrescriptionExpiredNotificationForTenant(
+    tenantId: string,
+    prescriptionId: string,
+    residentName: string,
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.PRESCRIPTION_EXPIRED,
+      category: NotificationCategory.PRESCRIPTION,
+      severity: NotificationSeverity.CRITICAL,
+      title: 'Prescrição Médica Vencida',
+      message: `A prescrição médica de ${residentName} está vencida e precisa ser renovada.`,
+      actionUrl: `/dashboard/medicacoes`,
+      entityType: 'PRESCRIPTION',
+      entityId: prescriptionId,
+      metadata: { prescriptionId, residentName },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de prescrição vencendo
+   */
+  async createPrescriptionExpiringNotificationForTenant(
+    tenantId: string,
+    prescriptionId: string,
+    residentName: string,
+    daysLeft: number,
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.PRESCRIPTION_EXPIRING,
+      category: NotificationCategory.PRESCRIPTION,
+      severity: NotificationSeverity.WARNING,
+      title: 'Prescrição Médica Vencendo',
+      message: `A prescrição médica de ${residentName} vence em ${daysLeft} dia(s). Providencie renovação.`,
+      actionUrl: `/dashboard/medicacoes`,
+      entityType: 'PRESCRIPTION',
+      entityId: prescriptionId,
+      metadata: { prescriptionId, residentName, daysLeft },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de documento vencido
+   */
+  async createDocumentExpiredNotificationForTenant(
+    tenantId: string,
+    documentId: string,
+    documentName: string,
+    entityType: 'TENANT_DOCUMENT' | 'RESIDENT_DOCUMENT',
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.DOCUMENT_EXPIRED,
+      category: NotificationCategory.DOCUMENT,
+      severity: NotificationSeverity.CRITICAL,
+      title: 'Documento Vencido',
+      message: `O documento "${documentName}" está vencido.`,
+      actionUrl: `/dashboard/documentos`,
+      entityType,
+      entityId: documentId,
+      metadata: { documentId, documentName },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de documento vencendo
+   */
+  async createDocumentExpiringNotificationForTenant(
+    tenantId: string,
+    documentId: string,
+    documentName: string,
+    daysLeft: number,
+    entityType: 'TENANT_DOCUMENT' | 'RESIDENT_DOCUMENT',
+  ) {
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.DOCUMENT_EXPIRING,
+      category: NotificationCategory.DOCUMENT,
+      severity: NotificationSeverity.WARNING,
+      title: 'Documento Vencendo',
+      message: `O documento "${documentName}" vence em ${daysLeft} dia(s).`,
+      actionUrl: `/dashboard/documentos`,
+      entityType,
+      entityId: documentId,
+      metadata: { documentId, documentName, daysLeft },
+    })
+  }
+
+  /**
+   * Versão para CronJob: Criar notificação de POP que precisa revisão
+   */
+  async createPopReviewNotificationForTenant(
+    tenantId: string,
+    popId: string,
+    popTitle: string,
+    daysUntilReview: number,
+  ) {
+    let message: string
+    if (daysUntilReview <= 0) {
+      message = `O POP "${popTitle}" precisa de revisão hoje.`
+    } else {
+      message = `O POP "${popTitle}" precisa de revisão em ${daysUntilReview} dia(s).`
+    }
+
+    return this.createForTenant(tenantId, {
+      type: SystemNotificationType.POP_REVIEW_DUE,
+      category: NotificationCategory.POP,
+      severity: daysUntilReview <= 0 ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
+      title: 'POP Precisa de Revisão',
+      message,
+      actionUrl: `/dashboard/pops`,
+      entityType: 'POP',
+      entityId: popId,
+      metadata: { popId, popTitle, daysUntilReview },
+    })
+  }
 }

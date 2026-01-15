@@ -14,7 +14,7 @@
  * @date 2025-01-06
  */
 
-import { parseISO, format, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, format, endOfDay } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
