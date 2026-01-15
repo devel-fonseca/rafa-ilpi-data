@@ -10,7 +10,7 @@ import {
  * Valida dígitos verificadores conforme algoritmo oficial
  */
 export function IsCPF(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     registerDecorator({
       name: 'isCPF',
       target: object.constructor,
