@@ -21,7 +21,7 @@ export class HealthController {
         status: 'ok',
         database: 'connected',
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         status: 'error',
         database: 'disconnected',

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { FilesService } from '../files/files.service'
-import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto, UpdateTenantDto } from './dto'
+import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { DocumentStatus } from '@prisma/client'
 import { getRequiredDocuments, getDocumentLabel, isAllowedFileType, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { getCurrentDateInTz } from '../utils/date.helpers'

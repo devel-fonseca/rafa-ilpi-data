@@ -104,7 +104,7 @@ export class MedicationsController {
   @ApiParam({ name: 'id', description: 'ID do medicamento (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.medicationsService.getHistory(id);
   }
@@ -125,7 +125,7 @@ export class MedicationsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.medicationsService.getHistoryVersion(
       id,

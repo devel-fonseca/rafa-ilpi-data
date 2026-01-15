@@ -1,5 +1,3 @@
-import { Tenant } from '@prisma/client'
-
 /**
  * Status de pagamento no Asaas
  */

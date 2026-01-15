@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class FilesService {

@@ -44,7 +44,7 @@ export class ResidentDocumentsController {
     @Query('type') type: string | undefined,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.findAll(residentId, type);
   }
 
@@ -61,7 +61,7 @@ export class ResidentDocumentsController {
     @Param('id') id: string,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.findOne(id, residentId);
   }
 
@@ -118,7 +118,7 @@ export class ResidentDocumentsController {
     @Body() metadata: CreateResidentDocumentDto,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.uploadDocument(
       residentId,
       user.id,
@@ -141,7 +141,7 @@ export class ResidentDocumentsController {
     @Body() updateDto: UpdateResidentDocumentDto,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.updateMetadata(id, residentId, updateDto);
   }
 
@@ -180,7 +180,7 @@ export class ResidentDocumentsController {
     file: Express.Multer.File,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.replaceFile(id, residentId, file);
   }
 
@@ -197,7 +197,7 @@ export class ResidentDocumentsController {
     @Param('id') id: string,
     @Req() req: Request,
   ) {
-    const user = req.user as any;
+    const _user = req.user as any;
     return this.documentsService.deleteDocument(id, residentId);
   }
 }

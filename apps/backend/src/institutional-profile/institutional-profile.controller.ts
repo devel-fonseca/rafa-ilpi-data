@@ -19,9 +19,9 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { InstitutionalProfileService } from './institutional-profile.service'
-import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
+import { CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { CreateTenantDocumentWithUrlDto } from './dto/create-tenant-document-with-url.dto'
-import { getRequiredDocuments, getAllDocumentTypes, getDocumentLabel, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './config/document-requirements.config'
+import { getRequiredDocuments, getAllDocumentTypes, getDocumentLabel, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { LegalNature, PermissionType } from '@prisma/client'
 
 @Controller('institutional-profile')

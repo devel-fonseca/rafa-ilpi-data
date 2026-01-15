@@ -50,7 +50,7 @@ export class DailyRecordsController {
   @ApiResponse({ status: 201, description: 'Registro criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@Body() createDto: CreateDailyRecordDto, @CurrentUser() user: any) {
+  create(@Body() createDto: CreateDailyRecordDto, @CurrentUser() _user: any) {
     return this.dailyRecordsService.create(
       createDto,
       user.id,
@@ -63,7 +63,7 @@ export class DailyRecordsController {
     status: 200,
     description: 'Lista de registros com paginação',
   })
-  findAll(@Query() query: QueryDailyRecordDto, @CurrentUser() user: any) {
+  findAll(@Query() query: QueryDailyRecordDto, @CurrentUser() _user: any) {
     return this.dailyRecordsService.findAll(query);
   }
 
@@ -90,7 +90,7 @@ export class DailyRecordsController {
       },
     },
   })
-  findLatestByResidents(@CurrentUser() user: any) {
+  findLatestByResidents(@CurrentUser() _user: any) {
     return this.dailyRecordsService.findLatestByResidents();
   }
 
@@ -105,7 +105,7 @@ export class DailyRecordsController {
   async findLatestByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Query('limit') limit: string = '3',
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.findLatestByResident(
       residentId,
@@ -123,7 +123,7 @@ export class DailyRecordsController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   async findLastVitalSign(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     const vitalSign = await this.dailyRecordsService.findLastVitalSign(residentId);
 
@@ -154,7 +154,7 @@ export class DailyRecordsController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   async findConsolidatedVitalSigns(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.findConsolidatedVitalSigns(residentId);
   }
@@ -174,7 +174,7 @@ export class DailyRecordsController {
   findByResidentAndDate(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Param('date') date: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.findByResidentAndDate(
       residentId,
@@ -203,7 +203,7 @@ export class DailyRecordsController {
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Query('year') year: string,
     @Query('month') month: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.findDatesWithRecordsByResident(
       residentId,
@@ -226,7 +226,7 @@ export class DailyRecordsController {
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.getHistory(id);
   }
@@ -255,7 +255,7 @@ export class DailyRecordsController {
   restoreVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() restoreDto: RestoreVersionDailyRecordDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.restoreVersion(
       id,
@@ -275,7 +275,7 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, description: 'Registro encontrado' })
   @ApiResponse({ status: 404, description: 'Registro não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
-  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() _user: any) {
     return this.dailyRecordsService.findOne(id);
   }
 
@@ -290,7 +290,7 @@ export class DailyRecordsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateDailyRecordDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.update(
       id,
@@ -312,7 +312,7 @@ export class DailyRecordsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteDailyRecordDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.dailyRecordsService.remove(
       id,

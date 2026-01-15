@@ -11,7 +11,6 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
-  Req,
   UseInterceptors,
 } from '@nestjs/common';
 import { ResidentsService } from './residents.service';
@@ -21,8 +20,6 @@ import { DeleteResidentDto } from './dto/delete-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
 import { TransferBedDto } from './dto/transfer-bed.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
@@ -56,7 +53,7 @@ export class ResidentsController {
   @ApiResponse({ status: 403, description: 'Sem permissão' })
   create(
     @Body() createResidentDto: CreateResidentDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.create(
       createResidentDto,
@@ -76,7 +73,7 @@ export class ResidentsController {
   @ApiQuery({ name: 'limit', required: false, description: 'Itens por página', example: 10 })
   findAll(
     @Query() query: QueryResidentDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.findAll(query);
   }
@@ -90,7 +87,7 @@ export class ResidentsController {
   @ApiParam({ name: 'id', description: 'ID do residente' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.findOne(id);
   }
@@ -108,7 +105,7 @@ export class ResidentsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateResidentDto: UpdateResidentDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.update(
       id,
@@ -131,7 +128,7 @@ export class ResidentsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteResidentDto: DeleteResidentDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.remove(
       id,
@@ -149,7 +146,7 @@ export class ResidentsController {
   @ApiParam({ name: 'id', description: 'ID do residente' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.getHistory(id);
   }
@@ -165,7 +162,7 @@ export class ResidentsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.getHistoryVersion(
       id,
@@ -202,7 +199,7 @@ export class ResidentsController {
   async transferBed(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() transferBedDto: TransferBedDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.residentsService.transferBed(
       id,

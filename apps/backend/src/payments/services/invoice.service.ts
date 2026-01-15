@@ -4,7 +4,7 @@ import { AsaasService } from './asaas.service'
 import { CreateInvoiceDto, InvoiceCreationMode } from '../dto/create-invoice.dto'
 import { Invoice, InvoiceStatus, Prisma } from '@prisma/client'
 import { AsaasBillingType } from '../gateways/payment-gateway.interface'
-import { addDays, format } from 'date-fns'
+import { addDays } from 'date-fns'
 
 /**
  * Service para gerenciar faturas (invoices)

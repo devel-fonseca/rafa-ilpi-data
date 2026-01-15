@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { UpdateMedicationDto } from '../prescriptions/dto/update-medication.dto';
-import { DeleteMedicationDto } from '../prescriptions/dto/delete-medication.dto';
 import { ChangeType } from '@prisma/client';
 
 @Injectable()

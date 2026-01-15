@@ -76,7 +76,7 @@ export class PermissionsController {
   @ApiParam({ name: 'userId', description: 'ID do usuário' })
   async getUserPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return await this.permissionsService.getUserAllPermissions(userId);
   }
@@ -183,7 +183,7 @@ export class PermissionsController {
   async removeCustomPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() body: { permissions: PermissionType[] },
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     for (const permission of body.permissions) {
       await this.permissionsService.removeCustomPermission(
