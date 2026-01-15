@@ -991,7 +991,7 @@ export class EmailService {
         : data.alertLevel === 'warning'
         ? '#ea580c'
         : '#3b82f6';
-    const severityBg =
+    const _severityBg =
       data.alertLevel === 'critical'
         ? '#fef2f2'
         : data.alertLevel === 'warning'

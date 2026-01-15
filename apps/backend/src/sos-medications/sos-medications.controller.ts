@@ -58,7 +58,7 @@ export class SOSMedicationsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSOSMedicationDto: UpdateSOSMedicationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.sosMedicationsService.update(
       id,
@@ -92,7 +92,7 @@ export class SOSMedicationsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteSOSMedicationDto: DeleteSOSMedicationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.sosMedicationsService.remove(
       id,
@@ -118,7 +118,7 @@ export class SOSMedicationsController {
   @ApiParam({ name: 'id', description: 'ID do medicamento SOS (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.sosMedicationsService.getHistory(id);
   }
@@ -139,7 +139,7 @@ export class SOSMedicationsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.sosMedicationsService.getHistoryVersion(
       id,

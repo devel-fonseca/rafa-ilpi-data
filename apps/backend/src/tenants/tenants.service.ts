@@ -57,7 +57,7 @@ export class TenantsService {
       lgpdIsDataController,
       lgpdHasLegalBasis,
       lgpdAcknowledgesResponsibility,
-      privacyPolicyAccepted,
+      privacyPolicyAccepted: _privacyPolicyAccepted,
       billingCycle,
       paymentMethod,
     } = createTenantDto;
@@ -66,7 +66,7 @@ export class TenantsService {
     let acceptanceData: any;
     try {
       acceptanceData = this.jwtService.verify(acceptanceToken);
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(
         'Token de aceite do contrato inválido ou expirado',
       );
@@ -972,7 +972,7 @@ export class TenantsService {
    * Busca features disponíveis no plano do tenant
    * SUPERADMIN (tenantId = null) recebe todas as features
    */
-  async getMyFeatures(tenantId: string | null, userId: string) {
+  async getMyFeatures(tenantId: string | null, _userId: string) {
     // SUPERADMIN tem acesso a todas as features
     if (!tenantId) {
       // Retornar todas as features como true

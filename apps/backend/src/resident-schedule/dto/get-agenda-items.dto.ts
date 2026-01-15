@@ -1,4 +1,4 @@
-import { IsOptional, IsDateString, IsUUID, IsArray, IsEnum, IsIn } from 'class-validator';
+import { IsOptional, IsDateString, IsUUID, IsArray, IsEnum } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export enum ContentFilterType {

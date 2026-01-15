@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 
 @Injectable()
 export class PrivacyPolicyService {
@@ -21,7 +21,7 @@ export class PrivacyPolicyService {
     let content: string;
     try {
       content = readFileSync(policyPath, 'utf8');
-    } catch (error) {
+    } catch (_error) {
       // Fallback: tentar caminho do source em desenvolvimento
       const devPath = resolve(
         process.cwd(),

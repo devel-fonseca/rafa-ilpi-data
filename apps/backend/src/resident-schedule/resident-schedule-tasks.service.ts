@@ -4,7 +4,7 @@ import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO } from 'date-fns';
-import { ScheduleFrequency, ScheduledEventStatus } from '@prisma/client';
+import { ScheduleFrequency } from '@prisma/client';
 import { getCurrentDateInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
 
 export interface DailyTask {
@@ -59,8 +59,8 @@ export class ResidentScheduleTasksService {
     }
 
     const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
-    const dayOfWeek = targetDate.getDay(); // 0 = Domingo, 6 = Sábado
-    const dayOfMonth = targetDate.getDate(); // 1-31
+    const _dayOfWeek = targetDate.getDay(); // 0 = Domingo, 6 = Sábado
+    const _dayOfMonth = targetDate.getDate(); // 1-31
 
     // 1. Buscar configurações ativas do residente
     const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
@@ -227,8 +227,8 @@ export class ResidentScheduleTasksService {
     }
 
     const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
-    const dayOfWeek = targetDate.getDay();
-    const dayOfMonth = targetDate.getDate();
+    const _dayOfWeek = targetDate.getDay();
+    const _dayOfMonth = targetDate.getDate();
 
     // 1. Buscar todas as configurações ativas do tenant
     const configs = await this.tenantContext.client.residentScheduleConfig.findMany({

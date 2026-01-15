@@ -120,7 +120,7 @@ export class UserProfilesController {
   @ApiOperation({ summary: 'Listar todos os perfis de usuários' })
   @ApiResponse({ status: 200, description: 'Lista de perfis de usuários' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  findAll(@CurrentUser() user: any) {
+  findAll(@CurrentUser() _user: any) {
     return this.userProfilesService.findAll();
   }
 
@@ -132,7 +132,7 @@ export class UserProfilesController {
   @ApiParam({ name: 'userId', description: 'ID do usuário' })
   findOne(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
   ) {
     return this.userProfilesService.findOne(userId);
   }

@@ -10,8 +10,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { parseISO, startOfDay, format } from 'date-fns';
-import { ScheduleFrequency, ScheduledEventType } from '@prisma/client';
+import { parseISO, format } from 'date-fns';
+import { ScheduleFrequency } from '@prisma/client';
 import {
   CreateScheduleConfigDto,
   UpdateScheduleConfigDto,

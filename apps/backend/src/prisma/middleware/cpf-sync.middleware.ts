@@ -12,7 +12,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
  *
  * Mantido aqui apenas para referência histórica.
  */
-export function createCpfSyncMiddleware(prismaClient?: PrismaClient): Prisma.Middleware {
+export function createCpfSyncMiddleware(_prismaClient?: PrismaClient): Prisma.Middleware {
   return async (params, next) => {
     // Middleware desabilitado - sincronização feita em nível de serviço
     return next(params);

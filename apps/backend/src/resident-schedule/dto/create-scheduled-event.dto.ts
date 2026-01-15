@@ -6,7 +6,6 @@ import {
   IsOptional,
   IsObject,
   Matches,
-  ValidateIf,
 } from 'class-validator';
 import { ScheduledEventType } from '@prisma/client';
 

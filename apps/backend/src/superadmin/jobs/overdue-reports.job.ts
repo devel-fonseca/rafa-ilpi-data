@@ -87,7 +87,7 @@ export class OverdueReportsJob {
   /**
    * Buscar dados de inadimplência para o período
    */
-  private async getOverdueData(startDate: Date, endDate: Date) {
+  private async getOverdueData(_startDate: Date, _endDate: Date) {
     const now = new Date()
 
     // Buscar faturas vencidas (OPEN com dueDate passado)

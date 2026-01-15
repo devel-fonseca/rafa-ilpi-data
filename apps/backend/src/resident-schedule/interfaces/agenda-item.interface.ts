@@ -1,4 +1,4 @@
-import { RecordType, ScheduledEventType, ScheduledEventStatus } from '@prisma/client';
+import { RecordType, ScheduledEventType } from '@prisma/client';
 
 export enum AgendaItemType {
   MEDICATION = 'MEDICATION',

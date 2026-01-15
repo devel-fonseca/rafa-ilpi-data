@@ -188,7 +188,7 @@ export class PrismaQueryLoggerMiddleware {
    */
   private detectCrossSchemaJoin(model: string, include: any): void {
     const modelIsShared = this.SHARED_MODELS.has(model);
-    const modelIsTenant = this.TENANT_MODELS.has(model);
+    const _modelIsTenant = this.TENANT_MODELS.has(model);
 
     for (const relation in include) {
       // Tentar inferir se relation é de schema diferente

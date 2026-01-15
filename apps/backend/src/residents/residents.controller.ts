@@ -175,7 +175,7 @@ export class ResidentsController {
   @ApiOperation({ summary: 'Estatísticas gerais dos residentes' })
   @ApiResponse({ status: 200, description: 'Estatísticas dos residentes' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async getStats(@CurrentUser() user: any) {
+  async getStats(@CurrentUser() _user: any) {
     return this.residentsService.getStats();
   }
 

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { Cron, CronExpression } from '@nestjs/schedule'
+import { Cron } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { SubscriptionAdminService } from '../services/subscription-admin.service'
@@ -82,7 +82,7 @@ export class TrialToActiveConversionJob {
             `🔄 Convertendo trial: ${subscription.tenant.name} (${subscription.plan.displayName})`,
           )
 
-          const updatedSubscription =
+          const _updatedSubscription =
             await this.subscriptionAdminService.convertTrialToActive(
               subscription.id,
             )

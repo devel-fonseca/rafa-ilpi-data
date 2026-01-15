@@ -72,7 +72,7 @@ export class TenantProfileController {
     description: 'Não autenticado',
   })
   async upsert(
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
     @Body() dto: CreateTenantProfileDto,
   ) {
     return this.tenantProfileService.upsert(dto);
@@ -95,7 +95,7 @@ export class TenantProfileController {
     status: 404,
     description: 'Perfil não encontrado',
   })
-  async getMyProfile(@CurrentUser() user: any) {
+  async getMyProfile(@CurrentUser() _user: any) {
     return this.tenantProfileService.findByTenantId();
   }
 
@@ -121,7 +121,7 @@ export class TenantProfileController {
       },
     },
   })
-  async checkCompletion(@CurrentUser() user: any) {
+  async checkCompletion(@CurrentUser() _user: any) {
     return this.tenantProfileService.checkCompletionStatus();
   }
 
@@ -149,7 +149,7 @@ export class TenantProfileController {
     description: 'Dados inválidos',
   })
   async update(
-    @CurrentUser() user: any,
+    @CurrentUser() _user: any,
     @Body() dto: UpdateTenantProfileDto,
   ) {
     return this.tenantProfileService.update(dto);
@@ -174,7 +174,7 @@ export class TenantProfileController {
     status: 404,
     description: 'Perfil não encontrado',
   })
-  async softDelete(@CurrentUser() user: any) {
+  async softDelete(@CurrentUser() _user: any) {
     await this.tenantProfileService.softDelete();
   }
 }

@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/get-agenda-items.dto';
 import { AgendaItem, AgendaItemType } from './interfaces/agenda-item.interface';
-import { parseISO, startOfDay, endOfDay, isWithinInterval, eachDayOfInterval, format, isPast, isBefore } from 'date-fns';
+import { parseISO, startOfDay, endOfDay, eachDayOfInterval, format, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
 import { formatDateOnly } from '../utils/date.helpers';
 
