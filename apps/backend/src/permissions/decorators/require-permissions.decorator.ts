@@ -27,7 +27,7 @@ export const RequirePermissions = (...permissions: PermissionType[]) =>
  * @param permissions - Lista de permissões (usuário precisa ter pelo menos uma)
  */
 export const RequireAnyPermission = (...permissions: PermissionType[]) => {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
     SetMetadata(PERMISSIONS_KEY, permissions)(target, propertyKey, descriptor);
     SetMetadata(REQUIRE_ALL_KEY, false)(target, propertyKey, descriptor);
     return descriptor;
@@ -41,7 +41,7 @@ export const RequireAnyPermission = (...permissions: PermissionType[]) => {
  * @param permissions - Lista de permissões (usuário precisa ter todas)
  */
 export const RequireAllPermissions = (...permissions: PermissionType[]) => {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return (target: object, propertyKey: string, descriptor: PropertyDescriptor) => {
     SetMetadata(PERMISSIONS_KEY, permissions)(target, propertyKey, descriptor);
     SetMetadata(REQUIRE_ALL_KEY, true)(target, propertyKey, descriptor);
     return descriptor;

@@ -15,7 +15,9 @@ import {
 import { UserProfilesService } from './user-profiles.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -50,7 +52,7 @@ export class UserProfilesController {
   create(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() createUserProfileDto: CreateUserProfileDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.userProfilesService.create(
       userId,
@@ -66,8 +68,8 @@ export class UserProfilesController {
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @HttpCode(HttpStatus.OK)
   async findMyProfile(
-    @CurrentUser() user: any,
-    @Res({ passthrough: true }) res: any,
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Response,
   ) {
     // IMPORTANTE: Desabilitar cache HTTP para evitar retornar perfil errado
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -85,9 +87,9 @@ export class UserProfilesController {
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @HttpCode(HttpStatus.OK)
   async updateMyPreferences(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() preferences: Partial<UserPreferences>,
-    @Res({ passthrough: true }) res: any,
+    @Res({ passthrough: true }) res: Response,
   ) {
     // Desabilitar cache HTTP
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -120,7 +122,7 @@ export class UserProfilesController {
   @ApiOperation({ summary: 'Listar todos os perfis de usuários' })
   @ApiResponse({ status: 200, description: 'Lista de perfis de usuários' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  findAll(@CurrentUser() _user: any) {
+  findAll(@CurrentUser() _user: JwtPayload) {
     return this.userProfilesService.findAll();
   }
 
@@ -132,7 +134,7 @@ export class UserProfilesController {
   @ApiParam({ name: 'userId', description: 'ID do usuário' })
   findOne(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.userProfilesService.findOne(userId);
   }
@@ -149,7 +151,7 @@ export class UserProfilesController {
   update(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() updateUserProfileDto: UpdateUserProfileDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.userProfilesService.update(
       userId,
@@ -172,7 +174,7 @@ export class UserProfilesController {
   @ApiParam({ name: 'userId', description: 'ID do usuário' })
   remove(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.userProfilesService.remove(userId, user.role);
   }

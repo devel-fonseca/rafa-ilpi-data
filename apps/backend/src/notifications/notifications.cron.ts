@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
-import { subDays, addDays, parseISO } from 'date-fns'
+import { subDays, addDays, parseISO, format } from 'date-fns'
 import { PrismaService } from '../prisma/prisma.service'
 import { NotificationsHelperService } from './notifications-helper.service'
 import {
@@ -132,7 +132,7 @@ export class NotificationsCronService {
               event.resident?.id || '',
               event.resident?.fullName || 'Residente',
               event.title,
-              event.scheduledDate, // scheduledDate já é string (DATE no schema)
+              format(event.scheduledDate, 'yyyy-MM-dd'), // Converter Date para string
             )
             totalMissed++
           }
@@ -197,7 +197,9 @@ export class NotificationsCronService {
           if (!prescription.validUntil) continue
 
           // ✅ validUntil agora é DATE (string YYYY-MM-DD), comparar diretamente
-          const validUntilStr = parseDateOnly(prescription.validUntil as any)
+          const validUntilStr = typeof prescription.validUntil === 'string'
+            ? parseDateOnly(prescription.validUntil)
+            : parseDateOnly(prescription.validUntil.toISOString())
 
           // Calcular diferença de dias entre duas datas civil
           const todayDate = parseISO(todayStr + 'T00:00:00')
@@ -307,7 +309,9 @@ export class NotificationsCronService {
           if (!doc.expiresAt) continue
 
           // ✅ expiresAt agora é DATE (string YYYY-MM-DD), comparar diretamente
-          const expiresAtStr = parseDateOnly(doc.expiresAt as any)
+          const expiresAtStr = typeof doc.expiresAt === 'string'
+            ? parseDateOnly(doc.expiresAt)
+            : parseDateOnly(doc.expiresAt.toISOString())
 
           // Calcular diferença de dias entre duas datas civil
           const todayDate = parseISO(todayStr + 'T00:00:00')
@@ -442,7 +446,9 @@ export class NotificationsCronService {
           if (!pop.nextReviewDate) continue
 
           // ✅ nextReviewDate pode ser DATE ou TIMESTAMPTZ, normalizar
-          const reviewDateStr = parseDateOnly(pop.nextReviewDate as any)
+          const reviewDateStr = typeof pop.nextReviewDate === 'string'
+            ? parseDateOnly(pop.nextReviewDate)
+            : parseDateOnly(pop.nextReviewDate.toISOString())
           const reviewDate = parseISO(reviewDateStr + 'T00:00:00')
 
           const diffTime = reviewDate.getTime() - todayDate.getTime()

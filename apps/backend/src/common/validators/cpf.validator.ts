@@ -17,7 +17,7 @@ export function IsCPF(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: validationOptions,
       validator: {
-        validate(value: any, _args: ValidationArguments) {
+        validate(value: unknown, _args: ValidationArguments) {
           if (typeof value !== 'string') return false;
 
           // Remove formatação (pontos e traços)

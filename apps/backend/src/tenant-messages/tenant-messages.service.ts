@@ -7,6 +7,7 @@ import {
   TenantMessageStatus,
   TenantStatus,
   InvoiceStatus,
+  Prisma,
 } from '@prisma/client';
 import { CreateTenantMessageDto, UpdateTenantMessageDto } from './dto';
 
@@ -68,7 +69,7 @@ export class TenantMessagesService {
     limit?: number;
     offset?: number;
   }): Promise<{ messages: TenantMessage[]; total: number }> {
-    const where: any = {};
+    const where: Prisma.TenantMessageWhereInput = {};
 
     if (filters?.status) {
       where.status = filters.status;

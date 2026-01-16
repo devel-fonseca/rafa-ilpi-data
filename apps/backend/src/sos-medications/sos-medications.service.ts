@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { UpdateSOSMedicationDto } from './dto/update-sos-medication.dto';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class SOSMedicationsService {
@@ -61,7 +61,7 @@ export class SOSMedicationsService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as Record<string, unknown>)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -77,7 +77,7 @@ export class SOSMedicationsService {
       const updatedSOSMedication = await tx.sOSMedication.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...(updateData as Prisma.SOSMedicationUncheckedUpdateInput),
           versionNumber: newVersionNumber,
           updatedBy: userId,
         },
@@ -109,8 +109,8 @@ export class SOSMedicationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -195,12 +195,12 @@ export class SOSMedicationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedSOSMedication.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

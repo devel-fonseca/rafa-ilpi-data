@@ -28,6 +28,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Messages')
 @ApiBearerAuth()
@@ -41,7 +42,7 @@ export class MessagesController {
   @RequirePermissions(PermissionType.SEND_MESSAGES)
   @ApiOperation({ summary: 'Criar nova mensagem' })
   @ApiResponse({ status: 201, description: 'Mensagem criada com sucesso' })
-  create(@Body() createMessageDto: CreateMessageDto, @CurrentUser() user: any) {
+  create(@Body() createMessageDto: CreateMessageDto, @CurrentUser() user: JwtPayload) {
     return this.messagesService.create(createMessageDto, user.id);
   }
 
@@ -50,7 +51,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Listar mensagens recebidas (inbox)' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  findInbox(@Query() query: QueryMessagesDto, @CurrentUser() user: any) {
+  findInbox(@Query() query: QueryMessagesDto, @CurrentUser() user: JwtPayload) {
     return this.messagesService.findInbox(query, user.id);
   }
 
@@ -59,21 +60,21 @@ export class MessagesController {
   @ApiOperation({ summary: 'Listar mensagens enviadas' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  findSent(@Query() query: QueryMessagesDto, @CurrentUser() user: any) {
+  findSent(@Query() query: QueryMessagesDto, @CurrentUser() user: JwtPayload) {
     return this.messagesService.findSent(query, user.id);
   }
 
   @Get('unread/count')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Contar mensagens não lidas' })
-  countUnread(@CurrentUser() user: any) {
+  countUnread(@CurrentUser() user: JwtPayload) {
     return this.messagesService.countUnread(user.id);
   }
 
   @Get('stats')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Estatísticas de mensagens' })
-  getStats(@CurrentUser() user: any) {
+  getStats(@CurrentUser() user: JwtPayload) {
     return this.messagesService.getStats(user.id);
   }
 
@@ -84,7 +85,7 @@ export class MessagesController {
   @ApiResponse({ status: 404, description: 'Mensagem não encontrada ou sem permissão' })
   getReadStats(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.messagesService.getReadStats(id, user.id);
   }
@@ -94,7 +95,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Buscar thread completo (mensagem + respostas)' })
   findThread(
     @Param('threadId', ParseUUIDPipe) threadId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.messagesService.findThread(threadId, user.id);
   }
@@ -104,7 +105,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Buscar mensagem por ID (auto-marca como lida)' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.messagesService.findOne(id, user.id);
   }
@@ -112,7 +113,7 @@ export class MessagesController {
   @Post('read')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Marcar mensagens como lidas' })
-  markAsRead(@Body() markAsReadDto: MarkAsReadDto, @CurrentUser() user: any) {
+  markAsRead(@Body() markAsReadDto: MarkAsReadDto, @CurrentUser() user: JwtPayload) {
     return this.messagesService.markAsRead(markAsReadDto, user.id);
   }
 
@@ -122,7 +123,7 @@ export class MessagesController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteMessageDto: DeleteMessageDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.messagesService.delete(id, deleteMessageDto, user.id);
   }

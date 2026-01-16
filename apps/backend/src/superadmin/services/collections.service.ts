@@ -1,8 +1,10 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { AlertsService } from './alerts.service'
 import { EmailService } from '../../email/email.service'
 import { TenantStatus } from '@prisma/client'
+import { addDays, parseISO } from 'date-fns'
 
 /**
  * CollectionsService
@@ -209,7 +211,7 @@ export class CollectionsService {
     }
 
     // Preparar dados de atualização
-    const updateData: any = {}
+    const updateData: Prisma.InvoiceUpdateInput = {}
 
     // Aplicar desconto
     if (discountPercent !== undefined && discountPercent > 0) {
@@ -224,9 +226,8 @@ export class CollectionsService {
 
     // Estender prazo
     if (extensionDays !== undefined && extensionDays > 0) {
-      const currentDueDate = new Date(invoice.dueDate)
-      const newDueDate = new Date(currentDueDate)
-      newDueDate.setDate(newDueDate.getDate() + extensionDays)
+      const currentDueDate = invoice.dueDate instanceof Date ? invoice.dueDate : parseISO(`${invoice.dueDate}T12:00:00.000`)
+      const newDueDate = addDays(currentDueDate, extensionDays)
 
       updateData.dueDate = newDueDate
     }

@@ -88,5 +88,5 @@ export class CreateInstitutionalEventDto {
   // Metadados adicionais
   @IsOptional()
   @IsObject()
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }

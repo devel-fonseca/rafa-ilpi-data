@@ -28,6 +28,7 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('clinical-profiles')
 @ApiBearerAuth('JWT-auth')
@@ -52,7 +53,7 @@ export class ClinicalProfilesController {
     description: 'Já existe perfil clínico para este residente',
   })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@CurrentUser() user: any, @Body() createDto: CreateClinicalProfileDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() createDto: CreateClinicalProfileDto) {
     return this.clinicalProfilesService.create(
       user.id,
       createDto,
@@ -71,7 +72,7 @@ export class ClinicalProfilesController {
     description: 'Perfil clínico não encontrado',
   })
   findByResidentId(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('residentId') residentId: string,
   ) {
     return this.clinicalProfilesService.findByResidentId(residentId);
@@ -82,7 +83,7 @@ export class ClinicalProfilesController {
   @ApiOperation({ summary: 'Buscar perfil clínico por ID' })
   @ApiResponse({ status: 200, description: 'Perfil clínico encontrado' })
   @ApiResponse({ status: 404, description: 'Perfil clínico não encontrado' })
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.clinicalProfilesService.findOne(id);
   }
 
@@ -99,7 +100,7 @@ export class ClinicalProfilesController {
     description: 'Perfil clínico não encontrado',
   })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateClinicalProfileDto,
   ) {
@@ -123,7 +124,7 @@ export class ClinicalProfilesController {
   @ApiResponse({ status: 404, description: 'Perfil clínico não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do perfil clínico (UUID)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteClinicalProfileDto,
   ) {
@@ -144,7 +145,7 @@ export class ClinicalProfilesController {
   @ApiResponse({ status: 404, description: 'Perfil clínico não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do perfil clínico (UUID)' })
   getHistory(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.clinicalProfilesService.getHistory(id);
@@ -161,7 +162,7 @@ export class ClinicalProfilesController {
   @ApiParam({ name: 'id', description: 'ID do perfil clínico (UUID)' })
   @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
   getHistoryVersion(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
   ) {

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateRoomDto, UpdateRoomDto } from './dto'
@@ -44,7 +45,7 @@ export class RoomsService {
     take: number = 50,
     floorId?: string
   ) {
-    const where: any = { deletedAt: null }
+    const where: Prisma.RoomWhereInput = { deletedAt: null }
     if (floorId) {
       where.floorId = floorId
     }
@@ -76,7 +77,7 @@ export class RoomsService {
 
     // Enriquecer com contagem de leitos ocupados e disponíveis
     const enriched = await Promise.all(
-      data.map(async (room: any) => {
+      data.map(async (room) => {
         const occupiedBeds = await this.tenantContext.client.bed.count({
           where: {
             roomId: room.id,
@@ -144,7 +145,7 @@ export class RoomsService {
     }
 
     // Mapear campos do DTO para o formato esperado pelo Prisma
-    const dataToUpdate: any = {}
+    const dataToUpdate: Prisma.RoomUpdateInput = {}
     if (updateRoomDto.name !== undefined) dataToUpdate.name = updateRoomDto.name
     if (updateRoomDto.code !== undefined) dataToUpdate.code = updateRoomDto.code
     if (updateRoomDto.roomNumber !== undefined) dataToUpdate.roomNumber = updateRoomDto.roomNumber

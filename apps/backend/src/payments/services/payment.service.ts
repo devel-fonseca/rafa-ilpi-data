@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { Payment, PaymentGateway, PaymentMethod, PaymentStatus } from '@prisma/client'
+import { Payment, PaymentGateway, PaymentMethod, PaymentStatus, InvoiceStatus, Prisma } from '@prisma/client'
 import { InvoiceService } from './invoice.service'
 
 /**
@@ -25,7 +25,7 @@ export class PaymentService {
     gatewayId: string
     method: PaymentMethod
     paidAt?: Date
-    metadata?: any
+    metadata?: Record<string, unknown>
   }): Promise<Payment> {
     this.logger.log(`Recording payment for invoice ${data.invoiceId}`)
 
@@ -40,7 +40,7 @@ export class PaymentService {
         method: data.method,
         status: PaymentStatus.SUCCEEDED,
         paidAt: data.paidAt || new Date(),
-        metadata: data.metadata || {},
+        metadata: (data.metadata || {}) as unknown as Prisma.InputJsonValue,
       },
     })
 
@@ -109,7 +109,7 @@ export class PaymentService {
     await this.prisma.invoice.update({
       where: { id: payment.invoiceId },
       data: {
-        status: 'VOID' as any, // InvoiceStatus.VOID
+        status: 'VOID' as InvoiceStatus,
       },
     })
 

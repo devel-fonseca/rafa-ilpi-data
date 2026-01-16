@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { InvoiceStatus } from '@prisma/client'
+import { InvoiceStatus, Prisma } from '@prisma/client'
 
 /**
  * Interface para métricas de pagamento por método
@@ -99,7 +99,7 @@ export class PaymentAnalyticsService {
     const { startDate, endDate, tenantId } = filters || {}
 
     // Construir filtro de data
-    const dateFilter: any = {}
+    const dateFilter: Prisma.InvoiceWhereInput = {}
     if (startDate || endDate) {
       dateFilter.createdAt = {}
       if (startDate) dateFilter.createdAt.gte = startDate
@@ -297,7 +297,7 @@ export class PaymentAnalyticsService {
     const { startDate, endDate } = filters || {}
 
     // Construir filtro de data
-    const dateFilter: any = {}
+    const dateFilter: Prisma.InvoiceWhereInput = {}
     if (startDate || endDate) {
       dateFilter.createdAt = {}
       if (startDate) dateFilter.createdAt.gte = startDate

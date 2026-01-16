@@ -16,6 +16,7 @@ import {
   NotificationSeverity,
   VitalSignAlertType,
   AlertSeverity,
+  Prisma,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
@@ -154,7 +155,7 @@ export class VitalSignsService {
     startDate?: Date,
     endDate?: Date,
   ) {
-    const where: any = {
+    const where: Prisma.VitalSignWhereInput = {
       residentId,
       deletedAt: null,
     };
@@ -221,7 +222,7 @@ export class VitalSignsService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as Record<string, unknown>)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -234,10 +235,10 @@ export class VitalSignsService {
       const updatedVitalSign = await tx.vitalSign.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...(updateData as Prisma.VitalSignUncheckedUpdateInput),
           versionNumber: newVersionNumber,
           updatedBy: userId,
-        },
+        } as Prisma.VitalSignUncheckedUpdateInput,
       });
 
       const newData = {
@@ -258,8 +259,8 @@ export class VitalSignsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -346,12 +347,12 @@ export class VitalSignsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedVitalSign.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

@@ -13,6 +13,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { TenantMessagesService } from './tenant-messages.service';
 import { CreateTenantMessageDto, UpdateTenantMessageDto } from './dto';
 import { TenantMessageStatus } from '@prisma/client';
@@ -28,7 +29,7 @@ export class TenantMessagesController {
    */
   @Post()
   @Roles('superadmin')
-  async create(@Body() dto: CreateTenantMessageDto, @Request() req: any) {
+  async create(@Body() dto: CreateTenantMessageDto, @Request() req: Request & { user: JwtPayload }) {
     return this.tenantMessagesService.create(dto, req.user.id);
   }
 

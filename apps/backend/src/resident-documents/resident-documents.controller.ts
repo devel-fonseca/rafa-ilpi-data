@@ -18,6 +18,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ResidentDocumentsService } from './resident-documents.service';
 import { CreateResidentDocumentDto } from './dto/create-resident-document.dto';
 import { UpdateResidentDocumentDto } from './dto/update-resident-document.dto';
@@ -42,9 +43,9 @@ export class ResidentDocumentsController {
   async findAll(
     @Param('residentId') residentId: string,
     @Query('type') type: string | undefined,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const _user = req.user;
     return this.documentsService.findAll(residentId, type);
   }
 
@@ -59,9 +60,9 @@ export class ResidentDocumentsController {
   async findOne(
     @Param('residentId') residentId: string,
     @Param('id') id: string,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const _user = req.user;
     return this.documentsService.findOne(id, residentId);
   }
 
@@ -116,9 +117,9 @@ export class ResidentDocumentsController {
     )
     file: Express.Multer.File,
     @Body() metadata: CreateResidentDocumentDto,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const user = req.user;
     return this.documentsService.uploadDocument(
       residentId,
       user.id,
@@ -139,9 +140,9 @@ export class ResidentDocumentsController {
     @Param('residentId') residentId: string,
     @Param('id') id: string,
     @Body() updateDto: UpdateResidentDocumentDto,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const _user = req.user;
     return this.documentsService.updateMetadata(id, residentId, updateDto);
   }
 
@@ -178,9 +179,9 @@ export class ResidentDocumentsController {
       }),
     )
     file: Express.Multer.File,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const _user = req.user;
     return this.documentsService.replaceFile(id, residentId, file);
   }
 
@@ -195,9 +196,9 @@ export class ResidentDocumentsController {
   async deleteDocument(
     @Param('residentId') residentId: string,
     @Param('id') id: string,
-    @Req() req: Request,
+    @Req() req: Request & { user: JwtPayload },
   ) {
-    const _user = req.user as any;
+    const _user = req.user;
     return this.documentsService.deleteDocument(id, residentId);
   }
 }

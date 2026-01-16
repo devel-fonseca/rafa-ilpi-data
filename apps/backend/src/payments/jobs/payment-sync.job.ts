@@ -75,14 +75,15 @@ export class PaymentSyncJob {
               this.logger.warn(`⚠️  Invoice ${invoice.invoiceNumber} is OVERDUE`)
             }
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           errorCount++
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           errors.push({
             invoiceId: invoice.id,
-            error: error.message,
+            error: errorMessage,
           })
           this.logger.error(
-            `❌ Failed to sync invoice ${invoice.invoiceNumber}: ${error.message}`,
+            `❌ Failed to sync invoice ${invoice.invoiceNumber}: ${errorMessage}`,
           )
         }
       }
@@ -104,8 +105,9 @@ export class PaymentSyncJob {
       //     message: `${overdueCount} invoices are overdue`,
       //   })
       // }
-    } catch (error: any) {
-      this.logger.error(`❌ Critical error in payment sync job: ${error.message}`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`❌ Critical error in payment sync job: ${errorMessage}`)
       // TODO: Criar alerta crítico (Fase 5)
     }
   }
@@ -136,8 +138,9 @@ export class PaymentSyncJob {
       try {
         await this.invoiceService.syncInvoiceStatus(invoice.id)
         this.logger.log(`✓ Synced overdue invoice ${invoice.invoiceNumber}`)
-      } catch (error: any) {
-        this.logger.error(`❌ Failed to sync ${invoice.invoiceNumber}: ${error.message}`)
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        this.logger.error(`❌ Failed to sync ${invoice.invoiceNumber}: ${errorMessage}`)
       }
     }
   }

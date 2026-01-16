@@ -95,7 +95,7 @@ export class PopsService {
         PopAction.CREATED,
         userId,
         null,
-        pop as any,
+        pop,
         'POP criado',
       )
 
@@ -399,8 +399,8 @@ export class PopsService {
       popId,
       PopAction.UPDATED,
       userId,
-      existingPop as any,
-      updatedPop as any,
+      existingPop,
+      updatedPop,
       'POP atualizado',
       Object.keys(dto),
     )
@@ -433,7 +433,7 @@ export class PopsService {
       popId,
       PopAction.DELETED,
       userId,
-      pop as any,
+      pop,
       null,
       'POP removido',
     )
@@ -506,8 +506,8 @@ export class PopsService {
             popId: existingPop.id,
             action: PopAction.OBSOLETED,
             reason: dto.reason,
-            previousData: existingPop as any,
-            newData: { replacedById: newVersion.id },
+            previousData: existingPop as Prisma.InputJsonValue,
+            newData: { replacedById: newVersion.id } as Prisma.InputJsonValue,
             changedFields: ['status', 'replacedById', 'replacedAt'],
             changedBy: userId,
             changedByName: 'Sistema', // Atualizar com nome real do usuário
@@ -517,8 +517,8 @@ export class PopsService {
             popId: newVersion.id,
             action: PopAction.VERSIONED,
             reason: dto.reason,
-            previousData: existingPop as any,
-            newData: newVersion as any,
+            previousData: existingPop as Prisma.InputJsonValue,
+            newData: newVersion as Prisma.InputJsonValue,
             changedFields: ['content', 'version'],
             changedBy: userId,
             changedByName: 'Sistema', // Atualizar com nome real do usuário
@@ -552,7 +552,7 @@ export class PopsService {
   /**
    * Busca histórico de versões de um POP
    */
-  async getVersionHistory(popId: string): Promise<Pop[]> {
+  async getVersionHistory(popId: string): Promise<Partial<Pop>[]> {
     const pop = await this.findOne(popId)
 
     // Buscar toda a cadeia de versões (anteriores e posteriores)
@@ -576,7 +576,7 @@ export class PopsService {
       },
     })
 
-    return allVersions as any
+    return allVersions
   }
 
   /**
@@ -617,8 +617,8 @@ export class PopsService {
       popId,
       PopAction.PUBLISHED,
       userId,
-      pop as any,
-      publishedPop as any,
+      pop,
+      publishedPop,
       'POP publicado',
       ['status', 'publishedBy', 'publishedAt'],
     )
@@ -656,8 +656,8 @@ export class PopsService {
       popId,
       PopAction.OBSOLETED,
       userId,
-      pop as any,
-      obsoletePop as any,
+      pop,
+      obsoletePop,
       reason,
       ['status', 'replacedAt'],
     )
@@ -769,8 +769,8 @@ export class PopsService {
       popId,
       PopAction.UPDATED,
       userId,
-      pop as any,
-      reviewedPop as any,
+      pop,
+      reviewedPop,
       'POP marcado como revisado sem alterações',
       ['lastReviewedAt', 'nextReviewDate', 'requiresReview'],
     )
@@ -825,8 +825,8 @@ export class PopsService {
     popId: string,
     action: PopAction,
     userId: string,
-    previousData: any,
-    newData: any,
+    previousData: Pop | Partial<Pop> | null,
+    newData: Pop | Partial<Pop> | null,
     reason?: string,
     changedFields: string[] = [],
   ): Promise<void> {
@@ -836,8 +836,8 @@ export class PopsService {
         popId,
         action,
         reason,
-        previousData: previousData ? (previousData as any) : null,
-        newData: newData ? (newData as any) : null,
+        previousData: previousData ? (previousData as Prisma.InputJsonValue) : Prisma.JsonNull,
+        newData: newData ? (newData as Prisma.InputJsonValue) : Prisma.JsonNull,
         changedFields,
         changedBy: userId,
         changedByName: 'Sistema', // TODO: Buscar nome real do usuário

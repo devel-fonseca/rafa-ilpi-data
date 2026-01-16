@@ -56,7 +56,7 @@ export class CreateVitalSignAlertDto {
 
   @IsObject()
   @IsNotEmpty()
-  metadata: Record<string, any> // { threshold, expectedRange, detectedAt, etc }
+  metadata: Record<string, unknown> // { threshold, expectedRange, detectedAt, etc }
 
   @IsOptional()
   @IsEnum(AlertStatus)

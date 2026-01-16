@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
+import { Prisma } from '@prisma/client'
 import {
   CreateBedDto,
   UpdateBedDto,
@@ -57,7 +58,7 @@ export class BedsService {
   }
 
   async findAll(skip: number = 0, take: number = 50, roomId?: string, status?: string) {
-    const where: any = { deletedAt: null } // ✅ Sem tenantId!
+    const where: Prisma.BedWhereInput = { deletedAt: null } // ✅ Sem tenantId!
     if (roomId) {
       where.roomId = roomId
     }
@@ -224,7 +225,7 @@ export class BedsService {
   }
 
   async getFullMap(buildingId?: string) {
-    const where: any = { deletedAt: null }
+    const where: Prisma.BuildingWhereInput = { deletedAt: null }
     if (buildingId) {
       where.id = buildingId
     }
@@ -371,7 +372,7 @@ export class BedsService {
     }
 
     // Preparar metadata
-    const metadata: any = {}
+    const metadata: Record<string, unknown> = {}
     if (reserveBedDto.futureResidentName) {
       metadata.futureResidentName = reserveBedDto.futureResidentName
     }
@@ -410,7 +411,7 @@ export class BedsService {
           previousStatus: bed.status,
           newStatus: 'Reservado',
           reason: reserveBedDto.notes || notes,
-          metadata,
+          metadata: metadata as Prisma.InputJsonValue,
           changedBy: userId,
         },
       })
@@ -443,7 +444,7 @@ export class BedsService {
     }
 
     // Preparar metadata
-    const metadata: any = {}
+    const metadata: Record<string, unknown> = {}
     if (blockBedDto.expectedReleaseDate) {
       metadata.expectedReleaseDate = blockBedDto.expectedReleaseDate
     }
@@ -472,7 +473,7 @@ export class BedsService {
           previousStatus: bed.status,
           newStatus: 'Manutenção',
           reason: blockBedDto.reason,
-          metadata,
+          metadata: metadata as Prisma.InputJsonValue,
           changedBy: userId,
         },
       })
@@ -542,7 +543,7 @@ export class BedsService {
    * Busca histórico de mudanças de status de um leito
    */
   async getBedStatusHistory(bedId?: string, skip: number = 0, take: number = 50) {
-    const where: any = { deletedAt: null } // ✅ Sem tenantId!
+    const where: Record<string, unknown> = { deletedAt: null } // ✅ Sem tenantId!
     if (bedId) {
       where.bedId = bedId
     }

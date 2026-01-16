@@ -1371,7 +1371,7 @@ export class EmailService {
    * Substituir variáveis em strings de template
    * Exemplo: "Olá {{name}}" com {name: "João"} → "Olá João"
    */
-  private replaceVariables(text: string, variables: Record<string, any>): string {
+  private replaceVariables(text: string, variables: Record<string, unknown>): string {
     let result = text;
 
     Object.entries(variables).forEach(([key, value]) => {

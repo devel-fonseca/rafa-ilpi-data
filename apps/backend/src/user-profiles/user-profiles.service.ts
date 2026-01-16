@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
@@ -67,7 +68,7 @@ export class UserProfilesService {
             ? new Date(createUserProfileDto.birthDate)
             : null,
           notes: createUserProfileDto.notes,
-          preferences: (createUserProfileDto.preferences || {}) as any,
+          preferences: (createUserProfileDto.preferences || {}) as Prisma.InputJsonValue,
           // Campos ILPI
           positionCode: createUserProfileDto.positionCode,
           registrationType: createUserProfileDto.registrationType,
@@ -256,7 +257,7 @@ export class UserProfilesService {
           isNursingCoordinator: updateUserProfileDto.isNursingCoordinator,
           // Preferências do Usuário
           preferences: updateUserProfileDto.preferences !== undefined
-            ? (updateUserProfileDto.preferences as any)
+            ? (updateUserProfileDto.preferences as Prisma.InputJsonValue)
             : undefined,
           updatedBy,
         },

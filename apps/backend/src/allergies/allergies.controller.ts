@@ -27,6 +27,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('allergies')
 @ApiBearerAuth('JWT-auth')
@@ -40,7 +41,7 @@ export class AllergiesController {
   @ApiOperation({ summary: 'Registrar nova alergia' })
   @ApiResponse({ status: 201, description: 'Alergia registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@CurrentUser() user: any, @Body() createDto: CreateAllergyDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() createDto: CreateAllergyDto) {
     return this.allergiesService.create(user.id, createDto);
   }
 
@@ -49,7 +50,7 @@ export class AllergiesController {
   @ApiOperation({ summary: 'Listar todas as alergias de um residente' })
   @ApiResponse({ status: 200, description: 'Lista de alergias' })
   findByResidentId(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('residentId') residentId: string,
   ) {
     return this.allergiesService.findByResidentId(residentId);
@@ -60,7 +61,7 @@ export class AllergiesController {
   @ApiOperation({ summary: 'Buscar uma alergia específica' })
   @ApiResponse({ status: 200, description: 'Alergia encontrada' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.allergiesService.findOne(id);
   }
 
@@ -70,7 +71,7 @@ export class AllergiesController {
   @ApiResponse({ status: 200, description: 'Alergia atualizada com sucesso' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateAllergyDto,
   ) {
@@ -89,7 +90,7 @@ export class AllergiesController {
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteAllergyDto,
   ) {
@@ -106,7 +107,7 @@ export class AllergiesController {
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
   getHistory(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.allergiesService.getHistory(id);
@@ -123,7 +124,7 @@ export class AllergiesController {
   @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
   @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
   getHistoryVersion(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
   ) {

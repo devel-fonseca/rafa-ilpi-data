@@ -11,7 +11,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
-import { PermissionType, PositionCode } from '@prisma/client';
+import { PermissionType, PositionCode, RegistrationType } from '@prisma/client';
 import { getPositionPermissions } from './position-profiles.config';
 import { PermissionsCacheService } from './permissions-cache.service';
 
@@ -271,7 +271,7 @@ export class PermissionsService {
       where: { id: userProfile.id },
       data: {
         positionCode,
-        registrationType: registrationType as any,
+        registrationType: (registrationType as RegistrationType | undefined) ?? undefined,
         registrationNumber,
         registrationState,
         updatedBy,

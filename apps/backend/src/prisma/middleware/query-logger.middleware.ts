@@ -17,7 +17,7 @@ import { Logger } from '@nestjs/common'
  */
 export const queryLoggerMiddleware: Prisma.Middleware = async (
   params: Prisma.MiddlewareParams,
-  next: (params: Prisma.MiddlewareParams) => Promise<any>,
+  next: (params: Prisma.MiddlewareParams) => Promise<unknown>,
 ) => {
   const logger = new Logger('PrismaQueryLogger')
   const threshold = parseInt(process.env.SLOW_QUERY_THRESHOLD_MS || '100', 10)

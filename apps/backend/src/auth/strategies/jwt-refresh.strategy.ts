@@ -20,9 +20,9 @@ export class JwtRefreshStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: { sub: string; tenantId?: string | null }) {
     // ✅ Arquitetura Híbrida: buscar em public (SUPERADMIN) ou tenant schema
-    let user: any = null;
+    let user: { id: string; email: string; tenantId: string | null; isActive: boolean } | null = null;
 
     // STEP 1: Tentar buscar SUPERADMIN em public schema
     // eslint-disable-next-line no-restricted-syntax

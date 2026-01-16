@@ -7,11 +7,12 @@ import {
   Body,
   Query,
   UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { VitalSignAlertsService } from './vital-sign-alerts.service'
 import {
   CreateVitalSignAlertDto,
@@ -35,10 +36,8 @@ export class VitalSignAlertsController {
   @Post()
   @AuditAction('CREATE')
   @HttpCode(HttpStatus.CREATED)
-  async create(@Request() req: any, @Body() dto: CreateVitalSignAlertDto) {
-    const userId = req.user.sub
-
-    return this.vitalSignAlertsService.create(dto, userId)
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateVitalSignAlertDto) {
+    return this.vitalSignAlertsService.create(dto, user.id)
   }
 
   /**
@@ -86,13 +85,11 @@ export class VitalSignAlertsController {
   @Patch(':id')
   @AuditAction('UPDATE')
   async update(
-    @Request() req: any,
     @Param('id') id: string,
     @Body() dto: UpdateVitalSignAlertDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    const userId = req.user.sub
-
-    return this.vitalSignAlertsService.update(id, dto, userId)
+    return this.vitalSignAlertsService.update(id, dto, user.id)
   }
 
   /**

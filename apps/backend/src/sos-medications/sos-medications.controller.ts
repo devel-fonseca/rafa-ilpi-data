@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import {
   ApiTags,
@@ -58,7 +59,7 @@ export class SOSMedicationsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateSOSMedicationDto: UpdateSOSMedicationDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.sosMedicationsService.update(
       id,
@@ -92,7 +93,7 @@ export class SOSMedicationsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteSOSMedicationDto: DeleteSOSMedicationDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.sosMedicationsService.remove(
       id,
@@ -118,7 +119,7 @@ export class SOSMedicationsController {
   @ApiParam({ name: 'id', description: 'ID do medicamento SOS (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.sosMedicationsService.getHistory(id);
   }
@@ -139,7 +140,7 @@ export class SOSMedicationsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.sosMedicationsService.getHistoryVersion(
       id,

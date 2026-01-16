@@ -18,6 +18,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   ApiTags,
   ApiOperation,
@@ -53,7 +54,7 @@ export class MedicationsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateMedicationDto: UpdateMedicationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.medicationsService.update(
       id,
@@ -81,7 +82,7 @@ export class MedicationsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteMedicationDto: DeleteMedicationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.medicationsService.remove(
       id,
@@ -104,7 +105,7 @@ export class MedicationsController {
   @ApiParam({ name: 'id', description: 'ID do medicamento (UUID)' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.medicationsService.getHistory(id);
   }
@@ -125,7 +126,7 @@ export class MedicationsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.medicationsService.getHistoryVersion(
       id,

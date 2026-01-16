@@ -10,7 +10,7 @@ import { CreateClinicalProfileDto } from './dto/create-clinical-profile.dto';
 import { UpdateClinicalProfileDto } from './dto/update-clinical-profile.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ClinicalProfilesService {
@@ -206,7 +206,7 @@ export class ClinicalProfilesService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as Record<string, unknown>)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -220,7 +220,7 @@ export class ClinicalProfilesService {
       const updatedProfile = await tx.clinicalProfile.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...updateData,
           versionNumber: newVersionNumber,
           updatedBy: userId,
         },
@@ -242,8 +242,8 @@ export class ClinicalProfilesService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -276,12 +276,12 @@ export class ClinicalProfilesService {
             previousData: {
               ...profile.resident,
               mobilityAid: residentPreviousMobilityAid,
-            } as any,
+            } as Prisma.InputJsonValue,
             newData: {
               ...profile.resident,
               mobilityAid,
               versionNumber: residentVersionNumber,
-            } as any,
+            } as Prisma.InputJsonValue,
             changedAt: new Date(),
             changedBy: userId,
           },
@@ -362,12 +362,12 @@ export class ClinicalProfilesService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedProfile.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

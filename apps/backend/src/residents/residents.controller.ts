@@ -21,6 +21,7 @@ import { QueryResidentDto } from './dto/query-resident.dto';
 import { TransferBedDto } from './dto/transfer-bed.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { AuditInterceptor } from '../audit/audit.interceptor';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -53,7 +54,7 @@ export class ResidentsController {
   @ApiResponse({ status: 403, description: 'Sem permissão' })
   create(
     @Body() createResidentDto: CreateResidentDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.residentsService.create(
       createResidentDto,
@@ -73,7 +74,7 @@ export class ResidentsController {
   @ApiQuery({ name: 'limit', required: false, description: 'Itens por página', example: 10 })
   findAll(
     @Query() query: QueryResidentDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.residentsService.findAll(query);
   }
@@ -87,7 +88,7 @@ export class ResidentsController {
   @ApiParam({ name: 'id', description: 'ID do residente' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.residentsService.findOne(id);
   }
@@ -105,7 +106,7 @@ export class ResidentsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateResidentDto: UpdateResidentDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.residentsService.update(
       id,
@@ -128,7 +129,7 @@ export class ResidentsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteResidentDto: DeleteResidentDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.residentsService.remove(
       id,
@@ -146,7 +147,7 @@ export class ResidentsController {
   @ApiParam({ name: 'id', description: 'ID do residente' })
   getHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.residentsService.getHistory(id);
   }
@@ -162,7 +163,7 @@ export class ResidentsController {
   getHistoryVersion(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.residentsService.getHistoryVersion(
       id,
@@ -175,7 +176,7 @@ export class ResidentsController {
   @ApiOperation({ summary: 'Estatísticas gerais dos residentes' })
   @ApiResponse({ status: 200, description: 'Estatísticas dos residentes' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async getStats(@CurrentUser() _user: any) {
+  async getStats(@CurrentUser() _user: JwtPayload) {
     return this.residentsService.getStats();
   }
 
@@ -199,7 +200,7 @@ export class ResidentsController {
   async transferBed(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() transferBedDto: TransferBedDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.residentsService.transferBed(
       id,

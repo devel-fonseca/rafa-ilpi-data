@@ -5,6 +5,7 @@ import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
+  Prisma,
 } from '@prisma/client'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { QueryNotificationDto } from './dto/query-notification.dto'
@@ -40,7 +41,7 @@ export class NotificationsService {
         actionUrl: dto.actionUrl,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        metadata: dto.metadata || {},
+        metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
         expiresAt: dto.expiresAt,
       },
     })
@@ -67,7 +68,7 @@ export class NotificationsService {
     const skip = (page - 1) * limit
 
     // Construir filtros base (todas notificações não expiradas)
-    const where: any = {
+    const where: Prisma.NotificationWhereInput = {
       AND: [
         {
           OR: [
@@ -518,6 +519,7 @@ export class NotificationsService {
     eventTitle: string,
     scheduledDate: Date,
   ) {
+    // eslint-disable-next-line no-restricted-syntax -- Formatting display string, not storing in DATE field
     const dateStr = new Date(scheduledDate).toLocaleDateString('pt-BR')
 
     return this.create({
@@ -627,7 +629,7 @@ export class NotificationsService {
         actionUrl: dto.actionUrl,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        metadata: dto.metadata || {},
+        metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
         expiresAt: dto.expiresAt,
       },
     })

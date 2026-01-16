@@ -11,6 +11,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import { createHash } from 'crypto';
+import { PutObjectCommandInput, GetObjectCommandInput, DeleteObjectCommandInput } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class FilesService {
@@ -159,7 +160,7 @@ export class FilesService {
       const variantPath = basePath.replace('.webp', `${variant.suffix}.webp`);
 
       // Preparar comando base
-      const uploadCommand: any = {
+      const uploadCommand: PutObjectCommandInput = {
         Bucket: this.bucket,
         Key: variantPath,
         Body: processed,
@@ -246,7 +247,7 @@ export class FilesService {
       }
 
       // Preparar comando base
-      const baseCommand: any = {
+      const baseCommand: PutObjectCommandInput = {
         Bucket: this.bucket,
         Key: filePath,
         Body: file.buffer,
@@ -342,7 +343,7 @@ export class FilesService {
       const category = this.extractCategoryFromPath(filePath);
 
       // Preparar comando base
-      const commandParams: any = {
+      const commandParams: GetObjectCommandInput = {
         Bucket: this.bucket,
         Key: filePath,
       };
@@ -439,24 +440,13 @@ export class FilesService {
    */
   async deleteFile(filePath: string): Promise<void> {
     try {
-      // Extrair tenantId e categoria
-      const tenantId = this.extractTenantIdFromPath(filePath);
-      const category = this.extractCategoryFromPath(filePath);
-
-      const commandParams: any = {
+      const commandParams: DeleteObjectCommandInput = {
         Bucket: this.bucket,
         Key: filePath,
       };
 
-      // Se arquivo criptografado, fornecer chaves SSE-C
-      if (tenantId && category && this.requiresEncryption(category)) {
-        const encryptionKey = this.generateEncryptionKey(tenantId);
-        const encryptionKeyMD5 = createHash('md5').update(encryptionKey).digest('base64');
-
-        commandParams.SSECustomerAlgorithm = 'AES256';
-        commandParams.SSECustomerKey = encryptionKey.toString('base64');
-        commandParams.SSECustomerKeyMD5 = encryptionKeyMD5;
-      }
+      // Nota: DeleteObjectCommand não requer chaves SSE-C (ao contrário de GetObject)
+      // O S3 gerencia automaticamente a exclusão de objetos criptografados
 
       await this.s3Client.send(new DeleteObjectCommand(commandParams));
 

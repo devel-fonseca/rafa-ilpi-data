@@ -17,6 +17,15 @@ import { IncidentInterceptorService } from './incident-interceptor.service';
 import { DailyRecordCreatedEvent } from '../sentinel-events/events/daily-record-created.event';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { localToUTC } from '../utils/date.helpers';
+import {
+  RecordType,
+  IncidentCategory,
+  IncidentSeverity,
+  IncidentSubtypeClinical,
+  IncidentSubtypeAssistencial,
+  IncidentSubtypeAdministrativa,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class DailyRecordsService {
@@ -51,23 +60,23 @@ export class DailyRecordsService {
     // Criar registro
     const record = await this.tenantContext.client.dailyRecord.create({
       data: {
-        type: dto.type as any, // Cast para RecordType
+        type: dto.type as RecordType,
         // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
         // dto.date vem como "YYYY-MM-DD", adicionamos T12:00:00 para manter a data correta
         date: parseISO(`${dto.date}T12:00:00.000`),
         time: dto.time,
-        data: dto.data as any,
+        data: dto.data as Prisma.InputJsonValue,
         recordedBy: dto.recordedBy,
         notes: dto.notes,
         // Campos de intercorrência (opcionais)
-        incidentCategory: dto.incidentCategory as any,
-        incidentSeverity: dto.incidentSeverity as any,
-        incidentSubtypeClinical: dto.incidentSubtypeClinical as any,
-        incidentSubtypeAssist: dto.incidentSubtypeAssist as any,
-        incidentSubtypeAdmin: dto.incidentSubtypeAdmin as any,
+        incidentCategory: dto.incidentCategory as IncidentCategory | undefined,
+        incidentSeverity: dto.incidentSeverity as IncidentSeverity | undefined,
+        incidentSubtypeClinical: dto.incidentSubtypeClinical as IncidentSubtypeClinical | undefined,
+        incidentSubtypeAssist: dto.incidentSubtypeAssist as IncidentSubtypeAssistencial | undefined,
+        incidentSubtypeAdmin: dto.incidentSubtypeAdmin as IncidentSubtypeAdministrativa | undefined,
         isEventoSentinela: dto.isEventoSentinela,
         isDoencaNotificavel: dto.isDoencaNotificavel,
-        rdcIndicators: dto.rdcIndicators as any,
+        rdcIndicators: dto.rdcIndicators as Prisma.InputJsonValue | undefined,
         tenant: {
           connect: { id: this.tenantContext.tenantId },
         },
@@ -165,11 +174,18 @@ export class DailyRecordsService {
   /**
    * Extrai dados de sinais vitais do objeto data do registro
    */
-  private extractVitalSignsFromData(data: any) {
-    const extracted: any = {};
+  private extractVitalSignsFromData(data: Record<string, unknown>) {
+    const extracted: {
+      systolicBloodPressure?: number;
+      diastolicBloodPressure?: number;
+      temperature?: number;
+      heartRate?: number;
+      oxygenSaturation?: number;
+      bloodGlucose?: number;
+    } = {};
 
     // Pressão Arterial (ex: "120/80")
-    if (data.pressaoArterial) {
+    if (typeof data.pressaoArterial === 'string') {
       const parts = data.pressaoArterial.split('/');
       if (parts.length === 2) {
         extracted.systolicBloodPressure = parseFloat(parts[0]);
@@ -179,22 +195,22 @@ export class DailyRecordsService {
 
     // Temperatura
     if (data.temperatura) {
-      extracted.temperature = parseFloat(data.temperatura);
+      extracted.temperature = parseFloat(String(data.temperatura));
     }
 
     // Frequência Cardíaca
     if (data.frequenciaCardiaca) {
-      extracted.heartRate = parseInt(data.frequenciaCardiaca);
+      extracted.heartRate = parseInt(String(data.frequenciaCardiaca));
     }
 
     // Saturação O2
     if (data.saturacaoO2) {
-      extracted.oxygenSaturation = parseFloat(data.saturacaoO2);
+      extracted.oxygenSaturation = parseFloat(String(data.saturacaoO2));
     }
 
     // Glicemia
     if (data.glicemia) {
-      extracted.bloodGlucose = parseFloat(data.glicemia);
+      extracted.bloodGlucose = parseFloat(String(data.glicemia));
     }
 
     return extracted;
@@ -218,7 +234,7 @@ export class DailyRecordsService {
     const skip = (page - 1) * limit;
 
     // Construir filtros
-    const where: any = {
+    const where: Prisma.DailyRecordWhereInput = {
       deletedAt: null,
     };
 
@@ -227,7 +243,7 @@ export class DailyRecordsService {
     }
 
     if (query.type) {
-      where.type = query.type;
+      where.type = query.type as RecordType;
     }
 
     if (query.date) {
@@ -387,7 +403,7 @@ export class DailyRecordsService {
     const nextVersionNumber = (lastVersion?.versionNumber || 0) + 1;
 
     // Preparar dados novos (apenas campos que foram enviados)
-    const newData: any = {};
+    const newData: Record<string, unknown> = {};
     if (dto.type !== undefined) newData.type = dto.type;
     if (dto.date !== undefined) newData.date = dto.date;
     if (dto.time !== undefined) newData.time = dto.time;
@@ -398,7 +414,8 @@ export class DailyRecordsService {
     // Identificar campos alterados
     const changedFields: string[] = [];
     Object.keys(newData).forEach((key) => {
-      if (JSON.stringify((existing as any)[key]) !== JSON.stringify(newData[key])) {
+      const existingValue = existing[key as keyof typeof existing];
+      if (JSON.stringify(existingValue) !== JSON.stringify(newData[key])) {
         changedFields.push(key);
       }
     });
@@ -422,8 +439,8 @@ export class DailyRecordsService {
           recordId: id,
           tenantId: this.tenantContext.tenantId,
           versionNumber: nextVersionNumber,
-          previousData: previousSnapshot,
-          newData,
+          previousData: previousSnapshot as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changeType: 'UPDATE',
           changeReason: dto.editReason,
@@ -436,11 +453,11 @@ export class DailyRecordsService {
       const updated = await prisma.dailyRecord.update({
         where: { id },
         data: {
-          type: dto.type as any,
+          type: dto.type as RecordType | undefined,
           // FIX TIMESTAMPTZ: Usar parseISO com meio-dia para evitar shifts de timezone
           date: dto.date ? parseISO(`${dto.date}T12:00:00.000`) : undefined,
           time: dto.time,
-          data: dto.data as any,
+          data: dto.data as Prisma.InputJsonValue | undefined,
           recordedBy: dto.recordedBy,
           notes: dto.notes,
         },
@@ -477,7 +494,9 @@ export class DailyRecordsService {
         });
         const timezone = tenant?.timezone || 'America/Sao_Paulo';
 
-        const vitalSignData = this.extractVitalSignsFromData(result.data);
+        const vitalSignData = this.extractVitalSignsFromData(
+          (result.data as Record<string, unknown>) || {}
+        );
         const timestamp = this.buildTimestamp(
           result.date.toISOString().split('T')[0],
           result.time,
@@ -747,13 +766,14 @@ export class DailyRecordsService {
     };
 
     // Dados da versão que será restaurada (previousData da versão selecionada)
-    const dataToRestore = versionToRestore.previousData as any;
+    const dataToRestore = versionToRestore.previousData as Record<string, unknown>;
 
     // Identificar campos alterados
     const changedFields: string[] = [];
     Object.keys(dataToRestore).forEach((key) => {
+      const recordValue = record[key as keyof typeof record];
       if (
-        JSON.stringify((record as any)[key]) !==
+        JSON.stringify(recordValue) !==
         JSON.stringify(dataToRestore[key])
       ) {
         changedFields.push(key);
@@ -768,8 +788,8 @@ export class DailyRecordsService {
           recordId,
           tenantId: this.tenantContext.tenantId,
           versionNumber: nextVersionNumber,
-          previousData: previousSnapshot,
-          newData: dataToRestore,
+          previousData: previousSnapshot as Prisma.InputJsonValue,
+          newData: dataToRestore as Prisma.InputJsonValue,
           changedFields,
           changeType: 'UPDATE',
           changeReason: `[RESTAURAÇÃO v${versionToRestore.versionNumber}] ${restoreReason}`,
@@ -782,12 +802,12 @@ export class DailyRecordsService {
       const restored = await prisma.dailyRecord.update({
         where: { id: recordId },
         data: {
-          type: dataToRestore.type,
-          date: dataToRestore.date,
-          time: dataToRestore.time,
-          data: dataToRestore.data,
-          recordedBy: dataToRestore.recordedBy,
-          notes: dataToRestore.notes,
+          type: dataToRestore.type as RecordType,
+          date: dataToRestore.date as Date,
+          time: dataToRestore.time as string,
+          data: dataToRestore.data as Prisma.InputJsonValue,
+          recordedBy: dataToRestore.recordedBy as string,
+          notes: dataToRestore.notes as string | null,
           updatedAt: new Date(),
         },
         include: {

@@ -8,6 +8,7 @@ import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
+  Prisma,
 } from '@prisma/client';
 import { format } from 'date-fns';
 import { DailyRecordCreatedEvent } from './events/daily-record-created.event';
@@ -152,9 +153,9 @@ export class SentinelEventsService {
    * Cria notificação CRÍTICA broadcast para todo o tenant
    */
   private async createSentinelNotification(
-    record: any,
+    record: { id: string; resident: { id: string; fullName: string }; date: Date; time?: string | null },
     eventType: string,
-  ): Promise<any> {
+  ) {
     const title = `🚨 EVENTO SENTINELA: ${eventType}`;
     const message = `Residente ${record.resident.fullName} - Notificação obrigatória à vigilância epidemiológica conforme RDC 502/2021 Art. 55. Prazo: 24 horas.`;
 
@@ -164,13 +165,13 @@ export class SentinelEventsService {
       severity: NotificationSeverity.CRITICAL,
       title,
       message,
-      actionUrl: `/daily-records?residentId=${record.residentId}&date=${format(record.date, 'yyyy-MM-dd')}`,
+      actionUrl: `/daily-records?residentId=${record.resident.id}&date=${format(record.date, 'yyyy-MM-dd')}`,
       entityType: 'DAILY_RECORD',
       entityId: record.id,
       metadata: {
         residentId: record.resident.id,
         residentName: record.resident.fullName,
-        eventType: record.incidentSubtypeClinical,
+        eventType,
         date: record.date,
         time: record.time,
         urgency: 'IMMEDIATE',
@@ -184,7 +185,7 @@ export class SentinelEventsService {
    * Envia email de alerta para o Responsável Técnico
    */
   private async sendRTAlert(
-    record: any,
+    record: Record<string, unknown>,
     eventType: string,
     trackingId: string,
   ): Promise<void> {
@@ -248,8 +249,8 @@ export class SentinelEventsService {
       startDate?: string;
       endDate?: string;
     },
-  ): Promise<any[]> {
-    const where: any = {};
+  ): Promise<Record<string, unknown>[]> {
+    const where: Prisma.SentinelEventNotificationWhereInput = {};
 
     if (filters?.status) {
       where.status = filters.status;
@@ -257,14 +258,14 @@ export class SentinelEventsService {
 
     if (filters?.startDate) {
       where.createdAt = {
-        ...where.createdAt,
+        ...(where.createdAt as Record<string, unknown> || {}),
         gte: new Date(filters.startDate),
       };
     }
 
     if (filters?.endDate) {
       where.createdAt = {
-        ...where.createdAt,
+        ...(where.createdAt as Record<string, unknown> || {}),
         lte: new Date(filters.endDate),
       };
     }
@@ -300,11 +301,11 @@ export class SentinelEventsService {
       dailyRecordId: event.dailyRecordId,
       residentName: event.dailyRecord.resident.fullName,
       residentId: event.dailyRecord.resident.id,
-      eventType: this.getEventTypeLabel(event.eventType as any),
+      eventType: this.getEventTypeLabel(event.eventType as string),
       eventDate: event.dailyRecord.date,
       eventTime: event.dailyRecord.time,
       description:
-        (event.metadata as any)?.description || (event.dailyRecord.data as any)?.descricao || '',
+        (event.metadata as Record<string, unknown>)?.description || (event.dailyRecord.data as Record<string, unknown>)?.descricao || '',
       status: event.status,
       protocolo: event.protocolo,
       dataEnvio: event.dataEnvio,
@@ -312,7 +313,7 @@ export class SentinelEventsService {
       responsavelEnvio: event.responsavelEnvio,
       emailEnviado: event.emailEnviado,
       emailEnviadoEm: event.emailEnviadoEm,
-      observacoes: (event.metadata as any)?.observacoes,
+      observacoes: (event.metadata as Record<string, unknown>)?.observacoes,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     }));
@@ -329,7 +330,7 @@ export class SentinelEventsService {
       observacoes?: string;
       responsavelEnvio?: string;
     },
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     // Verificar se evento existe e pertence ao tenant
     const event = await this.tenantContext.client.sentinelEventNotification.findFirst({
       where: {
@@ -341,10 +342,10 @@ export class SentinelEventsService {
       throw new Error('Evento sentinela não encontrado');
     }
 
-    const data: any = {
+    const data: Prisma.SentinelEventNotificationUncheckedUpdateInput = {
       status: updateData.status,
       metadata: {
-        ...(event.metadata as any),
+        ...(event.metadata as Record<string, unknown>),
         observacoes: updateData.observacoes,
       },
       updatedAt: new Date(),

@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import {
   ApiTags,
@@ -51,7 +52,7 @@ export class PermissionsController {
     },
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async getMyPermissions(@CurrentUser() user: any) {
+  async getMyPermissions(@CurrentUser() user: JwtPayload) {
     return await this.permissionsService.getUserAllPermissions(user.id);
   }
 
@@ -76,7 +77,7 @@ export class PermissionsController {
   @ApiParam({ name: 'userId', description: 'ID do usuário' })
   async getUserPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return await this.permissionsService.getUserAllPermissions(userId);
   }
@@ -139,7 +140,7 @@ export class PermissionsController {
   async addCustomPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() body: { permissions: PermissionType[] },
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     for (const permission of body.permissions) {
       await this.permissionsService.grantCustomPermission(
@@ -183,7 +184,7 @@ export class PermissionsController {
   async removeCustomPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() body: { permissions: PermissionType[] },
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     for (const permission of body.permissions) {
       await this.permissionsService.removeCustomPermission(
@@ -233,7 +234,7 @@ export class PermissionsController {
   async manageCustomPermissions(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() body: { add?: PermissionType[]; remove?: PermissionType[] },
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     try {
       const added: PermissionType[] = [];

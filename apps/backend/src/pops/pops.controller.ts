@@ -18,6 +18,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { PermissionType } from '@prisma/client'
+import { Request } from 'express'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { PopsService } from './pops.service'
 import { FilesService } from '../files/files.service'
 import {
@@ -65,7 +67,7 @@ export class PopsController {
    */
   @Post()
   @RequirePermissions(PermissionType.CREATE_POPS)
-  async create(@Req() req: any, @Body() dto: CreatePopDto) {
+  async create(@Req() req: Request & { user: JwtPayload }, @Body() dto: CreatePopDto) {
     return this.popsService.create(req.user.id, dto)
   }
 
@@ -159,7 +161,7 @@ export class PopsController {
    * Validação: Bloqueia DRAFT para usuários sem VIEW_POPS
    */
   @Get(':id')
-  async findOne(@Req() req: any, @Param('id') id: string) {
+  async findOne(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
     return this.popsService.findOnePublic(id, req.user.id)
   }
 
@@ -170,7 +172,7 @@ export class PopsController {
   @Patch(':id')
   @RequirePermissions(PermissionType.UPDATE_POPS)
   async update(
-    @Req() req: any,
+    @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
     @Body() dto: UpdatePopDto,
   ) {
@@ -183,7 +185,7 @@ export class PopsController {
    */
   @Delete(':id')
   @RequirePermissions(PermissionType.DELETE_POPS)
-  async remove(@Req() req: any, @Param('id') id: string) {
+  async remove(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
     await this.popsService.remove(id, req.user.id)
     return { message: 'POP removido com sucesso' }
   }
@@ -199,7 +201,7 @@ export class PopsController {
   @Post(':id/version')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
   async createVersion(
-    @Req() req: any,
+    @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
     @Body() dto: CreatePopVersionDto,
   ) {
@@ -226,7 +228,7 @@ export class PopsController {
    */
   @Post(':id/publish')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
-  async publish(@Req() req: any, @Param('id') id: string) {
+  async publish(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
     return this.popsService.publish(id, req.user.id)
   }
 
@@ -237,7 +239,7 @@ export class PopsController {
   @Post(':id/obsolete')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
   async markObsolete(
-    @Req() req: any,
+    @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
     @Body() dto: MarkObsoleteDto,
   ) {
@@ -250,7 +252,7 @@ export class PopsController {
    */
   @Post(':id/mark-reviewed')
   @RequirePermissions(PermissionType.PUBLISH_POPS) // Apenas RT
-  async markAsReviewed(@Req() req: any, @Param('id') id: string) {
+  async markAsReviewed(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
     return this.popsService.markAsReviewed(id, req.user.id)
   }
 
@@ -266,7 +268,7 @@ export class PopsController {
   @RequirePermissions(PermissionType.UPDATE_POPS)
   @UseInterceptors(FileInterceptor('file'))
   async addAttachment(
-    @Req() req: any,
+    @Req() req: Request & { user: JwtPayload },
     @Param('id') popId: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: AddAttachmentDto,
@@ -275,10 +277,15 @@ export class PopsController {
       throw new BadRequestException('Arquivo é obrigatório')
     }
 
+    const tenantId = req.user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
+
     // Upload do arquivo para MinIO
     // NOTA: filesService.uploadFile ainda usa tenantId (FilesService não foi refatorado)
     const uploadResult = await this.filesService.uploadFile(
-      req.user.tenantId,
+      tenantId,
       file,
       'pops',
       popId,
@@ -303,7 +310,7 @@ export class PopsController {
   @Delete('attachments/:attachmentId')
   @RequirePermissions(PermissionType.UPDATE_POPS)
   async removeAttachment(
-    @Req() req: any,
+    @Req() req: Request & { user: JwtPayload },
     @Param('attachmentId') attachmentId: string,
   ) {
     await this.popsService.removeAttachment(attachmentId)

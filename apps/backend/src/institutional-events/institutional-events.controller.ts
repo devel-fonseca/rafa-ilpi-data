@@ -31,6 +31,7 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('Institutional Events')
 @ApiBearerAuth()
@@ -50,7 +51,7 @@ export class InstitutionalEventsController {
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   create(
     @Body() dto: CreateInstitutionalEventDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.institutionalEventsService.create(dto, user.id);
   }
@@ -91,7 +92,7 @@ export class InstitutionalEventsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInstitutionalEventDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.institutionalEventsService.update(id, dto, user.id);
   }
@@ -105,7 +106,7 @@ export class InstitutionalEventsController {
   @ApiParam({ name: 'id', description: 'ID do evento (UUID)' })
   markAsCompleted(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.institutionalEventsService.markAsCompleted(id, user.id);
   }
@@ -118,7 +119,7 @@ export class InstitutionalEventsController {
   @ApiResponse({ status: 200, description: 'Evento removido com sucesso' })
   @ApiResponse({ status: 404, description: 'Evento não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do evento (UUID)' })
-  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
     return this.institutionalEventsService.remove(id, user.id);
   }
 }

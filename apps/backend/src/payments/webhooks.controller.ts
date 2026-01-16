@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service'
 import { PaymentService } from './services/payment.service'
 import { InvoiceService } from './services/invoice.service'
 import { AsaasWebhookDto, AsaasEventType } from './dto/asaas-webhook.dto'
-import { PaymentGateway, PaymentMethod } from '@prisma/client'
+import { PaymentGateway, PaymentMethod, Prisma } from '@prisma/client'
 
 /**
  * Controller para receber webhooks do Asaas
@@ -62,7 +62,7 @@ export class WebhooksController {
       data: {
         gateway: PaymentGateway.ASAAS,
         eventType: webhook.event,
-        payload: webhook as any,
+        payload: webhook as unknown as Prisma.InputJsonValue,
         processed: false,
       },
     })
@@ -130,7 +130,7 @@ export class WebhooksController {
    * Trata pagamento recebido/confirmado
    */
   private async handlePaymentReceived(webhook: AsaasWebhookDto) {
-    const paymentData = webhook.payment
+    const paymentData = webhook.payment as Record<string, unknown> | undefined
 
     if (!paymentData) {
       this.logger.warn('No payment data in webhook')
@@ -139,7 +139,7 @@ export class WebhooksController {
 
     // Buscar invoice pelo asaasInvoiceId
     const invoice = await this.prisma.invoice.findUnique({
-      where: { asaasInvoiceId: paymentData.id },
+      where: { asaasInvoiceId: paymentData.id as string | undefined },
     })
 
     if (!invoice) {
@@ -150,11 +150,11 @@ export class WebhooksController {
     // Registrar pagamento
     await this.paymentService.recordPayment({
       invoiceId: invoice.id,
-      amount: paymentData.value,
+      amount: paymentData.value as number,
       gateway: PaymentGateway.ASAAS,
-      gatewayId: paymentData.id,
-      method: this.mapBillingTypeToPaymentMethod(paymentData.billingType),
-      paidAt: paymentData.paymentDate ? new Date(paymentData.paymentDate) : new Date(),
+      gatewayId: paymentData.id as string,
+      method: this.mapBillingTypeToPaymentMethod(paymentData.billingType as string),
+      paidAt: paymentData.paymentDate ? new Date(paymentData.paymentDate as string) : new Date(),
       metadata: paymentData,
     })
 
@@ -165,12 +165,12 @@ export class WebhooksController {
    * Trata pagamento vencido
    */
   private async handlePaymentOverdue(webhook: AsaasWebhookDto) {
-    const paymentData = webhook.payment
+    const paymentData = webhook.payment as Record<string, unknown> | undefined
 
     if (!paymentData) return
 
     const invoice = await this.prisma.invoice.findUnique({
-      where: { asaasInvoiceId: paymentData.id },
+      where: { asaasInvoiceId: paymentData.id as string | undefined },
     })
 
     if (!invoice) return
@@ -190,12 +190,12 @@ export class WebhooksController {
    * Trata pagamento deletado/cancelado
    */
   private async handlePaymentDeleted(webhook: AsaasWebhookDto) {
-    const paymentData = webhook.payment
+    const paymentData = webhook.payment as Record<string, unknown> | undefined
 
     if (!paymentData) return
 
     const invoice = await this.prisma.invoice.findUnique({
-      where: { asaasInvoiceId: paymentData.id },
+      where: { asaasInvoiceId: paymentData.id as string | undefined },
     })
 
     if (!invoice) return
@@ -210,12 +210,12 @@ export class WebhooksController {
    * Trata estorno de pagamento
    */
   private async handlePaymentRefunded(webhook: AsaasWebhookDto) {
-    const paymentData = webhook.payment
+    const paymentData = webhook.payment as Record<string, unknown> | undefined
 
     if (!paymentData) return
 
     // Buscar pagamento
-    const payment = await this.paymentService.findByGatewayId(paymentData.id)
+    const payment = await this.paymentService.findByGatewayId(paymentData.id as string)
 
     if (!payment) {
       this.logger.warn(`Payment not found for Asaas payment ${paymentData.id}`)

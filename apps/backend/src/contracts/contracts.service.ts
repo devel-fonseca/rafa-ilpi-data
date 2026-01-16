@@ -323,7 +323,7 @@ export class ContractsService {
   /**
    * Renderizar contrato substituindo variáveis
    */
-  async renderContract(contractId: string, variables?: Record<string, any>) {
+  async renderContract(contractId: string, variables?: Record<string, unknown>) {
     const contract = await this.findOne(contractId);
 
     const rendered = renderTemplate(contract.content, variables || {});

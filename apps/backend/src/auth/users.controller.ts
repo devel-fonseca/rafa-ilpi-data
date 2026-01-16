@@ -15,6 +15,11 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+
+interface RequestWithUser extends Request {
+  user: JwtPayload;
+}
 
 @ApiTags('Users - Versionamento')
 @ApiBearerAuth()
@@ -35,7 +40,7 @@ export class UsersController {
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     return this.usersService.update(
       id,
@@ -56,7 +61,7 @@ export class UsersController {
   async remove(
     @Param('id') id: string,
     @Body() deleteUserDto: DeleteUserDto,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     return this.usersService.remove(
       id,
@@ -73,7 +78,7 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
   @ApiResponse({ status: 200, description: 'Histórico consultado com sucesso' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
-  async getHistory(@Param('id') id: string, @Request() _req: any) {
+  async getHistory(@Param('id') id: string) {
     return this.usersService.getHistory(id);
   }
 
@@ -89,7 +94,6 @@ export class UsersController {
   async getHistoryVersion(
     @Param('id') id: string,
     @Param('version') version: string,
-    @Request() _req: any,
   ) {
     return this.usersService.getHistoryVersion(
       id,
@@ -110,7 +114,7 @@ export class UsersController {
   async changePassword(
     @Param('id') id: string,
     @Body() changePasswordDto: ChangePasswordDto,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
   ) {
     return this.usersService.changePassword(
       id,
@@ -131,7 +135,6 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async getActiveSessions(
     @Param('id') id: string,
-    @Request() _req: any,
   ) {
     // Nota: não temos como pegar o currentTokenId do JWT payload diretamente
     // Vamos retornar todas as sessões e o frontend identifica pela data/hora mais recente
@@ -154,7 +157,6 @@ export class UsersController {
   async revokeSession(
     @Param('id') id: string,
     @Param('sessionId') sessionId: string,
-    @Request() _req: any,
   ) {
     return this.usersService.revokeSession(
       id,
@@ -172,7 +174,6 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Sessões encerradas com sucesso' })
   async revokeAllOtherSessions(
     @Param('id') id: string,
-    @Request() _req: any,
   ) {
     return this.usersService.revokeAllOtherSessions(
       id,
@@ -192,7 +193,7 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async getAccessLogs(
     @Param('id') id: string,
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('action') action?: string,

@@ -128,7 +128,7 @@ export class ResidentScheduleTasksService {
         const matchingRecord = existingRecords.find(
           (record) =>
             record.type === 'ALIMENTACAO' &&
-            (record.data as any)?.mealType === metadata.mealType,
+            (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
         );
 
         // 🔍 DEBUG
@@ -273,7 +273,7 @@ export class ResidentScheduleTasksService {
         existingRecords.map((r) => ({
           residentId: r.residentId,
           type: r.type,
-          mealType: (r.data as any)?.mealType,
+          mealType: (r.data as Record<string, unknown>)?.mealType,
         })),
       );
     }
@@ -293,7 +293,7 @@ export class ResidentScheduleTasksService {
             (record) =>
               record.residentId === config.residentId &&
               record.type === 'ALIMENTACAO' &&
-              (record.data as any)?.mealType === metadata.mealType,
+              (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
           );
 
           if (matchingRecord) {

@@ -284,20 +284,20 @@ export class AsaasService implements IPaymentGateway {
   /**
    * Handler centralizado de erros da API Asaas
    */
-  private handleError(method: string, error: any): never {
+  private handleError(method: string, error: unknown): never {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError
       const status = axiosError.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      const data: any = axiosError.response?.data || {}
+      const data = axiosError.response?.data as { errors?: Array<{ description?: string; code?: string }>; message?: string } | undefined
 
       this.logger.error(
-        `❌ Asaas API Error [${method}]: ${data.errors?.[0]?.description || data.message || axiosError.message}`,
+        `❌ Asaas API Error [${method}]: ${data?.errors?.[0]?.description || data?.message || axiosError.message}`,
       )
 
       throw new HttpException(
         {
-          message: `Erro no gateway de pagamento: ${data.errors?.[0]?.description || data.message || 'Erro desconhecido'}`,
-          code: data.errors?.[0]?.code,
+          message: `Erro no gateway de pagamento: ${data?.errors?.[0]?.description || data?.message || 'Erro desconhecido'}`,
+          code: data?.errors?.[0]?.code,
           method,
         },
         status,

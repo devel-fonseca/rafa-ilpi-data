@@ -4,6 +4,7 @@ import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
+  Prisma,
 } from '@prisma/client'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 
@@ -50,7 +51,7 @@ export class NotificationsHelperService {
         actionUrl: dto.actionUrl,
         entityType: dto.entityType,
         entityId: dto.entityId,
-        metadata: dto.metadata || {},
+        metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
         expiresAt: dto.expiresAt,
       },
     })

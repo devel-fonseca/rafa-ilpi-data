@@ -330,7 +330,7 @@ export function createEncryptionMiddleware(
     ) {
       if (!result) return result;
 
-      const decryptRecord = (record: any) => {
+      const decryptRecord = (record: Record<string, unknown>) => {
         const tenantId = record?.tenantId;
         if (!tenantId) return record;
 
@@ -338,12 +338,12 @@ export function createEncryptionMiddleware(
           if (record[field] && typeof record[field] === 'string') {
             try {
               // Só descriptografar se estiver criptografado
-              if (encryption.isEncrypted(record[field])) {
-                record[field] = encryption.decrypt(record[field], tenantId);
+              if (encryption.isEncrypted(record[field] as string)) {
+                record[field] = encryption.decrypt(record[field] as string, tenantId as string);
               }
             } catch (error) {
               logger.error(
-                `Failed to decrypt ${model}.${field} for tenant ${tenantId}: ${error.message}`,
+                `Failed to decrypt ${model}.${field} for tenant ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
               );
               // Manter valor criptografado em caso de erro (não quebrar app)
             }
@@ -369,20 +369,20 @@ export function createEncryptionMiddleware(
  * Extrair tenantId dos parâmetros da operação
  * Suporta múltiplos formatos de query
  */
-function extractTenantId(params: any): string | null {
+function extractTenantId(params: Prisma.MiddlewareParams): string | null {
   // Prioridade 1: tenantId direto nos dados
   if (params.args?.data?.tenantId) {
-    return params.args.data.tenantId;
+    return params.args.data.tenantId as string;
   }
 
   // Prioridade 2: tenantId no where
   if (params.args?.where?.tenantId) {
-    return params.args.where.tenantId;
+    return params.args.where.tenantId as string;
   }
 
   // Prioridade 3: tenantId em operações nested (update)
   if (params.args?.data?.tenant?.connect?.id) {
-    return params.args.data.tenant.connect.id;
+    return params.args.data.tenant.connect.id as string;
   }
 
   return null;
@@ -392,20 +392,20 @@ function extractTenantId(params: any): string | null {
  * Criptografar campos baseado no tipo de ação
  */
 function encryptFields(
-  params: any,
+  params: Prisma.MiddlewareParams,
   action: string,
   fields: string[],
   encryption: FieldEncryption,
   tenantId: string,
 ): void {
-  const processData = (data: any) => {
+  const processData = (data: Record<string, unknown>) => {
     if (!data) return;
 
     for (const field of fields) {
       if (data[field] && typeof data[field] === 'string') {
         // Evitar dupla criptografia
-        if (!encryption.isEncrypted(data[field])) {
-          data[field] = encryption.encrypt(data[field], tenantId);
+        if (!encryption.isEncrypted(data[field] as string)) {
+          data[field] = encryption.encrypt(data[field] as string, tenantId);
         }
       }
     }

@@ -3,6 +3,7 @@ import { parseISO } from 'date-fns';
 import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express';
+import { AuditLogFilters } from './interfaces/audit-filters.interface';
 
 @Controller('audit')
 @UseGuards(JwtAuthGuard)
@@ -41,7 +42,7 @@ export class AuditController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const filters: any = {
+    const filters: AuditLogFilters = {
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 50,
     };

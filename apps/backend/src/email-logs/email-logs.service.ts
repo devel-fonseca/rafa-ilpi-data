@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailLog, EmailStatus } from '@prisma/client';
+import { EmailLog, EmailStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class EmailLogsService {
@@ -19,7 +19,7 @@ export class EmailLogsService {
     limit?: number;
     offset?: number;
   }): Promise<{ logs: EmailLog[]; total: number }> {
-    const where: any = {};
+    const where: Prisma.EmailLogWhereInput = {};
 
     if (filters?.templateKey) {
       where.templateKey = filters.templateKey;
@@ -107,7 +107,7 @@ export class EmailLogsService {
     bounced: number;
     byTemplate: Array<{ templateKey: string; count: number }>;
   }> {
-    const where: any = {};
+    const where: Prisma.EmailLogWhereInput = {};
 
     if (filters?.templateKey) {
       where.templateKey = filters.templateKey;

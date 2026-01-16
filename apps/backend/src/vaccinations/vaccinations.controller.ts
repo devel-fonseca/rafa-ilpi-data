@@ -22,6 +22,7 @@ import { VaccinationsService } from './vaccinations.service'
 import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
 import { DeleteVaccinationDto } from './dto/delete-vaccination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
@@ -46,7 +47,7 @@ export class VaccinationsController {
   @ApiResponse({ status: 201, description: 'Vacinação registrada com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@Body() createDto: CreateVaccinationDto, @CurrentUser() user: any) {
+  create(@Body() createDto: CreateVaccinationDto, @CurrentUser() user: JwtPayload) {
     return this.vaccinationsService.create(createDto, user.id)
   }
 
@@ -98,7 +99,7 @@ export class VaccinationsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateVaccinationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.vaccinationsService.update(id, updateDto, user.id)
   }
@@ -121,7 +122,7 @@ export class VaccinationsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteVaccinationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.vaccinationsService.remove(id, user.id, deleteDto.deleteReason);
   }

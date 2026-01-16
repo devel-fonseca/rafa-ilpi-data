@@ -18,6 +18,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { formatDateOnly } from '../utils/date.helpers';
+import { Prisma } from '@prisma/client';
 import {
   PrescriptionType,
   ControlledClass,
@@ -48,10 +49,10 @@ export class PrescriptionsService {
     changeReason: string,
     changedBy: string,
     changedByName: string,
-    previousData: any | null,
-    newData: any,
+    previousData: Record<string, unknown> | null,
+    newData: Record<string, unknown>,
     changedFields: string[],
-    tx: any,
+    tx: Prisma.TransactionClient,
     ipAddress?: string,
     userAgent?: string,
   ): Promise<void> {
@@ -59,7 +60,7 @@ export class PrescriptionsService {
       data: {
         tenantId: this.tenantContext.tenantId,
         prescriptionId,
-        versionNumber: newData.versionNumber,
+        versionNumber: newData.versionNumber as number,
         changeType,
         changeReason,
         previousData: previousData ? JSON.parse(JSON.stringify(previousData)) : null,
@@ -78,7 +79,7 @@ export class PrescriptionsService {
    * Calcula quais campos foram alterados comparando previousData e newData
    * Retorna array de strings com os nomes dos campos alterados
    */
-  private calculateChangedFields(previousData: any, newData: any): string[] {
+  private calculateChangedFields(previousData: Record<string, unknown>, newData: Record<string, unknown>): string[] {
     const changedFields: string[] = [];
 
     // Campos a verificar (excluir campos de auditoria)
@@ -122,7 +123,7 @@ export class PrescriptionsService {
    *
    * Campos afetados: prescriptionDate, validUntil, reviewDate, lastMedicalReviewDate
    */
-  private formatDateOnlyFields(prescription: any): any {
+  private formatDateOnlyFields(prescription: Record<string, unknown>): Record<string, unknown> {
     if (!prescription) return prescription;
 
     const formatDate = (date: Date | null | undefined): string | null => {
@@ -133,10 +134,10 @@ export class PrescriptionsService {
 
     return {
       ...prescription,
-      prescriptionDate: formatDate(prescription.prescriptionDate),
-      validUntil: formatDate(prescription.validUntil),
-      reviewDate: formatDate(prescription.reviewDate),
-      lastMedicalReviewDate: formatDate(prescription.lastMedicalReviewDate),
+      prescriptionDate: formatDate(prescription.prescriptionDate as Date | null | undefined),
+      validUntil: formatDate(prescription.validUntil as Date | null | undefined),
+      reviewDate: formatDate(prescription.reviewDate as Date | null | undefined),
+      lastMedicalReviewDate: formatDate(prescription.lastMedicalReviewDate as Date | null | undefined),
     };
   }
 
@@ -315,7 +316,7 @@ export class PrescriptionsService {
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.PrescriptionWhereInput = {
       deletedAt: null,
     };
 
@@ -325,7 +326,7 @@ export class PrescriptionsService {
     }
 
     if (query.prescriptionType) {
-      where.prescriptionType = query.prescriptionType;
+      where.prescriptionType = query.prescriptionType as PrescriptionType;
     }
 
     if (query.isActive) {
@@ -367,9 +368,9 @@ export class PrescriptionsService {
     }
 
     // Ordenação
-    const orderBy: any = {};
+    const orderBy: Prisma.PrescriptionOrderByWithRelationInput = {};
     if (query.sortBy) {
-      orderBy[query.sortBy] = query.sortOrder || 'desc';
+      (orderBy as Record<string, string>)[query.sortBy] = query.sortOrder || 'desc';
     } else {
       orderBy.createdAt = 'desc';
     }
@@ -579,7 +580,10 @@ export class PrescriptionsService {
 
       // 3. Validar tipo de prescrição se fornecido
       if (updatePrescriptionDto.prescriptionType) {
-        this.validatePrescriptionByType(updatePrescriptionDto as any);
+        this.validatePrescriptionByType({
+          ...updatePrescriptionDto,
+          residentId: existing.residentId,
+        } as CreatePrescriptionDto);
       }
 
       // 4. Criar snapshot do estado anterior (previousData)

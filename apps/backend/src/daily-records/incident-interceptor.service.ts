@@ -102,14 +102,15 @@ export class IncidentInterceptorService {
   ): Promise<void> {
     // Obter tenant client baseado no tenantId do record
     const tenantClient = await this.getTenantClient(record.tenantId);
-    const data = record.data as any;
+    const data = record.data as Record<string, unknown>;
 
     // Detectar diarreia (Indicador RDC obrigatório)
     if (data.tipo === 'Fezes') {
+      const consistencia = data.consistencia as string | undefined;
       const consistenciaDiarreica =
-        data.consistencia?.toLowerCase().includes('diarr') ||
-        data.consistencia?.toLowerCase().includes('líquida') ||
-        data.consistencia?.toLowerCase().includes('liquida');
+        consistencia?.toLowerCase().includes('diarr') ||
+        consistencia?.toLowerCase().includes('líquida') ||
+        consistencia?.toLowerCase().includes('liquida');
 
       // Critério: consistência diarréica OU múltiplas evacuações no mesmo dia
       if (consistenciaDiarreica) {
@@ -187,7 +188,7 @@ export class IncidentInterceptorService {
   ): Promise<void> {
     // Obter tenant client baseado no tenantId do record
     const tenantClient = await this.getTenantClient(record.tenantId);
-    const data = record.data as any;
+    const data = record.data as Record<string, unknown>;
 
     // Detectar recusa alimentar (0% de ingestão)
     if (data.ingeriu === 'Recusou' || data.ingeriu === '<25%') {
@@ -276,6 +277,7 @@ export class IncidentInterceptorService {
         Recusa: IncidentSeverity.LEVE,
       };
 
+      const intercorrencia = data.intercorrencia as string;
       await this.createAutoIncident({
         tenantId: record.tenantId,
         residentId: record.residentId,
@@ -285,13 +287,13 @@ export class IncidentInterceptorService {
         recordedBy: record.recordedBy,
         category: IncidentCategory.CLINICA,
         subtypeClinical:
-          data.intercorrencia === 'Vômito'
+          intercorrencia === 'Vômito'
             ? IncidentSubtypeClinical.VOMITO
             : IncidentSubtypeClinical.OUTRA_CLINICA,
         severity:
-          severityMap[data.intercorrencia] || IncidentSeverity.MODERADA,
-        description: `Intercorrência durante alimentação: ${data.intercorrencia}`,
-        action: `Avaliar causa e monitorar. ${data.intercorrencia === 'Engasgo' ? 'URGENTE: Verificar via aérea e saturação de O2.' : ''}`,
+          severityMap[intercorrencia] || IncidentSeverity.MODERADA,
+        description: `Intercorrência durante alimentação: ${intercorrencia}`,
+        action: `Avaliar causa e monitorar. ${intercorrencia === 'Engasgo' ? 'URGENTE: Verificar via aérea e saturação de O2.' : ''}`,
         rdcIndicators: [],
         sourceRecordId: record.id,
       });
@@ -307,7 +309,7 @@ export class IncidentInterceptorService {
     record: DailyRecord,
     userId: string,
   ): Promise<void> {
-    const data = record.data as any;
+    const data = record.data as Record<string, unknown>;
 
     // Mapear estados emocionais para subtipos de intercorrência
     const estadoEmocionalMap: Record<
@@ -338,8 +340,9 @@ export class IncidentInterceptorService {
       },
     };
 
-    if (data.estadoEmocional && estadoEmocionalMap[data.estadoEmocional]) {
-      const mapping = estadoEmocionalMap[data.estadoEmocional];
+    const estadoEmocional = data.estadoEmocional as string | undefined;
+    if (estadoEmocional && estadoEmocionalMap[estadoEmocional]) {
+      const mapping = estadoEmocionalMap[estadoEmocional];
 
       await this.createAutoIncident({
         tenantId: record.tenantId,
@@ -367,10 +370,10 @@ export class IncidentInterceptorService {
     record: DailyRecord,
     userId: string,
   ): Promise<void> {
-    const data = record.data as any;
+    const data = record.data as Record<string, unknown>;
 
     // Detectar menção a lesões, úlceras ou feridas nas observações
-    const observacoes = data.observacoes?.toLowerCase() || '';
+    const observacoes = (data.observacoes as string | undefined)?.toLowerCase() || '';
     const keywords = [
       'lesão',
       'lesao',

@@ -95,7 +95,7 @@ export class AsaasWebhookDto {
     },
   })
   @IsObject()
-  payment?: any
+  payment?: Record<string, unknown>
 
   @ApiProperty({
     description: 'Dados da subscription',
@@ -108,7 +108,7 @@ export class AsaasWebhookDto {
   })
   @IsOptional()
   @IsObject()
-  subscription?: any
+  subscription?: Record<string, unknown>
 
   @ApiProperty({
     description: 'Data/hora do evento',

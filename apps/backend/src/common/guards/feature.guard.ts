@@ -87,7 +87,7 @@ export class FeatureGuard implements CanActivate {
     }
 
     // 6. Validar se TODAS as features requeridas estão habilitadas no plano
-    const planFeatures = subscription.plan.features as Record<string, any>;
+    const planFeatures = subscription.plan.features as Record<string, unknown>;
 
     // Filtrar apenas features não-core para validação
     const nonCoreFeatures = requiredFeatures.filter(

@@ -38,6 +38,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { FeatureGuard } from '../common/guards/feature.guard';
@@ -68,7 +69,7 @@ export class ResidentScheduleController {
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   @ApiResponse({ status: 409, description: 'Configuração duplicada' })
-  create(@Body() dto: CreateScheduleConfigDto, @CurrentUser() _user: any) {
+  create(@Body() dto: CreateScheduleConfigDto, @CurrentUser() user: JwtPayload) {
     return this.scheduleService.createConfig(dto, user.id);
   }
 
@@ -79,7 +80,7 @@ export class ResidentScheduleController {
     description: 'Retorna todas as configurações ativas de registros obrigatórios de residentes ativos (usado para cálculo de cobertura)',
   })
   @ApiResponse({ status: 200, description: 'Lista de configurações' })
-  getAllActiveConfigs(@CurrentUser() _user: any) {
+  getAllActiveConfigs(@CurrentUser() _user: JwtPayload) {
     return this.scheduleService.getAllActiveConfigs();
   }
 
@@ -94,7 +95,7 @@ export class ResidentScheduleController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   getConfigsByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.scheduleService.getConfigsByResident(residentId);
   }
@@ -110,7 +111,7 @@ export class ResidentScheduleController {
   updateConfig(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateScheduleConfigDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.updateConfig(id, dto, user.id);
   }
@@ -125,7 +126,7 @@ export class ResidentScheduleController {
   @ApiParam({ name: 'id', description: 'ID da configuração (UUID)' })
   deleteConfig(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.deleteConfig(id, user.id);
   }
@@ -154,7 +155,7 @@ export class ResidentScheduleController {
   })
   createAlimentacaoConfigs(
     @Body() dto: CreateAlimentacaoConfigDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.createAlimentacaoConfigs(
       dto,
@@ -179,7 +180,7 @@ export class ResidentScheduleController {
   updateAlimentacaoConfigs(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Body() dto: UpdateAlimentacaoConfigDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.updateAlimentacaoConfigs(
       residentId,
@@ -204,7 +205,7 @@ export class ResidentScheduleController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   deleteAlimentacaoConfigs(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.deleteAlimentacaoConfigs(
       residentId,
@@ -223,7 +224,7 @@ export class ResidentScheduleController {
   @ApiResponse({ status: 201, description: 'Agendamento criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  createEvent(@Body() dto: CreateScheduledEventDto, @CurrentUser() _user: any) {
+  createEvent(@Body() dto: CreateScheduledEventDto, @CurrentUser() user: JwtPayload) {
     return this.scheduleService.createEvent(dto, user.id);
   }
 
@@ -238,7 +239,7 @@ export class ResidentScheduleController {
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
   getEventsByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.scheduleService.getEventsByResident(residentId);
   }
@@ -253,7 +254,7 @@ export class ResidentScheduleController {
   updateEvent(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateScheduledEventDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.updateEvent(id, dto, user.id);
   }
@@ -268,7 +269,7 @@ export class ResidentScheduleController {
   @ApiParam({ name: 'id', description: 'ID do agendamento (UUID)' })
   deleteEvent(
     @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.scheduleService.deleteEvent(id, user.id);
   }
@@ -294,7 +295,7 @@ export class ResidentScheduleController {
   getDailyTasksByResident(
     @Param('residentId', ParseUUIDPipe) residentId: string,
     @Query() query: QueryDailyTasksDto,
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
   ) {
     return this.tasksService.getDailyTasksByResident(
       residentId,
@@ -315,7 +316,7 @@ export class ResidentScheduleController {
     description: 'Data no formato YYYY-MM-DD (se não informado, usa data atual)',
     required: false,
   })
-  getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() _user: any) {
+  getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() _user: JwtPayload) {
     return this.tasksService.getDailyTasks(query.date);
   }
 
@@ -362,7 +363,7 @@ export class ResidentScheduleController {
     required: false,
     example: 'medications,vaccinations,feeding',
   })
-  getAgendaItems(@Query() query: GetAgendaItemsDto, @CurrentUser() _user: any) {
+  getAgendaItems(@Query() query: GetAgendaItemsDto, @CurrentUser() _user: JwtPayload) {
     return this.agendaService.getAgendaItems(query);
   }
 
@@ -395,7 +396,7 @@ export class ResidentScheduleController {
     required: false,
   })
   async getInstitutionalEvents(
-    @CurrentUser() _user: any,
+    @CurrentUser() user: JwtPayload,
     @Query('date') date?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,

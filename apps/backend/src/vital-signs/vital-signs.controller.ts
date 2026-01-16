@@ -25,10 +25,12 @@ import { CreateVitalSignDto } from './dto/create-vital-sign.dto';
 import { UpdateVitalSignDto } from './dto/update-vital-sign.dto';
 import { DeleteVitalSignDto } from './dto/delete-vital-sign.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
+import { parseISO } from 'date-fns';
 
 @ApiTags('vital-signs')
 @ApiBearerAuth('JWT-auth')
@@ -45,7 +47,7 @@ export class VitalSignsController {
     description: 'Sinal vital criado com sucesso',
   })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@CurrentUser() user: any, @Body() createDto: CreateVitalSignDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() createDto: CreateVitalSignDto) {
     return this.vitalSignsService.create(user.id, createDto);
   }
 
@@ -54,7 +56,7 @@ export class VitalSignsController {
   @ApiOperation({ summary: 'Buscar sinal vital por ID' })
   @ApiResponse({ status: 200, description: 'Sinal vital encontrado' })
   @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.vitalSignsService.findOne(id);
   }
 
@@ -65,13 +67,13 @@ export class VitalSignsController {
   @ApiQuery({ name: 'endDate', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Sinais vitais encontrados' })
   findByResident(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('residentId') residentId: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const start = startDate ? new Date(startDate) : undefined;
-    const end = endDate ? new Date(endDate) : undefined;
+    const start = startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined;
+    const end = endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined;
     return this.vitalSignsService.findByResident(
       residentId,
       start,
@@ -91,7 +93,7 @@ export class VitalSignsController {
     description: 'Sinal vital não encontrado',
   })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateVitalSignDto,
   ) {
@@ -111,7 +113,7 @@ export class VitalSignsController {
   @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteVitalSignDto,
   ) {
@@ -132,7 +134,7 @@ export class VitalSignsController {
   @ApiResponse({ status: 404, description: 'Sinal vital não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
   getHistory(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.vitalSignsService.getHistory(id);
@@ -153,7 +155,7 @@ export class VitalSignsController {
   @ApiParam({ name: 'id', description: 'ID do sinal vital (UUID)' })
   @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
   getHistoryVersion(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
   ) {

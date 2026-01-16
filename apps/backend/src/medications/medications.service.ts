@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { UpdateMedicationDto } from '../prescriptions/dto/update-medication.dto';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class MedicationsService {
@@ -60,7 +60,7 @@ export class MedicationsService {
     (Object.keys(updateData) as Array<keyof typeof updateData>).forEach((key) => {
       if (
         updateData[key] !== undefined &&
-        JSON.stringify(updateData[key]) !== JSON.stringify((previousData as any)[key])
+        JSON.stringify(updateData[key]) !== JSON.stringify((previousData as Record<string, unknown>)[key])
       ) {
         changedFields.push(key as string);
       }
@@ -71,14 +71,15 @@ export class MedicationsService {
 
     // Executar update e criar histórico em transação atômica
     const result = await this.tenantContext.client.$transaction(async (tx) => {
-      // 1. Atualizar medicamento
+      // 1. Atualizar medicamento (sem spread para evitar propriedades nested)
+      const { ...cleanUpdateData } = updateData as Prisma.MedicationUpdateInput;
       const updatedMedication = await tx.medication.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...cleanUpdateData,
           versionNumber: newVersionNumber,
           updatedBy: userId,
-        },
+        } as Prisma.MedicationUpdateInput,
         include: { prescription: true },
       });
 
@@ -108,8 +109,8 @@ export class MedicationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -195,12 +196,12 @@ export class MedicationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedMedication.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

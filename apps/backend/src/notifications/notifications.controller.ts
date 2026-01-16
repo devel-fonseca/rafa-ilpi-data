@@ -8,12 +8,13 @@ import {
   Query,
   Param,
   UseGuards,
-  Request,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { NotificationsService } from './notifications.service'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { QueryNotificationDto } from './dto/query-notification.dto'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
+import { CurrentUser } from '../auth/decorators/current-user.decorator'
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -34,8 +35,8 @@ export class NotificationsController {
    * Listar notificações com filtros e paginação
    */
   @Get()
-  async findAll(@Request() req: any, @Query() query: QueryNotificationDto) {
-    const userId = req.user.id
+  async findAll(@CurrentUser() user: JwtPayload, @Query() query: QueryNotificationDto) {
+    const userId = user.id
     return this.notificationsService.findAll(userId, query)
   }
 
@@ -44,8 +45,8 @@ export class NotificationsController {
    * Contar notificações não lidas
    */
   @Get('unread/count')
-  async countUnread(@Request() req: any) {
-    const userId = req.user.id
+  async countUnread(@CurrentUser() user: JwtPayload) {
+    const userId = user.id
     return this.notificationsService.countUnread(userId)
   }
 
@@ -54,8 +55,8 @@ export class NotificationsController {
    * Marcar notificação como lida
    */
   @Patch(':id/read')
-  async markAsRead(@Request() req: any, @Param('id') id: string) {
-    const userId = req.user.id
+  async markAsRead(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const userId = user.id
     return this.notificationsService.markAsRead(userId, id)
   }
 
@@ -64,8 +65,8 @@ export class NotificationsController {
    * Marcar todas as notificações como lidas
    */
   @Patch('read-all')
-  async markAllAsRead(@Request() req: any) {
-    const userId = req.user.id
+  async markAllAsRead(@CurrentUser() user: JwtPayload) {
+    const userId = user.id
     return this.notificationsService.markAllAsRead(userId)
   }
 
@@ -74,8 +75,8 @@ export class NotificationsController {
    * Deletar notificação
    */
   @Delete(':id')
-  async delete(@Request() req: any, @Param('id') id: string) {
-    const userId = req.user.id
+  async delete(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const userId = user.id
     return this.notificationsService.delete(userId, id)
   }
 }

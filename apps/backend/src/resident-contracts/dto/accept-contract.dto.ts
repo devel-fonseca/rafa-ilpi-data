@@ -36,7 +36,7 @@ export class PrepareAcceptanceDto {
     required: false,
   })
   @IsOptional()
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
 }
 
 /**
@@ -57,5 +57,5 @@ export class RenderContractDto {
     required: false,
   })
   @IsOptional()
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
 }

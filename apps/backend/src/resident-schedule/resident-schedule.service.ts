@@ -11,7 +11,7 @@ import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO, format } from 'date-fns';
-import { ScheduleFrequency } from '@prisma/client';
+import { ScheduleFrequency, Prisma } from '@prisma/client';
 import {
   CreateScheduleConfigDto,
   UpdateScheduleConfigDto,
@@ -584,7 +584,7 @@ export class ResidentScheduleService {
         scheduledTime: dto.scheduledTime,
         title: dto.title,
         description: dto.description,
-        vaccineData: dto.vaccineData ? (dto.vaccineData as any) : undefined,
+        vaccineData: dto.vaccineData ? (dto.vaccineData as unknown as Prisma.InputJsonValue) : undefined,
         notes: dto.notes,
         createdBy: userId,
       },
@@ -703,7 +703,7 @@ export class ResidentScheduleService {
         scheduledTime: dto.scheduledTime,
         title: dto.title,
         description: dto.description,
-        vaccineData: dto.vaccineData ? (dto.vaccineData as any) : undefined,
+        vaccineData: dto.vaccineData ? (dto.vaccineData as unknown as Prisma.InputJsonValue) : undefined,
         status: dto.status,
         completedRecordId: dto.completedRecordId,
         completedAt: dto.status === 'COMPLETED' ? new Date() : undefined,

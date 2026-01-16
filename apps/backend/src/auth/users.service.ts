@@ -4,7 +4,7 @@ import { TenantContextService } from '../prisma/tenant-context.service';
 import { JwtCacheService } from './jwt-cache.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { ChangeType, AccessAction } from '@prisma/client';
+import { ChangeType, AccessAction, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -68,7 +68,7 @@ export class UsersService {
     (Object.keys(updateData) as Array<keyof typeof updateData>).forEach((key) => {
       if (
         updateData[key] !== undefined &&
-        JSON.stringify(updateData[key]) !== JSON.stringify((user as any)[key])
+        JSON.stringify(updateData[key]) !== JSON.stringify((user as Record<string, unknown>)[key])
       ) {
         changedFields.push(key as string);
       }
@@ -88,7 +88,7 @@ export class UsersService {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...updateData,
           ...(hashedPassword && { password: hashedPassword }),
           versionNumber: newVersionNumber,
           updatedBy: currentUserId,
@@ -131,8 +131,8 @@ export class UsersService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: currentUserId,
@@ -234,12 +234,12 @@ export class UsersService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedUser.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: currentUserId,
@@ -427,11 +427,11 @@ export class UsersService {
           previousData: {
             password: { passwordMasked: true },
             versionNumber: user.versionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           newData: {
             password: { passwordChanged: true },
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['password'],
           changedAt: new Date(),
           changedBy: currentUserId,
@@ -608,7 +608,7 @@ export class UsersService {
     }
 
     // Filtros
-    const where: any = {
+    const where: Prisma.AccessLogWhereInput = {
       userId,
     };
 

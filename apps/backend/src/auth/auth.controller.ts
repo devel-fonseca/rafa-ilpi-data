@@ -22,6 +22,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { Request } from 'express';
 
 @ApiTags('auth')
@@ -123,7 +124,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@CurrentUser() user: any, @Body() logoutDto: { refreshToken?: string }, @Req() req: Request) {
+  async logout(@CurrentUser() user: JwtPayload, @Body() logoutDto: { refreshToken?: string }, @Req() req: Request) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
     return this.authService.logout(user.id, logoutDto.refreshToken, ipAddress, userAgent);
@@ -219,7 +220,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('me')
   @HttpCode(HttpStatus.OK)
-  async me(@CurrentUser() user: any) {
+  async me(@CurrentUser() user: JwtPayload) {
     return { user };
   }
 }

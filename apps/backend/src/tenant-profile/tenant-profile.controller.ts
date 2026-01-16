@@ -22,6 +22,7 @@ import {
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 
 /**
@@ -72,7 +73,7 @@ export class TenantProfileController {
     description: 'Não autenticado',
   })
   async upsert(
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
     @Body() dto: CreateTenantProfileDto,
   ) {
     return this.tenantProfileService.upsert(dto);
@@ -95,7 +96,7 @@ export class TenantProfileController {
     status: 404,
     description: 'Perfil não encontrado',
   })
-  async getMyProfile(@CurrentUser() _user: any) {
+  async getMyProfile(@CurrentUser() _user: JwtPayload) {
     return this.tenantProfileService.findByTenantId();
   }
 
@@ -121,7 +122,7 @@ export class TenantProfileController {
       },
     },
   })
-  async checkCompletion(@CurrentUser() _user: any) {
+  async checkCompletion(@CurrentUser() _user: JwtPayload) {
     return this.tenantProfileService.checkCompletionStatus();
   }
 
@@ -149,7 +150,7 @@ export class TenantProfileController {
     description: 'Dados inválidos',
   })
   async update(
-    @CurrentUser() _user: any,
+    @CurrentUser() _user: JwtPayload,
     @Body() dto: UpdateTenantProfileDto,
   ) {
     return this.tenantProfileService.update(dto);
@@ -174,7 +175,7 @@ export class TenantProfileController {
     status: 404,
     description: 'Perfil não encontrado',
   })
-  async softDelete(@CurrentUser() _user: any) {
+  async softDelete(@CurrentUser() _user: JwtPayload) {
     await this.tenantProfileService.softDelete();
   }
 }

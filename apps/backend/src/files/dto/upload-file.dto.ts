@@ -24,5 +24,5 @@ export class UploadFileDto {
     format: 'binary',
     description: 'Arquivo a ser enviado',
   })
-  file: any;
+  file: Express.Multer.File;
 }

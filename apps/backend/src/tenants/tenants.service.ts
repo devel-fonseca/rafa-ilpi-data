@@ -18,6 +18,7 @@ import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { TenantStatus, Prisma } from '@prisma/client';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class TenantsService {
@@ -63,9 +64,9 @@ export class TenantsService {
     } = createTenantDto;
 
     // Decodificar e validar token de aceite do contrato
-    let acceptanceData: any;
+    let acceptanceData: Record<string, unknown>;
     try {
-      acceptanceData = this.jwtService.verify(acceptanceToken);
+      acceptanceData = this.jwtService.verify(acceptanceToken) as Record<string, unknown>;
     } catch (_error) {
       throw new BadRequestException(
         'Token de aceite do contrato inválido ou expirado',
@@ -169,16 +170,17 @@ export class TenantsService {
         });
 
         // 2. Criar a subscription
-        const trialDurationMs = plan.trialDays * 24 * 60 * 60 * 1000; // Usar trialDays do plano
+        const now = new Date();
+        const trialEndDate = addDays(now, plan.trialDays); // Usar trialDays do plano
         const subscription = await prisma.subscription.create({
           data: {
             tenantId: tenant.id,
             planId,
             status: 'trialing',
-            startDate: new Date(),
-            trialEndDate: new Date(Date.now() + trialDurationMs),
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + trialDurationMs),
+            startDate: now,
+            trialEndDate,
+            currentPeriodStart: now,
+            currentPeriodEnd: trialEndDate,
             // Novos campos de billing
             billingCycle,
             preferredPaymentMethod: paymentMethod,
@@ -216,14 +218,14 @@ export class TenantsService {
         // 5. Registrar aceite do contrato
         const contractAcceptance = await prisma.contractAcceptance.create({
           data: {
-            contractId: acceptanceData.contractId,
+            contractId: acceptanceData.contractId as string,
             tenantId: tenant.id,
             userId: user.id,
-            ipAddress: acceptanceData.ipAddress,
-            userAgent: acceptanceData.userAgent,
-            contractVersion: acceptanceData.contractVersion,
-            contractHash: acceptanceData.contractHash,
-            contractContent: acceptanceData.contractContent,
+            ipAddress: acceptanceData.ipAddress as string,
+            userAgent: acceptanceData.userAgent as string,
+            contractVersion: acceptanceData.contractVersion as string,
+            contractHash: acceptanceData.contractHash as string,
+            contractContent: acceptanceData.contractContent as string,
           },
         });
 
@@ -232,8 +234,8 @@ export class TenantsService {
           data: {
             tenantId: tenant.id,
             userId: user.id,
-            ipAddress: acceptanceData.ipAddress, // Mesmo IP do aceite do contrato
-            userAgent: acceptanceData.userAgent, // Mesmo User-Agent
+            ipAddress: acceptanceData.ipAddress as string, // Mesmo IP do aceite do contrato
+            userAgent: acceptanceData.userAgent as string, // Mesmo User-Agent
             policyVersion: privacyPolicyData.version,
             policyEffectiveDate: privacyPolicyData.effectiveDate,
             policyContent: privacyPolicyData.content, // Snapshot completo Markdown

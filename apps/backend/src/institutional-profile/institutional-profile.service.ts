@@ -3,10 +3,11 @@ import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { FilesService } from '../files/files.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
-import { DocumentStatus } from '@prisma/client'
+import { DocumentStatus, Prisma } from '@prisma/client'
 import { getRequiredDocuments, getDocumentLabel, isAllowedFileType, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { getCurrentDateInTz } from '../utils/date.helpers'
 import { formatDateOnly } from '../utils/date.helpers'
+import { parseISO } from 'date-fns'
 
 @Injectable()
 export class InstitutionalProfileService {
@@ -83,18 +84,19 @@ export class InstitutionalProfileService {
    */
   async createOrUpdateProfile(tenantId: string, dto: CreateTenantProfileDto | UpdateTenantProfileDto) {
     // Converter foundedAt de string para Date se fornecido
-    const data: any = { ...dto }
-    if (data.foundedAt) {
-      data.foundedAt = new Date(data.foundedAt)
+    const { foundedAt, ...rest } = dto
+    const processedData = {
+      ...rest,
+      ...(foundedAt ? { foundedAt: parseISO(`${foundedAt}T12:00:00.000`) } : {}),
     }
 
     return this.tenantContext.client.tenantProfile.upsert({
       where: { tenantId },
       create: {
         tenantId,
-        ...data,
-      },
-      update: data,
+        ...processedData,
+      } as Prisma.TenantProfileUncheckedCreateInput,
+      update: processedData as Prisma.TenantProfileUpdateInput,
     })
   }
 
@@ -112,7 +114,7 @@ export class InstitutionalProfileService {
 
       // 1. Atualizar dados do tenant se fornecidos
       if (dto.tenant && Object.keys(dto.tenant).length > 0) {
-        const tenantData: any = { ...dto.tenant }
+        const tenantData: Prisma.TenantUpdateInput = { ...dto.tenant }
         console.log('🔍 Atualizando tenant com:', JSON.stringify(tenantData, null, 2))
 
         updatedTenant = await tx.tenant.update({
@@ -124,11 +126,11 @@ export class InstitutionalProfileService {
 
       // 2. Atualizar perfil institucional se fornecido
       if (dto.profile && Object.keys(dto.profile).length > 0) {
-        const profileData: any = { ...dto.profile }
+        const profileData: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput = { ...dto.profile }
 
         // Converter foundedAt se fornecido
         if (profileData.foundedAt) {
-          profileData.foundedAt = new Date(profileData.foundedAt)
+          profileData.foundedAt = new Date(profileData.foundedAt as string)
         }
 
         // Sincronizar telefone e email do tenant para o profile
@@ -146,8 +148,8 @@ export class InstitutionalProfileService {
           create: {
             tenantId,
             ...profileData,
-          },
-          update: profileData,
+          } as Prisma.TenantProfileUncheckedCreateInput,
+          update: profileData as Prisma.TenantProfileUpdateInput,
         })
         console.log('✅ Profile atualizado:', JSON.stringify(updatedProfile, null, 2))
       }
@@ -247,7 +249,7 @@ export class InstitutionalProfileService {
       expiringBefore?: Date
     }
   ) {
-    const where: any = {
+    const where: Prisma.TenantDocumentWhereInput = {
       tenantId,
       deletedAt: null,
     }
@@ -427,14 +429,14 @@ export class InstitutionalProfileService {
   ) {
     await this.getDocument(tenantId, documentId)
 
-    const data: any = { ...dto }
+    const data: Prisma.TenantDocumentUpdateInput = { ...dto }
 
     // Converter datas se fornecidas
     if (data.issuedAt) {
-      data.issuedAt = new Date(data.issuedAt)
+      data.issuedAt = new Date(data.issuedAt as string)
     }
     if (data.expiresAt) {
-      data.expiresAt = new Date(data.expiresAt)
+      data.expiresAt = new Date(data.expiresAt as string)
     }
 
     // Recalcular status se data de vencimento mudou

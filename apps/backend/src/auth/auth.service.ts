@@ -19,7 +19,7 @@ import { RegisterDto } from './dto/register.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ChangeType, AccessAction } from '@prisma/client';
+import { ChangeType, AccessAction, Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -645,7 +645,7 @@ export class AuthService {
       },
     });
 
-    let tenant: any = null;
+    let tenant: { id: string; name: string; profile: { tradeName: string | null } | null } | null = null;
 
     // STEP 2: Se não encontrou em public, buscar em tenant schemas
     if (!user) {
@@ -845,11 +845,11 @@ export class AuthService {
           previousData: {
             password: { passwordMasked: true },
             versionNumber: resetToken.user.versionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           newData: {
             password: { passwordChanged: true },
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['password'],
           changedAt: new Date(),
           changedBy: resetToken.user.id,
@@ -879,7 +879,7 @@ export class AuthService {
   /**
    * Gerar access token e refresh token
    */
-  private async generateTokens(user: any) {
+  private async generateTokens(user: { id: string; email: string; tenantId: string | null; role: string; name: string }) {
     const payload = {
       sub: user.id,
       email: user.email,
@@ -982,7 +982,7 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string,
     reason?: string,
-    metadata?: any,
+    metadata?: Record<string, unknown>,
   ): Promise<void> {
     try {
       const device = this.parseUserAgent(userAgent);
@@ -997,7 +997,7 @@ export class AuthService {
           ipAddress: ipAddress || 'IP Desconhecido',
           userAgent: userAgent || 'User-Agent Desconhecido',
           device,
-          metadata,
+          metadata: metadata as Prisma.InputJsonValue | undefined,
         },
       });
     } catch (error) {

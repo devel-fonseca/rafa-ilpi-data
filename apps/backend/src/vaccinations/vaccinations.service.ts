@@ -11,7 +11,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO } from 'date-fns';
 import { CreateVaccinationDto, UpdateVaccinationDto } from './dto';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class VaccinationsService {
@@ -313,7 +313,7 @@ export class VaccinationsService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as Record<string, unknown>)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -329,14 +329,14 @@ export class VaccinationsService {
       const updatedVaccination = await tx.vaccination.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...(updateData as Prisma.VaccinationUncheckedUpdateInput),
           // FIX TIMESTAMPTZ: Processar data se fornecida
           ...(updateData.date && {
             date: parseISO(`${updateData.date}T00:00:00.000Z`),
           }),
           versionNumber: newVersionNumber,
           updatedBy: userId,
-        },
+        } as Prisma.VaccinationUncheckedUpdateInput,
       });
 
       // 2. Capturar novo estado
@@ -364,8 +364,8 @@ export class VaccinationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -450,12 +450,12 @@ export class VaccinationsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedVaccination.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

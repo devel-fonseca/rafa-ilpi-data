@@ -26,7 +26,7 @@ export interface AgendaItem {
   status: 'pending' | 'completed' | 'missed' | 'cancelled';
   completedAt?: Date;
   completedBy?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 
   // Específico para medicamentos
   medicationName?: string;

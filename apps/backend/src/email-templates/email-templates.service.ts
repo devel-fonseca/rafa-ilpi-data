@@ -69,7 +69,7 @@ export class EmailTemplatesService {
         name: dto.name,
         subject: dto.subject,
         description: dto.description,
-        jsonContent: dto.jsonContent as unknown as Prisma.InputJsonValue,
+        jsonContent: dto.jsonContent as Prisma.InputJsonValue,
         variables: dto.variables as unknown as Prisma.InputJsonValue,
         category: dto.category,
         isActive: dto.isActive ?? true,
@@ -92,7 +92,7 @@ export class EmailTemplatesService {
         data: {
           templateId: id,
           versionNumber: current.version,
-          jsonContent: current.jsonContent as unknown as Prisma.InputJsonValue,
+          jsonContent: current.jsonContent as Prisma.InputJsonValue,
           subject: current.subject,
           createdBy: dto.userId || '00000000-0000-0000-0000-000000000000', // Default se não informado
           changeNote: dto.changeNote,
@@ -106,8 +106,8 @@ export class EmailTemplatesService {
           name: dto.name,
           subject: dto.subject,
           description: dto.description,
-          jsonContent: dto.jsonContent as unknown as Prisma.InputJsonValue | undefined,
-          variables: dto.variables as unknown as Prisma.InputJsonValue | undefined,
+          jsonContent: dto.jsonContent as Prisma.InputJsonValue | undefined,
+          variables: dto.variables as Prisma.InputJsonValue | undefined,
           category: dto.category,
           isActive: dto.isActive,
           version: current.version + 1,
@@ -151,7 +151,7 @@ export class EmailTemplatesService {
     }
 
     return await this.update(id, {
-      jsonContent: version.jsonContent,
+      jsonContent: version.jsonContent as Record<string, unknown> | undefined,
       subject: version.subject,
       changeNote: `Rollback para versão ${version.versionNumber}`,
     });
@@ -161,7 +161,7 @@ export class EmailTemplatesService {
    * Renderização
    */
 
-  async renderTemplate(key: string, variables: Record<string, any>): Promise<string> {
+  async renderTemplate(key: string, variables: Record<string, unknown>): Promise<string> {
     // 1. Buscar template do DB
     const template = await this.findByKey(key);
 
@@ -191,11 +191,12 @@ export class EmailTemplatesService {
   /**
    * Renderiza Easy Email JSON para HTML usando MJML
    */
-  private renderEasyEmailToHtml(jsonContent: any): string {
+  private renderEasyEmailToHtml(jsonContent: unknown): string {
     try {
+      const json = jsonContent as Record<string, unknown>;
       // Se o jsonContent tiver um campo 'content' que é string
-      if (jsonContent && typeof jsonContent.content === 'string') {
-        const content = jsonContent.content;
+      if (json && typeof json.content === 'string') {
+        const content = json.content;
 
         // Detectar se é HTML puro (contém <!doctype html> ou <!DOCTYPE html> ou <html)
         const isHtml = content.trim().toLowerCase().startsWith('<!doctype html') ||
@@ -218,7 +219,7 @@ export class EmailTemplatesService {
       }
 
       // Se for um placeholder (Fase 1/2), retornar HTML simples
-      if (jsonContent && jsonContent.type === 'placeholder') {
+      if (json && json.type === 'placeholder') {
         return `
           <!DOCTYPE html>
           <html>
@@ -268,7 +269,7 @@ export class EmailTemplatesService {
     }
   }
 
-  private replaceVariables(html: string, variables: Record<string, any>): string {
+  private replaceVariables(html: string, variables: Record<string, unknown>): string {
     let result = html;
 
     Object.entries(variables).forEach(([key, value]) => {
@@ -299,7 +300,7 @@ export class EmailTemplatesService {
 
   private generatePlaceholderHtml(
     template: EmailTemplate,
-    variables: Record<string, any>,
+    variables: Record<string, unknown>,
   ): string {
     // Placeholder simples até implementar Easy Email
     return `
@@ -328,7 +329,7 @@ export class EmailTemplatesService {
   async sendTestEmail(
     id: string,
     to: string,
-    variables: Record<string, any>,
+    variables: Record<string, unknown>,
   ): Promise<boolean> {
     const template = await this.findOne(id);
     const html = await this.renderTemplate(template.key, variables);

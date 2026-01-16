@@ -5,5 +5,5 @@ export class SendTestEmailDto {
   to: string;
 
   @IsObject()
-  variables: Record<string, any>; // Dados de teste para substituir variáveis
+  variables: Record<string, unknown>; // Dados de teste para substituir variáveis
 }

@@ -13,6 +13,7 @@ import {
   HttpStatus,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
@@ -22,6 +23,7 @@ import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
 import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { FeatureGuard } from '../common/guards/feature.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -59,7 +61,7 @@ export class PrescriptionsController {
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(
     @Body() createPrescriptionDto: CreatePrescriptionDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.prescriptionsService.create(
       createPrescriptionDto,
@@ -100,7 +102,7 @@ export class PrescriptionsController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePrescriptionDto: UpdatePrescriptionDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.prescriptionsService.update(
       id,
@@ -123,15 +125,15 @@ export class PrescriptionsController {
   recordMedicalReview(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() medicalReviewDto: MedicalReviewPrescriptionDto,
-    @CurrentUser() user: any,
-    @Request() req: any,
+    @CurrentUser() user: JwtPayload,
+    @Request() req: ExpressRequest & { user: JwtPayload },
   ) {
     return this.prescriptionsService.recordMedicalReview(
       id,
       medicalReviewDto,
       user.id,
-      req.ip,
-      req.headers['user-agent'],
+      req.ip || undefined,
+      (req.headers['user-agent'] as string) || undefined,
     );
   }
 
@@ -147,7 +149,7 @@ export class PrescriptionsController {
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deletePrescriptionDto: DeletePrescriptionDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.prescriptionsService.remove(
       id,
@@ -276,7 +278,7 @@ export class PrescriptionsController {
   @ApiResponse({ status: 404, description: 'Medicamento não encontrado' })
   administerMedication(
     @Body() administerMedicationDto: AdministerMedicationDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.prescriptionsService.administerMedication(
       administerMedicationDto,
@@ -296,7 +298,7 @@ export class PrescriptionsController {
   @ApiResponse({ status: 404, description: 'Medicação SOS não encontrada' })
   administerSOSMedication(
     @Body() administerSOSDto: AdministerSOSDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.prescriptionsService.administerSOSMedication(
       administerSOSDto,

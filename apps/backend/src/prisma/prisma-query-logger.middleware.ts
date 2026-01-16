@@ -91,8 +91,8 @@ export class PrismaQueryLoggerMiddleware {
    */
   async middleware(
     params: Prisma.MiddlewareParams,
-    next: (params: Prisma.MiddlewareParams) => Promise<any>,
-  ): Promise<any> {
+    next: (params: Prisma.MiddlewareParams) => Promise<unknown>,
+  ): Promise<unknown> {
     const startTime = Date.now();
 
     try {
@@ -100,6 +100,7 @@ export class PrismaQueryLoggerMiddleware {
       const result = await next(params);
 
       // Análise pós-execução
+      // eslint-disable-next-line no-restricted-syntax -- Calculating query execution time in milliseconds
       const duration = Date.now() - startTime;
       this.analyzeQuery(params, duration);
 
@@ -186,7 +187,7 @@ export class PrismaQueryLoggerMiddleware {
   /**
    * Detecta tentativas de JOIN cross-schema via Prisma include
    */
-  private detectCrossSchemaJoin(model: string, include: any): void {
+  private detectCrossSchemaJoin(model: string, include: Record<string, unknown>): void {
     const modelIsShared = this.SHARED_MODELS.has(model);
     const _modelIsTenant = this.TENANT_MODELS.has(model);
 
@@ -217,8 +218,9 @@ export class PrismaQueryLoggerMiddleware {
       }
 
       // Se include for objeto, recursivamente analisar
-      if (typeof include[relation] === 'object' && include[relation].include) {
-        this.detectCrossSchemaJoin(relation, include[relation].include);
+      const relationInclude = include[relation] as Record<string, unknown> | null | undefined;
+      if (typeof relationInclude === 'object' && relationInclude && 'include' in relationInclude) {
+        this.detectCrossSchemaJoin(relation, relationInclude.include as Record<string, boolean | object>);
       }
     }
   }

@@ -28,12 +28,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { AuditAction, AuditEntity } from '../audit/audit.decorator';
 import { ResidentContractsService } from './resident-contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
 import { ContractDocumentStatus, PermissionType } from '@prisma/client';
+import { parseISO } from 'date-fns';
 
 /**
  * Controlador geral de contratos (multi-residente)
@@ -154,7 +156,7 @@ export class ResidentContractsController {
   })
   async uploadContract(
     @Param('residentId') residentId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
@@ -214,23 +216,23 @@ export class ResidentContractsController {
   })
   async findAll(
     @Param('residentId') residentId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Query('status') status?: ContractDocumentStatus,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
 
     if (status) {
       filters.status = status;
     }
 
     if (startDate) {
-      filters.startDate = new Date(startDate);
+      filters.startDate = parseISO(`${startDate}T12:00:00.000`);
     }
 
     if (endDate) {
-      filters.endDate = new Date(endDate);
+      filters.endDate = parseISO(`${endDate}T12:00:00.000`);
     }
 
     return this.contractsService.findAll(residentId, filters);
@@ -338,7 +340,7 @@ export class ResidentContractsController {
   })
   async updateMetadata(
     @Param('id') contractId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateContractDto,
   ) {
     return this.contractsService.updateMetadata(
@@ -387,7 +389,7 @@ export class ResidentContractsController {
   })
   async replaceFile(
     @Param('id') contractId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
@@ -435,7 +437,7 @@ export class ResidentContractsController {
   })
   async deleteContract(
     @Param('id') contractId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.contractsService.deleteContract(contractId, user.id);
   }

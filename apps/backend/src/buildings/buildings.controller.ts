@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { BuildingsService } from './buildings.service'
-import { CreateBuildingDto, UpdateBuildingDto } from './dto'
+import { CreateBuildingDto, UpdateBuildingDto, CreateBuildingStructureDto } from './dto'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -78,7 +78,7 @@ export class BuildingsController {
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   createStructure(
-    @Body() data: any
+    @Body() data: CreateBuildingStructureDto
   ) {
     return this.buildingsService.createBuildingStructure(data)
   }

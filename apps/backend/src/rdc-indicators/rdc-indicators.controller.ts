@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
 
@@ -35,11 +36,16 @@ export class RdcIndicatorsController {
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
-  async getIndicators(@Query() query: QueryIndicatorsDto, @CurrentUser() user: any) {
+  async getIndicators(@Query() query: QueryIndicatorsDto, @CurrentUser() user: JwtPayload) {
+    const tenantId = user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
+
     const year = query.year ? parseInt(query.year, 10) : new Date().getFullYear();
     const month = query.month ? parseInt(query.month, 10) : new Date().getMonth() + 1;
 
-    return this.rdcIndicatorsService.getIndicatorsByMonth(user.tenantId, year, month);
+    return this.rdcIndicatorsService.getIndicatorsByMonth(tenantId, year, month);
   }
 
   @Get('history')
@@ -52,8 +58,13 @@ export class RdcIndicatorsController {
     status: 200,
     description: 'Histórico retornado com sucesso',
   })
-  async getHistory(@CurrentUser() user: any) {
-    return this.rdcIndicatorsService.getIndicatorsHistory(user.tenantId, 12);
+  async getHistory(@CurrentUser() user: JwtPayload) {
+    const tenantId = user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
+
+    return this.rdcIndicatorsService.getIndicatorsHistory(tenantId, 12);
   }
 
   @Post('calculate')
@@ -66,12 +77,17 @@ export class RdcIndicatorsController {
     status: 200,
     description: 'Indicadores calculados com sucesso',
   })
-  async calculateIndicators(@Query() query: QueryIndicatorsDto, @CurrentUser() user: any) {
+  async calculateIndicators(@Query() query: QueryIndicatorsDto, @CurrentUser() user: JwtPayload) {
+    const tenantId = user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
+
     const year = query.year ? parseInt(query.year, 10) : new Date().getFullYear();
     const month = query.month ? parseInt(query.month, 10) : new Date().getMonth() + 1;
 
     await this.rdcIndicatorsService.calculateMonthlyIndicators(
-      user.tenantId,
+      tenantId,
       year,
       month,
       user.id,

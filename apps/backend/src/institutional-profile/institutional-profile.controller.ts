@@ -12,17 +12,19 @@ import {
   UploadedFile,
   ParseFilePipeBuilder,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { InstitutionalProfileService } from './institutional-profile.service'
 import { CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { CreateTenantDocumentWithUrlDto } from './dto/create-tenant-document-with-url.dto'
 import { getRequiredDocuments, getAllDocumentTypes, getDocumentLabel, MAX_FILE_SIZE } from './config/document-requirements.config'
-import { LegalNature, PermissionType } from '@prisma/client'
+import { LegalNature, PermissionType, DocumentStatus } from '@prisma/client'
 
 @Controller('institutional-profile')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -97,7 +99,7 @@ export class InstitutionalProfileController {
   ) {
     return this.service.getDocuments(tenantId, {
       type,
-      status: status as any,
+      status: status as DocumentStatus | undefined,
     })
   }
 
@@ -110,10 +112,13 @@ export class InstitutionalProfileController {
   @Post('documents/with-file-url')
   @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   async createDocumentWithFileUrl(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: CreateTenantDocumentWithUrlDto
   ) {
     const tenantId = user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
     const userId = user.id
 
     return this.service.createDocumentWithFileUrl(tenantId, userId, dto)
@@ -140,7 +145,7 @@ export class InstitutionalProfileController {
   @RequirePermissions(PermissionType.UPDATE_INSTITUTIONAL_PROFILE)
   @UseInterceptors(FileInterceptor('file'))
   async uploadDocument(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @UploadedFile(
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
@@ -148,25 +153,28 @@ export class InstitutionalProfileController {
         .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY })
     )
     file: Express.Multer.File,
-    @Body() body: any
+    @Body() body: Record<string, string | string[]>
   ) {
     console.log('🔍 DEBUG uploadDocument - user:', user)
     console.log('🔍 DEBUG uploadDocument - body:', body)
 
     const tenantId = user.tenantId
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant')
+    }
     const userId = user.id
 
     // Extrair DTO dos campos do FormData
     // Converter strings vazias para undefined para passar na validação
     // class-validator rejeita strings vazias mesmo com @IsOptional()
     const dto: CreateTenantDocumentDto = {
-      type: body.type,
-      issuedAt: body.issuedAt && body.issuedAt.trim() !== '' ? body.issuedAt : undefined,
-      expiresAt: body.expiresAt && body.expiresAt.trim() !== '' ? body.expiresAt : undefined,
-      documentNumber: body.documentNumber && body.documentNumber.trim() !== '' ? body.documentNumber : undefined,
-      issuerEntity: body.issuerEntity && body.issuerEntity.trim() !== '' ? body.issuerEntity : undefined,
+      type: Array.isArray(body.type) ? body.type[0] : body.type,
+      issuedAt: body.issuedAt && typeof body.issuedAt === 'string' && body.issuedAt.trim() !== '' ? body.issuedAt : undefined,
+      expiresAt: body.expiresAt && typeof body.expiresAt === 'string' && body.expiresAt.trim() !== '' ? body.expiresAt : undefined,
+      documentNumber: body.documentNumber && typeof body.documentNumber === 'string' && body.documentNumber.trim() !== '' ? body.documentNumber : undefined,
+      issuerEntity: body.issuerEntity && typeof body.issuerEntity === 'string' && body.issuerEntity.trim() !== '' ? body.issuerEntity : undefined,
       tags: body.tags ? (typeof body.tags === 'string' ? JSON.parse(body.tags) : body.tags) : undefined,
-      notes: body.notes && body.notes.trim() !== '' ? body.notes : undefined,
+      notes: body.notes && typeof body.notes === 'string' && body.notes.trim() !== '' ? body.notes : undefined,
     }
 
     console.log('🔍 DEBUG uploadDocument - tenantId:', tenantId, 'userId:', userId, 'dto:', dto)

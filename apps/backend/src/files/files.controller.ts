@@ -27,6 +27,7 @@ import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UploadFileDto } from './dto/upload-file.dto';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('files')
 @ApiBearerAuth('JWT-auth')
@@ -76,7 +77,7 @@ export class FilesController {
     @UploadedFile() file: Express.Multer.File,
     @Query('category') category: string,
     @Query('relatedId') relatedId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     if (!file) {
       throw new BadRequestException('Nenhum arquivo foi enviado');
@@ -172,9 +173,12 @@ export class FilesController {
   async listFiles(
     @Query('category') category: string,
     @Query('relatedId') relatedId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     const tenantId = user.tenantId;
+    if (!tenantId) {
+      throw new BadRequestException('Usuário não está associado a um tenant');
+    }
     return this.filesService.listFiles(tenantId, category, relatedId);
   }
 

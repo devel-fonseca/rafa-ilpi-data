@@ -16,12 +16,20 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { PlansService } from '../plans/plans.service'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { SubscriptionAdminService } from '../superadmin/services/subscription-admin.service'
 import { ContractsService } from '../contracts/contracts.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { InvoiceStatus } from '@prisma/client'
+import { InvoiceCreationMode } from '../payments/dto/create-invoice.dto'
+
+interface SubscriptionChangeMetadata {
+  oldPlanId?: string
+  newPlanId?: string
+  reason?: string
+}
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -37,13 +45,24 @@ export class AdminController {
   ) {}
 
   /**
+   * Helper para validar e extrair tenantId do usuário
+   */
+  private validateTenantId(user?: JwtPayload): string {
+    const tenantId = user?.tenantId
+    if (!tenantId) {
+      throw new ForbiddenException('Tenant ID não encontrado')
+    }
+    return tenantId
+  }
+
+  /**
    * 1. Obter planos disponíveis para upgrade
    * Retorna apenas planos >= plano atual (sem downgrade)
    */
   @Get('plans/available')
   @Roles('ADMIN', 'MANAGER')
-  async getAvailablePlans(@CurrentUser() user: any) {
-    const tenantId = user.tenantId
+  async getAvailablePlans(@CurrentUser() user: JwtPayload) {
+    const tenantId = this.validateTenantId(user)
 
     // Buscar subscription ativa do tenant
     const subscription = await this.prisma.subscription.findFirst({
@@ -55,7 +74,7 @@ export class AdminController {
       orderBy: { createdAt: 'desc' },
     })
 
-    if (!subscription) {
+    if (!subscription || !subscription.plan) {
       throw new NotFoundException('Nenhuma subscription ativa encontrada')
     }
 
@@ -64,7 +83,7 @@ export class AdminController {
 
     // Filtrar apenas upgrades (maxResidents >= plano atual)
     const upgradePlans = allPlans.filter(
-      (plan) => plan.maxResidents >= subscription.plan.maxResidents,
+      (plan) => plan.maxResidents >= subscription.plan!.maxResidents,
     )
 
     return {
@@ -78,8 +97,8 @@ export class AdminController {
    */
   @Get('plans/compare/:targetPlanId')
   @Roles('ADMIN', 'MANAGER')
-  async comparePlans(@Param('targetPlanId') targetPlanId: string, @CurrentUser() user: any) {
-    const tenantId = user.tenantId
+  async comparePlans(@Param('targetPlanId') targetPlanId: string, @CurrentUser() user: JwtPayload) {
+    const tenantId = this.validateTenantId(user)
 
     // Buscar subscription ativa
     const subscription = await this.prisma.subscription.findFirst({
@@ -118,9 +137,9 @@ export class AdminController {
   @Roles('ADMIN', 'MANAGER')
   async upgradeSubscription(
     @Body() dto: { newPlanId: string; acceptedContractId?: string },
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    const tenantId = user.tenantId
+    const tenantId = this.validateTenantId(user)
 
     // Buscar subscription ativa
     const subscription = await this.prisma.subscription.findFirst({
@@ -132,7 +151,7 @@ export class AdminController {
       orderBy: { createdAt: 'desc' },
     })
 
-    if (!subscription) {
+    if (!subscription || !subscription.plan) {
       throw new BadRequestException('Tenant não possui subscription ativa')
     }
 
@@ -175,7 +194,7 @@ export class AdminController {
       tenantId,
       subscriptionId: newSubscription.id,
       amount: planPrice,
-      mode: 'MANUAL' as any, // Manual pois foi solicitado pelo admin
+      mode: InvoiceCreationMode.MANUAL, // Manual pois foi solicitado pelo admin
       description: `Upgrade de plano - ${newPlan.displayName}`,
     })
 
@@ -199,9 +218,9 @@ export class AdminController {
   async getTenantInvoices(
     @Query('status') status?: InvoiceStatus,
     @Query('limit') limit?: string,
-    @CurrentUser() user?: any,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    const tenantId = user.tenantId
+    const tenantId = this.validateTenantId(user)
 
     const invoices = await this.prisma.invoice.findMany({
       where: {
@@ -239,8 +258,8 @@ export class AdminController {
    */
   @Get('invoices/:id')
   @Roles('ADMIN', 'MANAGER')
-  async getInvoiceDetails(@Param('id') id: string, @CurrentUser() user: any) {
-    const tenantId = user.tenantId
+  async getInvoiceDetails(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const tenantId = this.validateTenantId(user)
 
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
@@ -273,9 +292,9 @@ export class AdminController {
   @Roles('ADMIN', 'MANAGER')
   async updatePaymentMethod(
     @Body() dto: { preferredPaymentMethod: 'PIX' | 'BOLETO' | 'CREDIT_CARD' },
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    const tenantId = user.tenantId
+    const tenantId = this.validateTenantId(user)
 
     // Buscar subscription ativa
     const subscription = await this.prisma.subscription.findFirst({
@@ -315,8 +334,8 @@ export class AdminController {
    */
   @Post('subscription/cancel-trial')
   @Roles('ADMIN', 'MANAGER')
-  async cancelTrial(@CurrentUser() user: any) {
-    const tenantId = user.tenantId
+  async cancelTrial(@CurrentUser() user: JwtPayload) {
+    const tenantId = this.validateTenantId(user)
 
     // Buscar subscription em trial
     const subscription = await this.prisma.subscription.findFirst({
@@ -387,9 +406,9 @@ export class AdminController {
   @Roles('ADMIN', 'MANAGER')
   async acceptContract(
     @Body() dto: { contractId: string },
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
-    const tenantId = user.tenantId
+    const tenantId = this.validateTenantId(user)
 
     // Buscar contrato
     const contract = await this.prisma.serviceContract.findUnique({
@@ -462,8 +481,8 @@ export class AdminController {
    */
   @Get('subscription/change-history')
   @Roles('ADMIN', 'MANAGER')
-  async getSubscriptionChangeHistory(@CurrentUser() user: any, @Query('limit') limit?: string) {
-    const tenantId = user.tenantId
+  async getSubscriptionChangeHistory(@CurrentUser() user: JwtPayload, @Query('limit') limit?: string) {
+    const tenantId = this.validateTenantId(user)
 
     // Buscar alertas de mudança de plano do tenant
     const alerts = await this.prisma.systemAlert.findMany({
@@ -479,7 +498,7 @@ export class AdminController {
 
     // Transformar metadata para incluir informações de origem
     const history = alerts.map((alert) => {
-      const metadata = alert.metadata as any
+      const metadata = alert.metadata as SubscriptionChangeMetadata
       const isSelfService = metadata?.reason?.includes('self-service') || false
 
       return {

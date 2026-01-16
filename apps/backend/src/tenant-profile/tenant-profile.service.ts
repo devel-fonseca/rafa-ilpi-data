@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import {
@@ -34,7 +35,7 @@ export class TenantProfileService {
     }
 
     // Converter foundedAt de string para Date se fornecido
-    const data: any = {
+    const data: Prisma.TenantProfileUpdateInput = {
       ...dto,
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };
@@ -44,7 +45,7 @@ export class TenantProfileService {
       create: {
         tenantId: this.tenantContext.tenantId,
         ...data,
-      },
+      } as Prisma.TenantProfileUncheckedCreateInput,
       update: data,
     });
   }
@@ -85,7 +86,7 @@ export class TenantProfileService {
     }
 
     // Converter foundedAt de string para Date se fornecido
-    const data: any = {
+    const data: Prisma.TenantProfileUpdateInput = {
       ...dto,
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };

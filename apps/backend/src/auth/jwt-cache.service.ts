@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 /**
  * Cache em memória para resultados de validação JWT
@@ -18,7 +19,7 @@ export class JwtCacheService {
   private readonly cache = new Map<
     string,
     {
-      user: any;
+      user: JwtPayload;
       expiresAt: number;
     }
   >();
@@ -35,7 +36,7 @@ export class JwtCacheService {
   /**
    * Busca usuário no cache
    */
-  get(userId: string): any | null {
+  get(userId: string): JwtPayload | null {
     const key = this.getCacheKey(userId);
     const cached = this.cache.get(key);
 
@@ -56,8 +57,9 @@ export class JwtCacheService {
   /**
    * Armazena usuário no cache
    */
-  set(userId: string, user: any): void {
+  set(userId: string, user: JwtPayload): void {
     const key = this.getCacheKey(userId);
+    // eslint-disable-next-line no-restricted-syntax -- Calculating cache expiration time in milliseconds
     const expiresAt = Date.now() + this.TTL_MS;
 
     this.cache.set(key, {

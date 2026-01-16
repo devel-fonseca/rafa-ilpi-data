@@ -19,7 +19,7 @@ export class AuditInterceptor implements NestInterceptor {
     private reflector: Reflector,
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const handler = context.getHandler();
     const controller = context.getClass();
@@ -50,6 +50,7 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(async (response) => {
         try {
+          // eslint-disable-next-line no-restricted-syntax -- Calculating execution time in milliseconds
           const executionTime = Date.now() - startTime;
 
           // Extrair ID da entidade se houver
@@ -61,7 +62,7 @@ export class AuditInterceptor implements NestInterceptor {
           }
 
           // Preparar detalhes da ação
-          const details: any = {
+          const details: Record<string, unknown> = {
             method: request.method,
             path: request.url,
             executionTime: `${executionTime}ms`,

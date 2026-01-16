@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
 import { DailyComplianceResponseDto } from './dto';
+import { ResidentScheduleConfig } from '@prisma/client';
 
 @Injectable()
 export class ComplianceService {
@@ -123,7 +124,7 @@ export class ComplianceService {
     }
   }
 
-  private isRecordExpectedToday(config: any, today: Date): boolean {
+  private isRecordExpectedToday(config: ResidentScheduleConfig, today: Date): boolean {
     const dayOfWeek = today.getDay() // 0 = Domingo, 1 = Segunda, etc.
 
     switch (config.frequency) {
@@ -132,8 +133,8 @@ export class ComplianceService {
 
       case 'WEEKLY':
         // Verifica se hoje é o dia da semana configurado
-        if (config.daysOfWeek && Array.isArray(config.daysOfWeek)) {
-          return config.daysOfWeek.includes(dayOfWeek)
+        if (config.dayOfWeek !== null && config.dayOfWeek !== undefined) {
+          return config.dayOfWeek === dayOfWeek
         }
         return false
 
@@ -143,10 +144,6 @@ export class ComplianceService {
           return today.getDate() === config.dayOfMonth
         }
         return false
-
-      case 'CUSTOM':
-        // Para frequência customizada, retorna true (pode ser refinado depois)
-        return true
 
       default:
         return false

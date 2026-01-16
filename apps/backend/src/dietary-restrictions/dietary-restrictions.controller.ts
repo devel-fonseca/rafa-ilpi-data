@@ -27,6 +27,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('dietary-restrictions')
 @ApiBearerAuth('JWT-auth')
@@ -46,7 +47,7 @@ export class DietaryRestrictionsController {
   })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Body() createDto: CreateDietaryRestrictionDto,
   ) {
     return this.dietaryRestrictionsService.create(
@@ -62,7 +63,7 @@ export class DietaryRestrictionsController {
   })
   @ApiResponse({ status: 200, description: 'Lista de restrições alimentares' })
   findByResidentId(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('residentId') residentId: string,
   ) {
     return this.dietaryRestrictionsService.findByResidentId(
@@ -78,7 +79,7 @@ export class DietaryRestrictionsController {
     status: 404,
     description: 'Restrição alimentar não encontrada',
   })
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.dietaryRestrictionsService.findOne(id);
   }
 
@@ -94,7 +95,7 @@ export class DietaryRestrictionsController {
     description: 'Restrição alimentar não encontrada',
   })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateDietaryRestrictionDto,
   ) {
@@ -117,7 +118,7 @@ export class DietaryRestrictionsController {
   @ApiResponse({ status: 404, description: 'Restrição alimentar não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteDietaryRestrictionDto,
   ) {
@@ -138,7 +139,7 @@ export class DietaryRestrictionsController {
   @ApiResponse({ status: 404, description: 'Restrição alimentar não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
   getHistory(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.dietaryRestrictionsService.getHistory(id);
@@ -155,7 +156,7 @@ export class DietaryRestrictionsController {
   @ApiParam({ name: 'id', description: 'ID da restrição alimentar (UUID)' })
   @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
   getHistoryVersion(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
   ) {

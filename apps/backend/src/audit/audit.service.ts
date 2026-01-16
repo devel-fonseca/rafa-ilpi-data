@@ -1,6 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
+import { Prisma, AuditLog } from '@prisma/client';
+
+export interface AuditLogStats {
+  total: number;
+  byEntity: Array<{ entity_type: string; count: number }>;
+  byAction: Array<{ action: string; count: number }>;
+  topUsers: Array<{ user_name: string; count: number }>;
+}
 
 export interface AuditLogInput {
   entityType: string;
@@ -9,7 +17,7 @@ export interface AuditLogInput {
   userId: string;
   userName: string;
   tenantId: string;
-  details?: any;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -33,7 +41,7 @@ export class AuditService {
           action: auditLog.action,
           userId: auditLog.userId,
           userName: auditLog.userName,
-          details: auditLog.details || {},
+          details: (auditLog.details || {}) as Prisma.InputJsonValue,
           ipAddress: auditLog.ipAddress || null,
           userAgent: auditLog.userAgent || null,
         },
@@ -58,13 +66,13 @@ export class AuditService {
       page?: number;
       limit?: number;
     }
-  ): Promise<any[]> {
+  ): Promise<AuditLog[]> {
     try {
       const page = filters?.page || 1;
       const limit = filters?.limit || 50;
       const skip = (page - 1) * limit;
 
-      const where: any = {};
+      const where: Prisma.AuditLogWhereInput = {};
 
       if (filters?.entityType) {
         where.entityType = filters.entityType;
@@ -105,9 +113,9 @@ export class AuditService {
   async getAuditLogStats(
     startDate?: Date,
     endDate?: Date
-  ): Promise<any> {
+  ): Promise<AuditLogStats> {
     try {
-      const where: any = {};
+      const where: Prisma.AuditLogWhereInput = {};
 
       if (startDate || endDate) {
         where.createdAt = {};
@@ -149,9 +157,9 @@ export class AuditService {
 
       return {
         total,
-        byEntity: entityStats.map((s: any) => ({ entity_type: s.entityType, count: s._count.id })),
-        byAction: actionStats.map((s: any) => ({ action: s.action, count: s._count.id })),
-        topUsers: userStats.map((s: any) => ({ user_name: s.userName, count: s._count.id })),
+        byEntity: entityStats.map((s) => ({ entity_type: s.entityType, count: s._count.id })),
+        byAction: actionStats.map((s) => ({ action: s.action, count: s._count.id })),
+        topUsers: userStats.map((s) => ({ user_name: s.userName, count: s._count.id })),
       };
     } catch (error) {
       this.logger.error('Failed to get audit log stats:', error);

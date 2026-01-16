@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: { sub: string; email: string; tenantId?: string | null; role: string }) {
     // Payload contém: { sub, email, tenantId, role }
 
     // ✅ OTIMIZAÇÃO: Verificar cache primeiro (30s TTL)
@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     // ✅ Arquitetura Híbrida: buscar em public (SUPERADMIN) ou tenant schema
-    let user: any = null;
+    let user: { id: string; email: string; name: string; role: string; tenantId: string | null; isActive: boolean } | null = null;
 
     // STEP 1: Tentar buscar SUPERADMIN em public schema
     // eslint-disable-next-line no-restricted-syntax
@@ -130,7 +130,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       name: user.name,
       role: user.role,
       tenantId: user.tenantId,
-      tenant,
+      tenant: tenant ? {
+        id: tenant.id,
+        name: tenant.name,
+        schemaName: tenant.schemaName,
+        isActive: ('isActive' in tenant ? tenant.isActive : true) as boolean,
+      } : null,
     };
 
     // ✅ OTIMIZAÇÃO: Cachear resultado por 30 segundos

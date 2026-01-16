@@ -9,7 +9,8 @@ import { CreateAllergyDto } from './dto/create-allergy.dto';
 import { UpdateAllergyDto } from './dto/update-allergy-versioned.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
+import { AllergyVersionData } from './interfaces/allergy-version-data.interface';
 
 @Injectable()
 export class AllergiesService {
@@ -177,7 +178,7 @@ export class AllergiesService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as AllergyVersionData)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -191,7 +192,7 @@ export class AllergiesService {
       const updatedAllergy = await tx.allergy.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...updateData,
           versionNumber: newVersionNumber,
           updatedBy: userId,
         },
@@ -213,8 +214,8 @@ export class AllergiesService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -286,12 +287,12 @@ export class AllergiesService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedAllergy.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

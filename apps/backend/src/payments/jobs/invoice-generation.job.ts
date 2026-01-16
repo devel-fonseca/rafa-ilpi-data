@@ -132,14 +132,15 @@ export class InvoiceGenerationJob {
 
           successCount++
           this.logger.log(`✓ Invoice created for ${subscription.tenant.name}`)
-        } catch (error: any) {
+        } catch (error: unknown) {
           errorCount++
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           errors.push({
             tenantId: subscription.tenantId,
-            error: error.message,
+            error: errorMessage,
           })
           this.logger.error(
-            `❌ Failed to create invoice for ${subscription.tenant.name}: ${error.message}`,
+            `❌ Failed to create invoice for ${subscription.tenant.name}: ${errorMessage}`,
           )
         }
       }
@@ -162,8 +163,9 @@ export class InvoiceGenerationJob {
       //     metadata: { errors },
       //   })
       // }
-    } catch (error: any) {
-      this.logger.error(`❌ Critical error in invoice generation job: ${error.message}`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      this.logger.error(`❌ Critical error in invoice generation job: ${errorMessage}`)
       // TODO: Criar alerta crítico (Fase 5)
     }
   }

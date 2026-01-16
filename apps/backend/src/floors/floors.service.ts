@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
+import { Prisma } from '@prisma/client'
 
 @Injectable()
 export class FloorsService {
@@ -40,7 +41,7 @@ export class FloorsService {
     take: number = 50,
     buildingId?: string
   ) {
-    const where: any = { deletedAt: null }
+    const where: Prisma.FloorWhereInput = { deletedAt: null }
     if (buildingId) {
       where.buildingId = buildingId
     }
@@ -66,7 +67,7 @@ export class FloorsService {
 
     // Enriquecer com contagem de quartos e leitos
     const enriched = await Promise.all(
-      data.map(async (floor: any) => {
+      data.map(async (floor) => {
         const beds = await this.tenantContext.client.bed.count({
           where: {
             room: {
@@ -142,10 +143,10 @@ export class FloorsService {
     }
 
     // Mapear floorNumber para orderIndex se fornecido
-    const dataToUpdate: any = { ...updateFloorDto }
+    const dataToUpdate: Prisma.FloorUpdateInput = { ...updateFloorDto }
     if (updateFloorDto.floorNumber !== undefined) {
       dataToUpdate.orderIndex = updateFloorDto.floorNumber
-      delete dataToUpdate.floorNumber
+      delete (dataToUpdate as Record<string, unknown>).floorNumber
     }
 
     return this.tenantContext.client.floor.update({

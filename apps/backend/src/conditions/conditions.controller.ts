@@ -27,6 +27,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 @ApiTags('conditions')
 @ApiBearerAuth('JWT-auth')
@@ -40,7 +41,7 @@ export class ConditionsController {
   @ApiOperation({ summary: 'Registrar nova condição crônica/diagnóstico' })
   @ApiResponse({ status: 201, description: 'Condição registrada com sucesso' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@CurrentUser() user: any, @Body() createDto: CreateConditionDto) {
+  create(@CurrentUser() user: JwtPayload, @Body() createDto: CreateConditionDto) {
     return this.conditionsService.create(user.id, createDto);
   }
 
@@ -49,7 +50,7 @@ export class ConditionsController {
   @ApiOperation({ summary: 'Listar todas as condições de um residente' })
   @ApiResponse({ status: 200, description: 'Lista de condições' })
   findByResidentId(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('residentId') residentId: string,
   ) {
     return this.conditionsService.findByResidentId(residentId);
@@ -60,7 +61,7 @@ export class ConditionsController {
   @ApiOperation({ summary: 'Buscar uma condição específica' })
   @ApiResponse({ status: 200, description: 'Condição encontrada' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.conditionsService.findOne(id);
   }
 
@@ -70,7 +71,7 @@ export class ConditionsController {
   @ApiResponse({ status: 200, description: 'Condição atualizada com sucesso' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() updateDto: UpdateConditionDto,
   ) {
@@ -93,7 +94,7 @@ export class ConditionsController {
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da condição (UUID)' })
   remove(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteConditionDto,
   ) {
@@ -110,7 +111,7 @@ export class ConditionsController {
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da condição (UUID)' })
   getHistory(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.conditionsService.getHistory(id);
@@ -127,7 +128,7 @@ export class ConditionsController {
   @ApiParam({ name: 'id', description: 'ID da condição (UUID)' })
   @ApiParam({ name: 'versionNumber', description: 'Número da versão' })
   getHistoryVersion(
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionNumber') versionNumber: string,
   ) {

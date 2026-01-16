@@ -87,7 +87,7 @@ export class CreateDailyRecordDto {
   })
   @IsObject()
   @IsNotEmpty()
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 
   @ApiProperty({
     description: 'Nome do profissional responsável pelo registro',

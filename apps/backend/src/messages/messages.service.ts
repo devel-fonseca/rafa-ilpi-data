@@ -12,7 +12,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryMessagesDto } from './dto/query-messages.dto';
 import { MarkAsReadDto } from './dto/mark-as-read.dto';
 import { DeleteMessageDto } from './dto/delete-message.dto';
-import { MessageType, MessageStatus, PermissionType } from '@prisma/client';
+import { MessageType, MessageStatus, PermissionType, Prisma } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
@@ -248,7 +248,7 @@ export class MessagesService {
     });
 
     // Construir filtros
-    const where: any = {
+    const where: Prisma.MessageRecipientWhereInput = {
       userId,
     };
 
@@ -261,7 +261,7 @@ export class MessagesService {
     }
 
     // Incluir filtros da mensagem
-    const messageWhere: any = { deletedAt: null };
+    const messageWhere: Prisma.MessageWhereInput = { deletedAt: null };
 
     if (query.type) {
       messageWhere.type = query.type;
@@ -340,7 +340,7 @@ export class MessagesService {
     const skip = (page - 1) * limit;
 
     // Construir filtros
-    const where: any = {
+    const where: Prisma.MessageWhereInput = {
       senderId: userId,
       deletedAt: null,
     };
@@ -536,7 +536,7 @@ export class MessagesService {
   ) {
     const { messageIds } = markAsReadDto;
 
-    const where: any = {
+    const where: Prisma.MessageRecipientWhereInput = {
       userId,
       status: { not: MessageStatus.READ },
       message: {

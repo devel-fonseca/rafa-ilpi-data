@@ -14,24 +14,24 @@ export function RetryWithBackoff(
   retryOnStatuses: number[] = [429, 500, 502, 503, 504],
 ) {
   return function (
-    target: any,
+    target: object,
     propertyKey: string,
     descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value
     const logger = new Logger(target.constructor.name)
 
-    descriptor.value = async function (...args: any[]) {
-      let lastError: any
+    descriptor.value = async function (...args: unknown[]) {
+      let lastError: Error | unknown
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           return await originalMethod.apply(this, args)
-        } catch (error: any) {
+        } catch (error: unknown) {
           lastError = error
 
           // Verificar se é um erro de axios com status code
-          const statusCode = error?.response?.status
+          const statusCode = (error as { response?: { status?: number } })?.response?.status
           const shouldRetry =
             statusCode && retryOnStatuses.includes(statusCode)
 

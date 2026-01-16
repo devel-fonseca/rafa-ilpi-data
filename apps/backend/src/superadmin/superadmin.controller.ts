@@ -18,7 +18,7 @@ import { SendReminderDto, SuspendTenantForNonPaymentDto, RenegotiateDto } from '
 import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
 import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
-import { AlertType, AlertSeverity, ContractStatus } from '@prisma/client'
+import { AlertType, AlertSeverity, ContractStatus, TenantStatus, InvoiceStatus } from '@prisma/client'
 import { ContractsService } from '../contracts/contracts.service'
 import { CollectionsService } from './services/collections.service'
 import { CreateContractDto } from '../contracts/dto/create-contract.dto'
@@ -28,6 +28,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { PrismaService } from '../prisma/prisma.service'
 import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
 import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
+import { parseISO } from 'date-fns'
 
 /**
  * SuperAdminController
@@ -139,7 +140,7 @@ export class SuperAdminController {
     @Query('limit') limit?: string,
   ) {
     const filters = {
-      status: status as any, // Cast to TenantStatus
+      status: status as TenantStatus | undefined,
       search,
       planId
     }
@@ -364,7 +365,7 @@ export class SuperAdminController {
   ) {
     return this.invoiceService.findAll({
       tenantId,
-      status: status as any,
+      status: status as InvoiceStatus | undefined,
       limit: limit ? parseInt(limit, 10) : 20,
       offset: offset ? parseInt(offset, 10) : 0,
     })
@@ -440,8 +441,8 @@ export class SuperAdminController {
     @Query('tenantId') tenantId?: string,
   ) {
     const filters = {
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined,
+      endDate: endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined,
       tenantId,
     }
 
@@ -482,8 +483,8 @@ export class SuperAdminController {
     @Query('endDate') endDate?: string,
   ) {
     const filters = {
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined,
+      endDate: endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined,
     }
 
     return this.analyticsService.getOverdueMetrics(filters)

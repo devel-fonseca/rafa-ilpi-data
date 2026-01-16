@@ -21,7 +21,7 @@ export class TenantSchemasHealth {
    * Verifica se schema PostgreSQL existe
    */
   private async schemaExists(schemaName: string): Promise<boolean> {
-    const result = await this.prisma.$queryRawUnsafe<any[]>(
+    const result = await this.prisma.$queryRawUnsafe<Array<{ schema_name: string }>>(
       `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${schemaName}'`,
     );
     return result.length > 0;
@@ -37,7 +37,7 @@ export class TenantSchemasHealth {
 
     const checks = await Promise.all(
       criticalTables.map(async (table) => {
-        const result = await this.prisma.$queryRawUnsafe<any[]>(
+        const result = await this.prisma.$queryRawUnsafe<Array<{ table_name: string }>>(
           `SELECT table_name FROM information_schema.tables WHERE table_schema = '${schemaName}' AND table_name = '${table}'`,
         );
         return {
@@ -57,7 +57,12 @@ export class TenantSchemasHealth {
     status: 'ok' | 'error';
     tenantsChecked: number;
     issues: string[];
-    details?: any;
+    details?: Array<{
+      tenant: string;
+      schema: string;
+      status: 'ok' | 'error';
+      issues: string[];
+    }>;
   }> {
     try {
       // Buscar tenants ativos
@@ -67,7 +72,12 @@ export class TenantSchemasHealth {
       });
 
       const issues: string[] = [];
-      const details: any[] = [];
+      const details: Array<{
+        tenant: string;
+        schema: string;
+        status: 'ok' | 'error';
+        issues: string[];
+      }> = [];
 
       // Validar cada schema
       for (const tenant of tenants) {

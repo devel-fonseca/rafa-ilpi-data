@@ -43,7 +43,7 @@ export class TenantContextInterceptor implements NestInterceptor {
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Promise<Observable<any>> {
+  ): Promise<Observable<unknown>> {
     const request = context.switchToHttp().getRequest()
     const user = request.user
 
@@ -51,12 +51,13 @@ export class TenantContextInterceptor implements NestInterceptor {
     if (user?.tenantId) {
       try {
         await this.tenantContext.initialize(user.tenantId)
-      } catch (error: any) {
+      } catch (error) {
         // Log do erro mas não bloqueia a request
         // Se o tenant não existir, as queries falharão naturalmente
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error(
           `[TenantContextInterceptor] Erro ao inicializar contexto do tenant ${user.tenantId}:`,
-          error.message,
+          errorMessage,
         )
       }
     }

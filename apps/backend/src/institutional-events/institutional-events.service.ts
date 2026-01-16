@@ -13,6 +13,7 @@ import {
   InstitutionalEventType,
   InstitutionalEventVisibility,
   ScheduledEventStatus,
+  Prisma,
 } from '@prisma/client';
 import {
   CreateInstitutionalEventDto,
@@ -68,17 +69,8 @@ export class InstitutionalEventsService {
         targetAudience: dto.targetAudience,
         location: dto.location,
         // Metadados
-        metadata: dto.metadata,
+        metadata: dto.metadata as unknown as Prisma.InputJsonValue,
         createdBy: userId,
-      },
-      include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -98,7 +90,7 @@ export class InstitutionalEventsService {
         event.title,
         event.eventType,
         event.scheduledDate,
-        event.createdByUser.name,
+        'Sistema',
       );
     } catch (error) {
       this.logger.error('Erro ao criar notificação de evento institucional', error);
@@ -112,7 +104,7 @@ export class InstitutionalEventsService {
    * Listar eventos institucionais com filtros
    */
   async findAll(dto: GetInstitutionalEventsDto) {
-    const where: any = {
+    const where: Prisma.InstitutionalEventWhereInput = {
       deletedAt: null,
     };
 
@@ -134,7 +126,7 @@ export class InstitutionalEventsService {
     // Filtro por data inicial
     if (dto.startDate) {
       where.scheduledDate = {
-        ...where.scheduledDate,
+        ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
         gte: dto.startDate,
       };
     }
@@ -142,7 +134,7 @@ export class InstitutionalEventsService {
     // Filtro por data final
     if (dto.endDate) {
       where.scheduledDate = {
-        ...where.scheduledDate,
+        ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
         lte: dto.endDate,
       };
     }
@@ -150,20 +142,6 @@ export class InstitutionalEventsService {
     const events = await this.tenantContext.client.institutionalEvent.findMany({
       where,
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updatedByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
       orderBy: {
         scheduledDate: 'asc',
@@ -183,20 +161,6 @@ export class InstitutionalEventsService {
         deletedAt: null,
       },
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updatedByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -220,7 +184,25 @@ export class InstitutionalEventsService {
 
     // Validar campos obrigatórios por tipo de evento (se tipo for alterado)
     const eventType = dto.eventType ?? existing.eventType;
-    this.validateEventFields(eventType, { ...existing, ...dto });
+    // Converter existing para o tipo esperado pelo validator (null → undefined, Date → string)
+    const existingForValidation = {
+      ...existing,
+      scheduledDate: existing.scheduledDate instanceof Date ? existing.scheduledDate.toISOString().split('T')[0] : existing.scheduledDate,
+      scheduledTime: existing.scheduledTime ?? undefined,
+      completedAt: existing.completedAt ?? undefined,
+      description: existing.description ?? undefined,
+      notes: existing.notes ?? undefined,
+      documentType: existing.documentType ?? undefined,
+      documentNumber: existing.documentNumber ?? undefined,
+      expiryDate: existing.expiryDate instanceof Date ? existing.expiryDate.toISOString().split('T')[0] : (existing.expiryDate ?? undefined),
+      responsible: existing.responsible ?? undefined,
+      trainingTopic: existing.trainingTopic ?? undefined,
+      instructor: existing.instructor ?? undefined,
+      targetAudience: existing.targetAudience ?? undefined,
+      location: existing.location ?? undefined,
+      metadata: (existing.metadata as Record<string, unknown>) ?? undefined,
+    };
+    this.validateEventFields(eventType, { ...existingForValidation, ...dto });
 
     const event = await this.tenantContext.client.institutionalEvent.update({
       where: { id },
@@ -246,24 +228,10 @@ export class InstitutionalEventsService {
         targetAudience: dto.targetAudience,
         location: dto.location,
         // Metadados
-        metadata: dto.metadata,
+        metadata: dto.metadata as unknown as Prisma.InputJsonValue,
         updatedBy: userId,
       },
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updatedByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -280,7 +248,7 @@ export class InstitutionalEventsService {
         event.title,
         event.eventType,
         event.scheduledDate,
-        event.updatedByUser?.name || 'Usuário',
+        'Sistema',
       );
     } catch (error) {
       this.logger.error('Erro ao criar notificação de atualização de evento', error);
@@ -329,20 +297,6 @@ export class InstitutionalEventsService {
         updatedBy: userId,
       },
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        updatedByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -375,13 +329,6 @@ export class InstitutionalEventsService {
         deletedAt: null,
       },
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
       },
       orderBy: {
         expiryDate: 'asc',
@@ -398,7 +345,7 @@ export class InstitutionalEventsService {
   /**
    * Validar campos obrigatórios por tipo de evento
    */
-  private validateEventFields(eventType: InstitutionalEventType, data: any) {
+  private validateEventFields(eventType: InstitutionalEventType, data: CreateInstitutionalEventDto | UpdateInstitutionalEventDto) {
     switch (eventType) {
       case InstitutionalEventType.DOCUMENT_EXPIRY:
         if (!data.documentType) {

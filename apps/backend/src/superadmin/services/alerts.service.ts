@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { AlertType, AlertSeverity } from '@prisma/client'
+import { AlertType, AlertSeverity, Prisma } from '@prisma/client'
 
 /**
  * AlertsService
@@ -170,10 +170,12 @@ export class AlertsService {
   async createSystemErrorAlert(data: {
     title: string
     message: string
-    error?: any
-    metadata?: Record<string, any>
+    error?: unknown
+    metadata?: Record<string, unknown>
   }) {
     this.logger.error(`Creating SYSTEM_ERROR alert: ${data.title}`)
+
+    const errorObj = data.error as Error | undefined
 
     return this.prisma.systemAlert.create({
       data: {
@@ -183,9 +185,9 @@ export class AlertsService {
         message: data.message,
         metadata: {
           ...data.metadata,
-          error: data.error?.message || data.error,
-          stack: data.error?.stack,
-        },
+          error: errorObj?.message || (data.error as string | undefined),
+          stack: errorObj?.stack,
+        } as unknown as Prisma.InputJsonValue,
       },
     })
   }
@@ -203,7 +205,7 @@ export class AlertsService {
   }) {
     const { read, type, severity, tenantId, limit = 50, offset = 0 } = params || {}
 
-    const where: any = {}
+    const where: Prisma.SystemAlertWhereInput = {}
     if (read !== undefined) where.read = read
     if (type) where.type = type
     if (severity) where.severity = severity
@@ -243,7 +245,7 @@ export class AlertsService {
    * Conta alertas não lidos
    */
   async countUnread(params?: { type?: AlertType; severity?: AlertSeverity }) {
-    const where: any = { read: false }
+    const where: Prisma.SystemAlertWhereInput = { read: false }
     if (params?.type) where.type = params.type
     if (params?.severity) where.severity = params.severity
 

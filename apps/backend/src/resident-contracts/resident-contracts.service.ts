@@ -5,15 +5,16 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Readable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
 import { FileProcessingService } from './file-processing.service';
-import { CreateContractDto } from './dto/create-contract.dto';
+import { CreateContractDto, SignatoryDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
 import { differenceInDays } from 'date-fns';
-import { ContractDocumentStatus, ContractHistoryAction } from '@prisma/client';
+import { ContractDocumentStatus, ContractHistoryAction, Prisma } from '@prisma/client';
 
 /**
  * Serviço de digitalização de contratos de prestação de serviços
@@ -174,7 +175,7 @@ export class ResidentContractsService {
       size: processed.pdfBuffer.length,
       fieldname: 'file',
       encoding: '7bit',
-      stream: {} as any,
+      stream: Readable.from(processed.pdfBuffer),
       destination: '',
       filename: '',
       path: '',
@@ -194,11 +195,11 @@ export class ResidentContractsService {
     // 7.5. Montar array completo de signatories
     // Frontend envia apenas responsável contratual (se houver)
     // Backend adiciona automaticamente ILPI + RESIDENTE
-    const signatories: any[] = [
+    const signatories: SignatoryDto[] = [
       // ILPI (tenant) - sempre presente
       {
         name: tenant.name,
-        cpf: tenant.cnpj, // CNPJ da ILPI no campo CPF
+        cpf: tenant.cnpj || undefined, // CNPJ da ILPI no campo CPF
         role: 'ILPI',
       },
       // RESIDENTE - sempre presente
@@ -233,7 +234,7 @@ export class ResidentContractsService {
           lastAdjustmentDate: dto.lastAdjustmentDate
             ? new Date(dto.lastAdjustmentDate)
             : null,
-          signatories: signatories as any,
+          signatories: signatories as unknown as Prisma.InputJsonValue,
           notes: dto.notes,
           originalFileUrl: originalUpload.fileUrl,
           originalFileKey: originalUpload.fileUrl,
@@ -258,8 +259,8 @@ export class ResidentContractsService {
           contractId: created.id,
           action: ContractHistoryAction.CREATED,
           reason: null,
-          previousData: null as any,
-          newData: created as any,
+          previousData: Prisma.JsonNull,
+          newData: created as Prisma.InputJsonValue,
           changedFields: [],
           changedBy: userId,
         },
@@ -291,7 +292,7 @@ export class ResidentContractsService {
     },
   ) {
     // Construir where clause dinamicamente
-    const where: any = {
+    const where: Prisma.ResidentContractWhereInput = {
       deletedAt: null,
     };
 
@@ -445,7 +446,7 @@ export class ResidentContractsService {
     }
 
     const changedFields: string[] = [];
-    const updates: any = {};
+    const updates: Prisma.ResidentContractUpdateInput = {};
 
     if (dto.startDate && dto.startDate !== current.startDate.toISOString().split('T')[0]) {
       changedFields.push('startDate');
@@ -506,8 +507,8 @@ export class ResidentContractsService {
           contractId,
           action: ContractHistoryAction.UPDATED,
           reason: null,
-          previousData: current as any,
-          newData: updatedContract as any,
+          previousData: current as Prisma.InputJsonValue,
+          newData: updatedContract as Prisma.InputJsonValue,
           changedFields,
           changedBy: userId,
         },
@@ -638,7 +639,7 @@ export class ResidentContractsService {
       size: processed.pdfBuffer.length,
       fieldname: 'file',
       encoding: '7bit',
-      stream: {} as any,
+      stream: Readable.from(processed.pdfBuffer),
       destination: '',
       filename: '',
       path: '',
@@ -672,7 +673,7 @@ export class ResidentContractsService {
           adjustmentIndex: current.adjustmentIndex,
           adjustmentRate: current.adjustmentRate,
           lastAdjustmentDate: current.lastAdjustmentDate,
-          signatories: current.signatories as any,
+          signatories: current.signatories as Prisma.InputJsonValue,
           notes: current.notes,
           originalFileUrl: originalUpload.fileUrl,
           originalFileKey: originalUpload.fileUrl,
@@ -697,8 +698,8 @@ export class ResidentContractsService {
           contractId: created.id,
           action: ContractHistoryAction.REPLACED,
           reason: dto.reason,
-          previousData: current as any,
-          newData: created as any,
+          previousData: current as Prisma.InputJsonValue,
+          newData: created as Prisma.InputJsonValue,
           changedFields: ['arquivo'],
           changedBy: userId,
         },
@@ -741,8 +742,8 @@ export class ResidentContractsService {
           contractId,
           action: ContractHistoryAction.DELETED,
           reason: null,
-          previousData: contract as any,
-          newData: null as any,
+          previousData: contract as Prisma.InputJsonValue,
+          newData: Prisma.JsonNull,
           changedFields: [],
           changedBy: userId,
         },

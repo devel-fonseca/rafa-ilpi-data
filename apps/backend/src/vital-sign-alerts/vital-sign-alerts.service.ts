@@ -300,7 +300,7 @@ export class VitalSignAlertsService {
     const existingAlert = await this.findOne(id)
 
     // Preparar dados de atualização
-    const updateData: any = {}
+    const updateData: Prisma.VitalSignAlertUncheckedUpdateInput = {}
 
     if (dto.status) {
       updateData.status = dto.status

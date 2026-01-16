@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/get-agenda-items.dto';
-import { AgendaItem, AgendaItemType } from './interfaces/agenda-item.interface';
+import { AgendaItem, AgendaItemType, VaccineData } from './interfaces/agenda-item.interface';
 import { parseISO, startOfDay, endOfDay, eachDayOfInterval, format, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
 import { formatDateOnly } from '../utils/date.helpers';
@@ -325,7 +325,7 @@ export class AgendaService {
         completedAt: event.completedAt || undefined,
         completedBy: event.updatedByUser?.name,
         eventType: event.eventType,
-        vaccineData: event.vaccineData as any,
+        vaccineData: event.vaccineData as unknown as VaccineData | undefined,
         eventId: event.id,
         metadata: {
           notes: event.notes,
@@ -400,7 +400,7 @@ export class AgendaService {
 
         // Verificar se já foi realizado
         const mealType = config.metadata && typeof config.metadata === 'object' && 'mealType' in config.metadata
-          ? (config.metadata as any).mealType
+          ? (config.metadata as Record<string, unknown>).mealType
           : null;
 
         const record = await this.tenantContext.client.dailyRecord.findFirst({
@@ -409,12 +409,12 @@ export class AgendaService {
             type: config.recordType,
             date: targetDate,
             deletedAt: null,
-            ...(mealType && {
+            ...(mealType ? {
               data: {
                 path: ['mealType'],
                 equals: mealType,
               },
-            }),
+            } : {}),
           },
           include: {
             user: {
@@ -443,7 +443,7 @@ export class AgendaService {
           category: this.mapRecordTypeToCategory(config.recordType),
           residentId: config.residentId,
           residentName: config.resident.fullName,
-          title: this.getRecordTypeTitle(config.recordType, mealType),
+          title: this.getRecordTypeTitle(config.recordType, mealType as string | null | undefined),
           description: config.notes || undefined,
           scheduledDate: targetDate,
           scheduledTime: primaryTime,
@@ -453,8 +453,8 @@ export class AgendaService {
           recordType: config.recordType,
           suggestedTimes: suggestedTimes,
           configId: config.id,
-          mealType: mealType,
-          metadata: config.metadata as any,
+          mealType: mealType as string | undefined,
+          metadata: config.metadata as Record<string, unknown>,
         });
       }
     }
@@ -666,7 +666,7 @@ export class AgendaService {
         instructor: event.instructor,
         targetAudience: event.targetAudience,
         location: event.location,
-        ...((event.metadata as any) || {}),
+        ...((event.metadata as Record<string, unknown>) || {}),
       },
     }));
   }

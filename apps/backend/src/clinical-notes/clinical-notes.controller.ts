@@ -40,6 +40,7 @@ import { RequireFeatures } from '../common/decorators/require-features.decorator
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
 import { PermissionType } from '@prisma/client'
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { getAuthorizedProfessions } from './professional-authorization.config'
@@ -110,20 +111,20 @@ export class ClinicalNotesController {
   })
   @ApiResponse({ status: 403, description: 'Sem permissão CREATE_CLINICAL_NOTES' })
   create(
-    @Body() body: any,
-    @CurrentUser() user: any,
+    @Body() body: CreateClinicalNoteDto | { data: string },
+    @CurrentUser() user: JwtPayload,
     @UploadedFile() pdfFile?: Express.Multer.File,
   ) {
     // Se FormData foi enviado, parsear o campo 'data'
     let createDto: CreateClinicalNoteDto
-    if (typeof body.data === 'string') {
+    if ('data' in body && typeof body.data === 'string') {
       try {
         createDto = JSON.parse(body.data)
       } catch (_e) {
         throw new Error('Invalid JSON in data field')
       }
     } else {
-      createDto = body
+      createDto = body as CreateClinicalNoteDto
     }
 
     return this.clinicalNotesService.create(createDto, user.id, pdfFile)
@@ -174,7 +175,7 @@ export class ClinicalNotesController {
     },
   })
   @ApiResponse({ status: 403, description: 'Sem permissão VIEW_CLINICAL_NOTES' })
-  async getAuthorizedProfessionsForUser(@CurrentUser() user: any) {
+  async getAuthorizedProfessionsForUser(@CurrentUser() user: JwtPayload) {
     // Buscar positionCode e registrationType do usuário
     const userProfile = await this.tenantContext.client.userProfile.findUnique({
       where: {
@@ -333,7 +334,7 @@ export class ClinicalNotesController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateClinicalNoteDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     return this.clinicalNotesService.update(id, updateDto, user.id)
   }
@@ -366,7 +367,7 @@ export class ClinicalNotesController {
   async softDelete(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteClinicalNoteDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: JwtPayload,
   ) {
     await this.clinicalNotesService.softDelete(id, deleteDto, user.id)
   }

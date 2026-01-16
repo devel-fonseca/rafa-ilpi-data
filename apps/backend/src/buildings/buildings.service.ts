@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
-import { CreateBuildingDto, UpdateBuildingDto } from './dto'
+import { CreateBuildingDto, UpdateBuildingDto, CreateBuildingStructureDto } from './dto'
 import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
 
 @Injectable()
@@ -55,7 +55,7 @@ export class BuildingsService {
 
     // Enriquecer com contagem de quartos e leitos
     const enriched = await Promise.all(
-      data.map(async (building: any) => {
+      data.map(async (building) => {
         const rooms = await this.tenantContext.client.room.count({
           where: {
             floor: {
@@ -198,7 +198,7 @@ export class BuildingsService {
     }
   }
 
-  async createBuildingStructure(data: any) {
+  async createBuildingStructure(data: CreateBuildingStructureDto) {
     try {
       // Validação de dados de entrada
       if (!data.buildingName || !data.floors || data.floors.length === 0) {
@@ -324,14 +324,15 @@ export class BuildingsService {
         rooms: roomsCreated,
         beds: bedsCreated,
       }
-    } catch (error: any) {
+    } catch (error) {
       // Re-lançar erro com mensagem amigável
       if (error instanceof BadRequestException) {
         throw error
       }
 
+      const errorMessage = error instanceof Error ? error.message : 'erro desconhecido'
       throw new BadRequestException(
-        `Erro ao criar estrutura: ${error.message || 'erro desconhecido'}`
+        `Erro ao criar estrutura: ${errorMessage}`
       )
     }
   }

@@ -115,7 +115,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
    * @param value - Valor a ser cacheado (será serializado para JSON)
    * @param ttl - Tempo de vida em segundos (padrão: 900s = 15min)
    */
-  async set(key: string, value: any, ttl = 900): Promise<void> {
+  async set(key: string, value: unknown, ttl = 900): Promise<void> {
     try {
       if (!this.isConnected) {
         this.logger.warn(`Cache SET ignorado: Redis desconectado (key: ${key})`);

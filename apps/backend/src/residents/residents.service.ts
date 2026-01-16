@@ -13,7 +13,7 @@ import { QueryResidentDto } from './dto/query-resident.dto';
 import { TransferBedDto } from './dto/transfer-bed.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType, Prisma } from '@prisma/client';
+import { ChangeType, Gender, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ResidentsService {
@@ -33,8 +33,8 @@ export class ResidentsService {
     changeType: ChangeType,
     changeReason: string,
     changedBy: string,
-    previousData: any | null,
-    newData: any,
+    previousData: Record<string, unknown> | null,
+    newData: Record<string, unknown>,
     changedFields: string[],
     tx: Prisma.TransactionClient,
   ): Promise<void> {
@@ -42,7 +42,7 @@ export class ResidentsService {
       data: {
         residentId,
         tenantId: this.tenantContext.tenantId, // ✅ Pega do contexto
-        versionNumber: newData.versionNumber,
+        versionNumber: newData.versionNumber as number,
         changeType,
         changeReason,
         changedFields,
@@ -68,7 +68,7 @@ export class ResidentsService {
    * Calcula quais campos foram alterados comparando previousData e newData
    * Retorna array de nomes de campos modificados
    */
-  private calculateChangedFields(previousData: any, newData: any): string[] {
+  private calculateChangedFields(previousData: Record<string, unknown>, newData: Record<string, unknown>): string[] {
     const changedFields: string[] = [];
     const allKeys = new Set([...Object.keys(previousData), ...Object.keys(newData)]);
 
@@ -102,7 +102,7 @@ export class ResidentsService {
    *
    * Campos afetados: birthDate, admissionDate, dischargeDate
    */
-  private formatDateOnlyFields(resident: any): any {
+  private formatDateOnlyFields(resident: Record<string, unknown>): Record<string, unknown> {
     if (!resident) return resident;
 
     const formatDate = (date: Date | null | undefined): string | null => {
@@ -119,9 +119,9 @@ export class ResidentsService {
 
     return {
       ...resident,
-      birthDate: formatDate(resident.birthDate),
-      admissionDate: formatDate(resident.admissionDate),
-      dischargeDate: formatDate(resident.dischargeDate),
+      birthDate: formatDate(resident.birthDate as Date | null | undefined),
+      admissionDate: formatDate(resident.admissionDate as Date | null | undefined),
+      dischargeDate: formatDate(resident.dischargeDate as Date | null | undefined),
     };
   }
 
@@ -429,7 +429,7 @@ export class ResidentsService {
             origin: createResidentDto.origin,
 
             // 3. Contatos de Emergência
-            emergencyContacts: (createResidentDto.emergencyContacts || []) as any,
+            emergencyContacts: (createResidentDto.emergencyContacts || []) as unknown as Prisma.InputJsonValue,
 
             // 4. Responsável Legal
             legalGuardianName: createResidentDto.legalGuardianName,
@@ -463,7 +463,7 @@ export class ResidentsService {
             medicationsOnAdmission: createResidentDto.medicationsOnAdmission,
 
             // 7. Convênios
-            healthPlans: (createResidentDto.healthPlans || []) as any,
+            healthPlans: (createResidentDto.healthPlans || []) as unknown as Prisma.InputJsonValue,
 
             // 8. Pertences
             belongings: createResidentDto.belongings || [],
@@ -551,7 +551,7 @@ export class ResidentsService {
       const skip = (page - 1) * limit;
 
       // Construir filtros
-      const where: any = {
+      const where: Prisma.ResidentWhereInput = {
         deletedAt: null, // ✅ Sem tenantId
       };
 
@@ -567,7 +567,7 @@ export class ResidentsService {
       }
 
       if (query.gender) {
-        where.gender = query.gender;
+        where.gender = query.gender as Gender;
       }
 
       // Buscar residentes (sem relações - hierarquia é buscada manualmente)
@@ -855,22 +855,23 @@ export class ResidentsService {
       // Processar healthPlans com URLs assinadas
       let healthPlans = resident.healthPlans || [];
       if (Array.isArray(healthPlans) && healthPlans.length > 0) {
-        healthPlans = await Promise.all(
-          healthPlans.map(async (plan: any) => {
-            if (plan.cardUrl) {
+        healthPlans = (await Promise.all(
+          healthPlans.map(async (plan) => {
+            const planObj = plan as Record<string, unknown>;
+            if (planObj.cardUrl) {
               try {
                 return {
-                  ...plan,
-                  cardUrl: await this.filesService.getFileUrl(plan.cardUrl),
+                  ...planObj,
+                  cardUrl: await this.filesService.getFileUrl(planObj.cardUrl as string),
                 };
               } catch (error) {
                 this.logger.warn('Erro ao gerar URL assinada para cartão do convênio:', error);
-                return plan;
+                return planObj;
               }
             }
             return plan;
           })
-        );
+        )) as unknown as Prisma.JsonArray;
       }
 
       // Buscar alergias da tabela Allergy
@@ -972,7 +973,7 @@ export class ResidentsService {
   async update(id: string, updateResidentDto: UpdateResidentDto, userId: string) {
     try {
       // Extrair changeReason do DTO (será validado no DTO layer)
-      const changeReason = (updateResidentDto as any).changeReason;
+      const changeReason = (updateResidentDto as UpdateResidentDto & { changeReason: string }).changeReason;
 
       if (!changeReason || changeReason.trim().length < 10) {
         throw new BadRequestException(
@@ -1058,18 +1059,18 @@ export class ResidentsService {
         tenantId: _tenantId, // Remove tenantId pois não pode ser atualizado
         changeReason: _changeReason, // Remove changeReason pois não é campo do modelo
         ...restDto
-      } = updateResidentDto as any;
+      } = updateResidentDto as UpdateResidentDto & Record<string, unknown>;
 
       // Construir objeto de atualização com tipos corretos
-      const dataToUpdate: any = Object.fromEntries(
+      const dataToUpdate: Record<string, unknown> = Object.fromEntries(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         Object.entries(restDto).filter(([_key, value]) => value !== undefined)
       );
 
       // Converter campos DATE de string YYYY-MM-DD para Date objects
-      if (dataToUpdate.birthDate) dataToUpdate.birthDate = new Date(dataToUpdate.birthDate);
-      if (dataToUpdate.admissionDate) dataToUpdate.admissionDate = new Date(dataToUpdate.admissionDate);
-      if (dataToUpdate.dischargeDate) dataToUpdate.dischargeDate = new Date(dataToUpdate.dischargeDate);
+      if (dataToUpdate.birthDate) dataToUpdate.birthDate = new Date(dataToUpdate.birthDate as string);
+      if (dataToUpdate.admissionDate) dataToUpdate.admissionDate = new Date(dataToUpdate.admissionDate as string);
+      if (dataToUpdate.dischargeDate) dataToUpdate.dischargeDate = new Date(dataToUpdate.dischargeDate as string);
 
       // Adicionar campos JSON apenas se foram enviados
       if (emergencyContacts !== undefined) dataToUpdate.emergencyContacts = emergencyContacts;

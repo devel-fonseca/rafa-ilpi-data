@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { Prisma, TenantStatus } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
-import { TenantStatus } from '@prisma/client'
 
 interface FindAllFilters {
   status?: TenantStatus
@@ -32,7 +32,7 @@ export class TenantAdminService {
     const skip = (page - 1) * limit
 
     // Construir where clause
-    const where: any = {
+    const where: Prisma.TenantWhereInput = {
       deletedAt: null,
     }
 

@@ -9,7 +9,7 @@ import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition-versioned.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { ChangeType } from '@prisma/client';
+import { ChangeType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ConditionsService {
@@ -173,7 +173,7 @@ export class ConditionsService {
         if (
           updateData[key] !== undefined &&
           JSON.stringify(updateData[key]) !==
-            JSON.stringify((previousData as any)[key])
+            JSON.stringify((previousData as Record<string, unknown>)[key])
         ) {
           changedFields.push(key as string);
         }
@@ -186,7 +186,7 @@ export class ConditionsService {
       const updatedCondition = await tx.condition.update({
         where: { id },
         data: {
-          ...(updateData as any),
+          ...updateData,
           versionNumber: newVersionNumber,
           updatedBy: userId,
         },
@@ -207,8 +207,8 @@ export class ConditionsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.UPDATE,
           changeReason,
-          previousData: previousData as any,
-          newData: newData as any,
+          previousData: previousData as Prisma.InputJsonValue,
+          newData: newData as Prisma.InputJsonValue,
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
@@ -279,12 +279,12 @@ export class ConditionsService {
           versionNumber: newVersionNumber,
           changeType: ChangeType.DELETE,
           changeReason: deleteReason,
-          previousData: previousData as any,
+          previousData: previousData as Prisma.InputJsonValue,
           newData: {
             ...previousData,
             deletedAt: deletedCondition.deletedAt,
             versionNumber: newVersionNumber,
-          } as any,
+          } as Prisma.InputJsonValue,
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,

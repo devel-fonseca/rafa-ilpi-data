@@ -11,7 +11,7 @@ import { CreateClinicalNoteDto } from './dto/create-clinical-note.dto'
 import { UpdateClinicalNoteDto } from './dto/update-clinical-note.dto'
 import { QueryClinicalNoteDto } from './dto/query-clinical-note.dto'
 import { DeleteClinicalNoteDto } from './dto/delete-clinical-note.dto'
-import { ClinicalNote } from '@prisma/client'
+import { ClinicalNote, Prisma } from '@prisma/client'
 import {
   ClinicalProfession,
   isAuthorizedForProfession,
@@ -40,16 +40,16 @@ export class ClinicalNotesService {
   /**
    * Processa documentos de uma evolução clínica, gerando URLs assinadas
    */
-  private async processDocumentUrls(note: any): Promise<any> {
+  private async processDocumentUrls<T extends { documents?: unknown[] }>(note: T): Promise<T> {
     if (!note) return note
 
     // Se a nota tem documentos, processar URLs
     if (note.documents && Array.isArray(note.documents)) {
       const documentsWithUrls = await Promise.all(
-        note.documents.map(async (doc: any) => {
+        note.documents.map(async (doc: Record<string, unknown>) => {
           if (doc.pdfFileUrl) {
             // Gerar URL assinada
-            const signedUrl = await this.filesService.getFileUrl(doc.pdfFileUrl)
+            const signedUrl = await this.filesService.getFileUrl(doc.pdfFileUrl as string)
             return {
               ...doc,
               pdfFileUrl: signedUrl,
@@ -248,7 +248,7 @@ export class ClinicalNotesService {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {
+    const where: Prisma.ClinicalNoteWhereInput = {
       isAmended: false, // Não listar evoluções obsoletas
     }
 
@@ -332,7 +332,7 @@ export class ClinicalNotesService {
     const limit = queryDto?.limit || 20
     const skip = (page - 1) * limit
 
-    const where: any = {
+    const where: Prisma.ClinicalNoteWhereInput = {
       residentId,
       isAmended: false,
     }

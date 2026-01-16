@@ -3,8 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   RdcIndicatorType,
   IncidentSubtypeClinical,
+  PrismaClient,
+  Prisma,
 } from '@prisma/client';
 import { startOfMonth, endOfMonth } from 'date-fns';
+import {
+  RdcIndicatorsByType,
+  RdcIndicatorHistoryMonth,
+} from './interfaces/rdc-indicator-result.interface';
 
 /**
  * Serviço responsável por calcular os 6 indicadores mensais obrigatórios
@@ -164,7 +170,7 @@ export class RdcIndicatorsService {
    * Fórmula: (óbitos no mês / residentes no mês) × 100
    */
   private async calculateMortalidade(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -195,13 +201,13 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: obitos.map((o: any) => o.id),
+      incidentIds: obitos.map((o) => o.id),
       metadata: {
-        residents: obitos.map((o: any) => ({
+        residents: obitos.map((o) => ({
           residentId: o.residentId,
-          date: o.date,
+          date: o.date.toISOString(),
         })),
-      },
+      } as Prisma.JsonValue,
       calculatedBy,
     });
 
@@ -213,7 +219,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de diarreia / residentes no mês) × 100
    */
   private async calculateDiarreiaAguda(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -233,7 +239,7 @@ export class RdcIndicatorsService {
     });
 
     // Contar residentes únicos (um residente pode ter múltiplos episódios)
-    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
@@ -246,7 +252,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c: any) => c.id),
+      incidentIds: casos.map((c) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -262,7 +268,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de escabiose / residentes no mês) × 100
    */
   private async calculateEscabiose(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -281,7 +287,7 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
@@ -294,7 +300,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c: any) => c.id),
+      incidentIds: casos.map((c) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -310,7 +316,7 @@ export class RdcIndicatorsService {
    * Fórmula: (casos de desidratação / residentes no mês) × 100
    */
   private async calculateDesidratacao(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -329,7 +335,7 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
@@ -342,7 +348,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c: any) => c.id),
+      incidentIds: casos.map((c) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -358,7 +364,7 @@ export class RdcIndicatorsService {
    * Fórmula: (residentes com úlcera / residentes no mês) × 100
    */
   private async calculateUlceraDecubito(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -377,7 +383,7 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
@@ -390,7 +396,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c: any) => c.id),
+      incidentIds: casos.map((c) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -406,7 +412,7 @@ export class RdcIndicatorsService {
    * Fórmula: (residentes com desnutrição / residentes no mês) × 100
    */
   private async calculateDesnutricao(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     tenantId: string,
     year: number,
     month: number,
@@ -425,7 +431,7 @@ export class RdcIndicatorsService {
       select: { id: true, residentId: true, date: true },
     });
 
-    const residentesUnicos = new Set(casos.map((c: any) => c.residentId));
+    const residentesUnicos = new Set(casos.map((c) => c.residentId));
     const numerator = residentesUnicos.size;
     const rate = (numerator / denominator) * 100;
 
@@ -438,7 +444,7 @@ export class RdcIndicatorsService {
       numerator,
       denominator,
       rate,
-      incidentIds: casos.map((c: any) => c.id),
+      incidentIds: casos.map((c) => c.id),
       metadata: {
         totalEpisodes: casos.length,
         uniqueResidents: Array.from(residentesUnicos),
@@ -453,7 +459,7 @@ export class RdcIndicatorsService {
    * Obtém residentes ativos no período (admitidos antes do fim do mês e não saíram antes do início)
    */
   private async getActiveResidentsInPeriod(
-    tenantClient: any,
+    tenantClient: PrismaClient,
     firstDay: Date,
     lastDay: Date,
   ): Promise<{ id: string }[]> {
@@ -474,7 +480,7 @@ export class RdcIndicatorsService {
    * Cria ou atualiza um indicador mensal
    */
   private async upsertIndicator(params: {
-    tenantClient: any;
+    tenantClient: PrismaClient;
     tenantId: string;
     year: number;
     month: number;
@@ -483,7 +489,7 @@ export class RdcIndicatorsService {
     denominator: number;
     rate: number;
     incidentIds: string[];
-    metadata?: any;
+    metadata?: Prisma.JsonValue;
     calculatedBy?: string;
   }): Promise<void> {
     const {
@@ -518,7 +524,7 @@ export class RdcIndicatorsService {
         denominator,
         rate,
         incidentIds,
-        metadata,
+        metadata: metadata ?? Prisma.JsonNull,
         calculatedBy,
       },
       update: {
@@ -526,7 +532,7 @@ export class RdcIndicatorsService {
         denominator,
         rate,
         incidentIds,
-        metadata,
+        metadata: metadata ?? Prisma.JsonNull,
         calculatedAt: new Date(),
         calculatedBy,
       },
@@ -540,7 +546,7 @@ export class RdcIndicatorsService {
     tenantId: string,
     year: number,
     month: number,
-  ): Promise<any> {
+  ): Promise<RdcIndicatorsByType> {
     // Obter tenant client para acessar schema isolado
     const tenantClient = await this.getTenantClient(tenantId);
 
@@ -555,13 +561,13 @@ export class RdcIndicatorsService {
     });
 
     // Transformar array em objeto por tipo de indicador
-    const result: any = {};
+    const result: RdcIndicatorsByType = {};
     for (const indicator of indicators) {
       result[indicator.indicatorType] = {
         numerator: indicator.numerator,
         denominator: indicator.denominator,
         rate: indicator.rate,
-        incidentIds: indicator.incidentIds,
+        incidentIds: indicator.incidentIds as string[],
         metadata: indicator.metadata,
         calculatedAt: indicator.calculatedAt,
       };
@@ -576,7 +582,7 @@ export class RdcIndicatorsService {
   async getIndicatorsHistory(
     tenantId: string,
     months: number = 12,
-  ): Promise<any[]> {
+  ): Promise<RdcIndicatorHistoryMonth[]> {
     // Obter tenant client para acessar schema isolado
     const tenantClient = await this.getTenantClient(tenantId);
 
@@ -587,13 +593,14 @@ export class RdcIndicatorsService {
     });
 
     // Agrupar por ano/mês
-    const grouped: any = {};
+    const grouped: Record<string, RdcIndicatorHistoryMonth> = {};
     for (const indicator of indicators) {
       const key = `${indicator.year}-${String(indicator.month).padStart(2, '0')}`;
       if (!grouped[key]) {
         grouped[key] = {
           year: indicator.year,
           month: indicator.month,
+          monthLabel: key,
           indicators: {},
         };
       }
@@ -601,6 +608,8 @@ export class RdcIndicatorsService {
         numerator: indicator.numerator,
         denominator: indicator.denominator,
         rate: indicator.rate,
+        incidentIds: indicator.incidentIds as string[],
+        metadata: indicator.metadata,
         calculatedAt: indicator.calculatedAt,
       };
     }
