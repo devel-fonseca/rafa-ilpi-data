@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -14,12 +15,27 @@ export const AUDIT_ENTITY_KEY = 'audit:entity';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
+
   constructor(
-    private auditService: AuditService,
-    private reflector: Reflector,
-  ) {}
+    private readonly auditService: AuditService,
+    private readonly reflector: Reflector,
+  ) {
+    // Log para debug
+    if (!this.reflector) {
+      console.error('[AuditInterceptor] Reflector não foi injetado corretamente!');
+    } else {
+      console.log('[AuditInterceptor] Inicializado com sucesso');
+    }
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    // Verificação de segurança: se Reflector não está disponível, pular auditoria
+    if (!this.reflector) {
+      console.warn('[AuditInterceptor] Reflector indisponível - auditoria desabilitada para esta request');
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest();
     const handler = context.getHandler();
     const controller = context.getClass();
@@ -41,7 +57,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     // Obter informações do usuário e tenant
     const user = request.user;
-    if (!user || !user.tenant) {
+    if (!user || !user.tenantId) {
       return next.handle();
     }
 
