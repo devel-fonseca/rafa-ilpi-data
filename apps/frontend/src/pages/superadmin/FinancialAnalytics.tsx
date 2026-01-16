@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,9 +35,10 @@ export function FinancialAnalytics() {
   const [endDate, setEndDate] = useState<string>('')
 
   // Passar filtros para o hook
+  // Usar normalizeUTCDate para evitar timezone shift em datas civis
   const filters = {
-    startDate: startDate ? new Date(startDate).toISOString() : undefined,
-    endDate: endDate ? new Date(endDate).toISOString() : undefined,
+    startDate: startDate ? normalizeUTCDate(startDate).toISOString() : undefined,
+    endDate: endDate ? normalizeUTCDate(endDate).toISOString() : undefined,
   }
 
   const { data: metrics, isLoading: isLoadingMetrics } = useFinancialMetrics(filters)
@@ -135,10 +137,10 @@ export function FinancialAnalytics() {
           {(startDate || endDate) && (
             <p className="text-xs text-slate-500 mt-3">
               {startDate && endDate
-                ? `Exibindo dados de ${new Date(startDate).toLocaleDateString('pt-BR')} até ${new Date(endDate).toLocaleDateString('pt-BR')}`
+                ? `Exibindo dados de ${normalizeUTCDate(startDate).toLocaleDateString('pt-BR')} até ${normalizeUTCDate(endDate).toLocaleDateString('pt-BR')}`
                 : startDate
-                  ? `Exibindo dados a partir de ${new Date(startDate).toLocaleDateString('pt-BR')}`
-                  : `Exibindo dados até ${new Date(endDate).toLocaleDateString('pt-BR')}`}
+                  ? `Exibindo dados a partir de ${normalizeUTCDate(startDate).toLocaleDateString('pt-BR')}`
+                  : `Exibindo dados até ${normalizeUTCDate(endDate).toLocaleDateString('pt-BR')}`}
             </p>
           )}
         </CardContent>

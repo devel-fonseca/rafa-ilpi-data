@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -93,7 +94,10 @@ export function RenegotiateDialog({
   const newAmount = originalAmount - discountAmount
 
   // Calcular nova data de vencimento
-  const originalDueDate = oldestInvoice ? new Date(oldestInvoice.dueDate) : new Date()
+  // Usar normalizeUTCDate para evitar timezone shift em datas civis (DATETIME_STANDARD.md)
+  const originalDueDate = oldestInvoice ? normalizeUTCDate(oldestInvoice.dueDate) : new Date()
+  // Clonar Date object existente (OK usar new Date() aqui)
+  // eslint-disable-next-line no-restricted-syntax
   const newDueDate = new Date(originalDueDate)
   newDueDate.setDate(newDueDate.getDate() + extensionDays)
 

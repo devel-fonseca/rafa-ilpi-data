@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 // Estilos do documento PDF
 const styles = StyleSheet.create({
@@ -304,7 +305,7 @@ export function ClinicalDocumentPDF({
           {/* Linha 3: Data do documento */}
           <Text style={styles.residentText}>
             <Text style={styles.bold}>Data:</Text>{' '}
-            {format(new Date(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+            {format(normalizeUTCDate(date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
           </Text>
         </View>
 
@@ -341,7 +342,7 @@ export function ClinicalDocumentPDF({
 
             {/* Data/Hora + Identificador único */}
             <Text style={styles.signatureTimestamp}>
-              Data/Hora: {format(new Date(date), "dd/MM/yyyy '–' HH:mm", { locale: ptBR })} | ID: {traceId.slice(-12)}
+              Data/Hora: {format(normalizeUTCDate(date), "dd/MM/yyyy '–' HH:mm", { locale: ptBR })} | ID: {traceId.slice(-12)}
             </Text>
           </View>
         </View>

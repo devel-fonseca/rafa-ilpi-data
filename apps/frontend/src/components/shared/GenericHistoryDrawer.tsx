@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { FileText, AlertCircle, CheckCircle, XCircle, History as HistoryIcon, Calendar, User } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface GenericHistoryDrawerProps<T> {
   open: boolean
@@ -72,7 +73,8 @@ export function GenericHistoryDrawer<T = any>({
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+      // Usar normalizeUTCDate para evitar timezone shift (DATETIME_STANDARD.md)
+      return format(normalizeUTCDate(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     } catch {
       return dateString
     }

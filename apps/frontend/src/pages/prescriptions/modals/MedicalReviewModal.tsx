@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { FileCheck, AlertTriangle, CheckCircle } from 'lucide-react'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 import {
   Dialog,
   DialogContent,
@@ -46,7 +47,8 @@ const medicalReviewSchema = z.object({
     .string()
     .min(1, 'Data da consulta é obrigatória')
     .refine((date) => {
-      const reviewDate = new Date(date)
+      // Usar normalizeUTCDate para evitar timezone shift (DATETIME_STANDARD.md)
+      const reviewDate = normalizeUTCDate(date)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       return reviewDate <= today
@@ -75,7 +77,8 @@ const medicalReviewSchema = z.object({
     .optional()
     .refine((date) => {
       if (!date) return true
-      const reviewDate = new Date(date)
+      // Usar normalizeUTCDate para evitar timezone shift (DATETIME_STANDARD.md)
+      const reviewDate = normalizeUTCDate(date)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       return reviewDate > today

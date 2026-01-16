@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface UserHistoryDrawerProps {
   userId: string | undefined
@@ -70,7 +71,8 @@ export function UserHistoryDrawer({
   // Formatar data de forma amigável
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString)
+      // Usar normalizeUTCDate para evitar timezone shift (DATETIME_STANDARD.md)
+      const date = normalizeUTCDate(dateString)
       return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     } catch {
       return dateString

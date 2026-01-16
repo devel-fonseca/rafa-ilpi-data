@@ -1,6 +1,7 @@
 /**
  * Utilitários de formatação para dados brasileiros
  */
+import { normalizeUTCDate } from './dateHelpers'
 
 /**
  * Formata CPF: 123.456.789-00
@@ -84,14 +85,14 @@ export function formatCNPJ(cnpj: string | null | undefined): string {
 
 /**
  * Formata data: DD/MM/YYYY
+ * Usa normalizeUTCDate para evitar timezone shift em datas civis (campos DATE)
  */
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '-'
 
   try {
-     
-    // OK: Este helper é usado APENAS para exibição, não envia dados ao backend
-    const dateObj = typeof date === 'string' ? new Date(date) : date
+    // Normalizar para evitar timezone shift (DATETIME_STANDARD.md)
+    const dateObj = typeof date === 'string' ? normalizeUTCDate(date) : date
     const day = String(dateObj.getDate()).padStart(2, '0')
     const month = String(dateObj.getMonth() + 1).padStart(2, '0')
     const year = dateObj.getFullYear()
@@ -103,13 +104,14 @@ export function formatDate(date: string | Date | null | undefined): string {
 
 /**
  * Formata data e hora: DD/MM/YYYY às HH:mm
+ * Para campos TIMESTAMPTZ, Date() nativo é OK, mas usamos normalização por consistência
  */
 export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return '-'
 
   try {
-     
-    // OK: Este helper é usado APENAS para exibição, não envia dados ao backend
+    // Para TIMESTAMPTZ (createdAt, updatedAt), new Date() é correto
+    // eslint-disable-next-line no-restricted-syntax
     const dateObj = typeof date === 'string' ? new Date(date) : date
     const day = String(dateObj.getDate()).padStart(2, '0')
     const month = String(dateObj.getMonth() + 1).padStart(2, '0')
@@ -125,12 +127,14 @@ export function formatDateTime(date: string | Date | null | undefined): string {
 /**
  * Calcula idade detalhada a partir da data de nascimento
  * Retorna: "87 anos, 8 meses, 0 dias"
+ * Usa normalizeUTCDate para birthDate (campo DATE civil)
  */
 export function calculateAge(birthDate: string | Date | null | undefined): string {
   if (!birthDate) return '-'
 
   try {
-    const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate
+    // birthDate é campo DATE (civil) - usar normalizeUTCDate para evitar timezone shift
+    const birth = typeof birthDate === 'string' ? normalizeUTCDate(birthDate) : birthDate
     const today = new Date()
 
     let years = today.getFullYear() - birth.getFullYear()
