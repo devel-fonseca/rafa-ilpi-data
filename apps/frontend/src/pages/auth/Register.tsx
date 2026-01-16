@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import axios from 'axios'
 import { useAuthStore } from '../../stores/auth.store'
 import { api } from '../../services/api'
 import { Button } from '../../components/ui/button'
@@ -517,17 +518,8 @@ export default function Register() {
     setLoadingCNPJ(true)
     try {
       const cnpjNumbers = formData.cnpj.replace(/\D/g, '')
-      const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjNumbers}`)
-
-      if (!response.ok) {
-        setErrors(prev => ({
-          ...prev,
-          cnpj: 'CNPJ não encontrado ou inválido'
-        }))
-        return
-      }
-
-      const data = await response.json()
+      const response = await axios.get(`https://brasilapi.com.br/api/cnpj/v1/${cnpjNumbers}`)
+      const data = response.data
 
       // Preencher APENAS o nome da ILPI
       setFormData(prev => ({
@@ -558,8 +550,8 @@ export default function Register() {
 
     try {
       const cep = formData.addressZip.replace('-', '')
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
-      const data = await response.json()
+      const response = await axios.get(`https://viacep.com.br/ws/${cep}/json/`)
+      const data = response.data
 
       if (!data.erro) {
         setFormData(prev => ({

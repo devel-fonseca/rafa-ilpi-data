@@ -1,6 +1,7 @@
 /**
  * Serviço de integração com ViaCEP
  */
+import axios from 'axios'
 
 export interface ViaCEPResponse {
   cep: string
@@ -41,13 +42,8 @@ export async function buscarCEP(cep: string): Promise<EnderecoFormatado | null> 
     }
 
     // Chama API do ViaCEP
-    const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
-
-    if (!response.ok) {
-      throw new Error('Erro ao buscar CEP')
-    }
-
-    const data: ViaCEPResponse = await response.json()
+    const response = await axios.get<ViaCEPResponse>(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+    const data = response.data
 
     // Verifica se o CEP foi encontrado
     if (data.erro) {

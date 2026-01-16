@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth.store'
 // Pode ser sobrescrito com a variável VITE_API_URL
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000/api' : '/api')
 
+// eslint-disable-next-line no-restricted-syntax
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
