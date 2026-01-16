@@ -1,3 +1,26 @@
+/**
+ * ============================================
+ * 💰 HOOKS DE COBRANÇA - CROSS-TENANT
+ * ============================================
+ *
+ * ⚠️ IMPORTANTE: Este arquivo contém hooks de COBRANÇA do portal SUPERADMIN.
+ *
+ * Assim como useSuperAdmin.ts, TODOS os hooks aqui são CROSS-TENANT
+ * e NÃO devem usar tenantKey() porque lidam com métricas financeiras
+ * e operações de cobrança que abrangem TODOS os tenants da plataforma.
+ *
+ * Cache Keys Pattern:
+ * - ✅ CORRETO:   ['overdue'] (lista de inadimplentes cross-tenant)
+ * - ✅ CORRETO:   ['invoices'] (faturas de todos os tenants)
+ * - ✅ CORRETO:   ['analytics'] (métricas financeiras agregadas)
+ * - ❌ INCORRETO: tenantKey('invoices') - NUNCA usar aqui!
+ *
+ * Motivo: SuperAdmin precisa ver dashboards de inadimplência, enviar
+ * lembretes em massa, e gerenciar cobrança de TODOS os tenants.
+ *
+ * Se você está trabalhando com faturas de um tenant específico no
+ * contexto do próprio tenant, use um hook tenant-scoped com tenantKey().
+ */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
 import {

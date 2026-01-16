@@ -46,7 +46,7 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
 
   // Buscar histórico de versões
   const { data: versions, isLoading } = useQuery({
-    queryKey: ['email-template-versions', templateId],
+    queryKey: ['superadmin', 'email-template-versions', templateId],
     queryFn: async () => {
       const response = await api.get(`/email-templates/${templateId}/versions`);
       return response.data as EmailTemplateVersion[];
@@ -61,9 +61,9 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
     },
     onSuccess: () => {
       toast.success('Template restaurado com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      queryClient.invalidateQueries({ queryKey: ['email-template', templateId] });
-      queryClient.invalidateQueries({ queryKey: ['email-template-versions', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'email-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'email-template', templateId] });
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'email-template-versions', templateId] });
       setVersionToRestore(null);
     },
     onError: (error: any) => {

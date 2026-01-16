@@ -37,7 +37,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
   const changePlanMutation = useChangePlan()
 
   const { data: plans, isLoading: loadingPlans } = useQuery({
-    queryKey: ['plans'],
+    queryKey: ['superadmin', 'plans'],
     queryFn: getPlans,
     staleTime: 1000 * 60 * 10, // 10 minutos
   })

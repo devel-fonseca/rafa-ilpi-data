@@ -1,3 +1,26 @@
+/**
+ * ============================================
+ * 🔐 HOOKS SUPERADMIN - CROSS-TENANT
+ * ============================================
+ *
+ * ⚠️ IMPORTANTE: Este arquivo contém hooks do portal SUPERADMIN.
+ *
+ * Diferente dos hooks tenant-scoped que usam tenantKey() para isolamento
+ * de cache por tenant, TODOS os hooks deste arquivo são CROSS-TENANT
+ * por design e NÃO devem usar tenantKey().
+ *
+ * Cache Keys Pattern:
+ * - ✅ CORRETO:   ['superadmin', 'tenants', filters]
+ * - ✅ CORRETO:   ['superadmin', 'tenant', id]
+ * - ❌ INCORRETO: tenantKey('tenants') - NUNCA usar aqui!
+ *
+ * Motivo: SuperAdmin precisa acessar dados de TODOS os tenants
+ * simultaneamente para gestão da plataforma (billing, métricas, etc).
+ *
+ * Se você está adicionando um novo hook aqui, pergunte-se:
+ * - Este dado é específico de um tenant? → Use hook tenant-scoped com tenantKey()
+ * - Este dado é cross-tenant (superadmin)? → Use ['superadmin', ...] sem tenantKey()
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getTenants,
