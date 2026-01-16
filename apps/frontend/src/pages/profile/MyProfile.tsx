@@ -87,6 +87,7 @@ export default function MyProfile() {
       console.log('🔄 MyProfile - Disparando refetch do perfil...')
       refetch()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, refetch])
 
   const handleSubmit = async (e: React.FormEvent) => {

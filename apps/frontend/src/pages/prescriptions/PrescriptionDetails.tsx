@@ -241,6 +241,7 @@ export default function PrescriptionDetails() {
         return a.medication.name.localeCompare(b.medication.name)
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prescription?.data?.medications, viewDate, statusFilter, sortMode])
 
   // Calcular contadores para as tabs de status
@@ -281,6 +282,7 @@ export default function PrescriptionDetails() {
       pending: allCards.filter((s) => s === 'pending' || s === 'missed').length,
       administered: allCards.filter((s) => s === 'administered').length,
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prescription?.data?.medications, viewDate])
 
   // Early returns após hooks

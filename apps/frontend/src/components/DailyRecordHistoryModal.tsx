@@ -62,6 +62,7 @@ export function DailyRecordHistoryModal({
     if (open && recordId) {
       loadHistory()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, recordId])
 
   const loadHistory = async () => {

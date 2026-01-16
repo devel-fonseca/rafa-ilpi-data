@@ -72,6 +72,7 @@ export function BuildingForm({ open, onOpenChange, building, onSuccess }: Buildi
       const newCode = generateBuildingCode(name, existingCodes)
       form.setValue('code', newCode)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('name'), buildings, building, form])
 
   // Popula form quando editar

@@ -114,6 +114,7 @@ export function ProfileForm() {
 
       setLogoPreview(profile?.logoUrl || null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullProfile, reset])
 
   // Função para buscar CEP (chamada no onChange do input)

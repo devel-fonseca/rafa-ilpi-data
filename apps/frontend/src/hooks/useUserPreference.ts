@@ -68,6 +68,7 @@ export function useUserPreference<K extends keyof UserPreferences>(
     } finally {
       setIsLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, key, defaultValue])
 
   return [value, updateValue, isLoading]

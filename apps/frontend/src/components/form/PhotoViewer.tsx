@@ -160,6 +160,7 @@ export function PhotoViewer({
         abortControllerRef.current.abort()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photoUrl, photoUrlSmall, photoUrlMedium, size, isSignedUrl])
 
   // Classes de borda: rounded ou rounded-lg

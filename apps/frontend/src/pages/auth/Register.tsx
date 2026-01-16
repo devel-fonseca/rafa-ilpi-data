@@ -114,6 +114,7 @@ export default function Register() {
   useEffect(() => {
     clearError()
     loadPlans()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadPlans = async () => {
@@ -137,6 +138,7 @@ export default function Register() {
     if (currentStep === 5 && !privacyPolicy) {
       loadPrivacyPolicy()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep])
 
   // Carregar contrato quando chegar no step 6 (antes era step 4)
@@ -144,6 +146,7 @@ export default function Register() {
     if (currentStep === 6 && formData.planId && !currentContract) {
       loadActiveContract()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, formData.planId])
 
   // Timer de leitura da Política de Privacidade (step 5)

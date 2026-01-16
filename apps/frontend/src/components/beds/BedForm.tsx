@@ -92,6 +92,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
       // Limpa código se desselecionar o quarto
       setGeneratedCode('')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('roomId'), roomBeds, bed])
 
   // Popula form quando editar

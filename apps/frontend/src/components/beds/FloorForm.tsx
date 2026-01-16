@@ -85,6 +85,7 @@ export function FloorForm({
       const newCode = generateFloorCode(name, floorNumber)
       setGeneratedCode(newCode)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('name'), form.watch('floorNumber'), floor])
 
   // Popula form quando editar

@@ -34,7 +34,9 @@ export function DailyRecordsOverviewStats({
   const { data: scheduleConfigs } = useAllActiveScheduleConfigs()
 
   // Garantir que allRecordsToday é array
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeAllRecordsToday = Array.isArray(allRecordsToday) ? allRecordsToday : []
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeScheduleConfigs = Array.isArray(scheduleConfigs) ? scheduleConfigs : []
 
   // Filtrar apenas residentes ativos

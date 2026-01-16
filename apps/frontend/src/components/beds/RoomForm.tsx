@@ -103,6 +103,7 @@ export function RoomForm({
       const newCode = generateRoomCode(name || roomNumber, existingCodes, roomNumberInt)
       setGeneratedCode(newCode)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch('name'), form.watch('roomNumber'), form.watch('floorId'), allRooms, room])
 
   // Popula form quando editar
