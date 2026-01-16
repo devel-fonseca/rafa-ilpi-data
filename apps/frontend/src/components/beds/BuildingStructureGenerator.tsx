@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { bedsAPI } from '@/api/beds.api'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { generateBuildingCodeSuggestions, formatBedIdentification } from '@/utils/formatters'
+import { tenantKey } from '@/lib/query-keys'
 
 interface FloorConfig {
   floorNumber: number
@@ -210,11 +211,11 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
       })
 
       // Invalidar queries para forçar refresh
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['floors'] })
-      queryClient.invalidateQueries({ queryKey: ['rooms'] })
-      queryClient.invalidateQueries({ queryKey: ['beds'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
 
       onOpenChange(false)
       // Resetar estado

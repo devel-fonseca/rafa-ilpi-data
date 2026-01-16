@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { calculateAge } from '@/lib/utils'
 import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
@@ -46,7 +47,7 @@ export function Step5Review() {
   const formData = watch()
 
   const { data: resident } = useQuery({
-    queryKey: ['resident', formData.residentId],
+    queryKey: tenantKey('residents', formData.residentId),
     queryFn: async () => {
       const response = await api.get<Resident>(`/residents/${formData.residentId}`)
       return response.data

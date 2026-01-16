@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { tenantKey } from '@/lib/query-keys';
 
 interface IndicatorsByMonth {
   [indicatorType: string]: {
@@ -30,7 +31,7 @@ interface HistoricalIndicator {
  */
 export function useRdcIndicators(year: number, month: number) {
   return useQuery({
-    queryKey: ['rdc-indicators', year, month],
+    queryKey: tenantKey('rdc-indicators', year.toString(), month.toString()),
     queryFn: async () => {
       const response = await api.get<IndicatorsByMonth>(
         `/rdc-indicators`,
@@ -49,7 +50,7 @@ export function useRdcIndicators(year: number, month: number) {
  */
 export function useRdcIndicatorsHistory(months: number = 12) {
   return useQuery({
-    queryKey: ['rdc-indicators-history', months],
+    queryKey: tenantKey('rdc-indicators-history', months.toString()),
     queryFn: async () => {
       const response = await api.get<HistoricalIndicator[]>(
         `/rdc-indicators/history`,

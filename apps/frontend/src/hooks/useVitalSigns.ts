@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import type { VitalSign } from '@/api/vitalSigns.api'
+import type { VitalSign, VitalSignsStatistics } from '@/api/vitalSigns.api'
+import { getVitalSignsByResident, getVitalSignsStatistics } from '@/api/vitalSigns.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // Usar endpoint de Daily Records para obter sinais vitais
 async function getLastVitalSignFromDailyRecords(residentId: string): Promise<VitalSign | null> {
@@ -20,7 +22,7 @@ export function useLastVitalSign(residentId: string | undefined) {
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<VitalSign | null>({
-    queryKey: ['vital-signs', 'last', residentId],
+    queryKey: tenantKey('vital-signs', 'last', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -48,7 +50,7 @@ export function useVitalSignsByResident(
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<VitalSign[]>({
-    queryKey: ['vital-signs', 'resident', residentId, startDate, endDate],
+    queryKey: tenantKey('vital-signs', 'resident', residentId, startDate || 'all', endDate || 'all'),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -75,7 +77,7 @@ export function useVitalSignsStatistics(
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<VitalSignsStatistics>({
-    queryKey: ['vital-signs', 'statistics', residentId, days],
+    queryKey: tenantKey('vital-signs', 'statistics', residentId, days),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')

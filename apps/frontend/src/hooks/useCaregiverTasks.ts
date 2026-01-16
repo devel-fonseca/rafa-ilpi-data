@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import type { DailyTask } from './useResidentSchedule'
+import { tenantKey } from '@/lib/query-keys'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -86,7 +87,7 @@ export function useCaregiverTasks(date?: string) {
   const today = date || getCurrentDate()
 
   return useQuery<CaregiverTasksSummary>({
-    queryKey: ['caregiver-tasks', today],
+    queryKey: tenantKey('caregiver-tasks', today),
     queryFn: async () => {
       console.log('🔄 [useCaregiverTasks] Fetching tasks for:', today)
       // ────────────────────────────────────────────────────────────────

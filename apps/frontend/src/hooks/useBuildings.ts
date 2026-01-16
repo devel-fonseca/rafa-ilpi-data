@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bedsAPI, CreateBuildingDto, UpdateBuildingDto } from '../api/beds.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // Hook para listar prédios
 export function useBuildings() {
   return useQuery({
-    queryKey: ['buildings'],
+    queryKey: tenantKey('buildings'),
     queryFn: () => bedsAPI.getAllBuildings(),
   })
 }
@@ -14,7 +15,7 @@ export function useBuilding(id: string | undefined) {
   const shouldFetch = !!id && id !== 'new'
 
   return useQuery({
-    queryKey: ['building', id],
+    queryKey: tenantKey('buildings', id),
     queryFn: () => {
       if (!id) {
         throw new Error('ID é obrigatório')
@@ -32,8 +33,8 @@ export function useCreateBuilding() {
   return useMutation({
     mutationFn: (data: CreateBuildingDto) => bedsAPI.createBuilding(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }
@@ -46,9 +47,9 @@ export function useUpdateBuilding() {
     mutationFn: ({ id, data }: { id: string; data: UpdateBuildingDto }) =>
       bedsAPI.updateBuilding(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['building', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings', variables.id) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }
@@ -60,8 +61,8 @@ export function useDeleteBuilding() {
   return useMutation({
     mutationFn: (id: string) => bedsAPI.deleteBuilding(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }

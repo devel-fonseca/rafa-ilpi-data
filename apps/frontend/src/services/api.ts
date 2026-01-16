@@ -33,6 +33,30 @@ api.interceptors.request.use(
       delete config.headers['Content-Type']
     }
 
+    // ⚠️ VALIDAÇÃO DEV: Bloquear tenantId em requests (exceto SuperAdmin)
+    // Frontend NÃO deve enviar tenantId - backend extrai do JWT automaticamente
+    const isSuperAdminRoute = config.url?.includes('/superadmin')
+
+    if (import.meta.env.DEV && !isSuperAdminRoute) {
+      const hasTenantIdInData = config.data && typeof config.data === 'object' && 'tenantId' in config.data
+      const hasTenantIdInParams = config.params && 'tenantId' in config.params
+
+      if (hasTenantIdInData || hasTenantIdInParams) {
+        console.error('🚨 VIOLAÇÃO ARQUITETURA MULTI-TENANT:', {
+          message: 'tenantId detectado em request!',
+          url: config.url,
+          method: config.method,
+          data: config.data,
+          params: config.params,
+          stack: new Error().stack
+        })
+        throw new Error(
+          '❌ Frontend não deve enviar tenantId - backend extrai do JWT automaticamente! ' +
+          'Ver: docs/architecture/multi-tenancy.md'
+        )
+      }
+    }
+
     return config
   },
   (error) => {

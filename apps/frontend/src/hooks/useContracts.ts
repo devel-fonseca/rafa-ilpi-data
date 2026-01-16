@@ -7,13 +7,14 @@ import type {
   UpdateContractDto,
   PublishContractDto,
 } from '@/api/contracts.api'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para listar contratos com filtros
  */
 export function useContracts(filters?: ContractFilters) {
   return useQuery({
-    queryKey: ['contracts', filters],
+    queryKey: tenantKey('contracts', JSON.stringify(filters)),
     queryFn: () => contractsApi.listContracts(filters),
   })
 }
@@ -23,7 +24,7 @@ export function useContracts(filters?: ContractFilters) {
  */
 export function useContract(id: string) {
   return useQuery({
-    queryKey: ['contracts', id],
+    queryKey: tenantKey('contracts', id),
     queryFn: () => contractsApi.getContract(id),
     enabled: !!id,
   })
@@ -38,7 +39,7 @@ export function useCreateContract() {
   return useMutation({
     mutationFn: (dto: CreateContractDto) => contractsApi.createContract(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
       toast.success('Contrato criado com sucesso!')
     },
     onError: (error: any) => {
@@ -57,8 +58,8 @@ export function useUpdateContract() {
     mutationFn: ({ id, dto }: { id: string; dto: UpdateContractDto }) =>
       contractsApi.updateContract(id, dto),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] })
-      queryClient.invalidateQueries({ queryKey: ['contracts', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts', variables.id) })
       toast.success('Contrato atualizado com sucesso!')
     },
     onError: (error: any) => {
@@ -77,8 +78,8 @@ export function usePublishContract() {
     mutationFn: ({ id, dto }: { id: string; dto?: PublishContractDto }) =>
       contractsApi.publishContract(id, dto),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] })
-      queryClient.invalidateQueries({ queryKey: ['contracts', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts', variables.id) })
       toast.success('Contrato publicado com sucesso!', {
         description: 'O contrato agora está ATIVO e disponível para novos cadastros.',
       })
@@ -98,7 +99,7 @@ export function useDeleteContract() {
   return useMutation({
     mutationFn: (id: string) => contractsApi.deleteContract(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contracts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
       toast.success('Contrato deletado com sucesso!')
     },
     onError: (error: any) => {
@@ -112,7 +113,7 @@ export function useDeleteContract() {
  */
 export function useContractAcceptances(contractId: string) {
   return useQuery({
-    queryKey: ['contracts', contractId, 'acceptances'],
+    queryKey: tenantKey('contracts', contractId, 'acceptances'),
     queryFn: () => contractsApi.getContractAcceptances(contractId),
     enabled: !!contractId,
   })
@@ -123,7 +124,7 @@ export function useContractAcceptances(contractId: string) {
  */
 export function useTenantContractAcceptance(tenantId: string) {
   return useQuery({
-    queryKey: ['tenants', tenantId, 'contract-acceptance'],
+    queryKey: tenantKey('tenants', tenantId, 'contract-acceptance'),
     queryFn: () => contractsApi.getTenantContractAcceptance(tenantId),
     enabled: !!tenantId,
   })
@@ -134,7 +135,7 @@ export function useTenantContractAcceptance(tenantId: string) {
  */
 export function useTenantPrivacyPolicyAcceptance(tenantId: string) {
   return useQuery({
-    queryKey: ['tenants', tenantId, 'privacy-policy-acceptance'],
+    queryKey: tenantKey('tenants', tenantId, 'privacy-policy-acceptance'),
     queryFn: () => contractsApi.getTenantPrivacyPolicyAcceptance(tenantId),
     enabled: !!tenantId,
   })
@@ -145,7 +146,7 @@ export function useTenantPrivacyPolicyAcceptance(tenantId: string) {
  */
 export function useActiveContract(planId?: string) {
   return useQuery({
-    queryKey: ['contracts', 'active', planId],
+    queryKey: tenantKey('contracts', 'active', planId || 'no-plan'),
     queryFn: () => contractsApi.getActiveContract(planId),
   })
 }

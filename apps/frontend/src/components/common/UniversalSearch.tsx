@@ -13,6 +13,7 @@ import {
 import { Search, User, FileText, Eye, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { cn } from '@/lib/utils'
+import { tenantKey } from '@/lib/query-keys'
 import { usePublishedPops } from '@/hooks/usePops'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
 import { POPQuickViewModal } from '@/components/pops/POPQuickViewModal'
@@ -117,7 +118,7 @@ export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Pro
 
   // Query para residentes ativos
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery<{ data: Resident[] }>({
-    queryKey: ['residents', 'active'],
+    queryKey: tenantKey('residents', 'list', JSON.stringify({ status: 'Ativo' })),
     queryFn: async () => {
       const response = await api.get('/residents', {
         params: {

@@ -6,13 +6,14 @@ import {
   type UpdateSOSMedicationVersionedDto,
 } from '@/api/sos-medications.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de um medicamento SOS
  */
 export function useSOSMedicationHistory(sosMedicationId: string | null) {
   return useQuery({
-    queryKey: ['sos-medication-history', sosMedicationId],
+    queryKey: tenantKey('sos-medications', sosMedicationId, 'history'),
     queryFn: () => getSOSMedicationHistory(sosMedicationId!),
     enabled: !!sosMedicationId,
   })
@@ -29,8 +30,8 @@ export function useUpdateSOSMedication() {
     mutationFn: ({ id, data }: { id: string; data: UpdateSOSMedicationVersionedDto }) =>
       updateSOSMedication(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['sos-medications'] })
-      queryClient.invalidateQueries({ queryKey: ['sos-medication-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('sos-medications') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('sos-medications', variables.id, 'history') })
       toast({
         title: 'Medicamento SOS atualizado',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteSOSMedication() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteSOSMedication(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sos-medications'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('sos-medications') })
       toast({
         title: 'Medicamento SOS excluído',
         description: 'O medicamento SOS foi excluído com sucesso.',

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Page, PageHeader, Section } from '@/design-system/components'
+import { tenantKey } from '@/lib/query-keys'
 import {
   Dialog,
   DialogContent,
@@ -151,7 +152,7 @@ export default function ResidentDailyRecordsCalendar() {
 
   // Buscar dados do residente
   const { data: resident, isLoading: isLoadingResident } = useQuery({
-    queryKey: ['resident', id],
+    queryKey: tenantKey('residents', id),
     queryFn: async () => {
       const response = await api.get(`/residents/${id}`)
       return response.data
@@ -174,7 +175,7 @@ export default function ResidentDailyRecordsCalendar() {
 
   // Buscar registros do dia selecionado
   const { data: records = [], isLoading: isLoadingRecords, refetch: refetchRecords } = useQuery({
-    queryKey: ['daily-records', id, format(selectedDate, 'yyyy-MM-dd')],
+    queryKey: tenantKey('daily-records', 'resident', id, format(selectedDate, 'yyyy-MM-dd')),
     queryFn: async () => {
       const response = await api.get(
         `/daily-records/resident/${id}/date/${format(selectedDate, 'yyyy-MM-dd')}`,

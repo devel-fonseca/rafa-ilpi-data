@@ -20,6 +20,7 @@ import {
   type DeleteClinicalNoteDto,
   type ClinicalProfession,
 } from '@/api/clinicalNotes.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================
 
@@ -28,7 +29,7 @@ import {
  */
 export function useClinicalNotes(query?: QueryClinicalNoteDto) {
   return useQuery<ClinicalNote[]>({
-    queryKey: ['clinical-notes', query],
+    queryKey: tenantKey('clinical-notes', 'list', JSON.stringify(query || {})),
     queryFn: () => listClinicalNotes(query),
     staleTime: 1000 * 60 * 2, // 2 minutos
     refetchOnWindowFocus: true,
@@ -45,7 +46,7 @@ export function useClinicalNotesByResident(
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<ClinicalNote[]>({
-    queryKey: ['clinical-notes', 'resident', residentId, query],
+    queryKey: tenantKey('clinical-notes', 'resident', residentId, JSON.stringify(query || {})),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -66,7 +67,7 @@ export function useClinicalNote(id: string | undefined) {
   const enabled = !!id
 
   return useQuery<ClinicalNote>({
-    queryKey: ['clinical-notes', id],
+    queryKey: tenantKey('clinical-notes', id),
     queryFn: () => {
       if (!id) {
         throw new Error('id is required')
@@ -85,7 +86,7 @@ export function useClinicalNoteHistory(id: string | undefined) {
   const enabled = !!id
 
   return useQuery<ClinicalNoteHistoryResponse>({
-    queryKey: ['clinical-notes', id, 'history'],
+    queryKey: tenantKey('clinical-notes', id, 'history'),
     queryFn: () => {
       if (!id) {
         throw new Error('id is required')
@@ -102,7 +103,7 @@ export function useClinicalNoteHistory(id: string | undefined) {
  */
 export function useClinicalNoteTags() {
   return useQuery<string[]>({
-    queryKey: ['clinical-notes', 'tags'],
+    queryKey: tenantKey('clinical-notes', 'tags'),
     queryFn: getClinicalNoteTags,
     staleTime: 1000 * 60 * 10, // 10 minutos (tags mudam pouco)
   })
@@ -114,7 +115,7 @@ export function useClinicalNoteTags() {
  */
 export function useAuthorizedProfessions() {
   return useQuery<ClinicalProfession[]>({
-    queryKey: ['authorized-professions'],
+    queryKey: tenantKey('clinical-notes', 'authorized-professions'),
     queryFn: getAuthorizedProfessions,
     staleTime: 1000 * 60 * 60, // 1 hora (profissões autorizadas mudam apenas se mudar cargo)
     refetchOnWindowFocus: false,
@@ -128,7 +129,7 @@ export function useClinicalNoteDocuments(residentId: string | undefined) {
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<ClinicalNoteDocument[]>({
-    queryKey: ['clinical-note-documents', 'resident', residentId],
+    queryKey: tenantKey('clinical-notes', 'documents', 'resident', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -154,11 +155,11 @@ export function useCreateClinicalNote() {
     mutationFn: (data: CreateClinicalNoteDto) => createClinicalNote(data),
     onSuccess: (newNote) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['clinical-notes'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes') })
       queryClient.invalidateQueries({
-        queryKey: ['clinical-notes', 'resident', newNote.residentId],
+        queryKey: tenantKey('clinical-notes', 'resident', newNote.residentId),
       })
-      queryClient.invalidateQueries({ queryKey: ['clinical-notes', 'tags'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes', 'tags') })
 
       toast.success('Evolução clínica criada com sucesso')
     },
@@ -180,13 +181,13 @@ export function useUpdateClinicalNote() {
       updateClinicalNote(id, data),
     onSuccess: (updatedNote) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['clinical-notes'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes') })
       queryClient.invalidateQueries({
-        queryKey: ['clinical-notes', 'resident', updatedNote.residentId],
+        queryKey: tenantKey('clinical-notes', 'resident', updatedNote.residentId),
       })
-      queryClient.invalidateQueries({ queryKey: ['clinical-notes', updatedNote.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes', updatedNote.id) })
       queryClient.invalidateQueries({
-        queryKey: ['clinical-notes', updatedNote.id, 'history'],
+        queryKey: tenantKey('clinical-notes', updatedNote.id, 'history'),
       })
 
       toast.success('Evolução clínica atualizada com sucesso')
@@ -209,7 +210,7 @@ export function useDeleteClinicalNote() {
       deleteClinicalNote(id, data),
     onSuccess: (_, variables) => {
       // Invalidar todas as queries de clinical notes
-      queryClient.invalidateQueries({ queryKey: ['clinical-notes'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes') })
 
       toast.success('Evolução clínica excluída com sucesso')
     },

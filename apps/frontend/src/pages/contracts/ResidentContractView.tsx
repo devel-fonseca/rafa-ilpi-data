@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getContractDetails, getContractHistory, type ResidentContract, type ContractHistory } from '@/services/residentContractsApi'
+import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,14 +33,14 @@ export default function ResidentContractView() {
 
   // Buscar contrato
   const { data: contract, isLoading, error } = useQuery<ResidentContract>({
-    queryKey: ['contract', residentId, contractId],
+    queryKey: tenantKey('resident-contracts', residentId, contractId),
     queryFn: () => getContractDetails(residentId!, contractId!),
     enabled: !!residentId && !!contractId && canViewContracts,
   })
 
   // Buscar histórico
   const { data: history = [] } = useQuery<ContractHistory[]>({
-    queryKey: ['contract-history', residentId, contractId],
+    queryKey: tenantKey('resident-contracts', residentId, contractId, 'history'),
     queryFn: () => getContractHistory(residentId!, contractId!),
     enabled: !!residentId && !!contractId && canViewContracts,
   })

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listResidentContracts } from '@/services/residentContractsApi'
+import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader, EmptyState } from '@/design-system/components'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -47,7 +48,7 @@ export default function ResidentContractsList() {
 
   // Buscar contratos
   const { data: contracts = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['resident-contracts', searchTerm, statusFilter],
+    queryKey: tenantKey('resident-contracts', 'list', JSON.stringify({ searchTerm, statusFilter })),
     queryFn: () => listResidentContracts({
       search: searchTerm || undefined,
       status: statusFilter === 'ALL' ? undefined : statusFilter,

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import type { Prescription, Medication } from '@/api/prescriptions.api'
 import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
 import { useReactToPrint } from 'react-to-print'
@@ -47,7 +48,7 @@ export default function ActiveMedicationsPage() {
 
   // Buscar dados do residente
   const { data: residentData, isLoading: isLoadingResident } = useQuery({
-    queryKey: ['resident', residentId],
+    queryKey: tenantKey('residents', residentId),
     queryFn: async () => {
       const response = await api.get(`/residents/${residentId}`)
       return response.data
@@ -57,7 +58,7 @@ export default function ActiveMedicationsPage() {
 
   // Buscar prescrições ativas do residente com todos os campos dos medicamentos
   const { data: prescriptionsResponse, isLoading: isLoadingPrescriptions } = useQuery({
-    queryKey: ['prescriptions', { residentId, isActive: 'true' }],
+    queryKey: tenantKey('prescriptions', 'list', JSON.stringify({ residentId, isActive: 'true' })),
     queryFn: async () => {
       const response = await api.get('/prescriptions', {
         params: { residentId, isActive: 'true', limit: '100' },

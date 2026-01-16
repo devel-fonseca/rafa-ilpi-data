@@ -5,13 +5,14 @@ import { Page, PageHeader } from '@/design-system/components'
 import { ResidentSelectionGrid } from '@/components/residents/ResidentSelectionGrid'
 import { DailyRecordsOverviewStats } from './components/DailyRecordsOverviewStats'
 import { useLatestRecordsByResidents } from '@/hooks/useDailyRecords'
+import { tenantKey } from '@/lib/query-keys'
 
 export default function ResidentSelectionPage() {
   const navigate = useNavigate()
 
   // Buscar lista de residentes
   const { data: residentsData, isLoading: isLoadingResidents } = useQuery({
-    queryKey: ['residents'],
+    queryKey: tenantKey('residents'),
     queryFn: async () => {
       const response = await api.get('/residents')
       return response.data

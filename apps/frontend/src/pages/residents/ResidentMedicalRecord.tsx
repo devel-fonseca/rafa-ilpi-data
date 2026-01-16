@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useResident } from '@/hooks/useResidents'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -131,7 +132,7 @@ export default function ResidentProfile() {
   const isViewingToday = viewDate === today
 
   const { data: viewDateRecordsData } = useQuery({
-    queryKey: ['daily-records', 'resident-profile', id, viewDate],
+    queryKey: tenantKey('daily-records', 'resident-profile', id, viewDate),
     queryFn: async () => {
       const response = await api.get(`/daily-records/resident/${id}/date/${viewDate}`)
       return response.data
@@ -147,7 +148,7 @@ export default function ResidentProfile() {
 
   // Buscar último monitoramento vital (otimizado)
   const { data: lastVitalSignData } = useQuery({
-    queryKey: ['daily-records', 'resident-profile', id, 'last-vital'],
+    queryKey: tenantKey('daily-records', 'resident-profile', id, 'last-vital'),
     queryFn: async () => {
       try {
         const response = await api.get(`/daily-records/resident/${id}/last-vital-sign`)

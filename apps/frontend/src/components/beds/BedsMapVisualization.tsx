@@ -17,6 +17,7 @@ import { SelectBedModal } from './SelectBedModal'
 import { residentsAPI } from '@/api/residents.api'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { tenantKey } from '@/lib/query-keys'
 
 interface BedsMapVisualizationProps {
   data: BedsHierarchy
@@ -254,8 +255,8 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       })
 
       // Invalidar queries para recarregar dados
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
-      queryClient.invalidateQueries({ queryKey: ['residents'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('residents') })
     } catch (error: any) {
       toast.error('Erro ao transferir residente', {
         description: error.response?.data?.message || 'Tente novamente',

@@ -6,13 +6,14 @@ import {
   type UpdateDietaryRestrictionVersionedDto,
 } from '@/api/dietary-restrictions.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de uma restrição alimentar
  */
 export function useDietaryRestrictionHistory(dietaryRestrictionId: string | null) {
   return useQuery({
-    queryKey: ['dietary-restriction-history', dietaryRestrictionId],
+    queryKey: tenantKey('dietary-restriction-history', dietaryRestrictionId || 'none'),
     queryFn: () => getDietaryRestrictionHistory(dietaryRestrictionId!),
     enabled: !!dietaryRestrictionId,
   })
@@ -29,8 +30,8 @@ export function useUpdateDietaryRestriction() {
     mutationFn: ({ id, data }: { id: string; data: UpdateDietaryRestrictionVersionedDto }) =>
       updateDietaryRestriction(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['dietary-restrictions'] })
-      queryClient.invalidateQueries({ queryKey: ['dietary-restriction-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dietary-restrictions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dietary-restriction-history', variables.id) })
       toast({
         title: 'Restrição alimentar atualizada',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteDietaryRestriction() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteDietaryRestriction(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dietary-restrictions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dietary-restrictions') })
       toast({
         title: 'Restrição alimentar excluída',
         description: 'A restrição alimentar foi excluída com sucesso.',

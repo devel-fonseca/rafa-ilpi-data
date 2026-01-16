@@ -10,6 +10,7 @@ import {
   type CreateAllergyDto,
   type UpdateAllergyDto,
 } from '@/api/allergies.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================
 
@@ -20,7 +21,7 @@ export function useAllergiesByResident(residentId: string | undefined) {
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<Allergy[]>({
-    queryKey: ['allergies', 'resident', residentId],
+    queryKey: tenantKey('allergies', 'resident', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -41,7 +42,7 @@ export function useAllergy(id: string | undefined) {
   const enabled = !!id
 
   return useQuery<Allergy>({
-    queryKey: ['allergies', id],
+    queryKey: tenantKey('allergies', id),
     queryFn: () => {
       if (!id) {
         throw new Error('id is required')
@@ -66,7 +67,7 @@ export function useCreateAllergy() {
     onSuccess: (newAllergy) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['allergies', 'resident', newAllergy.residentId],
+        queryKey: tenantKey('allergies', 'resident', newAllergy.residentId),
       })
 
       toast.success('Alergia registrada com sucesso')
@@ -90,9 +91,9 @@ export function useUpdateAllergy() {
     onSuccess: (updatedAllergy) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['allergies', 'resident', updatedAllergy.residentId],
+        queryKey: tenantKey('allergies', 'resident', updatedAllergy.residentId),
       })
-      queryClient.invalidateQueries({ queryKey: ['allergies', updatedAllergy.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('allergies', updatedAllergy.id) })
 
       toast.success('Alergia atualizada com sucesso')
     },
@@ -114,7 +115,7 @@ export function useDeleteAllergy() {
       deleteAllergy(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de allergies
-      queryClient.invalidateQueries({ queryKey: ['allergies'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('allergies') })
 
       toast.success('Alergia excluída com sucesso')
     },

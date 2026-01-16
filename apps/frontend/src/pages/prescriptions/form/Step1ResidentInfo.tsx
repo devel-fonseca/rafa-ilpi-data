@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { format } from 'date-fns'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { ptBR } from 'date-fns/locale'
@@ -44,7 +45,7 @@ export function Step1ResidentInfo() {
 
   // Buscar lista de residentes para pesquisa
   const { data: residents = [], isLoading: isLoadingList } = useQuery({
-    queryKey: ['residents-list', searchQuery],
+    queryKey: tenantKey('residents', 'list', searchQuery),
     queryFn: async () => {
       const response = await api.get<{ data: Resident[] }>('/residents', {
         params: { limit: 50 },
@@ -56,7 +57,7 @@ export function Step1ResidentInfo() {
 
   // Buscar dados do residente selecionado
   const { data: resident, isLoading, error } = useQuery({
-    queryKey: ['resident', residentId],
+    queryKey: tenantKey('residents', residentId),
     queryFn: async () => {
       const response = await api.get<Resident>(`/residents/${residentId}`)
       return response.data

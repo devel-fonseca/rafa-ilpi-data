@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { uploadContract, type CreateContractDto } from '@/services/residentContractsApi'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -53,7 +54,7 @@ export default function ResidentContractUpload() {
 
   // Buscar lista de residentes (sem filtro de status - retorna todos)
   const { data: residentsData, isLoading: isLoadingResidents, error: residentsError } = useQuery({
-    queryKey: ['residents'],
+    queryKey: tenantKey('residents'),
     queryFn: async () => {
       const response = await api.get('/residents')
       return response.data

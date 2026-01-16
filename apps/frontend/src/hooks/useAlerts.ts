@@ -8,13 +8,14 @@ import {
   type AlertFilters,
 } from '@/api/alerts.api'
 import { toast } from 'sonner'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar lista de alertas
  */
 export function useAlerts(filters: AlertFilters = {}) {
   return useQuery({
-    queryKey: ['alerts', filters],
+    queryKey: tenantKey('alerts', JSON.stringify(filters)),
     queryFn: () => getAlerts(filters),
     staleTime: 1000 * 30, // 30 segundos (alertas mudam frequentemente)
   })
@@ -25,7 +26,7 @@ export function useAlerts(filters: AlertFilters = {}) {
  */
 export function useUnreadCount() {
   return useQuery({
-    queryKey: ['alerts', 'unread-count'],
+    queryKey: tenantKey('alerts', 'unread-count'),
     queryFn: getUnreadCount,
     staleTime: 1000 * 30, // 30 segundos
     refetchInterval: 1000 * 60, // Refetch a cada 1 minuto
@@ -42,7 +43,7 @@ export function useMarkAlertAsRead() {
     mutationFn: markAlertAsRead,
     onSuccess: () => {
       // Invalidar queries de alertas
-      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
     onError: (error: any) => {
       toast.error('Erro ao marcar alerta como lido', {
@@ -63,7 +64,7 @@ export function useMarkAllAlertsAsRead() {
     onSuccess: () => {
       toast.success('Todos os alertas foram marcados como lidos')
       // Invalidar queries de alertas
-      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
     onError: (error: any) => {
       toast.error('Erro ao marcar alertas como lidos', {
@@ -84,7 +85,7 @@ export function useDeleteAlert() {
     onSuccess: () => {
       toast.success('Alerta deletado com sucesso')
       // Invalidar queries de alertas
-      queryClient.invalidateQueries({ queryKey: ['alerts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
     onError: (error: any) => {
       toast.error('Erro ao deletar alerta', {

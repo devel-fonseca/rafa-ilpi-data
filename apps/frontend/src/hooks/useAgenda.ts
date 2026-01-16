@@ -4,6 +4,7 @@ import { AgendaItem, ContentFilterType, InstitutionalEvent, ViewType, StatusFilt
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { toast } from 'sonner'
 import { useMemo } from 'react'
+import { tenantKey } from '@/lib/query-keys'
 
 interface GetAgendaItemsParams {
   viewType: ViewType
@@ -51,14 +52,15 @@ export function useAgendaItems({ viewType, selectedDate, residentId, filters, st
   }, [viewType, selectedDate])
 
   return useQuery({
-    queryKey: [
-      'agenda-items',
+    queryKey: tenantKey(
+      'agenda',
+      'items',
       viewType,
       dateRange.mode === 'single' ? dateRange.date : `${dateRange.startDate}-${dateRange.endDate}`,
-      residentId,
-      filters,
-      statusFilter,
-    ],
+      residentId || 'all',
+      JSON.stringify(filters || []),
+      statusFilter || 'all'
+    ),
     queryFn: async () => {
       const params: Record<string, string> = {}
 
@@ -136,11 +138,12 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
   }, [viewType, selectedDate])
 
   return useQuery({
-    queryKey: [
+    queryKey: tenantKey(
+      'agenda',
       'institutional-events',
       viewType,
-      dateRange.mode === 'single' ? dateRange.date : `${dateRange.startDate}-${dateRange.endDate}`,
-    ],
+      dateRange.mode === 'single' ? dateRange.date : `${dateRange.startDate}-${dateRange.endDate}`
+    ),
     queryFn: async () => {
       const params: Record<string, string> = {}
 
@@ -171,32 +174,36 @@ export function useInstitutionalEventMutations() {
   const queryClient = useQueryClient()
 
   const createEvent = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Partial<InstitutionalEvent>) => {
       const response = await api.post<InstitutionalEvent>('/institutional-events', data)
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['institutional-events'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
       toast.success('Evento criado com sucesso!')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao criar evento'
-      toast.error(message)
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined
+      toast.error(errorMessage || 'Erro ao criar evento')
     },
   })
 
   const updateEvent = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InstitutionalEvent> }) => {
       const response = await api.patch<InstitutionalEvent>(`/institutional-events/${id}`, data)
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['institutional-events'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
       toast.success('Evento atualizado com sucesso!')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar evento'
-      toast.error(message)
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined
+      toast.error(errorMessage || 'Erro ao atualizar evento')
     },
   })
 
@@ -205,12 +212,14 @@ export function useInstitutionalEventMutations() {
       await api.delete(`/institutional-events/${id}`)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['institutional-events'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
       toast.success('Evento removido com sucesso!')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao remover evento'
-      toast.error(message)
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined
+      toast.error(errorMessage || 'Erro ao remover evento')
     },
   })
 
@@ -220,12 +229,14 @@ export function useInstitutionalEventMutations() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['institutional-events'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
       toast.success('Evento marcado como concluído!')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao marcar evento como concluído'
-      toast.error(message)
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined
+      toast.error(errorMessage || 'Erro ao marcar evento como concluído')
     },
   })
 

@@ -57,6 +57,7 @@ import { BedSearchCombobox } from "@/components/beds/BedSearchCombobox";
 import { ResidentHistoryDrawer } from "@/components/residents/ResidentHistoryDrawer";
 import { toast } from "sonner";
 import { PlanLimitWarningDialog } from "@/components/admin/PlanLimitWarningDialog";
+import { tenantKey } from "@/lib/query-keys";
 import { useMySubscription } from "@/hooks/useTenant";
 
 // Componente Collapsible customizado (inline)
@@ -1063,7 +1064,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       setUploadProgress("");
 
       // Invalidar cache do React Query para atualizar a lista
-      queryClient.invalidateQueries({ queryKey: ["residents"] });
+      queryClient.invalidateQueries({ queryKey: tenantKey("residents") });
 
       // Mostrar toast de sucesso
       toast.success(

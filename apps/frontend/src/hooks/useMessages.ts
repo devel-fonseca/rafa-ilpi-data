@@ -6,6 +6,7 @@ import {
 } from '../api/messages.api';
 import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
+import { tenantKey } from '@/lib/query-keys';
 
 // Hook para listar inbox
 export function useInbox(initialQuery?: MessageQuery) {
@@ -14,7 +15,7 @@ export function useInbox(initialQuery?: MessageQuery) {
   );
 
   const result = useQuery({
-    queryKey: ['messages', 'inbox', query],
+    queryKey: tenantKey('messages', 'inbox', JSON.stringify(query)),
     queryFn: () => messagesAPI.getInbox(query),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -37,7 +38,7 @@ export function useSent(initialQuery?: MessageQuery) {
   );
 
   const result = useQuery({
-    queryKey: ['messages', 'sent', query],
+    queryKey: tenantKey('messages', 'sent', JSON.stringify(query)),
     queryFn: () => messagesAPI.getSent(query),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -55,7 +56,7 @@ export function useSent(initialQuery?: MessageQuery) {
 // Hook para buscar uma mensagem
 export function useMessage(id: string | undefined) {
   return useQuery({
-    queryKey: ['message', id],
+    queryKey: tenantKey('messages', id),
     queryFn: () => {
       if (!id) throw new Error('ID is required');
       return messagesAPI.getById(id);
@@ -67,7 +68,7 @@ export function useMessage(id: string | undefined) {
 // Hook para buscar thread
 export function useThread(threadId: string | undefined) {
   return useQuery({
-    queryKey: ['message-thread', threadId],
+    queryKey: tenantKey('messages', 'thread', threadId),
     queryFn: () => {
       if (!threadId) throw new Error('Thread ID is required');
       return messagesAPI.getThread(threadId);
@@ -79,7 +80,7 @@ export function useThread(threadId: string | undefined) {
 // Hook para contador de não lidas
 export function useUnreadMessagesCount() {
   return useQuery({
-    queryKey: ['messages', 'unread-count'],
+    queryKey: tenantKey('messages', 'unread-count'),
     queryFn: messagesAPI.getUnreadCount,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -90,7 +91,7 @@ export function useUnreadMessagesCount() {
 // Hook para estatísticas
 export function useMessagesStats() {
   return useQuery({
-    queryKey: ['messages', 'stats'],
+    queryKey: tenantKey('messages', 'stats'),
     queryFn: messagesAPI.getStats,
   });
 }
@@ -98,7 +99,7 @@ export function useMessagesStats() {
 // Hook para estatísticas de leitura de mensagem
 export function useMessageReadStats(messageId: string | undefined) {
   return useQuery({
-    queryKey: ['messages', 'read-stats', messageId],
+    queryKey: tenantKey('messages', 'read-stats', messageId),
     queryFn: () => {
       if (!messageId) throw new Error('Message ID is required');
       return messagesAPI.getReadStats(messageId);
@@ -115,7 +116,7 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: (data: CreateMessageDto) => messagesAPI.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: tenantKey('messages') });
       toast({
         title: 'Mensagem enviada',
         description: 'A mensagem foi enviada com sucesso.',
@@ -139,7 +140,7 @@ export function useMarkMessagesAsRead() {
   return useMutation({
     mutationFn: (messageIds?: string[]) => messagesAPI.markAsRead(messageIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: tenantKey('messages') });
     },
   });
 }
@@ -153,7 +154,7 @@ export function useDeleteMessage() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       messagesAPI.delete(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: tenantKey('messages') });
       toast({
         title: 'Mensagem excluída',
         description: 'A mensagem foi excluída com sucesso.',

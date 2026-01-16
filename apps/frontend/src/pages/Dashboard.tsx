@@ -14,6 +14,7 @@ import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { Page, PageHeader, Section } from '@/design-system/components'
+import { tenantKey } from '@/lib/query-keys'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ export default function Dashboard() {
   const { data: residentsStats } = useResidentStats()
 
   const { data: prescriptionsStats } = useQuery({
-    queryKey: ['prescriptions-stats'],
+    queryKey: tenantKey('prescriptions', 'stats', 'dashboard'),
     queryFn: async () => {
       const response = await api.get('/prescriptions/stats/dashboard')
       return response.data

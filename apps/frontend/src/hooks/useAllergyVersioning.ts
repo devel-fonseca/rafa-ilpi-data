@@ -6,13 +6,14 @@ import {
   type UpdateAllergyVersionedDto,
 } from '@/api/allergies.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de uma alergia
  */
 export function useAllergyHistory(allergyId: string | null) {
   return useQuery({
-    queryKey: ['allergy-history', allergyId],
+    queryKey: tenantKey('allergy-history', allergyId || 'none'),
     queryFn: () => getAllergyHistory(allergyId!),
     enabled: !!allergyId,
   })
@@ -29,8 +30,8 @@ export function useUpdateAllergy() {
     mutationFn: ({ id, data }: { id: string; data: UpdateAllergyVersionedDto }) =>
       updateAllergy(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['allergies'] })
-      queryClient.invalidateQueries({ queryKey: ['allergy-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('allergies') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('allergy-history', variables.id) })
       toast({
         title: 'Alergia atualizada',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteAllergy() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteAllergy(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allergies'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('allergies') })
       toast({
         title: 'Alergia excluída',
         description: 'A alergia foi excluída com sucesso.',

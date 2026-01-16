@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 
 // GET /admin/plans/available
 export function useAvailablePlans() {
   return useQuery({
-    queryKey: ['admin', 'plans', 'available'],
+    queryKey: tenantKey('admin', 'plans', 'available'),
     queryFn: async () => {
       const response = await api.get('/admin/plans/available')
       return response.data
@@ -15,7 +16,7 @@ export function useAvailablePlans() {
 // GET /admin/plans/compare/:targetPlanId
 export function useComparePlans(targetPlanId: string | null) {
   return useQuery({
-    queryKey: ['admin', 'plans', 'compare', targetPlanId],
+    queryKey: tenantKey('admin', 'plans', 'compare', targetPlanId || 'none'),
     queryFn: async () => {
       const response = await api.get(`/admin/plans/compare/${targetPlanId}`)
       return response.data
@@ -33,9 +34,9 @@ export function useUpgradeSubscription() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'subscription'] })
-      queryClient.invalidateQueries({ queryKey: ['admin', 'invoices'] })
-      queryClient.invalidateQueries({ queryKey: ['admin', 'plans', 'available'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('tenant', 'subscription') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('admin', 'invoices') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('admin', 'plans', 'available') })
     },
   })
 }
@@ -43,7 +44,7 @@ export function useUpgradeSubscription() {
 // GET /admin/invoices
 export function useTenantInvoices(filters?: { status?: string; limit?: number }) {
   return useQuery({
-    queryKey: ['admin', 'invoices', filters],
+    queryKey: tenantKey('admin', 'invoices', JSON.stringify(filters)),
     queryFn: async () => {
       const response = await api.get('/admin/invoices', { params: filters })
       return response.data
@@ -54,7 +55,7 @@ export function useTenantInvoices(filters?: { status?: string; limit?: number })
 // GET /admin/invoices/:id
 export function useInvoiceDetails(id: string | null) {
   return useQuery({
-    queryKey: ['admin', 'invoice', id],
+    queryKey: tenantKey('admin', 'invoice', id || 'none'),
     queryFn: async () => {
       const response = await api.get(`/admin/invoices/${id}`)
       return response.data
@@ -74,7 +75,7 @@ export function useUpdatePaymentMethod() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'subscription'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('tenant', 'subscription') })
     },
   })
 }
@@ -88,8 +89,8 @@ export function useCancelTrial() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'subscription'] })
-      queryClient.invalidateQueries({ queryKey: ['tenant', 'me'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('tenant', 'subscription') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('tenant', 'me') })
     },
   })
 }
@@ -97,7 +98,7 @@ export function useCancelTrial() {
 // GET /admin/contracts/active/:planId
 export function useActiveContract(planId: string | null) {
   return useQuery({
-    queryKey: ['admin', 'contract', 'active', planId],
+    queryKey: tenantKey('admin', 'contract', 'active', planId || 'none'),
     queryFn: async () => {
       const response = await api.get(`/admin/contracts/active/${planId}`)
       return response.data
@@ -115,7 +116,7 @@ export function useAcceptContract() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'contract'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('admin', 'contract') })
     },
   })
 }
@@ -123,7 +124,7 @@ export function useAcceptContract() {
 // GET /admin/subscription/change-history
 export function useSubscriptionChangeHistory(limit?: number) {
   return useQuery({
-    queryKey: ['admin', 'subscription', 'change-history', limit],
+    queryKey: tenantKey('admin', 'subscription', 'change-history', limit?.toString() || 'all'),
     queryFn: async () => {
       const response = await api.get('/admin/subscription/change-history', {
         params: { limit },

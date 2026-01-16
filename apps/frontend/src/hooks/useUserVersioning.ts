@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { usersApi } from '@/api/users.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para gerenciar histórico de User
  */
 export function useUserHistory(userId: string | null) {
   return useQuery({
-    queryKey: ['user-history', userId],
+    queryKey: tenantKey('user-history', userId || 'none'),
     queryFn: () => usersApi.getHistory(userId!),
     enabled: !!userId,
   })
@@ -37,8 +38,8 @@ export function useUpdateUser() {
     }) => usersApi.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['users'] })
-      queryClient.invalidateQueries({ queryKey: ['user-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('users') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('user-history', variables.id) })
 
       toast({
         title: 'Usuário atualizado',
@@ -69,7 +70,7 @@ export function useDeleteUser() {
       usersApi.remove(id, deleteReason),
     onSuccess: () => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('users') })
 
       toast({
         title: 'Usuário excluído',

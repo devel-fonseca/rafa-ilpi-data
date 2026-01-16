@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { vaccinationsAPI, type UpdateVaccinationVersionedDto } from '@/api/vaccinations.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 export function useVaccinationHistory(vaccinationId: string | null) {
   return useQuery({
-    queryKey: ['vaccination-history', vaccinationId],
+    queryKey: tenantKey('vaccination-history', vaccinationId || 'none'),
     queryFn: () => vaccinationsAPI.getHistory(vaccinationId!),
     enabled: !!vaccinationId,
   })
@@ -18,8 +19,8 @@ export function useUpdateVaccination() {
     mutationFn: ({ id, data }: { id: string; data: UpdateVaccinationVersionedDto }) =>
       vaccinationsAPI.update(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['vaccinations'] })
-      queryClient.invalidateQueries({ queryKey: ['vaccination-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vaccinations') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vaccination-history', variables.id) })
       toast({ title: 'Vacinação atualizada', description: 'As alterações foram salvas com sucesso.' })
     },
     onError: (error: any) => {
@@ -40,7 +41,7 @@ export function useDeleteVaccination() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       vaccinationsAPI.remove(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vaccinations'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vaccinations') })
       toast({ title: 'Vacinação excluída', description: 'A vacinação foi excluída com sucesso.' })
     },
     onError: (error: any) => {

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import { tenantKey } from '@/lib/query-keys';
 
 export interface SentinelEvent {
   id: string;
@@ -33,7 +34,7 @@ interface UseSentinelEventsFilters {
  */
 export function useSentinelEvents(filters?: UseSentinelEventsFilters) {
   return useQuery({
-    queryKey: ['sentinel-events', filters],
+    queryKey: tenantKey('sentinel-events', JSON.stringify(filters)),
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.status) params.append('status', filters.status);
@@ -80,7 +81,7 @@ export function useUpdateSentinelEventStatus() {
     },
     onSuccess: () => {
       // Invalidar cache para recarregar lista
-      queryClient.invalidateQueries({ queryKey: ['sentinel-events'] });
+      queryClient.invalidateQueries({ queryKey: tenantKey('sentinel-events') });
     },
   });
 }

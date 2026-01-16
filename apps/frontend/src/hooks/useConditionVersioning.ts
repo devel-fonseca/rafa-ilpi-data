@@ -6,13 +6,14 @@ import {
   type UpdateConditionVersionedDto,
 } from '@/api/conditions.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de uma condição
  */
 export function useConditionHistory(conditionId: string | null) {
   return useQuery({
-    queryKey: ['condition-history', conditionId],
+    queryKey: tenantKey('condition-history', conditionId || 'none'),
     queryFn: () => getConditionHistory(conditionId!),
     enabled: !!conditionId,
   })
@@ -29,8 +30,8 @@ export function useUpdateCondition() {
     mutationFn: ({ id, data }: { id: string; data: UpdateConditionVersionedDto }) =>
       updateCondition(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['conditions'] })
-      queryClient.invalidateQueries({ queryKey: ['condition-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('conditions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('condition-history', variables.id) })
       toast({
         title: 'Condição atualizada',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteCondition() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteCondition(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conditions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('conditions') })
       toast({
         title: 'Condição excluída',
         description: 'A condição foi excluída com sucesso.',

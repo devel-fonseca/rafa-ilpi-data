@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 
 export interface Vaccination {
   id: string
@@ -65,7 +66,7 @@ export function useVaccinationsByResident(
   enabled: boolean = true,
 ) {
   return useQuery({
-    queryKey: ['vaccinations', residentId],
+    queryKey: tenantKey('vaccinations', 'resident', residentId),
     queryFn: async () => {
       const response = await api.get<Vaccination[]>(
         `/vaccinations/resident/${residentId}`,
@@ -82,7 +83,7 @@ export function useVaccinationsByResident(
  */
 export function useVaccination(vaccinationId: string | null | undefined) {
   return useQuery({
-    queryKey: ['vaccination', vaccinationId],
+    queryKey: tenantKey('vaccinations', vaccinationId),
     queryFn: async () => {
       const response = await api.get<Vaccination>(`/vaccinations/${vaccinationId}`)
       return response.data
@@ -106,7 +107,7 @@ export function useCreateVaccination() {
     onSuccess: (data) => {
       // Invalida cache da lista de vacinações do residente
       queryClient.invalidateQueries({
-        queryKey: ['vaccinations', data.resident?.id],
+        queryKey: tenantKey('vaccinations', 'resident', data.resident?.id),
       })
     },
   })
@@ -135,10 +136,10 @@ export function useUpdateVaccination() {
     onSuccess: (data) => {
       // Invalida cache da lista e detalhes
       queryClient.invalidateQueries({
-        queryKey: ['vaccinations', data.resident?.id],
+        queryKey: tenantKey('vaccinations', 'resident', data.resident?.id),
       })
       queryClient.invalidateQueries({
-        queryKey: ['vaccination', data.id],
+        queryKey: tenantKey('vaccinations', data.id),
       })
     },
   })
@@ -157,10 +158,10 @@ export function useDeleteVaccination() {
     onSuccess: (_, vaccinationId) => {
       // Invalida todos os caches de vacinações
       queryClient.invalidateQueries({
-        queryKey: ['vaccinations'],
+        queryKey: tenantKey('vaccinations'),
       })
       queryClient.removeQueries({
-        queryKey: ['vaccination', vaccinationId],
+        queryKey: tenantKey('vaccinations', vaccinationId),
       })
     },
   })

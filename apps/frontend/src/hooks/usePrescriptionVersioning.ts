@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { prescriptionsApi } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para gerenciar histórico de Prescription
  */
 export function usePrescriptionHistory(prescriptionId: string | null) {
   return useQuery({
-    queryKey: ['prescription-history', prescriptionId],
+    queryKey: tenantKey('prescription-history', prescriptionId || 'none'),
     queryFn: () => prescriptionsApi.getHistory(prescriptionId!),
     enabled: !!prescriptionId,
   })
@@ -45,8 +46,8 @@ export function useUpdatePrescription() {
     }) => prescriptionsApi.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['prescription-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescription-history', variables.id) })
 
       toast({
         title: 'Prescrição atualizada',
@@ -77,7 +78,7 @@ export function useDeletePrescription() {
       prescriptionsApi.remove(id, deleteReason),
     onSuccess: () => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
 
       toast({
         title: 'Prescrição excluída',

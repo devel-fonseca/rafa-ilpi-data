@@ -10,6 +10,7 @@ import {
   type CreateConditionDto,
   type UpdateConditionDto,
 } from '@/api/conditions.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================
 
@@ -20,7 +21,7 @@ export function useConditionsByResident(residentId: string | undefined) {
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<Condition[]>({
-    queryKey: ['conditions', 'resident', residentId],
+    queryKey: tenantKey('conditions', 'resident', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -41,7 +42,7 @@ export function useCondition(id: string | undefined) {
   const enabled = !!id
 
   return useQuery<Condition>({
-    queryKey: ['conditions', id],
+    queryKey: tenantKey('conditions', id),
     queryFn: () => {
       if (!id) {
         throw new Error('id is required')
@@ -66,7 +67,7 @@ export function useCreateCondition() {
     onSuccess: (newCondition) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['conditions', 'resident', newCondition.residentId],
+        queryKey: tenantKey('conditions', 'resident', newCondition.residentId),
       })
 
       toast.success('Condição registrada com sucesso')
@@ -90,9 +91,9 @@ export function useUpdateCondition() {
     onSuccess: (updatedCondition) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['conditions', 'resident', updatedCondition.residentId],
+        queryKey: tenantKey('conditions', 'resident', updatedCondition.residentId),
       })
-      queryClient.invalidateQueries({ queryKey: ['conditions', updatedCondition.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('conditions', updatedCondition.id) })
 
       toast.success('Condição atualizada com sucesso')
     },
@@ -114,7 +115,7 @@ export function useDeleteCondition() {
       deleteCondition(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de conditions
-      queryClient.invalidateQueries({ queryKey: ['conditions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('conditions') })
 
       toast.success('Condição excluída com sucesso')
     },

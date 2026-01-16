@@ -10,6 +10,7 @@ import {
   type CreateDietaryRestrictionDto,
   type UpdateDietaryRestrictionDto,
 } from '@/api/dietaryRestrictions.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================
 
@@ -20,7 +21,7 @@ export function useDietaryRestrictionsByResident(residentId: string | undefined)
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<DietaryRestriction[]>({
-    queryKey: ['dietary-restrictions', 'resident', residentId],
+    queryKey: tenantKey('dietary-restrictions', 'resident', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -41,7 +42,7 @@ export function useDietaryRestriction(id: string | undefined) {
   const enabled = !!id
 
   return useQuery<DietaryRestriction>({
-    queryKey: ['dietary-restrictions', id],
+    queryKey: tenantKey('dietary-restrictions', id),
     queryFn: () => {
       if (!id) {
         throw new Error('id is required')
@@ -66,7 +67,7 @@ export function useCreateDietaryRestriction() {
     onSuccess: (newRestriction) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['dietary-restrictions', 'resident', newRestriction.residentId],
+        queryKey: tenantKey('dietary-restrictions', 'resident', newRestriction.residentId),
       })
 
       toast.success('Restrição alimentar registrada com sucesso')
@@ -90,10 +91,10 @@ export function useUpdateDietaryRestriction() {
     onSuccess: (updatedRestriction) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['dietary-restrictions', 'resident', updatedRestriction.residentId],
+        queryKey: tenantKey('dietary-restrictions', 'resident', updatedRestriction.residentId),
       })
       queryClient.invalidateQueries({
-        queryKey: ['dietary-restrictions', updatedRestriction.id],
+        queryKey: tenantKey('dietary-restrictions', updatedRestriction.id),
       })
 
       toast.success('Restrição alimentar atualizada com sucesso')
@@ -117,7 +118,7 @@ export function useDeleteDietaryRestriction() {
       deleteDietaryRestriction(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de dietary restrictions
-      queryClient.invalidateQueries({ queryKey: ['dietary-restrictions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dietary-restrictions') })
 
       toast.success('Restrição alimentar excluída com sucesso')
     },

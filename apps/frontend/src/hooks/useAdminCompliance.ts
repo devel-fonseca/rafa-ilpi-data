@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 
 interface ComplianceStats {
   activeResidents: number
@@ -16,7 +17,7 @@ interface ComplianceStats {
 
 export function useAdminCompliance() {
   return useQuery<ComplianceStats>({
-    queryKey: ['admin-compliance'],
+    queryKey: tenantKey('admin-compliance'),
     queryFn: async () => {
       const response = await api.get('/compliance/daily-summary')
       return response.data

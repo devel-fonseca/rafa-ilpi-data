@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { dailyRecordsAPI } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para gerenciar histórico de Daily Record
  */
 export function useDailyRecordHistory(recordId: string | null) {
   return useQuery({
-    queryKey: ['daily-record-history', recordId],
+    queryKey: tenantKey('daily-record-history', recordId || 'none'),
     queryFn: () => dailyRecordsAPI.getHistory(recordId!),
     enabled: !!recordId,
   })
@@ -38,8 +39,8 @@ export function useUpdateDailyRecord() {
     }) => dailyRecordsAPI.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['daily-records'] })
-      queryClient.invalidateQueries({ queryKey: ['daily-record-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-records') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-record-history', variables.id) })
 
       toast({
         title: 'Registro atualizado',
@@ -70,7 +71,7 @@ export function useDeleteDailyRecord() {
       dailyRecordsAPI.delete(id, deleteReason),
     onSuccess: () => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['daily-records'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-records') })
 
       toast({
         title: 'Registro excluído',
@@ -108,8 +109,8 @@ export function useRestoreDailyRecordVersion() {
     }) => dailyRecordsAPI.restoreVersion(recordId, versionId, restoreReason),
     onSuccess: (_, variables) => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['daily-records'] })
-      queryClient.invalidateQueries({ queryKey: ['daily-record-history', variables.recordId] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-records') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('daily-record-history', variables.recordId) })
 
       toast({
         title: 'Versão restaurada',

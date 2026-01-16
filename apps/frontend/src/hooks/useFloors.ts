@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bedsAPI, CreateFloorDto, UpdateFloorDto } from '../api/beds.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // Hook para listar andares
 export function useFloors(buildingId?: string) {
   return useQuery({
-    queryKey: ['floors', buildingId],
+    queryKey: tenantKey('floors', buildingId ? `building-${buildingId}` : 'all'),
     queryFn: () => bedsAPI.getAllFloors(buildingId),
   })
 }
@@ -14,7 +15,7 @@ export function useFloor(id: string | undefined) {
   const shouldFetch = !!id && id !== 'new'
 
   return useQuery({
-    queryKey: ['floor', id],
+    queryKey: tenantKey('floors', id),
     queryFn: () => {
       if (!id) {
         throw new Error('ID é obrigatório')
@@ -32,10 +33,10 @@ export function useCreateFloor() {
   return useMutation({
     mutationFn: (data: CreateFloorDto) => bedsAPI.createFloor(data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['floors'] })
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['building', data.buildingId] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings', data.buildingId) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }
@@ -48,11 +49,11 @@ export function useUpdateFloor() {
     mutationFn: ({ id, data }: { id: string; data: UpdateFloorDto }) =>
       bedsAPI.updateFloor(id, data),
     onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['floors'] })
-      queryClient.invalidateQueries({ queryKey: ['floor', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['building', result.buildingId] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('floors', variables.id) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings', result.buildingId) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }
@@ -64,9 +65,9 @@ export function useDeleteFloor() {
   return useMutation({
     mutationFn: (id: string) => bedsAPI.deleteFloor(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['floors'] })
-      queryClient.invalidateQueries({ queryKey: ['buildings'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
     },
   })
 }

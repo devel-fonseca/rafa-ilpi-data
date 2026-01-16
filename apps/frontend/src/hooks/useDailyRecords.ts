@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 
 export interface LatestRecord {
   residentId: string
@@ -27,7 +28,7 @@ export interface DailyRecord {
  */
 export function useLatestRecordsByResidents() {
   return useQuery<LatestRecord[]>({
-    queryKey: ['daily-records', 'latest-by-residents'],
+    queryKey: tenantKey('daily-records', 'latest-by-residents'),
     queryFn: async () => {
       const response = await api.get('/daily-records/latest/by-residents')
       return response.data
@@ -47,7 +48,7 @@ export function useDailyRecordsByResident(residentId: string | undefined, date?:
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<DailyRecord[]>({
-    queryKey: ['daily-records', 'resident', residentId, date],
+    queryKey: tenantKey('daily-records', 'resident', residentId, date),
     queryFn: async () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -77,7 +78,7 @@ export function useDailyRecordsByResident(residentId: string | undefined, date?:
  */
 export function useDailyRecordsByDate(date: string) {
   return useQuery<DailyRecord[]>({
-    queryKey: ['daily-records', 'by-date', date],
+    queryKey: tenantKey('daily-records', 'by-date', date),
     queryFn: async () => {
       const response = await api.get('/daily-records', {
         params: { date }

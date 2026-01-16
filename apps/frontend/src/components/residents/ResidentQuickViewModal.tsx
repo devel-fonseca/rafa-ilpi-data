@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -204,7 +205,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
 
   // Buscar dados básicos do residente (já retorna bed, room, allergies)
   const { data: resident, isLoading: isLoadingResident } = useQuery<Resident>({
-    queryKey: ['resident', residentId],
+    queryKey: tenantKey('residents', residentId),
     queryFn: async () => {
       const response = await api.get(`/residents/${residentId}`)
       return response.data
@@ -213,7 +214,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
 
   // Buscar últimos 3 registros
   const { data: latestRecords } = useQuery<DailyRecord[]>({
-    queryKey: ['resident-latest-records', residentId],
+    queryKey: tenantKey('daily-records', 'resident', residentId, 'latest'),
     queryFn: async () => {
       const response = await api.get(
         `/daily-records/resident/${residentId}/latest`,
@@ -228,7 +229,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
 
   // Buscar prescrições ativas do residente
   const { data: prescriptionsData } = useQuery<{ data: Prescription[] }>({
-    queryKey: ['prescriptions', residentId, 'active'],
+    queryKey: tenantKey('prescriptions', 'list', JSON.stringify({ residentId, isActive: 'true' })),
     queryFn: async () => {
       const response = await api.get('/prescriptions', {
         params: {
@@ -248,7 +249,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
 
   // Buscar sinais vitais consolidados
   const { data: consolidatedVitalSigns } = useQuery<ConsolidatedVitalSigns | null>({
-    queryKey: ['resident-consolidated-vital-signs', residentId],
+    queryKey: tenantKey('daily-records', 'resident', residentId, 'consolidated-vital-signs'),
     queryFn: async () => {
       try {
         const response = await api.get(`/daily-records/resident/${residentId}/consolidated-vital-signs`)

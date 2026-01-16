@@ -10,6 +10,7 @@ import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { tenantKey } from '@/lib/query-keys'
 import {
   Tooltip,
   TooltipContent,
@@ -92,7 +93,7 @@ export default function ResidentRecordsPage() {
 
   // Buscar residente selecionado
   const { data: resident, isLoading } = useQuery({
-    queryKey: ['resident', residentId],
+    queryKey: tenantKey('residents', residentId),
     queryFn: async () => {
       const response = await api.get(`/residents/${residentId}`)
       return response.data
@@ -102,7 +103,7 @@ export default function ResidentRecordsPage() {
 
   // Buscar registros do dia
   const { data: records } = useQuery({
-    queryKey: ['daily-records', residentId, selectedDate],
+    queryKey: tenantKey('daily-records', 'resident', residentId, selectedDate),
     queryFn: async () => {
       const response = await api.get(
         `/daily-records/resident/${residentId}/date/${selectedDate}`,

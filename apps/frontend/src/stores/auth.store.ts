@@ -134,8 +134,16 @@ export const useAuthStore = create<AuthState>()(
 
           const { user, accessToken, refreshToken } = response.data
 
-          // ✅ CRÍTICO: Limpar TODO o cache do React Query ANTES de setar novo user
-          // Isso garante que dados do tenant anterior não apareçam para o novo tenant
+          // ✅ CRÍTICO: Limpar TODO o cache do React Query ANTES de setar novo tenant
+          // Isso garante isolamento completo de dados entre tenants.
+          //
+          // Como funciona:
+          // 1. Queries usam tenantKey('resource') → ['t', 'tenant-A', 'resource']
+          // 2. Ao trocar para tenant-B, cache com ['t', 'tenant-A', ...] fica órfão
+          // 3. queryClient.clear() remove TODAS as queries (incluindo tenant-A)
+          // 4. Novas queries terão keys ['t', 'tenant-B', 'resource']
+          //
+          // Ver: src/lib/query-keys.ts para helpers de namespace
           if (typeof window !== 'undefined' && window.queryClient) {
             console.log('🧹 Auth Store - Limpando cache ao trocar tenant...')
             window.queryClient.clear()

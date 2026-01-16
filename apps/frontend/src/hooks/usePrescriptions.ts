@@ -9,6 +9,7 @@ import {
   AdministerSOSDto,
 } from '../api/prescriptions.api'
 import { useState } from 'react'
+import { tenantKey } from '@/lib/query-keys'
 
 // ========== CRUD HOOKS ==========
 
@@ -19,7 +20,7 @@ export function usePrescriptions(initialQuery?: QueryPrescriptionParams) {
   )
 
   const result = useQuery({
-    queryKey: ['prescriptions', query],
+    queryKey: tenantKey('prescriptions', 'list', JSON.stringify(query)),
     queryFn: () => prescriptionsApi.findAll(query),
     placeholderData: keepPreviousData,
   })
@@ -38,7 +39,7 @@ export function usePrescription(id: string | undefined) {
   const shouldFetch = !!id && id !== 'new'
 
   return useQuery({
-    queryKey: ['prescription', id],
+    queryKey: tenantKey('prescriptions', id),
     queryFn: () => {
       if (!id) {
         throw new Error('ID is required')
@@ -56,9 +57,9 @@ export function useCreatePrescription() {
   return useMutation({
     mutationFn: (data: CreatePrescriptionDto) => prescriptionsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      queryClient.invalidateQueries({ queryKey: ['critical-alerts'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'critical-alerts') })
     },
   })
 }
@@ -71,9 +72,9 @@ export function useUpdatePrescription() {
     mutationFn: ({ id, data }: { id: string; data: UpdatePrescriptionDto }) =>
       prescriptionsApi.update(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['prescription', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions', variables.id) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
     },
   })
 }
@@ -86,11 +87,11 @@ export function useRecordMedicalReview() {
     mutationFn: ({ id, data }: { id: string; data: MedicalReviewPrescriptionDto }) =>
       prescriptionsApi.recordMedicalReview(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['prescription', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['prescriptions-calendar'] })
-      queryClient.invalidateQueries({ queryKey: ['critical-alerts'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions', variables.id) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions', 'calendar') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'critical-alerts') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
     },
   })
 }
@@ -100,10 +101,11 @@ export function useDeletePrescription() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => prescriptionsApi.remove(id),
+    mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
+      prescriptionsApi.remove(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
     },
   })
 }
@@ -113,7 +115,7 @@ export function useDeletePrescription() {
 // Hook para estatísticas do dashboard
 export function useDashboardStats() {
   return useQuery({
-    queryKey: ['dashboard-stats'],
+    queryKey: tenantKey('dashboard', 'stats'),
     queryFn: () => prescriptionsApi.getDashboardStats(),
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchInterval: 60 * 1000, // Refetch a cada 1 minuto
@@ -123,7 +125,7 @@ export function useDashboardStats() {
 // Hook para alertas críticos
 export function useCriticalAlerts() {
   return useQuery({
-    queryKey: ['critical-alerts'],
+    queryKey: tenantKey('dashboard', 'critical-alerts'),
     queryFn: () => prescriptionsApi.getCriticalAlerts(),
     staleTime: 2 * 60 * 1000, // 2 minutos
     refetchInterval: 30 * 1000, // Refetch a cada 30 segundos
@@ -133,7 +135,7 @@ export function useCriticalAlerts() {
 // Hook para prescrições próximas do vencimento
 export function useExpiringPrescriptions(days: number = 5) {
   return useQuery({
-    queryKey: ['expiring-prescriptions', days],
+    queryKey: tenantKey('prescriptions', 'expiring', days),
     queryFn: () => prescriptionsApi.getExpiringPrescriptions(days),
     staleTime: 10 * 60 * 1000, // 10 minutos
   })
@@ -142,7 +144,7 @@ export function useExpiringPrescriptions(days: number = 5) {
 // Hook para residentes com controlados
 export function useResidentsWithControlled() {
   return useQuery({
-    queryKey: ['residents-with-controlled'],
+    queryKey: tenantKey('prescriptions', 'residents-with-controlled'),
     queryFn: () => prescriptionsApi.getResidentsWithControlled(),
     staleTime: 15 * 60 * 1000, // 15 minutos
   })
@@ -159,14 +161,14 @@ export function useAdministerMedication() {
       prescriptionsApi.administerMedication(data),
     onSuccess: () => {
       // Invalidar queries relacionadas a administração
-      queryClient.invalidateQueries({ queryKey: ['medication-administrations'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('medication-administrations') })
       // Invalidar prescrições para atualizar status em tempo real
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
       // Invalidar prescrição específica também
-      queryClient.invalidateQueries({ queryKey: ['prescription'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
       // Invalidar dashboard do cuidador (lista de tarefas diárias)
-      queryClient.invalidateQueries({ queryKey: ['caregiver-tasks'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('caregiver-tasks') })
     },
   })
 }
@@ -180,10 +182,10 @@ export function useAdministerSOS() {
       prescriptionsApi.administerSOS(data),
     onSuccess: () => {
       // Invalidar queries relacionadas a administração
-      queryClient.invalidateQueries({ queryKey: ['sos-administrations'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('sos-administrations') })
       // Invalidar prescrições para atualizar status em tempo real
-      queryClient.invalidateQueries({ queryKey: ['prescriptions'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
     },
   })
 }
@@ -311,7 +313,7 @@ export function usePrescriptionsForCalendar(
   }
 
   return useQuery({
-    queryKey: ['prescriptions-calendar', startDate, endDate, residentId, filter],
+    queryKey: tenantKey('prescriptions', 'calendar', startDate, endDate, residentId || 'all', filter),
     queryFn: async () => {
       const response = await prescriptionsApi.findAll(queryParams)
 

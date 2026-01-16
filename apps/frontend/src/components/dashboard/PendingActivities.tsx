@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { tenantKey } from '@/lib/query-keys'
 
 interface PendingItem {
   id: string
@@ -44,7 +45,7 @@ function getPendingIcon(type: string) {
 
 export function PendingActivities() {
   const { data: pendingItems, isLoading } = useQuery({
-    queryKey: ['pending-activities'],
+    queryKey: tenantKey('pending-activities'),
     queryFn: async () => {
       // Por enquanto, retornar dados mockados
       // TODO: Implementar endpoint no backend

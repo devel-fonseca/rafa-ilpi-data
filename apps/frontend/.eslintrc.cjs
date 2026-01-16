@@ -16,6 +16,14 @@ module.exports = {
     ],
     // Regras customizadas para prevenir bugs de timezone
     '@typescript-eslint/no-explicit-any': 'warn',
+    // Regra: Proibir fetch() direto (usar api.ts)
+    'no-restricted-globals': [
+      'error',
+      {
+        name: 'fetch',
+        message: '❌ Use api.get/post do src/services/api.ts ao invés de fetch() direto! Ver: docs/PLANO-MIGRACAO-FRONTEND-DR-E.md',
+      },
+    ],
     'no-restricted-syntax': [
       'warn',
       {
@@ -26,6 +34,11 @@ module.exports = {
       {
         selector: 'JSXAttribute[name.name="className"] Literal[value=/\\b(text|bg|border)-(red|blue|green|yellow|orange|purple|pink|gray)-[0-9]/]',
         message: '🎨 Cor hardcoded detectada. Use tokens semânticos (text-success, bg-danger/10, border-primary/30) ao invés de cores diretas do Tailwind.',
+      },
+      // Multi-Tenant Rule: Proibir axios.create duplicado (usar api.ts)
+      {
+        selector: "MemberExpression[object.name='axios'][property.name='create']",
+        message: '❌ Use a instância "api" de src/services/api.ts ao invés de criar novo axios! Ver: docs/PLANO-MIGRACAO-FRONTEND-DR-E.md',
       },
     ],
   },

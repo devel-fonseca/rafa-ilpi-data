@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
+import { tenantKey } from '@/lib/query-keys'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentMedicationDates } from '@/hooks/useResidentMedicationDates'
 import { Page, PageHeader } from '@/design-system/components'
@@ -22,7 +23,7 @@ export default function ResidentMedicationsCalendar() {
 
   // Buscar dados do residente
   const { data: resident, isLoading: isLoadingResident } = useQuery({
-    queryKey: ['resident', id],
+    queryKey: tenantKey('residents', id),
     queryFn: async () => {
       const response = await api.get(`/residents/${id}`)
       return response.data
@@ -45,7 +46,7 @@ export default function ResidentMedicationsCalendar() {
 
   // Buscar administrações de medicamentos do dia selecionado
   const { data: administrations = [], isLoading: isLoadingAdministrations } = useQuery({
-    queryKey: ['medication-administrations', id, format(selectedDate, 'yyyy-MM-dd')],
+    queryKey: tenantKey('medication-administrations', 'resident', id, format(selectedDate, 'yyyy-MM-dd')),
     queryFn: async () => {
       const response = await api.get(
         `/prescriptions/medication-administrations/resident/${id}/date/${format(selectedDate, 'yyyy-MM-dd')}`,

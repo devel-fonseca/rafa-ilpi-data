@@ -10,6 +10,7 @@ import type {
   PopCategory,
 } from '../types/pop.types'
 import * as popsApi from '../api/pops.api'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hooks React Query para módulo de POPs
@@ -24,7 +25,7 @@ import * as popsApi from '../api/pops.api'
  */
 export function usePops(filters?: FilterPopsDto) {
   return useQuery({
-    queryKey: ['pops', filters],
+    queryKey: tenantKey('pops', 'list', JSON.stringify(filters || {})),
     queryFn: () => popsApi.getPops(filters),
   })
 }
@@ -34,7 +35,7 @@ export function usePops(filters?: FilterPopsDto) {
  */
 export function usePublishedPops() {
   return useQuery({
-    queryKey: ['pops', 'published'],
+    queryKey: tenantKey('pops', 'published'),
     queryFn: () => popsApi.getPublishedPops(),
   })
 }
@@ -44,7 +45,7 @@ export function usePublishedPops() {
  */
 export function usePop(id: string | undefined) {
   return useQuery({
-    queryKey: ['pops', id],
+    queryKey: tenantKey('pops', id),
     queryFn: () => popsApi.getPop(id!),
     enabled: !!id,
   })
@@ -55,7 +56,7 @@ export function usePop(id: string | undefined) {
  */
 export function usePopVersions(id: string | undefined) {
   return useQuery({
-    queryKey: ['pops', id, 'versions'],
+    queryKey: tenantKey('pops', id, 'versions'),
     queryFn: () => popsApi.getPopVersions(id!),
     enabled: !!id,
   })
@@ -66,7 +67,7 @@ export function usePopVersions(id: string | undefined) {
  */
 export function usePopHistory(id: string | undefined) {
   return useQuery({
-    queryKey: ['pops', id, 'history'],
+    queryKey: tenantKey('pops', id, 'history'),
     queryFn: () => popsApi.getPopHistory(id!),
     enabled: !!id,
   })
@@ -77,7 +78,7 @@ export function usePopHistory(id: string | undefined) {
  */
 export function usePopTemplates() {
   return useQuery({
-    queryKey: ['pops', 'templates'],
+    queryKey: tenantKey('pops', 'templates'),
     queryFn: () => popsApi.getAllTemplates(),
   })
 }
@@ -87,7 +88,7 @@ export function usePopTemplates() {
  */
 export function usePopTemplatesByCategory(category: PopCategory | undefined) {
   return useQuery({
-    queryKey: ['pops', 'templates', category],
+    queryKey: tenantKey('pops', 'templates', 'category', category),
     queryFn: () => popsApi.getTemplatesByCategory(category!),
     enabled: !!category,
   })
@@ -98,7 +99,7 @@ export function usePopTemplatesByCategory(category: PopCategory | undefined) {
  */
 export function usePopTemplate(templateId: string | undefined) {
   return useQuery({
-    queryKey: ['pops', 'templates', templateId],
+    queryKey: tenantKey('pops', 'templates', templateId),
     queryFn: () => popsApi.getTemplateById(templateId!),
     enabled: !!templateId,
   })
@@ -109,7 +110,7 @@ export function usePopTemplate(templateId: string | undefined) {
  */
 export function usePopCategories() {
   return useQuery({
-    queryKey: ['pops', 'categories'],
+    queryKey: tenantKey('pops', 'categories'),
     queryFn: () => popsApi.getCategories(),
   })
 }
@@ -127,7 +128,7 @@ export function useCreatePop() {
   return useMutation({
     mutationFn: (dto: CreatePopDto) => popsApi.createPop(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       toast.success('POP criado com sucesso')
     },
     onError: (error: any) => {
@@ -148,8 +149,8 @@ export function useUpdatePop() {
     mutationFn: ({ id, dto }: { id: string; dto: UpdatePopDto }) =>
       popsApi.updatePop(id, dto),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
-      queryClient.invalidateQueries({ queryKey: ['pops', data.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP atualizado com sucesso')
     },
     onError: (error: any) => {
@@ -169,7 +170,7 @@ export function useDeletePop() {
   return useMutation({
     mutationFn: (id: string) => popsApi.deletePop(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       toast.success('POP removido com sucesso')
     },
     onError: (error: any) => {
@@ -195,8 +196,8 @@ export function useCreatePopVersion() {
       dto: CreatePopVersionDto
     }) => popsApi.createPopVersion(id, dto),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
-      queryClient.invalidateQueries({ queryKey: ['pops', data.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('Nova versão do POP criada com sucesso')
     },
     onError: (error: any) => {
@@ -216,8 +217,8 @@ export function usePublishPop() {
   return useMutation({
     mutationFn: (id: string) => popsApi.publishPop(id),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
-      queryClient.invalidateQueries({ queryKey: ['pops', data.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP publicado com sucesso')
     },
     onError: (error: any) => {
@@ -238,8 +239,8 @@ export function useMarkPopObsolete() {
     mutationFn: ({ id, dto }: { id: string; dto: MarkObsoleteDto }) =>
       popsApi.markPopObsolete(id, dto),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
-      queryClient.invalidateQueries({ queryKey: ['pops', data.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP marcado como obsoleto')
     },
     onError: (error: any) => {
@@ -260,8 +261,8 @@ export function useMarkPopReviewed() {
   return useMutation({
     mutationFn: (id: string) => popsApi.markPopReviewed(id),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
-      queryClient.invalidateQueries({ queryKey: ['pops', data.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP marcado como revisado')
     },
     onError: (error: any) => {
@@ -290,9 +291,9 @@ export function useAddPopAttachment() {
       metadata?: AddAttachmentDto
     }) => popsApi.addPopAttachment(popId, file, metadata),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       queryClient.invalidateQueries({
-        queryKey: ['pops', variables.popId],
+        queryKey: tenantKey('pops', variables.popId),
       })
       toast.success('Anexo adicionado com sucesso')
     },
@@ -318,9 +319,9 @@ export function useDeletePopAttachment() {
       popId: string
     }) => popsApi.deletePopAttachment(attachmentId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['pops'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       queryClient.invalidateQueries({
-        queryKey: ['pops', variables.popId],
+        queryKey: tenantKey('pops', variables.popId),
       })
       toast.success('Anexo removido com sucesso')
     },

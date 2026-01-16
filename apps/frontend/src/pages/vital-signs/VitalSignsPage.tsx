@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { subDays, startOfDay, endOfDay, parseISO } from 'date-fns'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { useResident } from '@/hooks/useResidents'
+import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,7 +59,7 @@ export function VitalSignsPage() {
 
   // Buscar dados de sinais vitais
   const { data: vitalSigns } = useQuery({
-    queryKey: ['vital-signs', residentId, selectedPeriod],
+    queryKey: tenantKey('vital-signs', residentId, selectedPeriod),
     queryFn: async () => {
       const { startDate, endDate } = getDateRange()
       const response = await api.get(`/vital-signs/resident/${residentId}`, {

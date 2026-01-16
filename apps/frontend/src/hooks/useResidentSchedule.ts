@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { QUERY_KEYS } from '@/constants/queryKeys';
 import { invalidateAfterScheduleMutation } from '@/utils/queryInvalidation';
+import { tenantKey } from '@/lib/query-keys';
 
 // ──────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -165,7 +166,7 @@ export function useScheduleConfigsByResident(
   enabled: boolean = true,
 ) {
   return useQuery({
-    queryKey: ['schedule-configs', residentId],
+    queryKey: tenantKey('schedule-configs', 'resident', residentId),
     queryFn: async () => {
       const response = await api.get<ResidentScheduleConfig[]>(
         `/resident-schedule/configs/resident/${residentId}`,
@@ -183,7 +184,7 @@ export function useScheduleConfigsByResident(
  */
 export function useAllActiveScheduleConfigs(enabled: boolean = true) {
   return useQuery({
-    queryKey: ['schedule-configs', 'all-active'],
+    queryKey: tenantKey('schedule-configs', 'all-active'),
     queryFn: async () => {
       const response = await api.get<ResidentScheduleConfig[]>(
         '/resident-schedule/configs',
@@ -207,7 +208,7 @@ export function useScheduledEventsByResident(
   enabled: boolean = true,
 ) {
   return useQuery({
-    queryKey: ['scheduled-events', residentId],
+    queryKey: tenantKey('scheduled-events', 'resident', residentId),
     queryFn: async () => {
       const response = await api.get<ResidentScheduledEvent[]>(
         `/resident-schedule/events/resident/${residentId}`,
@@ -232,7 +233,7 @@ export function useDailyTasksByResident(
   enabled: boolean = true,
 ) {
   return useQuery({
-    queryKey: ['daily-tasks', residentId, date],
+    queryKey: tenantKey('daily-tasks', 'resident', residentId, date),
     queryFn: async () => {
       const params = date ? { date } : {};
       const response = await api.get<DailyTask[]>(

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bedsAPI, ReserveBedDto, BlockBedDto, ReleaseBedDto } from '@/api/beds.api'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para reservar um leito
@@ -12,9 +13,9 @@ export function useReserveBed() {
       bedsAPI.reserveBed(bedId, data),
     onSuccess: () => {
       // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['beds'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
-      queryClient.invalidateQueries({ queryKey: ['bed-status-history'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('bed-status-history') })
     },
   })
 }
@@ -29,9 +30,9 @@ export function useBlockBed() {
     mutationFn: ({ bedId, data }: { bedId: string; data: BlockBedDto }) =>
       bedsAPI.blockBed(bedId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beds'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
-      queryClient.invalidateQueries({ queryKey: ['bed-status-history'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('bed-status-history') })
     },
   })
 }
@@ -46,9 +47,9 @@ export function useReleaseBed() {
     mutationFn: ({ bedId, data }: { bedId: string; data: ReleaseBedDto }) =>
       bedsAPI.releaseBed(bedId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['beds'] })
-      queryClient.invalidateQueries({ queryKey: ['beds-hierarchy'] })
-      queryClient.invalidateQueries({ queryKey: ['bed-status-history'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('beds-hierarchy') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('bed-status-history') })
     },
   })
 }
@@ -58,7 +59,7 @@ export function useReleaseBed() {
  */
 export function useBedStatusHistory(params?: { bedId?: string; skip?: number; take?: number }) {
   return useQuery({
-    queryKey: ['bed-status-history', params],
+    queryKey: tenantKey('bed-status-history', JSON.stringify(params)),
     queryFn: () => bedsAPI.getBedStatusHistory(params),
   })
 }

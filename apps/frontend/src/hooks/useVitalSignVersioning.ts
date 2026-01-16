@@ -6,13 +6,14 @@ import {
   type UpdateVitalSignVersionedDto,
 } from '@/api/vital-signs.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de um sinal vital
  */
 export function useVitalSignHistory(vitalSignId: string | null) {
   return useQuery({
-    queryKey: ['vital-sign-history', vitalSignId],
+    queryKey: tenantKey('vital-sign-history', vitalSignId || 'none'),
     queryFn: () => getVitalSignHistory(vitalSignId!),
     enabled: !!vitalSignId,
   })
@@ -29,8 +30,8 @@ export function useUpdateVitalSign() {
     mutationFn: ({ id, data }: { id: string; data: UpdateVitalSignVersionedDto }) =>
       updateVitalSign(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['vital-signs'] })
-      queryClient.invalidateQueries({ queryKey: ['vital-sign-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vital-signs') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vital-sign-history', variables.id) })
       toast({
         title: 'Sinal vital atualizado',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteVitalSign() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteVitalSign(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vital-signs'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('vital-signs') })
       toast({
         title: 'Sinal vital excluído',
         description: 'O sinal vital foi excluído com sucesso.',

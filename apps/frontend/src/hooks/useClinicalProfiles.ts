@@ -9,6 +9,7 @@ import {
   type CreateClinicalProfileDto,
   type UpdateClinicalProfileDto,
 } from '@/api/clinicalProfiles.api'
+import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================
 
@@ -19,7 +20,7 @@ export function useClinicalProfile(residentId: string | undefined) {
   const enabled = !!residentId && residentId !== 'new'
 
   return useQuery<ClinicalProfile | null>({
-    queryKey: ['clinical-profiles', 'resident', residentId],
+    queryKey: tenantKey('clinical-profiles', 'resident', residentId),
     queryFn: () => {
       if (!residentId) {
         throw new Error('residentId is required')
@@ -45,7 +46,7 @@ export function useCreateClinicalProfile() {
     onSuccess: (newProfile) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['clinical-profiles', 'resident', newProfile.residentId],
+        queryKey: tenantKey('clinical-profiles', 'resident', newProfile.residentId),
       })
 
       toast.success('Perfil clínico criado com sucesso')
@@ -69,12 +70,12 @@ export function useUpdateClinicalProfile() {
     onSuccess: (updatedProfile) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({
-        queryKey: ['clinical-profiles', 'resident', updatedProfile.residentId],
+        queryKey: tenantKey('clinical-profiles', 'resident', updatedProfile.residentId),
       })
 
       // Invalidar também a query do residente, pois mobilityAid é atualizado lá
       queryClient.invalidateQueries({
-        queryKey: ['resident', updatedProfile.residentId],
+        queryKey: tenantKey('residents', updatedProfile.residentId),
       })
 
       toast.success('Perfil clínico atualizado com sucesso')
@@ -97,7 +98,7 @@ export function useDeleteClinicalProfile() {
       deleteClinicalProfile(id, deleteReason),
     onSuccess: () => {
       // Invalidar todas as queries de clinical profiles
-      queryClient.invalidateQueries({ queryKey: ['clinical-profiles'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-profiles') })
 
       toast.success('Perfil clínico excluído com sucesso')
     },

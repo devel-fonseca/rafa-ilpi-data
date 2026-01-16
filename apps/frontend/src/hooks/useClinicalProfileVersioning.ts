@@ -6,13 +6,14 @@ import {
   type UpdateClinicalProfileVersionedDto,
 } from '@/api/clinical-profiles.api'
 import { useToast } from '@/components/ui/use-toast'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar histórico de um perfil clínico
  */
 export function useClinicalProfileHistory(clinicalProfileId: string | null) {
   return useQuery({
-    queryKey: ['clinical-profile-history', clinicalProfileId],
+    queryKey: tenantKey('clinical-profile-history', clinicalProfileId || 'none'),
     queryFn: () => getClinicalProfileHistory(clinicalProfileId!),
     enabled: !!clinicalProfileId,
   })
@@ -29,8 +30,8 @@ export function useUpdateClinicalProfile() {
     mutationFn: ({ id, data }: { id: string; data: UpdateClinicalProfileVersionedDto }) =>
       updateClinicalProfile(id, data),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['clinical-profiles'] })
-      queryClient.invalidateQueries({ queryKey: ['clinical-profile-history', variables.id] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-profiles') })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-profile-history', variables.id) })
       toast({
         title: 'Perfil clínico atualizado',
         description: 'As alterações foram salvas com sucesso.',
@@ -57,7 +58,7 @@ export function useDeleteClinicalProfile() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string }) =>
       deleteClinicalProfile(id, deleteReason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clinical-profiles'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-profiles') })
       toast({
         title: 'Perfil clínico excluído',
         description: 'O perfil clínico foi excluído com sucesso.',

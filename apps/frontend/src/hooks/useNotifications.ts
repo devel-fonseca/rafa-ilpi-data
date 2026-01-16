@@ -8,13 +8,14 @@ import {
   QueryNotificationsParams,
 } from '@/api/notifications.api'
 import { toast } from 'sonner'
+import { tenantKey } from '@/lib/query-keys'
 
 /**
  * Hook para buscar notificações com filtros e paginação
  */
 export function useNotifications(params: QueryNotificationsParams = {}) {
   return useQuery({
-    queryKey: ['notifications', params],
+    queryKey: tenantKey('notifications', 'list', JSON.stringify(params)),
     queryFn: () => getNotifications(params),
     staleTime: 0, // SEMPRE considerar dados stale para forçar refetch
     refetchOnMount: 'always', // SEMPRE refetch ao montar componente
@@ -27,7 +28,7 @@ export function useNotifications(params: QueryNotificationsParams = {}) {
  */
 export function useUnreadCount() {
   return useQuery({
-    queryKey: ['notifications', 'unread-count'],
+    queryKey: tenantKey('notifications', 'unread-count'),
     queryFn: getUnreadCount,
     staleTime: 0, // SEMPRE considerar dados stale
     refetchOnMount: 'always', // SEMPRE refetch ao montar
@@ -45,7 +46,7 @@ export function useMarkAsRead() {
     mutationFn: markAsRead,
     onSuccess: () => {
       // Invalidar queries para atualizar UI
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
     },
     onError: (error: any) => {
       toast.error('Erro ao marcar notificação como lida', {
@@ -64,7 +65,7 @@ export function useMarkAllAsRead() {
   return useMutation({
     mutationFn: markAllAsRead,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
       toast.success(`${data.count} notificações marcadas como lidas`)
     },
     onError: (error: any) => {
@@ -84,7 +85,7 @@ export function useDeleteNotification() {
   return useMutation({
     mutationFn: deleteNotification,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
       toast.success('Notificação removida')
     },
     onError: (error: any) => {
