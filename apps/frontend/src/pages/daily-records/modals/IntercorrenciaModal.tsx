@@ -57,7 +57,7 @@ type IntercorrenciaFormData = z.infer<typeof intercorrenciaSchema>;
 interface IntercorrenciaModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: IntercorrenciaFormData) => void;
   residentId: string;
   residentName: string;
   date: string;
@@ -95,7 +95,6 @@ export function IntercorrenciaModal({
 
   const selectedCategory = watch('categoria');
   const selectedSubtype = watch('subtipo');
-  const selectedSeverity = watch('severidade');
 
   // Atualizar subtipos disponíveis quando categoria muda
   useEffect(() => {
@@ -282,19 +281,19 @@ export function IntercorrenciaModal({
 
           {/* Alerta de Evento Sentinela */}
           {isEventoSentinela && (
-            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="bg-danger/5 dark:bg-danger/10 border border-danger/20 dark:border-danger/30 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-danger/600 dark:text-danger/400 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-semibold text-red-900 dark:text-red-100 text-sm">
+                  <h4 className="font-semibold text-danger/900 dark:text-danger/100 text-sm">
                     🚨 Evento Sentinela Detectado
                   </h4>
-                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  <p className="text-sm text-danger/700 dark:text-danger/300 mt-1">
                     Este evento requer <strong>notificação obrigatória</strong> à
                     Autoridade Sanitária Local em até <strong>24 horas</strong>{' '}
                     (RDC 502/2021 Art. 55).
                   </p>
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                  <p className="text-xs text-danger/600 dark:text-danger/400 mt-2">
                     Um email será enviado automaticamente ao Responsável Técnico.
                   </p>
                 </div>

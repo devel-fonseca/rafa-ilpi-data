@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -19,6 +18,7 @@ import { MaskedInput } from '@/components/form/MaskedInput'
 import { PositionCode, RegistrationType } from '@/types/permissions'
 import { getRoleRecommendation, type UserRole } from '@/utils/roleRecommendation'
 import { getMensagemValidacaoCPF } from '@/utils/validators'
+import type { User, UserProfile } from '@/types/user'
 import { getTenantUsers, getAllUserProfiles, updateUserProfile, createUserProfile } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
@@ -70,8 +70,8 @@ export default function UserEditPage() {
         ])
 
         // Encontrar o usuário específico
-        const user = usersData.find((u: any) => u.id === userId)
-        const profile = profilesData.find((p: any) => p.userId === userId)
+        const user = usersData.find((u: User) => u.id === userId)
+        const profile = profilesData.find((p: UserProfile) => p.userId === userId)
 
         if (!user) {
           toast.error('Usuário não encontrado')
@@ -103,7 +103,7 @@ export default function UserEditPage() {
           isTechnicalManager: profile?.isTechnicalManager || false,
           isNursingCoordinator: profile?.isNursingCoordinator || false,
         })
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Erro ao carregar dados do usuário:', error)
         toast.error('Erro ao carregar dados do usuário')
         navigate('/dashboard/usuarios')
@@ -158,7 +158,7 @@ export default function UserEditPage() {
       setIsSubmitting(true)
 
       // Preparar dados do perfil
-      const profileData: any = {
+      const profileData: Record<string, unknown> = {
         positionCode: formData.positionCode || undefined,
         department: formData.department?.trim() || undefined,
         registrationType: formData.registrationType || undefined,
@@ -176,8 +176,9 @@ export default function UserEditPage() {
 
       toast.success('Perfil atualizado com sucesso!')
       navigate('/dashboard/usuarios')
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao atualizar perfil'
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } }; message?: string })
+      const errorMessage = errorResponse.response?.data?.message || errorResponse.message || 'Erro ao atualizar perfil'
 
       // Se o perfil não existe, tentar criar
       if (errorMessage.includes('not found') || errorMessage.includes('não encontrado')) {
@@ -197,8 +198,9 @@ export default function UserEditPage() {
           toast.success('Perfil criado com sucesso!')
           navigate('/dashboard/usuarios')
           return
-        } catch (createError: any) {
-          toast.error('Erro ao criar perfil: ' + (createError.response?.data?.message || createError.message))
+        } catch (createError: unknown) {
+          const createErrorResponse = (createError as { response?: { data?: { message?: string } }; message?: string })
+          toast.error('Erro ao criar perfil: ' + (createErrorResponse.response?.data?.message || createErrorResponse.message))
         }
       } else {
         toast.error(errorMessage)

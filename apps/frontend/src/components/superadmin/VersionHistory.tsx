@@ -23,7 +23,7 @@ interface EmailTemplateVersion {
   id: string;
   templateId: string;
   versionNumber: number;
-  jsonContent: any;
+  jsonContent: Record<string, unknown>;
   subject: string;
   createdBy: string;
   changeNote: string | null;
@@ -66,8 +66,9 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
       queryClient.invalidateQueries({ queryKey: ['superadmin', 'email-template-versions', templateId] });
       setVersionToRestore(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao restaurar versão');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao restaurar versão');
     },
   });
 

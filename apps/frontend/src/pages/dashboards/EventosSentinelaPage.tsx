@@ -146,7 +146,7 @@ export function EventosSentinelaPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-primary">
               {stats.enviados}
             </div>
             <p className="text-xs text-muted-foreground">Enviados</p>
@@ -154,15 +154,15 @@ export function EventosSentinelaPage() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {stats.confirmados}
             </div>
             <p className="text-xs text-muted-foreground">Confirmados</p>
           </CardContent>
         </Card>
-        <Card className={stats.atrasados > 0 ? 'border-red-500' : ''}>
+        <Card className={stats.atrasados > 0 ? 'border-danger' : ''}>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600 flex items-center gap-2">
+            <div className="text-2xl font-bold text-danger/600 flex items-center gap-2">
               {stats.atrasados > 0 && <AlertTriangle className="h-5 w-5" />}
               {stats.atrasados}
             </div>
@@ -173,16 +173,16 @@ export function EventosSentinelaPage() {
 
       {/* Alerta de eventos atrasados */}
       {stats.atrasados > 0 && (
-        <Card className="mb-6 border-red-500 bg-red-50 dark:bg-red-950">
+        <Card className="mb-6 border-danger bg-danger/5 dark:bg-danger/10">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-danger/600 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-red-900 dark:text-red-100">
+                <h4 className="font-semibold text-danger/900 dark:text-danger/100">
                   ⚠️ Atenção: {stats.atrasados} evento(s) pendente(s) há mais de 24
                   horas
                 </h4>
-                <p className="text-sm text-red-800 dark:text-red-200 mt-1">
+                <p className="text-sm text-danger/800 dark:text-danger/200 mt-1">
                   A RDC 502/2021 Art. 55 exige notificação à Autoridade Sanitária
                   Local em até 24 horas. Regularize imediatamente para evitar
                   infrações.
@@ -251,7 +251,7 @@ export function EventosSentinelaPage() {
                 <div
                   key={event.id}
                   className={`border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer ${
-                    isOverdue(event) ? 'border-red-500 bg-red-50 dark:bg-red-950' : ''
+                    isOverdue(event) ? 'border-danger bg-danger/5 dark:bg-danger/10' : ''
                   }`}
                   onClick={() => handleOpenEvent(event)}
                 >
@@ -259,7 +259,7 @@ export function EventosSentinelaPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {isOverdue(event) && (
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
+                          <AlertTriangle className="h-4 w-4 text-danger/600" />
                         )}
                         <h4 className="font-semibold">{event.residentName}</h4>
                         {getStatusBadge(event.status)}
@@ -311,7 +311,7 @@ export function EventosSentinelaPage() {
                         </p>
                         <p
                           className={`font-medium ${
-                            isOverdue(event) ? 'text-red-600' : ''
+                            isOverdue(event) ? 'text-danger/600' : ''
                           }`}
                         >
                           {Math.floor(
@@ -333,7 +333,7 @@ export function EventosSentinelaPage() {
                   )}
 
                   {isOverdue(event) && (
-                    <div className="mt-3 text-xs text-red-600 font-medium flex items-center gap-1">
+                    <div className="mt-3 text-xs text-danger/600 font-medium flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       Prazo de 24h excedido! Notificação urgente necessária.
                     </div>

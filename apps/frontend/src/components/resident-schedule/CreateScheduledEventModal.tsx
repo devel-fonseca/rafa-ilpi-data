@@ -93,8 +93,9 @@ export function CreateScheduledEventModal({
 
       toast.success('Agendamento criado com sucesso');
       handleClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao criar agendamento');
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao criar agendamento');
     }
   };
 

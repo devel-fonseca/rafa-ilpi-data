@@ -52,8 +52,8 @@ export interface ContractHistory {
   id: string
   action: 'CREATED' | 'UPDATED' | 'REPLACED' | 'DELETED'
   reason?: string
-  previousData?: any
-  newData?: any
+  previousData?: Record<string, unknown>
+  newData?: Record<string, unknown>
   changedFields: string[]
   changedBy: string
   changedAt: string

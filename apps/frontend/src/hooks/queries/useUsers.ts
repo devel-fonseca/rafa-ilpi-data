@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/auth.store'
 export const usersKeys = {
   all: ['users'] as const,
   lists: () => [...usersKeys.all, 'list'] as const,
-  list: (filters?: Record<string, any>) => [...usersKeys.lists(), filters] as const,
+  list: (filters?: Record<string, unknown>) => [...usersKeys.lists(), filters] as const,
   details: () => [...usersKeys.all, 'detail'] as const,
   detail: (id: string) => [...usersKeys.details(), id] as const,
 }

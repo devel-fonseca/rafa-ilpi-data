@@ -228,8 +228,9 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
         floors: [],
       })
       setStep('building')
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao criar estrutura'
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } }; message?: string }).response
+      const errorMessage = errorResponse?.data?.message || (error as { message?: string }).message || 'Erro ao criar estrutura'
       toast({
         description: errorMessage,
         variant: 'destructive',

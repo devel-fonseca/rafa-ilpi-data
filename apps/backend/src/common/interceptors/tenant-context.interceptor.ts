@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Scope,
 } from '@nestjs/common'
 import { Observable } from 'rxjs'
 import { TenantContextService } from '../../prisma/tenant-context.service'
@@ -36,7 +37,7 @@ import { TenantContextService } from '../../prisma/tenant-context.service'
  * export class AppModule {}
  * ```
  */
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class TenantContextInterceptor implements NestInterceptor {
   constructor(private readonly tenantContext: TenantContextService) {}
 

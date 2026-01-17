@@ -29,11 +29,17 @@ const editAtividadesSchema = z.object({
 
 type EditAtividadesFormData = z.infer<typeof editAtividadesSchema>
 
+interface AtividadesRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditAtividadesModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: AtividadesRecord
   isUpdating?: boolean
 }
 

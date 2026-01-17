@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '../../components/ui/select'
 import { Input } from '../../components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Card, CardContent } from '../../components/ui/card'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,7 +63,7 @@ export default function PopsList() {
   const { data: categories = [] } = usePopCategories()
   const deletePop = useDeletePop()
 
-  const handleFilterChange = (key: keyof FilterPopsDto, value: any) => {
+  const handleFilterChange = (key: keyof FilterPopsDto, value: unknown) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value === 'all' ? undefined : value,

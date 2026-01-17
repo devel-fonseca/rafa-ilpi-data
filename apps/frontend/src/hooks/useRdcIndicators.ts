@@ -8,7 +8,7 @@ interface IndicatorsByMonth {
     denominator: number;
     rate: number;
     incidentIds: string[];
-    metadata?: any;
+    metadata?: Record<string, unknown>;
     calculatedAt: string;
   };
 }

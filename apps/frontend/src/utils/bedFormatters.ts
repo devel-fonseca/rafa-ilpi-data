@@ -75,7 +75,7 @@ export function formatBedFromObject(bed: Bed): string {
  * @example
  * formatBedFromResident(resident) // "CLI6-823-B"
  */
-export function formatBedFromResident(resident: any): string {
+export function formatBedFromResident(resident: Record<string, unknown>): string {
   // Se bed.code já contém o código completo (formato: XXX-XXX-X), retornar direto
   if (resident?.bed?.code && resident.bed.code.includes('-')) {
     return resident.bed.code

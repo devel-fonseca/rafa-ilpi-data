@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check, Edit } from 'lucide-react'
-import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -56,11 +56,17 @@ const editAlimentacaoSchema = z.object({
 
 type EditAlimentacaoFormData = z.infer<typeof editAlimentacaoSchema>
 
+interface AlimentacaoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditAlimentacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: AlimentacaoRecord
   isUpdating?: boolean
 }
 

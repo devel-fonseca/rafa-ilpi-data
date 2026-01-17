@@ -12,10 +12,26 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface AtividadesData {
+  atividade: string
+  participacao?: string
+  [key: string]: unknown
+}
+
+interface AtividadesRecord {
+  data: AtividadesData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  notes?: string
+  [key: string]: unknown
+}
+
 interface ViewAtividadesModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: AtividadesRecord
 }
 
 export function ViewAtividadesModal({

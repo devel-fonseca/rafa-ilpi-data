@@ -13,7 +13,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   description: string | null;
-  jsonContent: any;
+  jsonContent: Record<string, unknown>;
   variables: Array<{
     name: string;
     type: string;
@@ -57,8 +57,9 @@ export default function EmailTemplateEditor() {
       queryClient.invalidateQueries({ queryKey: ['email-template', id] });
       queryClient.invalidateQueries({ queryKey: ['email-template-versions', id] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao atualizar template');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao atualizar template');
     },
   });
 

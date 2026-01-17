@@ -311,7 +311,7 @@ export interface IncidentMonthlyIndicator {
   denominator: number;
   rate: number;
   incidentIds: string[];
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   calculatedAt: string;
   calculatedBy?: string;
 }
@@ -331,7 +331,7 @@ export interface SentinelEventNotification {
   emailEnviadoEm?: string;
   emailDestinatarios?: string[];
   observacoes?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

@@ -90,7 +90,7 @@ export function InvoicesHistoryTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map((invoice: any) => {
+                  {invoices.map((invoice: { id: string; status: string; dueDate: string; [key: string]: unknown }) => {
                     const statusInfo = STATUS_LABELS[invoice.status] || {
                       label: invoice.status,
                       variant: 'outline' as const,

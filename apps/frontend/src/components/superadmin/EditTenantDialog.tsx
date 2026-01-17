@@ -51,11 +51,12 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
       })
       setOpen(false)
       reset()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         title: 'Falha ao atualizar dados',
         description:
-          error.response?.data?.message || 'Não foi possível salvar as alterações. Verifique os dados e tente novamente.',
+          errorResponse?.data?.message || 'Não foi possível salvar as alterações. Verifique os dados e tente novamente.',
         variant: 'destructive',
       })
     }

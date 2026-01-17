@@ -54,12 +54,13 @@ export function useUpdatePrescription() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Não foi possível atualizar a prescrição. Tente novamente.',
       })
     },
@@ -85,12 +86,13 @@ export function useDeletePrescription() {
         description: 'A prescrição foi excluída com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Não foi possível excluir a prescrição. Tente novamente.',
       })
     },

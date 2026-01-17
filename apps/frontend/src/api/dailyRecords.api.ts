@@ -19,7 +19,7 @@ export interface DailyRecord {
   type: RecordType
   date: string
   time: string
-  data: any
+  data: Record<string, unknown>
   recordedBy: string
   userId: string
   notes?: string
@@ -38,8 +38,8 @@ export interface DailyRecordHistoryVersion {
   recordId: string
   tenantId: string
   versionNumber: number
-  previousData: any
-  newData: any
+  previousData: Record<string, unknown>
+  newData: Record<string, unknown>
   changedFields: string[]
   changeType: 'UPDATE' | 'DELETE'
   changeReason: string
@@ -83,7 +83,7 @@ class DailyRecordsAPI {
       type?: RecordType
       date?: string
       time?: string
-      data?: any
+      data?: Record<string, unknown>
       recordedBy?: string
       notes?: string
       editReason: string

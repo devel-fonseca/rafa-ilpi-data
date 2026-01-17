@@ -288,21 +288,17 @@ export function ContractNew() {
   const [content, setContent] = useState(DEFAULT_CONTRACT_TEMPLATE)
   const [planId, setPlanId] = useState<string>('ALL')
   const [plans, setPlans] = useState<Plan[]>([])
-  const [loadingPlans, setLoadingPlans] = useState(false)
 
   const createContract = useCreateContract()
 
   // Carregar planos ao montar componente
   useEffect(() => {
     async function loadPlans() {
-      setLoadingPlans(true)
       try {
         const data = await getPlans()
         setPlans(data)
       } catch (error) {
         toast.error('Erro ao carregar planos')
-      } finally {
-        setLoadingPlans(false)
       }
     }
     loadPlans()

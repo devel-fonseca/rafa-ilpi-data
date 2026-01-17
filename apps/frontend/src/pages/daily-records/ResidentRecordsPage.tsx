@@ -88,7 +88,7 @@ export default function ResidentRecordsPage() {
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined)
-  const [viewingRecord, setViewingRecord] = useState<any>(null)
+  const [viewingRecord, setViewingRecord] = useState<Record<string, unknown> | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
   // Buscar residente selecionado
@@ -124,7 +124,7 @@ export default function ResidentRecordsPage() {
 
   // Mutation para criar registro
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       return await api.post('/daily-records', data)
     },
     onSuccess: (response) => {
@@ -137,16 +137,17 @@ export default function ResidentRecordsPage() {
       setActiveModal(null)
       toast.success('Registro adicionado com sucesso!')
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao adicionar registro')
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao adicionar registro')
     },
   })
 
-  const handleCreateRecord = (data: any) => {
+  const handleCreateRecord = (data: Record<string, unknown>) => {
     createMutation.mutate(data)
   }
 
-  const handleViewRecord = (record: any) => {
+  const handleViewRecord = (record: Record<string, unknown>) => {
     setViewingRecord(record)
     setViewModalOpen(true)
   }
@@ -198,7 +199,8 @@ export default function ResidentRecordsPage() {
       toast.success('PDF gerado com sucesso!')
     } catch (error: unknown) {
       console.error('Erro ao gerar PDF:', error)
-      toast.error((error as any)?.message || 'Erro ao gerar PDF')
+      const errorMessage = (error as { message?: string })?.message
+      toast.error(errorMessage || 'Erro ao gerar PDF')
     }
   }
 
@@ -257,34 +259,34 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {allergies && allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {allergies.slice(0, 3).map((allergy: any) => (
-                      <Tooltip key={allergy.id}>
+                    {allergies.slice(0, 3).map((allergy: Record<string, unknown>) => (
+                      <Tooltip key={allergy.id as string}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-danger text-danger cursor-help"
                             >
-                              {allergy.substance}
+                              {allergy.substance as string}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{allergy.substance}</p>
+                            <p className="font-semibold">{allergy.substance as string}</p>
                             {allergy.severity && (
                               <p className="text-xs">
-                                <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity)}
+                                <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity as string | null)}
                               </p>
                             )}
                             {allergy.reaction && (
                               <p className="text-xs">
-                                <span className="font-medium">Reação:</span> {allergy.reaction}
+                                <span className="font-medium">Reação:</span> {allergy.reaction as string}
                               </p>
                             )}
                             {allergy.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações:</span> {allergy.notes}
+                                <span className="font-medium">Observações:</span> {allergy.notes as string}
                               </p>
                             )}
                           </div>
@@ -320,29 +322,29 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {conditions && conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {conditions.slice(0, 3).map((condition: any) => (
-                      <Tooltip key={condition.id}>
+                    {conditions.slice(0, 3).map((condition: Record<string, unknown>) => (
+                      <Tooltip key={condition.id as string}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-warning text-warning cursor-help"
                             >
-                              {condition.condition}
+                              {condition.condition as string}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{condition.condition}</p>
+                            <p className="font-semibold">{condition.condition as string}</p>
                             {condition.icdCode && (
                               <p className="text-xs">
-                                <span className="font-medium">CID:</span> {condition.icdCode}
+                                <span className="font-medium">CID:</span> {condition.icdCode as string}
                               </p>
                             )}
                             {condition.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações Clínicas:</span> {condition.notes}
+                                <span className="font-medium">Observações Clínicas:</span> {condition.notes as string}
                               </p>
                             )}
                           </div>
@@ -378,29 +380,29 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {dietaryRestrictions && dietaryRestrictions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {dietaryRestrictions.slice(0, 3).map((restriction: any) => (
-                      <Tooltip key={restriction.id}>
+                    {dietaryRestrictions.slice(0, 3).map((restriction: Record<string, unknown>) => (
+                      <Tooltip key={restriction.id as string}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-primary text-primary cursor-help"
                             >
-                              {restriction.description}
+                              {restriction.description as string}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{restriction.description}</p>
+                            <p className="font-semibold">{restriction.description as string}</p>
                             {restriction.restrictionType && (
                               <p className="text-xs">
-                                <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType)}
+                                <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType as string)}
                               </p>
                             )}
                             {restriction.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes}
+                                <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes as string}
                               </p>
                             )}
                           </div>
@@ -459,28 +461,28 @@ export default function ResidentRecordsPage() {
                 </div>
               ) : records && records.length > 0 ? (
                 <div className="space-y-2">
-                  {records.map((record: any) => (
+                  {records.map((record: Record<string, unknown>) => (
                     <div
-                      key={record.id}
+                      key={record.id as string}
                       onClick={() => handleViewRecord(record)}
-                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
+                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type as string]?.bgColor || 'bg-muted'}`}
                     >
                       <div className="flex items-start gap-2">
                         {/* Horário */}
-                        <span className="font-semibold text-sm min-w-[40px]">{record.time}</span>
+                        <span className="font-semibold text-sm min-w-[40px]">{record.time as string}</span>
 
                         <div className="flex-1 min-w-0">
                           {/* Badge do Tipo */}
                           <Badge
                             variant="outline"
-                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs mb-1`}
+                            className={`${RECORD_TYPE_LABELS[record.type as string]?.color} text-xs mb-1`}
                           >
-                            {RECORD_TYPE_LABELS[record.type]?.label}
+                            {RECORD_TYPE_LABELS[record.type as string]?.label}
                           </Badge>
 
                           {/* Responsável */}
                           <p className="text-xs text-muted-foreground truncate">
-                            {record.recordedBy}
+                            {record.recordedBy as string}
                           </p>
                         </div>
 
@@ -581,13 +583,13 @@ export default function ResidentRecordsPage() {
                 {(() => {
                   // Buscar último registro de PESO
                   const ultimoPesoRecord = records
-                    ?.filter((r: any) => r.type === 'PESO')
-                    .sort((a: any, b: any) => b.time.localeCompare(a.time))[0]
+                    ?.filter((r: Record<string, unknown>) => r.type === 'PESO')
+                    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.time as string).localeCompare(a.time as string))[0]
 
                   // Buscar último registro de MONITORAMENTO
                   const ultimoMonitoramento = records
-                    ?.filter((r: any) => r.type === 'MONITORAMENTO')
-                    .sort((a: any, b: any) => b.time.localeCompare(a.time))[0]
+                    ?.filter((r: Record<string, unknown>) => r.type === 'MONITORAMENTO')
+                    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.time as string).localeCompare(a.time as string))[0]
 
                   // Processar peso (pode vir como string "66" ou número)
                   let pesoNum: number | null = null
@@ -727,7 +729,7 @@ export default function ResidentRecordsPage() {
 
         {/* Card de Aceitação Alimentar */}
         {records && records.length > 0 && (() => {
-          const registrosAlimentacao = records.filter((r: any) => r.type === 'ALIMENTACAO')
+          const registrosAlimentacao = records.filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO')
 
           if (registrosAlimentacao.length === 0) return null
 
@@ -745,7 +747,7 @@ export default function ResidentRecordsPage() {
 
           // Calcula percentual total baseado em 600 pontos (6 refeições × 100%)
           const totalIngestao = registrosAlimentacao.reduce(
-            (sum: any, r: any) => sum + converteIngestao(r.data?.ingeriu || 'Recusou'),
+            (sum: number, r: Record<string, unknown>) => sum + converteIngestao((r.data as Record<string, unknown>)?.ingeriu as string || 'Recusou'),
             0
           )
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
@@ -755,13 +757,13 @@ export default function ResidentRecordsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 dark:bg-severity-warning/20 rounded-lg shrink-0">
-                    <Utensils className="h-6 w-6 text-orange-500 dark:text-severity-warning/40" />
+                    <Utensils className="h-6 w-6 text-severity-warning dark:text-severity-warning/40" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       Aceitação Alimentar Total
                     </h3>
-                    <p className="text-3xl font-bold text-orange-500 dark:text-severity-warning/40">
+                    <p className="text-3xl font-bold text-severity-warning dark:text-severity-warning/40">
                       {percentualTotal}%
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -778,12 +780,12 @@ export default function ResidentRecordsPage() {
         {records && records.length > 0 && (() => {
           // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
           const totalHidratacao = records
-            .filter((r: any) => r.type === 'HIDRATACAO')
-            .reduce((sum: any, r: any) => sum + (r.data?.volumeMl || 0), 0)
+            .filter((r: Record<string, unknown>) => r.type === 'HIDRATACAO')
+            .reduce((sum: number, r: Record<string, unknown>) => sum + ((r.data as Record<string, unknown>)?.volumeMl as number || 0), 0)
 
           const totalAlimentacao = records
-            .filter((r: any) => r.type === 'ALIMENTACAO' && r.data?.volumeMl)
-            .reduce((sum: any, r: any) => sum + (r.data?.volumeMl || 0), 0)
+            .filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO' && (r.data as Record<string, unknown>)?.volumeMl)
+            .reduce((sum: number, r: Record<string, unknown>) => sum + ((r.data as Record<string, unknown>)?.volumeMl as number || 0), 0)
 
           const totalGeral = totalHidratacao + totalAlimentacao
 
@@ -844,7 +846,7 @@ export default function ResidentRecordsPage() {
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
-          existingRecords={records?.filter((r: any) => r.type === 'ALIMENTACAO') || []}
+          existingRecords={records?.filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO') || []}
           defaultMealType={selectedMealType}
         />
       )}

@@ -20,16 +20,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
 
-  // Detectar cargo e renderizar dashboard específico
-  if (user?.profile?.positionCode === 'CAREGIVER') {
-    return <CaregiverDashboard />
-  }
-
-  if (user?.profile?.positionCode === 'ADMINISTRATOR') {
-    return <AdminDashboard />
-  }
-
-  // Buscar estatísticas reais
+  // Buscar estatísticas reais (hooks devem ser chamados antes de early returns)
   const { data: residentsStats } = useResidentStats()
 
   const { data: prescriptionsStats } = useQuery({
@@ -43,6 +34,15 @@ export default function Dashboard() {
   // Buscar registros de hoje
   const today = format(new Date(), 'yyyy-MM-dd')
   const { data: recordsToday = [] } = useDailyRecordsByDate(today)
+
+  // Detectar cargo e renderizar dashboard específico
+  if (user?.profile?.positionCode === 'CAREGIVER') {
+    return <CaregiverDashboard />
+  }
+
+  if (user?.profile?.positionCode === 'ADMINISTRATOR') {
+    return <AdminDashboard />
+  }
 
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0

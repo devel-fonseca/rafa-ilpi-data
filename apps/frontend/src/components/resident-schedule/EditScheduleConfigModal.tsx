@@ -171,9 +171,10 @@ export function EditScheduleConfigModal({
 
       toast.success('Configuração atualizada com sucesso');
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast.error(
-        error.response?.data?.message || 'Erro ao atualizar configuração'
+        errorResponse?.data?.message || 'Erro ao atualizar configuração'
       );
     }
   };

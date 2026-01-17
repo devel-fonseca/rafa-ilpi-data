@@ -12,7 +12,7 @@ interface EmailTemplate {
   key: string;
   name: string;
   subject: string;
-  jsonContent: any;
+  jsonContent: Record<string, unknown>;
   variables: Array<{
     name: string;
     type: string;
@@ -25,7 +25,7 @@ export default function EmailTemplatePreview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [previewHtml, setPreviewHtml] = useState<string>('');
-  const [mockData, setMockData] = useState<Record<string, any>>({});
+  const [mockData, setMockData] = useState<Record<string, unknown>>({});
 
   const { data: template, isLoading } = useQuery({
     queryKey: ['email-template', id],
@@ -48,8 +48,8 @@ export default function EmailTemplatePreview() {
 
   const generateMockData = (
     variables: EmailTemplate['variables']
-  ): Record<string, any> => {
-    const mock: Record<string, any> = {};
+  ): Record<string, unknown> => {
+    const mock: Record<string, unknown> = {};
 
     variables.forEach((variable) => {
       switch (variable.type) {
@@ -100,7 +100,7 @@ export default function EmailTemplatePreview() {
     return mock;
   };
 
-  const generatePreview = async (jsonContent: any, variables: Record<string, any>) => {
+  const generatePreview = async (jsonContent: Record<string, unknown>, variables: Record<string, unknown>) => {
     try {
       const response = await api.post('/email-templates/preview', {
         jsonContent,

@@ -173,7 +173,7 @@ export default function MessagesListPage() {
       {/* Tabs: Inbox vs Sent */}
       <Section title="Mensagens">
         <Card>
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'inbox' | 'sent')}>
           <CardHeader>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="inbox">

@@ -61,7 +61,7 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
         },
       );
 
-      const dataPoint: any = {
+      const dataPoint: Record<string, unknown> = {
         month: monthLabel,
         fullDate: `${item.year}-${String(item.month).padStart(2, '0')}`,
       };
@@ -79,12 +79,25 @@ export function RdcTrendChart({ data, isLoading = false }: RdcTrendChartProps) {
   }, [data]);
 
   // Tooltip customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipPayloadEntry {
+    dataKey: string
+    color: string
+    value: number
+    [key: string]: unknown
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayloadEntry[]
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border border-border rounded-lg shadow-lg p-4">
           <p className="font-semibold text-sm mb-2">{label}</p>
-          {payload.map((entry: any) => (
+          {payload.map((entry: TooltipPayloadEntry) => (
             <div key={entry.dataKey} className="flex items-center gap-2 text-xs mb-1">
               <div
                 className="w-3 h-3 rounded-full"

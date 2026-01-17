@@ -98,8 +98,8 @@ export interface PopHistory {
   popId: string
   action: PopAction
   reason: string | null
-  previousData: any
-  newData: any
+  previousData: Record<string, unknown>
+  newData: Record<string, unknown>
   changedFields: string[]
   changedBy: string
   changedByName: string

@@ -12,7 +12,7 @@ interface ParsedNode {
   type: string
   content?: string
   children?: ParsedNode[]
-  attrs?: Record<string, any>
+  attrs?: Record<string, unknown>
 }
 
 /**

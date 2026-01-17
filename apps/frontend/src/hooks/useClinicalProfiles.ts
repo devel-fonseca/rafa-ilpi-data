@@ -51,8 +51,9 @@ export function useCreateClinicalProfile() {
 
       toast.success('Perfil clínico criado com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao criar perfil clínico'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao criar perfil clínico'
       toast.error(message)
     },
   })
@@ -80,8 +81,9 @@ export function useUpdateClinicalProfile() {
 
       toast.success('Perfil clínico atualizado com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar perfil clínico'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao atualizar perfil clínico'
       toast.error(message)
     },
   })
@@ -102,8 +104,9 @@ export function useDeleteClinicalProfile() {
 
       toast.success('Perfil clínico excluído com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir perfil clínico'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir perfil clínico'
       toast.error(message)
     },
   })

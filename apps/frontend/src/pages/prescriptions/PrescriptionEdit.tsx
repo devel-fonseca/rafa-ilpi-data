@@ -1,24 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft,
   Save,
   FileText,
-  User,
-  Pill,
   AlertCircle,
   Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { usePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
+import type { Medication } from '@/api/medications.api'
+import type { SOSMedication } from '@/api/sos-medications.api'
 import { getSignedFileUrl } from '@/services/upload'
 import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
-import { getErrorMessage } from '@/utils/errorHandling'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
@@ -308,7 +306,7 @@ export default function PrescriptionEdit() {
         <Section title={`Medicamentos Contínuos (${prescriptionData.medications.length})`}>
           <Card>
             <CardContent className="pt-6 space-y-4">
-            {prescriptionData.medications.map((medication: any, index: number) => (
+            {prescriptionData.medications.map((medication: Medication, index: number) => (
               <div
                 key={medication.id}
                 className="p-4 border rounded-lg bg-muted/50 space-y-3"
@@ -394,7 +392,7 @@ export default function PrescriptionEdit() {
         <Section title={`Medicamentos SOS (${prescriptionData.sosMedications.length})`}>
           <Card>
             <CardContent className="pt-6 space-y-4">
-            {prescriptionData.sosMedications.map((sos: any, index: number) => (
+            {prescriptionData.sosMedications.map((sos: SOSMedication, index: number) => (
               <div
                 key={sos.id}
                 className="p-4 border border-severity-warning/30 rounded-lg bg-severity-warning/5 space-y-3"

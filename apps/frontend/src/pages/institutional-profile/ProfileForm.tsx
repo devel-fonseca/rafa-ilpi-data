@@ -89,8 +89,8 @@ export function ProfileForm() {
         legalNature: profile?.legalNature,
         tradeName: profile?.tradeName || '',
         cnesCode: profile?.cnesCode || '',
-        capacityDeclared: profile?.capacityDeclared || ('' as any),
-        capacityLicensed: profile?.capacityLicensed || ('' as any),
+        capacityDeclared: profile?.capacityDeclared || ('' as unknown as number),
+        capacityLicensed: profile?.capacityLicensed || ('' as unknown as number),
         websiteUrl: profile?.websiteUrl || '',
         foundedAt: profile?.foundedAt ? profile.foundedAt.split('T')[0] : '',
         mission: profile?.mission || '',
@@ -157,10 +157,11 @@ export function ProfileForm() {
 
           // Limpar arquivo selecionado
           setLogoFile(null)
-        } catch (logoError: any) {
+        } catch (logoError: unknown) {
+          const errorResponse = (logoError as { response?: { data?: { message?: string } } }).response
           toast({
             title: 'Erro ao salvar logo',
-            description: logoError.response?.data?.message || 'Erro ao fazer upload do logo',
+            description: errorResponse?.data?.message || 'Erro ao fazer upload do logo',
             variant: 'destructive',
           })
           // Reverter preview
@@ -180,8 +181,8 @@ export function ProfileForm() {
         'addressComplement', 'addressDistrict', 'addressCity', 'addressState'
       ]
 
-      const profileData: any = {}
-      const tenantData: any = {}
+      const profileData: Record<string, unknown> = {}
+      const tenantData: Record<string, unknown> = {}
 
       Object.entries(data).forEach(([key, value]) => {
         const processedValue = value === '' ? undefined : value
@@ -208,10 +209,11 @@ export function ProfileForm() {
         title: 'Sucesso',
         description: 'Perfil institucional atualizado com sucesso',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao atualizar perfil',
+        description: errorResponse?.data?.message || 'Erro ao atualizar perfil',
         variant: 'destructive',
       })
     }

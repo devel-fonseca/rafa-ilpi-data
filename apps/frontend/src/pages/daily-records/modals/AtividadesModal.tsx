@@ -30,7 +30,7 @@ type AtividadesFormData = z.infer<typeof atividadesSchema>
 interface AtividadesModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: AtividadesFormData) => void
   residentId: string
   residentName: string
   date: string

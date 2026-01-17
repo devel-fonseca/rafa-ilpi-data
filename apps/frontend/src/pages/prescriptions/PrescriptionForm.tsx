@@ -18,7 +18,6 @@ import { Step2PrescriberInfo } from './form/Step2PrescriberInfo'
 import { Step3Medications } from './form/Step3Medications'
 import { Step4SOSMedications } from './form/Step4SOSMedications'
 import { Step5Review } from './form/Step5Review'
-import { getErrorMessage } from '@/utils/errorHandling'
 
 const STEPS = [
   { id: 1, title: 'Residente', description: 'Dados do residente' },
@@ -97,7 +96,7 @@ export default function PrescriptionForm() {
   const handleNext = async () => {
     // Validar step atual antes de avançar
     const fieldsToValidate = getFieldsForStep(currentStep)
-    const isValid = await methods.trigger(fieldsToValidate as any)
+    const isValid = await methods.trigger(fieldsToValidate as string[])
 
     if (isValid) {
       if (currentStep < STEPS.length - 1) {

@@ -19,8 +19,35 @@ import { RegisterDto } from './dto/register.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ChangeType, AccessAction, Prisma } from '@prisma/client';
+import { ChangeType, AccessAction, Prisma, PrismaClient } from '@prisma/client';
 
+/**
+ * AuthService - Serviço de Autenticação e Autorização
+ *
+ * ⚠️ EXCEÇÃO ARQUITETURAL: Este service NÃO usa TenantContextService
+ *
+ * JUSTIFICATIVA:
+ * - TenantContext é inicializado APÓS validação do JWT (no JwtAuthGuard)
+ * - AuthService CRIA o JWT (login/register) → contexto ainda não existe
+ * - AuthService VALIDA tokens expirados → contexto pode estar inválido
+ * - AuthService busca users cross-tenant → precisa iterar múltiplos schemas
+ *
+ * PADRÃO UTILIZADO:
+ * 1. Métodos PRÉ-autenticação (login, refresh, logout):
+ *    → Usam lógica manual de roteamento multi-schema
+ *    → Buscam tenantId do payload e chamam getTenantClient()
+ *
+ * 2. Métodos PÓS-autenticação (changePassword, etc):
+ *    → PODEM usar TenantContext (context já inicializado pelo guard)
+ *    → Ainda usam lógica manual por consistência com (1)
+ *
+ * TRADE-OFF ACEITO:
+ * - Duplicação de lógica de roteamento (~50 linhas extras)
+ * - Ganho: Código explícito, auditável, sem dependências circulares
+ *
+ * @see TenantContextService - Usado por 95% dos outros services
+ * @see JwtAuthGuard - Responsável por inicializar TenantContext
+ */
 @Injectable()
 export class AuthService {
   constructor(
@@ -276,7 +303,7 @@ export class AuthService {
       const tokens = await this.generateTokens(user);
 
       // Salvar refresh token no banco
-      await this.saveRefreshToken(user.id, tokens.refreshToken, ipAddress, userAgent);
+      await this.saveRefreshToken(user.id, user.tenantId, tokens.refreshToken, ipAddress, userAgent);
 
       // Registrar log de acesso (LOGIN bem-sucedido)
       if (user.tenantId) {
@@ -395,7 +422,7 @@ export class AuthService {
     const tokens = await this.generateTokens(user);
 
     // Salvar refresh token no banco
-    await this.saveRefreshToken(user.id, tokens.refreshToken, ipAddress, userAgent);
+    await this.saveRefreshToken(user.id, user.tenantId, tokens.refreshToken, ipAddress, userAgent);
 
     // Registrar log de acesso (LOGIN bem-sucedido)
     if (user.tenantId) {
@@ -429,14 +456,68 @@ export class AuthService {
 
   /**
    * Renovar access token usando refresh token
+   *
+   * ⚠️ LÓGICA MANUAL DE MULTI-TENANCY (não usa TenantContext)
+   *
+   * ARQUITETURA MULTI-SCHEMA DISCOVERY:
+   * Busca o refreshToken em TODOS os schemas (public + todos os tenants)
+   * porque não sabemos em qual schema o token está armazenado.
+   *
+   * JUSTIFICATIVA:
+   * - Método é chamado COM token expirado (contexto pode estar inválido)
+   * - Não temos tenantId no payload da requisição (apenas o token)
+   * - Precisa buscar em múltiplos schemas para encontrar o token
+   *
+   * PERFORMANCE:
+   * - Best case: O(1) - Token está em public (SUPERADMIN)
+   * - Worst case: O(n) - Itera todos os N tenants até encontrar
+   * - Otimização futura: Cache Redis (token → schemaName)
+   *
+   * @param refreshToken - Refresh token JWT a ser validado
+   * @param ipAddress - IP da requisição (opcional, para auditoria)
+   * @param userAgent - User-Agent do navegador (opcional)
+   * @returns Novo par de tokens (accessToken + refreshToken)
    */
   async refresh(refreshToken: string, ipAddress?: string, userAgent?: string) {
     try {
-      // Verificar se refresh token existe no banco
-      const storedToken = await this.prisma.refreshToken.findUnique({
+      // ═══════════════════════════════════════════════════════════════════════
+      // BUSCA MULTI-SCHEMA (Exceção Arquitetural)
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // STEP 1: Tentar buscar em public schema (SUPERADMIN)
+      // eslint-disable-next-line no-restricted-syntax
+      let storedToken = await this.prisma.refreshToken.findUnique({
         where: { token: refreshToken },
         include: { user: true },
       });
+
+      let tenantSchemaName: string | null = null;
+
+      // STEP 2: Se não encontrou em public, buscar em todos os tenant schemas
+      if (!storedToken) {
+        const tenants = await this.prisma.tenant.findMany({
+          select: { id: true, schemaName: true },
+        });
+
+        for (const tenant of tenants) {
+          try {
+            const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+            const tokenInTenant = await tenantClient.refreshToken.findUnique({
+              where: { token: refreshToken },
+              include: { user: true },
+            });
+
+            if (tokenInTenant) {
+              storedToken = tokenInTenant;
+              tenantSchemaName = tenant.schemaName;
+              break; // Encontrou, parar de procurar
+            }
+          } catch (error) {
+            // Schema não existe ou erro - continuar procurando
+            console.error(`Erro ao buscar token no tenant ${tenant.schemaName}:`, error);
+          }
+        }
+      }
 
       if (!storedToken) {
         throw new UnauthorizedException('Refresh token inválido');
@@ -444,10 +525,17 @@ export class AuthService {
 
       // Verificar se token expirou
       if (storedToken.expiresAt < new Date()) {
-        // Remover token expirado
-        await this.prisma.refreshToken.delete({
-          where: { id: storedToken.id },
-        });
+        // Remover token expirado do schema correto
+        if (tenantSchemaName) {
+          const tenantClient = this.prisma.getTenantClient(tenantSchemaName);
+          await tenantClient.refreshToken.delete({
+            where: { id: storedToken.id },
+          });
+        } else {
+          await this.prisma.refreshToken.delete({
+            where: { id: storedToken.id },
+          });
+        }
         throw new UnauthorizedException('Refresh token expirado');
       }
 
@@ -459,34 +547,60 @@ export class AuthService {
       // Gerar novos tokens
       const tokens = await this.generateTokens(storedToken.user);
 
-      // Remover token antigo e salvar novo
-      await this.prisma.refreshToken.delete({
-        where: { id: storedToken.id },
-      });
+      // Remover token antigo do schema correto
+      if (tenantSchemaName) {
+        const tenantClient = this.prisma.getTenantClient(tenantSchemaName);
+        await tenantClient.refreshToken.delete({
+          where: { id: storedToken.id },
+        });
+
+        // Cleanup: remover tokens expirados deste usuário (evita acúmulo)
+        tenantClient.refreshToken
+          .deleteMany({
+            where: {
+              userId: storedToken.user.id,
+              expiresAt: {
+                lt: new Date(),
+              },
+            },
+          })
+          .catch((error) => {
+            console.error(
+              '[REFRESH] Erro ao limpar tokens expirados:',
+              error.message,
+            );
+          });
+      } else {
+        await this.prisma.refreshToken.delete({
+          where: { id: storedToken.id },
+        });
+
+        // Cleanup para SUPERADMIN
+        this.prisma.refreshToken
+          .deleteMany({
+            where: {
+              userId: storedToken.user.id,
+              expiresAt: {
+                lt: new Date(),
+              },
+            },
+          })
+          .catch((error) => {
+            console.error(
+              '[REFRESH] Erro ao limpar tokens expirados:',
+              error.message,
+            );
+          });
+      }
+
+      // Salvar novo refresh token
       await this.saveRefreshToken(
         storedToken.user.id,
+        storedToken.user.tenantId,
         tokens.refreshToken,
         ipAddress || storedToken.ipAddress || undefined,
         userAgent || storedToken.userAgent || undefined,
       );
-
-      // Cleanup: remover tokens expirados deste usuário (evita acúmulo)
-      // Executar em background (não bloquear o refresh)
-      this.prisma.refreshToken
-        .deleteMany({
-          where: {
-            userId: storedToken.user.id,
-            expiresAt: {
-              lt: new Date(),
-            },
-          },
-        })
-        .catch((error) => {
-          console.error(
-            '[REFRESH] Erro ao limpar tokens expirados:',
-            error.message,
-          );
-        });
 
       return tokens;
     } catch (_error) {
@@ -538,9 +652,24 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
+    // Obter tenant client correto (se for tenant user)
+    const tenantId = user.tenantId;
+    let targetClient: PrismaService | PrismaClient = this.prisma; // Default: public schema (SUPERADMIN)
+
+    if (tenantId) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { schemaName: true },
+      });
+
+      if (tenant) {
+        targetClient = this.prisma.getTenantClient(tenant.schemaName);
+      }
+    }
+
     // Se refreshToken foi fornecido, deletar apenas essa sessão específica
     if (refreshToken) {
-      const deletedToken = await this.prisma.refreshToken.deleteMany({
+      const deletedToken = await targetClient.refreshToken.deleteMany({
         where: {
           userId,
           token: refreshToken,
@@ -554,7 +683,7 @@ export class AuthService {
       }
     } else {
       // Comportamento antigo: remover TODOS os refresh tokens do usuário
-      await this.prisma.refreshToken.deleteMany({
+      await targetClient.refreshToken.deleteMany({
         where: { userId },
       });
     }
@@ -581,13 +710,45 @@ export class AuthService {
    * Logout de sessão expirada (endpoint público)
    * Aceita apenas refreshToken, busca o userId associado, deleta o token e registra o log.
    * Usado quando accessToken expirou mas refreshToken ainda é válido.
+   *
+   * ARQUITETURA MULTI-TENANT:
+   * Busca o refreshToken em TODOS os schemas (public + tenants)
    */
   async logoutExpired(refreshToken: string, ipAddress?: string, userAgent?: string) {
-    // Buscar refresh token no banco para obter userId e tenantId
-    const storedToken = await this.prisma.refreshToken.findUnique({
+    // STEP 1: Tentar buscar em public schema (SUPERADMIN)
+    // eslint-disable-next-line no-restricted-syntax
+    let storedToken = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: { select: { id: true, tenantId: true } } },
     });
+
+    let tenantSchemaName: string | null = null;
+
+    // STEP 2: Se não encontrou em public, buscar em todos os tenant schemas
+    if (!storedToken) {
+      const tenants = await this.prisma.tenant.findMany({
+        select: { id: true, schemaName: true },
+      });
+
+      for (const tenant of tenants) {
+        try {
+          const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+          const tokenInTenant = await tenantClient.refreshToken.findUnique({
+            where: { token: refreshToken },
+            include: { user: { select: { id: true, tenantId: true } } },
+          });
+
+          if (tokenInTenant) {
+            storedToken = tokenInTenant;
+            tenantSchemaName = tenant.schemaName;
+            break; // Encontrou, parar de procurar
+          }
+        } catch (error) {
+          // Schema não existe ou erro - continuar procurando
+          console.error(`Erro ao buscar token no tenant ${tenant.schemaName}:`, error);
+        }
+      }
+    }
 
     if (!storedToken) {
       // Token não encontrado ou já foi revogado
@@ -599,10 +760,17 @@ export class AuthService {
     const userId = storedToken.user.id;
     const tenantId = storedToken.user.tenantId;
 
-    // Deletar o refresh token (revogar sessão)
-    await this.prisma.refreshToken.delete({
-      where: { id: storedToken.id },
-    });
+    // Deletar o refresh token do schema correto
+    if (tenantSchemaName) {
+      const tenantClient = this.prisma.getTenantClient(tenantSchemaName);
+      await tenantClient.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+    } else {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+    }
 
     // Registrar log de acesso (LOGOUT com reason SESSION_EXPIRED)
     if (tenantId) {
@@ -905,9 +1073,26 @@ export class AuthService {
 
   /**
    * Salvar refresh token no banco
+   *
+   * ⚠️ LÓGICA MANUAL DE MULTI-TENANCY (não usa TenantContext)
+   *
+   * IMPORTANTE: Salva no schema correto baseado em tenantId:
+   * - tenantId = null → SUPERADMIN → public.refresh_tokens
+   * - tenantId != null → Tenant user → tenant_xyz.refresh_tokens
+   *
+   * JUSTIFICATIVA:
+   * Este método é chamado durante login/refresh, ANTES do TenantContext
+   * ser inicializado pelo JwtAuthGuard. Não há contexto disponível ainda.
+   *
+   * @param userId - ID do usuário (UUID)
+   * @param tenantId - ID do tenant (null = SUPERADMIN, UUID = tenant user)
+   * @param token - Refresh token JWT assinado
+   * @param ipAddress - IP da requisição (opcional, para auditoria)
+   * @param userAgent - User-Agent do navegador (opcional, para detecção de device)
    */
   private async saveRefreshToken(
     userId: string,
+    tenantId: string | null,
     token: string,
     ipAddress?: string,
     userAgent?: string,
@@ -919,17 +1104,53 @@ export class AuthService {
 
     const device = this.parseUserAgent(userAgent);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        token,
-        expiresAt,
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
-        device: device || null,
-        lastActivityAt: new Date(),
-      },
-    });
+    // ═══════════════════════════════════════════════════════════════════════
+    // ROTEAMENTO MANUAL DE SCHEMA (Exceção Arquitetural)
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUPERADMIN (tenantId=null) → public.refresh_tokens
+    // Tenant User (tenantId!=null) → tenant_xyz.refresh_tokens
+    //
+    // NOTA: Não usa TenantContext porque este método é chamado DURANTE
+    // o processo de autenticação, ANTES do contexto ser inicializado.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    if (!tenantId) {
+      // CASO 1: SUPERADMIN → Salvar em public schema
+      await this.prisma.refreshToken.create({
+        data: {
+          userId,
+          token,
+          expiresAt,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          device: device || null,
+          lastActivityAt: new Date(),
+        },
+      });
+    } else {
+      // CASO 2: Tenant User → Salvar no schema do tenant
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { schemaName: true },
+      });
+
+      if (!tenant) {
+        throw new Error(`Tenant ${tenantId} não encontrado ao salvar refresh token`);
+      }
+
+      const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+      await tenantClient.refreshToken.create({
+        data: {
+          userId,
+          token,
+          expiresAt,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          device: device || null,
+          lastActivityAt: new Date(),
+        },
+      });
+    }
   }
 
   /**
@@ -973,6 +1194,28 @@ export class AuthService {
 
   /**
    * Registrar log de acesso (LOGIN, LOGOUT, PASSWORD_CHANGED, etc)
+   *
+   * ⚠️ LÓGICA MANUAL DE MULTI-TENANCY (não usa TenantContext)
+   *
+   * IMPORTANTE: Salva no schema do tenant (tenant_xyz.access_logs)
+   *
+   * JUSTIFICATIVA:
+   * Chamado durante login/logout, ANTES do TenantContext ser inicializado.
+   * Precisa buscar o tenant manualmente para obter o schema correto.
+   *
+   * ARQUITETURA:
+   * - AccessLogs são SEMPRE do tenant (nunca em public)
+   * - SUPERADMIN não tem logs de acesso (tenantId sempre presente)
+   * - Logs são append-only (nunca deletados, apenas arquivados)
+   *
+   * @param userId - ID do usuário (UUID)
+   * @param tenantId - ID do tenant (sempre presente, nunca null)
+   * @param action - Tipo de ação (LOGIN | LOGOUT | PASSWORD_CHANGED | SESSION_REVOKED)
+   * @param status - Resultado (SUCCESS | FAILED)
+   * @param ipAddress - IP da requisição (para auditoria de segurança)
+   * @param userAgent - User-Agent do navegador (para detecção de device)
+   * @param reason - Motivo de falha (ex: "INVALID_PASSWORD", "SESSION_EXPIRED")
+   * @param metadata - Dados adicionais em JSON (opcional)
    */
   private async logAccess(
     userId: string,
@@ -987,7 +1230,29 @@ export class AuthService {
     try {
       const device = this.parseUserAgent(userAgent);
 
-      await this.prisma.accessLog.create({
+      // ═══════════════════════════════════════════════════════════════════════
+      // ROTEAMENTO MANUAL DE SCHEMA (Exceção Arquitetural)
+      // ═══════════════════════════════════════════════════════════════════════
+      // AccessLogs são SEMPRE salvos no schema do tenant (tenant_xyz.access_logs)
+      //
+      // NOTA: Não usa TenantContext porque este método é chamado DURANTE
+      // login/logout, ANTES do contexto ser inicializado pelo JwtAuthGuard.
+      //
+      // SEGURANÇA: Logs são append-only e isolados por tenant para compliance.
+      // ═══════════════════════════════════════════════════════════════════════
+
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { schemaName: true },
+      });
+
+      if (!tenant) {
+        console.error(`Tenant ${tenantId} não encontrado ao registrar log de acesso`);
+        return;
+      }
+
+      const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+      await tenantClient.accessLog.create({
         data: {
           userId,
           tenantId,

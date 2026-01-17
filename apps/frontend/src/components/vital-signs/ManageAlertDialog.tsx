@@ -432,7 +432,7 @@ export function ManageAlertDialog({
                   {alert.clinicalNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="text-xs text-primary/90 dark:text-blue-200"
+                      className="text-xs text-primary/90"
                     >
                       • {note.profession} -{' '}
                       {formatDateTimeSafe(note.noteDate)}

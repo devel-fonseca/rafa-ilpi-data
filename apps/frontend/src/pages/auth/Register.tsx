@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Eye, EyeOff, Loader2, Check, AlertCircle } from 'lucide-react'
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
 import { Checkbox } from '../../components/ui/checkbox'
-import { Badge } from '../../components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +40,25 @@ interface Plan {
   isActive?: boolean
 }
 
+interface ContractWithContent {
+  id: string
+  version: string
+  planId: string | null
+  status: 'DRAFT' | 'ACTIVE' | 'REVOKED'
+  effectiveFrom: string | null
+  title: string
+  content: string
+  contentHash: string
+  createdBy: string
+  createdAt: string
+}
+
+interface PrivacyPolicyResponse {
+  version: string
+  effectiveDate: string
+  content: string
+}
+
 export default function Register() {
   const navigate = useNavigate()
   const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore()
@@ -50,9 +68,9 @@ export default function Register() {
   const [loadingCNPJ, setLoadingCNPJ] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
-  const [currentContract, setCurrentContract] = useState<any>(null)
+  const [currentContract, setCurrentContract] = useState<ContractWithContent | null>(null)
   const [loadingContract, setLoadingContract] = useState(false)
-  const [privacyPolicy, setPrivacyPolicy] = useState<any>(null)
+  const [privacyPolicy, setPrivacyPolicy] = useState<PrivacyPolicyResponse | null>(null)
   const [loadingPrivacyPolicy, setLoadingPrivacyPolicy] = useState(false)
 
   // Timers de leitura
@@ -86,7 +104,7 @@ export default function Register() {
     // Plan & Billing
     planId: '',
     billingCycle: 'MONTHLY' as 'MONTHLY' | 'ANNUAL',
-    paymentMethod: '' as '' | 'BOLETO' | 'CREDIT_CARD',
+    paymentMethod: '' as '' | 'PIX' | 'BOLETO' | 'CREDIT_CARD',
 
     // LGPD Declarations (Step 4)
     lgpdIsDataController: false,
@@ -325,8 +343,8 @@ export default function Register() {
         break
 
       case 5: // Privacy Policy
-        if (privacyReadTime < 30) {
-          newErrors.privacyPolicy = 'Você deve ler a Política de Privacidade por pelo menos 30 segundos antes de aceitar'
+        if (privacyReadTime < 3) {
+          newErrors.privacyPolicy = 'Você deve ler a Política de Privacidade por pelo menos 3 segundos antes de aceitar'
         }
         if (!formData.privacyPolicyAccepted) {
           newErrors.privacyPolicyAccepted = 'Você deve aceitar a Política de Privacidade para continuar'
@@ -334,8 +352,8 @@ export default function Register() {
         break
 
       case 6: // Contract
-        if (contractReadTime < 60) {
-          newErrors.contract = 'Você deve ler o Contrato por pelo menos 60 segundos antes de aceitar'
+        if (contractReadTime < 3) {
+          newErrors.contract = 'Você deve ler o Contrato por pelo menos 3 segundos antes de aceitar'
         }
         if (!formData.contractAccepted) {
           newErrors.contractAccepted = 'Você deve aceitar o contrato para continuar'
@@ -424,11 +442,14 @@ export default function Register() {
       const acceptanceToken = acceptanceResponse.data.acceptanceToken
 
       // Enviar dados de registro com token
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { adminPasswordConfirm, addressZip, contractId, contractAccepted, ...rest } = formData
       const dataToSubmit = {
         ...rest,
         addressZipCode: addressZip,
-        acceptanceToken
+        acceptanceToken,
+        // Garantir que paymentMethod tem valor padrão se vazio
+        paymentMethod: rest.paymentMethod || 'PIX'
       }
 
       // Salvar dados necessários antes de fazer logout
@@ -1132,13 +1153,13 @@ export default function Register() {
       {/* Timer de leitura */}
       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
         <span className="text-sm font-medium text-primary/95">
-          {privacyReadTime >= 30 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Política de Privacidade...'}
+          {privacyReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Política de Privacidade...'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          privacyReadTime >= 30 ? "text-success" : "text-primary"
+          privacyReadTime >= 3 ? "text-success" : "text-primary"
         )}>
-          {privacyReadTime}s / 30s
+          {privacyReadTime}s / 3s
         </span>
       </div>
 
@@ -1164,7 +1185,7 @@ export default function Register() {
         <Checkbox
           id="privacyPolicyAccepted"
           checked={formData.privacyPolicyAccepted}
-          disabled={privacyReadTime < 30}
+          disabled={privacyReadTime < 3}
           onCheckedChange={(checked) =>
             setFormData(prev => ({ ...prev, privacyPolicyAccepted: !!checked }))
           }
@@ -1173,7 +1194,7 @@ export default function Register() {
           htmlFor="privacyPolicyAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            privacyReadTime < 30 && "text-muted-foreground/70 cursor-not-allowed"
+            privacyReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito a Política de Privacidade da plataforma RAFA ILPI
@@ -1208,13 +1229,13 @@ export default function Register() {
       {/* Timer de leitura */}
       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
         <span className="text-sm font-medium text-primary/95">
-          {contractReadTime >= 60 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Contrato de Serviço...'}
+          {contractReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Contrato de Serviço...'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          contractReadTime >= 60 ? "text-success" : "text-primary"
+          contractReadTime >= 3 ? "text-success" : "text-primary"
         )}>
-          {contractReadTime}s / 60s
+          {contractReadTime}s / 3s
         </span>
       </div>
 
@@ -1238,7 +1259,7 @@ export default function Register() {
         <Checkbox
           id="contractAccepted"
           checked={formData.contractAccepted}
-          disabled={contractReadTime < 60}
+          disabled={contractReadTime < 3}
           onCheckedChange={(checked) =>
             setFormData(prev => ({ ...prev, contractAccepted: !!checked }))
           }
@@ -1247,7 +1268,7 @@ export default function Register() {
           htmlFor="contractAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            contractReadTime < 60 && "text-muted-foreground/70 cursor-not-allowed"
+            contractReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
           Li e aceito os termos do contrato de prestação de serviços da plataforma RAFA ILPI
@@ -1303,8 +1324,26 @@ export default function Register() {
 
         <RadioGroup
           value={formData.paymentMethod}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'BOLETO' | 'CREDIT_CARD' }))}
+          onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'PIX' | 'BOLETO' | 'CREDIT_CARD' }))}
         >
+          {/* PIX */}
+          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
+            <RadioGroupItem value="PIX" id="pix" />
+            <Label htmlFor="pix" className="flex-1 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+                  <span className="text-2xl">⚡</span>
+                </div>
+                <div>
+                  <p className="font-medium">PIX</p>
+                  <p className="text-sm text-muted-foreground">
+                    Confirmação instantânea
+                  </p>
+                </div>
+              </div>
+            </Label>
+          </div>
+
           {/* Boleto */}
           <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
             <RadioGroupItem value="BOLETO" id="boleto" />

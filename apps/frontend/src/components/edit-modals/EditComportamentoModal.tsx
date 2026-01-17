@@ -28,11 +28,17 @@ const editComportamentoSchema = z.object({
 
 type EditComportamentoFormData = z.infer<typeof editComportamentoSchema>
 
+interface ComportamentoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditComportamentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: ComportamentoRecord
   isUpdating?: boolean
 }
 

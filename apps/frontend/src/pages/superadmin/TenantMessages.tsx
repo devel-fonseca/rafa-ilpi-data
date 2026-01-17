@@ -85,8 +85,9 @@ export default function TenantMessages() {
       queryClient.invalidateQueries({ queryKey: ['tenant-messages'] });
       setDeleteId(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao deletar mensagem');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao deletar mensagem');
     },
   });
 
@@ -99,8 +100,9 @@ export default function TenantMessages() {
       queryClient.invalidateQueries({ queryKey: ['tenant-messages'] });
       setSendId(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao enviar mensagem');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao enviar mensagem');
     },
   });
 

@@ -38,7 +38,7 @@ type HumorFormData = z.infer<typeof humorSchema>
 interface HumorModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: HumorFormData) => void
   residentId: string
   residentName: string
   date: string

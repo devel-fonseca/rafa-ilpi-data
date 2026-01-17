@@ -103,8 +103,9 @@ export default function TenantMessageForm() {
       queryClient.invalidateQueries({ queryKey: ['tenant-messages'] });
       navigate('/superadmin/tenant-messages');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao criar mensagem');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao criar mensagem');
     },
   });
 
@@ -123,8 +124,9 @@ export default function TenantMessageForm() {
       queryClient.invalidateQueries({ queryKey: ['tenant-message', id] });
       navigate('/superadmin/tenant-messages');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao atualizar mensagem');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao atualizar mensagem');
     },
   });
 
@@ -279,8 +281,8 @@ export default function TenantMessageForm() {
               </Label>
               <Select
                 value={formData.recipientFilter}
-                onValueChange={(value: any) =>
-                  setFormData({ ...formData, recipientFilter: value, specificTenantIds: [] })
+                onValueChange={(value) =>
+                  setFormData({ ...formData, recipientFilter: value as TenantMessageFormData['recipientFilter'], specificTenantIds: [] })
                 }
               >
                 <SelectTrigger>

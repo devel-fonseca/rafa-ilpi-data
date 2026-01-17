@@ -37,11 +37,17 @@ const editSonoSchema = z.object({
 
 type EditSonoFormData = z.infer<typeof editSonoSchema>
 
+interface SonoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditSonoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: SonoRecord
   isUpdating?: boolean
 }
 

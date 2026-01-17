@@ -103,10 +103,11 @@ export default function MyProfile() {
         setUploadingPhoto(true)
         try {
           photoUrl = await uploadFile(photoFile, 'user-photos', user.id)
-        } catch (uploadError: any) {
+        } catch (uploadError: unknown) {
+          const error = uploadError as { message?: string }
           toast({
             title: 'Erro ao fazer upload da foto',
-            description: uploadError.message || 'Não foi possível enviar a foto',
+            description: error.message || 'Não foi possível enviar a foto',
             variant: 'destructive',
           })
           setUploadingPhoto(false)
@@ -702,11 +703,12 @@ function SessionsTab({ userId }: { userId: string }) {
         title: 'Sessão encerrada',
         description: 'A sessão foi encerrada com sucesso.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao encerrar sessão',
-        description: error.response?.data?.message || 'Ocorreu um erro ao encerrar a sessão.',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao encerrar a sessão.',
       })
     }
   }
@@ -718,11 +720,12 @@ function SessionsTab({ userId }: { userId: string }) {
         title: 'Sessões encerradas',
         description: result.message || 'Todas as outras sessões foram encerradas.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao encerrar sessões',
-        description: error.response?.data?.message || 'Ocorreu um erro ao encerrar as sessões.',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao encerrar as sessões.',
       })
     }
   }

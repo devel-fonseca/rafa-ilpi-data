@@ -37,7 +37,6 @@ export function PhotoUploadNew({
 }: PhotoUploadNewProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imageRef = useRef<HTMLImageElement>(null)
 
   // Estados de carregamento/seleção
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
@@ -55,70 +54,6 @@ export function PhotoUploadNew({
       setSelectedImage(null)
     }
   }, [currentPhotoUrl])
-
-  // Converter canvas para WebP e salvar como File
-  const canvasToWebP = useCallback(async (canvas: HTMLCanvasElement): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const file = new File([blob], 'photo.webp', { type: 'image/webp' })
-            resolve(file)
-          } else {
-            reject(new Error('Falha ao converter imagem'))
-          }
-        },
-        'image/webp',
-        0.95 // Qualidade 95%
-      )
-    })
-  }, [])
-
-  // Desenhar imagem no canvas com enquadramento quadrado 1:1
-  const drawCroppedImage = useCallback(() => {
-    if (!imageRef.current || !canvasRef.current) return
-
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const img = imageRef.current
-    const canvasWidth = 300
-    const canvasHeight = 300
-    const targetAspect = 1 // Proporção quadrada 1:1
-
-    // Calcular dimensões finais com proporção 1:1
-    let finalWidth = img.width
-    let finalHeight = img.height
-    const imgAspect = finalWidth / finalHeight
-
-    if (imgAspect > targetAspect) {
-      finalWidth = finalHeight * targetAspect
-    } else {
-      finalHeight = finalWidth / targetAspect
-    }
-
-    // Centralizar imagem
-    const offsetX = (img.width - finalWidth) / 2
-    const offsetY = (img.height - finalHeight) / 2
-
-    // Redimensionar canvas para 300x300
-    canvas.width = canvasWidth
-    canvas.height = canvasHeight
-
-    // Desenhar imagem enquadrada
-    ctx.drawImage(
-      img,
-      offsetX,
-      offsetY,
-      finalWidth,
-      finalHeight,
-      0,
-      0,
-      canvasWidth,
-      canvasHeight
-    )
-  }, [])
 
   // Processar arquivo selecionado com detecção facial
   const validateAndProcessFile = useCallback(

@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/auth.store';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { UserProfile } from '@/types/user';
 
 interface PreferencesContextValue {
   preferences: UserPreferences;
@@ -85,7 +86,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         await updateMyPreferences({ [key]: value });
 
         // Atualiza o cache do perfil com os novos dados (sem refetch)
-        queryClient.setQueryData(['my-profile'], (oldData: any) => {
+        queryClient.setQueryData(['my-profile'], (oldData: UserProfile | undefined) => {
           if (!oldData) return oldData;
           return {
             ...oldData,

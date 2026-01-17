@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useEmailTemplate } from '@/hooks/useEmailTemplates';
 import { ArrowLeft, Eye, Send, RefreshCw } from 'lucide-react';
 import * as emailTemplatesApi from '@/api/email-templates.api';
+import type { TemplateVariable } from '@/api/email-templates.api';
 import { toast } from 'sonner';
 
 /**
@@ -22,15 +23,15 @@ export function EmailTemplatePreview() {
   const navigate = useNavigate();
   const { data: template, isLoading } = useEmailTemplate(id);
 
-  const [mockData, setMockData] = useState<Record<string, any>>({});
+  const [mockData, setMockData] = useState<Record<string, unknown>>({});
   const [previewHtml, setPreviewHtml] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
 
   // Gerar dados mockados baseados nas variáveis do template
-  const generateMockData = (variables: any[]): Record<string, any> => {
-    const mock: Record<string, any> = {};
+  const generateMockData = (variables: TemplateVariable[]): Record<string, unknown> => {
+    const mock: Record<string, unknown> = {};
 
     variables.forEach((variable) => {
       switch (variable.type) {
@@ -132,10 +133,10 @@ export function EmailTemplatePreview() {
 
   // Atualizar valor de uma variável mockada
   const updateMockValue = (key: string, value: string) => {
-    const variable = (template?.variables as any[])?.find((v) => v.name === key);
+    const variable = (template?.variables as TemplateVariable[])?.find((v) => v.name === key);
     if (!variable) return;
 
-    let parsedValue: any = value;
+    let parsedValue: unknown = value;
 
     // Converter para tipo correto
     if (variable.type === 'number') {
@@ -268,7 +269,7 @@ export function EmailTemplatePreview() {
           </CardHeader>
           <CardContent className="space-y-4">
             {template.variables && Array.isArray(template.variables) ? (
-              template.variables.map((variable: any) => (
+              template.variables.map((variable: TemplateVariable) => (
                 <div key={variable.name}>
                   <Label htmlFor={variable.name} className="text-xs">
                     {variable.name}

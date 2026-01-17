@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertTriangle, Save } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -120,7 +120,7 @@ export function BlockBedModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-orange-500" />
+            <AlertTriangle className="h-5 w-5 text-severity-warning" />
             Bloquear Leito para Manutenção
           </DialogTitle>
           <DialogDescription>
@@ -154,7 +154,7 @@ export function BlockBedModal({
               {errors.reason && (
                 <p className="text-destructive">{errors.reason.message}</p>
               )}
-              <p className={`ml-auto ${cleanedLength < 10 ? 'text-muted-foreground' : 'text-green-600'}`}>
+              <p className={`ml-auto ${cleanedLength < 10 ? 'text-muted-foreground' : 'text-success'}`}>
                 {cleanedLength}/10 caracteres
               </p>
             </div>

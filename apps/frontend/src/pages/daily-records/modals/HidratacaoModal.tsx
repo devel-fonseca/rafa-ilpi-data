@@ -32,7 +32,7 @@ type HidratacaoFormData = z.infer<typeof hidratacaoSchema>
 interface HidratacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: HidratacaoFormData) => void
   residentId: string
   residentName: string
   date: string

@@ -67,6 +67,9 @@ import {
   ViewOutrosModal,
 } from '@/components/view-modals'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import type { DailyRecord } from '@/api/dailyRecords.api'
+import type { Allergy } from '@/api/allergies.api'
+import type { Prescription, Medication } from '@/api/prescriptions.api'
 
 export default function ResidentProfile() {
   const { id } = useParams()
@@ -76,7 +79,7 @@ export default function ResidentProfile() {
 
   // View modal states
   const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [viewingRecord, setViewingRecord] = useState<any>(null)
+  const [viewingRecord, setViewingRecord] = useState<DailyRecord | null>(null)
   const [vitalSignsBlockedModalOpen, setVitalSignsBlockedModalOpen] = useState(false)
   const [currentEmergencyContactIndex, setCurrentEmergencyContactIndex] = useState(0)
 
@@ -107,7 +110,7 @@ export default function ResidentProfile() {
     setViewDate(getCurrentDate())
   }
 
-  const handleViewRecord = (record: any) => {
+  const handleViewRecord = (record: DailyRecord) => {
     setViewingRecord(record)
     setViewModalOpen(true)
   }
@@ -508,7 +511,7 @@ export default function ResidentProfile() {
                       <div className="text-sm text-muted-foreground mb-2">Alergias</div>
                       <TooltipProvider delayDuration={200}>
                         <div className="flex flex-wrap gap-2">
-                          {resident.allergies.map((allergy: any) => {
+                          {resident.allergies.map((allergy: Allergy) => {
                             // Construir conteúdo do tooltip dinamicamente
                             const hasDetails = allergy.reaction || allergy.severity || allergy.notes
 
@@ -809,7 +812,7 @@ export default function ResidentProfile() {
                 </div>
               ) : prescriptions.length > 0 ? (
                 <div className="space-y-4">
-                  {prescriptions.map((prescription: any) => (
+                  {prescriptions.map((prescription: Prescription) => (
                     <div
                       key={prescription.id}
                       className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -830,7 +833,7 @@ export default function ResidentProfile() {
                             >
                               {prescription.isActive ? 'Ativa' : 'Inativa'}
                             </Badge>
-                            {prescription.medications?.some((med: any) => med.isControlled) && (
+                            {prescription.medications?.some((med: Medication) => med.isControlled) && (
                               <Badge variant="destructive">Controlado</Badge>
                             )}
                           </div>
@@ -938,7 +941,7 @@ export default function ResidentProfile() {
             <CardContent>
               {dailyRecords.length > 0 ? (
                 <div className="space-y-2">
-                  {dailyRecords.map((record: any) => (
+                  {dailyRecords.map((record: DailyRecord) => (
                     <div
                       key={record.id}
                       onClick={() => handleViewRecord(record)}

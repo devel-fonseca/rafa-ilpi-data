@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { Trash2, Edit2, Loader2, Calendar, Clock, MousePointerClick, ChevronDown, ChevronUp, Utensils } from 'lucide-react';
+import { Trash2, Edit2, Loader2, Calendar, Clock, MousePointerClick } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +23,6 @@ import {
   ScheduleFrequency,
 } from '@/hooks/useResidentSchedule';
 import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
-import { MEAL_TYPES } from '@/constants/meal-types';
 import { EditAlimentacaoConfigModal } from './EditAlimentacaoConfigModal';
 import { AlimentacaoGroupedCard } from './AlimentacaoGroupedCard';
 
@@ -78,20 +77,6 @@ function FrequencyDropZone({
   onEditAlimentacao?: (configs: ResidentScheduleConfig[]) => void;
   onDeleteAlimentacao?: () => void;
 }) {
-  const getFrequencyLabel = (config: ResidentScheduleConfig): string => {
-    const baseLabel = FREQUENCY_LABELS[config.frequency];
-
-    if (config.frequency === 'WEEKLY' && config.dayOfWeek !== undefined) {
-      return `${baseLabel} - ${WEEKDAY_LABELS[config.dayOfWeek]}`;
-    }
-
-    if (config.frequency === 'MONTHLY' && config.dayOfMonth !== undefined) {
-      return `${baseLabel} - Dia ${config.dayOfMonth}`;
-    }
-
-    return baseLabel;
-  };
-
   // Ordenar configs por horário (primeiro horário sugerido)
   const sortedConfigs = [...configs].sort((a, b) => {
     return getFirstTime(a).localeCompare(getFirstTime(b));
@@ -293,8 +278,8 @@ export function ScheduleConfigList({
 
       toast.success('Configuração removida com sucesso');
       setDeletingConfig(undefined);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao remover configuração');
+    } catch (error: unknown) {
+      toast.error('Erro ao remover configuração');
     }
   };
 
@@ -307,8 +292,8 @@ export function ScheduleConfigList({
       await deleteAlimentacaoMutation.mutateAsync({ residentId });
       toast.success('Configurações de alimentação removidas com sucesso');
       setDeletingAlimentacao(false);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao remover configurações');
+    } catch (error: unknown) {
+      toast.error('Erro ao remover configurações');
     }
   };
 

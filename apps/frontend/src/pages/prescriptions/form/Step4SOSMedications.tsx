@@ -54,7 +54,7 @@ export function Step4SOSMedications() {
   }
 
   const handleDelete = (index: number) => {
-    const newMedications = sosMedications.filter((_: any, i: number) => i !== index)
+    const newMedications = sosMedications.filter((_, i) => i !== index)
     setValue('sosMedications', newMedications)
   }
 

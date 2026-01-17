@@ -258,38 +258,39 @@ function calculatePrescriptionStatus(
 }
 
 // Função auxiliar: Transformar prescrição do backend para calendário
-function transformPrescriptionForCalendar(prescription: any): PrescriptionCalendarItem {
+function transformPrescriptionForCalendar(prescription: Record<string, unknown>): PrescriptionCalendarItem {
   const now = new Date()
-  const validUntil = prescription.validUntil ? new Date(extractDateOnly(prescription.validUntil) + 'T12:00:00') : undefined
-  const reviewDate = prescription.reviewDate ? new Date(extractDateOnly(prescription.reviewDate) + 'T12:00:00') : undefined
+  const validUntil = prescription.validUntil ? new Date(extractDateOnly(prescription.validUntil as string) + 'T12:00:00') : undefined
+  const reviewDate = prescription.reviewDate ? new Date(extractDateOnly(prescription.reviewDate as string) + 'T12:00:00') : undefined
 
   const daysUntilExpiry = validUntil ? differenceInDays(validUntil, now) : undefined
   const daysUntilReview = reviewDate ? differenceInDays(reviewDate, now) : undefined
 
-  const hasControlledMedication = prescription.medications?.some((m: any) => m.isControlled) || false
+  const medications = prescription.medications as Array<{ isControlled?: boolean; name?: string }> | undefined
+  const hasControlledMedication = medications?.some((m) => m.isControlled) || false
 
   return {
-    id: prescription.id,
-    residentId: prescription.residentId,
-    residentName: prescription.resident?.fullName || 'Nome não disponível',
+    id: prescription.id as string,
+    residentId: prescription.residentId as string,
+    residentName: (prescription.resident as { fullName?: string })?.fullName || 'Nome não disponível',
     prescriptionType: prescription.prescriptionType as PrescriptionType,
     status: calculatePrescriptionStatus(
-      prescription.validUntil,
-      prescription.reviewDate,
-      prescription.isActive
+      prescription.validUntil as string | undefined,
+      prescription.reviewDate as string | undefined,
+      prescription.isActive as boolean
     ),
-    doctorName: prescription.doctorName,
-    doctorCrm: prescription.doctorCrm,
-    prescriptionDate: prescription.prescriptionDate,
-    validUntil: prescription.validUntil,
-    reviewDate: prescription.reviewDate,
+    doctorName: prescription.doctorName as string,
+    doctorCrm: prescription.doctorCrm as string,
+    prescriptionDate: prescription.prescriptionDate as string,
+    validUntil: prescription.validUntil as string | undefined,
+    reviewDate: prescription.reviewDate as string | undefined,
     daysUntilExpiry,
     daysUntilReview,
-    medicationCount: prescription.medications?.length || 0,
-    medicationNames: prescription.medications?.map((m: any) => m.name) || [],
+    medicationCount: medications?.length || 0,
+    medicationNames: medications?.map((m) => m.name as string) || [],
     isControlled: hasControlledMedication || prescription.prescriptionType === 'CONTROLADO',
-    controlledClass: prescription.controlledClass,
-    notes: prescription.notes,
+    controlledClass: prescription.controlledClass as string | undefined,
+    notes: prescription.notes as string | undefined,
   }
 }
 

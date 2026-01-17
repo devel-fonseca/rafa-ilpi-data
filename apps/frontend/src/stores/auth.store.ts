@@ -46,9 +46,9 @@ interface AuthState {
   availableTenants: Tenant[] | null
 
   // Actions
-  login: (email: string, password: string) => Promise<any>
+  login: (email: string, password: string) => Promise<{ requiresTenantSelection?: boolean; tenants?: Tenant[]; user?: User; accessToken?: string; refreshToken?: string }>
   selectTenant: (tenantId: string, email: string, password: string) => Promise<void>
-  register: (data: any) => Promise<any>
+  register: (data: Record<string, unknown>) => Promise<{ user: User; tenant: Tenant }>
   logout: () => Promise<void>
   refreshAuth: () => Promise<void>
   clearError: () => void
@@ -106,16 +106,17 @@ export const useAuthStore = create<AuthState>()(
           api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
 
           return response.data
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Erro completo no login:', error)
+          const errorResponse = (error as { response?: { data?: { message?: string }; status?: number } }).response
           console.error('Detalhes do erro:', {
-            message: error.response?.data?.message,
-            status: error.response?.status,
-            data: error.response?.data
+            message: errorResponse?.data?.message,
+            status: errorResponse?.status,
+            data: errorResponse?.data
           })
 
           set({
-            error: error.response?.data?.message || 'Erro ao fazer login',
+            error: errorResponse?.data?.message || 'Erro ao fazer login',
             isLoading: false,
           })
           throw error
@@ -161,9 +162,10 @@ export const useAuthStore = create<AuthState>()(
 
           // Configurar token no axios
           api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorResponse = (error as { response?: { data?: { message?: string } } }).response
           set({
-            error: error.response?.data?.message || 'Erro ao selecionar tenant',
+            error: errorResponse?.data?.message || 'Erro ao selecionar tenant',
             isLoading: false,
           })
           throw error
@@ -171,7 +173,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Registrar nova ILPI
-      register: async (data: any) => {
+      register: async (data: Record<string, unknown>) => {
         set({ isLoading: true, error: null })
         try {
           const response = await api.post('/tenants/register', data)
@@ -198,9 +200,10 @@ export const useAuthStore = create<AuthState>()(
           api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
 
           return response.data
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorResponse = (error as { response?: { data?: { message?: string } } }).response
           set({
-            error: error.response?.data?.message || 'Erro ao registrar ILPI',
+            error: errorResponse?.data?.message || 'Erro ao registrar ILPI',
             isLoading: false,
           })
           throw error

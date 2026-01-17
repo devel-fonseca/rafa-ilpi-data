@@ -32,7 +32,7 @@ export function useUpdateDailyRecord() {
         type?: string
         date?: string
         time?: string
-        data?: any
+        data?: Record<string, unknown>
         recordedBy?: string
         notes?: string
       }
@@ -47,12 +47,13 @@ export function useUpdateDailyRecord() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Não foi possível atualizar o registro. Tente novamente.',
       })
     },
@@ -78,12 +79,13 @@ export function useDeleteDailyRecord() {
         description: 'O registro foi excluído com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Não foi possível excluir o registro. Tente novamente.',
       })
     },
@@ -117,12 +119,13 @@ export function useRestoreDailyRecordVersion() {
         description: 'O registro foi restaurado para a versão anterior com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao restaurar',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Não foi possível restaurar a versão. Tente novamente.',
       })
     },

@@ -74,7 +74,7 @@ export const RECORD_TYPE_LABELS: Record<
   },
 }
 
-export function renderRecordSummary(record: any): string {
+export function renderRecordSummary(record: { type: string; data: Record<string, unknown> }): string {
   switch (record.type) {
     case 'HIGIENE': {
       const parts = []

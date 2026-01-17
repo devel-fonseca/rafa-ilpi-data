@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Loader2, History, Edit, Trash2, Eye } from 'lucide-react'
+import { Calendar, Loader2, History, Edit, Trash2, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateTimeSafe, formatDateLongSafe } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Page, PageHeader, Section } from '@/design-system/components'
+import { Page, PageHeader } from '@/design-system/components'
 import { tenantKey } from '@/lib/query-keys'
 import {
   Dialog,
@@ -20,13 +20,12 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import { api } from '@/services/api'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentRecordDates } from '@/hooks/useResidentRecordDates'
-import { RECORD_TYPE_LABELS, renderRecordSummary } from '@/utils/recordTypeLabels'
+import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
 import { DailyRecordHistoryModal } from '@/components/DailyRecordHistoryModal'
-import { dailyRecordsAPI } from '@/api/dailyRecords.api'
+import { dailyRecordsAPI, type DailyRecord, type RecordType } from '@/api/dailyRecords.api'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/utils/errorHandling'
 import {
@@ -71,41 +70,49 @@ export default function ResidentDailyRecordsCalendar() {
 
   // Edit states
   const [editModalOpen, setEditModalOpen] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<any>(null)
+  const [editingRecord, setEditingRecord] = useState<DailyRecord | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
 
   // Delete states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [deletingRecord, setDeletingRecord] = useState<any>(null)
+  const [deletingRecord, setDeletingRecord] = useState<DailyRecord | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
 
   // View states
   const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [viewingRecord, setViewingRecord] = useState<any>(null)
+  const [viewingRecord, setViewingRecord] = useState<DailyRecord | null>(null)
 
   const handleOpenHistory = (recordId: string) => {
     setSelectedRecordId(recordId)
     setHistoryModalOpen(true)
   }
 
-  const handleOpenEdit = (record: any) => {
+  const handleOpenEdit = (record: DailyRecord) => {
     setEditingRecord(record)
     setEditModalOpen(true)
   }
 
-  const handleOpenDelete = (record: any) => {
+  const handleOpenDelete = (record: DailyRecord) => {
     setDeletingRecord(record)
     setDeleteReason('')
     setDeleteModalOpen(true)
   }
 
-  const handleViewRecord = (record: any) => {
+  const handleViewRecord = (record: DailyRecord) => {
     setViewingRecord(record)
     setViewModalOpen(true)
   }
 
-  const handleConfirmEdit = async (payload: any) => {
+  const handleConfirmEdit = async (payload: {
+    type?: RecordType
+    date?: string
+    time?: string
+    data?: Record<string, unknown>
+    recordedBy?: string
+    notes?: string
+    editReason: string
+  }) => {
     if (!editingRecord) {
       toast.error('Nenhum registro selecionado para edição')
       return
@@ -234,7 +241,7 @@ export default function ResidentDailyRecordsCalendar() {
               </div>
             ) : records.length > 0 ? (
               <div className="space-y-2">
-                {records.map((record: any) => (
+                {records.map((record: DailyRecord) => (
                   <div
                     key={record.id}
                     className={`border-l-4 pl-4 py-2 rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}

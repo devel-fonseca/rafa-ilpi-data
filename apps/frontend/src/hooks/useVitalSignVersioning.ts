@@ -37,11 +37,12 @@ export function useUpdateVitalSign() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description: error.response?.data?.message || 'Não foi possível atualizar o sinal vital.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar o sinal vital.',
       })
     },
   })
@@ -64,11 +65,12 @@ export function useDeleteVitalSign() {
         description: 'O sinal vital foi excluído com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: error.response?.data?.message || 'Não foi possível excluir o sinal vital.',
+        description: errorResponse?.data?.message || 'Não foi possível excluir o sinal vital.',
       })
     },
   })

@@ -10,10 +10,26 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface HumorData {
+  humor: string
+  outroHumor?: string
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface HumorRecord {
+  data: HumorData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewHumorModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: HumorRecord
 }
 
 export function ViewHumorModal({

@@ -118,9 +118,10 @@ export function EditScheduledEventModal({
 
       toast.success('Agendamento atualizado com sucesso');
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast.error(
-        error.response?.data?.message || 'Erro ao atualizar agendamento'
+        errorResponse?.data?.message || 'Erro ao atualizar agendamento'
       );
     }
   };

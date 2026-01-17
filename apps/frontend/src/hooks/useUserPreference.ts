@@ -26,7 +26,7 @@ export function useUserPreference<K extends keyof UserPreferences>(
   // Buscar valor inicial das preferências do usuário
   // Nota: user.profile no auth.store pode não ter todas as propriedades do UserProfile
   // então fazemos um cast seguro para acessar preferences
-  const userProfile = user?.profile as any
+  const userProfile = user?.profile as Record<string, unknown> | undefined
   const initialValue = (userProfile?.preferences?.[key] ?? defaultValue) as NonNullable<UserPreferences[K]>
 
   const [value, setValue] = useState<NonNullable<UserPreferences[K]>>(initialValue)

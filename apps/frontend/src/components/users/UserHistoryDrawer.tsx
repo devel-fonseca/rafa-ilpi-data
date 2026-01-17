@@ -1,4 +1,5 @@
 import { useUserHistory } from '@/hooks/useUserVersioning'
+import type { User } from '@/api/users.api'
 import {
   Sheet,
   SheetContent,
@@ -154,7 +155,7 @@ export function UserHistoryDrawer({
                   Linha do Tempo
                 </h3>
 
-                {data.history.map((version, index) => (
+                {data.history.map((version) => (
                   <Card key={version.id} className="relative">
                     <CardContent className="p-4">
                       {/* Header da versão */}
@@ -203,8 +204,8 @@ export function UserHistoryDrawer({
                       {version.changeType === 'UPDATE' && version.previousData && (
                         <div className="space-y-2 text-sm">
                           {version.changedFields.map((field) => {
-                            const prevValue = (version.previousData as any)?.[field]
-                            const newValue = (version.newData as any)?.[field]
+                            const prevValue = (version.previousData as Partial<User>)?.[field as keyof User]
+                            const newValue = (version.newData as Partial<User>)?.[field as keyof User]
 
                             // Não exibir password
                             if (field === 'password') {

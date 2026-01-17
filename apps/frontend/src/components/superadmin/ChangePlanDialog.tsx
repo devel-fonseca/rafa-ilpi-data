@@ -23,7 +23,7 @@ import {
 import { useChangePlan } from '@/hooks/useSuperAdmin'
 import { useToast } from '@/components/ui/use-toast'
 import { getPlans } from '@/api/superadmin.api'
-import type { Tenant, Plan } from '@/api/superadmin.api'
+import type { Tenant } from '@/api/superadmin.api'
 
 interface ChangePlanDialogProps {
   tenant: Tenant
@@ -78,11 +78,10 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
       setOpen(false)
       setSelectedPlanId('')
       setReason('')
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: 'Falha ao alterar plano',
-        description:
-          error.response?.data?.message || 'Ocorreu um erro ao processar a mudança de plano. Tente novamente.',
+        description: 'Ocorreu um erro ao processar a mudança de plano. Tente novamente.',
         variant: 'destructive',
       })
     }

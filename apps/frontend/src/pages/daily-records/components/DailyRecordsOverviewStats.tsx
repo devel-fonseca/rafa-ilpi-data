@@ -1,7 +1,7 @@
 import { CheckCircle2, AlertTriangle, Clock, Target } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
+import { useDailyRecordsByDate, type DailyRecord } from '@/hooks/useDailyRecords'
 import { useAllActiveScheduleConfigs } from '@/hooks/useResidentSchedule'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import { useMemo } from 'react'
@@ -94,7 +94,7 @@ export function DailyRecordsOverviewStats({
   // CARD 3: Intercorrências hoje
   // ──────────────────────────────────────────────────────────────────────────
   const intercorrencesToday = useMemo(() => {
-    return safeAllRecordsToday.filter((record: any) => record.type === 'INTERCORRENCIA')
+    return safeAllRecordsToday.filter((record: DailyRecord) => record.type === 'INTERCORRENCIA')
   }, [safeAllRecordsToday])
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -130,11 +130,11 @@ export function DailyRecordsOverviewStats({
     configsDueToday.forEach((config) => {
       // Para ALIMENTACAO, verificar se mealType bate
       const mealType = config.metadata && typeof config.metadata === 'object' && 'mealType' in config.metadata
-        ? (config.metadata as any).mealType
+        ? (config.metadata as { mealType?: string }).mealType
         : null
 
       // Verificar se há registro hoje deste tipo para este residente
-      const hasRecord = safeAllRecordsToday.some((record: any) => {
+      const hasRecord = safeAllRecordsToday.some((record: DailyRecord) => {
         const matchesResident = record.residentId === config.residentId
         const matchesType = record.type === config.recordType
         const matchesDate = extractDateOnly(record.date) === today

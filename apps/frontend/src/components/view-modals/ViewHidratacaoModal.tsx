@@ -12,10 +12,27 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface HidratacaoData {
+  volumeMl: string
+  tipo?: string
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface HidratacaoRecord {
+  data: HidratacaoData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  notes?: string
+  [key: string]: unknown
+}
+
 interface ViewHidratacaoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: HidratacaoRecord
 }
 
 export function ViewHidratacaoModal({

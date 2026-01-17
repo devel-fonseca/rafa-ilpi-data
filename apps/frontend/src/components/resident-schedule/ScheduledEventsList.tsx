@@ -32,6 +32,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { extractDateOnly } from '@/utils/dateHelpers';
 
+interface VaccineData {
+  name: string;
+  dose: string;
+  manufacturer?: string;
+  batchNumber?: string;
+}
+
 interface ScheduledEventsListProps {
   residentId: string;
   canManage: boolean;
@@ -101,8 +108,9 @@ export function ScheduledEventsList({
 
       toast.success('Agendamento removido com sucesso');
       setDeletingEvent(undefined);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao remover agendamento');
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao remover agendamento');
     }
   };
 
@@ -117,8 +125,9 @@ export function ScheduledEventsList({
       });
 
       toast.success('Agendamento marcado como concluído');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao atualizar agendamento');
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao atualizar agendamento');
     }
   };
 
@@ -206,33 +215,36 @@ export function ScheduledEventsList({
                     </p>
                   )}
 
-                  {event.vaccineData && (
-                    <div className="mt-2 p-3 bg-muted rounded-md">
-                      <p className="text-sm font-medium mb-1">Dados da Vacina:</p>
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>
-                          <span className="font-medium">Nome:</span>{' '}
-                          {(event.vaccineData as any).name}
-                        </p>
-                        <p>
-                          <span className="font-medium">Dose:</span>{' '}
-                          {(event.vaccineData as any).dose}
-                        </p>
-                        {(event.vaccineData as any).manufacturer && (
+                  {event.vaccineData && (() => {
+                    const vaccineData = event.vaccineData as VaccineData;
+                    return (
+                      <div className="mt-2 p-3 bg-muted rounded-md">
+                        <p className="text-sm font-medium mb-1">Dados da Vacina:</p>
+                        <div className="text-sm text-muted-foreground space-y-1">
                           <p>
-                            <span className="font-medium">Fabricante:</span>{' '}
-                            {(event.vaccineData as any).manufacturer}
+                            <span className="font-medium">Nome:</span>{' '}
+                            {vaccineData.name}
                           </p>
-                        )}
-                        {(event.vaccineData as any).batchNumber && (
                           <p>
-                            <span className="font-medium">Lote:</span>{' '}
-                            {(event.vaccineData as any).batchNumber}
+                            <span className="font-medium">Dose:</span>{' '}
+                            {vaccineData.dose}
                           </p>
-                        )}
+                          {vaccineData.manufacturer && (
+                            <p>
+                              <span className="font-medium">Fabricante:</span>{' '}
+                              {vaccineData.manufacturer}
+                            </p>
+                          )}
+                          {vaccineData.batchNumber && (
+                            <p>
+                              <span className="font-medium">Lote:</span>{' '}
+                              {vaccineData.batchNumber}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {event.notes && (
                     <p className="text-sm text-muted-foreground mt-2">

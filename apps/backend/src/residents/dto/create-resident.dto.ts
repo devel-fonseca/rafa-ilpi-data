@@ -59,10 +59,8 @@ class HealthPlanDto {
  * Com decorators de validação para ValidationPipe
  */
 export class CreateResidentDto {
-  @ApiProperty({ example: 'uuid-tenant' })
-  @IsUUID()
-  @IsNotEmpty()
-  tenantId: string;
+  // NOTA: tenantId NÃO é aceito no DTO - é extraído do JWT automaticamente pelo backend
+  // Ver: JwtStrategy e ResidentsService.create()
 
   // 0. Status
   @ApiProperty({ example: 'Ativo', enum: ['Ativo', 'Inativo', 'Falecido'] })

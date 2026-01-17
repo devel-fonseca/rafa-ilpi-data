@@ -48,12 +48,26 @@ export function VitalSignsCharts({ data }: VitalSignsChartsProps) {
   }, [data])
 
   // Tooltip customizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipEntry {
+    name: string
+    value: number
+    color: string
+    dataKey: string
+    [key: string]: unknown
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipEntry[]
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: TooltipEntry, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {entry.value} {getUnit(entry.dataKey)}
             </p>

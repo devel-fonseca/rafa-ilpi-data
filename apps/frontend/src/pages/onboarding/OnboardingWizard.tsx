@@ -150,7 +150,7 @@ export function OnboardingWizard() {
           })
 
           toast.success('Perfil e logo salvos com sucesso! 🎉')
-        } catch (logoError: any) {
+        } catch (logoError: unknown) {
           console.error('Erro ao fazer upload do logo:', logoError)
           toast.warning('Perfil criado, mas houve erro ao salvar o logo. Você pode adicioná-lo depois.')
         }
@@ -160,9 +160,10 @@ export function OnboardingWizard() {
 
       // Avança para instruções do gerador
       setCurrentScreen('instructions')
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       console.error('Erro ao criar perfil:', error)
-      toast.error(error.response?.data?.message || 'Erro ao criar perfil institucional')
+      toast.error(errorResponse?.data?.message || 'Erro ao criar perfil institucional')
     } finally {
       setIsSubmitting(false)
     }

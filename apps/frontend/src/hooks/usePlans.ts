@@ -63,9 +63,10 @@ export function useUpdatePlan() {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       queryClient.invalidateQueries({ queryKey: ['plans', variables.id] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao atualizar plano', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -86,9 +87,10 @@ export function useTogglePlanPopular() {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       queryClient.invalidateQueries({ queryKey: ['plans', data.id] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao atualizar plano', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -109,9 +111,10 @@ export function useTogglePlanActive() {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       queryClient.invalidateQueries({ queryKey: ['plans', data.id] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao atualizar plano', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -135,9 +138,10 @@ export function useApplySubscriptionDiscount() {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao aplicar desconto', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -162,9 +166,10 @@ export function useApplySubscriptionCustomPrice() {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao aplicar preço customizado', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -183,9 +188,10 @@ export function useRemoveSubscriptionDiscount() {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao remover desconto', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })

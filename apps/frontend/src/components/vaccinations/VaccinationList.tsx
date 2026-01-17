@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { formatDateLongSafe, extractDateOnly } from '@/utils/dateHelpers'
 import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer, ShieldAlert } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
@@ -17,7 +16,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { toast } from 'sonner'
 import { useVaccinationsByResident, Vaccination } from '@/hooks/useVaccinations'
 import { useDeleteVaccination } from '@/hooks/useVaccinationVersioning'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
@@ -30,7 +28,6 @@ interface VaccinationListProps {
 }
 
 export function VaccinationList({ residentId, residentName }: VaccinationListProps) {
-  const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
   const [deletingVaccination, setDeletingVaccination] = useState<Vaccination | undefined>(undefined)

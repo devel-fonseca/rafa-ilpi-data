@@ -26,7 +26,7 @@ export interface Alert {
   severity: AlertSeverity
   title: string
   message: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   tenantId: string | null
   read: boolean
   readAt: string | null

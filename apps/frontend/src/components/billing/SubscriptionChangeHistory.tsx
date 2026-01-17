@@ -3,6 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, User, Settings } from 'lucide-react'
 
+interface SubscriptionChange {
+  id: string
+  source: string
+  date: string
+  message: string
+  reason?: string
+}
+
 export function SubscriptionChangeHistory() {
   const { data, isLoading } = useSubscriptionChangeHistory(3)
 
@@ -35,7 +43,7 @@ export function SubscriptionChangeHistory() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {data.data.map((change: any) => {
+          {data.data.map((change: SubscriptionChange) => {
             const isSelfService = change.source === 'SELF_SERVICE'
             const date = new Date(change.date)
 

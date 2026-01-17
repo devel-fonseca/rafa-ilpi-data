@@ -10,12 +10,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+
+interface MonitoramentoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
 
 interface ViewMonitoramentoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: MonitoramentoRecord | null
 }
 
 export function ViewMonitoramentoModal({
@@ -28,7 +33,7 @@ export function ViewMonitoramentoModal({
   const { data, time, date, recordedBy, createdAt, notes } = record
 
   // Helper para verificar se algum valor está presente
-  const hasVitalSign = (value: any) => value !== undefined && value !== null && value !== ''
+  const hasVitalSign = (value: unknown) => value !== undefined && value !== null && value !== ''
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

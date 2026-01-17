@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreateMedicationDto } from '@/api/prescriptions.api'
+import type { CreateMedicationDto, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
 
 interface MedicationModalProps {
@@ -184,7 +184,7 @@ export function MedicationModal({
               <Label htmlFor="presentation">Apresentação *</Label>
               <Select
                 value={watch('presentation')}
-                onValueChange={(value) => setValue('presentation', value as any)}
+                onValueChange={(value) => setValue('presentation', value as MedicationPresentation)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -233,7 +233,7 @@ export function MedicationModal({
               <Label htmlFor="route">Via de Administração *</Label>
               <Select
                 value={watch('route')}
-                onValueChange={(value) => setValue('route', value as any)}
+                onValueChange={(value) => setValue('route', value as AdministrationRoute)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -252,7 +252,7 @@ export function MedicationModal({
               <Label htmlFor="frequency">Frequência *</Label>
               <Select
                 value={watch('frequency')}
-                onValueChange={(value) => setValue('frequency', value as any)}
+                onValueChange={(value) => setValue('frequency', value as MedicationFrequency)}
               >
                 <SelectTrigger>
                   <SelectValue />

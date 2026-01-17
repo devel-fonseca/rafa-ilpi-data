@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { uploadContract, type CreateContractDto } from '@/services/residentContractsApi'
+import type { Resident } from '@/api/residents.api'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
@@ -17,16 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, AlertCircle, Upload, FileText, X, Plus, Trash2 } from 'lucide-react'
+import { Loader2, AlertCircle, Upload, FileText, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { ContractualResponsiblesManager, type ContractualResponsible } from './components/ContractualResponsiblesManager'
-
-interface Signatory {
-  name: string
-  cpf?: string
-  role: 'RESIDENTE' | 'RESPONSAVEL_CONTRATUAL' | 'TESTEMUNHA' | 'ILPI'
-}
+import { ContractualResponsiblesManager } from './components/ContractualResponsiblesManager'
 
 export default function ResidentContractUpload() {
   const navigate = useNavigate()
@@ -71,8 +66,8 @@ export default function ResidentContractUpload() {
       toast.success('Contrato cadastrado com sucesso! Arquivo processado automaticamente.')
       navigate(`/dashboard/contratos/${data.residentId}/${data.id}`)
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao cadastrar contrato')
+    onError: () => {
+      toast.error('Erro ao cadastrar contrato')
     },
   })
 
@@ -266,7 +261,7 @@ export default function ResidentContractUpload() {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              {errors.file && <p className="text-sm text-red-500">{errors.file}</p>}
+              {errors.file && <p className="text-sm text-danger">{errors.file}</p>}
             </div>
           </CardContent>
         </Card>
@@ -281,7 +276,7 @@ export default function ResidentContractUpload() {
               <div className="space-y-2">
                 <Label htmlFor="residentId">Residente *</Label>
                 <Select value={residentId} onValueChange={setResidentId} disabled={isLoadingResidents}>
-                  <SelectTrigger className={errors.residentId ? 'border-red-500' : ''}>
+                  <SelectTrigger className={errors.residentId ? 'border-danger' : ''}>
                     <SelectValue
                       placeholder={
                         isLoadingResidents
@@ -300,16 +295,16 @@ export default function ResidentContractUpload() {
                         Nenhum residente ativo encontrado
                       </div>
                     )}
-                    {residents.map((resident: any) => (
+                    {residents.map((resident: Resident) => (
                       <SelectItem key={resident.id} value={resident.id}>
                         {resident.fullName} {resident.cpf && `(CPF: ${resident.cpf})`}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.residentId && <p className="text-sm text-red-500">{errors.residentId}</p>}
+                {errors.residentId && <p className="text-sm text-danger">{errors.residentId}</p>}
                 {residentsError && (
-                  <p className="text-sm text-orange-500">
+                  <p className="text-sm text-severity-warning">
                     Erro ao carregar residentes. Verifique sua conexão.
                   </p>
                 )}
@@ -322,9 +317,9 @@ export default function ResidentContractUpload() {
                   value={contractNumber}
                   onChange={(e) => setContractNumber(e.target.value)}
                   placeholder="Ex: CONT-2025-001"
-                  className={errors.contractNumber ? 'border-red-500' : ''}
+                  className={errors.contractNumber ? 'border-danger' : ''}
                 />
-                {errors.contractNumber && <p className="text-sm text-red-500">{errors.contractNumber}</p>}
+                {errors.contractNumber && <p className="text-sm text-danger">{errors.contractNumber}</p>}
               </div>
             </div>
 
@@ -336,9 +331,9 @@ export default function ResidentContractUpload() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={errors.startDate ? 'border-red-500' : ''}
+                  className={errors.startDate ? 'border-danger' : ''}
                 />
-                {errors.startDate && <p className="text-sm text-red-500">{errors.startDate}</p>}
+                {errors.startDate && <p className="text-sm text-danger">{errors.startDate}</p>}
               </div>
 
               <div className="space-y-2">
@@ -348,9 +343,9 @@ export default function ResidentContractUpload() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className={errors.endDate ? 'border-red-500' : ''}
+                  className={errors.endDate ? 'border-danger' : ''}
                 />
-                {errors.endDate && <p className="text-sm text-red-500">{errors.endDate}</p>}
+                {errors.endDate && <p className="text-sm text-danger">{errors.endDate}</p>}
               </div>
             </div>
 
@@ -365,9 +360,9 @@ export default function ResidentContractUpload() {
                   value={monthlyAmount}
                   onChange={(e) => setMonthlyAmount(e.target.value)}
                   placeholder="Ex: 3500.00"
-                  className={errors.monthlyAmount ? 'border-red-500' : ''}
+                  className={errors.monthlyAmount ? 'border-danger' : ''}
                 />
-                {errors.monthlyAmount && <p className="text-sm text-red-500">{errors.monthlyAmount}</p>}
+                {errors.monthlyAmount && <p className="text-sm text-danger">{errors.monthlyAmount}</p>}
               </div>
 
               <div className="space-y-2">
@@ -379,9 +374,9 @@ export default function ResidentContractUpload() {
                   max="28"
                   value={dueDay}
                   onChange={(e) => setDueDay(e.target.value)}
-                  className={errors.dueDay ? 'border-red-500' : ''}
+                  className={errors.dueDay ? 'border-danger' : ''}
                 />
-                {errors.dueDay && <p className="text-sm text-red-500">{errors.dueDay}</p>}
+                {errors.dueDay && <p className="text-sm text-danger">{errors.dueDay}</p>}
               </div>
             </div>
           </CardContent>

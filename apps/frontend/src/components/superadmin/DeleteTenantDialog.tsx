@@ -53,11 +53,12 @@ export function DeleteTenantDialog({
       setConfirmation('')
       // Redirecionar para lista de tenants após delete
       navigate('/superadmin/tenants')
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         title: 'Falha ao deletar tenant',
         description:
-          error.response?.data?.message || 'Ocorreu um erro ao deletar o tenant. Esta operação pode falhar se houver dependências ativas.',
+          errorResponse?.data?.message || 'Ocorreu um erro ao deletar o tenant. Esta operação pode falhar se houver dependências ativas.',
         variant: 'destructive',
       })
     }

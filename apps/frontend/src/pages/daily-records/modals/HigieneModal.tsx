@@ -47,7 +47,7 @@ type HigieneFormData = z.infer<typeof higieneSchema>
 interface HigieneModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: HigieneFormData) => void
   residentId: string
   residentName: string
   date: string

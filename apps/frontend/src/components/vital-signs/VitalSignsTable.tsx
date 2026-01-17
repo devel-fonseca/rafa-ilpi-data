@@ -31,9 +31,19 @@ import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
 // Extend jsPDF type for autoTable
+interface AutoTableOptions {
+  head?: unknown[][]
+  body?: unknown[][]
+  startY?: number
+  theme?: string
+  headStyles?: Record<string, unknown>
+  styles?: Record<string, unknown>
+  [key: string]: unknown
+}
+
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF
+    autoTable: (options: AutoTableOptions) => jsPDF
   }
 }
 
@@ -78,8 +88,8 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
 
   // Ordenar dados
   const sortedData = [...filteredData].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: string | number
+    let bValue: string | number
 
     switch (sortField) {
       case 'timestamp':
@@ -110,9 +120,11 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
 
     // Timestamp comparison uses string localeCompare, numeric comparisons use subtraction
     if (sortField === 'timestamp') {
-      return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue)
+      return sortOrder === 'asc'
+        ? (aValue as string).localeCompare(bValue as string)
+        : (bValue as string).localeCompare(aValue as string)
     } else {
-      return sortOrder === 'asc' ? aValue - bValue : bValue - aValue
+      return sortOrder === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
     }
   })
 

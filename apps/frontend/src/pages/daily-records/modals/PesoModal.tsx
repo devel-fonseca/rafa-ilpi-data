@@ -50,7 +50,7 @@ type PesoFormData = z.infer<typeof pesoSchema>
 interface PesoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: PesoFormData) => void
   residentId: string
   residentName: string
   date: string

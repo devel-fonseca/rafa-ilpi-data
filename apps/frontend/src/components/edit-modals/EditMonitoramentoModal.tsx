@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
-import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import {
@@ -37,11 +37,17 @@ const editMonitoramentoSchema = z.object({
 
 type EditMonitoramentoFormData = z.infer<typeof editMonitoramentoSchema>
 
+interface MonitoramentoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditMonitoramentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: MonitoramentoRecord
   isUpdating?: boolean
 }
 

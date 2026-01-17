@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { CloudUpload, FileText, X, File, Plus, Image as ImageIcon, Trash2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { CloudUpload, FileText, X, File, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -215,7 +215,7 @@ export function MultiFileUpload({
       {hasFiles && (
         <div className="space-y-2 mt-4">
           {/* Arquivos Existentes */}
-          {existingFiles.map((file, index) => (
+          {existingFiles.map((file) => (
             <div
               key={`existing-${file.id || file.url}`}
               className={cn(

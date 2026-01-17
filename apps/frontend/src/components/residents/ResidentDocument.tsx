@@ -262,7 +262,7 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
         <p>{resident.medicationsOnAdmission ? `Medicamentos em uso: ${resident.medicationsOnAdmission}` : ''}</p>
         {resident.allergies && Array.isArray(resident.allergies) && resident.allergies.length > 0 && (
           <p>
-            Alergias: {resident.allergies.map((a: any) => a.substance).join(', ')}
+            Alergias: {resident.allergies.map((a: { substance: string; [key: string]: unknown }) => a.substance).join(', ')}
           </p>
         )}
         <p>{resident.chronicConditions ? `Condições crônicas: ${resident.chronicConditions}` : ''}</p>

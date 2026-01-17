@@ -207,7 +207,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
       <div className="flex gap-4">
         <Select
           value={filterSeverity}
-          onValueChange={(value: any) => setFilterSeverity(value)}
+          onValueChange={(value: string) => setFilterSeverity(value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Severidade" />
@@ -222,7 +222,7 @@ export function VitalSignsAlerts({ residentId }: VitalSignsAlertsProps) {
 
         <Select
           value={filterStatus}
-          onValueChange={(value: any) => setFilterStatus(value)}
+          onValueChange={(value: string) => setFilterStatus(value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />

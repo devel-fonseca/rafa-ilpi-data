@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import {
   Dialog,
@@ -46,11 +46,17 @@ const editHigieneSchema = z.object({
 
 type EditHigieneFormData = z.infer<typeof editHigieneSchema>
 
+interface HigieneRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditHigieneModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: HigieneRecord
   isUpdating?: boolean
 }
 

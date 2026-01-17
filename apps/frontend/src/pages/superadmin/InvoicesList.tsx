@@ -10,6 +10,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { useInvoices, type InvoiceStatus } from '@/hooks/useInvoices'
+import type { Invoice } from '@/api/invoices.api'
 import { CreateInvoiceDialog } from '@/components/superadmin/CreateInvoiceDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,7 +71,7 @@ export function InvoicesList() {
   }
 
   // Filtrar no frontend por search e overdue
-  const filteredInvoices = data?.data?.filter((invoice: any) => {
+  const filteredInvoices = data?.data?.filter((invoice: Invoice) => {
     // Filtro de search
     if (filters.search) {
       const searchLower = filters.search.toLowerCase()
@@ -210,7 +211,7 @@ export function InvoicesList() {
                   </TableRow>
                 </TableHeader>
               <TableBody>
-                {filteredInvoices.map((invoice: any) => {
+                {filteredInvoices.map((invoice: Invoice) => {
                   const statusInfo = STATUS_LABELS[invoice.status as InvoiceStatus] || {
                     label: invoice.status,
                     variant: 'outline' as const,

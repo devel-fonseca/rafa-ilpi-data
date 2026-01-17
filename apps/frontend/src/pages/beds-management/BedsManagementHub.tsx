@@ -20,12 +20,13 @@ import { ReserveBedModal, BlockBedModal, ReleaseBedModal } from './modals'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import type { Bed as BedType, BedStatusHistoryEntry } from '@/api/beds.api'
 
 export default function BedsManagementHub() {
   const { beds, isLoading: bedsLoading } = useBeds({ page: 1, limit: 1000 })
   const { data: historyData, isLoading: historyLoading } = useBedStatusHistory({ take: 10 })
 
-  const [selectedBed, setSelectedBed] = useState<any>(null)
+  const [selectedBed, setSelectedBed] = useState<BedType | null>(null)
   const [reserveModalOpen, setReserveModalOpen] = useState(false)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [releaseModalOpen, setReleaseModalOpen] = useState(false)
@@ -35,10 +36,10 @@ export default function BedsManagementHub() {
   // Calculate statistics
   const stats = {
     total: beds?.length || 0,
-    occupied: beds?.filter((b: any) => b.status === 'Ocupado').length || 0,
-    available: beds?.filter((b: any) => b.status === 'Disponível').length || 0,
-    maintenance: beds?.filter((b: any) => b.status === 'Manutenção').length || 0,
-    reserved: beds?.filter((b: any) => b.status === 'Reservado').length || 0,
+    occupied: beds?.filter((b) => b.status === 'OCUPADO').length || 0,
+    available: beds?.filter((b) => b.status === 'DISPONIVEL').length || 0,
+    maintenance: beds?.filter((b) => b.status === 'MANUTENCAO').length || 0,
+    reserved: beds?.filter((b) => b.status === 'RESERVADO').length || 0,
   }
 
   const occupancyRate = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
@@ -111,8 +112,8 @@ export default function BedsManagementHub() {
           {/* Transferir Residente */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <ArrowRightLeft className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <ArrowRightLeft className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Transferir Residente</h3>
@@ -132,8 +133,8 @@ export default function BedsManagementHub() {
           {/* Reservar Leito */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-3 bg-secondary/10 rounded-lg">
+                <Calendar className="w-6 h-6 text-secondary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Reservar Leito</h3>
@@ -157,8 +158,8 @@ export default function BedsManagementHub() {
           {/* Bloquear Leito */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              <div className="p-3 bg-severity-warning/10 rounded-lg">
+                <AlertTriangle className="w-6 h-6 text-severity-warning" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Bloquear para Manutenção</h3>
@@ -181,8 +182,8 @@ export default function BedsManagementHub() {
           {/* Liberar Leito */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className="p-3 bg-success/10 rounded-lg">
+                <CheckCircle className="w-6 h-6 text-success" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Liberar Leito</h3>
@@ -206,8 +207,8 @@ export default function BedsManagementHub() {
           {/* Histórico de Movimentações */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <History className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+              <div className="p-3 bg-muted rounded-lg">
+                <History className="w-6 h-6 text-muted-foreground" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Histórico Completo</h3>
@@ -225,8 +226,8 @@ export default function BedsManagementHub() {
           {/* Estrutura de Leitos */}
           <Card className="p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
-                <Building2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Building2 className="w-6 h-6 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold mb-2">Estrutura de Leitos</h3>
@@ -250,7 +251,7 @@ export default function BedsManagementHub() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-6">
             <div className="flex items-center gap-4 mb-4">
-              <Map className="w-8 h-8 text-blue-500" />
+              <Map className="w-8 h-8 text-primary" />
               <div>
                 <h3 className="font-semibold text-lg">Mapa de Ocupação</h3>
                 <p className="text-sm text-muted-foreground">
@@ -268,7 +269,7 @@ export default function BedsManagementHub() {
 
           <Card className="p-6">
             <div className="flex items-center gap-4 mb-4">
-              <Building2 className="w-8 h-8 text-indigo-500" />
+              <Building2 className="w-8 h-8 text-primary" />
               <div>
                 <h3 className="font-semibold text-lg">Estrutura de Leitos</h3>
                 <p className="text-sm text-muted-foreground">
@@ -291,7 +292,7 @@ export default function BedsManagementHub() {
         <Card className="p-6">
           {historyData && historyData.data && historyData.data.length > 0 ? (
             <div className="space-y-3">
-              {historyData.data.map((entry: any) => (
+              {historyData.data.map((entry: BedStatusHistoryEntry) => (
                 <div
                   key={entry.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
@@ -308,12 +309,12 @@ export default function BedsManagementHub() {
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                             entry.previousStatus === 'Disponível'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              ? 'bg-success/10 text-success'
                               : entry.previousStatus === 'Ocupado'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                                ? 'bg-primary/10 text-primary'
                                 : entry.previousStatus === 'Manutenção'
-                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                                  : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                                  ? 'bg-severity-warning/10 text-severity-warning'
+                                  : 'bg-secondary/10 text-secondary'
                           }`}
                         >
                           {entry.previousStatus}
@@ -322,12 +323,12 @@ export default function BedsManagementHub() {
                         <span
                           className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                             entry.newStatus === 'Disponível'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                              ? 'bg-success/10 text-success'
                               : entry.newStatus === 'Ocupado'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                                ? 'bg-primary/10 text-primary'
                                 : entry.newStatus === 'Manutenção'
-                                  ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
-                                  : 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400'
+                                  ? 'bg-severity-warning/10 text-severity-warning'
+                                  : 'bg-secondary/10 text-secondary'
                           }`}
                         >
                           {entry.newStatus}

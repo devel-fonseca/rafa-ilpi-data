@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
-import { QUERY_KEYS } from '@/constants/queryKeys';
 import { invalidateAfterScheduleMutation } from '@/utils/queryInvalidation';
 import { tenantKey } from '@/lib/query-keys';
 

@@ -28,11 +28,17 @@ const editOutrosSchema = z.object({
 
 type EditOutrosFormData = z.infer<typeof editOutrosSchema>
 
+interface OutrosRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditOutrosModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: OutrosRecord
   isUpdating?: boolean
 }
 

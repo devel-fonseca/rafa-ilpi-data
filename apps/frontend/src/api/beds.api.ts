@@ -165,7 +165,7 @@ export interface BedStatusHistoryEntry {
   previousStatus: string
   newStatus: string
   reason: string | null
-  metadata: any
+  metadata: Record<string, unknown>
   changedBy: string
   changedAt: string
   createdAt: string
@@ -357,7 +357,7 @@ class BedsAPI {
   }
 
   // BUILDING STRUCTURE GENERATOR
-  async createBuildingStructure(data: any): Promise<{
+  async createBuildingStructure(data: Record<string, unknown>): Promise<{
     building: Building
     floors: Floor[]
     rooms: Room[]

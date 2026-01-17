@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Printer, FileDown, Loader2 } from 'lucide-react'
+import { Printer, FileDown, Loader2 } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
@@ -133,7 +133,7 @@ export function ResidentPrintView() {
       <div className="py-8 print:py-0">
         <div ref={printRef}>
           <ResidentDocument
-            resident={residentData as any}
+            resident={residentData as Record<string, unknown>}
             isPrinting={false}
           />
         </div>

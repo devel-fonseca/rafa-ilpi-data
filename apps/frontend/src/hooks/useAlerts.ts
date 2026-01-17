@@ -45,9 +45,10 @@ export function useMarkAlertAsRead() {
       // Invalidar queries de alertas
       queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao marcar alerta como lido', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -66,9 +67,10 @@ export function useMarkAllAlertsAsRead() {
       // Invalidar queries de alertas
       queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao marcar alertas como lidos', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })
@@ -87,9 +89,10 @@ export function useDeleteAlert() {
       // Invalidar queries de alertas
       queryClient.invalidateQueries({ queryKey: tenantKey('alerts') })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao deletar alerta', {
-        description: error?.response?.data?.message || 'Tente novamente',
+        description: errorResponse?.data?.message || 'Tente novamente',
       })
     },
   })

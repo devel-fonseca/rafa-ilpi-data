@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -38,7 +38,7 @@ type ComportamentoFormData = z.infer<typeof comportamentoSchema>
 interface ComportamentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: ComportamentoFormData) => void
   residentId: string
   residentName: string
   date: string
@@ -54,8 +54,6 @@ export function ComportamentoModal({
   date,
   currentUserName,
 }: ComportamentoModalProps) {
-  const [estadoEmocional, setEstadoEmocional] = useState('')
-
   const {
     register,
     handleSubmit,
@@ -87,7 +85,6 @@ export function ComportamentoModal({
     }
     onSubmit(payload)
     reset()
-    setEstadoEmocional('')
   }
 
   const handleClose = () => {

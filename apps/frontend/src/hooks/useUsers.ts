@@ -105,8 +105,9 @@ export function useCreateUser() {
 
       toast.success('Usuário criado com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao criar usuário'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao criar usuário'
       toast.error(message)
     },
   })
@@ -144,8 +145,9 @@ export function useUpdateUser() {
 
       toast.success('Usuário atualizado com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar usuário'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao atualizar usuário'
       toast.error(message)
     },
   })
@@ -176,8 +178,9 @@ export function useDeleteUser() {
 
       toast.success('Usuário excluído com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir usuário'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir usuário'
       toast.error(message)
     },
   })

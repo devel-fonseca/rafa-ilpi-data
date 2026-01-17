@@ -38,7 +38,7 @@ function NotificationItem({ notification, onMarkAsRead, onOpenMissedEventModal }
   const navigate = useNavigate()
   const categoryConfig = getCategoryConfig(notification.category)
   const severityColors = getNotificationSeverityColors(notification.severity)
-  const categoryColors = getNotificationCategoryConfig(notification.category as any)
+  const categoryColors = getNotificationCategoryConfig(notification.category)
   const CategoryIcon = categoryConfig.icon
   const SeverityIcon = getSeverityIcon(notification.severity)
 
@@ -210,7 +210,7 @@ export function NotificationsDropdown() {
             )}
           </div>
 
-          <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)}>
+          <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as NotificationCategory | 'all')}>
             <TabsList className="w-full grid grid-cols-4 h-9">
               <TabsTrigger value="all" className="text-xs">
                 Todas

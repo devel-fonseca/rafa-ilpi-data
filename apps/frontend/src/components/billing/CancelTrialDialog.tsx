@@ -36,9 +36,10 @@ export function CancelTrialDialog({ open, onOpenChange }: CancelTrialDialogProps
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao cancelar trial', {
-        description: error.response?.data?.message || 'Não foi possível cancelar o trial. Tente novamente.',
+        description: errorResponse?.data?.message || 'Não foi possível cancelar o trial. Tente novamente.',
       })
     }
   }

@@ -83,7 +83,7 @@ export function BasicInfoStep({
             </Label>
             <Select
               value={data.legalNature || ""}
-              onValueChange={(value) => onUpdate({ legalNature: value as any })}
+              onValueChange={(value) => onUpdate({ legalNature: value as 'ASSOCIACAO' | 'FUNDACAO' | 'EMPRESA_PRIVADA' | 'MEI' })}
               required
             >
               <SelectTrigger id="legalNature">

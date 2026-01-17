@@ -42,4 +42,50 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Ignorar warnings de cores hardcoded em componentes visuais/design específicos
+      files: [
+        '**/components/admin/**',
+        '**/components/billing/**',
+        '**/components/calendar/**',
+        '**/components/caregiver/**',
+        '**/components/features/**',
+        '**/components/rdc/**',
+        '**/components/residents/PreRegistrationModal.tsx',
+        '**/components/residents/ResidentSelectionGrid.tsx',
+        '**/components/superadmin/**',
+        '**/components/ui/**',
+        '**/pages/superadmin/**',
+        '**/components/agenda/**',
+      ],
+      rules: {
+        'no-restricted-syntax': [
+          'warn',
+          {
+            selector: "NewExpression[callee.name='Date'][arguments.length=1][arguments.0.type='Identifier']",
+            message: '⚠️ Evite new Date(variável) - Use helpers de dateHelpers.ts ou formMappers.ts. Veja docs/GUIA-PADROES-DATA.md',
+          },
+          {
+            selector: "MemberExpression[object.name='axios'][property.name='create']",
+            message: '❌ Use a instância "api" de src/services/api.ts ao invés de criar novo axios! Ver: docs/PLANO-MIGRACAO-FRONTEND-DR-E.md',
+          },
+          // Cores hardcoded desabilitadas para componentes visuais
+        ],
+      },
+    },
+    {
+      // Desabilitar react-refresh/only-export-components para arquivos base do design system
+      // Esses arquivos exportam componentes + constantes (variants, styles, hooks) por design
+      files: [
+        '**/components/ui/**/*.tsx',
+        '**/components/pdf/**/*.tsx',
+        '**/contexts/**/*.tsx',
+        '**/pages/daily-records/index.tsx',
+      ],
+      rules: {
+        'react-refresh/only-export-components': 'off',
+      },
+    },
+  ],
 }

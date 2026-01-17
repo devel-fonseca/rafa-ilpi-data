@@ -76,10 +76,11 @@ model User {
   createdBy     String?  @db.Uuid // ID do usuário que criou (NULL para primeiro admin)
   updatedBy     String?  @db.Uuid // ID do último usuário que alterou
 
-  tenant                       Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  profile                      UserProfile?
-  refreshTokens                RefreshToken[]
-  dailyRecords                 DailyRecord[]
+  tenant   Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  profile  UserProfile?
+  // NOTA: Relação refreshTokens REMOVIDA (incompatível com multi-tenancy)
+  // refreshTokens RefreshToken[]
+  dailyRecords DailyRecord[]
   medicationAdministrations    MedicationAdministration[]
   sosAdministrations           SOSAdministration[]
   vitalSigns                   VitalSign[]
@@ -155,10 +156,11 @@ model User {
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
   // Relações de contratos e políticas
-  createdContracts         ServiceContract[]         @relation("ContractCreator")
-  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
-  contractAcceptances      ContractAcceptance[]
-  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+  createdContracts ServiceContract[] @relation("ContractCreator")
+  revokedContracts ServiceContract[] @relation("ContractRevoker")
+  // NOTA: Relações com acceptances REMOVIDAS (incompatíveis com multi-tenancy)
+  // contractAcceptances      ContractAcceptance[]
+  // privacyPolicyAcceptances PrivacyPolicyAcceptance[]
 
   // Mensagens Internas
   sentMessages        Message[]           @relation("SentMessages")
@@ -176,7 +178,8 @@ model User {
 
   // Segurança e Auditoria
   passwordResetTokens PasswordResetToken[]
-  accessLogs          AccessLog[]
+  // NOTA: Relação accessLogs REMOVIDA (incompatível com multi-tenancy)
+  // accessLogs          AccessLog[]
 
   // Eventos Institucionais
   institutionalEventsCreated InstitutionalEvent[] @relation("InstitutionalEventCreatedBy")
@@ -205,7 +208,9 @@ model RefreshToken {
   userAgent      String?  @db.Text
   device         String?  @db.VarChar(100)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // NOTA: Relação 'user' REMOVIDA - FK incompatível com multi-tenancy schema-per-tenant
+  // userId aponta para tenant_xyz.users, não public.users
+  // Integridade garantida por validação em código + CASCADE DELETE via limpeza periódica
 
   @@index([userId])
   @@index([expiresAt])
@@ -242,7 +247,9 @@ model AccessLog {
   metadata  Json?        @db.JsonB // Dados adicionais (opcional)
   createdAt DateTime     @default(now()) @db.Timestamptz(3)
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // NOTA: Relação 'user' REMOVIDA - FK incompatível com multi-tenancy schema-per-tenant
+  // userId aponta para tenant_xyz.users, não public.users
+  // Integridade garantida por validação em código + logs são append-only
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
@@ -1116,7 +1123,9 @@ model ContractAcceptance {
   // Relações
   contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
   tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user     User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // NOTA: Relação 'user' REMOVIDA - FK incompatível com multi-tenancy schema-per-tenant
+  // userId aponta para tenant_xyz.users, não public.users
+  // Integridade garantida por validação em código + aceites append-only
 
   @@index([contractId])
   @@index([acceptedAt])
@@ -1142,7 +1151,9 @@ model PrivacyPolicyAcceptance {
 
   // Relações
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // NOTA: Relação 'user' REMOVIDA - FK incompatível com multi-tenancy schema-per-tenant
+  // userId aponta para tenant_xyz.users, não public.users
+  // Integridade garantida por validação em código + aceites append-only
 
   @@index([tenantId])
   @@index([acceptedAt])

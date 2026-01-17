@@ -40,7 +40,7 @@ import { toast } from 'sonner'
 import PopTemplatesModal from './PopTemplatesModal'
 import { usePermissions } from '../../hooks/usePermissions'
 import { PermissionType } from '../../types/permissions'
-import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function PopEditor() {
   const navigate = useNavigate()

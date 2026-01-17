@@ -54,7 +54,7 @@ type AlimentacaoFormData = z.infer<typeof alimentacaoSchema>
 interface AlimentacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: AlimentacaoFormData) => void
   residentId: string
   residentName: string
   date: string
@@ -96,11 +96,6 @@ export function AlimentacaoModal({
     (refeicao) => !refeicoesRegistradas.includes(refeicao)
   )
 
-  const refeicoesDisponiveis = [
-    ...refeicoesObrigatoriasDisponiveis,
-    'Colação Extra', // Sempre disponível
-  ]
-
   const {
     register,
     handleSubmit,
@@ -111,7 +106,7 @@ export function AlimentacaoModal({
     resolver: zodResolver(alimentacaoSchema),
     defaultValues: {
       time: getCurrentTime(),
-      refeicao: defaultMealType as any, // ✅ Pré-selecionar refeição se vier das tarefas
+      refeicao: (defaultMealType || 'Almoço') as AlimentacaoFormData['refeicao'], // ✅ Pré-selecionar refeição se vier das tarefas
       cardapio: 'Refeição institucional',
       consistencia: 'Geral',
       ingeriu: '100%',

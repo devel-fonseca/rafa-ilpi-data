@@ -7,6 +7,14 @@ import { useMySubscription } from '@/hooks/useTenant'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+interface SubscriptionWithDiscount {
+  status: string
+  currentPeriodEnd?: string
+  discountPercent?: number
+  customPrice?: number
+  discountReason?: string
+}
+
 export function CurrentPlanTab() {
   const { data: subscriptionData, isLoading } = useMySubscription()
 
@@ -27,6 +35,7 @@ export function CurrentPlanTab() {
   }
 
   const { subscription } = subscriptionData
+  const subscriptionTyped = subscription as unknown as SubscriptionWithDiscount
   const isTrialing = subscription.status === 'trialing'
 
   return (
@@ -54,7 +63,7 @@ export function CurrentPlanTab() {
       </Card>
 
       {/* Desconto Aplicado (se houver) */}
-      {((subscription as any).discountPercent || (subscription as any).customPrice) && (
+      {(subscriptionTyped.discountPercent || subscriptionTyped.customPrice) && (
         <Card className="bg-success/5 dark:bg-success/95/20 border-success/30 dark:border-success/80">
           <CardHeader>
             <CardTitle className="text-success/90 dark:text-success/30 flex items-center gap-2">
@@ -76,31 +85,31 @@ export function CurrentPlanTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {(subscription as any).discountPercent && (
+              {subscriptionTyped.discountPercent && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-success/80 dark:text-success/30">Desconto:</span>
                   <span className="text-sm font-bold text-success/90 dark:text-success/20">
-                    {Number((subscription as any).discountPercent).toFixed(0)}% OFF
+                    {Number(subscriptionTyped.discountPercent).toFixed(0)}% OFF
                   </span>
                 </div>
               )}
-              {(subscription as any).discountReason && (
+              {subscriptionTyped.discountReason && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-success/80 dark:text-success/30">Motivo:</span>
                   <span className="text-sm font-medium text-success/90 dark:text-success/20">
-                    {(subscription as any).discountReason}
+                    {subscriptionTyped.discountReason}
                   </span>
                 </div>
               )}
-              {(subscription as any).customPrice && (
+              {subscriptionTyped.customPrice && (
                 <div className="p-3 bg-success/10 dark:bg-success/90/30 rounded-md">
                   <p className="text-sm text-success/90 dark:text-success/20">
                     <strong>Preço customizado:</strong> R${' '}
-                    {Number((subscription as any).customPrice).toFixed(2)}/mês
+                    {Number(subscriptionTyped.customPrice).toFixed(2)}/mês
                   </p>
-                  {(subscription as any).discountReason && (
+                  {subscriptionTyped.discountReason && (
                     <p className="text-xs text-success/80 dark:text-success/30 mt-1">
-                      {(subscription as any).discountReason}
+                      {subscriptionTyped.discountReason}
                     </p>
                   )}
                 </div>

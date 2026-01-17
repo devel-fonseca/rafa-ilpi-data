@@ -72,8 +72,9 @@ export function useCreateCondition() {
 
       toast.success('Condição registrada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao registrar condição'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao registrar condição'
       toast.error(message)
     },
   })
@@ -97,8 +98,9 @@ export function useUpdateCondition() {
 
       toast.success('Condição atualizada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar condição'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao atualizar condição'
       toast.error(message)
     },
   })
@@ -119,8 +121,9 @@ export function useDeleteCondition() {
 
       toast.success('Condição excluída com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir condição'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir condição'
       toast.error(message)
     },
   })

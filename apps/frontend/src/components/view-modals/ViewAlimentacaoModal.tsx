@@ -12,10 +12,32 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface AlimentacaoData {
+  refeicao: string
+  cardapio?: string
+  consistencia: string
+  ingeriu: string
+  auxilioNecessario: boolean
+  volumeMl?: string
+  intercorrencia?: string
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface AlimentacaoRecord {
+  data: AlimentacaoData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  notes?: string
+  [key: string]: unknown
+}
+
 interface ViewAlimentacaoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: AlimentacaoRecord
 }
 
 export function ViewAlimentacaoModal({

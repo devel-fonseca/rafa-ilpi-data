@@ -17,7 +17,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { dailyRecordsAPI, type DailyRecord } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
-import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para edição de Daily Record

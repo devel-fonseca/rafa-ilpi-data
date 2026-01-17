@@ -186,11 +186,11 @@ export function DailyRecordHistoryModal({
   }
 
   // Compare two objects and return differences using changedFields
-  const getFieldDifferences = (previousData: any, newData: any, changedFields: string[]) => {
+  const getFieldDifferences = (previousData: Record<string, unknown>, newData: Record<string, unknown>, changedFields: string[]) => {
     const differences: Array<{
       field: string
-      oldValue: any
-      newValue: any
+      oldValue: unknown
+      newValue: unknown
       type: 'added' | 'removed' | 'changed'
     }> = []
 
@@ -212,7 +212,7 @@ export function DailyRecordHistoryModal({
   }
 
   // Format value for display
-  const formatValue = (value: any): string => {
+  const formatValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return '(vazio)'
     }

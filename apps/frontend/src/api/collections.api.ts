@@ -43,7 +43,7 @@ export interface RenegotiateData {
 export interface CollectionActionResponse {
   success: boolean
   message: string
-  data: any
+  data: Record<string, unknown>
 }
 
 // ============================================

@@ -10,10 +10,26 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface ComportamentoData {
+  estadoEmocional: string
+  outroEstado?: string
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface ComportamentoRecord {
+  data: ComportamentoData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewComportamentoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: ComportamentoRecord
 }
 
 export function ViewComportamentoModal({

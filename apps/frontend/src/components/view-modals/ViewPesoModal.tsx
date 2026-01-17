@@ -10,10 +10,27 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface PesoData {
+  peso: string
+  altura?: string
+  imc?: number
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface PesoRecord {
+  data: PesoData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewPesoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: PesoRecord
 }
 
 export function ViewPesoModal({

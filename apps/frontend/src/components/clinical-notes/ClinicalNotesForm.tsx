@@ -457,11 +457,12 @@ export function ClinicalNotesForm({
           toast.success('Evolução salva com sucesso!')
           onOpenChange(false)
           onSuccess?.()
-        } catch (saveError: any) {
+        } catch (saveError: unknown) {
           console.error('❌ [onSubmit] Erro ao salvar:', saveError)
 
           // Tratamento específico para erros de autenticação
-          if (saveError?.response?.status === 401 || saveError?.response?.status === 403) {
+          const errorResponse = (saveError as { response?: { status?: number } }).response
+          if (errorResponse?.status === 401 || errorResponse?.status === 403) {
             toast.error('Sessão expirada durante o salvamento. Por favor, faça login novamente.')
           } else {
             toast.error('Erro ao salvar evolução clínica')
@@ -469,7 +470,7 @@ export function ClinicalNotesForm({
           throw saveError
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Erro já tratado pelo hook com toast
       console.error('Erro ao salvar evolução:', error)
     }
@@ -588,20 +589,24 @@ export function ClinicalNotesForm({
         setPendingFormData(null)
         onOpenChange(false)
         onSuccess?.()
-      } catch (saveError: any) {
+      } catch (saveError: unknown) {
         console.error('❌ [handleConfirmSave] Erro ao salvar:', saveError)
 
         // Tratamento específico para erros de autenticação
-        if (saveError?.response?.status === 401 || saveError?.response?.status === 403) {
+        const errorResponse = (saveError as { response?: { status?: number }; message?: string }).response
+        const errorMessage = (saveError as { message?: string }).message
+
+        if (errorResponse?.status === 401 || errorResponse?.status === 403) {
           toast.error('Sessão expirada durante o salvamento. Por favor, faça login novamente.')
         } else {
-          toast.error(`Erro ao salvar: ${saveError.message || 'Erro desconhecido'}`)
+          toast.error(`Erro ao salvar: ${errorMessage || 'Erro desconhecido'}`)
         }
         throw saveError
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [handleConfirmSave] Erro completo:', error)
-      console.error('❌ [handleConfirmSave] Stack:', error.stack)
+      const errorWithStack = error as { stack?: string }
+      console.error('❌ [handleConfirmSave] Stack:', errorWithStack.stack)
     } finally {
       setIsConfirming(false)
     }

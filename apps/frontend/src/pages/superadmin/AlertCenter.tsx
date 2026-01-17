@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -69,7 +69,7 @@ export function AlertCenter() {
       case 'CRITICAL':
         return <AlertCircle className="h-5 w-5 text-danger" />
       case 'WARNING':
-        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+        return <AlertTriangle className="h-5 w-5 text-warning" />
       case 'INFO':
         return <Info className="h-5 w-5 text-primary" />
     }
@@ -153,7 +153,7 @@ export function AlertCenter() {
           {/* Tipo */}
           <div className="flex-1">
             <label className="text-sm text-slate-400 mb-2 block">Tipo</label>
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as AlertType | 'ALL')}>
               <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                 <SelectValue />
               </SelectTrigger>
@@ -171,7 +171,7 @@ export function AlertCenter() {
           {/* Severidade */}
           <div className="flex-1">
             <label className="text-sm text-slate-400 mb-2 block">Severidade</label>
-            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as any)}>
+            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as AlertSeverity | 'ALL')}>
               <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                 <SelectValue />
               </SelectTrigger>
@@ -187,7 +187,7 @@ export function AlertCenter() {
           {/* Status */}
           <div className="flex-1">
             <label className="text-sm text-slate-400 mb-2 block">Status</label>
-            <Select value={readFilter} onValueChange={(v) => setReadFilter(v as any)}>
+            <Select value={readFilter} onValueChange={(v) => setReadFilter(v as 'ALL' | 'READ' | 'UNREAD')}>
               <SelectTrigger className="bg-white border-slate-200 text-slate-900">
                 <SelectValue />
               </SelectTrigger>

@@ -73,10 +73,11 @@ export function InvoiceDetails() {
         title: '✓ Sincronizado',
         description: 'Fatura sincronizada com o Asaas.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast({
         title: 'Falha ao sincronizar',
-        description: error.response?.data?.message || 'Erro ao sincronizar fatura.',
+        description: errorResponse?.data?.message || 'Erro ao sincronizar fatura.',
         variant: 'destructive',
       })
     }
@@ -91,10 +92,11 @@ export function InvoiceDetails() {
         title: '✓ Fatura cancelada',
         description: 'A fatura foi cancelada com sucesso.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast({
         title: 'Falha ao cancelar',
-        description: error.response?.data?.message || 'Erro ao cancelar fatura.',
+        description: errorResponse?.data?.message || 'Erro ao cancelar fatura.',
         variant: 'destructive',
       })
     }

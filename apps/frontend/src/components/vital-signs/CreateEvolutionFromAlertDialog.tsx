@@ -184,7 +184,7 @@ export function CreateEvolutionFromAlertDialog({
       assessment: data.assessment || undefined,
       plan: data.plan || undefined,
       tags: selectedTags,
-      // @ts-ignore - vitalSignAlertId exists in backend DTO
+      // @ts-expect-error - vitalSignAlertId exists in backend DTO
       vitalSignAlertId: alert.id,
     }
 

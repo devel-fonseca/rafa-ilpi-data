@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { format, addDays, subDays, parseISO } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import {
-  ArrowLeft,
   Edit,
   FileText,
   User,
@@ -20,7 +18,6 @@ import {
   ChevronRight,
   MoreVertical,
   Trash2,
-  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { usePrescription } from '@/hooks/usePrescriptions'
@@ -87,12 +83,12 @@ export default function PrescriptionDetails() {
   // Estados de modais de registro
   const [administerModalOpen, setAdministerModalOpen] = useState(false)
   const [administerSOSModalOpen, setAdministerSOSModalOpen] = useState(false)
-  const [selectedMedication, setSelectedMedication] = useState<any>(null)
-  const [selectedSOSMedication, setSelectedSOSMedication] = useState<any>(null)
+  const [selectedMedication, setSelectedMedication] = useState<Record<string, unknown> | null>(null)
+  const [selectedSOSMedication, setSelectedSOSMedication] = useState<Record<string, unknown> | null>(null)
 
   // Estados de modal de visualização (NOVO)
   const [viewAdministrationModalOpen, setViewAdministrationModalOpen] = useState(false)
-  const [selectedAdministration, setSelectedAdministration] = useState<any>(null)
+  const [selectedAdministration, setSelectedAdministration] = useState<Record<string, unknown> | null>(null)
 
   // Estados de modais de versionamento (delete)
   const [deleteMedicationModalOpen, setDeleteMedicationModalOpen] = useState(false)
@@ -128,7 +124,7 @@ export default function PrescriptionDetails() {
   const isViewingToday = viewDate === getCurrentDate()
 
   // Handler para visualizar administração existente (NOVO)
-  const handleViewAdministration = (administration: any, medication: any) => {
+  const handleViewAdministration = (administration: Record<string, unknown>, medication: Record<string, unknown>) => {
     setSelectedAdministration({
       ...administration,
       medication: {
@@ -144,7 +140,7 @@ export default function PrescriptionDetails() {
   }
 
   // Handler para registrar nova administração (MODIFICADO)
-  const handleRegisterAdministration = (medication: any, scheduledTime: string) => {
+  const handleRegisterAdministration = (medication: Record<string, unknown>, scheduledTime: string) => {
     setSelectedMedication({
       ...medication,
       preselectedScheduledTime: scheduledTime,
@@ -152,12 +148,7 @@ export default function PrescriptionDetails() {
     setAdministerModalOpen(true)
   }
 
-  const handleAdministerMedication = (medication: any) => {
-    setSelectedMedication(medication)
-    setAdministerModalOpen(true)
-  }
-
-  const handleAdministerSOS = (sosMedication: any) => {
+  const handleAdministerSOS = (sosMedication: Record<string, unknown>) => {
     setSelectedSOSMedication(sosMedication)
     setAdministerSOSModalOpen(true)
   }
@@ -186,13 +177,13 @@ export default function PrescriptionDetails() {
 
     const prescriptionData = prescription.data
 
-    const cards = prescriptionData.medications.flatMap((medication: any) =>
-      medication.scheduledTimes?.map((scheduledTime: string) => {
+    const cards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
+      (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
         // Buscar administração para ESTE horário específico na data visualizada
-        const administrationForTime = medication.administrations?.find(
-          (admin: any) => {
+        const administrationForTime = (medication.administrations as Array<Record<string, unknown>> | undefined)?.find(
+          (admin: Record<string, unknown>) => {
             // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão segura
-            const adminDate = extractDateOnly(admin.date)
+            const adminDate = extractDateOnly(admin.date as string)
             return adminDate === viewDate && admin.scheduledTime === scheduledTime
           }
         )
@@ -252,12 +243,12 @@ export default function PrescriptionDetails() {
 
     const prescriptionData = prescription.data
 
-    const allCards = prescriptionData.medications.flatMap((medication: any) =>
-      medication.scheduledTimes?.map((scheduledTime: string) => {
-        const administrationForTime = medication.administrations?.find(
-          (admin: any) => {
+    const allCards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
+      (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
+        const administrationForTime = (medication.administrations as Array<Record<string, unknown>> | undefined)?.find(
+          (admin: Record<string, unknown>) => {
             // ✅ REFATORADO: Usar extractDateOnly do dateHelpers para conversão segura
-            const adminDate = extractDateOnly(admin.date)
+            const adminDate = extractDateOnly(admin.date as string)
             return adminDate === viewDate && admin.scheduledTime === scheduledTime
           }
         )
@@ -643,7 +634,7 @@ export default function PrescriptionDetails() {
           </div>
 
           {/* Tabs de Filtro por Status */}
-          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full">
+          <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as 'all' | 'pending' | 'administered')} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="all">
                 Todos ({statusCounts.all})
@@ -878,8 +869,8 @@ export default function PrescriptionDetails() {
               </CardContent>
             </Card>
           ) : (
-            prescriptionData.sosMedications.map((sos: any) => (
-              <Card key={sos.id} className="border-l-4 border-l-orange-500">
+            prescriptionData.sosMedications.map((sos: Record<string, unknown>) => (
+              <Card key={sos.id as string} className="border-l-4 border-l-orange-500">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">

@@ -29,11 +29,17 @@ const editVisitaSchema = z.object({
 
 type EditVisitaFormData = z.infer<typeof editVisitaSchema>
 
+interface VisitaRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditVisitaModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: VisitaRecord
   isUpdating?: boolean
 }
 

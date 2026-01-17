@@ -17,9 +17,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Building2, Layers, DoorOpen, Bed as BedIcon, Check, Search, Filter } from 'lucide-react'
+import { Building2, DoorOpen, Bed as BedIcon, Check, Search, Filter } from 'lucide-react'
 import { BedsHierarchy } from '@/api/beds.api'
 import { formatBedFromObject } from '@/utils/formatters'
+
+interface BedEntity {
+  id: string
+  code: string
+  status: string
+  [key: string]: unknown
+}
+
+interface RoomEntity {
+  id: string
+  name: string
+  roomType?: string
+  [key: string]: unknown
+}
+
+interface FloorEntity {
+  id: string
+  name: string
+  [key: string]: unknown
+}
+
+interface BuildingEntity {
+  id: string
+  name: string
+  [key: string]: unknown
+}
 
 interface SelectBedModalProps {
   open: boolean
@@ -27,16 +53,16 @@ interface SelectBedModalProps {
   residentName: string
   currentBedId: string
   data: BedsHierarchy
-  onSelectBed: (bed: any, room: any, floor: any, building: any) => void
+  onSelectBed: (bed: BedEntity, room: RoomEntity, floor: FloorEntity, building: BuildingEntity) => void
 }
 
 type FilterScope = 'same-room' | 'same-floor' | 'same-building' | 'all'
 
 interface AvailableBed {
-  bed: any
-  room: any
-  floor: any
-  building: any
+  bed: BedEntity
+  room: RoomEntity
+  floor: FloorEntity
+  building: BuildingEntity
   distance: number // 0 = mesmo quarto, 1 = mesmo andar, 2 = mesmo prédio, 3 = outro prédio
 }
 
@@ -60,7 +86,7 @@ export function SelectBedModal({
   const [filterScope, setFilterScope] = useState<FilterScope>('same-floor')
 
   // Encontrar leito atual e coletar todos os leitos disponíveis
-  const { currentBedInfo, availableBeds } = useMemo(() => {
+  const { availableBeds } = useMemo(() => {
     let currentBedInfo: { roomId?: string; floorId?: string; buildingId?: string } = {}
     const beds: AvailableBed[] = []
 

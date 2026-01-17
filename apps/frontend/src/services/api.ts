@@ -34,11 +34,13 @@ api.interceptors.request.use(
       delete config.headers['Content-Type']
     }
 
-    // ⚠️ VALIDAÇÃO DEV: Bloquear tenantId em requests (exceto SuperAdmin)
+    // ⚠️ VALIDAÇÃO DEV: Bloquear tenantId em requests (exceto rotas permitidas)
     // Frontend NÃO deve enviar tenantId - backend extrai do JWT automaticamente
+    // EXCEÇÕES: SuperAdmin e rotas de autenticação pública (registro, select-tenant)
     const isSuperAdminRoute = config.url?.includes('/superadmin')
+    const isAuthRoute = config.url?.startsWith('/auth/')
 
-    if (import.meta.env.DEV && !isSuperAdminRoute) {
+    if (import.meta.env.DEV && !isSuperAdminRoute && !isAuthRoute) {
       const hasTenantIdInData = config.data && typeof config.data === 'object' && 'tenantId' in config.data
       const hasTenantIdInParams = config.params && 'tenantId' in config.params
 
@@ -70,13 +72,13 @@ api.interceptors.request.use(
 let isRefreshing = false
 let failedQueue: Array<{
   resolve: (value: string) => void
-  reject: (reason: any) => void
+  reject: (reason: unknown) => void
 }> = []
 
 /**
  * Processa a fila de requisições que falharam enquanto refresh estava em andamento
  */
-function processQueue(error: any, token: string | null = null) {
+function processQueue(error: unknown, token: string | null = null) {
   failedQueue.forEach((promise) => {
     if (error) {
       promise.reject(error)
@@ -192,9 +194,10 @@ async function tryLogoutOnExpiration() {
     )
 
     console.log('✅ [LOGOUT-EXPIRED] Logout de sessão expirada registrado com sucesso')
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Best effort - falha silenciosa, mas loga para debug
-    console.warn('[LOGOUT-EXPIRED] Falha ao registrar logout:', error.message)
+    const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+    console.warn('[LOGOUT-EXPIRED] Falha ao registrar logout:', errorMessage)
   }
 }
 

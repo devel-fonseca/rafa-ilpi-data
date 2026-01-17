@@ -38,7 +38,7 @@ type SonoFormData = z.infer<typeof sonoSchema>
 interface SonoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: SonoFormData) => void
   residentId: string
   residentName: string
   date: string

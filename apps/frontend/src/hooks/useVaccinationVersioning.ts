@@ -23,11 +23,12 @@ export function useUpdateVaccination() {
       queryClient.invalidateQueries({ queryKey: tenantKey('vaccination-history', variables.id) })
       toast({ title: 'Vacinação atualizada', description: 'As alterações foram salvas com sucesso.' })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description: error.response?.data?.message || 'Não foi possível atualizar a vacinação.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar a vacinação.',
       })
     },
   })
@@ -44,11 +45,12 @@ export function useDeleteVaccination() {
       queryClient.invalidateQueries({ queryKey: tenantKey('vaccinations') })
       toast({ title: 'Vacinação excluída', description: 'A vacinação foi excluída com sucesso.' })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: error.response?.data?.message || 'Não foi possível excluir a vacinação.',
+        description: errorResponse?.data?.message || 'Não foi possível excluir a vacinação.',
       })
     },
   })

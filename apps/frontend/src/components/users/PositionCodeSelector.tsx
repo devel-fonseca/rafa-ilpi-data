@@ -48,7 +48,7 @@ export function PositionCodeSelector({
           <SelectValue placeholder="Selecione um cargo..." />
         </SelectTrigger>
         <SelectContent className="max-h-[400px]">
-          {Object.entries(PositionCode).map(([key, code]) => (
+          {Object.entries(PositionCode).map(([, code]) => (
             <SelectItem key={code} value={code} className="py-3">
               <div className="flex items-start gap-2">
                 <div className="flex-1">

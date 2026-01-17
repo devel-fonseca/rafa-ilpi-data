@@ -42,11 +42,12 @@ export default function ForgotPassword() {
         title: 'Email enviado',
         description: 'Se o email existir em nosso sistema, você receberá instruções em breve.',
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao enviar',
-        description: error.response?.data?.message || 'Ocorreu um erro ao processar sua solicitação.',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao processar sua solicitação.',
       })
     } finally {
       setIsLoading(false)

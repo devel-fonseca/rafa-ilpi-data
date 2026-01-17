@@ -2,19 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { uploadFileDetailed } from '@/services/upload'
 import {
   institutionalProfileAPI,
-  type TenantProfile,
-  type TenantDocument,
-  type ComplianceDashboard,
-  type CreateTenantProfileDto,
-  type UpdateTenantProfileDto,
   type CreateTenantDocumentDto,
   type UpdateTenantDocumentDto,
   type LegalNature,
   type DocumentStatus,
-  type FullProfile,
   type UpdateInstitutionalProfileDto,
-  type TenantData,
-  type UpdateTenantDto,
 } from '@/api/institutional-profile.api'
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -570,7 +570,7 @@ export default function DocumentManagement() {
                                   <TableCell className="font-medium">
                                     <div className="flex items-center gap-2 pl-12">
                                       {isMostRecent && (
-                                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                                        <Star className="h-4 w-4 text-severity-warning fill-severity-warning flex-shrink-0" />
                                       )}
                                       <span className="text-sm text-muted-foreground truncate">
                                         {isMostRecent ? 'Mais recente' : `Documento ${index + 1}`}

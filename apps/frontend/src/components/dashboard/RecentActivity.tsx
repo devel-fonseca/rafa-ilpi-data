@@ -1,7 +1,7 @@
 import { useRecentActivity, type AuditLog } from '@/hooks/useAudit'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Activity, UserPlus, Edit, Trash2, FileText, Users, Calendar } from 'lucide-react'
-import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from 'date-fns'
+import { Activity, UserPlus, Edit, Trash2 } from 'lucide-react'
+import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Tooltip,
@@ -50,20 +50,7 @@ const actionLabels: Record<string, string> = {
   TRANSFER_BED: 'transferiu de leito',
 }
 
-const entityIcons: Record<string, any> = {
-  RESIDENT: Users,
-  DAILY_RECORD: Calendar,
-  PRESCRIPTION: FileText,
-  VACCINATION: FileText,
-  BUILDING: Activity,
-  FLOOR: Activity,
-  ROOM: Activity,
-  BED: Activity,
-  VITAL_SIGN: Activity,
-  INSTITUTIONAL_PROFILE: FileText,
-}
-
-const actionIcons: Record<string, any> = {
+const actionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   CREATE: UserPlus,
   UPDATE: Edit,
   DELETE: Trash2,

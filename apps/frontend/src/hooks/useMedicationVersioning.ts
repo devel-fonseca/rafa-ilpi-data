@@ -37,11 +37,12 @@ export function useUpdateMedication() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description: error.response?.data?.message || 'Não foi possível atualizar o medicamento.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar o medicamento.',
       })
     },
   })
@@ -64,11 +65,12 @@ export function useDeleteMedication() {
         description: 'O medicamento foi excluído com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: error.response?.data?.message || 'Não foi possível excluir o medicamento.',
+        description: errorResponse?.data?.message || 'Não foi possível excluir o medicamento.',
       })
     },
   })

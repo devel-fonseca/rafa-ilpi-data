@@ -77,7 +77,7 @@ export default function ResidentsList() {
   const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; resident: any | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; resident: Resident | null }>({
     open: false,
     resident: null,
   })
@@ -102,7 +102,7 @@ export default function ResidentsList() {
 
   // Detectar state de navegação para abrir modal automaticamente após criação
   useEffect(() => {
-    const state = location.state as any
+    const state = location.state as { openDocumentsModal?: boolean; residentId?: string; residentName?: string } | null
     if (state?.openDocumentsModal && state?.residentId) {
       setDocumentsModal({
         open: true,

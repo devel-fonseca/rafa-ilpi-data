@@ -286,7 +286,7 @@ export default function ResidentContractView() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(contract.signatories as any[]).map((signatory, index) => (
+                {contract.signatories.map((signatory, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1">

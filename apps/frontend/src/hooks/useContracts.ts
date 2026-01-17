@@ -42,8 +42,9 @@ export function useCreateContract() {
       queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
       toast.success('Contrato criado com sucesso!')
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao criar contrato')
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao criar contrato')
     },
   })
 }
@@ -62,8 +63,9 @@ export function useUpdateContract() {
       queryClient.invalidateQueries({ queryKey: tenantKey('contracts', variables.id) })
       toast.success('Contrato atualizado com sucesso!')
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao atualizar contrato')
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao atualizar contrato')
     },
   })
 }
@@ -84,8 +86,9 @@ export function usePublishContract() {
         description: 'O contrato agora está ATIVO e disponível para novos cadastros.',
       })
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao publicar contrato')
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao publicar contrato')
     },
   })
 }
@@ -102,8 +105,9 @@ export function useDeleteContract() {
       queryClient.invalidateQueries({ queryKey: tenantKey('contracts') })
       toast.success('Contrato deletado com sucesso!')
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Erro ao deletar contrato')
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error(errorResponse?.data?.message || 'Erro ao deletar contrato')
     },
   })
 }

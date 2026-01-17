@@ -51,7 +51,7 @@ type EliminacaoFormData = z.infer<typeof eliminacaoSchema>
 interface EliminacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: EliminacaoFormData) => void
   residentId: string
   residentName: string
   date: string

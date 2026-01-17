@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { usePrescriptionsDashboard } from '@/hooks/usePrescriptions'
-import type { Prescription, QueryPrescriptionParams } from '@/api/prescriptions.api'
+import type { Prescription, QueryPrescriptionParams, Medication, SOSMedication } from '@/api/prescriptions.api'
 import { formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -80,7 +80,7 @@ export default function PrescriptionsList() {
   const canDeletePrescriptions = hasPermission(PermissionType.DELETE_PRESCRIPTIONS)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: any | null }>({
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: Prescription | null }>({
     open: false,
     prescription: null,
   })
@@ -439,14 +439,14 @@ export default function PrescriptionsList() {
                               }
 
                               const displayMeds = [
-                                ...continuousMeds.slice(0, 2).map((med: any) => ({
+                                ...continuousMeds.slice(0, 2).map((med: Medication) => ({
                                   id: med.id,
                                   name: med.name,
                                   type: 'contínuo',
                                 })),
                                 ...sosMeds
                                   .slice(0, Math.max(0, 2 - continuousMeds.length))
-                                  .map((med: any) => ({
+                                  .map((med: SOSMedication) => ({
                                     id: med.id,
                                     name: med.name,
                                     type: 'SOS',
@@ -454,11 +454,11 @@ export default function PrescriptionsList() {
                               ]
 
                               const remainingMeds = [
-                                ...continuousMeds.slice(2).map((med: any) => ({
+                                ...continuousMeds.slice(2).map((med: Medication) => ({
                                   name: med.name,
                                   type: 'contínuo',
                                 })),
-                                ...sosMeds.slice(Math.max(0, 2 - continuousMeds.length)).map((med: any) => ({
+                                ...sosMeds.slice(Math.max(0, 2 - continuousMeds.length)).map((med: SOSMedication) => ({
                                   name: med.name,
                                   type: 'SOS',
                                 })),

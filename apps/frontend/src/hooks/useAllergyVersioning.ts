@@ -37,11 +37,12 @@ export function useUpdateAllergy() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description: error.response?.data?.message || 'Não foi possível atualizar a alergia.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar a alergia.',
       })
     },
   })
@@ -64,11 +65,12 @@ export function useDeleteAllergy() {
         description: 'A alergia foi excluída com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: error.response?.data?.message || 'Não foi possível excluir a alergia.',
+        description: errorResponse?.data?.message || 'Não foi possível excluir a alergia.',
       })
     },
   })

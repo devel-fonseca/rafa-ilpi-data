@@ -17,7 +17,6 @@ import {
   FolderOpen,
 } from 'lucide-react'
 import { formatDate, formatLegalNature } from '@/utils/formatters'
-import type { DocumentStatus } from '@/api/institutional-profile.api'
 import { Page, PageHeader } from '@/design-system/components'
 import { useNavigate } from 'react-router-dom'
 

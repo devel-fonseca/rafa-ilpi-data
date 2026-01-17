@@ -88,8 +88,9 @@ export default function ResetPassword() {
       setTimeout(() => {
         navigate('/login')
       }, 3000)
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Ocorreu um erro ao redefinir sua senha.'
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Ocorreu um erro ao redefinir sua senha.'
 
       toast({
         variant: 'destructive',

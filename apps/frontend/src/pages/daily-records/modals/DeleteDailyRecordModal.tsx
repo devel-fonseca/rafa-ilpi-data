@@ -18,7 +18,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { dailyRecordsAPI, type DailyRecord } from '@/api/dailyRecords.api'
 import { useToast } from '@/components/ui/use-toast'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
-import { getErrorMessage } from '@/utils/errorHandling'
 
 /**
  * Schema de validação para exclusão de Daily Record

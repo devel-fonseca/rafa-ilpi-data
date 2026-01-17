@@ -27,13 +27,13 @@ interface GenericHistoryDrawerProps<T> {
     }>
   }
   isLoading: boolean
-  error: any
+  error: unknown
   title: string
   entityName?: string
-  renderFieldChange?: (field: string, prevValue: any, newValue: any) => React.ReactNode
+  renderFieldChange?: (field: string, prevValue: unknown, newValue: unknown) => React.ReactNode
 }
 
-export function GenericHistoryDrawer<T = any>({
+export function GenericHistoryDrawer<T = Record<string, unknown>>({
   open,
   onOpenChange,
   data,
@@ -162,7 +162,7 @@ export function GenericHistoryDrawer<T = any>({
                       {version.changeType === 'UPDATE' && version.previousData && renderFieldChange && (
                         <div className="space-y-2 text-sm">
                           {version.changedFields.map((field) =>
-                            renderFieldChange(field, (version.previousData as any)?.[field], (version.newData as any)?.[field])
+                            renderFieldChange(field, (version.previousData as Record<string, unknown>)?.[field], (version.newData as Record<string, unknown>)?.[field])
                           )}
                         </div>
                       )}

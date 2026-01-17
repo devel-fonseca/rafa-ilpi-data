@@ -66,7 +66,7 @@ export function BedsStructurePage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteType, setDeleteType] = useState<'building' | 'floor' | 'room' | 'bed'>('building')
-  const [deleteItem, setDeleteItem] = useState<any>(null)
+  const [deleteItem, setDeleteItem] = useState<Building | Floor | Room | Bed | null>(null)
 
   // Queries
   const { data: buildings, isLoading: loadingBuildings } = useBuildings()
@@ -81,7 +81,7 @@ export function BedsStructurePage() {
   const deleteBedMutation = useDeleteBed()
 
   // Função helper para filtrar por busca de texto
-  const matchesSearch = (item: any, search: string) => {
+  const matchesSearch = (item: { name?: string; code?: string }, search: string) => {
     if (!search) return true
     const searchLower = search.toLowerCase()
     return (

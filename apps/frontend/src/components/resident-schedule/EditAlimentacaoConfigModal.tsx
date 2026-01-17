@@ -79,7 +79,7 @@ export function EditAlimentacaoConfigModal({
         'Ceia': 'ceia',
       };
 
-      const formValues: any = {
+      const formValues: Record<string, unknown> = {
         notes: configs[0].notes || '',
       };
 
@@ -120,9 +120,10 @@ export function EditAlimentacaoConfigModal({
 
       toast.success('Configurações de alimentação atualizadas com sucesso');
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast.error(
-        error.response?.data?.message || 'Erro ao atualizar configurações de alimentação'
+        errorResponse?.data?.message || 'Erro ao atualizar configurações de alimentação'
       );
     }
   };

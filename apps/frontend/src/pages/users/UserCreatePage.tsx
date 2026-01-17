@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, UserPlus, Save } from 'lucide-react'
+import { UserPlus, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -179,9 +179,9 @@ export default function UserCreatePage() {
 
       toast.success('Usuário criado com sucesso!')
       navigate('/dashboard/usuarios')
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Extrair mensagem de erro da resposta da API
-      const errorMessage = error.response?.data?.message || error.message || 'Erro ao criar usuário'
+      const errorMessage = 'Erro ao criar usuário'
 
       // Detectar erro de limite do plano
       if (errorMessage.includes('Limite de usuários') || errorMessage.includes('plano')) {

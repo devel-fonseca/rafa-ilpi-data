@@ -111,7 +111,7 @@ export default function UsersList() {
       await addUserToTenant(currentUser.tenantId, {
         name: formData.name,
         email: formData.email,
-        role: formData.role as any,
+        role: formData.role as string,
         sendInviteEmail: formData.sendInviteEmail,
         temporaryPassword: formData.temporaryPassword || undefined,
       })

@@ -72,8 +72,9 @@ export function useCreateAllergy() {
 
       toast.success('Alergia registrada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao registrar alergia'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao registrar alergia'
       toast.error(message)
     },
   })
@@ -97,8 +98,9 @@ export function useUpdateAllergy() {
 
       toast.success('Alergia atualizada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar alergia'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao atualizar alergia'
       toast.error(message)
     },
   })
@@ -119,8 +121,9 @@ export function useDeleteAllergy() {
 
       toast.success('Alergia excluída com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir alergia'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir alergia'
       toast.error(message)
     },
   })

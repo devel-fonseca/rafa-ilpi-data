@@ -37,11 +37,12 @@ export function useUpdateClinicalProfile() {
         description: 'As alterações foram salvas com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
-        description: error.response?.data?.message || 'Não foi possível atualizar o perfil clínico.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar o perfil clínico.',
       })
     },
   })
@@ -64,11 +65,12 @@ export function useDeleteClinicalProfile() {
         description: 'O perfil clínico foi excluído com sucesso.',
       })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
-        description: error.response?.data?.message || 'Não foi possível excluir o perfil clínico.',
+        description: errorResponse?.data?.message || 'Não foi possível excluir o perfil clínico.',
       })
     },
   })

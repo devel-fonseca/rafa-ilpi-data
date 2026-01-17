@@ -71,7 +71,7 @@ export function PlansList() {
     // Garantir que features CORE estejam sempre incluídas
     const allFeatures = [
       ...Array.from(CORE_FEATURES), // Features core sempre habilitadas
-      ...features.filter(f => !CORE_FEATURES.includes(f as any)), // Features opcionais
+      ...features.filter(f => !(CORE_FEATURES as readonly string[]).includes(f)), // Features opcionais
     ]
 
     // Incluir features convertidas no formData
@@ -387,14 +387,14 @@ export function PlansList() {
                         </div>
 
                         {/* Features OPCIONAIS selecionadas */}
-                        {features.filter(f => !CORE_FEATURES.includes(f as any)).length > 0 && (
+                        {features.filter(f => !(CORE_FEATURES as readonly string[]).includes(f)).length > 0 && (
                           <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
                             <p className="text-xs font-medium text-emerald-900 mb-2">
-                              Features Opcionais Ativas ({features.filter(f => !CORE_FEATURES.includes(f as any)).length}):
+                              Features Opcionais Ativas ({features.filter(f => !(CORE_FEATURES as readonly string[]).includes(f)).length}):
                             </p>
                             <div className="flex flex-wrap gap-2">
                               {features
-                                .filter(f => !CORE_FEATURES.includes(f as any))
+                                .filter(f => !(CORE_FEATURES as readonly string[]).includes(f))
                                 .map((feature, idx) => (
                                   <Badge
                                     key={idx}
@@ -417,11 +417,11 @@ export function PlansList() {
                         {/* Features OPCIONAIS disponíveis (excluindo core features) */}
                         <div className="space-y-2">
                           <p className="text-xs font-medium text-slate-600">
-                            Features opcionais disponíveis ({AVAILABLE_FEATURES.filter(f => !features.includes(f) && !CORE_FEATURES.includes(f as any)).length}) - clique para adicionar:
+                            Features opcionais disponíveis ({AVAILABLE_FEATURES.filter(f => !features.includes(f) && !(CORE_FEATURES as readonly string[]).includes(f)).length}) - clique para adicionar:
                           </p>
                           <div className="flex flex-wrap gap-2 p-3 bg-primary/5 rounded-md border border-primary/30 max-h-48 overflow-y-auto">
                             {AVAILABLE_FEATURES.filter(
-                              f => !features.includes(f) && !CORE_FEATURES.includes(f as any)
+                              f => !features.includes(f) && !(CORE_FEATURES as readonly string[]).includes(f)
                             ).map((feature, idx) => (
                               <Badge
                                 key={idx}

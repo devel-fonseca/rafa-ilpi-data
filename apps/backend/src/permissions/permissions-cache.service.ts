@@ -121,7 +121,7 @@ export class PermissionsCacheService {
     const unionQuery = tenants
       .map(
         (t) =>
-          `SELECT id, tenant_id as "tenantId", role FROM "${t.schemaName}".users WHERE id = $1 AND deleted_at IS NULL`,
+          `SELECT id, "tenantId", role FROM "${t.schemaName}".users WHERE id = $1::uuid AND "deletedAt" IS NULL`,
       )
       .join(' UNION ALL ');
 

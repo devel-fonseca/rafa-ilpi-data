@@ -25,7 +25,7 @@ export interface Plan {
   trialDays: number
   isPopular: boolean
   isActive: boolean
-  features: Record<string, any>
+  features: Record<string, unknown>
   billingCycle: BillingCycle
   createdAt: string
   updatedAt: string
@@ -39,7 +39,7 @@ export interface UpdatePlanDto {
   maxUsers?: number
   maxResidents?: number
   displayName?: string
-  features?: Record<string, any>
+  features?: Record<string, unknown>
   isPopular?: boolean
   isActive?: boolean
   trialDays?: number
@@ -132,7 +132,7 @@ export const getPlanStats = async (id: string): Promise<PlanStats> => {
 export const applySubscriptionDiscount = async (
   subscriptionId: string,
   data: ApplyDiscountDto,
-): Promise<any> => {
+): Promise<Record<string, unknown>> => {
   const response = await api.post(`/superadmin/subscriptions/${subscriptionId}/apply-discount`, data)
   return response.data
 }
@@ -144,7 +144,7 @@ export const applySubscriptionDiscount = async (
 export const applySubscriptionCustomPrice = async (
   subscriptionId: string,
   data: ApplyCustomPriceDto,
-): Promise<any> => {
+): Promise<Record<string, unknown>> => {
   const response = await api.post(
     `/superadmin/subscriptions/${subscriptionId}/apply-custom-price`,
     data,
@@ -156,7 +156,7 @@ export const applySubscriptionCustomPrice = async (
  * Remover desconto/preço customizado de uma subscription
  * Endpoint: DELETE /superadmin/subscriptions/:id/discount
  */
-export const removeSubscriptionDiscount = async (subscriptionId: string): Promise<any> => {
+export const removeSubscriptionDiscount = async (subscriptionId: string): Promise<Record<string, unknown>> => {
   const response = await api.delete(`/superadmin/subscriptions/${subscriptionId}/discount`)
   return response.data
 }

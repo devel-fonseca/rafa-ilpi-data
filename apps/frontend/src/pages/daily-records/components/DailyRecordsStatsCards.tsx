@@ -5,7 +5,7 @@ interface DailyRecord {
   id: string
   type: string
   time: string
-  data: any
+  data: Record<string, unknown>
   notes?: string
   recordedBy: string
 }

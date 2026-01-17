@@ -17,8 +17,6 @@ import {
   Clock,
   Send,
   FileText,
-  Calendar,
-  User,
   Mail,
 } from 'lucide-react';
 import { format } from 'date-fns';

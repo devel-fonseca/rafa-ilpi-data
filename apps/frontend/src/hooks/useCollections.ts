@@ -27,9 +27,6 @@ import {
   sendReminder,
   suspendTenant,
   renegotiateInvoice,
-  type SendReminderData,
-  type SuspendTenantData,
-  type RenegotiateData,
 } from '@/api/collections.api'
 
 /**
@@ -56,11 +53,11 @@ export function useSendReminder() {
         description: response.message || 'Lembrete de pagamento enviado com sucesso',
       })
     },
-    onError: (error: any) => {
+    onError: () => {
       // Toast de erro
       toast({
         title: 'Erro ao Enviar Lembrete',
-        description: error.response?.data?.message || 'Ocorreu um erro ao enviar o lembrete',
+        description: 'Ocorreu um erro ao enviar o lembrete',
         variant: 'destructive',
       })
     },
@@ -93,11 +90,11 @@ export function useSuspendTenant() {
         description: response.message || 'Tenant suspenso com sucesso',
       })
     },
-    onError: (error: any) => {
+    onError: () => {
       // Toast de erro
       toast({
         title: 'Erro ao Suspender Tenant',
-        description: error.response?.data?.message || 'Ocorreu um erro ao suspender o tenant',
+        description: 'Ocorreu um erro ao suspender o tenant',
         variant: 'destructive',
       })
     },
@@ -130,11 +127,11 @@ export function useRenegotiate() {
         description: response.message || 'Fatura renegociada com sucesso',
       })
     },
-    onError: (error: any) => {
+    onError: () => {
       // Toast de erro
       toast({
         title: 'Erro ao Renegociar',
-        description: error.response?.data?.message || 'Ocorreu um erro ao renegociar a fatura',
+        description: 'Ocorreu um erro ao renegociar a fatura',
         variant: 'destructive',
       })
     },

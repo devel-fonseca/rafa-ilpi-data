@@ -252,8 +252,8 @@ export interface PrescriptionHistoryEntry {
   versionNumber: number
   changeType: ChangeType
   changeReason: string
-  previousData: any | null
-  newData: any
+  previousData: Record<string, unknown> | null
+  newData: Record<string, unknown>
   changedFields: string[]
   changedAt: string
   changedBy: {
@@ -263,7 +263,7 @@ export interface PrescriptionHistoryEntry {
   }
   ipAddress?: string
   userAgent?: string
-  metadata?: any
+  metadata?: Record<string, unknown>
 }
 
 export interface PrescriptionHistoryResponse {

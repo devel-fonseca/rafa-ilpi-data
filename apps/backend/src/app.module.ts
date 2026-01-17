@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { WinstonModule } from 'nest-winston';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
@@ -17,7 +17,6 @@ import { VaccinationsModule } from './vaccinations/vaccinations.module';
 import { ClinicalNotesModule } from './clinical-notes/clinical-notes.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
-import { TenantContextInterceptor } from './common/interceptors/tenant-context.interceptor';
 import { TenantContextService } from './prisma/tenant-context.service';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -147,17 +146,18 @@ import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão
     // Use @Public() para rotas públicas
+    // IMPORTANTE: useFactory para permitir injeção de Reflector e TenantContextService
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard,
+      useFactory: (reflector: Reflector, tenantContext: TenantContextService) => {
+        return new JwtAuthGuard(reflector, tenantContext);
+      },
+      inject: [Reflector, TenantContextService],
     },
     // Tenant Context Service - REQUEST-scoped para isolamento de dados
     TenantContextService,
-    // Interceptor global de tenant context (DEVE vir ANTES do AuditInterceptor)
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TenantContextInterceptor,
-    },
+    // NOTA: TenantContext é inicializado pelo JwtAuthGuard após validação JWT
+    // (Interceptor global não funciona com REQUEST-scoped services)
     // Interceptor global de auditoria
     {
       provide: APP_INTERCEPTOR,

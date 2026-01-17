@@ -33,7 +33,7 @@ type MonitoramentoFormData = z.infer<typeof monitoramentoSchema>
 interface MonitoramentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: MonitoramentoFormData) => void
   residentId: string
   residentName: string
   date: string

@@ -1,6 +1,5 @@
 import React from 'react'
 import { useForm } from 'react-hook-form'
-import { format } from 'date-fns'
 import {
   Dialog,
   DialogContent,
@@ -15,13 +14,13 @@ import { useAdministerSOS } from '@/hooks/usePrescriptions'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import type { AdministerSOSDto } from '@/api/prescriptions.api'
+import type { SOSMedication } from '@/api/sos-medications.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
-import { getErrorMessage } from '@/utils/errorHandling'
 
 interface AdministerSOSModalProps {
   open: boolean
   onClose: () => void
-  sosMedication: any
+  sosMedication: SOSMedication | null
 }
 
 export function AdministerSOSModal({

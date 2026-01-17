@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CheckCircle, Mail, Lock, ArrowRight, Users, FileText, Activity } from 'lucide-react'
+import { CheckCircle, Mail, Lock, ArrowRight } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
-import { Alert, AlertDescription } from '../../components/ui/alert'
 
 interface WelcomeState {
   adminEmail: string

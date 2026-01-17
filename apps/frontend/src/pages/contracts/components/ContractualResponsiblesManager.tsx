@@ -69,10 +69,10 @@ export function ContractualResponsiblesManager({
                     value={responsible.name}
                     onChange={(e) => updateResponsible(index, 'name', e.target.value)}
                     placeholder="Nome do responsável contratual"
-                    className={errors[`responsible-${index}-name`] ? 'border-red-500' : ''}
+                    className={errors[`responsible-${index}-name`] ? 'border-danger' : ''}
                   />
                   {errors[`responsible-${index}-name`] && (
-                    <p className="text-sm text-red-500">{errors[`responsible-${index}-name`]}</p>
+                    <p className="text-sm text-danger">{errors[`responsible-${index}-name`]}</p>
                   )}
                 </div>
 
@@ -83,10 +83,10 @@ export function ContractualResponsiblesManager({
                     value={responsible.cpf}
                     onChange={(e) => updateResponsible(index, 'cpf', e.target.value)}
                     placeholder="000.000.000-00"
-                    className={errors[`responsible-${index}-cpf`] ? 'border-red-500' : ''}
+                    className={errors[`responsible-${index}-cpf`] ? 'border-danger' : ''}
                   />
                   {errors[`responsible-${index}-cpf`] && (
-                    <p className="text-sm text-red-500">{errors[`responsible-${index}-cpf`]}</p>
+                    <p className="text-sm text-danger">{errors[`responsible-${index}-cpf`]}</p>
                   )}
                 </div>
 
@@ -111,7 +111,7 @@ export function ContractualResponsiblesManager({
           Adicionar Responsável Contratual
         </Button>
 
-        {errors.responsibles && <p className="text-sm text-red-500">{errors.responsibles}</p>}
+        {errors.responsibles && <p className="text-sm text-danger">{errors.responsibles}</p>}
       </CardContent>
     </Card>
   )

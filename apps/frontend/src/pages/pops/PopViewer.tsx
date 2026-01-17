@@ -40,7 +40,7 @@ import PopVersionModal from './PopVersionModal'
 import PopObsoleteModal from './PopObsoleteModal'
 import { usePermissions } from '../../hooks/usePermissions'
 import { PermissionType } from '../../types/permissions'
-import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import { Page, PageHeader, EmptyState } from '@/design-system/components'
 
 export default function PopViewer() {
   const navigate = useNavigate()

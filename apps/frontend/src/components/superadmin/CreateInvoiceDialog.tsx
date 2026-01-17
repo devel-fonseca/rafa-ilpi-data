@@ -23,6 +23,20 @@ import { useCreateInvoice } from '@/hooks/useInvoices'
 import { useTenants } from '@/hooks/useSuperAdmin'
 import { useToast } from '@/components/ui/use-toast'
 
+interface Subscription {
+  id: string
+  status: string
+  [key: string]: unknown
+}
+
+interface Tenant {
+  id: string
+  name: string
+  email: string
+  subscriptions: Subscription[]
+  [key: string]: unknown
+}
+
 interface CreateInvoiceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -42,9 +56,9 @@ export function CreateInvoiceDialog({
   const createMutation = useCreateInvoice()
 
   // Buscar subscriptions do tenant selecionado
-  const selectedTenant = tenantsData?.data?.find((t: any) => t.id === selectedTenantId)
+  const selectedTenant = tenantsData?.data?.find((t: Tenant) => t.id === selectedTenantId)
   const activeSubscription = selectedTenant?.subscriptions?.find(
-    (s: any) => s.status === 'active'
+    (s: Subscription) => s.status === 'active'
   )
 
   // Auto-preencher quando selecionar tenant
@@ -89,11 +103,12 @@ export function CreateInvoiceDialog({
       setAmount('')
       setDescription('')
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast({
         title: 'Falha ao criar fatura',
         description:
-          error.response?.data?.message ||
+          errorResponse?.data?.message ||
           'Ocorreu um erro ao criar a fatura. Verifique os dados e tente novamente.',
         variant: 'destructive',
       })
@@ -128,10 +143,10 @@ export function CreateInvoiceDialog({
                 </SelectTrigger>
                 <SelectContent className="bg-white border-slate-200">
                   {tenantsData?.data
-                    ?.filter((tenant: any) =>
-                      tenant.subscriptions.some((s: any) => s.status === 'active')
+                    ?.filter((tenant: Tenant) =>
+                      tenant.subscriptions.some((s: Subscription) => s.status === 'active')
                     )
-                    .map((tenant: any) => (
+                    .map((tenant: Tenant) => (
                       <SelectItem key={tenant.id} value={tenant.id}>
                         {tenant.name} ({tenant.email})
                       </SelectItem>

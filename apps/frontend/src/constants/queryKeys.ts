@@ -41,7 +41,7 @@ export const QUERY_KEYS = {
   audit: {
     all: ['audit'] as const,
     recent: (limit: number) => ['audit', 'recent', limit] as const,
-    logs: (filters?: any) => ['audit', 'logs', filters] as const,
+    logs: (filters?: Record<string, unknown>) => ['audit', 'logs', filters] as const,
     stats: (startDate?: string, endDate?: string) =>
       ['audit', 'stats', { startDate, endDate }] as const,
   },
@@ -53,7 +53,7 @@ export const QUERY_KEYS = {
   notifications: {
     all: ['notifications'] as const,
     unreadCount: ['notifications', 'unread-count'] as const,
-    list: (filters?: any) => ['notifications', 'list', filters] as const,
+    list: (filters?: Record<string, unknown>) => ['notifications', 'list', filters] as const,
   },
 
   // ──────────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export const QUERY_KEYS = {
   residents: {
     all: ['residents'] as const,
     lists: () => ['residents', 'list'] as const,
-    list: (filters?: any) => ['residents', 'list', filters] as const,
+    list: (filters?: Record<string, unknown>) => ['residents', 'list', filters] as const,
     detail: (id: string) => ['residents', id] as const,
     documents: (id: string) => ['residents', id, 'documents'] as const,
   },
@@ -101,7 +101,7 @@ export const QUERY_KEYS = {
     all: ['scheduled-events'] as const,
     byResident: (residentId: string) =>
       ['scheduled-events', residentId] as const,
-    upcoming: (filters?: any) =>
+    upcoming: (filters?: Record<string, unknown>) =>
       ['scheduled-events', 'upcoming', filters] as const,
   },
 
@@ -116,7 +116,7 @@ export const QUERY_KEYS = {
   dailyRecords: {
     all: ['daily-records'] as const,
     lists: () => ['daily-records', 'list'] as const,
-    list: (filters?: any) => ['daily-records', 'list', filters] as const,
+    list: (filters?: Record<string, unknown>) => ['daily-records', 'list', filters] as const,
     byResident: (residentId: string) =>
       ['daily-records', { residentId }] as const,
     byDate: (date: string) =>

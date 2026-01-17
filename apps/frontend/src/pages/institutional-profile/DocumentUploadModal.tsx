@@ -194,7 +194,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
       }
 
       // Montar payload com todos os metadados
-      const metadata: any = {
+      const metadata: Record<string, unknown> = {
         type: data.type,
         ...(data.issuedAt && { issuedAt: data.issuedAt }),
         ...(data.expiresAt && { expiresAt: data.expiresAt }),

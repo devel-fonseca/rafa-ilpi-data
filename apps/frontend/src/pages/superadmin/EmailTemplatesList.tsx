@@ -76,8 +76,9 @@ export default function EmailTemplatesList() {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       setTemplateToDelete(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Erro ao excluir template');
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao excluir template');
     },
   });
 

@@ -151,9 +151,9 @@ export const AVAILABLE_FEATURES = [
  * @param featuresObj - Objeto de features do banco de dados
  * @returns Array de strings com labels humanizados
  */
-export function featuresToArray(featuresObj: Record<string, any>): string[] {
+export function featuresToArray(featuresObj: Record<string, unknown>): string[] {
   return Object.entries(featuresObj)
-    .filter(([_, enabled]) => enabled === true)
+    .filter(([, enabled]) => enabled === true)
     .map(([key]) => FEATURES_MAP[key] || key) // Usa mapeamento, fallback para key se não encontrado
 }
 

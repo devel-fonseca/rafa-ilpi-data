@@ -10,7 +10,7 @@ export interface AuditLog {
   action: string
   userId: string
   userName: string
-  details: any
+  details: Record<string, unknown>
   ipAddress: string | null
   userAgent: string | null
   createdAt: string

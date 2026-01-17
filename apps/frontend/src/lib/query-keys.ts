@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/stores/auth.store'
+import type { QueryClient } from '@tanstack/react-query'
 
 /**
  * Query Keys Helpers - Multi-Tenant Namespacing
@@ -114,7 +115,7 @@ export function superAdminKey(...keys: (string | number | undefined)[]): unknown
  * // Invalida: ['t', 'tenant-123', 'residents', 'res-456', ...]
  */
 export function invalidateByPrefix(
-  queryClient: any, // QueryClient do @tanstack/react-query
+  queryClient: QueryClient,
   ...prefixKeys: (string | number | undefined)[]
 ): Promise<void> {
   const queryKey = tenantKey(...prefixKeys)
@@ -136,11 +137,11 @@ export function invalidateByPrefix(
  * // Remove todas queries: ['t', 'tenant-old-123', ...]
  */
 export function removeOldTenantQueries(
-  queryClient: any, // QueryClient do @tanstack/react-query
+  queryClient: QueryClient,
   oldTenantId: string
 ): void {
   queryClient.removeQueries({
-    predicate: (query: any) => {
+    predicate: (query) => {
       const queryKey = query.queryKey
       return Array.isArray(queryKey) && queryKey[0] === 't' && queryKey[1] === oldTenantId
     },
@@ -187,15 +188,15 @@ export function isCurrentTenantQuery(queryKey: unknown[]): boolean {
  * //     ['t', 'tenant-123', 'beds']
  * //   ]
  */
-export function debugTenantQueries(queryClient: any): unknown[][] {
+export function debugTenantQueries(queryClient: QueryClient): unknown[][] {
   const currentScope = getTenantScope()
   const cache = queryClient.getQueryCache()
   const allQueries = cache.getAll()
 
   return allQueries
-    .filter((query: any) => {
+    .filter((query) => {
       const queryKey = query.queryKey
       return Array.isArray(queryKey) && queryKey[0] === 't' && queryKey[1] === currentScope
     })
-    .map((query: any) => query.queryKey)
+    .map((query) => query.queryKey)
 }

@@ -131,9 +131,10 @@ export function useCreatePop() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       toast.success('POP criado com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao criar POP'
+        errorResponse?.data?.message || 'Erro ao criar POP'
       )
     },
   })
@@ -153,9 +154,10 @@ export function useUpdatePop() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP atualizado com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao atualizar POP'
+        errorResponse?.data?.message || 'Erro ao atualizar POP'
       )
     },
   })
@@ -173,9 +175,10 @@ export function useDeletePop() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops') })
       toast.success('POP removido com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao remover POP'
+        errorResponse?.data?.message || 'Erro ao remover POP'
       )
     },
   })
@@ -200,9 +203,10 @@ export function useCreatePopVersion() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('Nova versão do POP criada com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao criar nova versão'
+        errorResponse?.data?.message || 'Erro ao criar nova versão'
       )
     },
   })
@@ -221,9 +225,10 @@ export function usePublishPop() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP publicado com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao publicar POP'
+        errorResponse?.data?.message || 'Erro ao publicar POP'
       )
     },
   })
@@ -243,9 +248,10 @@ export function useMarkPopObsolete() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP marcado como obsoleto')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message ||
+        errorResponse?.data?.message ||
           'Erro ao marcar POP como obsoleto'
       )
     },
@@ -265,9 +271,10 @@ export function useMarkPopReviewed() {
       queryClient.invalidateQueries({ queryKey: tenantKey('pops', data.id) })
       toast.success('POP marcado como revisado')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message ||
+        errorResponse?.data?.message ||
           'Erro ao marcar POP como revisado'
       )
     },
@@ -297,9 +304,10 @@ export function useAddPopAttachment() {
       })
       toast.success('Anexo adicionado com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao adicionar anexo'
+        errorResponse?.data?.message || 'Erro ao adicionar anexo'
       )
     },
   })
@@ -325,9 +333,10 @@ export function useDeletePopAttachment() {
       })
       toast.success('Anexo removido com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error(
-        error.response?.data?.message || 'Erro ao remover anexo'
+        errorResponse?.data?.message || 'Erro ao remover anexo'
       )
     },
   })

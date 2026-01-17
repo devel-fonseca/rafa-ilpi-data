@@ -122,7 +122,7 @@ export function NotificationsPage() {
 
             <Select
               value={selectedCategory}
-              onValueChange={(v) => setSelectedCategory(v as any)}
+              onValueChange={(v) => setSelectedCategory(v as NotificationCategory | 'all')}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Categoria" />
@@ -139,7 +139,7 @@ export function NotificationsPage() {
 
             <Select
               value={selectedSeverity}
-              onValueChange={(v) => setSelectedSeverity(v as any)}
+              onValueChange={(v) => setSelectedSeverity(v as NotificationSeverity | 'all')}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Severidade" />
@@ -188,7 +188,7 @@ export function NotificationsPage() {
                 {notifications.map((notification) => {
                   const categoryConfig = getCategoryConfig(notification.category)
                   const severityColors = getNotificationSeverityColors(notification.severity)
-                  const categoryColors = getNotificationCategoryConfig(notification.category as any)
+                  const categoryColors = getNotificationCategoryConfig(notification.category as NotificationCategory)
                   const CategoryIcon = categoryConfig.icon
                   const SeverityIcon = getSeverityIcon(notification.severity)
 

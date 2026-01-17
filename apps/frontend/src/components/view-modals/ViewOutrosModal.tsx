@@ -11,10 +11,24 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
+interface OutrosData {
+  descricao: string
+  [key: string]: unknown
+}
+
+interface OutrosRecord {
+  data: OutrosData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewOutrosModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: OutrosRecord
 }
 
 export function ViewOutrosModal({

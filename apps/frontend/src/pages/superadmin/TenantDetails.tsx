@@ -25,6 +25,7 @@ import {
   useReactivateTenant,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
+import type { Invoice } from '@/api/invoices.api'
 import { useTenantContractAcceptance, useTenantPrivacyPolicyAcceptance } from '@/hooks/useContracts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,10 +114,11 @@ export function TenantDetails() {
         title: '✓ Tenant reativado',
         description: `"${tenant.name}" foi reativado. Todos os usuários recuperaram acesso à plataforma.`,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorResponse = (err as { response?: { data?: { message?: string } } }).response;
       toast({
         title: 'Falha ao reativar tenant',
-        description: err.response?.data?.message || 'Ocorreu um erro ao reativar o tenant. Verifique o status e tente novamente.',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao reativar o tenant. Verifique o status e tente novamente.',
         variant: 'destructive',
       })
     }
@@ -492,7 +494,7 @@ export function TenantDetails() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {invoicesData.map((invoice: any) => {
+                {invoicesData.map((invoice: Invoice) => {
                   const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
                     DRAFT: { label: 'Rascunho', variant: 'outline' },
                     OPEN: { label: 'Pendente', variant: 'secondary' },

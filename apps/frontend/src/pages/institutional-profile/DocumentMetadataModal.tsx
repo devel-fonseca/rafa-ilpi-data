@@ -83,7 +83,7 @@ export function DocumentMetadataModal({ open, onOpenChange, document }: Document
 
     try {
       // Montar payload (enviar apenas campos preenchidos)
-      const payload: any = {}
+      const payload: Record<string, unknown> = {}
 
       if (data.issuedAt) {
         payload.issuedAt = data.issuedAt
@@ -129,10 +129,11 @@ export function DocumentMetadataModal({ open, onOpenChange, document }: Document
       })
 
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         title: 'Erro ao atualizar metadados',
-        description: error.response?.data?.message || 'Ocorreu um erro ao atualizar os metadados',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao atualizar os metadados',
         variant: 'destructive',
       })
     }

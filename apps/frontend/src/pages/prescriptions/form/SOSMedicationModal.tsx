@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { CreateSOSMedicationDto } from '@/api/prescriptions.api'
+import type { CreateSOSMedicationDto, MedicationPresentation, AdministrationRoute, SOSIndicationType } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
 
 interface SOSMedicationModalProps {
@@ -152,7 +152,7 @@ export function SOSMedicationModal({
               <Label htmlFor="presentation">Apresentação *</Label>
               <Select
                 value={watch('presentation')}
-                onValueChange={(value) => setValue('presentation', value as any)}
+                onValueChange={(value) => setValue('presentation', value as MedicationPresentation)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -200,7 +200,7 @@ export function SOSMedicationModal({
             <Label htmlFor="route">Via de Administração *</Label>
             <Select
               value={watch('route')}
-              onValueChange={(value) => setValue('route', value as any)}
+              onValueChange={(value) => setValue('route', value as AdministrationRoute)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -221,7 +221,7 @@ export function SOSMedicationModal({
               <Label htmlFor="indication">Indicação de Uso *</Label>
               <Select
                 value={watch('indication')}
-                onValueChange={(value) => setValue('indication', value as any)}
+                onValueChange={(value) => setValue('indication', value as SOSIndicationType)}
               >
                 <SelectTrigger>
                   <SelectValue />

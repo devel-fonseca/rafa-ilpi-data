@@ -51,9 +51,9 @@ export async function getClinicalProfileByResident(
   try {
     const response = await api.get(`/clinical-profiles/resident/${residentId}`)
     return response.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Se retornar 404, significa que o residente não tem perfil clínico ainda
-    if (error.response?.status === 404) {
+    if ((error as { response?: { status?: number } }).response?.status === 404) {
       return null
     }
     throw error

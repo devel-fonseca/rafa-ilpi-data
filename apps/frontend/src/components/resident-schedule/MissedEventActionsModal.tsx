@@ -88,8 +88,9 @@ export function MissedEventActionsModal({
 
       toast.success('Evento reagendado com sucesso');
       handleClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao reagendar evento');
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao reagendar evento');
     }
   };
 
@@ -110,8 +111,9 @@ export function MissedEventActionsModal({
 
       toast.success('Evento marcado como concluído');
       handleClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao marcar como concluído');
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
+      toast.error(errorResponse?.data?.message || 'Erro ao marcar como concluído');
     }
   };
 

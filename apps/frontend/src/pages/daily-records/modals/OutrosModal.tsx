@@ -29,7 +29,7 @@ type OutrosFormData = z.infer<typeof outrosSchema>
 interface OutrosModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: OutrosFormData) => void
   residentId: string
   residentName: string
   date: string

@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, AlertCircle, Calendar, FileText, Bell } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -31,7 +30,7 @@ const priorityColors: Record<string, string> = {
   LOW: 'text-info bg-info/10',
 }
 
-const typeIcons: Record<string, any> = {
+const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   PRESCRIPTION_EXPIRING: FileText,
   DAILY_RECORD_MISSING: Calendar,
   NOTIFICATION_UNREAD: Bell,

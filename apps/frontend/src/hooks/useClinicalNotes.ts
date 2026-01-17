@@ -163,8 +163,9 @@ export function useCreateClinicalNote() {
 
       toast.success('Evolução clínica criada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao criar evolução clínica'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao criar evolução clínica'
       toast.error(message)
     },
   })
@@ -192,8 +193,9 @@ export function useUpdateClinicalNote() {
 
       toast.success('Evolução clínica atualizada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao atualizar evolução clínica'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao atualizar evolução clínica'
       toast.error(message)
     },
   })
@@ -208,14 +210,15 @@ export function useDeleteClinicalNote() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: DeleteClinicalNoteDto }) =>
       deleteClinicalNote(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       // Invalidar todas as queries de clinical notes
       queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes') })
 
       toast.success('Evolução clínica excluída com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir evolução clínica'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir evolução clínica'
       toast.error(message)
     },
   })

@@ -12,10 +12,32 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface HigieneData {
+  tipoBanho?: string
+  duracao?: string
+  higieneBucal: boolean
+  trocaFralda: boolean
+  quantidadeFraldas?: string
+  condicaoPele?: string
+  localAlteracao?: string
+  hidratanteAplicado: boolean
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface HigieneRecord {
+  data: HigieneData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewHigieneModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: HigieneRecord
 }
 
 export function ViewHigieneModal({

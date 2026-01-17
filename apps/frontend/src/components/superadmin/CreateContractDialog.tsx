@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -250,27 +250,24 @@ export function CreateContractDialog({ open, onOpenChange }: CreateContractDialo
   const [content, setContent] = useState(DEFAULT_CONTRACT_TEMPLATE)
   const [planId, setPlanId] = useState<string>('ALL')
   const [plans, setPlans] = useState<Plan[]>([])
-  const [loadingPlans, setLoadingPlans] = useState(false)
 
   const createContract = useCreateContract()
+
+  const loadPlans = useCallback(async () => {
+    try {
+      const data = await getPlans()
+      setPlans(data)
+    } catch (error) {
+      toast.error('Erro ao carregar planos')
+    }
+  }, [])
 
   // Carregar planos ao abrir dialog
   useEffect(() => {
     if (open) {
-      async function loadPlans() {
-        setLoadingPlans(true)
-        try {
-          const data = await getPlans()
-          setPlans(data)
-        } catch (error) {
-          toast.error('Erro ao carregar planos')
-        } finally {
-          setLoadingPlans(false)
-        }
-      }
       loadPlans()
     }
-  }, [open])
+  }, [open, loadPlans])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

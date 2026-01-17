@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Loader2, Eye, Pill } from 'lucide-react'
+import { Loader2, Eye, Pill } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
@@ -100,7 +99,7 @@ export default function ResidentMedicationsCalendar() {
               </div>
             ) : administrations.length > 0 ? (
               <div className="space-y-2">
-                {administrations.map((admin: any) => (
+                {administrations.map((admin: { id: string; type: string; wasAdministered: boolean; [key: string]: unknown }) => (
                   <div
                     key={admin.id}
                     className={`border-l-4 pl-4 py-3 rounded-r-md ${

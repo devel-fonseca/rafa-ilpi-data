@@ -48,9 +48,10 @@ export function useMarkAsRead() {
       // Invalidar queries para atualizar UI
       queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Erro ao marcar notificação como lida', {
-        description: error.response?.data?.message || error.message,
+        description: err.response?.data?.message || err.message,
       })
     },
   })
@@ -68,9 +69,10 @@ export function useMarkAllAsRead() {
       queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
       toast.success(`${data.count} notificações marcadas como lidas`)
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Erro ao marcar notificações como lidas', {
-        description: error.response?.data?.message || error.message,
+        description: err.response?.data?.message || err.message,
       })
     },
   })
@@ -88,9 +90,10 @@ export function useDeleteNotification() {
       queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
       toast.success('Notificação removida')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Erro ao remover notificação', {
-        description: error.response?.data?.message || error.message,
+        description: err.response?.data?.message || err.message,
       })
     },
   })

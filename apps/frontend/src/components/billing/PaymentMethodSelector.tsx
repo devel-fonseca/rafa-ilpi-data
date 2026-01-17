@@ -22,6 +22,10 @@ const PAYMENT_METHODS = {
   },
 }
 
+interface SubscriptionWithPaymentMethod {
+  preferredPaymentMethod?: string
+}
+
 export function PaymentMethodSelector() {
   const { data: subscriptionData, isLoading } = useMySubscription()
   const updatePaymentMethod = useUpdatePaymentMethod()
@@ -38,7 +42,8 @@ export function PaymentMethodSelector() {
     return null
   }
 
-  const currentMethod = (subscriptionData.subscription as any).preferredPaymentMethod || 'CREDIT_CARD'
+  const subscriptionTyped = subscriptionData.subscription as unknown as SubscriptionWithPaymentMethod
+  const currentMethod = subscriptionTyped.preferredPaymentMethod || 'CREDIT_CARD'
 
   const handleChange = async (value: string) => {
     try {
@@ -47,9 +52,10 @@ export function PaymentMethodSelector() {
       toast.success('Método de pagamento atualizado', {
         description: `Suas próximas faturas serão geradas com ${PAYMENT_METHODS[value as keyof typeof PAYMENT_METHODS].label}`,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast.error('Erro ao atualizar método de pagamento', {
-        description: error.response?.data?.message || 'Não foi possível atualizar. Tente novamente.',
+        description: errorResponse?.data?.message || 'Não foi possível atualizar. Tente novamente.',
       })
     }
   }

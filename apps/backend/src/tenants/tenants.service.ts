@@ -17,8 +17,10 @@ import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import * as crypto from 'crypto';
 import { TenantStatus, Prisma } from '@prisma/client';
 import { addDays } from 'date-fns';
+import { execSync } from 'child_process';
 
 @Injectable()
 export class TenantsService {
@@ -146,8 +148,8 @@ export class TenantsService {
     }
 
     try {
-      // Iniciar transação para criar tenant, subscription e usuário
-      const result = await this.prisma.$transaction(async (prisma) => {
+      // STEP 1: Criar tenant e subscription no schema public (transação)
+      const { tenant, subscription } = await this.prisma.$transaction(async (prisma) => {
         // 1. Criar o tenant
         const tenant = await prisma.tenant.create({
           data: {
@@ -188,94 +190,167 @@ export class TenantsService {
           },
         });
 
-        // 3. Criar o primeiro usuário (admin)
-        const hashedPassword = await bcrypt.hash(adminPassword, 10);
-        const user = await prisma.user.create({
-          data: {
-            tenantId: tenant.id,
-            name: adminName,
-            cpf: adminCpf,
-            email: adminEmail,
-            password: hashedPassword,
-            role: UserRole.ADMIN,
-            isActive: true,
-          },
-        });
-
-        // 4. Criar perfil do usuário com cargo de ADMINISTRATOR
-        const userProfile = await prisma.userProfile.create({
-          data: {
-            userId: user.id,
-            tenantId: tenant.id,
-            cpf: adminCpf, // Campo imutável
-            positionCode: 'ADMINISTRATOR',
-            department: 'Administração',
-            notes: 'Primeiro usuário administrador criado no onboarding',
-            createdBy: user.id, // Auto-criação
-          },
-        });
-
-        // 5. Registrar aceite do contrato
-        const contractAcceptance = await prisma.contractAcceptance.create({
-          data: {
-            contractId: acceptanceData.contractId as string,
-            tenantId: tenant.id,
-            userId: user.id,
-            ipAddress: acceptanceData.ipAddress as string,
-            userAgent: acceptanceData.userAgent as string,
-            contractVersion: acceptanceData.contractVersion as string,
-            contractHash: acceptanceData.contractHash as string,
-            contractContent: acceptanceData.contractContent as string,
-          },
-        });
-
-        // 6. Registrar aceite da Política de Privacidade
-        const privacyPolicyAcceptance = await prisma.privacyPolicyAcceptance.create({
-          data: {
-            tenantId: tenant.id,
-            userId: user.id,
-            ipAddress: acceptanceData.ipAddress as string, // Mesmo IP do aceite do contrato
-            userAgent: acceptanceData.userAgent as string, // Mesmo User-Agent
-            policyVersion: privacyPolicyData.version,
-            policyEffectiveDate: privacyPolicyData.effectiveDate,
-            policyContent: privacyPolicyData.content, // Snapshot completo Markdown
-            lgpdIsDataController,
-            lgpdHasLegalBasis,
-            lgpdAcknowledgesResponsibility,
-          },
-        });
-
-        return {
-          tenant,
-          subscription,
-          user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          },
-          userProfile,
-          contractAcceptance,
-          privacyPolicyAcceptance,
-        };
+        return { tenant, subscription };
       });
 
-      // 5. Criar o schema no PostgreSQL (FORA da transação)
+      // STEP 2: Criar o schema PostgreSQL (FORA da transação)
       try {
         await this.prisma.$executeRawUnsafe(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+        this.logger.log(`Schema ${schemaName} criado com sucesso`);
 
-        // 6. Criar as tabelas do tenant no novo schema
+        // STEP 3: Executar migrations para popular o schema com tabelas
         await this.createTenantSchema(schemaName);
-
-        this.logger.log(`Tenant criado com sucesso: ${result.tenant.id} (${schemaName})`);
       } catch (schemaError) {
         // Se falhar ao criar schema, fazer rollback do tenant
         this.logger.error(`Erro ao criar schema ${schemaName}, fazendo rollback:`, schemaError);
-        await this.prisma.tenant.delete({ where: { id: result.tenant.id } });
+        await this.prisma.tenant.delete({ where: { id: tenant.id } });
         throw new InternalServerErrorException('Erro ao criar estrutura do banco de dados');
       }
 
-      return result;
+      // STEP 4: Criar usuário e perfil NO SCHEMA DO TENANT (transação)
+      const tenantClient = this.prisma.getTenantClient(schemaName);
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+      const userResult = await tenantClient.$transaction(async (tx) => {
+        // STEP 4.1: Inserir registro do tenant na tabela LOCAL do schema
+        // IMPORTANTE: Migrations Prisma criam TODAS as tabelas em TODOS os schemas (public + tenant)
+        // FK users_tenantId_fkey aponta para tenant_xyz.tenants (tabela LOCAL no schema, não public.tenants)
+        // Por isso precisamos inserir o registro do tenant aqui antes de criar usuários
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "${schemaName}".tenants (id, name, slug, cnpj, email, phone, status, "schemaName", "asaasCustomerId", "createdAt", "updatedAt")
+           VALUES ($1::uuid, $2, $3, $4, $5, $6, $7::"TenantStatus", $8, $9, $10, $11)
+           ON CONFLICT (id) DO NOTHING`,
+          tenant.id, // id
+          tenant.name, // name
+          tenant.slug, // slug
+          tenant.cnpj, // cnpj
+          tenant.email, // email
+          tenant.phone, // phone
+          tenant.status, // status (cast para TenantStatus enum)
+          tenant.schemaName, // schemaName
+          tenant.asaasCustomerId, // asaasCustomerId
+          tenant.createdAt, // createdAt
+          tenant.updatedAt, // updatedAt
+        );
+
+        // STEP 4.2: Criar o primeiro usuário (admin) NO SCHEMA DO TENANT
+        // Agora a FK users_tenantId_fkey pode ser validada corretamente
+        const userId = crypto.randomUUID();
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "${schemaName}".users (id, "tenantId", name, cpf, email, password, role, "isActive", "versionNumber", "createdAt", "updatedAt")
+           VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          userId, // id
+          tenant.id, // tenantId (agora existe na tabela local)
+          adminName, // name
+          adminCpf, // cpf
+          adminEmail, // email
+          hashedPassword, // password
+          UserRole.ADMIN, // role
+          true, // isActive
+          1, // versionNumber
+          new Date(), // createdAt
+          new Date(), // updatedAt
+        );
+
+        // Buscar user recém-criado
+        const user = await tx.user.findFirst({
+          where: { email: adminEmail },
+        });
+
+        if (!user) {
+          throw new Error('Falha ao criar usuário');
+        }
+
+        // 4. Criar perfil do usuário com cargo de ADMINISTRATOR
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "${schemaName}".user_profiles (id, "userId", "tenantId", cpf, "positionCode", department, notes, "createdBy", "createdAt", "updatedAt")
+           VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::"PositionCode", $6, $7, $8::uuid, $9, $10)`,
+          crypto.randomUUID(), // id
+          user.id, // userId
+          tenant.id, // tenantId
+          adminCpf, // cpf
+          'ADMINISTRATOR', // positionCode (cast para PositionCode enum)
+          'Administração', // department
+          'Primeiro usuário administrador criado no onboarding', // notes
+          user.id, // createdBy
+          new Date(), // createdAt
+          new Date(), // updatedAt
+        );
+
+        const userProfile = await tx.userProfile.findFirst({
+          where: { userId: user.id },
+        });
+
+        return { user, userProfile };
+      });
+
+      // STEP 5: Registrar aceites do contrato e LGPD no schema PUBLIC (tabelas compartilhadas)
+      // IMPORTANTE: userId está no schema do tenant, mas acceptances estão no public
+      // FKs userId foram REMOVIDAS permanentemente via migration (20260117000000_drop_cross_schema_user_fks)
+      // porque são incompatíveis com multi-tenancy schema-per-tenant
+      // Integridade referencial garantida por: validação em código + aceites append-only
+
+      const contractAcceptanceId = crypto.randomUUID();
+      const privacyPolicyAcceptanceId = crypto.randomUUID();
+      const acceptedAt = new Date();
+
+      // Agora podemos inserir sem validação de FK
+      await this.prisma.$executeRawUnsafe(
+        `INSERT INTO public.contract_acceptances (id, "contractId", "tenantId", "userId", "acceptedAt", "ipAddress", "userAgent", "contractVersion", "contractHash", "contractContent")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, $9, $10)`,
+        contractAcceptanceId,
+        acceptanceData.contractId,
+        tenant.id,
+        userResult.user.id,
+        acceptedAt,
+        acceptanceData.ipAddress,
+        acceptanceData.userAgent,
+        acceptanceData.contractVersion,
+        acceptanceData.contractHash,
+        acceptanceData.contractContent,
+      );
+
+      await this.prisma.$executeRawUnsafe(
+        `INSERT INTO public.privacy_policy_acceptances (id, "tenantId", "userId", "acceptedAt", "ipAddress", "userAgent", "policyVersion", "policyEffectiveDate", "policyContent", "lgpdIsDataController", "lgpdHasLegalBasis", "lgpdAcknowledgesResponsibility")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        privacyPolicyAcceptanceId,
+        tenant.id,
+        userResult.user.id,
+        acceptedAt,
+        acceptanceData.ipAddress,
+        acceptanceData.userAgent,
+        privacyPolicyData.version,
+        privacyPolicyData.effectiveDate,
+        privacyPolicyData.content,
+        lgpdIsDataController,
+        lgpdHasLegalBasis,
+        lgpdAcknowledgesResponsibility,
+      );
+
+      // Buscar registros criados para retornar
+      const contractAcceptance = await this.prisma.contractAcceptance.findUnique({
+        where: { id: contractAcceptanceId },
+      });
+
+      const privacyPolicyAcceptance = await this.prisma.privacyPolicyAcceptance.findUnique({
+        where: { id: privacyPolicyAcceptanceId },
+      });
+
+      this.logger.log(`✅ Tenant criado com sucesso: ${tenant.id} (${schemaName})`);
+
+      return {
+        tenant,
+        subscription,
+        user: {
+          id: userResult.user.id,
+          name: userResult.user.name,
+          email: userResult.user.email,
+          role: userResult.user.role,
+        },
+        userProfile: userResult.userProfile,
+        contractAcceptance,
+        privacyPolicyAcceptance,
+      };
     } catch (error) {
       this.logger.error('Erro ao criar tenant:', error);
       throw new InternalServerErrorException('Erro ao criar ILPI');
@@ -722,172 +797,56 @@ export class TenantsService {
       .trim();
   }
 
-  private async createTenantSchema(schemaName: string) {
-    // Criar tabelas específicas do tenant
-    // Estrutura completa baseada no schema.prisma e migration mais recente
+  /**
+   * Cria o schema do tenant e executa todas as migrations do Prisma.
+   * Isso garante que TODAS as tabelas isoladas do tenant sejam criadas:
+   * users, user_profiles, residents, beds, rooms, medications, prescriptions,
+   * clinical_profiles, vital_signs, daily_records, audit_logs, etc. (66+ tabelas)
+   *
+   * @param schemaName - Nome do schema do tenant (ex: tenant_ilpi_exemplo_abc123)
+   */
+  private async createTenantSchema(schemaName: string): Promise<void> {
+    try {
+      // 1. Criar o schema vazio no PostgreSQL
+      await this.prisma.$executeRawUnsafe(
+        `CREATE SCHEMA IF NOT EXISTS "${schemaName}";`,
+      );
 
-    const queries = [
-      // Tabela de residentes - ESTRUTURA COMPLETA
-      `CREATE TABLE IF NOT EXISTS "${schemaName}"."residents" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      this.logger.log(`Schema ${schemaName} criado com sucesso`);
 
-        -- ========================================
-        -- SEÇÃO 1: DADOS PESSOAIS DO RESIDENTE
-        -- ========================================
-        foto_url TEXT,
-        nome TEXT NOT NULL,
-        nome_social TEXT,
-        cns TEXT,
-        cpf TEXT NOT NULL,
-        rg TEXT,
-        orgao_expedidor TEXT,
-        escolaridade TEXT,
-        profissao TEXT,
-        genero TEXT NOT NULL,
-        estado_civil TEXT,
-        religiao TEXT,
-        data_nascimento TIMESTAMP NOT NULL,
-        nacionalidade TEXT NOT NULL DEFAULT 'Brasileira',
-        naturalidade TEXT,
-        uf_nascimento TEXT,
-        nome_mae TEXT,
-        nome_pai TEXT,
-        cns_card_url TEXT,
+      // 2. Executar todas as migrations do Prisma para popular o schema
+      // Conecta ao banco usando o schema específico do tenant
+      const DATABASE_URL = process.env.DATABASE_URL;
+      if (!DATABASE_URL) {
+        throw new InternalServerErrorException(
+          'DATABASE_URL não configurada',
+        );
+      }
 
-        -- ========================================
-        -- SEÇÃO 2: ENDEREÇOS
-        -- ========================================
-        -- Endereço Atual
-        cep_atual TEXT,
-        estado_atual TEXT,
-        cidade_atual TEXT,
-        logradouro_atual TEXT,
-        numero_atual TEXT,
-        complemento_atual TEXT,
-        bairro_atual TEXT,
-        telefone_atual TEXT,
+      const tenantUrl = `${DATABASE_URL}?schema=${schemaName}`;
 
-        -- Endereço de Procedência
-        cep_procedencia TEXT,
-        estado_procedencia TEXT,
-        cidade_procedencia TEXT,
-        logradouro_procedencia TEXT,
-        numero_procedencia TEXT,
-        complemento_procedencia TEXT,
-        bairro_procedencia TEXT,
-        telefone_procedencia TEXT,
+      this.logger.log(
+        `Executando migrations do Prisma no schema ${schemaName}...`,
+      );
 
-        -- ========================================
-        -- SEÇÃO 3: CONTATOS DE EMERGÊNCIA
-        -- ========================================
-        contatos_emergencia JSONB,
+      // Executa o comando npx prisma migrate deploy com a DATABASE_URL do tenant
+      execSync(`DATABASE_URL="${tenantUrl}" npx prisma migrate deploy`, {
+        stdio: 'inherit',
+        cwd: process.cwd(),
+      });
 
-        -- ========================================
-        -- SEÇÃO 4: RESPONSÁVEL LEGAL
-        -- ========================================
-        responsavel_legal_nome TEXT,
-        responsavel_legal_cpf TEXT,
-        responsavel_legal_rg TEXT,
-        responsavel_legal_telefone TEXT,
-        responsavel_legal_tipo TEXT,
-        responsavel_legal_cep TEXT,
-        responsavel_legal_uf TEXT,
-        responsavel_legal_cidade TEXT,
-        responsavel_legal_logradouro TEXT,
-        responsavel_legal_numero TEXT,
-        responsavel_legal_complemento TEXT,
-        responsavel_legal_bairro TEXT,
-
-        -- ========================================
-        -- SEÇÃO 5: DADOS DE ADMISSÃO
-        -- ========================================
-        data_admissao TIMESTAMP NOT NULL,
-        tipo_admissao TEXT,
-        motivo_admissao TEXT,
-        condicoes_admissao TEXT,
-        data_desligamento TIMESTAMP,
-        motivo_desligamento TEXT,
-        data_saida TIMESTAMP,
-        motivo_saida TEXT,
-        status TEXT NOT NULL DEFAULT 'ATIVO',
-
-        -- ========================================
-        -- SEÇÃO 6: INFORMAÇÕES DE SAÚDE
-        -- ========================================
-        necessidades_especiais TEXT,
-        restricoes_alimentares TEXT,
-        aspectos_funcionais TEXT,
-        necessita_auxilio_mobilidade BOOLEAN NOT NULL DEFAULT false,
-        situacao_saude TEXT,
-        tipo_sanguineo TEXT NOT NULL DEFAULT 'NAO_INFORMADO',
-        altura DECIMAL(5,2),
-        peso DECIMAL(5,2),
-        grau_dependencia TEXT,
-        medicamentos_uso TEXT,
-        alergias TEXT,
-        condicoes_cronicas TEXT,
-        observacoes_saude TEXT,
-
-        -- ========================================
-        -- SEÇÃO 7: PLANOS DE SAÚDE / CONVÊNIOS
-        -- ========================================
-        convenios JSONB,
-
-        -- ========================================
-        -- SEÇÃO 8: PERTENCES
-        -- ========================================
-        pertences_lista TEXT,
-        pertences_observacoes TEXT,
-
-        -- ========================================
-        -- SEÇÃO 9: ACOMODAÇÃO
-        -- ========================================
-        quarto_numero TEXT,
-        leito_numero TEXT,
-
-        -- ========================================
-        -- AUDITORIA
-        -- ========================================
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        created_by UUID,
-        updated_by UUID,
-        deleted_at TIMESTAMP,
-        deleted_by UUID
-      )`,
-
-      // Índices para a tabela residents
-      `CREATE INDEX IF NOT EXISTS idx_residents_cpf ON "${schemaName}"."residents"(cpf)`,
-      `CREATE INDEX IF NOT EXISTS idx_residents_nome ON "${schemaName}"."residents"(nome)`,
-      `CREATE INDEX IF NOT EXISTS idx_residents_status ON "${schemaName}"."residents"(status)`,
-      `CREATE INDEX IF NOT EXISTS idx_residents_deleted_at ON "${schemaName}"."residents"(deleted_at)`,
-
-      // Tabela de audit_logs
-      `CREATE TABLE IF NOT EXISTS "${schemaName}"."audit_logs" (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        entity_type VARCHAR(50) NOT NULL,
-        entity_id UUID NOT NULL,
-        action VARCHAR(20) NOT NULL,
-        user_id UUID NOT NULL,
-        user_name VARCHAR(255),
-        ip_address VARCHAR(45),
-        user_agent TEXT,
-        changes JSONB,
-        metadata JSONB,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW()
-      )`,
-
-      // Índices para audit_logs
-      `CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON "${schemaName}"."audit_logs"(entity_type, entity_id)`,
-      `CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON "${schemaName}"."audit_logs"(user_id)`,
-      `CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON "${schemaName}"."audit_logs"(created_at DESC)`,
-    ];
-
-    for (const query of queries) {
-      await this.prisma.$executeRawUnsafe(query);
+      this.logger.log(
+        `Migrations executadas com sucesso no schema ${schemaName}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erro ao criar schema ${schemaName}: ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        `Falha ao criar schema do tenant: ${error.message}`,
+      );
     }
-
-    this.logger.log(`Schema ${schemaName} criado com sucesso - tabelas: residents, audit_logs`);
   }
 
   /**

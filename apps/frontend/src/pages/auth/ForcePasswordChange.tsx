@@ -79,9 +79,10 @@ export default function ForcePasswordChange() {
       } else {
         navigate('/dashboard')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erro ao alterar senha:', err)
-      const errorMessage = err.response?.data?.message || 'Erro ao alterar senha. Verifique se a senha atual está correta.'
+      const errorResponse = (err as { response?: { data?: { message?: string } } }).response
+      const errorMessage = errorResponse?.data?.message || 'Erro ao alterar senha. Verifique se a senha atual está correta.'
       setError(errorMessage)
     } finally {
       setIsLoading(false)

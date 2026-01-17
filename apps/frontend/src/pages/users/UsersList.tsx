@@ -1,38 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth.store";
-import { MaskedInput } from "@/components/form/MaskedInput";
-import { getMensagemValidacaoCPF } from "@/utils/validators";
 import {
   getTenantUsers,
   getAllUserProfiles,
-  addUserToTenant,
-  createUserProfile,
-  updateUserProfile,
   getUserPermissions,
   manageCustomPermissions,
-  getPositionPermissions,
 } from "@/services/api";
 import { useDeleteUser } from "@/hooks/useUserVersioning";
 import { UserHistoryDrawer } from "@/components/users/UserHistoryDrawer";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -61,9 +44,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
 import { PhotoViewer } from "@/components/form/PhotoViewer";
 import {
   Loader2,
@@ -71,7 +51,6 @@ import {
   Trash2,
   Mail,
   Shield,
-  UserPlus,
   Edit2,
   Key,
   Briefcase,
@@ -79,8 +58,6 @@ import {
   History,
   ShieldAlert,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   PositionCode,
   RegistrationType,
@@ -89,7 +66,6 @@ import {
   REGISTRATION_TYPE_LABELS,
 } from "@/types/permissions";
 import { UserWithProfile, UserPermissions } from "@/types/user";
-import { PositionCodeSelector } from "@/components/users/PositionCodeSelector";
 import { PermissionsManager } from "@/components/users/PermissionsManager";
 import { getErrorMessage } from '@/utils/errorHandling'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
@@ -100,14 +76,14 @@ export default function UsersList() {
   const { toast } = useToast();
   const deleteUser = useDeleteUser();
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserWithProfile[]>([]);
+  const [profiles, setProfiles] = useState<UserWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
   const [permissionsModal, setPermissionsModal] = useState<{
     open: boolean;
-    user: any | null;
+    user: UserWithProfile | null;
     permissions: UserPermissions | null;
   }>({
     open: false,
@@ -116,7 +92,7 @@ export default function UsersList() {
   });
   const [deleteModal, setDeleteModal] = useState<{
     open: boolean;
-    user: any | null;
+    user: UserWithProfile | null;
   }>({
     open: false,
     user: null,
@@ -139,8 +115,6 @@ export default function UsersList() {
   // Estados para versionamento
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteReasonError, setDeleteReasonError] = useState("");
-  const [changeReason, setChangeReason] = useState("");
-  const [changeReasonError, setChangeReasonError] = useState("");
 
   useEffect(() => {
     loadData();
@@ -170,7 +144,7 @@ export default function UsersList() {
     }
   };
 
-  const handleOpenPermissions = async (user: any) => {
+  const handleOpenPermissions = async (user: UserWithProfile) => {
     try {
       const permissions = await getUserPermissions(user.id);
       setCustomPermissions(permissions.custom || []);

@@ -12,10 +12,31 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+interface EliminacaoData {
+  tipo: string
+  consistencia?: string
+  cor?: string
+  odor?: string
+  volume?: string
+  trocaFralda: boolean
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface EliminacaoRecord {
+  data: EliminacaoData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  notes?: string
+  [key: string]: unknown
+}
+
 interface ViewEliminacaoModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: EliminacaoRecord
 }
 
 export function ViewEliminacaoModal({

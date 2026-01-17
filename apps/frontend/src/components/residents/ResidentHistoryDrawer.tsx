@@ -23,6 +23,19 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { normalizeUTCDate } from '@/utils/dateHelpers'
 
+interface ResidentHistoryEntry {
+  id: string
+  changeType: 'CREATE' | 'UPDATE' | 'DELETE'
+  changedAt: string
+  changedBy: {
+    name: string
+    email: string
+  }
+  changedFields?: string[]
+  changeReason?: string
+  [key: string]: unknown
+}
+
 interface ResidentHistoryDrawerProps {
   residentId: string | undefined
   residentName?: string
@@ -157,7 +170,7 @@ export function ResidentHistoryDrawer({
 
               {/* Timeline de Histórico */}
               <div className="space-y-3">
-                {data.history.map((entry: any, index: number) => (
+                {data.history.map((entry: ResidentHistoryEntry, index: number) => (
                   <Card
                     key={entry.id}
                     className={`

@@ -1,18 +1,16 @@
-import { Control, Controller, UseFormRegister } from 'react-hook-form'
+import { UseFormRegister, UseFormSetValue, FieldErrors } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
 import { ResidentFormData } from '@/pages/residents/ResidentForm'
 import { buscarCEP } from '@/services/cepService'
-import { FieldError } from 'react-hook-form'
 
 interface AddressFieldsProps {
   prefix: 'atual' | 'procedencia' | 'responsavelLegal'
   register: UseFormRegister<ResidentFormData>
-  control: Control<ResidentFormData>
-  setValue: any
-  errors: Record<string, any>
+  setValue: UseFormSetValue<ResidentFormData>
+  errors: FieldErrors<ResidentFormData>
   onCepChange: (cep: string, prefix: 'atual' | 'procedencia' | 'responsavelLegal') => void
 }
 
@@ -49,21 +47,9 @@ const fieldMapping = {
   }
 }
 
-const labels = {
-  cep: 'CEP',
-  estado: 'Estado',
-  cidade: 'Cidade',
-  logradouro: 'Logradouro',
-  numero: 'Número',
-  complemento: 'Complemento',
-  bairro: 'Bairro',
-  telefone: 'Telefone'
-}
-
 export function AddressFields({
   prefix,
   register,
-  control,
   setValue,
   errors,
   onCepChange
@@ -86,9 +72,6 @@ export function AddressFields({
               placeholder="00000-000"
               {...register(fields.cep as keyof ResidentFormData)}
               onChange={(e) => {
-                const masked = e.target.value
-                  .replace(/\D/g, '')
-                  .replace(/^(\d{5})(\d)/, '$1-$2')
                 onCepChange(e.target.value, prefix)
               }}
               className="flex-1"

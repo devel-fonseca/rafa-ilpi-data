@@ -11,7 +11,6 @@ interface SingleFileUploadProps {
   maxSize?: number // em MB, padrão 10
   label?: string
   description?: string
-  showPreview?: boolean
   required?: boolean
   disabled?: boolean
   error?: string
@@ -24,7 +23,6 @@ export function SingleFileUpload({
   maxSize = 10,
   label = 'Upload de Arquivo',
   description,
-  showPreview = true,
   required = false,
   disabled = false,
   error

@@ -51,12 +51,12 @@ import {
 } from "@/utils/formMappers";
 import { cn } from "@/lib/utils";
 import { api } from "@/services/api";
-import { useAuthStore } from "@/stores/auth.store";
 import { uploadFile } from "@/services/upload";
 import { BedSearchCombobox } from "@/components/beds/BedSearchCombobox";
 import { ResidentHistoryDrawer } from "@/components/residents/ResidentHistoryDrawer";
 import { toast } from "sonner";
 import { PlanLimitWarningDialog } from "@/components/admin/PlanLimitWarningDialog";
+import type { Resident } from "@/api/residents.api";
 import { tenantKey } from "@/lib/query-keys";
 import { useMySubscription } from "@/hooks/useTenant";
 
@@ -283,10 +283,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     undefined
   );
 
-  // Pegar tenantId do usuário logado
-  const user = useAuthStore((state) => state.user);
-  const tenantId = user?.tenantId;
-
   // Estados gerais
   const [cpfValidation, setCpfValidation] = useState({
     valido: true,
@@ -304,7 +300,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Estado removido - BedSelector gerencia internamente a hierarquia
 
   // Ref para armazenar dados do residente carregado (para sincronizar Select depois)
-  const residentDataRef = useRef<any>(null);
+  const residentDataRef = useRef<Resident | null>(null);
 
   // Buscar dados de subscription para verificar limites
   const { data: subscriptionData } = useMySubscription();
@@ -549,7 +545,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           resident.emergencyContacts.length > 0
         ) {
           // Mapear emergencyContacts (inglês) para contatosEmergencia (português do form)
-          const contatos = resident.emergencyContacts.map((contact: any) => ({
+          const contatos = resident.emergencyContacts.map((contact) => ({
             nome: contact.name,
             telefone: contact.phone,
             parentesco: contact.relationship,
@@ -628,7 +624,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         // ===== CONVÊNIOS =====
         // Processar convênios
         if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
-          const convenios = resident.healthPlans.map((plan: any) => ({
+          const convenios = resident.healthPlans.map((plan) => ({
             nome: plan.name,
             numero: plan.cardNumber,
           }));
@@ -889,9 +885,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         }
 
         setUploadProgress("Uploads concluídos! Salvando residente...");
-      } catch (uploadError: any) {
+      } catch (uploadError: unknown) {
         console.error("Erro ao fazer upload:", uploadError);
-        alert(`❌ Erro ao fazer upload dos arquivos: ${uploadError.message}`);
+        const errorMessage = (uploadError as { message?: string }).message || 'Erro desconhecido';
+        alert(`❌ Erro ao fazer upload dos arquivos: ${errorMessage}`);
         setIsUploading(false);
         setUploadProgress("");
         return;
@@ -901,17 +898,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       // FASE 2: Transformar dados para o backend
       // ========================================
 
-      // Validar tenantId
-      if (!tenantId) {
-        console.error("❌ TenantId não encontrado");
-        alert("Erro: Sessão inválida. Faça login novamente.");
-        return;
-      }
+      // NOTA: tenantId NÃO deve ser enviado - backend extrai do JWT automaticamente
+      // Ver: docs/architecture/multi-tenancy.md
 
-      const payload: any = {
-        // tenantId: apenas necessário na criação, não na atualização
-        ...(!isEditMode && { tenantId }),
-
+      const payload: Record<string, unknown> = {
         // 1. Dados Pessoais - NOMES EM INGLÊS (camelCase)
         fullName: data.nome,
         socialName: data.nomeSocial || null,

@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
-import { getErrorMessage } from '@/utils/errorHandling'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 

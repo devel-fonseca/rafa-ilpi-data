@@ -71,7 +71,7 @@ export interface Notification {
   actionUrl: string | null
   entityType: string | null
   entityId: string | null
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
   read: boolean // Calculado pelo backend baseado em NotificationRead
   readAt: string | null // Calculado pelo backend baseado em NotificationRead
   expiresAt: string | null
@@ -108,7 +108,7 @@ export interface CreateNotificationDto {
   actionUrl?: string
   entityType?: string
   entityId?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   expiresAt?: string
 }
 

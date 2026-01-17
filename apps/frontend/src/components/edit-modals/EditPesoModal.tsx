@@ -49,11 +49,17 @@ const editPesoSchema = z.object({
 
 type EditPesoFormData = z.infer<typeof editPesoSchema>
 
+interface PesoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditPesoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: PesoRecord
   isUpdating?: boolean
 }
 

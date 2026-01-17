@@ -54,8 +54,9 @@ export function TransferBedModal({
       // Limpar e fechar modal após sucesso
       setReason('')
       onOpenChange(false)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao transferir residente')
+    } catch (err: unknown) {
+      const errorResponse = (err as { response?: { data?: { message?: string } } }).response
+      setError(errorResponse?.data?.message || 'Erro ao transferir residente')
     } finally {
       setIsSubmitting(false)
     }

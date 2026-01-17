@@ -29,11 +29,17 @@ const editIntercorrenciaSchema = z.object({
 
 type EditIntercorrenciaFormData = z.infer<typeof editIntercorrenciaSchema>
 
+interface IntercorrenciaRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditIntercorrenciaModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: IntercorrenciaRecord
   isUpdating?: boolean
 }
 

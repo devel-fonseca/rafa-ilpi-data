@@ -65,8 +65,9 @@ export function useCreateEmailTemplate() {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       toast.success('Template criado com sucesso');
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao criar template: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao criar template: ${errorMessage}`);
     },
   });
 }
@@ -90,8 +91,9 @@ export function useUpdateEmailTemplate() {
       });
       toast.success('Template atualizado com sucesso');
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao atualizar template: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao atualizar template: ${errorMessage}`);
     },
   });
 }
@@ -108,8 +110,9 @@ export function useDeleteEmailTemplate() {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
       toast.success('Template deletado com sucesso');
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao deletar template: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao deletar template: ${errorMessage}`);
     },
   });
 }
@@ -133,8 +136,9 @@ export function useRollbackEmailTemplate() {
       });
       toast.success('Rollback realizado com sucesso');
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao fazer rollback: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao fazer rollback: ${errorMessage}`);
     },
   });
 }
@@ -146,8 +150,9 @@ export function usePreviewEmailTemplate() {
   return useMutation({
     mutationFn: (data: PreviewEmailTemplateDto) =>
       emailTemplatesApi.previewEmailTemplate(data),
-    onError: (error: any) => {
-      toast.error(`Erro ao gerar preview: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao gerar preview: ${errorMessage}`);
     },
   });
 }
@@ -162,8 +167,9 @@ export function useSendTestEmail() {
     onSuccess: () => {
       toast.success('Email de teste enviado com sucesso');
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao enviar email de teste: ${error.message}`);
+    onError: (error: unknown) => {
+      const errorMessage = (error as { message?: string }).message || 'Erro desconhecido'
+      toast.error(`Erro ao enviar email de teste: ${errorMessage}`);
     },
   });
 }

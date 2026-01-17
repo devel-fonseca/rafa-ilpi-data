@@ -54,7 +54,7 @@ export function OverdueTrendChart({ data }: OverdueTrendChartProps) {
             borderRadius: '8px',
             color: '#f1f5f9',
           }}
-          formatter={(value: any, name: string) => {
+          formatter={(value: number, name: string) => {
             if (name === 'Valor (R$)') {
               return [
                 new Intl.NumberFormat('pt-BR', {

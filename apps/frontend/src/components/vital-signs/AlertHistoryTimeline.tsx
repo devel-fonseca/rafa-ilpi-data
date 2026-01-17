@@ -60,7 +60,7 @@ export function AlertHistoryTimeline({ alertId }: AlertHistoryTimelineProps) {
       case 'ASSIGNED':
         return <UserCheck className="h-4 w-4 text-success" />
       case 'NOTES_ADDED':
-        return <MessageSquare className="h-4 w-4 text-orange-500" />
+        return <MessageSquare className="h-4 w-4 text-severity-warning" />
       case 'ACTION_TAKEN':
         return <CheckCircle className="h-4 w-4 text-emerald-500" />
       case 'UPDATED':

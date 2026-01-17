@@ -21,7 +21,7 @@ export interface Message {
   body: string;
   threadId?: string;
   isReply: boolean;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;

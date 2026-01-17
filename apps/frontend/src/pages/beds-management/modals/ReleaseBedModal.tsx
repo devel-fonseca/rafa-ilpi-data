@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CheckCircle, Save } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -121,7 +121,7 @@ export function ReleaseBedModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
+            <CheckCircle className="h-5 w-5 text-success" />
             Liberar Leito
           </DialogTitle>
           <DialogDescription>
@@ -172,7 +172,7 @@ export function ReleaseBedModal({
                 <p className="text-destructive">{errors.reason.message}</p>
               )}
               {reason && (
-                <p className={`ml-auto ${cleanedLength < 10 ? 'text-muted-foreground' : 'text-green-600'}`}>
+                <p className={`ml-auto ${cleanedLength < 10 ? 'text-muted-foreground' : 'text-success'}`}>
                   {cleanedLength}/10 caracteres
                 </p>
               )}
@@ -191,7 +191,7 @@ export function ReleaseBedModal({
             <Button
               type="submit"
               disabled={loading || !canRelease}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success hover:bg-success/90"
             >
               <CheckCircle className="mr-2 h-4 w-4" />
               {loading ? 'Liberando...' : 'Liberar Leito'}

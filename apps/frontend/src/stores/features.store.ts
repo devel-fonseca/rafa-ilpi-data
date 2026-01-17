@@ -61,10 +61,11 @@ export const useFeaturesStore = create<FeaturesState>()(
             error: null,
             lastFetch: now,
           })
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('❌ Features Store - Erro ao buscar features:', error)
+          const errorResponse = (error as { response?: { data?: { message?: string } } }).response
           set({
-            error: error.response?.data?.message || 'Erro ao buscar features do plano',
+            error: errorResponse?.data?.message || 'Erro ao buscar features do plano',
             isLoading: false,
           })
         }

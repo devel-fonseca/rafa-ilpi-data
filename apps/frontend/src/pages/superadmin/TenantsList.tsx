@@ -7,9 +7,7 @@ import {
   Filter,
   MoreVertical,
   Eye,
-  Ban,
   Play,
-  Trash2,
 } from 'lucide-react'
 import { useTenants, useReactivateTenant } from '@/hooks/useSuperAdmin'
 import { getPlans } from '@/api/superadmin.api'
@@ -98,10 +96,11 @@ export function TenantsList() {
         title: '✓ Tenant reativado',
         description: `"${tenantName}" foi reativado. Todos os usuários recuperaram acesso à plataforma.`,
       })
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorResponse = (err as { response?: { data?: { message?: string } } }).response;
       toast({
         title: 'Falha ao reativar tenant',
-        description: err.response?.data?.message || 'Ocorreu um erro ao reativar o tenant. Verifique o status e tente novamente.',
+        description: errorResponse?.data?.message || 'Ocorreu um erro ao reativar o tenant. Verifique o status e tente novamente.',
         variant: 'destructive',
       })
     }

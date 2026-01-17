@@ -9,10 +9,26 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
+interface VisitaData {
+  visitante: string
+  observacoes?: string
+  [key: string]: unknown
+}
+
+interface VisitaRecord {
+  data: VisitaData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  notes?: string
+  [key: string]: unknown
+}
+
 interface ViewVisitaModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: VisitaRecord
 }
 
 export function ViewVisitaModal({

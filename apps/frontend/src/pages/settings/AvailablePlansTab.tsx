@@ -31,7 +31,7 @@ export function AvailablePlansTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.availablePlans.map((plan: any) => (
+        {data.availablePlans.map((plan: { id: string; displayName: string; name: string; [key: string]: unknown }) => (
           <Card key={plan.id} className="bg-card border-border hover:border-primary transition-colors">
             <CardContent className="p-6">
               <div className="space-y-4">

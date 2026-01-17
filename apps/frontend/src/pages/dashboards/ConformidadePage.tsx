@@ -111,7 +111,7 @@ export function ConformidadePage() {
         {/* Card 3: Eventos Sentinela */}
         <Card
           className={`hover:shadow-lg transition-shadow cursor-pointer ${
-            overdueEvents.length > 0 ? 'border-red-500' : ''
+            overdueEvents.length > 0 ? 'border-danger' : ''
           }`}
           onClick={() =>
             handleCardClick(
@@ -127,7 +127,7 @@ export function ConformidadePage() {
               <AlertTriangle
                 className={`h-12 w-12 ${
                   overdueEvents.length > 0
-                    ? 'text-red-600'
+                    ? 'text-danger/600'
                     : pendingEvents.length > 0
                       ? 'text-amber-600'
                       : 'text-primary'
@@ -147,7 +147,7 @@ export function ConformidadePage() {
               tentativas de suicídio.
             </p>
             {overdueEvents.length > 0 && (
-              <p className="text-xs text-red-600 font-medium mb-2 flex items-center gap-1">
+              <p className="text-xs text-danger/600 font-medium mb-2 flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
                 {overdueEvents.length} evento(s) atrasado(s) &gt;24h
               </p>

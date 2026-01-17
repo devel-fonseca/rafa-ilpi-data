@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   residentDocumentsAPI,
-  type ResidentDocument,
   type CreateResidentDocumentDto,
   type UpdateResidentDocumentDto,
 } from '@/api/resident-documents.api'

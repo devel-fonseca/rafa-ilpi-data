@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, Circle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
+import type { Medication, MedicationAdministration } from '@/api/prescriptions.api'
 import { AdministerMedicationModal } from './AdministerMedicationModal'
 import { ViewMedicationAdministrationModal } from './ViewMedicationAdministrationModal'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
@@ -16,8 +17,8 @@ interface MedicationAction {
   status: 'administered' | 'pending' | 'missed'
   prescriptionId: string
   medicationId: string
-  medication: any // Objeto completo do medication
-  administration?: any // Dados da administração (se existir)
+  medication: Medication // Objeto completo do medication
+  administration?: MedicationAdministration // Dados da administração (se existir)
 }
 
 // Função para determinar o turno baseado no horário
@@ -71,11 +72,11 @@ export function TodayActions() {
   const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
 
   // Estados para modal de registro
-  const [selectedMedication, setSelectedMedication] = useState<any>(null)
+  const [selectedMedication, setSelectedMedication] = useState<MedicationAction | null>(null)
   const [isAdministerModalOpen, setIsAdministerModalOpen] = useState(false)
 
   // Estados para modal de visualização
-  const [selectedAdministration, setSelectedAdministration] = useState<any>(null)
+  const [selectedAdministration, setSelectedAdministration] = useState<MedicationAdministration | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
 
   // Buscar prescrições ativas

@@ -72,8 +72,9 @@ export function useCreateDietaryRestriction() {
 
       toast.success('Restrição alimentar registrada com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao registrar restrição alimentar'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao registrar restrição alimentar'
       toast.error(message)
     },
   })
@@ -99,9 +100,10 @@ export function useUpdateDietaryRestriction() {
 
       toast.success('Restrição alimentar atualizada com sucesso')
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       const message =
-        error.response?.data?.message || 'Erro ao atualizar restrição alimentar'
+        errorResponse?.data?.message || 'Erro ao atualizar restrição alimentar'
       toast.error(message)
     },
   })
@@ -122,8 +124,9 @@ export function useDeleteDietaryRestriction() {
 
       toast.success('Restrição alimentar excluída com sucesso')
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message || 'Erro ao excluir restrição alimentar'
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      const message = errorResponse?.data?.message || 'Erro ao excluir restrição alimentar'
       toast.error(message)
     },
   })

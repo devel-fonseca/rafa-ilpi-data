@@ -17,7 +17,7 @@ export interface EmailTemplate {
   name: string; // "Convite de Usuário"
   subject: string; // "Acesso liberado ao sistema da {{tenantName}}"
   description?: string;
-  jsonContent: any; // Easy Email JSON structure
+  jsonContent: Record<string, unknown>; // Easy Email JSON structure
   variables: TemplateVariable[];
   version: number;
   isActive: boolean;
@@ -30,7 +30,7 @@ export interface EmailTemplateVersion {
   id: string;
   templateId: string;
   versionNumber: number;
-  jsonContent: any;
+  jsonContent: Record<string, unknown>;
   subject: string;
   createdBy: string;
   changeNote?: string;
@@ -42,7 +42,7 @@ export interface CreateEmailTemplateDto {
   name: string;
   subject: string;
   description?: string;
-  jsonContent: any;
+  jsonContent: Record<string, unknown>;
   variables: TemplateVariable[];
   category: EmailTemplateCategory;
   isActive?: boolean;
@@ -52,7 +52,7 @@ export interface UpdateEmailTemplateDto {
   name?: string;
   subject?: string;
   description?: string;
-  jsonContent?: any;
+  jsonContent?: Record<string, unknown>;
   variables?: TemplateVariable[];
   category?: EmailTemplateCategory;
   isActive?: boolean;
@@ -61,13 +61,13 @@ export interface UpdateEmailTemplateDto {
 }
 
 export interface PreviewEmailTemplateDto {
-  jsonContent: any;
-  variables: Record<string, any>;
+  jsonContent: Record<string, unknown>;
+  variables: Record<string, unknown>;
 }
 
 export interface SendTestEmailDto {
   to: string;
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
 }
 
 // ========== API FUNCTIONS ==========

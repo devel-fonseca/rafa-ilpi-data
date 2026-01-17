@@ -122,12 +122,13 @@ export function useSendMessage() {
         description: 'A mensagem foi enviada com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao enviar',
         description:
-          error.response?.data?.message || 'Erro ao enviar mensagem.',
+          errorResponse?.data?.message || 'Erro ao enviar mensagem.',
       });
     },
   });
@@ -160,12 +161,13 @@ export function useDeleteMessage() {
         description: 'A mensagem foi excluída com sucesso.',
       });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
         description:
-          error.response?.data?.message || 'Erro ao excluir mensagem.',
+          errorResponse?.data?.message || 'Erro ao excluir mensagem.',
       });
     },
   });

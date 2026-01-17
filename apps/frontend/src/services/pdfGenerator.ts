@@ -9,7 +9,7 @@ interface DailyRecord {
   type: string
   date: Date
   time: string
-  data: any
+  data: Record<string, unknown>
   recordedBy: string
   notes?: string
   resident?: {

@@ -11,10 +11,25 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
+interface IntercorrenciaData {
+  descricao: string
+  acaoTomada: string
+  [key: string]: unknown
+}
+
+interface IntercorrenciaRecord {
+  data: IntercorrenciaData
+  time: string
+  date: string
+  recordedBy: string
+  createdAt: string
+  [key: string]: unknown
+}
+
 interface ViewIntercorrenciaModalProps {
   open: boolean
   onClose: () => void
-  record: any
+  record: IntercorrenciaRecord
 }
 
 export function ViewIntercorrenciaModal({

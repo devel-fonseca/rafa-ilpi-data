@@ -83,9 +83,10 @@ export function CreateAlimentacaoConfigModal({
 
       toast.success('Configurações de alimentação criadas com sucesso');
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
       toast.error(
-        error.response?.data?.message || 'Erro ao criar configurações de alimentação'
+        errorResponse?.data?.message || 'Erro ao criar configurações de alimentação'
       );
     }
   };

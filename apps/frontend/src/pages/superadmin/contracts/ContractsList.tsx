@@ -25,7 +25,7 @@ export function ContractsList() {
   const navigate = useNavigate()
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  const filters = statusFilter === 'all' ? {} : { status: statusFilter as any }
+  const filters = statusFilter === 'all' ? {} : { status: statusFilter as 'DRAFT' | 'ACTIVE' | 'REVOKED' }
   const { data: contracts, isLoading } = useContracts(filters)
 
   return (

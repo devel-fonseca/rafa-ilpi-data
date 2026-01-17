@@ -169,7 +169,7 @@ export async function generateRdcPdfReport(options: ExportOptions): Promise<void
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 10;
+  currentY = (doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
   // ====================
   // ANÁLISE DE TENDÊNCIA
@@ -243,7 +243,7 @@ export async function generateRdcPdfReport(options: ExportOptions): Promise<void
       },
     });
 
-    currentY = (doc as any).lastAutoTable.finalY + 10;
+    currentY = (doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   }
 
   // Verificar se precisa adicionar nova página

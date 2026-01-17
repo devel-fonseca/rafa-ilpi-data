@@ -279,7 +279,7 @@ export const translateEnum = {
 /**
  * Retorna valor ou '-' se vazio
  */
-export function valueOrDash(value: any): string {
+export function valueOrDash(value: unknown): string {
   if (value === null || value === undefined || value === '') return '-'
   return String(value)
 }

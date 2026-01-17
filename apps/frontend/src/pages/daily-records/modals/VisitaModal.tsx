@@ -30,7 +30,7 @@ type VisitaFormData = z.infer<typeof visitaSchema>
 interface VisitaModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
+  onSubmit: (data: VisitaFormData) => void
   residentId: string
   residentName: string
   date: string

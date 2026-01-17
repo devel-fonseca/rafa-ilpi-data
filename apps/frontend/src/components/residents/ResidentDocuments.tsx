@@ -26,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import {
   FileText,
   Upload,
@@ -45,7 +44,6 @@ import {
   useResidentDocuments,
   useUploadResidentDocument,
   useDeleteResidentDocument,
-  useUpdateResidentDocumentMetadata,
 } from '@/hooks/useResidentDocuments'
 
 interface ResidentDocumentsProps {
@@ -135,8 +133,8 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao enviar documento')
+    } catch (error: unknown) {
+      toast.error('Erro ao enviar documento')
     }
   }
 
@@ -148,8 +146,8 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
     try {
       await deleteMutation.mutateAsync(documentId)
       toast.success('Documento excluído com sucesso!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Erro ao excluir documento')
+    } catch (error: unknown) {
+      toast.error('Erro ao excluir documento')
     }
   }
 

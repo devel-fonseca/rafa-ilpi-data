@@ -33,11 +33,17 @@ const editHidratacaoSchema = z.object({
 
 type EditHidratacaoFormData = z.infer<typeof editHidratacaoSchema>
 
+interface HidratacaoRecord {
+  time: string
+  data: Record<string, unknown>
+  [key: string]: unknown
+}
+
 interface EditHidratacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: any) => void
-  record: any
+  onSubmit: (data: Record<string, unknown>) => void
+  record: HidratacaoRecord
   isUpdating?: boolean
 }
 
