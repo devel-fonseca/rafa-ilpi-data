@@ -170,4 +170,56 @@ export class EventsGateway
       requiresAck: data.alert.requiresAck,
     });
   }
+
+  /**
+   * Broadcast de lock de medicamento (Sprint 2)
+   * Usado quando um usuário bloqueia um medicamento para administração
+   *
+   * @example
+   * this.eventsGateway.emitMedicationLock({
+   *   tenantId: '123',
+   *   medicationId: 'abc',
+   *   scheduledDate: '2026-01-17',
+   *   scheduledTime: '14:00',
+   *   lockedBy: 'Dr. Emanuel',
+   *   lockedByUserId: 'xyz',
+   * });
+   */
+  emitMedicationLock(data: {
+    tenantId: string;
+    medicationId: string;
+    scheduledDate: string;
+    scheduledTime: string;
+    lockedBy: string;
+    lockedByUserId: string;
+  }) {
+    this.emitToTenant(data.tenantId, 'medication:locked', {
+      medicationId: data.medicationId,
+      scheduledDate: data.scheduledDate,
+      scheduledTime: data.scheduledTime,
+      lockedBy: data.lockedBy,
+      lockedByUserId: data.lockedByUserId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Broadcast de unlock de medicamento (Sprint 2)
+   * Usado quando um usuário desbloqueia um medicamento (fecha modal ou administra)
+   */
+  emitMedicationUnlock(data: {
+    tenantId: string;
+    medicationId: string;
+    scheduledDate: string;
+    scheduledTime: string;
+    unlockedBy?: string;
+  }) {
+    this.emitToTenant(data.tenantId, 'medication:unlocked', {
+      medicationId: data.medicationId,
+      scheduledDate: data.scheduledDate,
+      scheduledTime: data.scheduledTime,
+      unlockedBy: data.unlockedBy,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
