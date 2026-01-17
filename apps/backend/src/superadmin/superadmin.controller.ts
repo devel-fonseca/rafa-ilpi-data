@@ -717,13 +717,8 @@ export class SuperAdminController {
     const acceptance = await this.prismaService.privacyPolicyAcceptance.findUnique({
       where: { tenantId },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+        // NOTA: Relação 'user' removida (incompatível com multi-tenancy)
+        // userId aponta para tenant_xyz.users, não public.users
       },
     })
 

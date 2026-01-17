@@ -514,7 +514,6 @@ export class AuthService {
       // eslint-disable-next-line no-restricted-syntax
       let storedToken = await this.prisma.refreshToken.findUnique({
         where: { token: refreshToken },
-        include: { user: true },
       });
 
       let tenantSchemaName: string | null = null;
@@ -530,7 +529,6 @@ export class AuthService {
             const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
             const tokenInTenant = await tenantClient.refreshToken.findUnique({
               where: { token: refreshToken },
-              include: { user: true },
             });
 
             if (tokenInTenant) {
@@ -565,13 +563,26 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token expirado');
       }
 
+      // Buscar usuário manualmente (relação removida por incompatibilidade multi-tenancy)
+      const userClient = tenantSchemaName
+        ? this.prisma.getTenantClient(tenantSchemaName)
+        : this.prisma;
+
+      const user = await userClient.user.findUnique({
+        where: { id: storedToken.userId },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Usuário não encontrado');
+      }
+
       // Verificar se usuário está ativo
-      if (!storedToken.user.isActive) {
+      if (!user.isActive) {
         throw new UnauthorizedException('Usuário desativado');
       }
 
       // Gerar novos tokens
-      const tokens = await this.generateTokens(storedToken.user);
+      const tokens = await this.generateTokens(user);
 
       // Remover token antigo do schema correto
       if (tenantSchemaName) {
@@ -584,7 +595,7 @@ export class AuthService {
         tenantClient.refreshToken
           .deleteMany({
             where: {
-              userId: storedToken.user.id,
+              userId: user.id,
               expiresAt: {
                 lt: new Date(),
               },
@@ -605,7 +616,7 @@ export class AuthService {
         this.prisma.refreshToken
           .deleteMany({
             where: {
-              userId: storedToken.user.id,
+              userId: user.id,
               expiresAt: {
                 lt: new Date(),
               },
@@ -621,8 +632,8 @@ export class AuthService {
 
       // Salvar novo refresh token
       await this.saveRefreshToken(
-        storedToken.user.id,
-        storedToken.user.tenantId,
+        user.id,
+        user.tenantId,
         tokens.refreshToken,
         ipAddress || storedToken.ipAddress || undefined,
         userAgent || storedToken.userAgent || undefined,
@@ -739,7 +750,6 @@ export class AuthService {
     // eslint-disable-next-line no-restricted-syntax
     let storedToken = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
-      include: { user: { select: { id: true, tenantId: true } } },
     });
 
     let tenantSchemaName: string | null = null;
@@ -755,7 +765,6 @@ export class AuthService {
           const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
           const tokenInTenant = await tenantClient.refreshToken.findUnique({
             where: { token: refreshToken },
-            include: { user: { select: { id: true, tenantId: true } } },
           });
 
           if (tokenInTenant) {
@@ -777,8 +786,22 @@ export class AuthService {
       return { message: 'Logout registrado' };
     }
 
-    const userId = storedToken.user.id;
-    const tenantId = storedToken.user.tenantId;
+    // Buscar usuário manualmente
+    const userClient = tenantSchemaName
+      ? this.prisma.getTenantClient(tenantSchemaName)
+      : this.prisma;
+
+    const user = await userClient.user.findUnique({
+      where: { id: storedToken.userId },
+      select: { id: true, tenantId: true },
+    });
+
+    if (!user) {
+      console.warn('[LOGOUT-EXPIRED] Usuário não encontrado, mas continuando logout');
+    }
+
+    const userId = user?.id || storedToken.userId;
+    const tenantId = user?.tenantId || null;
 
     // Deletar o refresh token do schema correto
     if (tenantSchemaName) {
