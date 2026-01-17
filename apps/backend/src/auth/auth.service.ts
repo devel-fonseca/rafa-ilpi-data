@@ -50,6 +50,12 @@ import { ChangeType, AccessAction, Prisma, PrismaClient } from '@prisma/client';
  */
 @Injectable()
 export class AuthService {
+  /**
+   * Cache in-memory de tenantId → schemaName
+   * Reduz queries repetidas ao banco durante operações de auth
+   */
+  private schemaCache = new Map<string, string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -58,6 +64,31 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly jwtCache: JwtCacheService,
   ) {}
+
+  /**
+   * Busca schemaName de um tenant com cache in-memory
+   * Reduz queries repetidas durante operações de autenticação
+   *
+   * @param tenantId - ID do tenant
+   * @returns schemaName do tenant
+   * @throws Error se tenant não existe
+   */
+  private async getSchemaName(tenantId: string): Promise<string> {
+    if (!this.schemaCache.has(tenantId)) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { schemaName: true },
+      });
+
+      if (!tenant) {
+        throw new Error(`Tenant ${tenantId} not found`);
+      }
+
+      this.schemaCache.set(tenantId, tenant.schemaName);
+    }
+
+    return this.schemaCache.get(tenantId)!;
+  }
 
   /**
    * Registra um novo usuário
@@ -279,17 +310,12 @@ export class AuthService {
       // Atualizar lastLogin
       // ✅ Usar client correto baseado em tenantId
       if (user.tenantId) {
-        const tenant = await this.prisma.tenant.findUnique({
-          where: { id: user.tenantId },
-          select: { schemaName: true },
+        const schemaName = await this.getSchemaName(user.tenantId);
+        const tenantClient = this.prisma.getTenantClient(schemaName);
+        await tenantClient.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
         });
-        if (tenant) {
-          const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
-          await tenantClient.user.update({
-            where: { id: user.id },
-            data: { lastLogin: new Date() },
-          });
-        }
       } else {
         // SUPERADMIN (tenantId = null)
         // eslint-disable-next-line no-restricted-syntax
@@ -657,14 +683,8 @@ export class AuthService {
     let targetClient: PrismaService | PrismaClient = this.prisma; // Default: public schema (SUPERADMIN)
 
     if (tenantId) {
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { schemaName: true },
-      });
-
-      if (tenant) {
-        targetClient = this.prisma.getTenantClient(tenant.schemaName);
-      }
+      const schemaName = await this.getSchemaName(tenantId);
+      targetClient = this.prisma.getTenantClient(schemaName);
     }
 
     // Se refreshToken foi fornecido, deletar apenas essa sessão específica
@@ -1128,17 +1148,9 @@ export class AuthService {
         },
       });
     } else {
-      // CASO 2: Tenant User → Salvar no schema do tenant
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { schemaName: true },
-      });
-
-      if (!tenant) {
-        throw new Error(`Tenant ${tenantId} não encontrado ao salvar refresh token`);
-      }
-
-      const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+      // CASO 2: Tenant User → Salvar no schema do tenant (cached)
+      const schemaName = await this.getSchemaName(tenantId);
+      const tenantClient = this.prisma.getTenantClient(schemaName);
       await tenantClient.refreshToken.create({
         data: {
           userId,
@@ -1241,17 +1253,15 @@ export class AuthService {
       // SEGURANÇA: Logs são append-only e isolados por tenant para compliance.
       // ═══════════════════════════════════════════════════════════════════════
 
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { schemaName: true },
-      });
-
-      if (!tenant) {
+      let schemaName: string;
+      try {
+        schemaName = await this.getSchemaName(tenantId);
+      } catch (_error) {
         console.error(`Tenant ${tenantId} não encontrado ao registrar log de acesso`);
         return;
       }
 
-      const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+      const tenantClient = this.prisma.getTenantClient(schemaName);
       await tenantClient.accessLog.create({
         data: {
           userId,
