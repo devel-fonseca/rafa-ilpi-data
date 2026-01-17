@@ -56,6 +56,7 @@ import { SentinelEventsModule } from './sentinel-events/sentinel-events.module';
 import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -139,6 +140,9 @@ import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
     SentinelEventsModule,
     RdcIndicatorsModule,
     ComplianceModule,
+
+    // Real-time events (WebSocket)
+    EventsModule,
 
     // Onboarding
     TenantProfileModule,
