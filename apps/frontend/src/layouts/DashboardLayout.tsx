@@ -31,6 +31,7 @@ import { NotificationsDropdown } from '@/components/notifications/NotificationsD
 import { MessagesDropdown } from '@/components/messages/MessagesDropdown'
 import { WelcomeToActivePlanDialog } from '@/components/billing/WelcomeToActivePlanDialog'
 import { useFeatures } from '@/hooks/useFeatures'
+import { ConnectionStatus } from '@/components/common/ConnectionStatus'
 
 export function DashboardLayout() {
   useScrollToTop()
@@ -161,13 +162,16 @@ export function DashboardLayout() {
               </div>
             </div>
 
-            {/* Desktop: Notifications + Messages + Theme + User Avatar + Dropdown */}
+            {/* Desktop: Notifications + Messages + Connection Status + Theme + User Avatar + Dropdown */}
             <div className="hidden md:flex items-center gap-2">
               {/* Dropdown de Notificações */}
               <NotificationsDropdown />
 
               {/* Dropdown de Mensagens */}
               <MessagesDropdown />
+
+              {/* Indicador de Status de Conexão WebSocket */}
+              <ConnectionStatus />
 
               {/* Botão de Toggle Tema */}
               <TooltipProvider>
