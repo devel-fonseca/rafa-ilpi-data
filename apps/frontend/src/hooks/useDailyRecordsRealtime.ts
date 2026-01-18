@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useWebSocket } from '@/contexts/WebSocketContext'
+import { useWebSocketContext } from '@/contexts/WebSocketContext'
 import { toast } from 'sonner'
 
 /**
@@ -20,7 +20,7 @@ import { toast } from 'sonner'
  */
 export function useDailyRecordsRealtime(residentId: string | undefined, date: string) {
   const queryClient = useQueryClient()
-  const { socket } = useWebSocket()
+  const { socket } = useWebSocketContext()
 
   useEffect(() => {
     if (!socket || !residentId) return
