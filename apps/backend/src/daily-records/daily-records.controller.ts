@@ -63,16 +63,22 @@ export class DailyRecordsController {
     );
 
     // Broadcast de criação de registro via WebSocket (Sprint 3)
-    this.eventsGateway.emitDailyRecordCreated({
-      tenantId: user.tenantId,
-      recordType: createDto.type,
-      residentId: createDto.residentId,
-      residentName: (record as any).resident?.fullName || 'Residente',
-      createdBy: user.name,
-      createdByUserId: user.id,
-      date: createDto.date,
-      data: record,
-    });
+    if (user.tenantId) {
+      const recordWithResident = record as typeof record & {
+        resident?: { fullName?: string }
+      }
+
+      this.eventsGateway.emitDailyRecordCreated({
+        tenantId: user.tenantId,
+        recordType: createDto.type,
+        residentId: createDto.residentId,
+        residentName: recordWithResident.resident?.fullName || 'Residente',
+        createdBy: user.name,
+        createdByUserId: user.id,
+        date: createDto.date,
+        data: record,
+      })
+    }
 
     return record;
   }

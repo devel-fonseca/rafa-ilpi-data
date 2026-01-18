@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { Prisma } from '@prisma/client'
+import { plainToInstance } from 'class-transformer'
 import {
   CreateBedDto,
   UpdateBedDto,
@@ -9,6 +10,7 @@ import {
   BlockBedDto,
   ReleaseBedDto,
 } from './dto'
+import { FullMapResponseDto } from '../buildings/dto'
 
 /**
  * Service para gerenciamento de leitos.
@@ -328,15 +330,15 @@ export class BedsService {
     const totalBeds = buildingsWithStats.reduce((sum, b) => sum + b.totalBeds, 0)
     const occupiedBeds = buildingsWithStats.reduce((sum, b) => sum + b.occupiedBeds, 0)
 
-    // Contar leitos por status
+    // Contar leitos disponíveis
     const bedStatuses = await this.tenantContext.client.bed.findMany({
       where: { deletedAt: null },
       select: { status: true },
     })
 
     const availableBeds = bedStatuses.filter((b) => b.status === 'Disponível').length
-    const maintenanceBeds = bedStatuses.filter((b) => b.status === 'Manutenção').length
-    const reservedBeds = bedStatuses.filter((b) => b.status === 'Reservado').length
+
+    const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0
 
     const stats = {
       totalBuildings,
@@ -345,11 +347,15 @@ export class BedsService {
       totalBeds,
       occupiedBeds,
       availableBeds,
-      maintenanceBeds,
-      reservedBeds,
+      occupancyRate: parseFloat(occupancyRate.toFixed(2)),
     }
 
-    return { buildings: buildingsWithStats, stats }
+    const responseData = { buildings: buildingsWithStats, stats }
+
+    // Serializar usando DTO de resposta para validação de campos
+    return plainToInstance(FullMapResponseDto, responseData, {
+      excludeExtraneousValues: true,
+    })
   }
 
   /**

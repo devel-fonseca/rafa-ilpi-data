@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common'
 import { BedsService } from './beds.service'
 import { CreateBedDto, UpdateBedDto, ReserveBedDto, BlockBedDto, ReleaseBedDto } from './dto'
+import { FullMapResponseDto } from '../buildings/dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator'
 import { AuditAction, AuditEntity } from '../audit/audit.decorator'
@@ -61,7 +62,7 @@ export class BedsController {
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getFullMap(
     @Query('buildingId') buildingId?: string
-  ) {
+  ): Promise<FullMapResponseDto> {
     return this.bedsService.getFullMap(buildingId)
   }
 

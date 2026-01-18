@@ -11,6 +11,7 @@ import {
   type UpdateMedicationVersionedDto,
 } from '@/api/medications.api'
 import { tenantKey } from '@/lib/query-keys'
+import { invalidateAfterMedicationMutation } from '@/utils/queryInvalidation'
 
 /**
  * Hook para listar medicamentos de uma prescrição
@@ -127,18 +128,8 @@ export function useCreateMedication() {
   return useMutation({
     mutationFn: (data: CreateMedicationDto) => createMedication(data),
     onSuccess: (newMedication) => {
-      // Invalidar lista de medicamentos da prescrição
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', 'prescription', newMedication.prescriptionId),
-      })
-      // Invalidar prescrição (lista de medicamentos mudou)
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('prescriptions', newMedication.prescriptionId),
-      })
-      // Invalidar agenda (novo medicamento = novos horários)
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('agenda'),
-      })
+      // ✅ Helper cuida de TUDO: medications, prescriptions, agenda, audit
+      invalidateAfterMedicationMutation(queryClient, newMedication.prescriptionId, newMedication.id)
     },
   })
 }
@@ -160,26 +151,8 @@ export function useUpdateMedication() {
     mutationFn: ({ id, data }: { id: string; data: UpdateMedicationVersionedDto }) =>
       updateMedication(id, data),
     onSuccess: (updatedMedication, variables) => {
-      // Invalidar medicamento específico
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', variables.id),
-      })
-      // Invalidar lista de medicamentos da prescrição
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', 'prescription', updatedMedication.prescriptionId),
-      })
-      // Invalidar histórico (nova versão criada)
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', variables.id, 'history'),
-      })
-      // Invalidar prescrição
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('prescriptions', updatedMedication.prescriptionId),
-      })
-      // Invalidar agenda (horários podem ter mudado)
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('agenda'),
-      })
+      // ✅ Helper cuida de TUDO: medications, prescriptions, agenda, audit, history
+      invalidateAfterMedicationMutation(queryClient, updatedMedication.prescriptionId, variables.id)
     },
   })
 }
@@ -207,26 +180,8 @@ export function useDeleteMedication() {
     mutationFn: ({ id, deleteReason }: { id: string; deleteReason: string; prescriptionId: string }) =>
       deleteMedication(id, deleteReason),
     onSuccess: (_, variables) => {
-      // Invalidar medicamento específico
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', variables.id),
-      })
-      // Invalidar lista de medicamentos da prescrição
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', 'prescription', variables.prescriptionId),
-      })
-      // Invalidar histórico
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('medications', variables.id, 'history'),
-      })
-      // Invalidar prescrição
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('prescriptions', variables.prescriptionId),
-      })
-      // Invalidar agenda (medicamento removido = horários cancelados)
-      queryClient.invalidateQueries({
-        queryKey: tenantKey('agenda'),
-      })
+      // ✅ Helper cuida de TUDO: medications, prescriptions, agenda, audit, history
+      invalidateAfterMedicationMutation(queryClient, variables.prescriptionId, variables.id)
     },
   })
 }

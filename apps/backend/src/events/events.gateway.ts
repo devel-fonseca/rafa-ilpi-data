@@ -248,7 +248,7 @@ export class EventsGateway
     createdBy: string;
     createdByUserId: string;
     date: string;
-    data: any;
+    data: Record<string, unknown>;
   }) {
     this.emitToTenant(data.tenantId, 'daily-record:created', {
       recordType: data.recordType,

@@ -90,17 +90,36 @@ export function invalidateAfterScheduleMutation(
 ) {
   console.log(`🔄 Invalidando queries de schedule para residente ${residentId}`)
 
-  // Queries específicas do residente
+  // Invalidar usando predicate para pegar variações com tenantKey
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.scheduleConfigs.byResident(residentId),
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+
+      // Verificar se é schedule-configs ou scheduled-events com esse residente
+      const isScheduleQuery = queryKey.some(k =>
+        typeof k === 'string' && (k.includes('schedule-configs') || k.includes('scheduled-events'))
+      )
+
+      const hasResidentId = queryKey.some(k =>
+        k === residentId || k === 'resident' && queryKey.includes(residentId)
+      )
+
+      return isScheduleQuery && hasResidentId
+    }
   })
 
+  // Invalidar daily-tasks que podem ter esse residentId
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.dailyTasks.byResident(residentId),
-  })
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      const isDailyTasksQuery = queryKey.some(k =>
+        typeof k === 'string' && k.includes('daily-tasks')
+      )
 
-  queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.scheduledEvents.byResident(residentId),
+      const hasResidentId = queryKey.some(k => k === residentId)
+
+      return isDailyTasksQuery && (hasResidentId || !hasResidentId) // Invalidar TODAS daily-tasks
+    }
   })
 
   // Queries globais
@@ -140,39 +159,39 @@ export function invalidateAfterDailyRecordMutation(
 ) {
   console.log(`🔄 Invalidando queries de daily records para residente ${residentId}`)
 
-  // Listas gerais
+  // Invalidar usando predicate para pegar variações com tenantKey
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.dailyRecords.all,
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+
+      // Verificar se é daily-records query
+      const isDailyRecordsQuery = queryKey.some(k =>
+        typeof k === 'string' && k.includes('daily-records')
+      )
+
+      const hasResidentId = queryKey.some(k =>
+        typeof k === 'string' && k === residentId ||
+        (typeof k === 'object' && k !== null && 'residentId' in k)
+      )
+
+      const hasDate = recordDate ? queryKey.some(k =>
+        typeof k === 'string' && k === recordDate ||
+        (typeof k === 'object' && k !== null && 'date' in k)
+      ) : true
+
+      return isDailyRecordsQuery && (hasResidentId || hasDate)
+    }
   })
-
-  // Queries específicas
-  queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.dailyRecords.byResident(residentId),
-  })
-
-  if (recordDate) {
-    queryClient.invalidateQueries({
-      queryKey: QUERY_KEYS.dailyRecords.byDate(recordDate),
-    })
-
-    queryClient.invalidateQueries({
-      queryKey: QUERY_KEYS.dailyRecords.byResidentAndDate(residentId, recordDate),
-    })
-  }
 
   // Tarefas diárias (para atualizar status)
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.dailyTasks.byResident(residentId),
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('daily-tasks'))
+    }
   })
 
-  if (recordDate) {
-    queryClient.invalidateQueries({
-      queryKey: QUERY_KEYS.dailyTasks.byDate(recordDate),
-    })
-  }
-
   // Dashboard do cuidador (tarefas agregadas)
-  // Invalida todas as queries que começam com 'caregiver-tasks' (independente da data)
   console.log('🔄 Invalidando queries caregiver-tasks')
   queryClient.invalidateQueries({
     predicate: (query) => {
@@ -279,36 +298,91 @@ export function invalidateAfterClinicalMutation(
  *
  * Use quando: Criar/editar/deletar prescrição ou administrar medicação
  *
+ * Invalida:
+ * - Listas de prescrições (todas as variações)
+ * - Prescrição específica
+ * - Medicamentos relacionados
+ * - Dashboard e agenda (afetados por prescrições)
+ * - Queries globais
+ *
  * @param queryClient - Instância do QueryClient
- * @param residentId - ID do residente
+ * @param residentId - ID do residente (opcional para listas gerais)
  * @param prescriptionId - ID da prescrição (opcional)
+ *
+ * @example
+ * onSuccess: (data) => {
+ *   invalidateAfterPrescriptionMutation(queryClient, data.residentId, data.id)
+ * }
  */
 export function invalidateAfterPrescriptionMutation(
   queryClient: QueryClient,
-  residentId: string,
+  residentId?: string,
   prescriptionId?: string
 ) {
-  console.log(`🔄 Invalidando queries de prescriptions para ${residentId}`)
+  console.log(`🔄 Invalidando queries de prescriptions${residentId ? ` para ${residentId}` : ''}`)
 
-  // Listas
+  // Invalidar todas as queries de prescriptions usando predicate
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.prescriptions.all,
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+
+      const isPrescriptionsQuery = queryKey.some(k =>
+        typeof k === 'string' && k.includes('prescriptions')
+      )
+
+      // Se tem residentId, filtrar por ele também
+      if (residentId) {
+        const hasResidentId = queryKey.some(k =>
+          typeof k === 'string' && k === residentId ||
+          (typeof k === 'object' && k !== null && 'residentId' in k)
+        )
+        return isPrescriptionsQuery && hasResidentId
+      }
+
+      return isPrescriptionsQuery
+    }
   })
 
-  queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.prescriptions.byResident(residentId),
-  })
-
-  // Detalhes específicos
+  // Invalidar prescrição específica se fornecida
   if (prescriptionId) {
     queryClient.invalidateQueries({
-      queryKey: QUERY_KEYS.prescriptions.detail(prescriptionId),
+      predicate: (query) => {
+        const queryKey = query.queryKey as unknown[]
+        return queryKey.some(k => k === prescriptionId)
+      }
     })
   }
 
-  // Medications relacionadas
+  // Invalidar medications relacionadas
+  if (residentId) {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as unknown[]
+        const isMedicationsQuery = queryKey.some(k =>
+          typeof k === 'string' && k.includes('medications')
+        )
+        const hasResidentId = queryKey.some(k =>
+          typeof k === 'string' && k === residentId
+        )
+        return isMedicationsQuery && hasResidentId
+      }
+    })
+  }
+
+  // Invalidar agenda (prescrições afetam medicamentos agendados)
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.medications.byResident(residentId),
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('agenda'))
+    }
+  })
+
+  // Invalidar dashboard
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('dashboard'))
+    }
   })
 
   // Queries globais
@@ -318,27 +392,183 @@ export function invalidateAfterPrescriptionMutation(
 /**
  * Invalida queries relacionadas a BEDS & ROOMS
  *
- * Use quando: Transferir residente de leito
+ * Use quando: Criar/editar/deletar leito, transferir residente, atribuir leito
+ *
+ * Invalida:
+ * - Listas de leitos (todas as variações)
+ * - Leitos específicos
+ * - Quartos, andares e prédios (estrutura completa)
+ * - Residentes (se houver transferência)
+ * - Queries globais
  *
  * @param queryClient - Instância do QueryClient
- * @param bedIds - IDs dos leitos afetados (origem e destino)
+ * @param bedIds - IDs dos leitos afetados (opcional)
+ * @param residentId - ID do residente afetado (opcional)
+ *
+ * @example
+ * // Após transferência
+ * invalidateAfterBedMutation(queryClient, [sourceBedId, targetBedId], residentId)
+ */
+export function invalidateAfterBedMutation(
+  queryClient: QueryClient,
+  bedIds?: string[],
+  residentId?: string
+) {
+  console.log('🔄 Invalidando queries de beds')
+
+  // Invalidar queries de beds usando predicate
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('beds'))
+    }
+  })
+
+  // Invalidar rooms, floors, buildings (estrutura completa)
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k =>
+        typeof k === 'string' && (
+          k.includes('rooms') ||
+          k.includes('floors') ||
+          k.includes('buildings')
+        )
+      )
+    }
+  })
+
+  // Se afeta residente, invalidar queries de residents
+  if (residentId) {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const queryKey = query.queryKey as unknown[]
+        const isResidentsQuery = queryKey.some(k =>
+          typeof k === 'string' && k.includes('residents')
+        )
+        const hasResidentId = queryKey.some(k => k === residentId)
+        return isResidentsQuery && hasResidentId
+      }
+    })
+  }
+
+  // Queries globais
+  invalidateGlobalQueries(queryClient)
+}
+
+/**
+ * DEPRECATED: Use invalidateAfterBedMutation
+ * Mantido para compatibilidade
  */
 export function invalidateAfterBedTransfer(
   queryClient: QueryClient,
   bedIds: string[]
 ) {
-  console.log('🔄 Invalidando queries de beds após transferência')
+  console.log('⚠️ invalidateAfterBedTransfer is deprecated, use invalidateAfterBedMutation')
+  invalidateAfterBedMutation(queryClient, bedIds)
+}
 
-  // Listas gerais
+/**
+ * Invalida queries relacionadas a MEDICATIONS
+ *
+ * Use quando: Criar/editar/deletar medicamento
+ *
+ * Invalida:
+ * - Listas de medicamentos
+ * - Medicamento específico
+ * - Prescrição relacionada
+ * - Agenda (medicamentos agendados)
+ * - Queries globais
+ *
+ * @param queryClient - Instância do QueryClient
+ * @param prescriptionId - ID da prescrição
+ * @param medicationId - ID do medicamento (opcional)
+ *
+ * @example
+ * onSuccess: (data) => {
+ *   invalidateAfterMedicationMutation(queryClient, data.prescriptionId, data.id)
+ * }
+ */
+export function invalidateAfterMedicationMutation(
+  queryClient: QueryClient,
+  prescriptionId: string,
+  medicationId?: string
+) {
+  console.log(`🔄 Invalidando queries de medications para prescrição ${prescriptionId}`)
+
+  // Invalidar medications usando predicate
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.beds.all,
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      const isMedicationsQuery = queryKey.some(k =>
+        typeof k === 'string' && k.includes('medications')
+      )
+      const hasPrescriptionId = queryKey.some(k => k === prescriptionId)
+      return isMedicationsQuery && hasPrescriptionId
+    }
   })
 
-  // Detalhes específicos dos leitos
-  bedIds.forEach((bedId) => {
+  // Invalidar medicamento específico se fornecido
+  if (medicationId) {
     queryClient.invalidateQueries({
-      queryKey: QUERY_KEYS.beds.detail(bedId),
+      predicate: (query) => {
+        const queryKey = query.queryKey as unknown[]
+        return queryKey.some(k => k === medicationId)
+      }
     })
+  }
+
+  // Invalidar prescrição relacionada
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      const isPrescriptionsQuery = queryKey.some(k =>
+        typeof k === 'string' && k.includes('prescriptions')
+      )
+      const hasPrescriptionId = queryKey.some(k => k === prescriptionId)
+      return isPrescriptionsQuery && hasPrescriptionId
+    }
+  })
+
+  // Invalidar agenda (medicamentos = horários agendados)
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('agenda'))
+    }
+  })
+
+  // Queries globais
+  invalidateGlobalQueries(queryClient)
+}
+
+/**
+ * Invalida queries relacionadas a AGENDA INSTITUCIONAL
+ *
+ * Use quando: Criar/editar/deletar evento institucional
+ *
+ * Invalida:
+ * - Agenda institucional (todas as variações)
+ * - Queries globais
+ *
+ * @param queryClient - Instância do QueryClient
+ *
+ * @example
+ * onSuccess: () => {
+ *   invalidateAfterAgendaMutation(queryClient)
+ * }
+ */
+export function invalidateAfterAgendaMutation(
+  queryClient: QueryClient
+) {
+  console.log('🔄 Invalidando queries de agenda')
+
+  // Invalidar agenda usando predicate
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k.includes('agenda'))
+    }
   })
 
   // Queries globais
@@ -354,28 +584,36 @@ export function invalidateAfterBedTransfer(
  *
  * Ação → Helper a usar:
  *
- * ┌─────────────────────────────────────────┬──────────────────────────────────┐
- * │ AÇÃO                                    │ HELPER                           │
- * ├─────────────────────────────────────────┼──────────────────────────────────┤
- * │ CREATE/UPDATE/DELETE Schedule Config    │ invalidateAfterScheduleMutation  │
- * │ CREATE/UPDATE/DELETE Scheduled Event    │ invalidateAfterScheduleMutation  │
- * │ CREATE/UPDATE/DELETE Daily Record       │ invalidateAfterDailyRecordMutation│
- * │ CREATE/UPDATE/DELETE Resident           │ invalidateAfterResidentMutation  │
- * │ UPDATE Clinical Profile                 │ invalidateAfterClinicalMutation  │
- * │ CREATE/UPDATE Vital Sign                │ invalidateAfterClinicalMutation  │
- * │ CREATE/UPDATE Clinical Note             │ invalidateAfterClinicalMutation  │
- * │ CREATE/UPDATE/DELETE Prescription       │ invalidateAfterPrescriptionMutation│
- * │ ADMINISTER Medication                   │ invalidateAfterPrescriptionMutation│
- * │ TRANSFER Bed                            │ invalidateAfterBedTransfer       │
- * │ SWITCH Tenant/User                      │ queryClient.clear() [auth.store] │
- * └─────────────────────────────────────────┴──────────────────────────────────┘
+ * ┌──────────────────────────────────────────┬───────────────────────────────────┐
+ * │ AÇÃO                                     │ HELPER                            │
+ * ├──────────────────────────────────────────┼───────────────────────────────────┤
+ * │ CREATE/UPDATE/DELETE Schedule Config     │ invalidateAfterScheduleMutation   │
+ * │ CREATE/UPDATE/DELETE Scheduled Event     │ invalidateAfterScheduleMutation   │
+ * │ CREATE/UPDATE/DELETE Daily Record        │ invalidateAfterDailyRecordMutation│
+ * │ CREATE/UPDATE/DELETE Resident            │ invalidateAfterResidentMutation   │
+ * │ UPDATE Clinical Profile                  │ invalidateAfterClinicalMutation   │
+ * │ CREATE/UPDATE Vital Sign                 │ invalidateAfterClinicalMutation   │
+ * │ CREATE/UPDATE Clinical Note              │ invalidateAfterClinicalMutation   │
+ * │ CREATE/UPDATE/DELETE Prescription        │ invalidateAfterPrescriptionMutation│
+ * │ ADMINISTER Medication                    │ invalidateAfterPrescriptionMutation│
+ * │ CREATE/UPDATE/DELETE Medication          │ invalidateAfterMedicationMutation │
+ * │ CREATE/UPDATE/DELETE Bed                 │ invalidateAfterBedMutation        │
+ * │ TRANSFER Bed                             │ invalidateAfterBedMutation        │
+ * │ ASSIGN Resident to Bed                   │ invalidateAfterBedMutation        │
+ * │ CREATE/UPDATE/DELETE Institutional Event │ invalidateAfterAgendaMutation     │
+ * │ SWITCH Tenant/User                       │ queryClient.clear() [auth.store]  │
+ * └──────────────────────────────────────────┴───────────────────────────────────┘
  *
  * REGRAS GERAIS:
  * 1. Sempre invalide queries globais (audit + notifications)
- * 2. Sempre invalide queries específicas do residente afetado
- * 3. Se tem data, invalide queries filtradas por data também
+ * 2. Use predicate para buscar padrões (não match exato de queryKey)
+ * 3. Invalide queries relacionadas (ex: medication → prescription + agenda)
  * 4. Em caso de dúvida, prefira invalidar mais do que menos
  *    (é melhor refetch desnecessário do que dado desatualizado)
+ *
+ * MIGRAÇÃO DE CÓDIGO ANTIGO:
+ * ❌ EVITE: queryClient.invalidateQueries({ queryKey: tenantKey('resource') })
+ * ✅ USE: invalidateAfterXxxMutation(queryClient, ...params)
  */
 
 /**

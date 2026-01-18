@@ -37,6 +37,10 @@ async function bootstrap() {
       transformOptions: {
         enableImplicitConversion: true,
       },
+      // IMPORTANTE: Validar apenas INPUT (request), não OUTPUT (response)
+      // Isso permite que métodos retornem campos calculados sem precisar de DTOs de resposta
+      validateCustomDecorators: false,
+      skipMissingProperties: false,
     }),
   );
 

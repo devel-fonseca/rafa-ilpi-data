@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bedsAPI, CreateBedDto, UpdateBedDto } from '../api/beds.api'
 import { tenantKey } from '@/lib/query-keys'
+import { invalidateAfterBedMutation } from '@/utils/queryInvalidation'
 
 /**
  * Hook para listar leitos
@@ -61,12 +62,9 @@ export function useCreateBed() {
 
   return useMutation({
     mutationFn: (data: CreateBedDto) => bedsAPI.createBed(data),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms', data.roomId) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+    onSuccess: () => {
+      // ✅ Helper cuida de TUDO: beds, rooms, floors, buildings, audit
+      invalidateAfterBedMutation(queryClient)
     },
   })
 }
@@ -86,13 +84,9 @@ export function useUpdateBed() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateBedDto }) =>
       bedsAPI.updateBed(id, data),
-    onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds', variables.id) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms', result.roomId) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+    onSuccess: () => {
+      // ✅ Helper cuida de TUDO: beds, rooms, floors, buildings, audit
+      invalidateAfterBedMutation(queryClient)
     },
   })
 }
@@ -112,10 +106,8 @@ export function useDeleteBed() {
   return useMutation({
     mutationFn: (id: string) => bedsAPI.deleteBed(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
+      // ✅ Helper cuida de TUDO: beds, rooms, floors, buildings, audit
+      invalidateAfterBedMutation(queryClient)
     },
   })
 }
@@ -135,14 +127,9 @@ export function useAssignResident() {
   return useMutation({
     mutationFn: ({ bedId, residentId }: { bedId: string; residentId: string }) =>
       bedsAPI.assignResident(bedId, { bedId, residentId }),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds', data.id) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms', data.roomId) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('residents') })
+    onSuccess: (data, variables) => {
+      // ✅ Helper cuida de TUDO: beds, rooms, floors, buildings, residents, audit
+      invalidateAfterBedMutation(queryClient, [data.id], variables.residentId)
     },
   })
 }
@@ -162,13 +149,8 @@ export function useUnassignResident() {
   return useMutation({
     mutationFn: (bedId: string) => bedsAPI.unassignResident(bedId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('beds', data.id) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('rooms', data.roomId) })
-      queryClient.invalidateQueries({ queryKey: tenantKey('floors') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('buildings') })
-      queryClient.invalidateQueries({ queryKey: tenantKey('residents') })
+      // ✅ Helper cuida de TUDO: beds, rooms, floors, buildings, residents, audit
+      invalidateAfterBedMutation(queryClient, [data.id])
     },
   })
 }

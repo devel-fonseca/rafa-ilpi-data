@@ -5,6 +5,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-f
 import { toast } from 'sonner'
 import { useMemo } from 'react'
 import { tenantKey } from '@/lib/query-keys'
+import { invalidateAfterAgendaMutation } from '@/utils/queryInvalidation'
 
 interface GetAgendaItemsParams {
   viewType: ViewType
@@ -179,7 +180,8 @@ export function useInstitutionalEventMutations() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
+      // ✅ Helper cuida de TUDO: agenda, audit, notifications
+      invalidateAfterAgendaMutation(queryClient)
       toast.success('Evento criado com sucesso!')
     },
     onError: (error: unknown) => {
@@ -196,7 +198,8 @@ export function useInstitutionalEventMutations() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
+      // ✅ Helper cuida de TUDO: agenda, audit, notifications
+      invalidateAfterAgendaMutation(queryClient)
       toast.success('Evento atualizado com sucesso!')
     },
     onError: (error: unknown) => {
@@ -212,7 +215,8 @@ export function useInstitutionalEventMutations() {
       await api.delete(`/institutional-events/${id}`)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
+      // ✅ Helper cuida de TUDO: agenda, audit, notifications
+      invalidateAfterAgendaMutation(queryClient)
       toast.success('Evento removido com sucesso!')
     },
     onError: (error: unknown) => {
@@ -229,7 +233,8 @@ export function useInstitutionalEventMutations() {
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tenantKey('agenda', 'institutional-events') })
+      // ✅ Helper cuida de TUDO: agenda, audit, notifications
+      invalidateAfterAgendaMutation(queryClient)
       toast.success('Evento marcado como concluído!')
     },
     onError: (error: unknown) => {

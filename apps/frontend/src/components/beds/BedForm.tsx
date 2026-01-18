@@ -120,8 +120,10 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
   const onSubmit = async (data: BedFormData) => {
     try {
       const submitData = {
-        ...data,
+        roomId: data.roomId,
         code: generatedCode, // Adiciona o código gerado
+        status: data.status,
+        notes: data.observations, // Backend usa "notes", não "observations"
       }
 
       if (bed) {
@@ -130,7 +132,7 @@ export function BedForm({ open, onOpenChange, bed, defaultRoomId, onSuccess }: B
           data: {
             code: generatedCode,
             status: data.status,
-            observations: data.observations,
+            notes: data.observations, // Backend usa "notes"
           } as UpdateBedDto,
         })
         toast({

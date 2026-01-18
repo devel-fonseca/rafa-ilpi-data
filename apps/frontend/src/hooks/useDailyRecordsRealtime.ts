@@ -32,7 +32,7 @@ export function useDailyRecordsRealtime(residentId: string | undefined, date: st
       createdBy: string
       createdByUserId: string
       date: string
-      data: any
+      data: Record<string, unknown>
       timestamp: string
     }) => {
       // Só atualizar se for do residente correto e data correta

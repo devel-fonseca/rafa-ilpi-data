@@ -198,10 +198,22 @@ export function BuildingStructureGenerator({ open, onOpenChange }: { open: boole
     try {
       setIsLoading(true)
 
+      // Remover campos calculados antes de enviar (roomsCount, bedsCount, etc)
       const payload = {
         buildingName: state.buildingName,
         buildingCode: state.buildingCode,
-        floors: state.floors,
+        floors: state.floors.map(floor => ({
+          floorNumber: floor.floorNumber,
+          floorCode: floor.floorCode,
+          rooms: floor.rooms.map(room => ({
+            roomName: room.roomName,
+            roomCode: room.roomCode,
+            bedCount: room.bedCount,
+            hasPrivateBathroom: room.hasPrivateBathroom,
+            isAccessible: room.isAccessible,
+            beds: room.beds,
+          })),
+        })),
       }
 
       const response = await bedsAPI.createBuildingStructure(payload)

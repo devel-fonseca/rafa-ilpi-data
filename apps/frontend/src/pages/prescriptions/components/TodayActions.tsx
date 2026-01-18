@@ -13,6 +13,23 @@ import { toast } from 'sonner'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
+// Tipo estendido para medication com campo opcional preselectedScheduledTime
+type MedicationWithPreselectedTime = Medication & {
+  preselectedScheduledTime?: string
+}
+
+// Tipo estendido para MedicationAdministration com informações parciais do medication
+type MedicationAdministrationWithMedication = MedicationAdministration & {
+  medication: {
+    name: string
+    presentation: string
+    concentration: string
+    dose: string
+    route: string
+    requiresDoubleCheck: boolean
+  }
+}
+
 interface MedicationAction {
   residentName: string
   medicationName: string
@@ -20,7 +37,7 @@ interface MedicationAction {
   status: 'administered' | 'pending' | 'missed'
   prescriptionId: string
   medicationId: string
-  medication: any // Objeto medication (tipo compatível com ambos medications.api e prescriptions.api)
+  medication: Medication // Objeto medication do tipo Medication
   administration?: MedicationAdministration // Dados da administração (se existir)
 }
 
@@ -75,11 +92,11 @@ export function TodayActions() {
   const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
 
   // Estados para modal de registro
-  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null)
+  const [selectedMedication, setSelectedMedication] = useState<MedicationWithPreselectedTime | null>(null)
   const [isAdministerModalOpen, setIsAdministerModalOpen] = useState(false)
 
   // Estados para modal de visualização
-  const [selectedAdministration, setSelectedAdministration] = useState<MedicationAdministration | null>(null)
+  const [selectedAdministration, setSelectedAdministration] = useState<MedicationAdministrationWithMedication | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
 
   // Buscar prescrições ativas
@@ -118,14 +135,14 @@ export function TodayActions() {
           route: action.medication.route,
           requiresDoubleCheck: action.medication.requiresDoubleCheck,
         }
-      } as any)
+      })
       setIsViewModalOpen(true)
     } else {
       // Sem administração → abrir modal de registro
       setSelectedMedication({
         ...action.medication,
         preselectedScheduledTime: action.scheduledTime,
-      } as any)
+      })
       setIsAdministerModalOpen(true)
     }
   }
@@ -336,7 +353,7 @@ export function TodayActions() {
           open={isViewModalOpen}
           onClose={handleCloseViewModal}
           administration={selectedAdministration}
-          medication={(selectedAdministration as any).medication}
+          medication={selectedAdministration.medication}
         />
       )}
     </>

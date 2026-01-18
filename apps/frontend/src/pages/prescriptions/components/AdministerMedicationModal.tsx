@@ -19,10 +19,15 @@ import type { Medication } from '@/api/medications.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
 import { lockMedication, unlockMedication } from '@/api/medications.api'
 
+// Tipo estendido para medication com campo opcional preselectedScheduledTime
+type MedicationWithPreselectedTime = Medication & {
+  preselectedScheduledTime?: string
+}
+
 interface AdministerMedicationModalProps {
   open: boolean
   onClose: () => void
-  medication: Medication | null
+  medication: MedicationWithPreselectedTime | null
 }
 
 export function AdministerMedicationModal({
@@ -65,8 +70,11 @@ export function AdministerMedicationModal({
 
       reset()
       onClose()
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Erro ao registrar administração')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined
+      toast.error(errorMessage || 'Erro ao registrar administração')
     }
   }
 
@@ -80,7 +88,7 @@ export function AdministerMedicationModal({
       await lockMedication({
         medicationId: medication.id,
         scheduledDate: getCurrentDate(),
-        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+        scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
       })
       lockCreatedRef.current = true
       console.log('[Lock] Medicamento bloqueado:', medication.name)
@@ -100,7 +108,7 @@ export function AdministerMedicationModal({
       await unlockMedication({
         medicationId: medication.id,
         scheduledDate: getCurrentDate(),
-        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+        scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
       })
       lockCreatedRef.current = false
       console.log('[Lock] Medicamento desbloqueado:', medication.name)
@@ -124,7 +132,7 @@ export function AdministerMedicationModal({
         medicationId: medication.id,
         date: getCurrentDate(), // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
         // Usar horário pré-selecionado se disponível, senão usar o primeiro da lista
-        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+        scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
         actualTime: getCurrentTime(), // ✅ REFATORADO: Usar getCurrentTime do dateHelpers
         wasAdministered: true,
         administeredBy: user?.name || '',
@@ -141,6 +149,7 @@ export function AdministerMedicationModal({
         handleUnlockMedication()
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, medication, user, reset])
 
   if (!medication) return null
