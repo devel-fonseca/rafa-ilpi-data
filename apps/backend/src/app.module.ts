@@ -17,6 +17,7 @@ import { VaccinationsModule } from './vaccinations/vaccinations.module';
 import { ClinicalNotesModule } from './clinical-notes/clinical-notes.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
+import { AuditService } from './audit/audit.service';
 import { TenantContextService } from './prisma/tenant-context.service';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -165,7 +166,10 @@ import { EventsModule } from './events/events.module';
     // Interceptor global de auditoria
     {
       provide: APP_INTERCEPTOR,
-      useClass: AuditInterceptor,
+      useFactory: (auditService, reflector) => {
+        return new AuditInterceptor(auditService, reflector);
+      },
+      inject: [AuditService, Reflector],
     },
   ],
 })
