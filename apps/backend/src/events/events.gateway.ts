@@ -222,4 +222,43 @@ export class EventsGateway
       timestamp: new Date().toISOString(),
     });
   }
+
+  /**
+   * Broadcast de criação de registro diário (Sprint 3)
+   * Usado quando um usuário cria qualquer tipo de registro diário
+   * (alimentação, hidratação, peso, etc.)
+   *
+   * @example
+   * this.eventsGateway.emitDailyRecordCreated({
+   *   tenantId: '123',
+   *   recordType: 'ALIMENTACAO',
+   *   residentId: 'abc',
+   *   residentName: 'João Silva',
+   *   createdBy: 'Dr. Emanuel',
+   *   createdByUserId: 'xyz',
+   *   date: '2026-01-17',
+   *   data: { ... },
+   * });
+   */
+  emitDailyRecordCreated(data: {
+    tenantId: string;
+    recordType: string;
+    residentId: string;
+    residentName: string;
+    createdBy: string;
+    createdByUserId: string;
+    date: string;
+    data: any;
+  }) {
+    this.emitToTenant(data.tenantId, 'daily-record:created', {
+      recordType: data.recordType,
+      residentId: data.residentId,
+      residentName: data.residentName,
+      createdBy: data.createdBy,
+      createdByUserId: data.createdByUserId,
+      date: data.date,
+      data: data.data,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }

@@ -11,6 +11,8 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { DailyRecordsService } from './daily-records.service';
 import { CreateDailyRecordDto } from './dto/create-daily-record.dto';
@@ -33,6 +35,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { EventsGateway } from '../events/events.gateway';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth()
@@ -42,6 +45,8 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,
+    @Inject(forwardRef(() => EventsGateway))
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   @Post()
@@ -51,11 +56,25 @@ export class DailyRecordsController {
   @ApiResponse({ status: 201, description: 'Registro criado com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
-  create(@Body() createDto: CreateDailyRecordDto, @CurrentUser() user: JwtPayload) {
-    return this.dailyRecordsService.create(
+  async create(@Body() createDto: CreateDailyRecordDto, @CurrentUser() user: JwtPayload) {
+    const record = await this.dailyRecordsService.create(
       createDto,
       user.id,
     );
+
+    // Broadcast de criação de registro via WebSocket (Sprint 3)
+    this.eventsGateway.emitDailyRecordCreated({
+      tenantId: user.tenantId,
+      recordType: createDto.type,
+      residentId: createDto.residentId,
+      residentName: (record as any).resident?.fullName || 'Residente',
+      createdBy: user.name,
+      createdByUserId: user.id,
+      date: createDto.date,
+      data: record,
+    });
+
+    return record;
   }
 
   @Get()

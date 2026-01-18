@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { DailyRecordsService } from './daily-records.service';
 import { DailyRecordsController } from './daily-records.controller';
@@ -7,6 +7,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { VitalSignsModule } from '../vital-signs/vital-signs.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { VitalSignsModule } from '../vital-signs/vital-signs.module';
     PermissionsModule,
     VitalSignsModule,
     EventEmitterModule,
+    forwardRef(() => EventsModule),
   ],
   controllers: [DailyRecordsController],
   providers: [

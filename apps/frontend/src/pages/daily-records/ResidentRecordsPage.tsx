@@ -6,6 +6,7 @@ import { Download, Plus, Loader2, Eye, AlertCircle, Activity, UtensilsCrossed, H
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
+import { useDailyRecordsRealtime } from '@/hooks/useDailyRecordsRealtime'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -90,6 +91,9 @@ export default function ResidentRecordsPage() {
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined)
   const [viewingRecord, setViewingRecord] = useState<Record<string, unknown> | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
+
+  // Hook de atualização em tempo real via WebSocket (Sprint 3)
+  useDailyRecordsRealtime(residentId, selectedDate)
 
   // Buscar residente selecionado
   const { data: resident, isLoading } = useQuery({
