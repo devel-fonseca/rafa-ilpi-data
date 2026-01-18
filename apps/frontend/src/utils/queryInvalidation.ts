@@ -51,12 +51,20 @@ import { QUERY_KEYS } from '@/constants/queryKeys'
 export function invalidateGlobalQueries(queryClient: QueryClient) {
   console.log('🔄 Invalidando queries globais (audit + notifications)')
 
+  // Invalidar audit queries (que agora usam tenantKey)
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.audit.all,
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k === 'audit')
+    }
   })
 
+  // Invalidar notifications queries
   queryClient.invalidateQueries({
-    queryKey: QUERY_KEYS.notifications.all,
+    predicate: (query) => {
+      const queryKey = query.queryKey as unknown[]
+      return queryKey.some(k => typeof k === 'string' && k === 'notifications')
+    }
   })
 }
 
