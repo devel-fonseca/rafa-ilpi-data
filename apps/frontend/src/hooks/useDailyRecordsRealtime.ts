@@ -37,10 +37,37 @@ export function useDailyRecordsRealtime(residentId: string | undefined, date: st
     }) => {
       // Só atualizar se for do residente correto e data correta
       if (data.residentId === residentId && data.date === date) {
-        // Invalidar queries para refetch automático
-        queryClient.invalidateQueries({ queryKey: ['daily-records', residentId, date] })
-        queryClient.invalidateQueries({ queryKey: ['daily-records', 'latest', residentId] })
-        queryClient.invalidateQueries({ queryKey: ['daily-records', 'summary', residentId, date] })
+        // Invalidar queries usando predicate para pegar todas as variações
+        // (incluindo as com tenantKey que têm prefixo ['t', tenantId, ...])
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const queryKey = query.queryKey as string[]
+            // Verificar se é uma query de daily-records que inclui o residentId e date corretos
+            const isDailyRecordsQuery = queryKey.some(k =>
+              typeof k === 'string' && k.includes('daily-records')
+            )
+
+            const hasResidentId = queryKey.some(k =>
+              typeof k === 'string' && k === residentId ||
+              (typeof k === 'object' && k !== null && 'residentId' in k)
+            )
+
+            const hasDate = queryKey.some(k =>
+              typeof k === 'string' && k === date ||
+              (typeof k === 'object' && k !== null && 'date' in k)
+            )
+
+            return isDailyRecordsQuery && (hasResidentId || hasDate)
+          }
+        })
+
+        // Também invalidar daily-tasks (tarefas do dia)
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const queryKey = query.queryKey as string[]
+            return queryKey.some(k => typeof k === 'string' && k.includes('daily-tasks'))
+          }
+        })
 
         // Toast discreto informando sobre novo registro
         const recordTypeLabel = getRecordTypeLabel(data.recordType)
