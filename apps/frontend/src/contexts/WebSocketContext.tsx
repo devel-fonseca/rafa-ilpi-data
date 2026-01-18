@@ -88,10 +88,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     console.log('[WS] Connecting to:', `${WS_URL}/events`)
 
+    // Buscar accessToken do Zustand auth store (persisted em 'rafa-ilpi-auth')
+    const token = useAuthStore.getState().accessToken
+
     // Criar socket com JWT no handshake
     const newSocket = io(`${WS_URL}/events`, {
       auth: {
-        token: localStorage.getItem('token'),
+        token,
       },
       reconnection: true,
       reconnectionDelay: 1000,

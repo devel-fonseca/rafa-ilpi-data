@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, XCircle, Circle } from 'lucide-react'
+import { CheckCircle2, XCircle, Circle, Lock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
-import type { Medication, MedicationAdministration } from '@/api/prescriptions.api'
+import type { MedicationAdministration } from '@/api/prescriptions.api'
+import type { Medication } from '@/api/medications.api'
 import { AdministerMedicationModal } from './AdministerMedicationModal'
 import { ViewMedicationAdministrationModal } from './ViewMedicationAdministrationModal'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
+import { useMedicationLock } from '@/hooks/useMedicationLock'
+import { toast } from 'sonner'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
 
@@ -17,7 +20,7 @@ interface MedicationAction {
   status: 'administered' | 'pending' | 'missed'
   prescriptionId: string
   medicationId: string
-  medication: Medication // Objeto completo do medication
+  medication: any // Objeto medication (tipo compatível com ambos medications.api e prescriptions.api)
   administration?: MedicationAdministration // Dados da administração (se existir)
 }
 
@@ -72,7 +75,7 @@ export function TodayActions() {
   const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
 
   // Estados para modal de registro
-  const [selectedMedication, setSelectedMedication] = useState<MedicationAction | null>(null)
+  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null)
   const [isAdministerModalOpen, setIsAdministerModalOpen] = useState(false)
 
   // Estados para modal de visualização
@@ -86,7 +89,23 @@ export function TodayActions() {
     isActive: true,
   })
 
+  // Hook de locks de medicamentos (Sprint 2 - WebSocket)
+  const { isLocked, lockedBy, isLockedByCurrentUser } = useMedicationLock()
+
   const handleMedicationClick = (action: MedicationAction) => {
+    // Verificar se medicamento está bloqueado por outro usuário
+    const medicationLocked = isLocked(action.medicationId, today, action.scheduledTime)
+    const lockOwner = lockedBy(action.medicationId, today, action.scheduledTime)
+    const isMyLock = isLockedByCurrentUser(action.medicationId, today, action.scheduledTime)
+
+    // Se está bloqueado por outro usuário, exibir alerta e impedir ação
+    if (medicationLocked && !isMyLock) {
+      toast.error('Medicamento bloqueado', {
+        description: `Este medicamento está sendo administrado por ${lockOwner}. Aguarde até que seja liberado.`,
+        duration: 4000,
+      })
+      return
+    }
     // Se existe administração → abrir modal de visualização
     if (action.administration) {
       setSelectedAdministration({
@@ -99,14 +118,14 @@ export function TodayActions() {
           route: action.medication.route,
           requiresDoubleCheck: action.medication.requiresDoubleCheck,
         }
-      })
+      } as any)
       setIsViewModalOpen(true)
     } else {
       // Sem administração → abrir modal de registro
       setSelectedMedication({
         ...action.medication,
         preselectedScheduledTime: action.scheduledTime,
-      })
+      } as any)
       setIsAdministerModalOpen(true)
     }
   }
@@ -239,11 +258,20 @@ export function TodayActions() {
                       const statusConfig = STATUS_CONFIG[action.status]
                       const StatusIcon = statusConfig.icon
 
+                      // Verificar se medicamento está bloqueado (Sprint 2)
+                      const medicationLocked = isLocked(action.medicationId, today, action.scheduledTime)
+                      const lockOwner = lockedBy(action.medicationId, today, action.scheduledTime)
+                      const isMyLock = isLockedByCurrentUser(action.medicationId, today, action.scheduledTime)
+
                       return (
                         <div
                           key={`${action.prescriptionId}-${action.scheduledTime}-${idx}`}
                           onClick={() => handleMedicationClick(action)}
-                          className="bg-card rounded p-3 text-sm border cursor-pointer hover:bg-accent/5 hover:border-accent transition-colors"
+                          className={`bg-card rounded p-3 text-sm border cursor-pointer hover:bg-accent/5 hover:border-accent transition-colors ${
+                            medicationLocked && !isMyLock
+                              ? 'opacity-60 border-warning/50 bg-warning/5'
+                              : ''
+                          }`}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
@@ -262,6 +290,10 @@ export function TodayActions() {
                                 <StatusIcon
                                   className={`h-4 w-4 ${statusConfig.color}`}
                                 />
+                                {/* Indicador de lock (Sprint 2) */}
+                                {medicationLocked && !isMyLock && (
+                                  <Lock className="h-4 w-4 text-warning" />
+                                )}
                               </div>
                               <p className="font-medium text-foreground">
                                 {action.residentName}
@@ -269,6 +301,13 @@ export function TodayActions() {
                               <p className="text-muted-foreground">
                                 {action.medicationName}
                               </p>
+                              {/* Exibir nome do usuário que bloqueou (Sprint 2) */}
+                              {medicationLocked && !isMyLock && lockOwner && (
+                                <p className="text-xs text-warning mt-1 flex items-center gap-1">
+                                  <Lock className="h-3 w-3" />
+                                  Bloqueado por {lockOwner}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -297,7 +336,7 @@ export function TodayActions() {
           open={isViewModalOpen}
           onClose={handleCloseViewModal}
           administration={selectedAdministration}
-          medication={selectedAdministration.medication}
+          medication={(selectedAdministration as any).medication}
         />
       )}
     </>

@@ -162,16 +162,16 @@ export function DashboardLayout() {
               </div>
             </div>
 
-            {/* Desktop: Notifications + Messages + Connection Status + Theme + User Avatar + Dropdown */}
+            {/* Desktop: Connection Status + Notifications + Messages + Theme + User Avatar + Dropdown */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Indicador de Status de Conexão WebSocket */}
+              <ConnectionStatus />
+
               {/* Dropdown de Notificações */}
               <NotificationsDropdown />
 
               {/* Dropdown de Mensagens */}
               <MessagesDropdown />
-
-              {/* Indicador de Status de Conexão WebSocket */}
-              <ConnectionStatus />
 
               {/* Botão de Toggle Tema */}
               <TooltipProvider>

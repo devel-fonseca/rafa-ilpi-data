@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import type { AdministerMedicationDto } from '@/api/prescriptions.api'
 import type { Medication } from '@/api/medications.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
+import { lockMedication, unlockMedication } from '@/api/medications.api'
 
 interface AdministerMedicationModalProps {
   open: boolean
@@ -31,6 +32,7 @@ export function AdministerMedicationModal({
 }: AdministerMedicationModalProps) {
   const { user } = useAuthStore()
   const administerMutation = useAdministerMedication()
+  const lockCreatedRef = useRef(false) // Rastrear se lock foi criado
 
   const {
     register,
@@ -41,9 +43,9 @@ export function AdministerMedicationModal({
     formState: { errors },
   } = useForm<AdministerMedicationDto>({
     defaultValues: {
-      medicationId: medication.id,
+      medicationId: medication?.id,
       date: getCurrentDate(), // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
-      scheduledTime: medication.scheduledTimes?.[0] || '08:00',
+      scheduledTime: medication?.scheduledTimes?.[0] || '08:00',
       actualTime: getCurrentTime(), // ✅ REFATORADO: Usar getCurrentTime do dateHelpers
       wasAdministered: true,
       administeredBy: user?.name || '',
@@ -57,30 +59,94 @@ export function AdministerMedicationModal({
     try {
       await administerMutation.mutateAsync(data)
       toast.success('Administração registrada com sucesso!')
+
+      // Desbloquear medicamento após administração bem-sucedida (Sprint 2)
+      await handleUnlockMedication()
+
       reset()
       onClose()
-    } catch (error: unknown) {
+    } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Erro ao registrar administração')
     }
   }
 
-  React.useEffect(() => {
-    if (open) {
+  /**
+   * Criar lock ao abrir modal (Sprint 2 - WebSocket)
+   */
+  const handleLockMedication = async () => {
+    if (!medication || lockCreatedRef.current) return
+
+    try {
+      await lockMedication({
+        medicationId: medication.id,
+        scheduledDate: getCurrentDate(),
+        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+      })
+      lockCreatedRef.current = true
+      console.log('[Lock] Medicamento bloqueado:', medication.name)
+    } catch (error: unknown) {
+      console.error('[Lock] Erro ao bloquear medicamento:', error)
+      // Se já está bloqueado, apenas logar (toast já foi exibido em TodayActions)
+    }
+  }
+
+  /**
+   * Remover lock ao fechar modal ou administrar (Sprint 2 - WebSocket)
+   */
+  const handleUnlockMedication = async () => {
+    if (!medication || !lockCreatedRef.current) return
+
+    try {
+      await unlockMedication({
+        medicationId: medication.id,
+        scheduledDate: getCurrentDate(),
+        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+      })
+      lockCreatedRef.current = false
+      console.log('[Lock] Medicamento desbloqueado:', medication.name)
+    } catch (error: unknown) {
+      console.error('[Lock] Erro ao desbloquear medicamento:', error)
+    }
+  }
+
+  /**
+   * Fechar modal com cleanup de lock (Sprint 2)
+   */
+  const handleClose = async () => {
+    await handleUnlockMedication()
+    onClose()
+  }
+
+  // Resetar form e criar lock ao abrir modal (Sprint 2)
+  useEffect(() => {
+    if (open && medication) {
       reset({
         medicationId: medication.id,
         date: getCurrentDate(), // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
         // Usar horário pré-selecionado se disponível, senão usar o primeiro da lista
-        scheduledTime: medication.preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
+        scheduledTime: (medication as any).preselectedScheduledTime || medication.scheduledTimes?.[0] || '08:00',
         actualTime: getCurrentTime(), // ✅ REFATORADO: Usar getCurrentTime do dateHelpers
         wasAdministered: true,
         administeredBy: user?.name || '',
         notes: '',
       })
+
+      // Criar lock ao abrir modal (Sprint 2)
+      handleLockMedication()
+    }
+
+    // Cleanup: remover lock ao desmontar componente
+    return () => {
+      if (lockCreatedRef.current) {
+        handleUnlockMedication()
+      }
     }
   }, [open, medication, user, reset])
 
+  if (!medication) return null
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Administrar Medicamento</DialogTitle>

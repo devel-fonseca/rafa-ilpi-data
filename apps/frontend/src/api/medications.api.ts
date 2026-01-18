@@ -197,3 +197,64 @@ export async function getMedicationHistoryVersion(id: string, version: number): 
   const response = await api.get(`/medications/${id}/history/${version}`)
   return response.data
 }
+
+// ==================== MEDICATION LOCKS (Sprint 2 - WebSocket) ====================
+
+export interface LockMedicationDto {
+  medicationId: string
+  scheduledDate: string // YYYY-MM-DD
+  scheduledTime: string // HH:mm
+  sessionId?: string
+  ipAddress?: string
+}
+
+export interface UnlockMedicationDto {
+  medicationId: string
+  scheduledDate: string // YYYY-MM-DD
+  scheduledTime: string // HH:mm
+}
+
+export interface MedicationLockResponse {
+  id: string
+  tenantId: string
+  medicationId: string
+  scheduledDate: string
+  scheduledTime: string
+  lockedByUserId: string
+  lockedByUserName: string
+  lockedAt: string
+  expiresAt: string
+  sessionId?: string
+  ipAddress?: string
+}
+
+/**
+ * Bloqueia um medicamento para administração (abre modal)
+ * Lança erro se já estiver bloqueado por outro usuário
+ */
+export async function lockMedication(data: LockMedicationDto): Promise<MedicationLockResponse> {
+  const response = await api.post('/medications/lock', data)
+  return response.data
+}
+
+/**
+ * Desbloqueia um medicamento (fecha modal ou administra)
+ */
+export async function unlockMedication(data: UnlockMedicationDto): Promise<{ success: boolean }> {
+  const response = await api.post('/medications/unlock', data)
+  return response.data
+}
+
+/**
+ * Verifica se um medicamento está bloqueado
+ */
+export async function checkMedicationLock(
+  medicationId: string,
+  scheduledDate: string,
+  scheduledTime: string
+): Promise<MedicationLockResponse | null> {
+  const response = await api.get('/medications/check-lock', {
+    params: { medicationId, scheduledDate, scheduledTime },
+  })
+  return response.data
+}
