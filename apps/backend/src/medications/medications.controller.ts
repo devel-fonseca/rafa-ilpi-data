@@ -1,16 +1,21 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { MedicationsService } from './medications.service';
+import { MedicationLocksService } from './medication-locks.service';
 import { UpdateMedicationDto } from '../prescriptions/dto/update-medication.dto';
 import { DeleteMedicationDto } from '../prescriptions/dto/delete-medication.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -33,7 +38,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @AuditEntity('MEDICATION')
 export class MedicationsController {
-  constructor(private readonly medicationsService: MedicationsService) {}
+  constructor(
+    private readonly medicationsService: MedicationsService,
+    private readonly medicationLocksService: MedicationLocksService,
+  ) {}
 
   // ========== UPDATE ==========
 
@@ -131,6 +139,85 @@ export class MedicationsController {
     return this.medicationsService.getHistoryVersion(
       id,
       parseInt(versionNumber, 10),
+    );
+  }
+
+  // ========== MEDICATION LOCKS (Sprint 2 - WebSocket) ==========
+
+  @Post('lock')
+  @Roles('admin', 'user')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bloquear medicamento para administração' })
+  @ApiResponse({
+    status: 200,
+    description: 'Medicamento bloqueado com sucesso',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Medicamento já está bloqueado por outro usuário',
+  })
+  lockMedication(
+    @Body()
+    dto: {
+      medicationId: string;
+      scheduledDate: string;
+      scheduledTime: string;
+      sessionId?: string;
+      ipAddress?: string;
+    },
+    @CurrentUser() user: JwtPayload,
+    @Req() req: Request,
+  ) {
+    return this.medicationLocksService.lockMedication(
+      {
+        medicationId: dto.medicationId,
+        scheduledDate: dto.scheduledDate,
+        scheduledTime: dto.scheduledTime,
+        sessionId: dto.sessionId,
+        ipAddress: dto.ipAddress || req.ip,
+      },
+      user.id,
+      user.name,
+    );
+  }
+
+  @Post('unlock')
+  @Roles('admin', 'user')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Desbloquear medicamento' })
+  @ApiResponse({ status: 200, description: 'Medicamento desbloqueado' })
+  unlockMedication(
+    @Body()
+    dto: {
+      medicationId: string;
+      scheduledDate: string;
+      scheduledTime: string;
+    },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.medicationLocksService.unlockMedication(
+      {
+        medicationId: dto.medicationId,
+        scheduledDate: dto.scheduledDate,
+        scheduledTime: dto.scheduledTime,
+      },
+      user.id,
+    );
+  }
+
+  @Get('check-lock')
+  @Roles('admin', 'user')
+  @ApiOperation({ summary: 'Verificar se medicamento está bloqueado' })
+  @ApiResponse({ status: 200, description: 'Status do lock retornado' })
+  checkMedicationLock(
+    @Query('medicationId') medicationId: string,
+    @Query('scheduledDate') scheduledDate: string,
+    @Query('scheduledTime') scheduledTime: string,
+  ) {
+    return this.medicationLocksService.checkLock(
+      medicationId,
+      scheduledDate,
+      scheduledTime,
     );
   }
 }

@@ -1,5 +1,6 @@
-import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { TenantContextService } from '../prisma/tenant-context.service';
+import { EventsGateway } from '../events/events.gateway';
 import { parseISO, addMinutes } from 'date-fns';
 
 /**
@@ -39,7 +40,11 @@ interface UnlockMedicationDto {
 export class MedicationLocksService {
   private readonly logger = new Logger(MedicationLocksService.name);
 
-  constructor(private readonly tenantContext: TenantContextService) {}
+  constructor(
+    private readonly tenantContext: TenantContextService,
+    @Inject(forwardRef(() => EventsGateway))
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   /**
    * Cria um lock para um medicamento específico em um horário agendado
@@ -112,6 +117,16 @@ export class MedicationLocksService {
       expiresAt,
     });
 
+    // Broadcast lock via WebSocket para todos os usuários do tenant
+    this.eventsGateway.emitMedicationLock({
+      tenantId: this.tenantContext.tenantId,
+      medicationId,
+      scheduledDate,
+      scheduledTime,
+      lockedBy: userName,
+      lockedByUserId: userId,
+    });
+
     return lock;
   }
 
@@ -143,6 +158,15 @@ export class MedicationLocksService {
     }
 
     this.logger.log('Medicamento desbloqueado com sucesso', {
+      medicationId,
+      scheduledDate,
+      scheduledTime,
+      unlockedBy: userId,
+    });
+
+    // Broadcast unlock via WebSocket para todos os usuários do tenant
+    this.eventsGateway.emitMedicationUnlock({
+      tenantId: this.tenantContext.tenantId,
       medicationId,
       scheduledDate,
       scheduledTime,
