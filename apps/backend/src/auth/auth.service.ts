@@ -265,8 +265,7 @@ export class AuthService {
           },
         });
 
-        // Buscar profile no schema do tenant (cross-schema)
-        const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+        // Buscar profile no schema do tenant (cross-schema) - reutiliza tenantClient da linha 235
         const tenantProfile = await tenantClient.tenantProfile.findUnique({
           where: { tenantId: tenant.id },
           select: {
@@ -356,7 +355,7 @@ export class AuthService {
       // Adicionar campo plan diretamente no tenant para facilitar acesso no frontend
       const tenantWithPlan = tenant ? {
         ...tenant,
-        plan: tenant.subscriptions[0]?.plan?.name || 'Free',
+        plan: tenant.subscriptions?.[0]?.plan?.name || 'Free',
       } : null;
 
       return {
@@ -379,7 +378,7 @@ export class AuthService {
         name: user.tenant!.name,
         role: user.role,
         status: user.tenant!.status,
-        plan: user.tenant!.subscriptions[0]?.plan?.name || 'Free',
+        plan: user.tenant!.subscriptions?.[0]?.plan?.name || 'Free',
       })),
     };
   }
