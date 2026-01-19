@@ -23,7 +23,7 @@ import { ptBR } from 'date-fns/locale'
 import type { Bed as BedType, BedStatusHistoryEntry } from '@/api/beds.api'
 
 export default function BedsManagementHub() {
-  const { beds, isLoading: bedsLoading } = useBeds({ page: 1, limit: 1000 })
+  const { data: beds, isLoading: bedsLoading } = useBeds() // ✅ Busca todos os leitos
   const { data: historyData, isLoading: historyLoading } = useBedStatusHistory({ take: 10 })
 
   const [selectedBed, setSelectedBed] = useState<BedType | null>(null)
@@ -36,10 +36,10 @@ export default function BedsManagementHub() {
   // Calculate statistics
   const stats = {
     total: beds?.length || 0,
-    occupied: beds?.filter((b) => b.status === 'OCUPADO').length || 0,
-    available: beds?.filter((b) => b.status === 'DISPONIVEL').length || 0,
-    maintenance: beds?.filter((b) => b.status === 'MANUTENCAO').length || 0,
-    reserved: beds?.filter((b) => b.status === 'RESERVADO').length || 0,
+    occupied: beds?.filter((b: BedType) => b.status === 'OCUPADO').length || 0,
+    available: beds?.filter((b: BedType) => b.status === 'DISPONIVEL').length || 0,
+    maintenance: beds?.filter((b: BedType) => b.status === 'MANUTENCAO').length || 0,
+    reserved: beds?.filter((b: BedType) => b.status === 'RESERVADO').length || 0,
   }
 
   const occupancyRate = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
