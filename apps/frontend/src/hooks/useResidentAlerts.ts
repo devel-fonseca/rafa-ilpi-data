@@ -67,9 +67,9 @@ export function useResidentAlerts() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     const recentAdmissions = residents.filter((r) => {
       if (!r.admissionDate) return false
-      // Usar extractDateOnly para evitar problemas de timezone
+      // Usar extractDateOnly para evitar problemas de timezone (padrão DATETIME_STANDARD.md)
       const dayKey = extractDateOnly(r.admissionDate)
-      const admissionDate = new Date(dayKey + 'T12:00:00')
+      const admissionDate = new Date(dayKey + 'T00:00:00')
       return admissionDate >= thirtyDaysAgo
     })
 
