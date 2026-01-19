@@ -36,10 +36,10 @@ export default function BedsManagementHub() {
   // Calculate statistics
   const stats = {
     total: beds?.length || 0,
-    occupied: beds?.filter((b: BedType) => b.status === 'OCUPADO').length || 0,
-    available: beds?.filter((b: BedType) => b.status === 'DISPONIVEL').length || 0,
-    maintenance: beds?.filter((b: BedType) => b.status === 'MANUTENCAO').length || 0,
-    reserved: beds?.filter((b: BedType) => b.status === 'RESERVADO').length || 0,
+    occupied: beds?.filter((b: BedType) => b.status === 'Ocupado').length || 0,
+    available: beds?.filter((b: BedType) => b.status === 'Disponível').length || 0,
+    maintenance: beds?.filter((b: BedType) => b.status === 'Manutenção').length || 0,
+    reserved: beds?.filter((b: BedType) => b.status === 'Reservado').length || 0,
   }
 
   const occupancyRate = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
