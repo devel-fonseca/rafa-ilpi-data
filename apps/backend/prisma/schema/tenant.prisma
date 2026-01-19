@@ -90,7 +90,6 @@ model Tenant {
   clinicalProfileHistory     ClinicalProfileHistory[]
   dietaryRestrictions        DietaryRestriction[]
   dietaryRestrictionHistory  DietaryRestrictionHistory[]
-  auditLogs                  AuditLog[]
   buildings                  Building[]
   floors                     Floor[]
   rooms                      Room[]

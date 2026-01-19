@@ -35,9 +35,9 @@ export class AuditService {
     try {
       this.logger.debug(`[AuditService] Tentando criar log de auditoria: ${auditLog.entityType} - ${auditLog.action}`);
 
-      // AuditLog fica no schema PUBLIC (shared), não no tenant schema
-      // Isso permite: (1) FK para public.tenants, (2) queries cross-tenant para admin
-      await this.prisma.auditLog.create({
+      // AuditLog fica no schema do TENANT (isolamento total)
+      // Cada tenant tem sua própria tabela audit_logs no schema tenant_xxx
+      await this.tenantContext.client.auditLog.create({
         data: {
           tenantId: auditLog.tenantId,
           entityType: auditLog.entityType,
@@ -77,10 +77,7 @@ export class AuditService {
       const limit = filters?.limit || 50;
       const skip = (page - 1) * limit;
 
-      const where: Prisma.AuditLogWhereInput = {
-        // Filtrar por tenant atual
-        tenantId: this.tenantContext.tenantId,
-      };
+      const where: Prisma.AuditLogWhereInput = {};
 
       if (filters?.entityType) {
         where.entityType = filters.entityType;
@@ -104,7 +101,8 @@ export class AuditService {
         }
       }
 
-      const logs = await this.prisma.auditLog.findMany({
+      // Buscar no schema do tenant (isolamento automático)
+      const logs = await this.tenantContext.client.auditLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -123,10 +121,7 @@ export class AuditService {
     endDate?: Date
   ): Promise<AuditLogStats> {
     try {
-      const where: Prisma.AuditLogWhereInput = {
-        // Filtrar por tenant atual
-        tenantId: this.tenantContext.tenantId,
-      };
+      const where: Prisma.AuditLogWhereInput = {};
 
       if (startDate || endDate) {
         where.createdAt = {};
@@ -138,8 +133,8 @@ export class AuditService {
         }
       }
 
-      // Estatísticas por tipo de entidade
-      const entityStats = await this.prisma.auditLog.groupBy({
+      // Estatísticas por tipo de entidade (busca no schema do tenant)
+      const entityStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['entityType'],
         where,
         _count: { id: true },
@@ -147,7 +142,7 @@ export class AuditService {
       });
 
       // Estatísticas por ação
-      const actionStats = await this.prisma.auditLog.groupBy({
+      const actionStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['action'],
         where,
         _count: { id: true },
@@ -155,7 +150,7 @@ export class AuditService {
       });
 
       // Estatísticas por usuário (top 10)
-      const userStats = await this.prisma.auditLog.groupBy({
+      const userStats = await this.tenantContext.client.auditLog.groupBy({
         by: ['userName'],
         where,
         _count: { id: true },
@@ -164,7 +159,7 @@ export class AuditService {
       });
 
       // Total de logs
-      const total = await this.prisma.auditLog.count({ where });
+      const total = await this.tenantContext.client.auditLog.count({ where });
 
       return {
         total,

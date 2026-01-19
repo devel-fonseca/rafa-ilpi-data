@@ -25,9 +25,10 @@ datasource db {
 //  Logs de auditoria geral do sistema
 // ──────────────────────────────────────────────────────────────────────────────
 
+// TENANT TABLE - Cada tenant tem sua própria tabela isolada
 model AuditLog {
   id         Int      @id @default(autoincrement())
-  tenantId   String   @map("tenant_id") @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid // Stored for reference, no FK (cross-schema)
   entityType String   @map("entity_type") @db.VarChar(50)
   entityId   String?  @map("entity_id") @db.VarChar(255)
   action     String   @db.VarChar(50)
@@ -38,11 +39,8 @@ model AuditLog {
   userAgent  String?  @map("user_agent") @db.Text
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  // Relações
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
   // Índices
-  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
   @@index([entityType])
   @@index([userId])
   @@index([action])
