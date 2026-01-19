@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
+import { usersApi } from '@/api/users.api'
 import { format } from 'date-fns'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
@@ -29,6 +30,11 @@ export default function Dashboard() {
       const response = await api.get('/prescriptions/stats/dashboard')
       return response.data
     },
+  })
+
+  const { data: usersCount } = useQuery({
+    queryKey: tenantKey('users', 'stats', 'count'),
+    queryFn: () => usersApi.countActiveUsers(),
   })
 
   // Buscar registros de hoje
@@ -60,8 +66,8 @@ export default function Dashboard() {
       valueColor: 'text-primary',
     },
     {
-      title: 'Funcionários',
-      value: '1',
+      title: 'Usuários',
+      value: String(usersCount || 0),
       description: 'Usuários ativos',
       icon: UserPlus,
       iconColor: 'text-success',

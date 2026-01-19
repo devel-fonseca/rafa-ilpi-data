@@ -133,4 +133,12 @@ export const usersApi = {
     const response = await api.get(`/users/${id}/history/${version}`)
     return response.data
   },
+
+  /**
+   * Contar usuários ativos do tenant
+   */
+  async countActiveUsers(): Promise<number> {
+    const response = await api.get('/users/stats/count')
+    return response.data.count
+  },
 }

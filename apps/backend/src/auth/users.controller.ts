@@ -28,6 +28,17 @@ interface RequestWithUser extends Request {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('stats/count')
+  @ApiOperation({
+    summary: 'Contar usuários ativos',
+    description: 'Retorna a contagem de usuários ativos do tenant',
+  })
+  @ApiResponse({ status: 200, description: 'Contagem retornada com sucesso' })
+  async countActiveUsers() {
+    const count = await this.usersService.countActiveUsers();
+    return { count };
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Atualizar usuário com versionamento',

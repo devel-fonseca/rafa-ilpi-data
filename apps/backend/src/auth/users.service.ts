@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { JwtCacheService } from './jwt-cache.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -12,7 +11,6 @@ export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
-    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly jwtCache: JwtCacheService, // Cache JWT para invalidação
   ) {}
@@ -642,6 +640,16 @@ export class UsersService {
       total,
       hasMore: offset + limit < total,
     };
+  }
+
+  // ==================== COUNT ACTIVE USERS ====================
+  async countActiveUsers(): Promise<number> {
+    return this.tenantContext.client.user.count({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+    });
   }
 
   // ==================== HELPER: Hash Password ====================
