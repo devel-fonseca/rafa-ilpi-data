@@ -31,6 +31,8 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    this.logger.debug(`[AuditInterceptor] ✅ INTERCEPTOR CHAMADO`);
+
     // Verificação de segurança: se Reflector não está disponível, pular auditoria
     if (!this.reflector) {
       console.warn('[AuditInterceptor] Reflector indisponível - auditoria desabilitada para esta request');
@@ -51,8 +53,11 @@ export class AuditInterceptor implements NestInterceptor {
       controller,
     );
 
+    this.logger.debug(`[AuditInterceptor] Metadados: entity=${auditEntity}, action=${auditAction}`);
+
     // Se não tiver metadados de auditoria, não registrar
     if (!auditAction || !auditEntity) {
+      this.logger.debug(`[AuditInterceptor] Sem metadados de auditoria - pulando`);
       return next.handle();
     }
 
