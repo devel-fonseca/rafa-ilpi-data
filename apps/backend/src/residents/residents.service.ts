@@ -495,6 +495,21 @@ export class ResidentsService {
             userId,
             tx,
           );
+
+          // ✅ Criar registro de histórico de primeira designação de leito
+          // NOTA: fromBedId é obrigatório no schema, então usamos um UUID especial
+          // que indica "primeira designação" (00000000-0000-0000-0000-000000000000)
+          await tx.bedTransferHistory.create({
+            data: {
+              tenantId: this.tenantContext.tenantId,
+              residentId: newResident.id,
+              fromBedId: '00000000-0000-0000-0000-000000000000', // UUID especial para primeira designação
+              toBedId: accommodation.bedId,
+              reason: 'Designação inicial de leito no cadastro do residente',
+              transferredAt: new Date(),
+              transferredBy: userId,
+            },
+          });
         }
 
         // Criar ClinicalProfile se campos clínicos foram fornecidos
@@ -1023,22 +1038,6 @@ export class ResidentsService {
         );
 
         newBedId = accommodationToUpdate.bedId;
-
-        // Se está mudando de leito, liberar o antigo
-        if (oldBedId && newBedId && oldBedId !== newBedId) {
-          await this.updateBedStatus(oldBedId, 'Disponível');
-          this.logger.info('Leito antigo liberado', {
-            residentId: id,
-            oldBedId,
-            newBedId,
-            tenantId: this.tenantContext.tenantId,
-          });
-        }
-
-        // Se está sendo removido de leito
-        if (oldBedId && !newBedId) {
-          await this.updateBedStatus(oldBedId, 'Disponível');
-        }
       }
 
       // Criar snapshot completo do estado anterior (para histórico)
@@ -1082,9 +1081,10 @@ export class ResidentsService {
       if (belongings !== undefined) dataToUpdate.belongings = belongings;
 
       // Adicionar acomodação validada se foi processada
+      // ✅ IMPORTANTE: Sempre atualizar roomId e bedId, mesmo quando são null (remoção de leito)
       if (accommodationToUpdate) {
-        if (accommodationToUpdate.roomId !== undefined) dataToUpdate.roomId = accommodationToUpdate.roomId;
-        if (accommodationToUpdate.bedId !== undefined) dataToUpdate.bedId = accommodationToUpdate.bedId;
+        dataToUpdate.roomId = accommodationToUpdate.roomId;
+        dataToUpdate.bedId = accommodationToUpdate.bedId;
       }
 
       // Adicionar campos de auditoria e versionamento
@@ -1137,6 +1137,19 @@ export class ResidentsService {
             userId,
             tx,
           );
+
+          // ✅ Criar registro de histórico de transferência
+          await tx.bedTransferHistory.create({
+            data: {
+              tenantId: this.tenantContext.tenantId,
+              residentId: id,
+              fromBedId: oldBedId,
+              toBedId: newBedId,
+              reason: changeReason || 'Transferência via edição de cadastro',
+              transferredAt: new Date(),
+              transferredBy: userId,
+            },
+          });
         } else if (oldBedId && !newBedId) {
           // Caso 2: Remoção de leito
           await this.updateBedStatusWithHistory(
@@ -1155,6 +1168,21 @@ export class ResidentsService {
             userId,
             tx,
           );
+
+          // ✅ Criar registro de histórico de primeira designação de leito
+          // NOTA: fromBedId é obrigatório no schema, então usamos um UUID especial
+          // que indica "primeira designação" (00000000-0000-0000-0000-000000000000)
+          await tx.bedTransferHistory.create({
+            data: {
+              tenantId: this.tenantContext.tenantId,
+              residentId: id,
+              fromBedId: '00000000-0000-0000-0000-000000000000', // UUID especial para primeira designação
+              toBedId: newBedId,
+              reason: changeReason || 'Primeira designação de leito via cadastro',
+              transferredAt: new Date(),
+              transferredBy: userId,
+            },
+          });
         }
 
         return updatedResident;

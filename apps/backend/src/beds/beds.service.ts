@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException, BadRequestException, Scope } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { Prisma } from '@prisma/client'
 import { plainToInstance } from 'class-transformer'
@@ -27,7 +26,6 @@ import { FullMapResponseDto } from '../buildings/dto'
 @Injectable({ scope: Scope.REQUEST })
 export class BedsService {
   constructor(
-    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
   ) {}
 
@@ -330,13 +328,15 @@ export class BedsService {
     const totalBeds = buildingsWithStats.reduce((sum, b) => sum + b.totalBeds, 0)
     const occupiedBeds = buildingsWithStats.reduce((sum, b) => sum + b.occupiedBeds, 0)
 
-    // Contar leitos disponíveis
+    // Contar leitos por status
     const bedStatuses = await this.tenantContext.client.bed.findMany({
       where: { deletedAt: null },
       select: { status: true },
     })
 
     const availableBeds = bedStatuses.filter((b) => b.status === 'Disponível').length
+    const maintenanceBeds = bedStatuses.filter((b) => b.status === 'Manutenção').length
+    const reservedBeds = bedStatuses.filter((b) => b.status === 'Reservado').length
 
     const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0
 
@@ -347,6 +347,8 @@ export class BedsService {
       totalBeds,
       occupiedBeds,
       availableBeds,
+      maintenanceBeds,
+      reservedBeds,
       occupancyRate: parseFloat(occupancyRate.toFixed(2)),
     }
 
@@ -549,7 +551,7 @@ export class BedsService {
    * Busca histórico de mudanças de status de um leito
    */
   async getBedStatusHistory(bedId?: string, skip: number = 0, take: number = 50) {
-    const where: Record<string, unknown> = { deletedAt: null } // ✅ Sem tenantId!
+    const where: Record<string, unknown> = {} // ✅ Histórico não tem deletedAt (é immutable)
     if (bedId) {
       where.bedId = bedId
     }

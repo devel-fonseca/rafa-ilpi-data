@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Page, PageHeader, Section, StatCard } from '@/design-system/components'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,22 +14,79 @@ import {
   ArrowRightLeft,
   History,
   Map,
-  List,
 } from 'lucide-react'
 import { ReserveBedModal, BlockBedModal, ReleaseBedModal } from './modals'
+import { SelectBedForActionModal } from '@/components/beds/SelectBedForActionModal'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Bed as BedType, BedStatusHistoryEntry } from '@/api/beds.api'
+
+type ActionType = 'reserve' | 'block' | 'release'
+
+interface BedWithHierarchy {
+  id: string
+  code: string
+  bedNumber: string
+  status: string
+  roomId: string
+  residentId?: string
+  resident?: {
+    id: string
+    fullName: string
+    fotoUrl?: string
+  }
+  occupiedSince?: string
+  observations?: string
+  createdAt: string
+  updatedAt: string
+  room: {
+    id: string
+    name: string
+    roomType?: string
+  }
+  floor: {
+    id: string
+    name: string
+  }
+  building: {
+    id: string
+    name: string
+  }
+}
 
 export default function BedsManagementHub() {
   const { data: beds, isLoading: bedsLoading } = useBeds() // ✅ Busca todos os leitos
   const { data: historyData, isLoading: historyLoading } = useBedStatusHistory({ take: 10 })
 
   const [selectedBed, setSelectedBed] = useState<BedType | null>(null)
+  const [selectBedModalOpen, setSelectBedModalOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<ActionType | null>(null)
   const [reserveModalOpen, setReserveModalOpen] = useState(false)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [releaseModalOpen, setReleaseModalOpen] = useState(false)
+
+  // Leitos já vêm com hierarquia completa (room -> floor -> building)
+  const bedsWithHierarchy = useMemo(() => {
+    if (!beds) return []
+
+    return beds.map((bed) => ({
+      ...bed,
+      room: {
+        id: bed.room?.id || '',
+        name: bed.room?.name || 'Sem quarto',
+        roomType: bed.room?.roomType,
+      },
+      floor: {
+        id: bed.room?.floor?.id || '',
+        name: bed.room?.floor?.name || 'Sem andar',
+      },
+      building: {
+        id: bed.room?.floor?.building?.id || '',
+        name: bed.room?.floor?.building?.name || 'Sem prédio',
+      },
+    }))
+  }, [beds])
 
   const isLoading = bedsLoading || historyLoading
 
@@ -43,6 +100,79 @@ export default function BedsManagementHub() {
   }
 
   const occupancyRate = stats.total > 0 ? Math.round((stats.occupied / stats.total) * 100) : 0
+
+  // Handlers para abrir seletor de leito
+  const handleOpenReserveAction = () => {
+    setPendingAction('reserve')
+    setSelectBedModalOpen(true)
+  }
+
+  const handleOpenBlockAction = () => {
+    setPendingAction('block')
+    setSelectBedModalOpen(true)
+  }
+
+  const handleOpenReleaseAction = () => {
+    setPendingAction('release')
+    setSelectBedModalOpen(true)
+  }
+
+  // Handler para quando um leito é selecionado
+  const handleBedSelected = (bed: BedWithHierarchy) => {
+    // Encontrar o leito original na lista para ter a estrutura completa
+    const originalBed = beds?.find(b => b.id === bed.id)
+    if (originalBed) {
+      setSelectedBed(originalBed)
+    }
+    setSelectBedModalOpen(false)
+
+    // Abrir modal apropriado baseado na ação pendente
+    if (pendingAction === 'reserve') {
+      setReserveModalOpen(true)
+    } else if (pendingAction === 'block') {
+      setBlockModalOpen(true)
+    } else if (pendingAction === 'release') {
+      setReleaseModalOpen(true)
+    }
+
+    setPendingAction(null)
+  }
+
+  // Handler para rolar para o histórico
+  const handleViewHistory = () => {
+    const historySection = document.getElementById('movimentacoes-recentes')
+    historySection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // Filtros de status para cada ação
+  const getSelectModalConfig = () => {
+    if (pendingAction === 'reserve') {
+      return {
+        title: 'Selecionar Leito para Reservar',
+        description: 'Escolha um leito disponível para reservar',
+        allowedStatuses: ['Disponível'],
+      }
+    } else if (pendingAction === 'block') {
+      return {
+        title: 'Selecionar Leito para Bloquear',
+        description: 'Escolha um leito para colocar em manutenção',
+        allowedStatuses: undefined, // Qualquer status pode ser bloqueado
+      }
+    } else if (pendingAction === 'release') {
+      return {
+        title: 'Selecionar Leito para Liberar',
+        description: 'Escolha um leito bloqueado ou reservado para liberar',
+        allowedStatuses: ['Manutenção', 'Reservado'],
+      }
+    }
+    return {
+      title: 'Selecionar Leito',
+      description: 'Escolha um leito',
+      allowedStatuses: undefined,
+    }
+  }
+
+  const selectModalConfig = getSelectModalConfig()
 
   if (isLoading) {
     return (
@@ -102,151 +232,95 @@ export default function BedsManagementHub() {
           title="Reservados"
           value={stats.reserved}
           icon={Calendar}
-          variant="default"
+          variant="secondary"
         />
       </div>
 
       {/* Ações Rápidas */}
       <Section title="Ações Rápidas">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Transferir Residente */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <ArrowRightLeft className="w-6 h-6 text-primary" />
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto flex-col gap-2 p-4 hover:bg-primary/5 hover:border-primary/50 transition-all"
+          >
+            <Link to="/beds/map">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ArrowRightLeft className="w-5 h-5 text-primary" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Transferir Residente</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Mover residente entre leitos usando o mapa interativo
-                </p>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link to="/beds/map">
-                    <Map className="mr-2 h-4 w-4" />
-                    Ir para Mapa de Ocupação
-                  </Link>
-                </Button>
+              <div className="text-center">
+                <div className="font-semibold text-sm">Transferir Residente</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Mover entre leitos</div>
               </div>
-            </div>
-          </Card>
+            </Link>
+          </Button>
 
           {/* Reservar Leito */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-secondary/10 rounded-lg">
-                <Calendar className="w-6 h-6 text-secondary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Reservar Leito</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Reservar leito disponível para futuro residente
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={stats.available === 0}
-                  onClick={() => setReserveModalOpen(true)}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Reservar Leito
-                </Button>
-              </div>
+          <Button
+            variant="outline"
+            disabled={stats.available === 0}
+            onClick={handleOpenReserveAction}
+            className="h-auto flex-col gap-2 p-4 hover:bg-secondary/5 hover:border-secondary/50 transition-all"
+          >
+            <div className="p-2 bg-secondary/10 rounded-lg">
+              <Calendar className="w-5 h-5 text-secondary" />
             </div>
-          </Card>
+            <div className="text-center">
+              <div className="font-semibold text-sm">Reservar Leito</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Reserva futura</div>
+            </div>
+          </Button>
 
           {/* Bloquear Leito */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-severity-warning/10 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-severity-warning" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Bloquear para Manutenção</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Bloquear leito impedindo nova ocupação
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setBlockModalOpen(true)}
-                >
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Bloquear Leito
-                </Button>
-              </div>
+          <Button
+            variant="outline"
+            onClick={handleOpenBlockAction}
+            className="h-auto flex-col gap-2 p-4 hover:bg-warning/5 hover:border-warning/50 transition-all"
+          >
+            <div className="p-2 bg-warning/10 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
-          </Card>
+            <div className="text-center">
+              <div className="font-semibold text-sm">Bloquear Leito</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Para manutenção</div>
+            </div>
+          </Button>
 
           {/* Liberar Leito */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-success/10 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-success" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Liberar Leito</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Liberar leito bloqueado ou reservado
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={stats.maintenance === 0 && stats.reserved === 0}
-                  onClick={() => setReleaseModalOpen(true)}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Liberar Leito
-                </Button>
-              </div>
+          <Button
+            variant="outline"
+            disabled={stats.maintenance === 0 && stats.reserved === 0}
+            onClick={handleOpenReleaseAction}
+            className="h-auto flex-col gap-2 p-4 hover:bg-success/5 hover:border-success/50 transition-all"
+          >
+            <div className="p-2 bg-success/10 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-success" />
             </div>
-          </Card>
+            <div className="text-center">
+              <div className="font-semibold text-sm">Liberar Leito</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Disponibilizar</div>
+            </div>
+          </Button>
 
           {/* Histórico de Movimentações */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-muted rounded-lg">
-                <History className="w-6 h-6 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Histórico Completo</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Visualizar todas as mudanças de status
-                </p>
-                <Button variant="outline" size="sm" className="w-full">
-                  <History className="mr-2 h-4 w-4" />
-                  Ver Histórico
-                </Button>
-              </div>
+          <Button
+            variant="outline"
+            onClick={handleViewHistory}
+            className="h-auto flex-col gap-2 p-4 hover:bg-accent transition-all"
+          >
+            <div className="p-2 bg-muted rounded-lg">
+              <History className="w-5 h-5 text-muted-foreground" />
             </div>
-          </Card>
-
-          {/* Estrutura de Leitos */}
-          <Card className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Building2 className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-2">Estrutura de Leitos</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Gerenciar prédios, andares, quartos e leitos
-                </p>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link to="/beds/structure">
-                    <List className="mr-2 h-4 w-4" />
-                    Acessar Estrutura
-                  </Link>
-                </Button>
-              </div>
+            <div className="text-center">
+              <div className="font-semibold text-sm">Ver Histórico</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Todas mudanças</div>
             </div>
-          </Card>
+          </Button>
         </div>
       </Section>
 
-      {/* Links Rápidos */}
+      {/* Visualizações */}
       <Section title="Visualizações">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="p-6">
@@ -260,7 +334,7 @@ export default function BedsManagementHub() {
               </div>
             </div>
             <Button asChild variant="default" className="w-full">
-              <Link to="/beds/map">
+              <Link to="/dashboard/beds/map">
                 <Map className="mr-2 h-4 w-4" />
                 Abrir Mapa Interativo
               </Link>
@@ -278,7 +352,7 @@ export default function BedsManagementHub() {
               </div>
             </div>
             <Button asChild variant="default" className="w-full">
-              <Link to="/beds/structure">
+              <Link to="/dashboard/beds/structure">
                 <Building2 className="mr-2 h-4 w-4" />
                 Gerenciar Estrutura
               </Link>
@@ -288,63 +362,68 @@ export default function BedsManagementHub() {
       </Section>
 
       {/* Movimentações Recentes */}
-      <Section title="Movimentações Recentes">
+      <Section title="Movimentações Recentes" id="movimentacoes-recentes">
         <Card className="p-6">
           {historyData && historyData.data && historyData.data.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {historyData.data.map((entry: BedStatusHistoryEntry) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono bg-muted px-2 py-1 rounded">
-                        {entry.bed.code}
-                      </span>
-                      <span className="text-muted-foreground">→</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                            entry.previousStatus === 'Disponível'
-                              ? 'bg-success/10 text-success'
-                              : entry.previousStatus === 'Ocupado'
-                                ? 'bg-primary/10 text-primary'
-                                : entry.previousStatus === 'Manutenção'
-                                  ? 'bg-severity-warning/10 text-severity-warning'
-                                  : 'bg-secondary/10 text-secondary'
-                          }`}
-                        >
-                          {entry.previousStatus}
-                        </span>
-                        <span>→</span>
-                        <span
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                            entry.newStatus === 'Disponível'
-                              ? 'bg-success/10 text-success'
-                              : entry.newStatus === 'Ocupado'
-                                ? 'bg-primary/10 text-primary'
-                                : entry.newStatus === 'Manutenção'
-                                  ? 'bg-severity-warning/10 text-severity-warning'
-                                  : 'bg-secondary/10 text-secondary'
-                          }`}
-                        >
-                          {entry.newStatus}
-                        </span>
-                      </div>
-                      {entry.reason && (
-                        <p className="text-sm text-muted-foreground mt-1">{entry.reason}</p>
-                      )}
-                    </div>
+                  {/* Código do Leito */}
+                  <div className="flex-shrink-0">
+                    <span className="text-xs font-mono font-semibold bg-muted px-2 py-1 rounded">
+                      {entry.bed.code}
+                    </span>
                   </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    <div>
-                      {format(new Date(entry.changedAt), "dd 'de' MMMM 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </div>
+
+                  {/* Seta */}
+                  <span className="text-muted-foreground text-sm">→</span>
+
+                  {/* Status (De → Para) */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        entry.previousStatus === 'Disponível'
+                          ? 'bg-success/10 text-success'
+                          : entry.previousStatus === 'Ocupado'
+                            ? 'bg-danger/10 text-danger'
+                            : entry.previousStatus === 'Manutenção'
+                              ? 'bg-warning/10 text-warning'
+                              : 'bg-primary/10 text-primary'
+                      }`}
+                    >
+                      {entry.previousStatus}
+                    </span>
+                    <span className="text-xs">→</span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        entry.newStatus === 'Disponível'
+                          ? 'bg-success/10 text-success'
+                          : entry.newStatus === 'Ocupado'
+                            ? 'bg-danger/10 text-danger'
+                            : entry.newStatus === 'Manutenção'
+                              ? 'bg-warning/10 text-warning'
+                              : 'bg-primary/10 text-primary'
+                      }`}
+                    >
+                      {entry.newStatus}
+                    </span>
+                  </div>
+
+                  {/* Motivo */}
+                  {entry.reason && (
+                    <p className="text-xs text-muted-foreground flex-1 truncate" title={entry.reason}>
+                      {entry.reason}
+                    </p>
+                  )}
+
+                  {/* Data/Hora */}
+                  <div className="text-xs text-muted-foreground flex-shrink-0 text-right ml-auto">
+                    {format(new Date(entry.changedAt), "dd 'de' MMM 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
                   </div>
                 </div>
               ))}
@@ -359,6 +438,18 @@ export default function BedsManagementHub() {
       </Section>
 
       {/* Modais */}
+      {/* Modal Seletor de Leito */}
+      <SelectBedForActionModal
+        open={selectBedModalOpen}
+        onOpenChange={setSelectBedModalOpen}
+        beds={bedsWithHierarchy}
+        allowedStatuses={selectModalConfig.allowedStatuses}
+        title={selectModalConfig.title}
+        description={selectModalConfig.description}
+        onSelectBed={handleBedSelected}
+      />
+
+      {/* Modais de Ação */}
       <ReserveBedModal
         bed={selectedBed}
         open={reserveModalOpen}

@@ -66,6 +66,20 @@ export class BedsController {
     return this.bedsService.getFullMap(buildingId)
   }
 
+  @Get('status-history')
+  @RequirePermissions(PermissionType.VIEW_BEDS)
+  getBedStatusHistory(
+    @Query('bedId') bedId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string
+  ) {
+    return this.bedsService.getBedStatusHistory(
+      bedId,
+      parseInt(skip || '0'),
+      parseInt(take || '50')
+    )
+  }
+
   @Get(':id')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findOne(@Param('id') id: string) {
@@ -123,19 +137,5 @@ export class BedsController {
     @Body() releaseBedDto: ReleaseBedDto
   ) {
     return this.bedsService.releaseBed(id, userId, releaseBedDto)
-  }
-
-  @Get('status-history')
-  @RequirePermissions(PermissionType.VIEW_BEDS)
-  getBedStatusHistory(
-    @Query('bedId') bedId?: string,
-    @Query('skip') skip?: string,
-    @Query('take') take?: string
-  ) {
-    return this.bedsService.getBedStatusHistory(
-      bedId,
-      parseInt(skip || '0'),
-      parseInt(take || '50')
-    )
   }
 }

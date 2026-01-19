@@ -160,6 +160,12 @@ export class GlobalStatsDto {
   availableBeds: number
 
   @Expose()
+  maintenanceBeds: number
+
+  @Expose()
+  reservedBeds: number
+
+  @Expose()
   occupancyRate: number
 }
 
