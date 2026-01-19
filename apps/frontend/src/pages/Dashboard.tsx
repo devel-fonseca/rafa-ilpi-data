@@ -94,19 +94,19 @@ export default function Dashboard() {
     },
   ]
 
-  // Ações rápidas
+  // Ações rápidas (ordenadas por frequência de uso)
   const quickActions = [
     {
-      title: 'Adicionar Residente',
-      description: 'Cadastrar novo residente',
-      icon: UserPlus,
-      onClick: () => navigate('/dashboard/residentes/new'),
+      title: 'Agenda de Hoje',
+      description: 'Ver medicamentos e agendamentos',
+      icon: Calendar,
+      onClick: () => navigate('/dashboard/agenda'),
       disabled: false,
     },
     {
       title: 'Registros Diários',
       description: 'Registrar atividades do dia',
-      icon: Calendar,
+      icon: Activity,
       onClick: () => navigate('/dashboard/registros-diarios'),
       disabled: false,
     },
@@ -118,10 +118,10 @@ export default function Dashboard() {
       disabled: false,
     },
     {
-      title: 'Agenda de Hoje',
-      description: 'Ver medicamentos e agendamentos',
-      icon: Calendar,
-      onClick: () => navigate('/dashboard/agenda'),
+      title: 'Adicionar Residente',
+      description: 'Cadastrar novo residente',
+      icon: UserPlus,
+      onClick: () => navigate('/dashboard/residentes/new'),
       disabled: false,
     },
   ]
