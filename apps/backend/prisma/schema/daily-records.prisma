@@ -222,7 +222,7 @@ model ResidentScheduledEvent {
 // Indicadores mensais RDC 502/2021
 model IncidentMonthlyIndicator {
   id       String @id @default(uuid()) @db.Uuid
-  tenantId String @db.Uuid
+  tenantId String @db.Uuid // Stored for reference, no FK (cross-schema)
 
   year  Int // 2024, 2025, etc
   month Int // 1-12
@@ -237,10 +237,10 @@ model IncidentMonthlyIndicator {
   metadata    Json? @db.JsonB
 
   calculatedAt DateTime @default(now()) @db.Timestamptz(3)
-  calculatedBy String?  @db.Uuid
+  calculatedBy String?  @db.Uuid // Stored for reference, no FK (cross-schema)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?  @relation("IndicatorCalculatedBy", fields: [calculatedBy], references: [id])
+  // Sem relações - ambos tenantId e calculatedBy são apenas para auditoria
+  // Não podem ter FKs devido a cross-schema constraints
 
   @@unique([tenantId, year, month, indicatorType])
   @@index([tenantId, year(sort: Desc), month(sort: Desc)])

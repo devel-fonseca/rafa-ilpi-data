@@ -47,7 +47,7 @@ model Floor {
 
 model Room {
   id                 String    @id @default(uuid()) @db.Uuid
-  tenantId           String    @db.Uuid
+  tenantId           String    @db.Uuid // Stored for reference, no FK (cross-schema)
   floorId            String    @db.Uuid
   name               String // "101", "Quarto 3"
   code               String // "Q-101", "Q-102"
@@ -65,9 +65,9 @@ model Room {
   updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt          DateTime? @db.Timestamptz(3)
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  floor  Floor  @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  beds   Bed[]
+  // Relações (sem FK para Tenant - cross-schema)
+  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  beds  Bed[]
 
   @@index([tenantId, floorId])
   @@index([floorId, isActive])
@@ -140,7 +140,7 @@ model BedTransferHistory {
 
 model BedStatusHistory {
   id             String   @id @default(uuid()) @db.Uuid
-  tenantId       String   @db.Uuid
+  tenantId       String   @db.Uuid // Stored for reference, no FK (cross-schema)
   bedId          String   @db.Uuid
   previousStatus String   @db.VarChar(50)
   newStatus      String   @db.VarChar(50)
@@ -150,9 +150,8 @@ model BedStatusHistory {
   changedAt      DateTime @default(now()) @db.Timestamptz(3)
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
 
-  // Relações
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  bed    Bed    @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  // Relações (sem FK para Tenant - cross-schema)
+  bed Bed @relation(fields: [bedId], references: [id], onDelete: Cascade)
 
   // Índices
   @@index([bedId, changedAt(sort: Desc)])

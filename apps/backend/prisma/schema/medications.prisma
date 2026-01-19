@@ -145,6 +145,7 @@ model Medication {
   history         MedicationHistory[]
   createdByUser   User                       @relation("MedicationCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?                      @relation("MedicationUpdatedBy", fields: [updatedBy], references: [id])
+  medicationLocks MedicationLock[]
 
   // Índices
   @@index([prescriptionId])
@@ -367,4 +368,42 @@ model SOSAdministration {
   @@index([residentId, date(sort: Desc)])
   @@index([sosMedicationId, date])
   @@map("sos_administrations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  LOCKS DE MEDICAMENTOS (WebSocket Real-Time)
+//
+//  Evita administração simultânea do mesmo medicamento por múltiplos usuários
+// ──────────────────────────────────────────────────────────────────────────────
+
+model MedicationLock {
+  id           String @id @default(uuid()) @db.Uuid
+  tenantId     String @db.Uuid // Stored for reference, no FK (cross-schema)
+  medicationId String @db.Uuid
+
+  // Data/horário do agendamento (não da administração real)
+  scheduledDate DateTime @db.Date
+  scheduledTime String // Ex: "06:00", "14:00", "22:00"
+
+  // Informações do lock
+  lockedByUserId   String   @db.Uuid
+  lockedByUserName String
+  lockedAt         DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt        DateTime @db.Timestamptz(3) // Auto-expira após 5 minutos
+
+  // Metadados
+  sessionId String? // ID da sessão do browser
+  ipAddress String? // IPv4 ou IPv6
+
+  // Relações (sem FK para Tenant - cross-schema)
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+  user       User       @relation("UserMedicationLocks", fields: [lockedByUserId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@unique([medicationId, scheduledDate, scheduledTime]) // Apenas 1 lock por medicamento+data+horário
+  @@index([medicationId])
+  @@index([lockedByUserId])
+  @@index([expiresAt])
+  @@index([medicationId, scheduledDate, scheduledTime]) // Query de locks ativos
+  @@map("medication_locks")
 }

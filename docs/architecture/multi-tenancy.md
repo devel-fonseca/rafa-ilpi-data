@@ -18,6 +18,7 @@ O sistema Rafa ILPI implementa **isolamento físico completo de dados** usando *
 ## Estrutura de Schemas PostgreSQL
 
 ### Schema `public` (SHARED)
+
 Contém 9 tabelas compartilhadas entre todos os tenants:
 
 - `tenants` - Registro de ILPIs cadastradas
@@ -30,9 +31,11 @@ Contém 9 tabelas compartilhadas entre todos os tenants:
 - `webhook_events` - Eventos de integração
 
 ### Schemas por Tenant (ISOLATED)
+
 Cada tenant possui um schema nomeado como `tenant_{slug}_{hash}`, contendo 66+ tabelas:
 
 **Tabelas principais:**
+
 - `users`, `user_profiles` - Usuários e perfis
 - `residents`, `resident_history` - Residentes e versionamento
 - `beds`, `rooms`, `floors`, `buildings` - Estrutura física
@@ -50,8 +53,8 @@ Cada tenant possui um schema nomeado como `tenant_{slug}_{hash}`, contendo 66+ t
 **Uso:** Services com scope REQUEST (maioria dos cases)
 
 ```typescript
-import { Injectable, Scope } from '@nestjs/common';
-import { TenantContextService } from '../prisma/tenant-context.service';
+import { Injectable, Scope } from "@nestjs/common";
+import { TenantContextService } from "../prisma/tenant-context.service";
 
 @Injectable({ scope: Scope.REQUEST })
 export class ResidentsService {
@@ -67,6 +70,7 @@ export class ResidentsService {
 ```
 
 **Vantagens:**
+
 - ✅ Client do tenant injetado automaticamente
 - ✅ Impossível acessar dados de outro tenant
 - ✅ Código mais limpo e seguro
@@ -117,11 +121,12 @@ export class PermissionsCacheService {
     });
 
     const unionQuery = tenants
-      .map(t =>
-        `SELECT id, tenant_id as "tenantId" FROM "${t.schemaName}".users
-         WHERE id = $1 AND deleted_at IS NULL`
+      .map(
+        (t) =>
+          `SELECT id, tenant_id as "tenantId" FROM "${t.schemaName}".users
+         WHERE id = $1 AND deleted_at IS NULL`,
       )
-      .join(' UNION ALL ');
+      .join(" UNION ALL ");
 
     const results = await this.prisma.$queryRawUnsafe(unionQuery, userId);
     // ... usar tenant client para dados completos
@@ -195,7 +200,9 @@ const contract = await this.prisma.serviceContract.findUnique({
 });
 
 // ✅ CORRETO - Query separada
-const contract = await this.prisma.serviceContract.findUnique({ /* */ });
+const contract = await this.prisma.serviceContract.findUnique({
+  /* */
+});
 // Se precisar: buscar creator manualmente via tenant client
 ```
 
@@ -246,6 +253,7 @@ WHERE schema_name LIKE 'tenant_%';
 Ver: `apps/backend/test/e2e/multi-tenant-isolation.e2e-spec.ts`
 
 **Validações cobertas:**
+
 - ✅ Dados de um tenant não são visíveis para outro
 - ✅ Mesmo email pode existir em tenants diferentes
 - ✅ Queries não contêm filtro `WHERE tenantId`
@@ -257,6 +265,7 @@ Ver: `apps/backend/test/e2e/multi-tenant-isolation.e2e-spec.ts`
 ## Troubleshooting
 
 ### "Schema não encontrado"
+
 ```sql
 -- Verificar se schema existe
 SELECT schema_name FROM information_schema.schemata
@@ -267,12 +276,15 @@ npm run tenants:sync-schemas
 ```
 
 ### "Dados vazando entre tenants"
+
 ```typescript
 // ❌ Usando public client (ERRADO)
 await this.prisma.resident.findMany({ where: { tenantId } });
 
 // ✅ Usando tenant client (CORRETO)
-await this.tenantContext.client.resident.findMany({ /* */ });
+await this.tenantContext.client.resident.findMany({
+  /* */
+});
 ```
 
 ---
@@ -281,11 +293,111 @@ await this.tenantContext.client.resident.findMany({ /* */ });
 
 ### Benchmarks (vs filtro tenantId)
 
-| Operação | Filtro tenantId | Schema Isolation | Melhoria |
-|----------|----------------|------------------|----------|
-| SELECT residents | 12ms | 8ms | **33%** |
-| INSERT resident | 15ms | 10ms | **33%** |
-| JOIN complex | 45ms | 30ms | **33%** |
+| Operação         | Filtro tenantId | Schema Isolation | Melhoria |
+| ---------------- | --------------- | ---------------- | -------- |
+| SELECT residents | 12ms            | 8ms              | **33%**  |
+| INSERT resident  | 15ms            | 10ms             | **33%**  |
+| JOIN complex     | 45ms            | 30ms             | **33%**  |
+
+---
+
+## ⚠️ Violações Identificadas e Correções (19/01/2026)
+
+Durante auditoria do schema Prisma, foram identificadas **3 violações** de arquitetura cross-schema:
+
+### ❌ Violação 1: `BedStatusHistory`
+
+**Problema:** Modelo TENANT-SCOPED com FK para `Tenant` (public schema)
+
+```prisma
+model BedStatusHistory {
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id]) // ❌ Cross-schema FK
+}
+```
+
+**Motivo:** `BedStatusHistory` rastreia mudanças de status de leitos (infraestrutura do tenant), deve estar no schema tenant_xxx
+
+**Correção:**
+
+```prisma
+model BedStatusHistory {
+  tenantId String @db.Uuid // Stored for reference, no FK (cross-schema)
+  bedId    String @db.Uuid
+
+  bed Bed @relation(fields: [bedId], references: [id])
+  // tenantId é derivável de bed.tenantId (hierarquia: Bed → Floor → Building → tenantId)
+}
+```
+
+### ❌ Violação 2: `IncidentMonthlyIndicator`
+
+**Problema:** Modelo TENANT-SCOPED com FK para `Tenant`
+
+```prisma
+model IncidentMonthlyIndicator {
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id]) // ❌ Cross-schema FK
+}
+```
+
+**Motivo:** Indicadores mensais RDC 502/2021 são calculados a partir de `DailyRecord` (tenant-scoped), pertencem ao schema do tenant
+
+**Correção:**
+
+```prisma
+model IncidentMonthlyIndicator {
+  tenantId     String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  calculatedBy String? @db.Uuid // Stored for reference, no FK (cross-schema)
+
+  // Sem FKs - tenantId e calculatedBy são apenas para auditoria/rastreamento
+  // Relações não podem existir devido a cross-schema constraints
+}
+```
+
+### ❌ Violação 3: `Room`
+
+**Problema:** Modelo TENANT-SCOPED com FK para `Tenant`
+
+```prisma
+model Room {
+  tenantId String @db.Uuid
+  tenant   Tenant @relation(fields: [tenantId], references: [id]) // ❌ Cross-schema FK
+}
+```
+
+**Motivo:** Quartos são infraestrutura física específica do tenant (tenant-scoped)
+
+**Correção:**
+
+```prisma
+model Room {
+  tenantId String @db.Uuid // Stored for reference, no FK (cross-schema)
+  floorId  String @db.Uuid
+
+  floor Floor @relation(fields: [floorId], references: [id])
+  beds  Bed[]
+  // tenantId é derivável de floor.tenantId (hierarquia: Room → Floor → Building → tenantId)
+}
+```
+
+### Padrão Identificado
+
+Todas as 3 violações seguem o mesmo padrão:
+
+- **Modelos TENANT-SCOPED** (dados operacionais específicos do tenant)
+- **FK direto para `Tenant`** no public schema
+- **Cross-schema constraint** não permitido pelo PostgreSQL
+- **tenantId derivável** de relações parent (ex: Bed → Floor → Building)
+
+### Correção Aplicada
+
+1. ✅ Remover `@relation` para `Tenant`
+2. ✅ Manter `tenantId` como campo de referência (sem FK)
+3. ✅ Adicionar comentário padrão: `// Stored for reference, no FK (cross-schema)`
+4. ✅ Remover relações bidirecionais no modelo `Tenant`
+5. ✅ Validar schema: `npx prisma validate`
+6. ✅ Regenerar client: `npx prisma generate`
 
 ---
 
@@ -299,6 +411,13 @@ Ao criar novo service que acessa dados de tenant:
 - [ ] **NÃO** passa `tenantId` como parâmetro
 - [ ] **NÃO** usa filtro `where: { tenantId }`
 - [ ] Testa isolamento com múltiplos tenants
+
+**Ao criar novo modelo Prisma:**
+
+- [ ] Definir se é SHARED (public) ou TENANT-SCOPED (tenant_xxx)
+- [ ] Se TENANT-SCOPED: **NÃO** adicionar FK para `Tenant`
+- [ ] Usar comentário: `tenantId String @db.Uuid // Stored for reference, no FK (cross-schema)`
+- [ ] Validar com `npx prisma validate`
 
 ---
 

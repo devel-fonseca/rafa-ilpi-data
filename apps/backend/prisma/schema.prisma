@@ -80,7 +80,7 @@ model User {
   // refreshTokens RefreshToken[]
   dailyRecords DailyRecord[]
   medicationAdministrations    MedicationAdministration[]
-  medicationLocks              MedicationLock[] // Sprint 2: Locks de medicamentos
+  medicationLocks              MedicationLock[]           @relation("UserMedicationLocks")
   sosAdministrations           SOSAdministration[]
   vitalSigns                   VitalSign[]
   clinicalNotes                ClinicalNote[]
@@ -2973,40 +2973,6 @@ model MedicationAdministration {
   @@map("medication_administrations")
 }
 
-// Sprint 2 - WebSocket: Lock de medicamentos para prevenir administração duplicada
-model MedicationLock {
-  id           String @id @default(uuid()) @db.Uuid
-  tenantId     String @db.Uuid
-  medicationId String @db.Uuid
-
-  // Data/horário do agendamento (não da administração real)
-  scheduledDate DateTime @db.Date
-  scheduledTime String // Ex: "06:00", "14:00", "22:00"
-
-  // Informações do lock
-  lockedByUserId   String   @db.Uuid
-  lockedByUserName String
-  lockedAt         DateTime @default(now()) @db.Timestamptz(3)
-  expiresAt        DateTime @db.Timestamptz(3) // Auto-expira após 5 minutos
-
-  // Metadados
-  sessionId String? // ID da sessão do browser
-  ipAddress String? // IPv4 ou IPv6
-
-  // Relações
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [lockedByUserId], references: [id], onDelete: Cascade)
-
-  // Índices
-  @@unique([medicationId, scheduledDate, scheduledTime]) // Apenas 1 lock por medicamento+data+horário
-  @@index([medicationId])
-  @@index([lockedByUserId])
-  @@index([expiresAt])
-  @@index([medicationId, scheduledDate, scheduledTime]) // Query de locks ativos
-  @@map("medication_locks")
-}
-
 model SOSAdministration {
   id              String @id @default(uuid()) @db.Uuid
   tenantId        String @db.Uuid
@@ -3678,7 +3644,6 @@ model Tenant {
   medicationHistory          MedicationHistory[] // Histórico de medicamentos
   sosMedicationHistory       SOSMedicationHistory[] // Histórico de medicamentos SOS
   medicationAdministrations  MedicationAdministration[]
-  medicationLocks            MedicationLock[] // Sprint 2: Locks de medicamentos
   sosAdministrations         SOSAdministration[]
   vaccinations               Vaccination[]
   vaccinationHistory         VaccinationHistory[] // Histórico de vacinações
