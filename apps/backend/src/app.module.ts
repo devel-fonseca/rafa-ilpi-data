@@ -17,7 +17,6 @@ import { VaccinationsModule } from './vaccinations/vaccinations.module';
 import { ClinicalNotesModule } from './clinical-notes/clinical-notes.module';
 import { AuditModule } from './audit/audit.module';
 import { AuditInterceptor } from './audit/audit.interceptor';
-import { AuditService } from './audit/audit.service';
 import { TenantContextService } from './prisma/tenant-context.service';
 import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -162,14 +161,11 @@ import { EventsModule } from './events/events.module';
     // Tenant Context Service - REQUEST-scoped para isolamento de dados
     TenantContextService,
     // NOTA: TenantContext é inicializado pelo JwtAuthGuard após validação JWT
-    // (Interceptor global não funciona com REQUEST-scoped services)
-    // Interceptor global de auditoria
+    // Interceptor global de auditoria (REQUEST-scoped para funcionar com TenantContextService)
+    // Mudado para REQUEST scope para ter acesso ao TenantContextService correto
     {
       provide: APP_INTERCEPTOR,
-      useFactory: (auditService, reflector) => {
-        return new AuditInterceptor(auditService, reflector);
-      },
-      inject: [AuditService, Reflector],
+      useClass: AuditInterceptor,
     },
   ],
 })

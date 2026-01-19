@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   CallHandler,
   Logger,
+  Scope,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -13,7 +14,7 @@ import { Reflector } from '@nestjs/core';
 export const AUDIT_ACTION_KEY = 'audit:action';
 export const AUDIT_ENTITY_KEY = 'audit:entity';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuditInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditInterceptor.name);
 

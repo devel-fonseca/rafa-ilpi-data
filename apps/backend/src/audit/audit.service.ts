@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Scope } from '@nestjs/common';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { Prisma, AuditLog, PrismaClient } from '@prisma/client';
 
@@ -21,7 +21,7 @@ export interface AuditLogInput {
   userAgent?: string;
 }
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
