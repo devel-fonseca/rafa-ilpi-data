@@ -44,6 +44,15 @@ export function DashboardLayout() {
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
 
+  // Debug: log tenant info
+  React.useEffect(() => {
+    console.log('[DashboardLayout] User tenant info:', {
+      tradeName: user?.tenant?.profile?.tradeName,
+      name: user?.tenant?.name,
+      fullTenant: user?.tenant,
+    })
+  }, [user])
+
   // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
@@ -548,7 +557,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Bed className="h-4 w-4 flex-shrink-0" />
+                      <Building2 className="h-4 w-4 flex-shrink-0" />
                       {!preferences.sidebarCollapsed && 'Estrutura de Leitos'}
                     </Link>
                   </TooltipTrigger>
@@ -567,7 +576,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Building2 className="h-4 w-4 flex-shrink-0" />
+                      <Bed className="h-4 w-4 flex-shrink-0" />
                       {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
                     </Link>
                   </TooltipTrigger>
@@ -765,7 +774,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <Bed className="h-4 w-4" />
+                  <Building2 className="h-4 w-4" />
                   Estrutura de Leitos
                 </Link>
               )}
@@ -775,7 +784,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <Building2 className="h-4 w-4" />
+                  <Bed className="h-4 w-4" />
                   Mapa de Ocupação
                 </Link>
               )}
