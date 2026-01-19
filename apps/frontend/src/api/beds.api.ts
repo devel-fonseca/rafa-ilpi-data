@@ -57,7 +57,7 @@ export interface Bed {
   room?: Room
   code: string
   bedNumber: string
-  status: 'DISPONIVEL' | 'OCUPADO' | 'MANUTENCAO' | 'RESERVADO'
+  status: 'Disponível' | 'Ocupado' | 'Manutenção' | 'Reservado' // ✅ Valores reais do banco
   residentId?: string
   resident?: {
     id: string
