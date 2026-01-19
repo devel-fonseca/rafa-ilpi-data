@@ -497,13 +497,11 @@ export class ResidentsService {
           );
 
           // ✅ Criar registro de histórico de primeira designação de leito
-          // NOTA: fromBedId é obrigatório no schema, então usamos um UUID especial
-          // que indica "primeira designação" (00000000-0000-0000-0000-000000000000)
           await tx.bedTransferHistory.create({
             data: {
               tenantId: this.tenantContext.tenantId,
               residentId: newResident.id,
-              fromBedId: '00000000-0000-0000-0000-000000000000', // UUID especial para primeira designação
+              fromBedId: null, // null = primeira designação (não tinha leito antes)
               toBedId: accommodation.bedId,
               reason: 'Designação inicial de leito no cadastro do residente',
               transferredAt: new Date(),
@@ -1170,13 +1168,11 @@ export class ResidentsService {
           );
 
           // ✅ Criar registro de histórico de primeira designação de leito
-          // NOTA: fromBedId é obrigatório no schema, então usamos um UUID especial
-          // que indica "primeira designação" (00000000-0000-0000-0000-000000000000)
           await tx.bedTransferHistory.create({
             data: {
               tenantId: this.tenantContext.tenantId,
               residentId: id,
-              fromBedId: '00000000-0000-0000-0000-000000000000', // UUID especial para primeira designação
+              fromBedId: null, // null = primeira designação (não tinha leito antes)
               toBedId: newBedId,
               reason: changeReason || 'Primeira designação de leito via cadastro',
               transferredAt: new Date(),

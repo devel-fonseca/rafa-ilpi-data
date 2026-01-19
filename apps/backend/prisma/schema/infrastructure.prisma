@@ -87,12 +87,12 @@ model Bed {
   updatedAt DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  room           Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  resident       Resident?
-  transfersFrom  BedTransferHistory[] @relation("BedTransferFrom")
-  transfersTo    BedTransferHistory[] @relation("BedTransferTo")
-  statusHistory  BedStatusHistory[]
+  tenant        Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  room          Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  resident      Resident?
+  transfersFrom BedTransferHistory[] @relation("BedTransferFrom")
+  transfersTo   BedTransferHistory[] @relation("BedTransferTo")
+  statusHistory BedStatusHistory[]
 
   @@unique([tenantId, code]) // Código do leito único por tenant
   @@index([tenantId, roomId])
@@ -108,8 +108,8 @@ model BedTransferHistory {
   residentId String @db.Uuid
 
   // Leitos
-  fromBedId String @db.Uuid
-  toBedId   String @db.Uuid
+  fromBedId String? @db.Uuid // Nullable para permitir primeira designação (null = não tinha leito antes)
+  toBedId   String  @db.Uuid
 
   // Motivo da transferência
   reason String @db.Text // Obrigatório, min 10 chars
@@ -125,7 +125,7 @@ model BedTransferHistory {
   // Relações
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  fromBed  Bed      @relation("BedTransferFrom", fields: [fromBedId], references: [id], onDelete: Restrict)
+  fromBed  Bed?     @relation("BedTransferFrom", fields: [fromBedId], references: [id], onDelete: Restrict)
   toBed    Bed      @relation("BedTransferTo", fields: [toBedId], references: [id], onDelete: Restrict)
   user     User     @relation(fields: [transferredBy], references: [id], onDelete: Restrict)
 
