@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Users, Calendar, Activity, UserPlus, Pill } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -14,14 +13,8 @@ import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
-import { Page, PageHeader, Section } from '@/design-system/components'
+import { Page, PageHeader, Section, QuickActionsGrid } from '@/design-system/components'
 import { tenantKey } from '@/lib/query-keys'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -167,35 +160,7 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <Section title="Ações Rápidas">
-        <TooltipProvider>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action) => (
-              <Tooltip key={action.title}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-20 p-4 flex-col gap-2 hover:shadow-md transition-shadow"
-                    onClick={action.onClick}
-                    disabled={action.disabled}
-                  >
-                    <action.icon className="h-6 w-6 text-primary" />
-                    <span className="font-medium text-sm text-center">
-                      {action.title}
-                    </span>
-                    {action.disabled && (
-                      <span className="text-xs text-warning">
-                        Em breve
-                      </span>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{action.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
+        <QuickActionsGrid actions={quickActions} columns={4} />
       </Section>
 
       {/* Activities Grid - Recent & Pending */}

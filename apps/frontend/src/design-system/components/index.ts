@@ -26,3 +26,11 @@ export { EmptyState, type EmptyStateProps } from './data'
 
 // Componentes de feedback
 export { AccessDenied } from './feedback'
+
+// Componentes de ações
+export {
+  QuickAction,
+  QuickActionsGrid,
+  type QuickActionProps,
+  type QuickActionsGridProps,
+} from './QuickAction'
