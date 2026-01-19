@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, Scope } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { Prisma } from '@prisma/client'
@@ -24,7 +24,7 @@ import { FullMapResponseDto } from '../buildings/dto'
  * @see TenantContextService - Gerencia o client isolado por tenant
  * @see TenantContextInterceptor - Inicializa automaticamente o contexto
  */
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class BedsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
