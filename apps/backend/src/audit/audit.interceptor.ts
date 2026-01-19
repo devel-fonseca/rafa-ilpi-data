@@ -98,6 +98,8 @@ export class AuditInterceptor implements NestInterceptor {
           }
 
           // Registrar no log de auditoria
+          this.logger.debug(`[AuditInterceptor] Registrando auditoria: ${auditEntity} - ${auditAction} para user ${user.name}`);
+
           await this.auditService.log({
             entityType: auditEntity,
             entityId,
@@ -109,8 +111,11 @@ export class AuditInterceptor implements NestInterceptor {
             ipAddress: request.ip || request.connection?.remoteAddress,
             userAgent: request.headers['user-agent'],
           });
+
+          this.logger.debug(`[AuditInterceptor] ✅ Auditoria registrada com sucesso`);
         } catch (error) {
           // Log error mas não interromper a operação
+          this.logger.error('[AuditInterceptor] ❌ Erro ao registrar auditoria:', error);
           console.error('Failed to create audit log:', error);
         }
       }),
