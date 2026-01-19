@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, Scope } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateBuildingDto, UpdateBuildingDto, CreateBuildingStructureDto } from './dto'
 import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class BuildingsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
