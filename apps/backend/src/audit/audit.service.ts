@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
-import { Prisma, AuditLog } from '@prisma/client';
+import { Prisma, AuditLog, PrismaClient } from '@prisma/client';
 
 export interface AuditLogStats {
   total: number;
@@ -27,7 +26,6 @@ export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
   constructor(
-    private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
   ) {}
 
@@ -35,9 +33,20 @@ export class AuditService {
     try {
       this.logger.debug(`[AuditService] Tentando criar log de auditoria: ${auditLog.entityType} - ${auditLog.action}`);
 
+      // Verificar se TenantContext está inicializado (REQUEST-scoped)
+      let tenantClient: PrismaClient;
+      try {
+        tenantClient = this.tenantContext.client;
+        this.logger.debug(`[AuditService] ✅ TenantContext disponível`);
+      } catch (error) {
+        this.logger.error(`[AuditService] ❌ TenantContext não inicializado:`, error instanceof Error ? error.message : error);
+        // TenantContext não está disponível, não podemos salvar
+        return;
+      }
+
       // AuditLog fica no schema do TENANT (isolamento total)
       // Cada tenant tem sua própria tabela audit_logs no schema tenant_xxx
-      await this.tenantContext.client.auditLog.create({
+      await tenantClient.auditLog.create({
         data: {
           tenantId: auditLog.tenantId,
           entityType: auditLog.entityType,
