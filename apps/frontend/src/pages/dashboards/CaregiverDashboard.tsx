@@ -169,10 +169,10 @@ export function CaregiverDashboard() {
   }
 
   // ──────────────────────────────────────────────────────────────────────
-  // EMPTY STATE
+  // EMPTY STATE - Apenas se não houver dados
   // ──────────────────────────────────────────────────────────────────────
 
-  if (!data || data.stats.totalPending === 0) {
+  if (!data) {
     return (
       <Page>
         <PageHeader
@@ -181,8 +181,8 @@ export function CaregiverDashboard() {
         />
         <EmptyState
           icon={CheckCircle2}
-          title="Todas as tarefas concluídas!"
-          description="Não há tarefas pendentes no momento."
+          title="Nenhuma informação disponível"
+          description="Não há dados para exibir no momento."
           variant="success"
         />
       </Page>
