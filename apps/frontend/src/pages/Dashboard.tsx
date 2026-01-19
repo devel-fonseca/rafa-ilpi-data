@@ -166,15 +166,15 @@ export default function Dashboard() {
             <Button
               key={action.title}
               variant="outline"
-              className="h-auto p-4 justify-start hover:shadow-md transition-shadow"
+              className="h-[88px] p-4 justify-start hover:shadow-md transition-shadow"
               onClick={action.onClick}
               disabled={action.disabled}
             >
-              <div className="flex items-start gap-3 w-full">
-                <action.icon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div className="text-left">
-                  <p className="font-medium text-foreground">{action.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
+              <div className="flex items-start gap-3 w-full min-w-0">
+                <action.icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="text-left min-w-0 flex-1">
+                  <p className="font-medium text-foreground truncate">{action.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{action.description}</p>
                   {action.disabled && (
                     <span className="text-xs text-warning mt-1 inline-block">
                       Em breve
