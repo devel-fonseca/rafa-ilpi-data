@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/auth.store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Calendar, Activity, Settings, UserPlus, Pill } from 'lucide-react'
+import { Users, Calendar, Activity, UserPlus, Pill } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
@@ -118,10 +118,10 @@ export default function Dashboard() {
       disabled: false,
     },
     {
-      title: 'Configurações',
-      description: 'Configurações da ILPI',
-      icon: Settings,
-      onClick: () => navigate('/dashboard/settings'),
+      title: 'Agenda de Hoje',
+      description: 'Ver medicamentos e agendamentos',
+      icon: Calendar,
+      onClick: () => navigate('/dashboard/agenda'),
       disabled: false,
     },
   ]
