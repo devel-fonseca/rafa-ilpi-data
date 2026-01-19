@@ -44,15 +44,6 @@ export function DashboardLayout() {
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
 
-  // Debug: log tenant info
-  React.useEffect(() => {
-    console.log('[DashboardLayout] User tenant info:', {
-      tradeName: user?.tenant?.profile?.tradeName,
-      name: user?.tenant?.name,
-      fullTenant: user?.tenant,
-    })
-  }, [user])
-
   // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)

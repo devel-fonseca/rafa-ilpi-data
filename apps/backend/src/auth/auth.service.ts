@@ -246,15 +246,10 @@ export class AuthService {
 
         if (!user) return null;
 
-        // Buscar dados do tenant no public schema
+        // Buscar dados do tenant no public schema (tenant + subscriptions)
         const fullTenant = await this.prisma.tenant.findUnique({
           where: { id: tenant.id },
           include: {
-            profile: {
-              select: {
-                tradeName: true,
-              },
-            },
             subscriptions: {
               include: { plan: true },
               where: {
@@ -270,9 +265,21 @@ export class AuthService {
           },
         });
 
+        // Buscar profile no schema do tenant (cross-schema)
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName);
+        const tenantProfile = await tenantClient.tenantProfile.findUnique({
+          where: { tenantId: tenant.id },
+          select: {
+            tradeName: true,
+          },
+        });
+
         return {
           ...user,
-          tenant: fullTenant,
+          tenant: {
+            ...fullTenant,
+            profile: tenantProfile,
+          },
         };
       } catch (error) {
         console.error(`Erro ao buscar user em ${tenant.schemaName}:`, error.message);
