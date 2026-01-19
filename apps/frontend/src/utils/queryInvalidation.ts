@@ -203,8 +203,10 @@ export function invalidateAfterDailyRecordMutation(
   console.log('🔄 Invalidando queries caregiver-tasks')
   queryClient.invalidateQueries({
     predicate: (query) => {
-      const shouldInvalidate = Array.isArray(query.queryKey) &&
-        query.queryKey[0] === 'caregiver-tasks'
+      const queryKey = query.queryKey as unknown[]
+      const shouldInvalidate = queryKey.some(k =>
+        typeof k === 'string' && k === 'caregiver-tasks'
+      )
       if (shouldInvalidate) {
         console.log('✅ Invalidando query:', query.queryKey)
       }
