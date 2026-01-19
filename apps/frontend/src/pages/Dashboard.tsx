@@ -16,6 +16,12 @@ import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { Page, PageHeader, Section } from '@/design-system/components'
 import { tenantKey } from '@/lib/query-keys'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -161,30 +167,35 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <Section title="Ações Rápidas">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action) => (
-            <Button
-              key={action.title}
-              variant="outline"
-              className="h-[88px] p-4 justify-start hover:shadow-md transition-shadow"
-              onClick={action.onClick}
-              disabled={action.disabled}
-            >
-              <div className="flex items-start gap-3 w-full min-w-0">
-                <action.icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                <div className="text-left min-w-0 flex-1">
-                  <p className="font-medium text-foreground truncate">{action.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{action.description}</p>
-                  {action.disabled && (
-                    <span className="text-xs text-warning mt-1 inline-block">
-                      Em breve
+        <TooltipProvider>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action) => (
+              <Tooltip key={action.title}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-20 p-4 flex-col gap-2 hover:shadow-md transition-shadow"
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                  >
+                    <action.icon className="h-6 w-6 text-primary" />
+                    <span className="font-medium text-sm text-center">
+                      {action.title}
                     </span>
-                  )}
-                </div>
-              </div>
-            </Button>
-          ))}
-        </div>
+                    {action.disabled && (
+                      <span className="text-xs text-warning">
+                        Em breve
+                      </span>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{action.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
       </Section>
 
       {/* Activities Grid - Recent & Pending */}
