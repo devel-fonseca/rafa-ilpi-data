@@ -63,8 +63,12 @@ export function useResidentAlerts() {
       return birthMonth === currentMonth
     })
 
-    const thirtyDaysAgo = new Date()
+    // Normalizar thirtyDaysAgo para meia-noite (remover horas/minutos/segundos)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const thirtyDaysAgo = new Date(today)
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
     const recentAdmissions = residents.filter((r) => {
       if (!r.admissionDate) return false
       // Usar extractDateOnly para evitar problemas de timezone (padrão DATETIME_STANDARD.md)
