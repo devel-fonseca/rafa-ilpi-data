@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,6 +15,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
 import { IncidentInterceptorService } from './incident-interceptor.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { DailyRecordCreatedEvent } from '../sentinel-events/events/daily-record-created.event';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { localToUTC } from '../utils/date.helpers';
@@ -24,6 +26,9 @@ import {
   IncidentSubtypeClinical,
   IncidentSubtypeAssistencial,
   IncidentSubtypeAdministrativa,
+  SystemNotificationType,
+  NotificationCategory,
+  NotificationSeverity,
   Prisma,
 } from '@prisma/client';
 
@@ -36,6 +41,8 @@ export class DailyRecordsService {
     private readonly incidentInterceptorService: IncidentInterceptorService,
     private readonly eventEmitter: EventEmitter2,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(dto: CreateDailyRecordDto, userId: string) {
@@ -105,6 +112,66 @@ export class DailyRecordsService {
       tenantId: this.tenantContext.tenantId,
       userId,
     });
+
+    // NOTIFICAÇÃO DE INTERCORRÊNCIA MANUAL
+    // Se o registro for do tipo INTERCORRENCIA (registro manual de intercorrência)
+    // criar notificação para o tenant
+    if (dto.type === 'INTERCORRENCIA') {
+      try {
+        // Mapear severidade do incident para severidade da notificação
+        const notificationSeverity =
+          dto.incidentSeverity === IncidentSeverity.GRAVE
+            ? NotificationSeverity.CRITICAL
+            : dto.incidentSeverity === IncidentSeverity.MODERADA
+              ? NotificationSeverity.WARNING
+              : NotificationSeverity.INFO;
+
+        // Construir mensagem baseada na categoria e subtipo
+        let description = 'Intercorrência registrada';
+        if (dto.incidentCategory === IncidentCategory.CLINICA && dto.incidentSubtypeClinical) {
+          description = `${dto.incidentSubtypeClinical}`;
+        } else if (dto.incidentCategory === IncidentCategory.ASSISTENCIAL && dto.incidentSubtypeAssist) {
+          description = `${dto.incidentSubtypeAssist}`;
+        } else if (dto.incidentCategory === IncidentCategory.ADMINISTRATIVA && dto.incidentSubtypeAdmin) {
+          description = `${dto.incidentSubtypeAdmin}`;
+        }
+
+        // Criar notificação
+        await this.notificationsService.createForTenant(this.tenantContext.tenantId, {
+          type: SystemNotificationType.INCIDENT_CREATED,
+          category: NotificationCategory.INCIDENT,
+          severity: notificationSeverity,
+          title: 'Intercorrência Registrada',
+          message: `${resident.fullName}: ${description}`,
+          actionUrl: `/dashboard/registros-diarios`,
+          entityType: 'DAILY_RECORD',
+          entityId: record.id,
+          metadata: {
+            residentId: dto.residentId,
+            residentName: resident.fullName,
+            category: dto.incidentCategory,
+            subtypeClinical: dto.incidentSubtypeClinical,
+            subtypeAssist: dto.incidentSubtypeAssist,
+            subtypeAdmin: dto.incidentSubtypeAdmin,
+            severity: dto.incidentSeverity,
+            isEventoSentinela: dto.isEventoSentinela,
+            deteccaoAutomatica: false,
+          },
+        });
+
+        this.logger.info('Notificação de intercorrência manual criada', {
+          recordId: record.id,
+          residentName: resident.fullName,
+        });
+      } catch (notificationError) {
+        this.logger.error('Erro ao criar notificação de intercorrência manual', {
+          error: notificationError instanceof Error ? notificationError.message : String(notificationError),
+          stack: notificationError instanceof Error ? notificationError.stack : undefined,
+          recordId: record.id,
+        });
+        // Não propagar o erro - o registro já foi criado com sucesso
+      }
+    }
 
     // DETECÇÃO AUTOMÁTICA DE INTERCORRÊNCIAS (RDC 502/2021)
     // Analisar o registro para detectar padrões que indiquem intercorrências
