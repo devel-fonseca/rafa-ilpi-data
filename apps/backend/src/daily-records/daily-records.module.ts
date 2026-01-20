@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 import { EventsModule } from '../events/events.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Module({
   imports: [
@@ -16,17 +18,18 @@ import { EventsModule } from '../events/events.module';
     VitalSignsModule,
     EventEmitterModule,
     forwardRef(() => EventsModule),
+    forwardRef(() => NotificationsModule),
   ],
   controllers: [DailyRecordsController],
   providers: [
     DailyRecordsService,
     {
       provide: IncidentInterceptorService,
-      useFactory: (prisma) => {
-        const service = new IncidentInterceptorService(prisma);
+      useFactory: (prisma, notificationsService) => {
+        const service = new IncidentInterceptorService(prisma, notificationsService);
         return service;
       },
-      inject: [PrismaService],
+      inject: [PrismaService, NotificationsService],
     },
   ],
   exports: [DailyRecordsService],

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   DailyRecord,
   IncidentCategory,
@@ -7,6 +8,9 @@ import {
   IncidentSubtypeAssistencial,
   IncidentSeverity,
   RdcIndicatorType,
+  NotificationCategory,
+  NotificationSeverity,
+  SystemNotificationType,
 } from '@prisma/client';
 
 /**
@@ -25,6 +29,8 @@ export class IncidentInterceptorService {
 
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED e obter tenant client
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -526,6 +532,58 @@ export class IncidentInterceptorService {
       isEventoSentinela,
       incidentRecordId: incidentRecord.id,
     });
+
+    // Buscar dados do residente para criar notificação
+    try {
+      const resident = await tenantClient.resident.findUnique({
+        where: { id: residentId },
+        select: { fullName: true },
+      });
+
+      if (resident) {
+        // Mapear severidade do incident para severidade da notificação
+        const notificationSeverity =
+          severity === IncidentSeverity.GRAVE
+            ? NotificationSeverity.CRITICAL
+            : severity === IncidentSeverity.MODERADA
+              ? NotificationSeverity.WARNING
+              : NotificationSeverity.INFO;
+
+        // Criar notificação sobre a intercorrência
+        await this.notificationsService.createForTenant(tenantId, {
+          type: SystemNotificationType.INCIDENT_CREATED,
+          category: NotificationCategory.INCIDENT,
+          severity: notificationSeverity,
+          title: 'Intercorrência Detectada Automaticamente',
+          message: `${resident.fullName}: ${description}`,
+          actionUrl: `/dashboard/registros-diarios`,
+          entityType: 'DAILY_RECORD',
+          entityId: incidentRecord.id,
+          metadata: {
+            residentId,
+            residentName: resident.fullName,
+            category,
+            subtypeClinical,
+            subtypeAssist,
+            severity,
+            isEventoSentinela,
+            deteccaoAutomatica: true,
+          },
+        });
+
+        this.logger.log('Notificação de intercorrência criada', {
+          incidentRecordId: incidentRecord.id,
+          residentName: resident.fullName,
+        });
+      }
+    } catch (notificationError) {
+      this.logger.error('Erro ao criar notificação de intercorrência', {
+        error: notificationError.message,
+        stack: notificationError.stack,
+        incidentRecordId: incidentRecord.id,
+      });
+      // Não propagar o erro - a intercorrência já foi criada com sucesso
+    }
 
     // Nota: O workflow de Evento Sentinela é processado automaticamente pelo
     // SentinelEventsService via @OnEvent('daily-record.created')
