@@ -153,13 +153,12 @@ export function useCreateClinicalNote() {
 
   return useMutation({
     mutationFn: (data: CreateClinicalNoteDto) => createClinicalNote(data),
-    onSuccess: (newNote) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes') })
+    onSuccess: () => {
+      // Invalidar todas as queries de clinical notes (usa partial match, então pega todas as variações)
       queryClient.invalidateQueries({
-        queryKey: tenantKey('clinical-notes', 'resident', newNote.residentId),
+        queryKey: tenantKey('clinical-notes'),
+        exact: false  // Permite partial match - invalida todas as queries que começam com este prefixo
       })
-      queryClient.invalidateQueries({ queryKey: tenantKey('clinical-notes', 'tags') })
 
       toast.success('Evolução clínica criada com sucesso')
     },
