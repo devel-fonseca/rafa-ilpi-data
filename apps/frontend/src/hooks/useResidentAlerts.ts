@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useResidents } from './useResidents'
 import type { Resident } from '@/api/residents.api'
 import { extractDateOnly } from '@/utils/dateHelpers'
+import { subDays } from 'date-fns'
 
 export interface ResidentAlert {
   type: 'critical' | 'warning' | 'info'
@@ -73,8 +74,7 @@ export function useResidentAlerts() {
     // Isso garante comparação justa: "2025-11-10 00:00" vs "2025-12-20 00:00" (sem considerar horas)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const thirtyDaysAgo = new Date(today)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const thirtyDaysAgo = subDays(today, 30)
 
     const recentAdmissions = residents.filter((r) => {
       if (!r.admissionDate) return false
