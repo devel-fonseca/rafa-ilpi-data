@@ -83,21 +83,34 @@ export class ValidationController {
   <title>Validação de Documento - Rafa ILPI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    /* Design System Rafa ILPI - Cores Hospital-Grade */
+    /* Rafa Labs Brand Kit - Design System Oficial */
     :root {
-      --primary: hsl(210, 90%, 45%);
-      --primary-foreground: hsl(210, 40%, 98%);
-      --secondary: hsl(174, 55%, 38%);
-      --success: hsl(158, 60%, 34%);
+      /* Cores Primárias */
+      --primary: #0f172a;           /* Azul Marinho */
+      --primary-foreground: #ffffff;
+      --secondary: #059669;         /* Verde */
+      --accent: #06b6d4;            /* Ciano */
+
+      /* Cores de Feedback */
+      --success: #059669;           /* Verde */
       --danger: hsl(0, 72%, 48%);
       --warning: hsl(38, 92%, 45%);
-      --muted: hsl(210, 40%, 96%);
-      --muted-foreground: hsl(215, 16%, 47%);
-      --border: hsl(214, 32%, 91%);
-      --background: hsl(0, 0%, 100%);
-      --foreground: hsl(222, 47%, 11%);
+
+      /* Cores Neutras */
+      --gray-50: #f8fafc;           /* Cinza Claro */
+      --gray-500: #64748b;          /* Cinza Médio */
+      --gray-700: #334155;          /* Cinza Escuro */
+      --muted: #f8fafc;
+      --muted-foreground: #64748b;
+      --border: #e2e8f0;
+      --background: #ffffff;
+      --foreground: #0f172a;
+
+      /* Tipografia */
+      --font-heading: 'Playfair Display', serif;
+      --font-body: 'DM Sans', sans-serif;
     }
 
     * {
@@ -107,8 +120,8 @@ export class ValidationController {
     }
 
     body {
-      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-      background: linear-gradient(135deg, hsl(210, 40%, 98%) 0%, hsl(210, 30%, 94%) 100%);
+      font-family: var(--font-body);
+      background: linear-gradient(135deg, var(--gray-50) 0%, #e2e8f0 100%);
       color: var(--foreground);
       min-height: 100vh;
       display: flex;
@@ -133,9 +146,27 @@ export class ValidationController {
       color: var(--primary-foreground);
       padding: 2.5rem 2rem;
       text-align: center;
+      position: relative;
+    }
+
+    .brand-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo-text {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 600;
+      opacity: 0.85;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
     .logo {
+      font-family: var(--font-heading);
       font-size: 2.5rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
@@ -143,6 +174,7 @@ export class ValidationController {
     }
 
     .logo-subtitle {
+      font-family: var(--font-body);
       font-size: 0.875rem;
       opacity: 0.9;
       font-weight: 500;
@@ -173,6 +205,7 @@ export class ValidationController {
     }
 
     h1 {
+      font-family: var(--font-heading);
       font-size: 1.875rem;
       font-weight: 700;
       color: var(--foreground);
@@ -181,6 +214,7 @@ export class ValidationController {
     }
 
     h2 {
+      font-family: var(--font-heading);
       font-size: 1.25rem;
       font-weight: 600;
       color: var(--muted-foreground);
@@ -216,7 +250,7 @@ export class ValidationController {
 
     .registry {
       font-size: 0.875rem;
-      color: var(--secondary);
+      color: var(--accent);
       font-weight: 600;
       margin-top: 0.25rem;
     }
@@ -312,8 +346,11 @@ export class ValidationController {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">RAFA ILPI</div>
-      <div class="logo-subtitle">Sistema de Gestão para Instituições de Longa Permanência</div>
+      <div class="brand-container">
+        <div class="brand-logo-text">Rafa Labs</div>
+        <div class="logo">RAFA ILPI</div>
+        <div class="logo-subtitle">Sistema de Gestão para Instituições de Longa Permanência</div>
+      </div>
     </div>
 
     <div class="content">
@@ -419,8 +456,8 @@ export class ValidationController {
     }
 
     body {
-      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-      background: linear-gradient(135deg, hsl(210, 40%, 98%) 0%, hsl(210, 30%, 94%) 100%);
+      font-family: var(--font-body);
+      background: linear-gradient(135deg, var(--gray-50) 0%, #e2e8f0 100%);
       color: var(--foreground);
       min-height: 100vh;
       display: flex;
@@ -445,9 +482,27 @@ export class ValidationController {
       color: var(--primary-foreground);
       padding: 2.5rem 2rem;
       text-align: center;
+      position: relative;
+    }
+
+    .brand-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo-text {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 600;
+      opacity: 0.85;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
     .logo {
+      font-family: var(--font-heading);
       font-size: 2.5rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
@@ -455,6 +510,7 @@ export class ValidationController {
     }
 
     .logo-subtitle {
+      font-family: var(--font-body);
       font-size: 0.875rem;
       opacity: 0.9;
       font-weight: 500;
@@ -546,8 +602,11 @@ export class ValidationController {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">RAFA ILPI</div>
-      <div class="logo-subtitle">Sistema de Gestão para Instituições de Longa Permanência</div>
+      <div class="brand-container">
+        <div class="brand-logo-text">Rafa Labs</div>
+        <div class="logo">RAFA ILPI</div>
+        <div class="logo-subtitle">Sistema de Gestão para Instituições de Longa Permanência</div>
+      </div>
     </div>
 
     <div class="content">
