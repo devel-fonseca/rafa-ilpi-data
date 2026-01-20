@@ -63,7 +63,14 @@ export function useResidentAlerts() {
       return birthMonth === currentMonth
     })
 
+    // 📅 ADMISSÕES RECENTES
+    // IMPORTANTE: Este alerta usa admissionDate (data de entrada na ILPI), não createdAt (data de cadastro no sistema).
+    // Isso permite cadastrar residentes com datas retroativas para digitalização de registros históricos.
+    // Exemplo: Um residente admitido em 2025-11-10 mas cadastrado hoje não aparecerá neste alerta.
+    // Para ver cadastros recentes (independente da data de admissão), use "Residentes Recentes" que ordena por createdAt.
+
     // Normalizar thirtyDaysAgo para meia-noite (remover horas/minutos/segundos)
+    // Isso garante comparação justa: "2025-11-10 00:00" vs "2025-12-20 00:00" (sem considerar horas)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const thirtyDaysAgo = new Date(today)

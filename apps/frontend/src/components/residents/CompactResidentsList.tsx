@@ -16,7 +16,10 @@ interface CompactResidentsListProps {
 export function CompactResidentsList({ residents, title = 'Residentes Recentes', limit = 10 }: CompactResidentsListProps) {
   const navigate = useNavigate()
 
-  // Ordenar por data de criação (mais recentes primeiro)
+  // 📅 RESIDENTES RECENTES
+  // IMPORTANTE: Ordenamos por createdAt (data de cadastro no sistema), não por admissionDate.
+  // Isso mostra os residentes cadastrados mais recentemente, independente de quando foram admitidos na ILPI.
+  // Para ver apenas admissões recentes (últimos 30 dias por admissionDate), use o alerta "Admissões recentes".
   const sortedResidents = [...residents]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limit)
@@ -86,7 +89,7 @@ export function CompactResidentsList({ residents, title = 'Residentes Recentes',
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
                     {resident.bedId ? (
                       <span className="text-xs text-muted-foreground font-mono">
-                        {formatBedFromResident(resident)}
+                        {formatBedFromResident(resident as Record<string, unknown>)}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Sem leito</span>
