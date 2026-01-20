@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, GitBranch } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -340,6 +340,7 @@ export function DashboardLayout() {
 
             <TooltipProvider>
               {/* Menu Items */}
+              {/* Dashboard */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
@@ -357,6 +358,10 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
+              {/* Separator 1 */}
+              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
+
+              {/* Agenda */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
@@ -374,25 +379,7 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              {canViewCompliance && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/conformidade"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Activity className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Hub de Conformidade'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Hub de Conformidade</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
+              {/* Residentes */}
               {canManageResidents && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -403,161 +390,16 @@ export function DashboardLayout() {
                       }`}
                     >
                       <Users className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Gestão de Residentes'}
+                      {!preferences.sidebarCollapsed && 'Residentes'}
                     </Link>
                   </TooltipTrigger>
                   {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Gestão de Residentes</TooltipContent>
+                    <TooltipContent side="right">Residentes</TooltipContent>
                   )}
                 </Tooltip>
               )}
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/registros-diarios"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <ClipboardList className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Registros Diários'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Registros Diários</TooltipContent>
-                )}
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/prescricoes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Pill className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Prescrições'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Prescrições</TooltipContent>
-                )}
-              </Tooltip>
-
-              {canViewPops && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/pops"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <FileText className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'POPs'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">POPs</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {canViewContracts && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/contratos"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <FileSignature className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Contratos'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Contratos</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {canViewMessages && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/mensagens"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Mail className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Mensagens'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Mensagens</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    to="/dashboard/notificacoes"
-                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                      preferences.sidebarCollapsed ? 'justify-center' : ''
-                    }`}
-                  >
-                    <Bell className="h-4 w-4 flex-shrink-0" />
-                    {!preferences.sidebarCollapsed && 'Notificações'}
-                  </Link>
-                </TooltipTrigger>
-                {preferences.sidebarCollapsed && (
-                  <TooltipContent side="right">Notificações</TooltipContent>
-                )}
-              </Tooltip>
-
-              {hasFeature('gestao_leitos') && canManageInfrastructure && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/beds/management"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <GitBranch className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Gestão de Leitos'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Gestão de Leitos</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
-              {canManageInfrastructure && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/beds/structure"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Building2 className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Estrutura de Leitos'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Estrutura de Leitos</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
+              {/* Mapa de Ocupação */}
               {hasFeature('mapa_leitos') && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -577,6 +419,106 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
+              {/* Prescrições */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/dashboard/prescricoes"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <Pill className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Prescrições'}
+                  </Link>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Prescrições</TooltipContent>
+                )}
+              </Tooltip>
+
+              {/* Registros Diários */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/dashboard/registros-diarios"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <ClipboardList className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Registros Diários'}
+                  </Link>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Registros Diários</TooltipContent>
+                )}
+              </Tooltip>
+
+              {/* Separator 2 */}
+              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
+
+              {/* Contratos */}
+              {canViewContracts && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/contratos"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <FileSignature className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Contratos'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Contratos</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
+              {/* Leitos (antiga Gestão de Leitos, agora usando ícone Building2) */}
+              {hasFeature('gestao_leitos') && canManageInfrastructure && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/beds/management"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Building2 className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Leitos'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Leitos</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
+              {/* Hub de Conformidade */}
+              {canViewCompliance && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/conformidade"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Activity className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Hub de Conformidade'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Hub de Conformidade</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
+              {/* Perfil Institucional */}
               {canViewInstitutionalProfile && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -596,9 +538,91 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
-              {/* Separator */}
-              <div className="border-t my-2" />
+              {/* POPs */}
+              {canViewPops && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/pops"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'POPs'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">POPs</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
 
+              {/* Usuários (antiga Gerenciar Usuários) */}
+              {user?.role?.toUpperCase() === 'ADMIN' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/usuarios"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Shield className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Usuários'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Usuários</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
+              {/* Separator 3 */}
+              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
+
+              {/* Mensagens */}
+              {canViewMessages && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/mensagens"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Mensagens'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Mensagens</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
+              {/* Notificações */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/dashboard/notificacoes"
+                    className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                      preferences.sidebarCollapsed ? 'justify-center' : ''
+                    }`}
+                  >
+                    <Bell className="h-4 w-4 flex-shrink-0" />
+                    {!preferences.sidebarCollapsed && 'Notificações'}
+                  </Link>
+                </TooltipTrigger>
+                {preferences.sidebarCollapsed && (
+                  <TooltipContent side="right">Notificações</TooltipContent>
+                )}
+              </Tooltip>
+
+              {/* Separator 4 */}
+              {!preferences.sidebarCollapsed && <div className="border-t my-2" />}
+
+              {/* Meu Perfil */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
@@ -616,25 +640,7 @@ export function DashboardLayout() {
                 )}
               </Tooltip>
 
-              {user?.role?.toUpperCase() === 'ADMIN' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/dashboard/usuarios"
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
-                        preferences.sidebarCollapsed ? 'justify-center' : ''
-                      }`}
-                    >
-                      <Shield className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Gerenciar Usuários'}
-                    </Link>
-                  </TooltipTrigger>
-                  {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Gerenciar Usuários</TooltipContent>
-                  )}
-                </Tooltip>
-              )}
-
+              {/* Sair */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -659,6 +665,7 @@ export function DashboardLayout() {
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
           <SheetContent side="left" className="w-64 p-0 md:hidden">
             <nav className="p-4 space-y-1">
+              {/* Dashboard */}
               <Link
                 to="/dashboard"
                 onClick={() => setIsSidebarOpen(false)}
@@ -667,6 +674,11 @@ export function DashboardLayout() {
                 <Home className="h-4 w-4" />
                 Dashboard
               </Link>
+
+              {/* Separator 1 */}
+              <div className="border-t my-2" />
+
+              {/* Agenda */}
               <Link
                 to="/dashboard/agenda"
                 onClick={() => setIsSidebarOpen(false)}
@@ -675,16 +687,8 @@ export function DashboardLayout() {
                 <Calendar className="h-4 w-4" />
                 Agenda
               </Link>
-              {canViewCompliance && (
-                <Link
-                  to="/dashboard/conformidade"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Activity className="h-4 w-4" />
-                  Hub de Conformidade
-                </Link>
-              )}
+
+              {/* Residentes */}
               {canManageResidents && (
                 <Link
                   to="/dashboard/residentes-hub"
@@ -692,83 +696,11 @@ export function DashboardLayout() {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <Users className="h-4 w-4" />
-                  Gestão de Residentes
+                  Residentes
                 </Link>
               )}
-              <Link
-                to="/dashboard/registros-diarios"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <ClipboardList className="h-4 w-4" />
-                Registros Diários
-              </Link>
-              <Link
-                to="/dashboard/prescricoes"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Pill className="h-4 w-4" />
-                Prescrições
-              </Link>
-              {canViewPops && (
-                <Link
-                  to="/dashboard/pops"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FileText className="h-4 w-4" />
-                  POPs
-                </Link>
-              )}
-              {canViewContracts && (
-                <Link
-                  to="/dashboard/contratos"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FileSignature className="h-4 w-4" />
-                  Contratos
-                </Link>
-              )}
-              {canViewMessages && (
-                <Link
-                  to="/dashboard/mensagens"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Mail className="h-4 w-4" />
-                  Mensagens
-                </Link>
-              )}
-              <Link
-                to="/dashboard/notificacoes"
-                onClick={() => setIsSidebarOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-              >
-                <Bell className="h-4 w-4" />
-                Notificações
-              </Link>
-              {hasFeature('gestao_leitos') && canManageInfrastructure && (
-                <Link
-                  to="/dashboard/beds/management"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <GitBranch className="h-4 w-4" />
-                  Gestão de Leitos
-                </Link>
-              )}
-              {canManageInfrastructure && (
-                <Link
-                  to="/dashboard/beds/structure"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Building2 className="h-4 w-4" />
-                  Estrutura de Leitos
-                </Link>
-              )}
+
+              {/* Mapa de Ocupação */}
               {hasFeature('mapa_leitos') && (
                 <Link
                   to="/dashboard/beds/map"
@@ -779,6 +711,67 @@ export function DashboardLayout() {
                   Mapa de Ocupação
                 </Link>
               )}
+
+              {/* Prescrições */}
+              <Link
+                to="/dashboard/prescricoes"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <Pill className="h-4 w-4" />
+                Prescrições
+              </Link>
+
+              {/* Registros Diários */}
+              <Link
+                to="/dashboard/registros-diarios"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Registros Diários
+              </Link>
+
+              {/* Separator 2 */}
+              <div className="border-t my-2" />
+
+              {/* Contratos */}
+              {canViewContracts && (
+                <Link
+                  to="/dashboard/contratos"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <FileSignature className="h-4 w-4" />
+                  Contratos
+                </Link>
+              )}
+
+              {/* Leitos */}
+              {hasFeature('gestao_leitos') && canManageInfrastructure && (
+                <Link
+                  to="/dashboard/beds/management"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Building2 className="h-4 w-4" />
+                  Leitos
+                </Link>
+              )}
+
+              {/* Hub de Conformidade */}
+              {canViewCompliance && (
+                <Link
+                  to="/dashboard/conformidade"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Activity className="h-4 w-4" />
+                  Hub de Conformidade
+                </Link>
+              )}
+
+              {/* Perfil Institucional */}
               {canViewInstitutionalProfile && (
                 <Link
                   to="/dashboard/perfil-institucional"
@@ -790,9 +783,59 @@ export function DashboardLayout() {
                 </Link>
               )}
 
-              {/* Separator */}
+              {/* POPs */}
+              {canViewPops && (
+                <Link
+                  to="/dashboard/pops"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  POPs
+                </Link>
+              )}
+
+              {/* Usuários */}
+              {user?.role?.toUpperCase() === 'ADMIN' && (
+                <Link
+                  to="/dashboard/usuarios"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Shield className="h-4 w-4" />
+                  Usuários
+                </Link>
+              )}
+
+              {/* Separator 3 */}
               <div className="border-t my-2" />
 
+              {/* Mensagens */}
+              {canViewMessages && (
+                <Link
+                  to="/dashboard/mensagens"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  Mensagens
+                </Link>
+              )}
+
+              {/* Notificações */}
+              <Link
+                to="/dashboard/notificacoes"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                Notificações
+              </Link>
+
+              {/* Separator 4 */}
+              <div className="border-t my-2" />
+
+              {/* Meu Perfil */}
               <Link
                 to="/dashboard/meu-perfil"
                 onClick={() => setIsSidebarOpen(false)}
@@ -802,17 +845,7 @@ export function DashboardLayout() {
                 Meu Perfil
               </Link>
 
-              {user?.role?.toUpperCase() === 'ADMIN' && (
-                <Link
-                  to="/dashboard/usuarios"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                >
-                  <Shield className="h-4 w-4" />
-                  Gerenciar Usuários
-                </Link>
-              )}
-
+              {/* Sair */}
               <button
                 onClick={() => {
                   setIsSidebarOpen(false)
