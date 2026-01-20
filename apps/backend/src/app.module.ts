@@ -57,6 +57,7 @@ import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
 import { ComplianceModule } from './compliance/compliance.module';
 import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
 import { EventsModule } from './events/events.module';
+import { ValidationModule } from './validation/validation.module';
 
 @Module({
   imports: [
@@ -146,6 +147,9 @@ import { EventsModule } from './events/events.module';
 
     // Onboarding
     TenantProfileModule,
+
+    // Validação pública de documentos
+    ValidationModule,
   ],
   providers: [
     // Guard global - todas as rotas requerem autenticação por padrão

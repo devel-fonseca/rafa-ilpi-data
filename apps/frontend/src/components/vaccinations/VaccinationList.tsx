@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { formatDateLongSafe, extractDateOnly } from '@/utils/dateHelpers'
-import { Trash2, Edit2, Plus, ExternalLink, Loader2, Printer, ShieldAlert } from 'lucide-react'
+import { Trash2, Edit2, Plus, Eye, Loader2, Printer, ShieldAlert } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { toast } from 'sonner'
+import { api } from '@/services/api'
 import { useVaccinationsByResident, Vaccination } from '@/hooks/useVaccinations'
 import { useDeleteVaccination } from '@/hooks/useVaccinationVersioning'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
@@ -91,6 +93,16 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
 
   const handleFormSuccess = () => {
     handleFormClose()
+  }
+
+  const handleViewCertificate = async (filePath: string) => {
+    try {
+      const response = await api.get<{ url: string }>(`/files/download/${filePath}`)
+      window.open(response.data.url, '_blank')
+    } catch (error) {
+      toast.error('Erro ao carregar comprovante')
+      console.error('Erro ao buscar URL do arquivo:', error)
+    }
   }
 
   // Sort by date descending (most recent first)
@@ -234,20 +246,18 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
               </div>
 
               {/* Comprovante e Observações */}
-              {(vaccination.certificateUrl || vaccination.notes) && (
+              {((vaccination.processedFileUrl || vaccination.certificateUrl) || vaccination.notes) && (
                 <div className="space-y-2 border-t border-border/50 pt-3 text-xs">
-                  {vaccination.certificateUrl && (
+                  {(vaccination.processedFileUrl || vaccination.certificateUrl) && (
                     <div>
                       <p className="font-medium text-muted-foreground mb-1">Comprovante</p>
-                      <a
-                        href={vaccination.certificateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => handleViewCertificate(vaccination.processedFileUrl || vaccination.certificateUrl!)}
                         className="inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline"
                       >
-                        <ExternalLink className="h-3 w-3" />
-                        Visualizar arquivo
-                      </a>
+                        <Eye className="h-3 w-3" />
+                        Visualizar comprovante
+                      </button>
                     </div>
                   )}
                   {vaccination.notes && (

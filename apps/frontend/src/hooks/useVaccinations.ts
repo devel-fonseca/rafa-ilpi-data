@@ -13,8 +13,25 @@ export interface Vaccination {
   healthUnit: string
   municipality: string
   state: string
-  certificateUrl?: string
+  certificateUrl?: string // DEPRECATED: usar processedFileUrl
   notes?: string
+  // Arquivo original (backup para auditoria)
+  originalFileUrl?: string | null
+  originalFileKey?: string | null
+  originalFileName?: string | null
+  originalFileSize?: number | null
+  originalFileMimeType?: string | null
+  originalFileHash?: string | null
+  // Arquivo processado (PDF com carimbo institucional)
+  processedFileUrl?: string | null
+  processedFileKey?: string | null
+  processedFileName?: string | null
+  processedFileSize?: number | null
+  processedFileHash?: string | null
+  // Token público para validação
+  publicToken?: string | null
+  // Metadados do processamento
+  processingMetadata?: Record<string, unknown> | null
   createdAt: string
   updatedAt: string
   resident?: {

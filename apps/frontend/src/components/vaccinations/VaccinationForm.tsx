@@ -15,7 +15,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { uploadFile } from '@/services/upload'
+import { api } from '@/services/api'
+import { vaccinationsAPI } from '@/api/vaccinations.api'
 import { useCreateVaccination, useUpdateVaccination, CreateVaccinationInput, UpdateVaccinationInput, Vaccination } from '@/hooks/useVaccinations'
 import { getCurrentDate } from '@/utils/dateHelpers'
 
@@ -52,8 +53,9 @@ export function VaccinationForm({
   onSuccess,
 }: VaccinationFormProps) {
   const [isUploadingCertificate, setIsUploadingCertificate] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [certificateUrl, setCertificateUrl] = useState<string | undefined>(
-    vaccination?.certificateUrl,
+    vaccination?.processedFileUrl || vaccination?.certificateUrl,
   )
 
   const createMutation = useCreateVaccination()
@@ -65,7 +67,6 @@ export function VaccinationForm({
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
   } = useForm<VaccinationFormData>({
     resolver: zodResolver(vaccinationSchema),
     defaultValues: vaccination
@@ -87,42 +88,74 @@ export function VaccinationForm({
         },
   })
 
-  const handleCertificateUpload = async (
+  const handleCertificateSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Validar tamanho (máximo 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('Arquivo muito grande (máximo 10MB)')
+      return
+    }
+
+    // Validar formato
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Formato inválido. Permitidos: JPG, PNG, WEBP, PDF')
+      return
+    }
+
+    setSelectedFile(file)
+    toast.success('Arquivo selecionado. Será processado após o registro.')
+  }
+
+  const handleViewCertificate = async (filePath: string) => {
     try {
-      setIsUploadingCertificate(true)
-      const url = await uploadFile(file, 'vaccinations', residentId)
-      setCertificateUrl(url)
-      setValue('certificateUrl', url)
-      toast.success('Comprovante carregado com sucesso')
+      const response = await api.get<{ url: string }>(`/files/download/${filePath}`)
+      window.open(response.data.url, '_blank')
     } catch (error) {
-      toast.error('Erro ao fazer upload do comprovante')
-      console.error(error)
-    } finally {
-      setIsUploadingCertificate(false)
+      toast.error('Erro ao carregar comprovante')
+      console.error('Erro ao buscar URL do arquivo:', error)
     }
   }
 
   const onSubmit = async (data: VaccinationFormData) => {
     try {
       if (vaccination) {
+        // Modo edição: atualizar vacinação
         await updateMutation.mutateAsync({
           id: vaccination.id,
           data: data as UpdateVaccinationInput,
         })
         toast.success('Vacinação atualizada com sucesso')
       } else {
-        await createMutation.mutateAsync({
+        // Modo criação: criar vacinação e fazer upload do comprovante
+        const createdVaccination = await createMutation.mutateAsync({
           ...data,
           residentId,
-          certificateUrl,
         } as CreateVaccinationInput)
-        toast.success('Vacinação registrada com sucesso')
+
+        // Se há arquivo selecionado, fazer upload com processamento
+        if (selectedFile && createdVaccination) {
+          try {
+            setIsUploadingCertificate(true)
+            await vaccinationsAPI.uploadProof(createdVaccination.id, selectedFile)
+            toast.success('Vacinação registrada e comprovante processado com sucesso')
+          } catch (uploadError) {
+            console.error('Erro ao processar comprovante:', uploadError)
+            toast.warning('Vacinação registrada, mas houve erro ao processar o comprovante')
+          } finally {
+            setIsUploadingCertificate(false)
+          }
+        } else {
+          toast.success('Vacinação registrada com sucesso')
+        }
+
         reset()
+        setSelectedFile(null)
         setCertificateUrl(undefined)
       }
       onOpenChange(false)
@@ -271,27 +304,31 @@ export function VaccinationForm({
 
           {/* Campo 10: Comprovante */}
           <div>
-            <Label>Comprovante/Certificado</Label>
+            <Label>Comprovante/Certificado (Opcional)</Label>
             <div className="border-2 border-dashed rounded-lg p-4 text-center">
-              {certificateUrl ? (
+              {certificateUrl && !selectedFile ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-success font-medium">✓ Comprovante carregado</p>
-                  <a
-                    href={certificateUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <p className="text-sm text-success font-medium">✓ Comprovante disponível</p>
+                  <button
+                    type="button"
+                    onClick={() => handleViewCertificate(certificateUrl)}
                     className="text-sm text-primary hover:text-primary/80 hover:underline"
                   >
-                    Visualizar arquivo
-                  </a>
+                    Visualizar comprovante
+                  </button>
+                </div>
+              ) : selectedFile ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-success font-medium">✓ Arquivo selecionado</p>
+                  <p className="text-xs text-muted-foreground">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </p>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setCertificateUrl(undefined)
-                      setValue('certificateUrl', undefined)
-                    }}
+                    onClick={() => setSelectedFile(null)}
                   >
                     Remover
                   </Button>
@@ -300,21 +337,24 @@ export function VaccinationForm({
                 <label className="cursor-pointer space-y-2">
                   <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Clique para selecionar arquivo (PDF, PNG, JPG)
+                    Clique para selecionar arquivo (PDF, PNG, JPG, WEBP)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Máximo 10MB • Será convertido e carimbado automaticamente
                   </p>
                   <input
                     type="file"
                     className="hidden"
                     accept="image/*,.pdf"
-                    onChange={handleCertificateUpload}
-                    disabled={isUploadingCertificate}
+                    onChange={handleCertificateSelect}
+                    disabled={isUploadingCertificate || isLoading}
                   />
                 </label>
               )}
               {isUploadingCertificate && (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2 mt-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Enviando...</span>
+                  <span className="text-sm">Processando comprovante...</span>
                 </div>
               )}
             </div>

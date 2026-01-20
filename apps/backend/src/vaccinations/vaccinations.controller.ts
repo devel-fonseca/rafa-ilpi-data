@@ -10,7 +10,10 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
 import {
   ApiTags,
   ApiOperation,
@@ -49,6 +52,40 @@ export class VaccinationsController {
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   create(@Body() createDto: CreateVaccinationDto, @CurrentUser() user: JwtPayload) {
     return this.vaccinationsService.create(createDto, user.id)
+  }
+
+  /**
+   * Upload de comprovante de vacinação (imagem ou PDF)
+   *
+   * Processa arquivo (converte imagem → PDF se necessário)
+   * Adiciona carimbo institucional com:
+   * - Dados da ILPI (nome, CNPJ)
+   * - Dados do responsável pelo upload (nome, cargo, registro profissional)
+   * - Hash SHA-256 do arquivo
+   * - Token público para validação
+   *
+   * Armazena:
+   * - Arquivo original (backup para auditoria)
+   * - Arquivo processado (PDF com carimbo institucional)
+   */
+  @Post(':id/proof')
+  @RequirePermissions(PermissionType.UPDATE_VACCINATIONS)
+  @AuditAction('UPDATE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Upload de comprovante de vacinação',
+    description: 'Faz upload de comprovante (imagem ou PDF) e processa com carimbo institucional',
+  })
+  @ApiResponse({ status: 200, description: 'Comprovante processado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido ou ausente' })
+  @ApiResponse({ status: 404, description: 'Vacinação não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
+  uploadProof(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.vaccinationsService.uploadProof(id, file, user)
   }
 
   /**

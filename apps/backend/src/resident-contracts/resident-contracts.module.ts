@@ -8,7 +8,6 @@ import {
   ResidentContractsPublicController,
 } from './resident-contracts.controller';
 import { ResidentContractsService } from './resident-contracts.service';
-import { FileProcessingService } from './file-processing.service';
 
 /**
  * Módulo de digitalização de contratos de prestação de serviços
@@ -48,7 +47,6 @@ import { FileProcessingService } from './file-processing.service';
   ],
   providers: [
     ResidentContractsService,           // Lógica de negócio
-    FileProcessingService,      // Processamento de arquivos
   ],
   exports: [
     ResidentContractsService,           // Exportar para uso em outros módulos (se necessário)

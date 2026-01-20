@@ -9,7 +9,7 @@ import { Readable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
-import { FileProcessingService } from './file-processing.service';
+import { FileProcessingService } from '../files/file-processing.service';
 import { CreateContractDto, SignatoryDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';

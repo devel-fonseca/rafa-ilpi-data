@@ -45,7 +45,7 @@ export class FileProcessingService {
     metadata: StampMetadata,
   ): Promise<ProcessedFileResult> {
     this.logger.log(
-      `🔥 [NOVO CÓDIGO] Processando imagem para contrato ${metadata.publicToken}`,
+      `🔥 Processando imagem com token ${metadata.publicToken}`,
     );
 
     try {
@@ -435,7 +435,7 @@ export class FileProcessingService {
     const line3 = `SHA-256: ${hashPreview}`;
 
     // Linha 4: URL de validação
-    const line4 = `Validar: https://rafa-ilpi.rafalabs.com.br/validar/${metadata.publicToken}`;
+    const line4 = `Validar: https://rafa-ilpi.rafalabs.com.br/api/validar/${metadata.publicToken}`;
 
     return `${line1}\n${line2}\n${line3}\n${line4}`;
   }

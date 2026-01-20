@@ -17,8 +17,25 @@ export interface Vaccination {
   healthUnit: string // Nome do estabelecimento de saúde
   municipality: string // Município
   state: string // UF (2 caracteres)
-  certificateUrl?: string | null // URL do comprovante
+  certificateUrl?: string | null // URL do comprovante - DEPRECATED: usar processedFileUrl
   notes?: string | null // Observações
+  // Arquivo original (backup para auditoria)
+  originalFileUrl?: string | null
+  originalFileKey?: string | null
+  originalFileName?: string | null
+  originalFileSize?: number | null
+  originalFileMimeType?: string | null
+  originalFileHash?: string | null
+  // Arquivo processado (PDF com carimbo institucional)
+  processedFileUrl?: string | null
+  processedFileKey?: string | null
+  processedFileName?: string | null
+  processedFileSize?: number | null
+  processedFileHash?: string | null
+  // Token público para validação
+  publicToken?: string | null
+  // Metadados do processamento
+  processingMetadata?: Record<string, unknown> | null
   // Auditoria
   userId: string
   createdAt: string
@@ -99,6 +116,16 @@ export interface VaccinationHistoryResponse {
 }
 
 /**
+ * Resposta do upload de comprovante processado
+ */
+export interface UploadProofResponse {
+  message: string
+  vaccination: Vaccination
+  publicToken: string
+  validationUrl: string
+}
+
+/**
  * API de Vacinações
  */
 export const vaccinationsAPI = {
@@ -157,6 +184,24 @@ export const vaccinationsAPI = {
    */
   async getHistoryVersion(id: string, version: number): Promise<VaccinationHistoryEntry> {
     const response = await api.get(`/vaccinations/${id}/history/${version}`)
+    return response.data
+  },
+
+  /**
+   * Upload de comprovante de vacinação com processamento institucional
+   *
+   * Envia arquivo (imagem ou PDF) que será:
+   * 1. Convertido para PDF (se for imagem)
+   * 2. Carimbado com dados institucionais
+   * 3. Armazenado com hash SHA-256
+   * 4. Associado a um token público para validação
+   */
+  async uploadProof(vaccinationId: string, file: File): Promise<UploadProofResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    // Não definir Content-Type manualmente - deixar o browser definir com boundary correto
+    const response = await api.post(`/vaccinations/${vaccinationId}/proof`, formData)
     return response.data
   },
 }
