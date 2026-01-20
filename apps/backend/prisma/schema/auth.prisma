@@ -42,6 +42,7 @@ model User {
   dietaryRestrictionsUpdated   DietaryRestriction[]        @relation("DietaryRestrictionUpdater")
   dietaryRestrictionHistory    DietaryRestrictionHistory[] @relation("DietaryRestrictionHistoryUser")
   notificationReads            NotificationRead[] // Rastreamento individual de leitura
+  notificationRecipients       NotificationRecipient[] // Notificações direcionadas para este usuário
   clinicalNoteDocumentsCreated ClinicalNoteDocument[]      @relation("ClinicalNoteDocumentCreator")
 
   // Relações de contratos de residentes (NÃO confundir com ServiceContract de SaaS)

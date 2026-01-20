@@ -35,6 +35,7 @@ model Notification {
   // Relações
   tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   reads                      NotificationRead[] // Rastreamento individual de leitura
+  recipients                 NotificationRecipient[] // Destinatários específicos (vazio = broadcast)
   vitalSignAlerts            VitalSignAlert[] // Alertas médicos vinculados a esta notificação
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
@@ -67,6 +68,26 @@ model NotificationRead {
   @@index([userId, readAt(sort: Desc)]) // Histórico de leituras do usuário
   @@index([notificationId]) // Buscar leituras de uma notificação
   @@map("notification_reads")
+}
+
+// Tabela de destinatários de notificações direcionadas
+// Se uma notificação NÃO tem recipients, é broadcast (todos do tenant veem)
+// Se tem recipients, apenas os usuários listados veem
+model NotificationRecipient {
+  id             String   @id @default(uuid()) @db.Uuid
+  notificationId String   @db.Uuid
+  userId         String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@unique([notificationId, userId]) // Um usuário só pode ser destinatário uma vez
+  @@index([userId, createdAt(sort: Desc)]) // Minhas notificações direcionadas
+  @@index([notificationId]) // Buscar destinatários de uma notificação
+  @@map("notification_recipients")
 }
 
 model SystemAlert {

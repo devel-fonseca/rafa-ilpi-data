@@ -68,12 +68,21 @@ export class NotificationsService {
     const skip = (page - 1) * limit
 
     // Construir filtros base (todas notificações não expiradas)
+    // IMPORTANTE: Filtrar apenas notificações que o usuário pode ver:
+    // 1. Notificações broadcast (sem recipients)
+    // 2. Notificações direcionadas para este userId
     const where: Prisma.NotificationWhereInput = {
       AND: [
         {
           OR: [
             { expiresAt: { gt: new Date() } },
             { expiresAt: null },
+          ],
+        },
+        {
+          OR: [
+            { recipients: { none: {} } }, // Broadcast (sem recipients)
+            { recipients: { some: { userId } } }, // Direcionada para este usuário
           ],
         },
       ],
@@ -171,6 +180,9 @@ export class NotificationsService {
     const readIds = readNotificationIds.map((r) => r.notificationId)
 
     // Contar notificações que NÃO estão na lista de lidas e não expiraram
+    // IMPORTANTE: Filtrar apenas notificações que o usuário pode ver:
+    // 1. Notificações broadcast (sem recipients)
+    // 2. Notificações direcionadas para este userId
     const count = await this.tenantContext.client.notification.count({
       where: {
         id: {
@@ -181,6 +193,12 @@ export class NotificationsService {
             OR: [
               { expiresAt: { gt: new Date() } },
               { expiresAt: null },
+            ],
+          },
+          {
+            OR: [
+              { recipients: { none: {} } }, // Broadcast (sem recipients)
+              { recipients: { some: { userId } } }, // Direcionada para este usuário
             ],
           },
         ],
@@ -635,6 +653,118 @@ export class NotificationsService {
     })
 
     this.logger.log(`Notification created for tenant ${tenantId}: ${notification.id}`)
+    return notification
+  }
+
+  /**
+   * Buscar IDs dos usuários que devem receber notificações de intercorrências:
+   * - Todos usuários com role ADMIN
+   * - Responsável Técnico (TODO: adicionar campo no schema quando implementado)
+   * - Usuário autor da intercorrência (createdByUserId)
+   *
+   * @param tenantId - ID do tenant
+   * @param createdByUserId - ID do usuário que criou a intercorrência
+   * @returns Array de IDs únicos dos destinatários
+   */
+  async getIncidentNotificationRecipients(
+    tenantId: string,
+    createdByUserId: string,
+  ): Promise<string[]> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant ${tenantId} não encontrado`)
+    }
+
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+
+    // Buscar:
+    // 1. Todos ADMINs
+    // 2. Autor (createdByUserId)
+    const users = await tenantClient.user.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { role: 'ADMIN' },
+          { id: createdByUserId },
+        ],
+      },
+      select: { id: true },
+    })
+
+    // Retornar IDs únicos (caso o autor seja ADMIN, não duplicar)
+    const uniqueIds = [...new Set(users.map((u) => u.id))]
+    this.logger.log(
+      `Found ${uniqueIds.length} recipients for incident notification in tenant ${tenantId}`,
+    )
+    return uniqueIds
+  }
+
+  /**
+   * Criar notificação DIRECIONADA para usuários específicos do tenant
+   *
+   * @param tenantId - ID do tenant
+   * @param recipientUserIds - Array de IDs dos usuários que devem receber a notificação
+   * @param dto - Dados da notificação
+   * @returns Notificação criada com recipients
+   */
+  async createDirectedNotification(
+    tenantId: string,
+    recipientUserIds: string[],
+    dto: CreateNotificationDto,
+  ) {
+    // Buscar schema do tenant
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant ${tenantId} não encontrado`)
+    }
+
+    // Obter client do tenant
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+
+    // Criar notificação com recipients em transação
+    const notification = await tenantClient.$transaction(async (prisma) => {
+      // 1. Criar notificação
+      const createdNotification = await prisma.notification.create({
+        data: {
+          tenantId,
+          type: dto.type,
+          category: dto.category,
+          severity: dto.severity,
+          title: dto.title,
+          message: dto.message,
+          actionUrl: dto.actionUrl,
+          entityType: dto.entityType,
+          entityId: dto.entityId,
+          metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
+          expiresAt: dto.expiresAt,
+        },
+      })
+
+      // 2. Criar recipients (destinatários)
+      if (recipientUserIds.length > 0) {
+        await prisma.notificationRecipient.createMany({
+          data: recipientUserIds.map((userId) => ({
+            notificationId: createdNotification.id,
+            userId,
+          })),
+          skipDuplicates: true,
+        })
+      }
+
+      return createdNotification
+    })
+
+    this.logger.log(
+      `Directed notification created for tenant ${tenantId}: ${notification.id} (${recipientUserIds.length} recipients)`,
+    )
     return notification
   }
 

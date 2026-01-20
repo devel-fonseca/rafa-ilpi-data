@@ -533,7 +533,7 @@ export class IncidentInterceptorService {
       incidentRecordId: incidentRecord.id,
     });
 
-    // Buscar dados do residente para criar notificação
+    // Buscar dados do residente e criar notificação DIRECIONADA
     try {
       const resident = await tenantClient.resident.findUnique({
         where: { id: residentId },
@@ -541,6 +541,12 @@ export class IncidentInterceptorService {
       });
 
       if (resident) {
+        // Buscar destinatários (Admin e Autor do registro original)
+        const recipientIds = await this.notificationsService.getIncidentNotificationRecipients(
+          tenantId,
+          userId,
+        );
+
         // Mapear severidade do incident para severidade da notificação
         const notificationSeverity =
           severity === IncidentSeverity.GRAVE
@@ -549,31 +555,36 @@ export class IncidentInterceptorService {
               ? NotificationSeverity.WARNING
               : NotificationSeverity.INFO;
 
-        // Criar notificação sobre a intercorrência
-        await this.notificationsService.createForTenant(tenantId, {
-          type: SystemNotificationType.INCIDENT_CREATED,
-          category: NotificationCategory.INCIDENT,
-          severity: notificationSeverity,
-          title: 'Intercorrência Detectada Automaticamente',
-          message: `${resident.fullName}: ${description}`,
-          actionUrl: `/dashboard/registros-diarios`,
-          entityType: 'DAILY_RECORD',
-          entityId: incidentRecord.id,
-          metadata: {
-            residentId,
-            residentName: resident.fullName,
-            category,
-            subtypeClinical,
-            subtypeAssist,
-            severity,
-            isEventoSentinela,
-            deteccaoAutomatica: true,
+        // Criar notificação DIRECIONADA sobre a intercorrência automática
+        await this.notificationsService.createDirectedNotification(
+          tenantId,
+          recipientIds,
+          {
+            type: SystemNotificationType.INCIDENT_CREATED,
+            category: NotificationCategory.INCIDENT,
+            severity: notificationSeverity,
+            title: 'Intercorrência Detectada Automaticamente',
+            message: `${resident.fullName}: ${description}`,
+            actionUrl: `/dashboard/registros-diarios`,
+            entityType: 'DAILY_RECORD',
+            entityId: incidentRecord.id,
+            metadata: {
+              residentId,
+              residentName: resident.fullName,
+              category,
+              subtypeClinical,
+              subtypeAssist,
+              severity,
+              isEventoSentinela,
+              deteccaoAutomatica: true,
+            },
           },
-        });
+        );
 
-        this.logger.log('Notificação de intercorrência criada', {
+        this.logger.log('Notificação de intercorrência criada (direcionada)', {
           incidentRecordId: incidentRecord.id,
           residentName: resident.fullName,
+          recipientsCount: recipientIds.length,
         });
       }
     } catch (notificationError) {

@@ -115,9 +115,15 @@ export class DailyRecordsService {
 
     // NOTIFICAÇÃO DE INTERCORRÊNCIA MANUAL
     // Se o registro for do tipo INTERCORRENCIA (registro manual de intercorrência)
-    // criar notificação para o tenant
+    // criar notificação DIRECIONADA para Admin, Responsável Técnico e autor
     if (dto.type === 'INTERCORRENCIA') {
       try {
+        // Buscar destinatários (Admin, Responsável Técnico, Autor)
+        const recipientIds = await this.notificationsService.getIncidentNotificationRecipients(
+          this.tenantContext.tenantId,
+          userId,
+        );
+
         // Mapear severidade do incident para severidade da notificação
         const notificationSeverity =
           dto.incidentSeverity === IncidentSeverity.GRAVE
@@ -136,32 +142,37 @@ export class DailyRecordsService {
           description = `${dto.incidentSubtypeAdmin}`;
         }
 
-        // Criar notificação
-        await this.notificationsService.createForTenant(this.tenantContext.tenantId, {
-          type: SystemNotificationType.INCIDENT_CREATED,
-          category: NotificationCategory.INCIDENT,
-          severity: notificationSeverity,
-          title: 'Intercorrência Registrada',
-          message: `${resident.fullName}: ${description}`,
-          actionUrl: `/dashboard/registros-diarios`,
-          entityType: 'DAILY_RECORD',
-          entityId: record.id,
-          metadata: {
-            residentId: dto.residentId,
-            residentName: resident.fullName,
-            category: dto.incidentCategory,
-            subtypeClinical: dto.incidentSubtypeClinical,
-            subtypeAssist: dto.incidentSubtypeAssist,
-            subtypeAdmin: dto.incidentSubtypeAdmin,
-            severity: dto.incidentSeverity,
-            isEventoSentinela: dto.isEventoSentinela,
-            deteccaoAutomatica: false,
+        // Criar notificação DIRECIONADA
+        await this.notificationsService.createDirectedNotification(
+          this.tenantContext.tenantId,
+          recipientIds,
+          {
+            type: SystemNotificationType.INCIDENT_CREATED,
+            category: NotificationCategory.INCIDENT,
+            severity: notificationSeverity,
+            title: 'Intercorrência Registrada',
+            message: `${resident.fullName}: ${description}`,
+            actionUrl: `/dashboard/registros-diarios`,
+            entityType: 'DAILY_RECORD',
+            entityId: record.id,
+            metadata: {
+              residentId: dto.residentId,
+              residentName: resident.fullName,
+              category: dto.incidentCategory,
+              subtypeClinical: dto.incidentSubtypeClinical,
+              subtypeAssist: dto.incidentSubtypeAssist,
+              subtypeAdmin: dto.incidentSubtypeAdmin,
+              severity: dto.incidentSeverity,
+              isEventoSentinela: dto.isEventoSentinela,
+              deteccaoAutomatica: false,
+            },
           },
-        });
+        );
 
-        this.logger.info('Notificação de intercorrência manual criada', {
+        this.logger.info('Notificação de intercorrência manual criada (direcionada)', {
           recordId: record.id,
           residentName: resident.fullName,
+          recipientsCount: recipientIds.length,
         });
       } catch (notificationError) {
         this.logger.error('Erro ao criar notificação de intercorrência manual', {
