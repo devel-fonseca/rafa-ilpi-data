@@ -253,25 +253,51 @@ async validateDocument(@Param('token') token: string, @Res() res: Response) {
 }
 ```
 
-**Design System:**
+**Design System (Rafa Labs Brand Kit):**
 
 ```css
 :root {
-  --primary: hsl(210, 90%, 45%);           /* Azul Rafa ILPI */
-  --secondary: hsl(174, 55%, 38%);         /* Verde-azulado */
-  --success: hsl(158, 60%, 34%);           /* Verde sucesso */
-  --danger: hsl(0, 72%, 48%);              /* Vermelho erro */
-  --muted: hsl(210, 40%, 96%);             /* Cinza claro */
-  --foreground: hsl(222, 47%, 11%);        /* Texto escuro */
+  /* Cores Primárias */
+  --primary: #0f172a;           /* Azul Marinho (Brand Kit) */
+  --secondary: #059669;         /* Verde (Brand Kit) */
+  --accent: #06b6d4;            /* Ciano (Brand Kit) */
+
+  /* Cores de Feedback */
+  --success: #059669;           /* Verde (Brand Kit) */
+  --danger: hsl(0, 72%, 48%);
+
+  /* Cores Neutras */
+  --gray-50: #f8fafc;           /* Cinza Claro (Brand Kit) */
+  --gray-500: #64748b;          /* Cinza Médio (Brand Kit) */
+  --gray-700: #334155;          /* Cinza Escuro (Brand Kit) */
+  --foreground: #0f172a;        /* Azul Marinho */
+
+  /* Tipografia */
+  --font-heading: 'Playfair Display', serif;   /* Títulos */
+  --font-body: 'DM Sans', sans-serif;          /* Corpo */
 }
 ```
 
+**Importação de Fontes:**
+
+```html
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+```
+
+**Tipografia:**
+
+- **Títulos (h1, h2, logo):** Playfair Display (serif) - autoridade e elegância
+- **Corpo de texto:** DM Sans (sans-serif) - legibilidade moderna
+- **Código/Hash:** Monaco, Menlo, Courier New (monospace)
+
 **Componentes Visuais:**
-- **Header:** Logo "RAFA ILPI" com fundo azul primário
-- **Badge:** Status de validação (✅ Documento Válido / ❌ Não Encontrado)
-- **Info Grid:** Informações organizadas com border-left colorida
-- **Hash Section:** Seção destacada com hashes SHA-256 em fonte monospace
-- **Footer:** Token de validação + créditos
+
+- **Header:** Azul Marinho (#0f172a) com marca "Rafa Labs" + logo "RAFA ILPI"
+- **Badge:** Verde (#059669) para sucesso, vermelho para erro
+- **Info Grid:** Informações com border-left azul marinho
+- **Links/Registry:** Ciano (#06b6d4) para elementos interativos
+- **Hash Section:** Fundo cinza claro (#f8fafc) com hashes SHA-256 em monospace
+- **Footer:** Créditos "Powered by Rafa Labs Desenvolvimento e Tecnologia"
 
 ---
 
@@ -1047,10 +1073,54 @@ private renderSuccessPage(result: PublicDocumentValidationDto): string {
 
 ---
 
+## 🎨 Conformidade com Rafa Labs Brand Kit
+
+A página de validação pública segue **100% as diretrizes do Rafa Labs Brand Kit** para garantir identidade visual consistente em todos os pontos de contato com usuários externos.
+
+### Checklist de Conformidade
+
+- [x] ✅ **Cores:** Paleta oficial (#0f172a, #059669, #06b6d4)
+- [x] ✅ **Tipografia:** Playfair Display (títulos) + DM Sans (corpo)
+- [x] ✅ **Marca:** "Rafa Labs" visível no header
+- [x] ✅ **Créditos:** Footer com "Powered by Rafa Labs Desenvolvimento e Tecnologia"
+- [x] ✅ **Contraste:** Acessibilidade WCAG AA garantida
+- [x] ✅ **Layout:** Espaçamento generoso conforme guidelines
+
+### Posicionamento Visual
+
+A combinação de elementos visuais comunica o posicionamento de **compliance tech**:
+
+**Autoridade Jurídica:**
+
+- Azul Marinho (#0f172a) - cor de confiança corporativa
+- Playfair Display (serif) - elegância e expertise profissional
+- Layout formal e organizado
+
+**Inovação Tecnológica:**
+
+- Ciano (#06b6d4) - modernidade e acessibilidade
+- DM Sans (sans-serif) - legibilidade e clareza digital
+- Gradientes suaves e componentes responsivos
+
+### Aplicação Consistente
+
+Esta página segue o mesmo design system aplicado em:
+
+- Website institucional da Rafa Labs
+- Materiais de apresentação comercial
+- Documentos profissionais (propostas, contratos)
+- Interface do produto Rafa ILPI
+
+Para mais detalhes sobre o Brand Kit, consulte: [rafa-labs-brand-kit.md](./rafa-labs-brand-kit.md)
+
+---
+
 ## 📚 Referências
 
 ### Documentos Relacionados
+
 - [DOCUMENT-AUTHENTICATION-PLAN.md](./DOCUMENT-AUTHENTICATION-PLAN.md) - Plano original de autenticação (mais abrangente)
+- [rafa-labs-brand-kit.md](./rafa-labs-brand-kit.md) - **Rafa Labs Brand Kit** (design system oficial)
 - [DATETIME-STANDARD.md](./DATETIME-STANDARD.md) - Padrões de data/hora
 - [DATABASE-SCHEMA.md](./DATABASE-SCHEMA.md) - Estrutura do banco de dados
 
