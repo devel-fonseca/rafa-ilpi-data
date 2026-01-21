@@ -12,6 +12,7 @@ import {
   NotificationSeverity,
   SystemNotificationType,
 } from '@prisma/client';
+import { formatIncidentSubtype } from './utils/incident-formatters';
 
 /**
  * Serviço responsável por detectar automaticamente intercorrências
@@ -555,6 +556,13 @@ export class IncidentInterceptorService {
               ? NotificationSeverity.WARNING
               : NotificationSeverity.INFO;
 
+        // Formatar subtipo para exibição amigável
+        const formattedSubtype = formatIncidentSubtype(
+          subtypeClinical,
+          subtypeAssist,
+          undefined, // Não há subtipo administrativo em detecção automática
+        );
+
         // Criar notificação DIRECIONADA sobre a intercorrência automática
         await this.notificationsService.createDirectedNotification(
           tenantId,
@@ -564,7 +572,7 @@ export class IncidentInterceptorService {
             category: NotificationCategory.INCIDENT,
             severity: notificationSeverity,
             title: 'Intercorrência Detectada Automaticamente',
-            message: `${resident.fullName}: ${description}`,
+            message: `${resident.fullName}: ${formattedSubtype}`,
             actionUrl: `/dashboard/registros-diarios`,
             entityType: 'DAILY_RECORD',
             entityId: incidentRecord.id,

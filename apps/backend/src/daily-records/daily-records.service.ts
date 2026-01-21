@@ -19,6 +19,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { DailyRecordCreatedEvent } from '../sentinel-events/events/daily-record-created.event';
 import { parseISO, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { localToUTC } from '../utils/date.helpers';
+import { formatIncidentSubtype } from './utils/incident-formatters';
 import {
   RecordType,
   IncidentCategory,
@@ -132,15 +133,12 @@ export class DailyRecordsService {
               ? NotificationSeverity.WARNING
               : NotificationSeverity.INFO;
 
-        // Construir mensagem baseada na categoria e subtipo
-        let description = 'Intercorrência registrada';
-        if (dto.incidentCategory === IncidentCategory.CLINICA && dto.incidentSubtypeClinical) {
-          description = `${dto.incidentSubtypeClinical}`;
-        } else if (dto.incidentCategory === IncidentCategory.ASSISTENCIAL && dto.incidentSubtypeAssist) {
-          description = `${dto.incidentSubtypeAssist}`;
-        } else if (dto.incidentCategory === IncidentCategory.ADMINISTRATIVA && dto.incidentSubtypeAdmin) {
-          description = `${dto.incidentSubtypeAdmin}`;
-        }
+        // Formatar subtipo para exibição amigável
+        const description = formatIncidentSubtype(
+          dto.incidentSubtypeClinical as IncidentSubtypeClinical | undefined,
+          dto.incidentSubtypeAssist as IncidentSubtypeAssistencial | undefined,
+          dto.incidentSubtypeAdmin as IncidentSubtypeAdministrativa | undefined,
+        );
 
         // Criar notificação DIRECIONADA
         await this.notificationsService.createDirectedNotification(
