@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
-import { Calendar, Loader2, AlertCircle, RefreshCw, Trash2, Power, PowerOff, Plus } from 'lucide-react';
+import { Calendar, Loader2, AlertCircle, RefreshCw, Trash2, Power, PowerOff, Plus, Wand2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +33,7 @@ import {
   useDeleteWeeklyPattern,
 } from '@/hooks/care-shifts/useWeeklySchedule';
 import { useShiftTemplates } from '@/hooks/care-shifts/useShiftTemplates';
+import { useGenerateShifts } from '@/hooks/care-shifts/useShifts';
 import { usePermissions, PermissionType } from '@/hooks/usePermissions';
 import { format } from 'date-fns';
 import { formatDateOnlySafe } from '@/utils/dateHelpers';
@@ -44,6 +45,9 @@ export function WeeklyScheduleTab() {
   const [patternToDelete, setPatternToDelete] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const canManage = hasPermission(PermissionType.UPDATE_CARE_SHIFTS);
+
+  // Hook para geração manual de plantões
+  const generateShiftsMutation = useGenerateShifts();
 
   // Buscar padrão ativo
   const {
@@ -363,10 +367,30 @@ export function WeeklyScheduleTab() {
               </CardDescription>
             </div>
             {canManage && (
-              <Button onClick={handleOpenCreateDialog} size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Padrão
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => generateShiftsMutation.mutate()}
+                  size="sm"
+                  variant="outline"
+                  disabled={generateShiftsMutation.isPending || !pattern}
+                >
+                  {generateShiftsMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Gerar Plantões
+                    </>
+                  )}
+                </Button>
+                <Button onClick={handleOpenCreateDialog} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Novo Padrão
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>

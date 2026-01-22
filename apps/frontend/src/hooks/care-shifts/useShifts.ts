@@ -16,6 +16,7 @@ import {
   addMember,
   removeMember,
   getShiftHistory,
+  generateShifts,
 } from '@/api/care-shifts/care-shifts.api';
 import type {
   Shift,
@@ -293,6 +294,58 @@ export function useRemoveShiftMember() {
     onError: (error: { response?: { data?: { message?: string } } }) => {
       const message =
         error.response?.data?.message || 'Erro ao remover membro';
+      toast.error(message);
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// GERAÇÃO AUTOMÁTICA
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hook para gerar plantões do padrão semanal (próximos 14 dias)
+ */
+export function useGenerateShifts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => generateShifts(),
+    onSuccess: (result) => {
+      // Invalidar queries para recarregar plantões
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', 'list'),
+      });
+
+      // Mostrar resultado detalhado
+      if (result.generated > 0) {
+        toast.success(
+          `${result.generated} plantões gerados com sucesso${result.skipped > 0 ? ` (${result.skipped} já existentes pulados)` : ''}`,
+          { duration: 5000 },
+        );
+      } else if (result.skipped > 0) {
+        toast.info(
+          `Nenhum plantão novo gerado. ${result.skipped} plantões já existem para este período.`,
+          { duration: 5000 },
+        );
+      } else {
+        toast.warning('Nenhum plantão gerado. Verifique se há um padrão semanal ativo.', {
+          duration: 5000,
+        });
+      }
+
+      // Mostrar erros, se houver
+      if (result.errors && result.errors.length > 0) {
+        toast.error(`${result.errors.length} erros durante a geração. Verifique o console.`, {
+          duration: 7000,
+        });
+        console.error('Erros na geração de plantões:', result.errors);
+      }
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message =
+        error.response?.data?.message ||
+        'Erro ao gerar plantões. Verifique se há um padrão semanal ativo.';
       toast.error(message);
     },
   });
