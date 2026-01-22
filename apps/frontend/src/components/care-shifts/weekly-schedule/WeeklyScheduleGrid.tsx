@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
-import { Calendar, Users, Plus, X } from 'lucide-react';
+import { Calendar, Users, Plus, X, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -77,6 +77,7 @@ export function WeeklyScheduleGrid({
 }: WeeklyScheduleGridProps) {
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [selectedCell, setSelectedCell] = useState<CellData | null>(null);
+  const [selectedCells, setSelectedCells] = useState<CellData[]>([]); // ✨ NOVO: Seleção múltipla
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
@@ -105,46 +106,95 @@ export function WeeklyScheduleGrid({
     );
   };
 
-  // Handler de clique na célula
-  const handleCellClick = (weekNumber: number, dayOfWeek: number, shiftTemplateId: string) => {
+  // Helper para verificar se célula está selecionada
+  const isCellSelected = (weekNumber: number, dayOfWeek: number, shiftTemplateId: string): boolean => {
+    return selectedCells.some(
+      (cell) =>
+        cell.weekNumber === weekNumber &&
+        cell.dayOfWeek === dayOfWeek &&
+        cell.shiftTemplateId === shiftTemplateId,
+    );
+  };
+
+  // Handler de clique na célula (com suporte a Ctrl+Click)
+  const handleCellClick = (
+    weekNumber: number,
+    dayOfWeek: number,
+    shiftTemplateId: string,
+    event: React.MouseEvent,
+  ) => {
     if (!canManage) return;
 
     const assignment = getAssignment(weekNumber, dayOfWeek, shiftTemplateId);
-    setSelectedCell({ weekNumber, dayOfWeek, shiftTemplateId, assignment });
-    setSelectedTeamId(assignment?.teamId || '');
-    setDialogOpen(true);
+    const cellData: CellData = { weekNumber, dayOfWeek, shiftTemplateId, assignment };
+
+    // ✨ CTRL+CLICK: Seleção múltipla
+    if (event.ctrlKey || event.metaKey) {
+      const isAlreadySelected = isCellSelected(weekNumber, dayOfWeek, shiftTemplateId);
+
+      if (isAlreadySelected) {
+        // Remover da seleção
+        setSelectedCells((prev) =>
+          prev.filter(
+            (cell) =>
+              !(
+                cell.weekNumber === weekNumber &&
+                cell.dayOfWeek === dayOfWeek &&
+                cell.shiftTemplateId === shiftTemplateId
+              ),
+          ),
+        );
+      } else {
+        // Adicionar à seleção
+        setSelectedCells((prev) => [...prev, cellData]);
+      }
+    } else {
+      // CLIQUE NORMAL: Seleção única
+      setSelectedCell(cellData);
+      setSelectedCells([cellData]);
+      setSelectedTeamId(assignment?.teamId || '');
+      setDialogOpen(true);
+    }
   };
 
-  // Handler de designar equipe
+  // Handler de designar equipe (suporta múltiplas células)
   const handleAssignTeam = async () => {
-    if (!selectedCell || !selectedTeamId) return;
+    if (selectedCells.length === 0 || !selectedTeamId) return;
 
-    await assignMutation.mutateAsync({
-      patternId: pattern.id,
-      data: {
-        weekNumber: selectedCell.weekNumber,
-        dayOfWeek: selectedCell.dayOfWeek,
-        shiftTemplateId: selectedCell.shiftTemplateId,
-        teamId: selectedTeamId,
-      },
-    });
+    // ✨ Aplicar equipe a todas as células selecionadas
+    for (const cell of selectedCells) {
+      await assignMutation.mutateAsync({
+        patternId: pattern.id,
+        data: {
+          weekNumber: cell.weekNumber,
+          dayOfWeek: cell.dayOfWeek,
+          shiftTemplateId: cell.shiftTemplateId,
+          teamId: selectedTeamId,
+        },
+      });
+    }
 
     setDialogOpen(false);
     setSelectedCell(null);
+    setSelectedCells([]);
     setSelectedTeamId('');
   };
 
-  // Handler de remover designação
+  // Handler de remover designação (suporta múltiplas células)
   const handleRemoveAssignment = async () => {
-    if (!selectedCell?.assignment) return;
-
-    await removeMutation.mutateAsync({
-      patternId: pattern.id,
-      assignmentId: selectedCell.assignment.id,
-    });
+    // ✨ Remover todas as designações das células selecionadas
+    for (const cell of selectedCells) {
+      if (cell.assignment) {
+        await removeMutation.mutateAsync({
+          patternId: pattern.id,
+          assignmentId: cell.assignment.id,
+        });
+      }
+    }
 
     setDialogOpen(false);
     setSelectedCell(null);
+    setSelectedCells([]);
   };
 
   // Encontrar equipe por ID
@@ -208,6 +258,8 @@ export function WeeklyScheduleGrid({
                       );
                       const team = getTeamById(assignment?.teamId);
 
+                      const isSelected = isCellSelected(weekNumber, day.index, shiftTemplate.id);
+
                       return (
                         <td
                           key={`${weekNumber}-${day.index}-${shiftTemplate.id}`}
@@ -216,9 +268,11 @@ export function WeeklyScheduleGrid({
                             canManage &&
                               'cursor-pointer hover:bg-accent/50 active:bg-accent',
                             team && 'bg-accent/20',
+                            // ✨ NOVO: Highlight para células selecionadas
+                            isSelected && 'ring-2 ring-primary ring-inset bg-primary/10',
                           )}
-                          onClick={() =>
-                            handleCellClick(weekNumber, day.index, shiftTemplate.id)
+                          onClick={(e) =>
+                            handleCellClick(weekNumber, day.index, shiftTemplate.id, e)
                           }
                         >
                           {team ? (
@@ -268,6 +322,77 @@ export function WeeklyScheduleGrid({
 
   return (
     <>
+      {/* Legenda e Instruções */}
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            {/* Legenda Visual */}
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Legenda</h3>
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Célula com equipe */}
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-16 border border-border bg-accent/20 rounded flex items-center justify-center">
+                    <Users className="h-3 w-3" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Célula com equipe designada</span>
+                </div>
+
+                {/* Célula vazia */}
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-16 border border-border rounded flex items-center justify-center">
+                    <Plus className="h-3 w-3 text-muted-foreground/40" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Célula vazia (sem equipe)</span>
+                </div>
+
+                {/* Célula selecionada (somente se canManage) */}
+                {canManage && (
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-16 border border-border ring-2 ring-primary ring-inset bg-primary/10 rounded flex items-center justify-center">
+                      <Plus className="h-3 w-3" />
+                    </div>
+                    <span className="text-xs text-muted-foreground">Célula selecionada</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Instruções de Seleção Múltipla */}
+            {canManage && (
+              <div className="pt-2 border-t">
+                <div className="flex items-start gap-2">
+                  <MousePointerClick className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Seleção múltipla:</strong> Segure <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl</kbd> e clique em múltiplas células para designar a mesma equipe de uma só vez
+                    </p>
+                    {selectedCells.length > 0 && (
+                      <p className="text-xs font-medium text-primary">
+                        {selectedCells.length} {selectedCells.length === 1 ? 'célula selecionada' : 'células selecionadas'}
+                        {selectedCells.length > 1 && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 ml-2 text-xs"
+                            onClick={() => {
+                              setSelectedCells([]);
+                              setSelectedCell(null);
+                            }}
+                          >
+                            Limpar seleção
+                          </Button>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Se padrão é de 1 semana, renderizar grid direto */}
       {numberOfWeeks === 1 ? (
         renderWeekGrid(0)
@@ -296,7 +421,13 @@ export function WeeklyScheduleGrid({
           <DialogHeader>
             <DialogTitle>Designar Equipe</DialogTitle>
             <DialogDescription>
-              {selectedCell && (
+              {selectedCells.length > 1 ? (
+                // ✨ NOVO: Mensagem para múltiplas células
+                <>
+                  Atribuir equipe para <strong>{selectedCells.length} células selecionadas</strong>
+                </>
+              ) : selectedCell ? (
+                // Mensagem para célula única
                 <>
                   {numberOfWeeks > 1 && (
                     <>
@@ -319,7 +450,7 @@ export function WeeklyScheduleGrid({
                     }
                   </strong>
                 </>
-              )}
+              ) : null}
             </DialogDescription>
           </DialogHeader>
 
@@ -353,7 +484,8 @@ export function WeeklyScheduleGrid({
             </div>
 
             <div className="flex items-center justify-between gap-2 pt-2">
-              {selectedCell?.assignment && (
+              {/* ✨ ATUALIZADO: Mostrar botão Remover se qualquer célula selecionada tiver assignment */}
+              {selectedCells.some((cell) => cell.assignment) && (
                 <Button
                   type="button"
                   variant="outline"
@@ -362,7 +494,7 @@ export function WeeklyScheduleGrid({
                   disabled={removeMutation.isPending}
                 >
                   <X className="mr-2 h-4 w-4" />
-                  Remover
+                  {selectedCells.length > 1 ? `Remover (${selectedCells.filter((c) => c.assignment).length})` : 'Remover'}
                 </Button>
               )}
               <div className="flex-1" />
