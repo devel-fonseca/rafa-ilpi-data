@@ -312,6 +312,27 @@ export function useGenerateShifts() {
   return useMutation({
     mutationFn: () => generateShifts(),
     onSuccess: (result) => {
+      // Log completo do resultado para diagnóstico
+      console.group('📊 Resultado da Geração de Plantões');
+      console.log('Gerados:', result.generated);
+      console.log('Pulados:', result.skipped);
+      console.log('Erros:', result.errors?.length || 0);
+
+      // Detalhes de cada dia processado
+      if (result.details && result.details.length > 0) {
+        console.group('📋 Detalhes por dia:');
+        result.details.forEach((detail: { date: string; action: string; reason?: string; teamId?: string }) => {
+          if (detail.action === 'skipped' && detail.reason) {
+            console.warn(`⏭️  ${detail.date}: ${detail.reason}`);
+          } else if (detail.action === 'generated') {
+            console.log(`✅ ${detail.date}: Gerado${detail.teamId ? ` (Equipe: ${detail.teamId})` : ''}`);
+          }
+        });
+        console.groupEnd();
+      }
+
+      console.groupEnd();
+
       // Invalidar queries para recarregar plantões
       queryClient.invalidateQueries({
         queryKey: tenantKey('care-shifts', 'shifts', 'list'),
@@ -329,9 +350,16 @@ export function useGenerateShifts() {
           { duration: 5000 },
         );
       } else {
-        toast.warning('Nenhum plantão gerado. Verifique se há um padrão semanal ativo.', {
-          duration: 5000,
+        // Mostrar motivo específico do primeiro skip
+        const firstSkipReason = result.details?.find((d: { action: string }) => d.action === 'skipped')?.reason;
+        const message = firstSkipReason
+          ? `Nenhum plantão gerado. Motivo: ${firstSkipReason}`
+          : 'Nenhum plantão gerado. Verifique se o padrão tem equipes designadas e data de início válida.';
+
+        toast.warning(message, {
+          duration: 7000,
         });
+        console.info('💡 Dica: Verifique no console acima os detalhes de cada dia processado');
       }
 
       // Mostrar erros, se houver
@@ -339,7 +367,7 @@ export function useGenerateShifts() {
         toast.error(`${result.errors.length} erros durante a geração. Verifique o console.`, {
           duration: 7000,
         });
-        console.error('Erros na geração de plantões:', result.errors);
+        console.error('❌ Erros na geração de plantões:', result.errors);
       }
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {

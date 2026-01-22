@@ -196,18 +196,35 @@ export const getCoverageReport = async (
 // Geração Automática
 // ────────────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────────────
+// Types para Geração Automática
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface ShiftGenerationDetail {
+  date: string;
+  shiftTemplateId: string;
+  action: 'generated' | 'skipped';
+  teamId?: string;
+  reason?: string;
+}
+
+export interface ShiftGenerationError {
+  date: string;
+  shiftTemplateId: string;
+  error: string;
+}
+
+export interface ShiftGenerationResult {
+  generated: number;
+  skipped: number;
+  errors: ShiftGenerationError[];
+  details: ShiftGenerationDetail[];
+}
+
 /**
  * Gerar plantões do padrão semanal (próximos 14 dias)
  */
-export const generateShifts = async (): Promise<{
-  generated: number;
-  skipped: number;
-  errors: string[];
-}> => {
-  const response = await api.post<{
-    generated: number;
-    skipped: number;
-    errors: string[];
-  }>('/care-shifts/generate');
+export const generateShifts = async (): Promise<ShiftGenerationResult> => {
+  const response = await api.post<ShiftGenerationResult>('/care-shifts/generate');
   return response.data;
 };
