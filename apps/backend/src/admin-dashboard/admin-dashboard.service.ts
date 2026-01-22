@@ -6,7 +6,7 @@ import { DailyComplianceResponseDto } from './dto';
 import { ResidentScheduleConfig } from '@prisma/client';
 
 @Injectable()
-export class ComplianceService {
+export class AdminDashboardService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
@@ -57,26 +57,70 @@ export class ComplianceService {
     today: Date,
     tomorrow: Date,
   ) {
-    // Buscar todas as administrações programadas para hoje
-    const scheduledMedications =
-      await this.tenantContext.client.medicationAdministration.findMany({
-        where: {
-          date: {
-            gte: today,
-            lt: tomorrow,
+    // ✅ Usar mesma lógica do AgendaService.getMedicationItems()
+    // Buscar prescrições ativas que tenham medicamentos ativos hoje
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        medications: {
+          some: {
+            deletedAt: null,
+            startDate: { lte: tomorrow }, // Começou antes ou durante hoje
+            OR: [
+              { endDate: null }, // Uso contínuo
+              { endDate: { gte: today } }, // Termina depois ou durante hoje
+            ],
           },
         },
-      })
+      },
+      include: {
+        medications: {
+          where: {
+            deletedAt: null,
+            startDate: { lte: tomorrow },
+            OR: [
+              { endDate: null },
+              { endDate: { gte: today } },
+            ],
+          },
+        },
+      },
+    })
 
-    const total = scheduledMedications.length
-    const administered = scheduledMedications.filter(
-      (med) => med.wasAdministered === true,
-    ).length
+    // Contar total de medicações programadas (medications × scheduledTimes)
+    let totalScheduled = 0
+    const medicationTimeKeys: string[] = []
+
+    for (const prescription of prescriptions) {
+      for (const medication of prescription.medications) {
+        const scheduledTimes = medication.scheduledTimes as string[]
+        if (scheduledTimes && Array.isArray(scheduledTimes)) {
+          for (const time of scheduledTimes) {
+            totalScheduled++
+            medicationTimeKeys.push(`${medication.id}-${time}`)
+          }
+        }
+      }
+    }
+
+    // Contar quantos foram administrados
+    const administrations = await this.tenantContext.client.medicationAdministration.findMany({
+      where: {
+        date: {
+          gte: today,
+          lt: tomorrow,
+        },
+        wasAdministered: true,
+      },
+    })
+
+    const administered = administrations.length
 
     return {
-      scheduled: total,
+      scheduled: totalScheduled,
       administered,
-      total,
+      total: totalScheduled,
     }
   }
 

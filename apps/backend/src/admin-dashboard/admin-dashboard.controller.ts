@@ -5,7 +5,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { ComplianceService } from './compliance.service';
+import { AdminDashboardService } from './admin-dashboard.service';
 import { DailyComplianceResponseDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -13,29 +13,29 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
 
-@ApiTags('Compliance')
+@ApiTags('Admin Dashboard')
 @ApiBearerAuth()
-@Controller('compliance')
+@Controller('admin-dashboard')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
-@AuditEntity('COMPLIANCE')
-export class ComplianceController {
-  constructor(private readonly complianceService: ComplianceService) {}
+@AuditEntity('ADMIN_DASHBOARD')
+export class AdminDashboardController {
+  constructor(private readonly adminDashboardService: AdminDashboardService) {}
 
   @Get('daily-summary')
   @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
   @ApiOperation({
-    summary: 'Obter resumo de conformidade do dia',
+    summary: 'Obter resumo operacional do dia para dashboard administrativo',
     description:
-      'Retorna métricas de conformidade operacional: residentes ativos, medicamentos administrados, registros obrigatórios completados (Acesso restrito: Administrador e Responsável Técnico)',
+      'Retorna métricas operacionais: residentes ativos, medicamentos programados/administrados, registros obrigatórios completados (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
-    description: 'Resumo de conformidade retornado com sucesso',
+    description: 'Resumo operacional retornado com sucesso',
     type: DailyComplianceResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard de conformidade' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
   async getDailySummary(): Promise<DailyComplianceResponseDto> {
-    return this.complianceService.getDailySummary();
+    return this.adminDashboardService.getDailySummary();
   }
 }

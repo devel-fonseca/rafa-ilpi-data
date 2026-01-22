@@ -54,7 +54,7 @@ import { CacheModule } from './cache/cache.module';
 import { InstitutionalEventsModule } from './institutional-events/institutional-events.module';
 import { SentinelEventsModule } from './sentinel-events/sentinel-events.module';
 import { RdcIndicatorsModule } from './rdc-indicators/rdc-indicators.module';
-import { ComplianceModule } from './compliance/compliance.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { TenantProfileModule } from './tenant-profile/tenant-profile.module';
 import { EventsModule } from './events/events.module';
 import { ValidationModule } from './validation/validation.module';
@@ -144,7 +144,7 @@ import { CareShiftsModule } from './care-shifts/care-shifts.module';
     // Conformidade RDC 502/2021
     SentinelEventsModule,
     RdcIndicatorsModule,
-    ComplianceModule,
+    AdminDashboardModule,
 
     // Escala de Cuidados (Gestão de Turnos e Plantões)
     TeamsModule,
