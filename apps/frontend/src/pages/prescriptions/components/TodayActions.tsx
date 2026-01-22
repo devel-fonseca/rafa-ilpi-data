@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, XCircle, Circle, Lock } from 'lucide-react'
+import { CheckCircle2, XCircle, Circle, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { usePrescriptions } from '@/hooks/usePrescriptions'
 import type { MedicationAdministration } from '@/api/prescriptions.api'
 import type { Medication } from '@/api/medications.api'
@@ -52,21 +53,21 @@ function getShift(time: string): ShiftType {
 const SHIFT_CONFIG = {
   morning: {
     label: 'Manhã (06h - 12h)',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
+    borderColor: 'border-success/30',
+  },
+  afternoon: {
+    label: 'Tarde (12h - 18h)',
     color: 'text-warning',
     bgColor: 'bg-warning/10',
     borderColor: 'border-warning/30',
   },
-  afternoon: {
-    label: 'Tarde (12h - 18h)',
-    color: 'text-accent',
-    bgColor: 'bg-accent/10',
-    borderColor: 'border-accent/30',
-  },
   night: {
     label: 'Noite (18h - 06h)',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
-    borderColor: 'border-primary/30',
+    color: 'text-danger',
+    bgColor: 'bg-danger/10',
+    borderColor: 'border-danger/30',
   },
 }
 
@@ -88,6 +89,8 @@ const STATUS_CONFIG = {
   },
 }
 
+const ITEMS_PER_PAGE = 10
+
 export function TodayActions() {
   const today = getCurrentDate() // ✅ REFATORADO: Usar getCurrentDate do dateHelpers
 
@@ -98,6 +101,11 @@ export function TodayActions() {
   // Estados para modal de visualização
   const [selectedAdministration, setSelectedAdministration] = useState<MedicationAdministrationWithMedication | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+
+  // Estados de paginação (um por turno)
+  const [morningPage, setMorningPage] = useState(1)
+  const [afternoonPage, setAfternoonPage] = useState(1)
+  const [nightPage, setNightPage] = useState(1)
 
   // Buscar prescrições ativas
   const { prescriptions, isLoading } = usePrescriptions({
@@ -217,11 +225,18 @@ export function TodayActions() {
       })
     })
 
-    // Ordenar por horário dentro de cada turno
+    // Ordenar dentro de cada turno:
+    // 1. Medicações administradas vão para o final
+    // 2. Dentro de cada grupo (não administradas / administradas), ordenar por horário
     Object.keys(actions).forEach((shift) => {
-      actions[shift as ShiftType].sort((a, b) =>
-        a.scheduledTime.localeCompare(b.scheduledTime)
-      )
+      actions[shift as ShiftType].sort((a, b) => {
+        // Se apenas uma está administrada, ela vai para o final
+        if (a.status === 'administered' && b.status !== 'administered') return 1
+        if (a.status !== 'administered' && b.status === 'administered') return -1
+
+        // Se ambas têm o mesmo status, ordenar por horário
+        return a.scheduledTime.localeCompare(b.scheduledTime)
+      })
     })
 
     return actions
@@ -259,6 +274,17 @@ export function TodayActions() {
 
               if (actions.length === 0) return null
 
+              // Paginação específica para cada turno
+              const currentPage = shift === 'morning' ? morningPage : shift === 'afternoon' ? afternoonPage : nightPage
+              const setCurrentPage = shift === 'morning' ? setMorningPage : shift === 'afternoon' ? setAfternoonPage : setNightPage
+
+              const totalPages = Math.ceil(actions.length / ITEMS_PER_PAGE)
+              const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+              const endIndex = startIndex + ITEMS_PER_PAGE
+              const paginatedActions = actions.slice(startIndex, endIndex)
+
+              const showPagination = actions.length > ITEMS_PER_PAGE
+
               return (
                 <div
                   key={shift}
@@ -271,7 +297,7 @@ export function TodayActions() {
                     </Badge>
                   </h3>
                   <div className="space-y-2">
-                    {actions.map((action, idx) => {
+                    {paginatedActions.map((action, idx) => {
                       const statusConfig = STATUS_CONFIG[action.status]
                       const StatusIcon = statusConfig.icon
 
@@ -331,6 +357,35 @@ export function TodayActions() {
                       )
                     })}
                   </div>
+
+                  {/* Controles de paginação */}
+                  {showPagination && (
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {currentPage} / {totalPages}
+                      </span>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )
             })}

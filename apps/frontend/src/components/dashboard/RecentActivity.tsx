@@ -47,6 +47,7 @@ const actionLabels: Record<string, string> = {
   DELETE_USER: 'removeu',
   READ: 'visualizou',
   ADMINISTER_MEDICATION: 'administrou medicação',
+  ADMINISTER_SOS: 'administrou medicação SOS',
   TRANSFER_BED: 'transferiu de leito',
 }
 

@@ -40,11 +40,20 @@ BEGIN
             ALTER COLUMN "publicToken" SET NOT NULL;
         ', schema_name);
 
-        -- Criar constraint UNIQUE
+        -- Criar constraint UNIQUE (idempotente)
         EXECUTE format('
-            ALTER TABLE %I.resident_contracts
-            ADD CONSTRAINT %I UNIQUE ("publicToken");
-        ', schema_name, 'resident_contracts_publicToken_key');
+            DO $inner$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = ''resident_contracts_publicToken_key''
+                    AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %L)
+                ) THEN
+                    ALTER TABLE %I.resident_contracts
+                    ADD CONSTRAINT resident_contracts_publicToken_key UNIQUE ("publicToken");
+                END IF;
+            END $inner$;
+        ', schema_name, schema_name);
 
         -- Criar índice para performance em queries de validação
         EXECUTE format('

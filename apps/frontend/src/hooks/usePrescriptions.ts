@@ -10,6 +10,7 @@ import {
 } from '../api/prescriptions.api'
 import { useState } from 'react'
 import { tenantKey } from '@/lib/query-keys'
+import { QUERY_KEYS } from '@/constants/queryKeys'
 
 // ========== CRUD HOOKS ==========
 
@@ -169,6 +170,8 @@ export function useAdministerMedication() {
       queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
       // Invalidar dashboard do cuidador (lista de tarefas diárias)
       queryClient.invalidateQueries({ queryKey: tenantKey('caregiver-tasks') })
+      // Invalidar atividades recentes para mostrar a administração
+      queryClient.invalidateQueries({ queryKey: tenantKey(QUERY_KEYS.audit.recent(10)) })
     },
   })
 }
@@ -186,6 +189,8 @@ export function useAdministerSOS() {
       // Invalidar prescrições para atualizar status em tempo real
       queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
       queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
+      // Invalidar atividades recentes para mostrar a administração SOS
+      queryClient.invalidateQueries({ queryKey: tenantKey(QUERY_KEYS.audit.recent(10)) })
     },
   })
 }

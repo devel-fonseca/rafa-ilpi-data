@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
   Query,
   ParseUUIDPipe,
   HttpCode,
@@ -29,6 +30,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { AuditInterceptor } from '../audit/audit.interceptor';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
@@ -269,6 +271,7 @@ export class PrescriptionsController {
 
   @Post('administer')
   @Roles('admin', 'user')
+  @UseInterceptors(AuditInterceptor)
   @AuditAction('ADMINISTER_MEDICATION')
   @ApiOperation({ summary: 'Registrar administração de medicamento contínuo' })
   @ApiResponse({
@@ -288,6 +291,7 @@ export class PrescriptionsController {
 
   @Post('administer-sos')
   @Roles('admin', 'user')
+  @UseInterceptors(AuditInterceptor)
   @AuditAction('ADMINISTER_SOS')
   @ApiOperation({ summary: 'Registrar administração de medicação SOS' })
   @ApiResponse({

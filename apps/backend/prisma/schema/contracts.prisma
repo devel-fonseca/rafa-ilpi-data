@@ -38,7 +38,7 @@ model ContractAcceptance {
   id              String   @id @default(uuid()) @db.Uuid
   contractId      String   @db.Uuid
   tenantId        String   @unique @db.Uuid // Tenant só aceita uma vez
-  userId          String   @db.Uuid
+  userId          String   @db.Uuid // Stored for reference, no FK (cross-schema)
   acceptedAt      DateTime @default(now()) @db.Timestamptz(3)
   ipAddress       String   @db.VarChar(45)
   userAgent       String
@@ -49,7 +49,7 @@ model ContractAcceptance {
   // Relações
   contract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Restrict)
   tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user     User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // user - NO FK (cross-schema: public → tenant_xxx)
 
   @@index([contractId])
   @@index([acceptedAt])
@@ -60,7 +60,7 @@ model ContractAcceptance {
 model PrivacyPolicyAcceptance {
   id                  String   @id @default(uuid()) @db.Uuid
   tenantId            String   @unique @db.Uuid // Tenant só aceita uma vez
-  userId              String   @db.Uuid
+  userId              String   @db.Uuid // Stored for reference, no FK (cross-schema)
   acceptedAt          DateTime @default(now()) @db.Timestamptz(3)
   ipAddress           String   @db.VarChar(45)
   userAgent           String
@@ -75,7 +75,7 @@ model PrivacyPolicyAcceptance {
 
   // Relações
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  // user - NO FK (cross-schema: public → tenant_xxx)
 
   @@index([tenantId])
   @@index([acceptedAt])

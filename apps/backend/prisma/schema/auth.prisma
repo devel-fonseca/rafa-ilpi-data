@@ -105,10 +105,10 @@ model User {
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
   // Relações de contratos e políticas
-  createdContracts         ServiceContract[]         @relation("ContractCreator")
-  revokedContracts         ServiceContract[]         @relation("ContractRevoker")
-  contractAcceptances      ContractAcceptance[]
-  privacyPolicyAcceptances PrivacyPolicyAcceptance[]
+  createdContracts ServiceContract[] @relation("ContractCreator")
+  revokedContracts ServiceContract[] @relation("ContractRevoker")
+  // contractAcceptances - NO FK (cross-schema: tenant_xxx → public)
+  // privacyPolicyAcceptances - NO FK (cross-schema: tenant_xxx → public)
 
   // Mensagens Internas
   sentMessages        Message[]           @relation("SentMessages")
@@ -134,6 +134,13 @@ model User {
 
   // Intercorrências e RDC 502/2021
   sentinelEventNotifications SentinelEventNotification[] @relation("SentinelEventResponsible")
+
+  // Escala de Cuidados (Gestão de Turnos e Plantões)
+  // teamMemberships - NO FK (evita problemas de referência, Prisma gerencia a relação)
+  shiftAssignments      ShiftAssignment[]   @relation("ShiftAssignmentUser")
+  originalSubstitutions ShiftSubstitution[] @relation("OriginalUserSubstitution")
+  newSubstitutions      ShiftSubstitution[] @relation("NewUserSubstitution")
+  shiftHistory          ShiftHistory[]      @relation("ShiftHistoryUser")
 
   @@unique([tenantId, email])
   @@index([createdBy])
