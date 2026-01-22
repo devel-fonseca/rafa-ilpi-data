@@ -127,11 +127,10 @@ export function WeeklyScheduleGrid({
 
     const assignment = getAssignment(weekNumber, dayOfWeek, shiftTemplateId);
     const cellData: CellData = { weekNumber, dayOfWeek, shiftTemplateId, assignment };
+    const isAlreadySelected = isCellSelected(weekNumber, dayOfWeek, shiftTemplateId);
 
-    // ✨ CTRL+CLICK: Seleção múltipla
+    // ✨ CTRL+CLICK: Toggle de seleção múltipla (não abre diálogo)
     if (event.ctrlKey || event.metaKey) {
-      const isAlreadySelected = isCellSelected(weekNumber, dayOfWeek, shiftTemplateId);
-
       if (isAlreadySelected) {
         // Remover da seleção
         setSelectedCells((prev) =>
@@ -149,11 +148,21 @@ export function WeeklyScheduleGrid({
         setSelectedCells((prev) => [...prev, cellData]);
       }
     } else {
-      // CLIQUE NORMAL: Seleção única
-      setSelectedCell(cellData);
-      setSelectedCells([cellData]);
-      setSelectedTeamId(assignment?.teamId || '');
-      setDialogOpen(true);
+      // ✨ CLIQUE NORMAL (sem Ctrl):
+
+      // CASO 1: Clique em célula já selecionada quando há múltiplas → Abrir diálogo mantendo seleção
+      if (isAlreadySelected && selectedCells.length > 0) {
+        setSelectedCell(cellData);
+        setSelectedTeamId(assignment?.teamId || '');
+        setDialogOpen(true);
+      }
+      // CASO 2: Clique em célula não selecionada → Substituir seleção e abrir diálogo
+      else {
+        setSelectedCell(cellData);
+        setSelectedCells([cellData]);
+        setSelectedTeamId(assignment?.teamId || '');
+        setDialogOpen(true);
+      }
     }
   };
 
