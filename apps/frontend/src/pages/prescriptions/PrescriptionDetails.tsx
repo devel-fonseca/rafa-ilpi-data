@@ -34,7 +34,7 @@ import { calculateAge } from '@/lib/utils'
 import { formatBedFromResident } from '@/utils/formatters'
 import { getSignedFileUrl } from '@/services/upload'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
-import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { usePermissions } from '@/hooks/usePermissions'
 import { AdministerSOSModal } from './components/AdministerSOSModal'
 import { ViewMedicationAdministrationModal } from './components/ViewMedicationAdministrationModal'
 import { DeleteMedicationModal } from './modals/DeleteMedicationModal'
@@ -75,10 +75,10 @@ const ROUTE_LABELS: Record<string, string> = {
 export default function PrescriptionDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { hasPermission } = usePermissions()
+  const { isTechnicalManager } = usePermissions()
   const { data: prescription, isLoading } = usePrescription(id)
 
-  const canUpdatePrescriptions = hasPermission(PermissionType.UPDATE_PRESCRIPTIONS)
+  const canManagePrescriptions = isTechnicalManager()
 
   // Estados de modais de registro
   const [administerModalOpen, setAdministerModalOpen] = useState(false)
@@ -337,7 +337,7 @@ export default function PrescriptionDetails() {
         }
         backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         actions={
-          canUpdatePrescriptions && (
+          canManagePrescriptions && (
             <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>
               <Edit className="h-4 w-4 mr-2" />
               Editar
@@ -835,23 +835,25 @@ export default function PrescriptionDetails() {
                           {buttonLabel}
                         </Button>
 
-                        {/* Menu de Ações (Delete/History) */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteMedication(medication)}
-                              className="text-danger focus:text-danger"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir Medicamento
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {/* Menu de Ações (Delete/History) - Somente RT */}
+                        {canManagePrescriptions && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteMedication(medication)}
+                                className="text-danger focus:text-danger"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir Medicamento
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -923,23 +925,25 @@ export default function PrescriptionDetails() {
                         Administrar SOS
                       </Button>
 
-                      {/* Menu de Ações (Delete/History) */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteSOSMedication(sos)}
-                            className="text-danger focus:text-danger"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir SOS
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {/* Menu de Ações (Delete/History) - Somente RT */}
+                      {canManagePrescriptions && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteSOSMedication(sos)}
+                              className="text-danger focus:text-danger"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir SOS
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
                 </CardContent>
