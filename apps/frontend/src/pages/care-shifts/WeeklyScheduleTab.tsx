@@ -468,7 +468,7 @@ export function WeeklyScheduleTab() {
         />
       )}
 
-      {/* Grid Semanal */}
+      {/* Grid Semanal (inclui legenda na parte inferior) */}
       {pattern && (
         <WeeklyScheduleGrid
           pattern={pattern}
@@ -476,26 +476,6 @@ export function WeeklyScheduleTab() {
           canManage={canManage}
         />
       )}
-
-      {/* Legenda */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 border border-border rounded flex items-center justify-center bg-accent/20">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <span>Célula com equipe designada</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 border border-border rounded flex items-center justify-center">
-                <span className="text-muted-foreground/40">-</span>
-              </div>
-              <span>Célula vazia (sem equipe)</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Dialog de Confirmação de Deleção */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

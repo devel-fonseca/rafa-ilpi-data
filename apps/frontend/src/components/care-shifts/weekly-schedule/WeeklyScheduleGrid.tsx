@@ -322,40 +322,54 @@ export function WeeklyScheduleGrid({
 
   return (
     <>
-      {/* Legenda e Instruções */}
-      <Card className="mb-4">
-        <CardContent className="p-4">
+      {/* Se padrão é de 1 semana, renderizar grid direto */}
+      {numberOfWeeks === 1 ? (
+        renderWeekGrid(0)
+      ) : (
+        /* Se padrão é de múltiplas semanas, renderizar com tabs */
+        <Tabs value={selectedWeek.toString()} onValueChange={(v) => setSelectedWeek(Number(v))}>
+          <TabsList className="mb-4">
+            {Array.from({ length: numberOfWeeks }, (_, i) => i).map((weekNum) => (
+              <TabsTrigger key={weekNum} value={weekNum.toString()}>
+                Semana {weekNum + 1}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {Array.from({ length: numberOfWeeks }, (_, i) => i).map((weekNum) => (
+            <TabsContent key={weekNum} value={weekNum.toString()}>
+              {renderWeekGrid(weekNum)}
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
+
+      {/* Legenda (após o grid) */}
+      <Card>
+        <CardContent className="py-4">
           <div className="space-y-3">
             {/* Legenda Visual */}
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Legenda</h3>
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Célula com equipe */}
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-16 border border-border bg-accent/20 rounded flex items-center justify-center">
-                    <Users className="h-3 w-3" />
-                  </div>
-                  <span className="text-xs text-muted-foreground">Célula com equipe designada</span>
+            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 border border-border rounded flex items-center justify-center bg-accent/20">
+                  <Calendar className="h-4 w-4" />
                 </div>
-
-                {/* Célula vazia */}
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-16 border border-border rounded flex items-center justify-center">
-                    <Plus className="h-3 w-3 text-muted-foreground/40" />
-                  </div>
-                  <span className="text-xs text-muted-foreground">Célula vazia (sem equipe)</span>
-                </div>
-
-                {/* Célula selecionada (somente se canManage) */}
-                {canManage && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-6 w-16 border border-border ring-2 ring-primary ring-inset bg-primary/10 rounded flex items-center justify-center">
-                      <Plus className="h-3 w-3" />
-                    </div>
-                    <span className="text-xs text-muted-foreground">Célula selecionada</span>
-                  </div>
-                )}
+                <span>Célula com equipe designada</span>
               </div>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 border border-border rounded flex items-center justify-center">
+                  <span className="text-muted-foreground/40">-</span>
+                </div>
+                <span>Célula vazia (sem equipe)</span>
+              </div>
+              {canManage && (
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 border border-border ring-2 ring-primary ring-inset bg-primary/10 rounded flex items-center justify-center">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <span>Célula selecionada</span>
+                </div>
+              )}
             </div>
 
             {/* Instruções de Seleção Múltipla */}
@@ -392,28 +406,6 @@ export function WeeklyScheduleGrid({
           </div>
         </CardContent>
       </Card>
-
-      {/* Se padrão é de 1 semana, renderizar grid direto */}
-      {numberOfWeeks === 1 ? (
-        renderWeekGrid(0)
-      ) : (
-        /* Se padrão é de múltiplas semanas, renderizar com tabs */
-        <Tabs value={selectedWeek.toString()} onValueChange={(v) => setSelectedWeek(Number(v))}>
-          <TabsList className="mb-4">
-            {Array.from({ length: numberOfWeeks }, (_, i) => i).map((weekNum) => (
-              <TabsTrigger key={weekNum} value={weekNum.toString()}>
-                Semana {weekNum + 1}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {Array.from({ length: numberOfWeeks }, (_, i) => i).map((weekNum) => (
-            <TabsContent key={weekNum} value={weekNum.toString()}>
-              {renderWeekGrid(weekNum)}
-            </TabsContent>
-          ))}
-        </Tabs>
-      )}
 
       {/* Dialog de Designação */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
