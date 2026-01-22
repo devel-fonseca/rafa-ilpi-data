@@ -94,13 +94,13 @@ export class ShiftGeneratorService {
         const dateStr = formatDateOnly(targetDate); // YYYY-MM-DD
 
         // Verificar se data está dentro do período do padrão
-        const patternStartDate = parseISO(
-          `${pattern.startDate as unknown as string}T12:00:00.000`,
-        );
+        // Converter Date do Prisma para string YYYY-MM-DD (conforme DATETIME_STANDARD.md)
+        const patternStartDateStr = formatDateOnly(pattern.startDate as Date);
+        const patternStartDate = parseISO(`${patternStartDateStr}T12:00:00.000`);
+
         if (pattern.endDate) {
-          const patternEndDate = parseISO(
-            `${pattern.endDate as unknown as string}T12:00:00.000`,
-          );
+          const patternEndDateStr = formatDateOnly(pattern.endDate as Date);
+          const patternEndDate = parseISO(`${patternEndDateStr}T12:00:00.000`);
           if (targetDate > patternEndDate) {
             result.details.push({
               date: dateStr,
