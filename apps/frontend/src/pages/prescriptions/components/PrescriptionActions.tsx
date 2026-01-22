@@ -12,6 +12,7 @@ import { Prescription } from '@/api/prescriptions.api'
 import { EditPrescriptionModal } from '../modals/EditPrescriptionModal'
 import { DeletePrescriptionModal } from '../modals/DeletePrescriptionModal'
 import { PrescriptionHistoryModal } from '@/components/PrescriptionHistoryModal'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface PrescriptionActionsProps {
   prescription: Prescription
@@ -41,9 +42,13 @@ export function PrescriptionActions({
   prescription,
   onActionComplete,
 }: PrescriptionActionsProps) {
+  const { isTechnicalManager } = usePermissions()
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [historyModalOpen, setHistoryModalOpen] = useState(false)
+
+  // Apenas RT pode editar e excluir prescrições
+  const canManagePrescriptions = isTechnicalManager()
 
   const handleSuccess = () => {
     onActionComplete?.()
@@ -62,35 +67,43 @@ export function PrescriptionActions({
             <History className="mr-2 h-4 w-4" />
             Ver Histórico
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Prescrição
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setDeleteModalOpen(true)}
-            className="text-danger focus:text-danger"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Excluir Prescrição
-          </DropdownMenuItem>
+          {canManagePrescriptions && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Prescrição
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeleteModalOpen(true)}
+                className="text-danger focus:text-danger"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir Prescrição
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/* Modais */}
-      <EditPrescriptionModal
-        prescription={prescription}
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
-        onSuccess={handleSuccess}
-      />
+      {canManagePrescriptions && (
+        <>
+          <EditPrescriptionModal
+            prescription={prescription}
+            open={editModalOpen}
+            onOpenChange={setEditModalOpen}
+            onSuccess={handleSuccess}
+          />
 
-      <DeletePrescriptionModal
-        prescription={prescription}
-        open={deleteModalOpen}
-        onOpenChange={setDeleteModalOpen}
-        onSuccess={handleSuccess}
-      />
+          <DeletePrescriptionModal
+            prescription={prescription}
+            open={deleteModalOpen}
+            onOpenChange={setDeleteModalOpen}
+            onSuccess={handleSuccess}
+          />
+        </>
+      )}
 
       <PrescriptionHistoryModal
         prescriptionId={prescription.id}

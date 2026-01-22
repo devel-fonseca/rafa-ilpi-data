@@ -65,19 +65,21 @@ import {
 } from 'lucide-react'
 // parseISO removido - usar extractDateOnly para campos DATE
 import { useToast } from '@/components/ui/use-toast'
-import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { usePermissions } from '@/hooks/usePermissions'
 import { MedicalReviewModal } from './modals/MedicalReviewModal'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PrescriptionsList() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { hasPermission } = usePermissions()
+  const { isTechnicalManager } = usePermissions()
   const [searchParams] = useSearchParams()
 
-  const canCreatePrescriptions = hasPermission(PermissionType.CREATE_PRESCRIPTIONS)
-  const canUpdatePrescriptions = hasPermission(PermissionType.UPDATE_PRESCRIPTIONS)
-  const canDeletePrescriptions = hasPermission(PermissionType.DELETE_PRESCRIPTIONS)
+  // Apenas RT pode criar, editar e excluir prescrições
+  const canManagePrescriptions = isTechnicalManager()
+  const canCreatePrescriptions = canManagePrescriptions
+  const canUpdatePrescriptions = canManagePrescriptions
+  const canDeletePrescriptions = canManagePrescriptions
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
   const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: Prescription | null }>({

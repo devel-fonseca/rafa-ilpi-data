@@ -187,10 +187,13 @@ export function usePermissions() {
 
   /**
    * Verifica se o usuário é RT (Responsável Técnico)
-   * Baseado no positionCode do perfil do usuário
+   * Verifica tanto o positionCode quanto o campo isTechnicalManager
    */
   const isTechnicalManager = (): boolean => {
-    return user?.profile?.positionCode === 'TECHNICAL_MANAGER'
+    return (
+      user?.profile?.positionCode === 'TECHNICAL_MANAGER' ||
+      user?.profile?.isTechnicalManager === true
+    )
   }
 
   /**
