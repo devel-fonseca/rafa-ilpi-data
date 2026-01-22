@@ -144,14 +144,18 @@ export function WeeklyScheduleTab() {
       patternError.response.status === 404;
 
     if (isNotFound) {
+      // Verificar se há padrões inativos disponíveis
+      const hasInactivePatterns = allPatterns && allPatterns.length > 0;
+
       return (
         <>
           <Card>
             <CardContent className="py-12 text-center">
               <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground mb-6">
-                Nenhum padrão semanal encontrado. Crie um padrão para organizar os
-                turnos recorrentes.
+                {hasInactivePatterns
+                  ? 'Nenhum padrão ativo no momento. Ative um padrão existente ou crie um novo.'
+                  : 'Nenhum padrão semanal encontrado. Crie um padrão para organizar os turnos recorrentes.'}
               </p>
               {canManage && (
                 <Button
@@ -159,11 +163,74 @@ export function WeeklyScheduleTab() {
                   disabled={createPatternMutation.isPending}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Criar Padrão Inicial
+                  {hasInactivePatterns ? 'Criar Novo Padrão' : 'Criar Padrão Inicial'}
                 </Button>
               )}
             </CardContent>
           </Card>
+
+          {/* Lista de Padrões Inativos (se houver) */}
+          {canManage && hasInactivePatterns && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Padrões Disponíveis</CardTitle>
+                <CardDescription>
+                  Ative um padrão existente para começar a usar ou crie um novo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {allPatterns.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{p.name}</h4>
+                            <Badge variant="secondary">Inativo</Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {p.numberOfWeeks === 1 ? (
+                              'Padrão Semanal'
+                            ) : p.numberOfWeeks === 2 ? (
+                              'Padrão Quinzenal (2 semanas)'
+                            ) : p.numberOfWeeks === 3 ? (
+                              'Padrão Tri-semanal (3 semanas)'
+                            ) : (
+                              'Padrão Mensal (4 semanas)'
+                            )}{' '}
+                            • Início:{' '}
+                            {formatDateOnlySafe(p.startDate)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleActivatePattern(p.id)}
+                          disabled={updatePatternMutation.isPending}
+                        >
+                          <Power className="mr-2 h-4 w-4" />
+                          Ativar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenDeleteDialog(p.id)}
+                          disabled={deletePatternMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Dialog de Criação de Padrão */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
