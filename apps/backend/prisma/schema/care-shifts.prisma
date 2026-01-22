@@ -1,0 +1,330 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  ESCALA DE CUIDADOS - Gestão de Turnos, Equipes e Plantões
+//
+//  Módulo para organização de cobertura assistencial 24h conforme RDC 502/2021
+//  Data: 21/01/2026
+//  Autor: @efonseca78 (BR)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ==========================================
+// TURNOS FIXOS DO SISTEMA
+// ==========================================
+
+// ShiftTemplate: Turnos fixos pré-configurados (5 turnos)
+// Tabela SHARED (public schema) - read-only para usuários
+model ShiftTemplate {
+  id           String            @id @default(uuid()) @db.Uuid
+  type         ShiftTemplateType @unique
+  name         String            @db.VarChar(50) // "Dia 8h", "Noite 12h"
+  startTime    String            @db.VarChar(5) // "07:00" (HH:mm)
+  endTime      String            @db.VarChar(5) // "15:00" (HH:mm)
+  duration     Int // Duração em horas (8 ou 12)
+  description  String?           @db.Text
+  isActive     Boolean           @default(true) // Sistema pode desativar turnos obsoletos
+  displayOrder Int               @default(0) // Ordem de exibição
+
+  // Relações
+  tenantConfigs     TenantShiftConfig[]
+  weeklyAssignments WeeklySchedulePatternAssignment[]
+  shifts            Shift[]
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("shift_templates")
+}
+
+// TenantShiftConfig: Configuração de turnos por tenant
+// Tabela SHARED (public schema) - cada tenant ativa/desativa turnos que usa
+model TenantShiftConfig {
+  id              String  @id @default(uuid()) @db.Uuid
+  tenantId        String  @db.Uuid
+  shiftTemplateId String  @db.Uuid
+  isEnabled       Boolean @default(true) // Tenant pode ativar/desativar turnos
+  customName      String? @db.VarChar(50) // Nome customizado (ex: "Turno Manhã")
+
+  // Horários customizados (opcional) - se null, usa o padrão do ShiftTemplate
+  customStartTime String? @db.VarChar(5) // "08:00" (se ILPI inicia às 08h ao invés de 07h)
+  customEndTime   String? @db.VarChar(5) // "16:00"
+  customDuration  Int? // Duração em horas (calculado automaticamente se não fornecido)
+
+  notes String? @db.Text
+
+  // Relações
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  shiftTemplate ShiftTemplate @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@unique([tenantId, shiftTemplateId])
+  @@index([tenantId, isEnabled])
+  @@index([deletedAt])
+  @@map("tenant_shift_configs")
+}
+
+// ==========================================
+// EQUIPES DE CUIDADORES
+// ==========================================
+
+// Team: Equipes reutilizáveis de cuidadores
+// Tabela TENANT-SCOPED (schema do tenant)
+model Team {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  name        String  @db.VarChar(100) // "Equipe A Manhã"
+  description String? @db.Text
+  isActive    Boolean @default(true)
+  color       String? @db.VarChar(7) // Hex color para UI (#FF5733)
+
+  // Relações
+  members               TeamMember[]
+  weeklyAssignments     WeeklySchedulePatternAssignment[]
+  shifts                Shift[]
+  originalSubstitutions ShiftSubstitution[]               @relation("OriginalTeam")
+  newSubstitutions      ShiftSubstitution[]               @relation("NewTeam")
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([tenantId, isActive])
+  @@index([deletedAt])
+  @@map("teams")
+}
+
+// TeamMember: Membros das equipes (relação N:M)
+// Tabela TENANT-SCOPED
+model TeamMember {
+  id       String  @id @default(uuid()) @db.Uuid
+  tenantId String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  teamId   String  @db.Uuid
+  userId   String  @db.Uuid // Stored for reference, no FK (same-schema but managed by Prisma)
+  role     String? @db.VarChar(50) // "Líder", "Substituto" (opcional)
+
+  // Relações
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  // user - NO FK (evita problemas de referência, Prisma gerencia a relação)
+
+  // Auditoria
+  addedBy   String    @db.Uuid
+  addedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  removedBy String?   @db.Uuid
+  removedAt DateTime? @db.Timestamptz(3)
+
+  @@unique([teamId, userId, removedAt]) // Permite re-adicionar após remoção
+  @@index([tenantId, teamId])
+  @@index([userId])
+  @@index([removedAt])
+  @@map("team_members")
+}
+
+// ==========================================
+// PADRÃO SEMANAL DE ESCALA
+// ==========================================
+
+// WeeklySchedulePattern: Padrão semanal recorrente
+// Tabela TENANT-SCOPED - apenas 1 ativo por vez
+model WeeklySchedulePattern {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @db.Uuid // Stored for reference, no FK (cross-schema)
+  name          String    @db.VarChar(100) // "Escala Padrão 2026"
+  description   String?   @db.Text
+  isActive      Boolean   @default(true) // Apenas 1 padrão ativo por vez
+  startDate     DateTime  @db.Date // Data de início de vigência
+  endDate       DateTime? @db.Date // null = sem fim definido
+  numberOfWeeks Int       @default(1) // Número de semanas no ciclo (1-4)
+
+  // Relações
+  assignments WeeklySchedulePatternAssignment[]
+  shifts      Shift[] // Plantões gerados deste padrão
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@index([tenantId, isActive])
+  @@index([tenantId, startDate])
+  @@index([deletedAt])
+  @@map("weekly_schedule_patterns")
+}
+
+// WeeklySchedulePatternAssignment: Designações do padrão semanal
+// Tabela TENANT-SCOPED - define equipe por dia da semana + turno
+model WeeklySchedulePatternAssignment {
+  id              String  @id @default(uuid()) @db.Uuid
+  tenantId        String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  patternId       String  @db.Uuid
+  weekNumber      Int     @default(0) // Número da semana no ciclo (0-3)
+  dayOfWeek       Int // 0=Domingo, 1=Segunda, ..., 6=Sábado
+  shiftTemplateId String  @db.Uuid
+  teamId          String? @db.Uuid // null = sem equipe padrão
+
+  // Relações
+  pattern       WeeklySchedulePattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+  shiftTemplate ShiftTemplate         @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
+  team          Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  // Auditoria
+  createdBy String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedBy String?  @db.Uuid
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([patternId, weekNumber, dayOfWeek, shiftTemplateId])
+  @@index([tenantId, patternId])
+  @@index([patternId, weekNumber, dayOfWeek])
+  @@index([teamId])
+  @@map("weekly_schedule_pattern_assignments")
+}
+
+// ==========================================
+// PLANTÕES CONCRETOS
+// ==========================================
+
+// Shift: Plantão concreto (data + turno + equipe)
+// Tabela TENANT-SCOPED
+model Shift {
+  id              String      @id @default(uuid()) @db.Uuid
+  tenantId        String      @db.Uuid // Stored for reference, no FK (cross-schema)
+  date            DateTime    @db.Date
+  shiftTemplateId String      @db.Uuid
+  teamId          String?     @db.Uuid // null = sem equipe ou membros individuais
+  status          ShiftStatus @default(SCHEDULED)
+  isFromPattern   Boolean     @default(false) // true = gerado automaticamente
+  patternId       String?     @db.Uuid // Referência ao padrão que gerou (se aplicável)
+  notes           String?     @db.Text
+
+  // Relações
+  shiftTemplate ShiftTemplate          @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
+  team          Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  pattern       WeeklySchedulePattern? @relation(fields: [patternId], references: [id], onDelete: SetNull)
+  members       ShiftAssignment[]
+  substitutions ShiftSubstitution[]
+  history       ShiftHistory[]
+
+  // Versionamento
+  versionNumber Int @default(1)
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@unique([tenantId, date, shiftTemplateId, deletedAt])
+  @@index([tenantId, date])
+  @@index([tenantId, date, status])
+  @@index([teamId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("shifts")
+}
+
+// ShiftAssignment: Membros designados para o plantão
+// Tabela TENANT-SCOPED
+model ShiftAssignment {
+  id         String  @id @default(uuid()) @db.Uuid
+  tenantId   String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  shiftId    String  @db.Uuid
+  userId     String  @db.Uuid
+  isFromTeam Boolean @default(true) // true = veio da equipe, false = adicionado manualmente
+
+  // Relações
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user  User  @relation("ShiftAssignmentUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  // Auditoria
+  assignedBy String    @db.Uuid
+  assignedAt DateTime  @default(now()) @db.Timestamptz(3)
+  removedBy  String?   @db.Uuid
+  removedAt  DateTime? @db.Timestamptz(3)
+
+  @@unique([shiftId, userId, removedAt]) // Permite re-adicionar após remoção
+  @@index([tenantId, shiftId])
+  @@index([userId])
+  @@index([removedAt])
+  @@map("shift_assignments")
+}
+
+// ==========================================
+// SUBSTITUIÇÕES PONTUAIS
+// ==========================================
+
+// ShiftSubstitution: Registro de substituições pontuais
+// Tabela TENANT-SCOPED
+model ShiftSubstitution {
+  id       String           @id @default(uuid()) @db.Uuid
+  tenantId String           @db.Uuid // Stored for reference, no FK (cross-schema)
+  shiftId  String           @db.Uuid
+  type     SubstitutionType
+  reason   String           @db.Text // Motivo obrigatório
+
+  // Para TEAM_REPLACEMENT
+  originalTeamId String? @db.Uuid
+  newTeamId      String? @db.Uuid
+
+  // Para MEMBER_REPLACEMENT / MEMBER_ADDITION
+  originalUserId String? @db.Uuid
+  newUserId      String? @db.Uuid
+
+  // Relações
+  shift        Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  originalTeam Team? @relation("OriginalTeam", fields: [originalTeamId], references: [id], onDelete: SetNull)
+  newTeam      Team? @relation("NewTeam", fields: [newTeamId], references: [id], onDelete: SetNull)
+  originalUser User? @relation("OriginalUserSubstitution", fields: [originalUserId], references: [id], onDelete: SetNull)
+  newUser      User? @relation("NewUserSubstitution", fields: [newUserId], references: [id], onDelete: SetNull)
+
+  // Auditoria
+  substitutedBy String   @db.Uuid
+  substitutedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([tenantId, shiftId])
+  @@index([shiftId, type])
+  @@map("shift_substitutions")
+}
+
+// ==========================================
+// HISTÓRICO DE VERSIONAMENTO
+// ==========================================
+
+// ShiftHistory: Histórico de alterações do plantão
+// Tabela TENANT-SCOPED
+model ShiftHistory {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid // Stored for reference, no FK (cross-schema)
+  shiftId       String     @db.Uuid
+  versionNumber Int
+  changeType    ChangeType // CREATE | UPDATE | DELETE
+  changeReason  String     @db.Text // Motivo obrigatório (min 10 chars)
+
+  // Snapshots JSON
+  previousData  Json? // null em CREATE
+  newData       Json
+  changedFields String[] @default([]) // ["teamId", "status"]
+
+  // Relações
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  user  User  @relation("ShiftHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Auditoria
+  changedBy String   @db.Uuid
+  changedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([tenantId, shiftId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@map("shift_history")
+}

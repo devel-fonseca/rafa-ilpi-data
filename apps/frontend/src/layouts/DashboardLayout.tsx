@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -57,6 +57,7 @@ export function DashboardLayout() {
   const canViewMessages = hasPermission(PermissionType.VIEW_MESSAGES)
   const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
                             hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
+  const canViewCareShifts = hasPermission(PermissionType.VIEW_CARE_SHIFTS)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -558,6 +559,26 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
+              {/* Escala de Cuidados */}
+              {canViewCareShifts && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/escala-cuidados"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <CalendarClock className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Escala de Cuidados'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Escala de Cuidados</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {/* Usuários (antiga Gerenciar Usuários) */}
               {user?.role?.toUpperCase() === 'ADMIN' && (
                 <Tooltip>
@@ -792,6 +813,18 @@ export function DashboardLayout() {
                 >
                   <FileText className="h-4 w-4" />
                   POPs
+                </Link>
+              )}
+
+              {/* Escala de Cuidados */}
+              {canViewCareShifts && (
+                <Link
+                  to="/dashboard/escala-cuidados"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                  Escala de Cuidados
                 </Link>
               )}
 

@@ -1,0 +1,211 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  COMPONENT - ShiftDetailsModal (Modal de Detalhes do Plantão)
+// ──────────────────────────────────────────────────────────────────────────────
+
+import { Clock, Users, Calendar, FileText } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { CoverageStatusBadge } from '../compliance/CoverageStatusBadge';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { formatDateTimeSafe } from '@/utils/dateHelpers';
+import type { Shift } from '@/types/care-shifts/care-shifts';
+
+interface ShiftDetailsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  shift: Shift | undefined;
+  minimumRequired?: number;
+}
+
+/**
+ * Modal com detalhes completos do plantão
+ */
+export function ShiftDetailsModal({
+  open,
+  onOpenChange,
+  shift,
+  minimumRequired = 0,
+}: ShiftDetailsModalProps) {
+  if (!shift) return null;
+
+  const activeMembers = shift.members?.filter((m) => !m.removedAt) || [];
+  const assignedCount = activeMembers.length;
+
+  const getInitials = (name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString + 'T12:00:00.000Z');
+      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch {
+      return dateString;
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Detalhes do Plantão</DialogTitle>
+          <DialogDescription>
+            Informações completas do plantão e equipe designada
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Informações básicas */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Data</span>
+              </div>
+              <p className="font-medium">{formatDate(shift.date)}</p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Turno</span>
+              </div>
+              <p className="font-medium">{shift.shiftTemplate?.name}</p>
+              <p className="text-sm text-muted-foreground">
+                {shift.shiftTemplate?.startTime} - {shift.shiftTemplate?.endTime}
+              </p>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Status</p>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{shift.status}</Badge>
+              <CoverageStatusBadge
+                assignedCount={assignedCount}
+                minimumRequired={minimumRequired}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Equipe */}
+          {shift.team && (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Equipe</p>
+                <div
+                  className="flex items-center gap-2 p-3 border rounded-lg"
+                  style={{ borderColor: shift.team.color || undefined }}
+                >
+                  <div
+                    className="w-4 h-4 rounded-full border"
+                    style={{ backgroundColor: shift.team.color || '#3B82F6' }}
+                  />
+                  <div>
+                    <p className="font-medium">{shift.team.name}</p>
+                    {shift.team.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {shift.team.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {/* Membros */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-muted-foreground">
+                Cuidadores Designados
+              </p>
+              <Badge variant="secondary">
+                <Users className="h-3 w-3 mr-1" />
+                {assignedCount}
+              </Badge>
+            </div>
+
+            {activeMembers.length > 0 ? (
+              <div className="space-y-2">
+                {activeMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 p-2 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <Avatar>
+                      <AvatarFallback>
+                        {getInitials(member.user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{member.user.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {member.user.profile?.positionCode || 'Cuidador'}
+                      </p>
+                    </div>
+                    {!member.isFromTeam && (
+                      <Badge variant="outline" className="text-xs">
+                        Extra
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 border rounded-lg border-dashed">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum cuidador designado para este plantão
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Observações */}
+          {shift.notes && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                  <span>Observações</span>
+                </div>
+                <p className="text-sm p-3 bg-muted rounded-lg">{shift.notes}</p>
+              </div>
+            </>
+          )}
+
+          {/* Metadados */}
+          <Separator />
+          <div className="text-xs text-muted-foreground space-y-1">
+            {shift.isFromPattern && (
+              <p>✓ Gerado automaticamente do padrão semanal</p>
+            )}
+            <p>
+              Versão: {shift.versionNumber} | Criado em:{' '}
+              {formatDateTimeSafe(shift.createdAt)}
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

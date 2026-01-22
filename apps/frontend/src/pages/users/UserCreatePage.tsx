@@ -21,7 +21,7 @@ import { PositionCode, RegistrationType } from '@/types/permissions'
 import { getRoleRecommendation, type UserRole } from '@/utils/roleRecommendation'
 import { getMensagemValidacaoCPF } from '@/utils/validators'
 import { cleanCPF } from '@/utils/formatters'
-import { addUserToTenant, createUserProfile } from '@/services/api'
+import { addUserToTenant, updateUserProfile } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
 import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialog'
@@ -164,7 +164,13 @@ export default function UserCreatePage() {
 
       // 2. Atualizar perfil com dados adicionais (se houver)
       // CPF, phone, department e positionCode já foram criados na transação atômica do backend
-      if (formData.registrationType || formData.registrationNumber || formData.birthDate) {
+      if (
+        formData.registrationType ||
+        formData.registrationNumber ||
+        formData.birthDate ||
+        formData.isTechnicalManager ||
+        formData.isNursingCoordinator
+      ) {
         const additionalProfileData = {
           registrationType: formData.registrationType || undefined,
           registrationNumber: formData.registrationNumber?.trim() || undefined,
@@ -174,7 +180,7 @@ export default function UserCreatePage() {
           isNursingCoordinator: formData.isNursingCoordinator,
         }
 
-        await createUserProfile(newUser.id, additionalProfileData)
+        await updateUserProfile(newUser.id, additionalProfileData)
       }
 
       toast.success('Usuário criado com sucesso!')

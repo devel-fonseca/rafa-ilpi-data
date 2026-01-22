@@ -18,7 +18,7 @@ import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import * as crypto from 'crypto';
-import { TenantStatus, Prisma } from '@prisma/client';
+import { TenantStatus, Prisma, PositionCode, ShiftTemplateType } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { execSync } from 'child_process';
 
@@ -661,7 +661,11 @@ export class TenantsService {
   /**
    * Lista usuários de um tenant
    */
-  async listUsers(tenantId: string, currentUserId: string) {
+  async listUsers(
+    tenantId: string,
+    currentUserId: string,
+    query?: { isActive?: boolean; positionCodes?: string },
+  ) {
     // Obter tenant para pegar schemaName
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -686,10 +690,30 @@ export class TenantsService {
       throw new ForbiddenException('Acesso negado');
     }
 
+    // Construir filtros
+    const where: Prisma.UserWhereInput = {
+      deletedAt: null,
+    };
+
+    // Filtro por isActive
+    if (query?.isActive !== undefined) {
+      where.isActive = query.isActive;
+    }
+
+    // Filtro por positionCodes (requer join com user_profiles)
+    if (query?.positionCodes) {
+      const positionCodesArray = query.positionCodes
+        .split(',')
+        .map((code) => code.trim()) as PositionCode[];
+      where.profile = {
+        positionCode: {
+          in: positionCodesArray,
+        },
+      };
+    }
+
     return tenantClient.user.findMany({
-      where: {
-        deletedAt: null,
-      },
+      where,
       select: {
         id: true,
         name: true,
@@ -699,6 +723,13 @@ export class TenantsService {
         passwordResetRequired: true,
         createdAt: true,
         lastLogin: true,
+        profile: {
+          select: {
+            positionCode: true,
+            department: true,
+            phone: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -838,6 +869,12 @@ export class TenantsService {
       this.logger.log(
         `Migrations executadas com sucesso no schema ${schemaName}`,
       );
+
+      // 3. Popular ShiftTemplates (5 turnos padrão do sistema)
+      await this.seedShiftTemplates(schemaName);
+      this.logger.log(
+        `ShiftTemplates populados com sucesso no schema ${schemaName}`,
+      );
     } catch (error) {
       this.logger.error(
         `Erro ao criar schema ${schemaName}: ${error.message}`,
@@ -847,6 +884,81 @@ export class TenantsService {
         `Falha ao criar schema do tenant: ${error.message}`,
       );
     }
+  }
+
+  /**
+   * Popular ShiftTemplates (5 turnos padrão) no schema do tenant
+   * Chamado automaticamente após criar o schema e rodar migrations
+   */
+  private async seedShiftTemplates(schemaName: string): Promise<void> {
+    const tenantClient = this.prisma.getTenantClient(schemaName);
+
+    const templates = [
+      {
+        type: 'DAY_8H',
+        name: 'Dia 8h',
+        startTime: '07:00',
+        endTime: '15:00',
+        duration: 8,
+        description: 'Turno diurno de 8 horas',
+        displayOrder: 1,
+      },
+      {
+        type: 'AFTERNOON_8H',
+        name: 'Tarde 8h',
+        startTime: '15:00',
+        endTime: '23:00',
+        duration: 8,
+        description: 'Turno vespertino de 8 horas',
+        displayOrder: 2,
+      },
+      {
+        type: 'NIGHT_8H',
+        name: 'Noite 8h',
+        startTime: '23:00',
+        endTime: '07:00',
+        duration: 8,
+        description: 'Turno noturno de 8 horas',
+        displayOrder: 3,
+      },
+      {
+        type: 'DAY_12H',
+        name: 'Dia 12h',
+        startTime: '07:00',
+        endTime: '19:00',
+        duration: 12,
+        description: 'Turno diurno de 12 horas',
+        displayOrder: 4,
+      },
+      {
+        type: 'NIGHT_12H',
+        name: 'Noite 12h',
+        startTime: '19:00',
+        endTime: '07:00',
+        duration: 12,
+        description: 'Turno noturno de 12 horas',
+        displayOrder: 5,
+      },
+    ];
+
+    for (const template of templates) {
+      await tenantClient.shiftTemplate.upsert({
+        where: { type: template.type as ShiftTemplateType },
+        update: {}, // Não atualiza se já existe
+        create: {
+          type: template.type as ShiftTemplateType,
+          name: template.name,
+          startTime: template.startTime,
+          endTime: template.endTime,
+          duration: template.duration,
+          description: template.description,
+          displayOrder: template.displayOrder,
+          isActive: true,
+        },
+      });
+    }
+
+    this.logger.log(`5 ShiftTemplates criados no schema ${schemaName}`);
   }
 
   /**

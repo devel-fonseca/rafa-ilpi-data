@@ -141,6 +141,15 @@ export enum PermissionType {
   // Conformidade RDC 502/2021 (acesso restrito a gestores)
   VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
   VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
+
+  // Escala de Cuidados (Gestão de Turnos e Plantões)
+  VIEW_CARE_SHIFTS = 'VIEW_CARE_SHIFTS',
+  CREATE_CARE_SHIFTS = 'CREATE_CARE_SHIFTS',
+  UPDATE_CARE_SHIFTS = 'UPDATE_CARE_SHIFTS',
+  DELETE_CARE_SHIFTS = 'DELETE_CARE_SHIFTS',
+  MANAGE_TEAMS = 'MANAGE_TEAMS',
+  VIEW_RDC_COMPLIANCE = 'VIEW_RDC_COMPLIANCE',
+  CONFIGURE_SHIFT_SETTINGS = 'CONFIGURE_SHIFT_SETTINGS',
 }
 
 export const POSITION_CODE_LABELS: Record<PositionCode, string> = {
@@ -286,6 +295,14 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
 
   [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
   [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
+
+  [PermissionType.VIEW_CARE_SHIFTS]: 'Visualizar plantões',
+  [PermissionType.CREATE_CARE_SHIFTS]: 'Criar plantões',
+  [PermissionType.UPDATE_CARE_SHIFTS]: 'Editar plantões',
+  [PermissionType.DELETE_CARE_SHIFTS]: 'Excluir plantões',
+  [PermissionType.MANAGE_TEAMS]: 'Gerenciar equipes',
+  [PermissionType.VIEW_RDC_COMPLIANCE]: 'Visualizar conformidade RDC',
+  [PermissionType.CONFIGURE_SHIFT_SETTINGS]: 'Configurar turnos',
 };
 
 export const PERMISSION_GROUPS = {

@@ -205,6 +205,15 @@ enum PermissionType {
   DELETE_CONTRACTS
   REPLACE_CONTRACTS
 
+  // Escala de Cuidados (Gestão de Turnos e Plantões)
+  VIEW_CARE_SHIFTS
+  CREATE_CARE_SHIFTS
+  UPDATE_CARE_SHIFTS
+  DELETE_CARE_SHIFTS
+  MANAGE_TEAMS
+  VIEW_RDC_COMPLIANCE
+  CONFIGURE_SHIFT_SETTINGS
+
   @@map("PermissionType")
 }
 
@@ -261,6 +270,11 @@ enum ChangeType {
   CREATE // Criação inicial do registro
   UPDATE // Atualização de campos
   DELETE // Soft delete (marcação como deletado)
+  TEAM_ASSIGNMENT // Designação de equipe ao plantão
+  TEAM_SUBSTITUTION // Substituição de equipe inteira
+  MEMBER_SUBSTITUTION // Substituição de membro individual
+  MEMBER_ADDITION // Adição de membro extra
+  MEMBER_REMOVAL // Remoção de membro
 
   @@map("ChangeType")
 }
@@ -823,4 +837,39 @@ enum TenantMessageStatus {
   SENT // Enviado com sucesso
 
   @@map("TenantMessageStatus")
+}
+
+// ==========================================
+// ESCALA DE CUIDADOS (3 enums)
+// ==========================================
+
+// Enum: Tipos de Turnos Fixos do Sistema
+enum ShiftTemplateType {
+  DAY_8H // Dia 8h (07:00-15:00)
+  AFTERNOON_8H // Tarde 8h (15:00-23:00)
+  NIGHT_8H // Noite 8h (23:00-07:00)
+  DAY_12H // Dia 12h (07:00-19:00)
+  NIGHT_12H // Noite 12h (19:00-07:00)
+
+  @@map("ShiftTemplateType")
+}
+
+// Enum: Status do Plantão
+enum ShiftStatus {
+  SCHEDULED // Agendado (gerado do padrão semanal)
+  CONFIRMED // Confirmado (com equipe designada)
+  IN_PROGRESS // Em andamento
+  COMPLETED // Concluído
+  CANCELLED // Cancelado
+
+  @@map("ShiftStatus")
+}
+
+// Enum: Tipo de Substituição de Plantão
+enum SubstitutionType {
+  TEAM_REPLACEMENT // Substituição de equipe inteira
+  MEMBER_REPLACEMENT // Substituição de membro individual
+  MEMBER_ADDITION // Adição de membro extra ao plantão
+
+  @@map("SubstitutionType")
 }

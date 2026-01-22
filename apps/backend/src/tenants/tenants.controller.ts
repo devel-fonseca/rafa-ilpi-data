@@ -22,6 +22,7 @@ import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AddUserToTenantDto } from './dto/add-user.dto';
+import { ListUsersQueryDto } from './dto/list-users-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -210,15 +211,17 @@ export class TenantsController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Listar usuários da ILPI',
-    description: 'Lista todos os usuários/funcionários da ILPI',
+    description:
+      'Lista todos os usuários/funcionários da ILPI com filtros opcionais',
   })
   @ApiResponse({ status: 200, description: 'Lista de usuários' })
   @ApiResponse({ status: 403, description: 'Acesso negado' })
   listUsers(
     @Param('tenantId') tenantId: string,
     @CurrentUser() user: JwtPayload,
+    @Query() query: ListUsersQueryDto,
   ) {
-    return this.tenantsService.listUsers(tenantId, user.id);
+    return this.tenantsService.listUsers(tenantId, user.id, query);
   }
 
   @Delete(':tenantId/users/:userId')

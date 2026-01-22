@@ -115,6 +115,9 @@ import ResidentContractsList from '@/pages/contracts/ResidentContractsList'
 import ResidentContractUpload from '@/pages/contracts/ResidentContractUpload'
 import ResidentContractView from '@/pages/contracts/ResidentContractView'
 
+// Care Shifts Pages
+import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -242,6 +245,16 @@ export const router = createBrowserRouter([
           <FeatureGate featureKey="agenda">
             <AgendaPage />
           </FeatureGate>
+        ),
+      },
+      {
+        path: 'escala-cuidados',
+        element: (
+          <ProtectedRoute
+            requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
+          >
+            <CareShiftsPage />
+          </ProtectedRoute>
         ),
       },
       {
