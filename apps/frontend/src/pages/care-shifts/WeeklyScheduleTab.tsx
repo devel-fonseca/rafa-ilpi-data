@@ -35,7 +35,7 @@ import {
 import { useShiftTemplates } from '@/hooks/care-shifts/useShiftTemplates';
 import { useGenerateShifts } from '@/hooks/care-shifts/useShifts';
 import { usePermissions, PermissionType } from '@/hooks/usePermissions';
-import { format, startOfWeek } from 'date-fns';
+import { format } from 'date-fns';
 import { formatDateOnlySafe } from '@/utils/dateHelpers';
 
 export function WeeklyScheduleTab() {
@@ -81,7 +81,6 @@ export function WeeklyScheduleTab() {
   // Handler para confirmar criação do padrão
   const handleConfirmCreatePattern = async () => {
     const today = new Date();
-    const sundayOfWeek = startOfWeek(today, { weekStartsOn: 0 }); // 0 = Domingo
     const patternNames = {
       1: 'Padrão Semanal',
       2: 'Padrão Quinzenal',
@@ -92,7 +91,7 @@ export function WeeklyScheduleTab() {
     await createPatternMutation.mutateAsync({
       name: patternNames[selectedNumberOfWeeks as keyof typeof patternNames] || 'Padrão Semanal',
       description: `Padrão recorrente de ${selectedNumberOfWeeks} semana(s)`,
-      startDate: format(sundayOfWeek, 'yyyy-MM-dd'),
+      startDate: format(today, 'yyyy-MM-dd'),
       numberOfWeeks: selectedNumberOfWeeks,
     });
 

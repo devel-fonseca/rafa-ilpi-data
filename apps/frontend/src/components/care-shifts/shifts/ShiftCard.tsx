@@ -2,7 +2,7 @@
 //  COMPONENT - ShiftCard (Card de Plantão Individual)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Clock, Users, MoreVertical } from 'lucide-react';
+import { Clock, Users, MoreVertical, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -21,6 +21,7 @@ interface ShiftCardProps {
   onViewDetails?: () => void;
   onAssignTeam?: () => void;
   onSubstitute?: () => void;
+  onDelete?: () => void;
   canManage?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function ShiftCard({
   onViewDetails,
   onAssignTeam,
   onSubstitute,
+  onDelete,
   canManage = false,
 }: ShiftCardProps) {
   const activeMembers = shift.members?.filter((m) => !m.removedAt) || [];
@@ -92,6 +94,15 @@ export function ShiftCard({
                 {assignedCount > 0 && (
                   <DropdownMenuItem onClick={onSubstitute}>
                     Substituir
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Plantão
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

@@ -24,7 +24,7 @@
     "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "prisma:seed:example": "ts-node prisma/seed-example.ts",
+    "prisma:seed:email-templates": "ts-node prisma/seed-template-emails.ts",
     "tenants:sync-schemas": "ts-node scripts/apply-tenant-migrations.ts",
     "tenants:sync-single": "ts-node scripts/apply-tenant-migrations.ts --schema"
   },

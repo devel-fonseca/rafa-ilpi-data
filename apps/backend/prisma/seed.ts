@@ -119,8 +119,8 @@ async function main() {
 
   console.log("✅ SuperAdmin seeded!");
 
-  // Seed Shift Templates (Turnos Fixos)
-  await seedShiftTemplates();
+  // Seed Shift Templates (Turnos Fixos - Public Schema)
+  await seedShiftTemplates(prisma);
 
   console.log("✅ Seeding completed!");
 }

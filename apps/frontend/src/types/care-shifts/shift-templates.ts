@@ -15,6 +15,7 @@ export enum ShiftTemplateType {
 
 /**
  * Template de turno (read-only, definido pelo sistema)
+ * Com configuração do tenant mesclada
  */
 export interface ShiftTemplate {
   id: string;
@@ -25,8 +26,16 @@ export interface ShiftTemplate {
   duration: number; // 8 ou 12 horas
   displayOrder: number;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  tenantConfig?: {
+    id: string | null;
+    isEnabled: boolean;
+    customName: string | null;
+    customStartTime: string | null;
+    customEndTime: string | null;
+    customDuration: number | null;
+  };
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**

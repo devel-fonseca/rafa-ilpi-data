@@ -34,6 +34,7 @@ import {
   SubstituteTeamDto,
   SubstituteMemberDto,
   AddMemberDto,
+  BulkCreateShiftsDto,
   RDCCalculationQueryDto,
   CoverageReportQueryDto,
 } from './dto';
@@ -68,6 +69,24 @@ export class CareShiftsController {
   })
   createShift(@Body() createDto: CreateShiftDto, @Req() req: RequestWithUser) {
     return this.careShiftsService.create(createDto, req.user.id);
+  }
+
+  @Post('bulk')
+  @RequireAnyPermission(PermissionType.CREATE_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Criar plantões em lote',
+    description:
+      'Cria múltiplos plantões de uma vez (usado para designação via calendário com seleção múltipla).',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Plantões criados (retorna created, skipped, errors)',
+  })
+  bulkCreateShifts(
+    @Body() bulkDto: BulkCreateShiftsDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.careShiftsService.bulkCreate(bulkDto.shifts, req.user.id);
   }
 
   @Get()

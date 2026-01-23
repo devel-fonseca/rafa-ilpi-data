@@ -17,14 +17,15 @@ export class ShiftTemplatesService {
    */
   async findAll() {
     try {
-      const templates = await this.tenantContext.client.shiftTemplate.findMany(
+      // ✅ CORREÇÃO: ShiftTemplate está em public.shift_templates (tabela SHARED)
+      const templates = await this.tenantContext.publicClient.shiftTemplate.findMany(
         {
           where: { isActive: true },
           orderBy: { displayOrder: 'asc' },
         },
       );
 
-      // Buscar configs do tenant separadamente para evitar problemas de join
+      // Buscar configs do tenant (agora está no tenant schema)
       const configs =
         await this.tenantContext.client.tenantShiftConfig.findMany({
           where: {
@@ -79,7 +80,8 @@ export class ShiftTemplatesService {
    * Buscar turno fixo específico por ID
    */
   async findOne(id: string) {
-    const template = await this.tenantContext.client.shiftTemplate.findUnique({
+    // ✅ CORREÇÃO: ShiftTemplate está em public.shift_templates (tabela SHARED)
+    const template = await this.tenantContext.publicClient.shiftTemplate.findUnique({
       where: { id },
     });
 
@@ -141,8 +143,8 @@ export class ShiftTemplatesService {
     updateDto: UpdateTenantShiftConfigDto,
     userId: string,
   ) {
-    // Verificar se ShiftTemplate existe e está ativo
-    const template = await this.tenantContext.client.shiftTemplate.findUnique({
+    // ✅ CORREÇÃO: ShiftTemplate está em public.shift_templates (tabela SHARED)
+    const template = await this.tenantContext.publicClient.shiftTemplate.findUnique({
       where: { id: shiftTemplateId },
     });
 
@@ -178,9 +180,6 @@ export class ShiftTemplatesService {
           ...updateDto,
           updatedBy: userId,
         },
-        include: {
-          shiftTemplate: true,
-        },
       });
     } else {
       // Criar novo config
@@ -195,21 +194,19 @@ export class ShiftTemplatesService {
           customDuration: updateDto.customDuration ?? null,
           createdBy: userId,
         },
-        include: {
-          shiftTemplate: true,
-        },
       });
     }
 
+    // Retornar config mesclado com dados do template (busca separada - cross-schema)
     return {
       id: config.id,
       shiftTemplate: {
-        id: config.shiftTemplate.id,
-        type: config.shiftTemplate.type,
-        name: config.customName || config.shiftTemplate.name,
-        startTime: config.customStartTime || config.shiftTemplate.startTime,
-        endTime: config.customEndTime || config.shiftTemplate.endTime,
-        duration: config.customDuration || config.shiftTemplate.duration,
+        id: template.id,
+        type: template.type,
+        name: config.customName || template.name,
+        startTime: config.customStartTime || template.startTime,
+        endTime: config.customEndTime || template.endTime,
+        duration: config.customDuration || template.duration,
       },
       isEnabled: config.isEnabled,
       customName: config.customName,
@@ -225,7 +222,8 @@ export class ShiftTemplatesService {
    * (usado em dropdowns de seleção de turno)
    */
   async findEnabledForTenant() {
-    const templates = await this.tenantContext.client.shiftTemplate.findMany({
+    // ✅ CORREÇÃO: ShiftTemplate está em public.shift_templates (tabela SHARED)
+    const templates = await this.tenantContext.publicClient.shiftTemplate.findMany({
       where: { isActive: true },
       orderBy: { displayOrder: 'asc' },
     });

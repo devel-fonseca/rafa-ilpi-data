@@ -134,3 +134,50 @@ export function IsMinimumAge(validationOptions?: ValidationOptions) {
     });
   };
 }
+
+/**
+ * Validator para datas futuras ou atuais (não permite datas passadas)
+ */
+@ValidatorConstraint({ async: false })
+export class IsNotPastDateConstraint implements ValidatorConstraintInterface {
+  validate(dateStr: unknown) {
+    if (!dateStr || typeof dateStr !== 'string') return false;
+
+    // Valida formato YYYY-MM-DD
+    if (!isValidDateOnly(dateStr)) return false;
+
+    // Compara data fornecida com hoje (apenas dia, sem horas)
+    const inputDate = new Date(dateStr + 'T12:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return inputDate >= today;
+  }
+
+  defaultMessage() {
+    return 'Data não pode estar no passado';
+  }
+}
+
+/**
+ * Decorator @IsNotPastDate()
+ * Valida que a data não é anterior ao dia atual
+ *
+ * @example
+ * export class CreateShiftDto {
+ *   @IsDateOnly()
+ *   @IsNotPastDate()
+ *   date: string; // "2026-01-23"
+ * }
+ */
+export function IsNotPastDate(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName: propertyName,
+      options: validationOptions,
+      constraints: [],
+      validator: IsNotPastDateConstraint,
+    });
+  };
+}

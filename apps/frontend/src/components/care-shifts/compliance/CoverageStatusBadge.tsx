@@ -43,19 +43,19 @@ export function CoverageStatusBadge({
     compliant: {
       label: 'Conforme',
       variant: 'default' as const,
-      className: 'bg-green-500 hover:bg-green-600 text-white',
+      className: 'bg-success text-success-foreground hover:bg-success/90',
       icon: CheckCircle2,
     },
     attention: {
       label: 'Atenção',
       variant: 'secondary' as const,
-      className: 'bg-yellow-500 hover:bg-yellow-600 text-white',
+      className: 'bg-warning text-warning-foreground hover:bg-warning/90',
       icon: AlertCircle,
     },
     non_compliant: {
       label: 'Não Conforme',
       variant: 'destructive' as const,
-      className: 'bg-red-500 hover:bg-red-600 text-white',
+      className: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       icon: XCircle,
     },
   };

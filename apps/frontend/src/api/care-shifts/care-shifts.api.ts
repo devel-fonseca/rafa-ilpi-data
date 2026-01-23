@@ -13,7 +13,6 @@ import type {
   SubstituteTeamDto,
   SubstituteMemberDto,
   AddMemberDto,
-  ListShiftsResponse,
   ShiftResponse,
 } from '../../types/care-shifts/care-shifts';
 import type {
@@ -36,8 +35,8 @@ const RDC_URL = '/care-shifts/rdc';
 export const listShifts = async (
   query: ListShiftsQueryDto,
 ): Promise<Shift[]> => {
-  const response = await api.get<ListShiftsResponse>(BASE_URL, { params: query });
-  return response.data.shifts;
+  const response = await api.get<Shift[]>(BASE_URL, { params: query });
+  return response.data; // API retorna array diretamente
 };
 
 /**

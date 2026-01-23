@@ -17,6 +17,7 @@ import { CoverageStatusBadge } from '../compliance/CoverageStatusBadge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatDateTimeSafe } from '@/utils/dateHelpers';
+import { POSITION_CODE_LABELS, PositionCode } from '@/types/permissions';
 import type { Shift } from '@/types/care-shifts/care-shifts';
 
 interface ShiftDetailsModalProps {
@@ -50,11 +51,24 @@ export function ShiftDetailsModal({
 
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString + 'T12:00:00.000Z');
-      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      // Extrair apenas YYYY-MM-DD se vier com timestamp
+      const dateOnly = dateString.split('T')[0];
+      const date = new Date(dateOnly + 'T12:00:00.000Z');
+      return format(date, 'dd/MM/yyyy', { locale: ptBR });
     } catch {
       return dateString;
     }
+  };
+
+  const translateStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      SCHEDULED: 'Agendado',
+      CONFIRMED: 'Confirmado',
+      IN_PROGRESS: 'Em Andamento',
+      COMPLETED: 'Concluído',
+      CANCELLED: 'Cancelado',
+    };
+    return statusMap[status] || status;
   };
 
   return (
@@ -94,7 +108,7 @@ export function ShiftDetailsModal({
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Status</p>
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{shift.status}</Badge>
+              <Badge variant="outline">{translateStatus(shift.status)}</Badge>
               <CoverageStatusBadge
                 assignedCount={assignedCount}
                 minimumRequired={minimumRequired}
@@ -158,7 +172,9 @@ export function ShiftDetailsModal({
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{member.user.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {member.user.profile?.positionCode || 'Cuidador'}
+                        {member.user.profile?.positionCode
+                          ? POSITION_CODE_LABELS[member.user.profile.positionCode as PositionCode]
+                          : 'Cuidador'}
                       </p>
                     </div>
                     {!member.isFromTeam && (

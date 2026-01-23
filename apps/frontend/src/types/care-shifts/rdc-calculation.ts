@@ -47,12 +47,25 @@ export type ComplianceStatus = 'compliant' | 'attention' | 'non_compliant';
  * Plantão com status de conformidade RDC
  */
 export interface ShiftWithCompliance {
-  shiftId: string;
   date: string;
-  shiftTemplateName: string;
-  assignedCount: number;
+  shiftTemplate: {
+    id: string;
+    name: string;
+    startTime: string; // HH:mm
+    endTime: string; // HH:mm
+  };
   minimumRequired: number;
-  status: ComplianceStatus;
+  assignedCount: number;
+  complianceStatus: ComplianceStatus;
+  team?: {
+    id: string;
+    name: string;
+  };
+  members: {
+    userId: string;
+    userName: string;
+    teamFunction: string | null; // Função do membro na equipe (ex: "Líder", "Substituto")
+  }[];
 }
 
 /**

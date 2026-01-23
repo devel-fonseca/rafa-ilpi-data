@@ -5,5 +5,6 @@ export { AssignTeamDto } from './assign-team.dto';
 export { SubstituteTeamDto } from './substitute-team.dto';
 export { SubstituteMemberDto } from './substitute-member.dto';
 export { AddMemberDto } from './add-member.dto';
+export { BulkCreateShiftsDto, ShiftAssignmentDto } from './bulk-create-shifts.dto';
 export { RDCCalculationQueryDto } from './rdc-calculation-query.dto';
 export { CoverageReportQueryDto } from './coverage-report-query.dto';

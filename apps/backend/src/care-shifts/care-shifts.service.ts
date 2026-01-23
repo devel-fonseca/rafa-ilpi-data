@@ -33,23 +33,45 @@ export class CareShiftsService {
   constructor(private readonly tenantContext: TenantContextService) {}
 
   /**
+   * Enriquecer membros com dados do usuário (busca manual sem FK)
+   */
+  private async enrichMembersWithUserData(
+    members: Prisma.ShiftAssignmentGetPayload<Record<string, never>>[],
+  ) {
+    if (!members || members.length === 0) return [];
+
+    const userIds = members.map((m) => m.userId);
+    const users = await this.tenantContext.client.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        profile: {
+          select: { positionCode: true },
+        },
+      },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return members.map((member) => ({
+      ...member,
+      user: userMap.get(member.userId) || null,
+    }));
+  }
+
+  /**
    * Criar plantão manual (ajuste pontual, fora do padrão semanal)
    */
   async create(createDto: CreateShiftDto, userId: string) {
     const { date, shiftTemplateId, teamId, notes } = createDto;
 
-    // Validar se ShiftTemplate existe e está ativo
+    // Validar se ShiftTemplate existe e está ativo (public schema)
     const shiftTemplate =
-      await this.tenantContext.client.shiftTemplate.findUnique({
+      await this.tenantContext.publicClient.shiftTemplate.findUnique({
         where: { id: shiftTemplateId },
-        include: {
-          tenantConfigs: {
-            where: {
-              tenantId: this.tenantContext.tenantId,
-              deletedAt: null,
-            },
-          },
-        },
       });
 
     if (!shiftTemplate || !shiftTemplate.isActive) {
@@ -58,7 +80,15 @@ export class CareShiftsService {
       );
     }
 
-    const tenantConfig = shiftTemplate.tenantConfigs[0];
+    // Buscar configuração do tenant separadamente (cross-schema)
+    const tenantConfig =
+      await this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: {
+          shiftTemplateId,
+          deletedAt: null,
+        },
+      });
+
     if (tenantConfig && !tenantConfig.isEnabled) {
       throw new BadRequestException(
         `Turno "${shiftTemplate.name}" está desabilitado para este tenant`,
@@ -99,7 +129,6 @@ export class CareShiftsService {
         versionNumber: 1,
       },
       include: {
-        shiftTemplate: true,
         team: {
           select: {
             id: true,
@@ -109,20 +138,6 @@ export class CareShiftsService {
         },
         members: {
           where: { removedAt: null },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                profile: {
-                  select: {
-                    positionCode: true,
-                  },
-                },
-              },
-            },
-          },
         },
       },
     });
@@ -163,9 +178,8 @@ export class CareShiftsService {
 
     const shifts = await this.tenantContext.client.shift.findMany({
       where,
-      orderBy: [{ date: 'asc' }, { shiftTemplate: { displayOrder: 'asc' } }],
+      orderBy: [{ date: 'asc' }, { shiftTemplateId: 'asc' }],
       include: {
-        shiftTemplate: true,
         team: {
           select: {
             id: true,
@@ -176,27 +190,56 @@ export class CareShiftsService {
         },
         members: {
           where: { removedAt: null },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                isActive: true,
-                profile: {
-                  select: {
-                    positionCode: true,
-                  },
-                },
-              },
-            },
-          },
           orderBy: { assignedAt: 'asc' },
         },
       },
     });
 
-    return shifts;
+    // Buscar shift templates do public schema
+    const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
+    const shiftTemplates =
+      await this.tenantContext.publicClient.shiftTemplate.findMany({
+        where: { id: { in: shiftTemplateIds } },
+      });
+    const templateMap = new Map(shiftTemplates.map((t) => [t.id, t]));
+
+    // Buscar configurações customizadas do tenant (cross-schema)
+    const tenantConfigs =
+      await this.tenantContext.client.tenantShiftConfig.findMany({
+        where: {
+          shiftTemplateId: { in: shiftTemplateIds },
+          deletedAt: null,
+        },
+      });
+    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+
+    // Enriquecer todos os shifts com dados do usuário e shift template (com customizações)
+    const enrichedShifts = await Promise.all(
+      shifts.map(async (shift) => {
+        const template = templateMap.get(shift.shiftTemplateId);
+        const config = configMap.get(shift.shiftTemplateId);
+
+        return {
+          ...shift,
+          shiftTemplate: template
+            ? {
+                id: template.id,
+                type: template.type,
+                name: config?.customName || template.name,
+                startTime: config?.customStartTime || template.startTime,
+                endTime: config?.customEndTime || template.endTime,
+                duration: config?.customDuration || template.duration,
+                description: template.description,
+                isActive: template.isActive,
+                displayOrder: template.displayOrder,
+              }
+            : null,
+          members: await this.enrichMembersWithUserData(shift.members),
+        };
+      }),
+    );
+
+    return enrichedShifts;
   }
 
   /**
@@ -209,7 +252,6 @@ export class CareShiftsService {
         deletedAt: null,
       },
       include: {
-        shiftTemplate: true,
         team: {
           select: {
             id: true,
@@ -220,22 +262,6 @@ export class CareShiftsService {
         },
         members: {
           where: { removedAt: null },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                isActive: true,
-                profile: {
-                  select: {
-                    positionCode: true,
-                    phone: true,
-                  },
-                },
-              },
-            },
-          },
           orderBy: { assignedAt: 'asc' },
         },
         substitutions: {
@@ -244,12 +270,6 @@ export class CareShiftsService {
               select: { id: true, name: true },
             },
             newTeam: {
-              select: { id: true, name: true },
-            },
-            originalUser: {
-              select: { id: true, name: true },
-            },
-            newUser: {
               select: { id: true, name: true },
             },
           },
@@ -262,7 +282,41 @@ export class CareShiftsService {
       throw new NotFoundException(`Plantão com ID "${id}" não encontrado`);
     }
 
-    return shift;
+    // Buscar shift template do public schema (fallback)
+    const shiftTemplate =
+      await this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shift.shiftTemplateId },
+      });
+
+    // Buscar configuração customizada do tenant (primária)
+    const tenantConfig =
+      await this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: {
+          shiftTemplateId: shift.shiftTemplateId,
+          deletedAt: null,
+        },
+      });
+
+    // Enriquecer membros com dados do usuário
+    const enrichedMembers = await this.enrichMembersWithUserData(shift.members);
+
+    return {
+      ...shift,
+      shiftTemplate: shiftTemplate
+        ? {
+            id: shiftTemplate.id,
+            type: shiftTemplate.type,
+            name: tenantConfig?.customName || shiftTemplate.name,
+            startTime: tenantConfig?.customStartTime || shiftTemplate.startTime,
+            endTime: tenantConfig?.customEndTime || shiftTemplate.endTime,
+            duration: tenantConfig?.customDuration || shiftTemplate.duration,
+            description: shiftTemplate.description,
+            isActive: shiftTemplate.isActive,
+            displayOrder: shiftTemplate.displayOrder,
+          }
+        : null,
+      members: enrichedMembers,
+    };
   }
 
   /**
@@ -457,9 +511,13 @@ export class CareShiftsService {
     const shift = await this.findOne(shiftId);
 
     // ✅ 1. Validar que usuário original está no plantão
-    const originalMember = shift.members.find(
-      (m) => m.userId === originalUserId,
-    );
+    const originalMember = await this.tenantContext.client.shiftAssignment.findFirst({
+      where: {
+        shiftId,
+        userId: originalUserId,
+        removedAt: null,
+      },
+    });
     if (!originalMember) {
       throw new BadRequestException(
         'Usuário original não está designado a este plantão',
@@ -508,10 +566,10 @@ export class CareShiftsService {
     }
 
     // 🚫 BLOQUEANTE: Conflito de turno no mesmo dia
-    const dateStr = shift.date as unknown as string;
+    const shiftDate = shift.date instanceof Date ? shift.date : new Date(shift.date);
     const conflict = await this.tenantContext.client.shift.findFirst({
       where: {
-        date: dateStr,
+        date: shiftDate,
         deletedAt: null,
         members: {
           some: {
@@ -520,16 +578,12 @@ export class CareShiftsService {
           },
         },
       },
-      include: {
-        shiftTemplate: {
-          select: { name: true },
-        },
-      },
     });
 
     if (conflict) {
+      const dateStr = shiftDate.toISOString().split('T')[0];
       throw new BadRequestException(
-        `${newUser.name} já está designado ao turno ${conflict.shiftTemplate.name} no dia ${dateStr}`,
+        `${newUser.name} já está designado a outro turno no dia ${dateStr}`,
       );
     }
 
@@ -644,7 +698,13 @@ export class CareShiftsService {
     }
 
     // Verificar se já é membro ativo
-    const existingMember = shift.members.find((m) => m.userId === memberId);
+    const existingMember = await this.tenantContext.client.shiftAssignment.findFirst({
+      where: {
+        shiftId,
+        userId: memberId,
+        removedAt: null,
+      },
+    });
     if (existingMember) {
       throw new ConflictException(
         `${user.name} já está designado a este plantão`,
@@ -652,10 +712,10 @@ export class CareShiftsService {
     }
 
     // 🚫 BLOQUEANTE: Conflito de turno no mesmo dia
-    const dateStr = shift.date as unknown as string;
+    const shiftDate = shift.date instanceof Date ? shift.date : new Date(shift.date);
     const conflict = await this.tenantContext.client.shift.findFirst({
       where: {
-        date: dateStr,
+        date: shiftDate,
         deletedAt: null,
         members: {
           some: {
@@ -664,16 +724,12 @@ export class CareShiftsService {
           },
         },
       },
-      include: {
-        shiftTemplate: {
-          select: { name: true },
-        },
-      },
     });
 
     if (conflict) {
+      const dateStr = shiftDate.toISOString().split('T')[0];
       throw new BadRequestException(
-        `${user.name} já está designado ao turno ${conflict.shiftTemplate.name} no dia ${dateStr}`,
+        `${user.name} já está designado a outro turno no dia ${dateStr}`,
       );
     }
 
@@ -732,7 +788,13 @@ export class CareShiftsService {
     const shift = await this.findOne(shiftId);
 
     // Buscar membro ativo
-    const member = shift.members.find((m) => m.userId === memberId);
+    const member = await this.tenantContext.client.shiftAssignment.findFirst({
+      where: {
+        shiftId,
+        userId: memberId,
+        removedAt: null,
+      },
+    });
     if (!member) {
       throw new NotFoundException(
         'Usuário não está designado a este plantão',
@@ -782,15 +844,6 @@ export class CareShiftsService {
     const history = await this.tenantContext.client.shiftHistory.findMany({
       where: { shiftId },
       orderBy: { changedAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
     });
 
     return history;
@@ -950,5 +1003,123 @@ export class CareShiftsService {
     }
 
     return fields;
+  }
+
+  /**
+   * Criar plantões em lote (bulk create)
+   * Usado para designação rápida via calendário com seleção múltipla
+   */
+  async bulkCreate(
+    shifts: Array<{ date: string; shiftTemplateId: string; teamId: string }>,
+    userId: string,
+  ) {
+    const results = {
+      created: [] as any[],
+      skipped: [] as Array<{ date: string; shiftTemplateId: string; reason: string }>,
+      errors: [] as Array<{ date: string; shiftTemplateId: string; error: string }>,
+    };
+
+    for (const shiftData of shifts) {
+      try {
+        const { date, shiftTemplateId, teamId } = shiftData;
+
+        // Verificar se já existe plantão para este dia + turno
+        const existing = await this.tenantContext.client.shift.findFirst({
+          where: {
+            date: new Date(date + 'T12:00:00'),
+            shiftTemplateId,
+            deletedAt: null,
+          },
+        });
+
+        if (existing) {
+          results.skipped.push({
+            date,
+            shiftTemplateId,
+            reason: 'Plantão já existe',
+          });
+          continue;
+        }
+
+        // Validar team
+        const team = await this.tenantContext.client.team.findUnique({
+          where: { id: teamId },
+          include: {
+            members: {
+              where: { removedAt: null },
+              select: { userId: true },
+            },
+          },
+        });
+
+        if (!team) {
+          results.errors.push({
+            date,
+            shiftTemplateId,
+            error: 'Equipe não encontrada',
+          });
+          continue;
+        }
+
+        // Criar plantão
+        const shift = await this.tenantContext.client.shift.create({
+          data: {
+            tenantId: this.tenantContext.tenantId,
+            date: new Date(date + 'T12:00:00'),
+            shiftTemplateId,
+            teamId,
+            status: 'SCHEDULED',
+            versionNumber: 1,
+            createdBy: userId,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Criar assignments para todos os membros ativos da equipe
+        const memberAssignments = team.members.map((member) => ({
+          tenantId: this.tenantContext.tenantId,
+          shiftId: shift.id,
+          userId: member.userId,
+          isFromTeam: true,
+          assignedBy: userId,
+          assignedAt: new Date(),
+        }));
+
+        if (memberAssignments.length > 0) {
+          await this.tenantContext.client.shiftAssignment.createMany({
+            data: memberAssignments,
+          });
+        }
+
+        // Criar histórico
+        await this.tenantContext.client.shiftHistory.create({
+          data: {
+            tenantId: this.tenantContext.tenantId,
+            shiftId: shift.id,
+            versionNumber: 1,
+            changeType: 'CREATE',
+            changeReason: 'Criação em lote via calendário',
+            newData: shift as any,
+            changedFields: [],
+            changedBy: userId,
+          },
+        });
+
+        results.created.push({
+          id: shift.id,
+          date,
+          shiftTemplateId,
+          teamId,
+        });
+      } catch (error) {
+        results.errors.push({
+          date: shiftData.date,
+          shiftTemplateId: shiftData.shiftTemplateId,
+          error: error.message || 'Erro desconhecido',
+        });
+      }
+    }
+
+    return results;
   }
 }

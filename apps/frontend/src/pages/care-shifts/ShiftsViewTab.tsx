@@ -10,11 +10,22 @@ import { getCurrentDate } from '@/utils/dateHelpers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { SeverityAlert } from '@/design-system/components';
 import { ShiftCard } from '@/components/care-shifts/shifts/ShiftCard';
 import { ShiftDetailsModal } from '@/components/care-shifts/shifts/ShiftDetailsModal';
 import { AssignTeamModal } from '@/components/care-shifts/shifts/AssignTeamModal';
-import { useShifts } from '@/hooks/care-shifts/useShifts';
+import { SubstituteMemberModal } from '@/components/care-shifts/shifts/SubstituteMemberModal';
+import { useShifts, useDeleteShift } from '@/hooks/care-shifts/useShifts';
 import { useRDCCalculation } from '@/hooks/care-shifts/useRDCCalculation';
 import { usePermissions, PermissionType } from '@/hooks/usePermissions';
 import type { Shift } from '@/types/care-shifts/care-shifts';
@@ -28,6 +39,9 @@ export function ShiftsViewTab() {
   const [selectedShift, setSelectedShift] = useState<Shift | undefined>(undefined);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState<Shift | undefined>(undefined);
 
   const { hasPermission } = usePermissions();
   const canManage = hasPermission(PermissionType.UPDATE_CARE_SHIFTS);
@@ -35,13 +49,17 @@ export function ShiftsViewTab() {
   // Buscar plantões
   const { data: shifts, isLoading } = useShifts({ startDate, endDate });
 
+  // Hook para excluir plantão
+  const deleteMutation = useDeleteShift();
+
   // Buscar cálculo RDC para a data inicial
   const { data: rdcCalculation } = useRDCCalculation({ date: startDate });
 
   // Agrupar plantões por data
   const shiftsByDate = (shifts || []).reduce(
     (acc, shift) => {
-      const dateKey = shift.date;
+      // Extrair apenas YYYY-MM-DD (backend pode retornar ISO-8601 completo)
+      const dateKey = shift.date.split('T')[0];
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
@@ -61,6 +79,28 @@ export function ShiftsViewTab() {
   const handleAssignTeam = (shift: Shift) => {
     setSelectedShift(shift);
     setAssignOpen(true);
+  };
+
+  const handleSubstitute = (shift: Shift) => {
+    setSelectedShift(shift);
+    setSubstituteOpen(true);
+  };
+
+  const handleDelete = (shift: Shift) => {
+    setShiftToDelete(shift);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!shiftToDelete) return;
+
+    try {
+      await deleteMutation.mutateAsync(shiftToDelete.id);
+      setDeleteDialogOpen(false);
+      setShiftToDelete(undefined);
+    } catch (error) {
+      // Erro tratado pelo hook
+    }
   };
 
   // Função para obter o mínimo RDC para um turno específico
@@ -93,6 +133,7 @@ export function ShiftsViewTab() {
                 id="startDate"
                 type="date"
                 value={startDate}
+                min={today}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
@@ -102,6 +143,7 @@ export function ShiftsViewTab() {
                 id="endDate"
                 type="date"
                 value={endDate}
+                min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
@@ -161,6 +203,8 @@ export function ShiftsViewTab() {
                       minimumRequired={getMinimumRequired(shift.shiftTemplateId)}
                       onViewDetails={() => handleViewDetails(shift)}
                       onAssignTeam={() => handleAssignTeam(shift)}
+                      onSubstitute={() => handleSubstitute(shift)}
+                      onDelete={() => handleDelete(shift)}
                       canManage={canManage}
                     />
                   ))}
@@ -188,6 +232,61 @@ export function ShiftsViewTab() {
         onOpenChange={setAssignOpen}
         shift={selectedShift}
       />
+
+      <SubstituteMemberModal
+        open={substituteOpen}
+        onOpenChange={setSubstituteOpen}
+        shift={selectedShift}
+      />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Plantão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este plantão? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {/* Detalhes do plantão */}
+          {shiftToDelete && (
+            <div className="p-3 bg-muted rounded-lg space-y-1">
+              <p className="font-medium text-foreground">
+                {shiftToDelete.shiftTemplate?.name || 'Turno'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {format(
+                  new Date(shiftToDelete.date.split('T')[0] + 'T12:00:00'),
+                  "dd 'de' MMMM 'de' yyyy",
+                  { locale: ptBR },
+                )}
+              </p>
+              {shiftToDelete.team && (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: shiftToDelete.team.color }}
+                  />
+                  {shiftToDelete.team.name}
+                </p>
+              )}
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Excluindo...' : 'Excluir Plantão'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

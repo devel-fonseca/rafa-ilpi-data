@@ -60,7 +60,6 @@ import { EventsModule } from './events/events.module';
 import { ValidationModule } from './validation/validation.module';
 import { TeamsModule } from './teams/teams.module';
 import { ShiftTemplatesModule } from './shift-templates/shift-templates.module';
-import { WeeklyScheduleModule } from './weekly-schedule/weekly-schedule.module';
 import { CareShiftsModule } from './care-shifts/care-shifts.module';
 
 @Module({
@@ -149,7 +148,6 @@ import { CareShiftsModule } from './care-shifts/care-shifts.module';
     // Escala de Cuidados (Gestão de Turnos e Plantões)
     TeamsModule,
     ShiftTemplatesModule,
-    WeeklyScheduleModule,
     CareShiftsModule,
 
     // Real-time events (WebSocket)

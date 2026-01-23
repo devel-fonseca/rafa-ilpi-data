@@ -122,9 +122,6 @@ model Tenant {
   institutionalEvents        InstitutionalEvent[] // Eventos institucionais
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
 
-  // Escala de Cuidados (Gestão de Turnos e Plantões)
-  shiftConfigs TenantShiftConfig[] // Configuração de turnos habilitados por tenant
-
   @@index([timezone])
   @@map("tenants")
 }

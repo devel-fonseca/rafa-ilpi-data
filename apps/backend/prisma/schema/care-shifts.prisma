@@ -12,8 +12,9 @@
 
 // ShiftTemplate: Turnos fixos pré-configurados (5 turnos)
 // Tabela SHARED (public schema) - read-only para usuários
+// IMPORTANTE: UUIDs são FIXOS (definidos em seed file), não gerados dinamicamente
 model ShiftTemplate {
-  id           String            @id @default(uuid()) @db.Uuid
+  id           String            @id @db.Uuid // UUID fixo (sem @default) - definido em seed
   type         ShiftTemplateType @unique
   name         String            @db.VarChar(50) // "Dia 8h", "Noite 12h"
   startTime    String            @db.VarChar(5) // "07:00" (HH:mm)
@@ -24,9 +25,9 @@ model ShiftTemplate {
   displayOrder Int               @default(0) // Ordem de exibição
 
   // Relações
-  tenantConfigs     TenantShiftConfig[]
-  weeklyAssignments WeeklySchedulePatternAssignment[]
-  shifts            Shift[]
+  // tenantConfigs - NO relation (cross-schema, validated in app layer)
+  // weeklyAssignments - NO relation (cross-schema, validated in app layer)
+  // shifts - NO relation (cross-schema, validated in app layer)
 
   // Auditoria
   createdAt DateTime @default(now()) @db.Timestamptz(3)
@@ -36,13 +37,14 @@ model ShiftTemplate {
 }
 
 // TenantShiftConfig: Configuração de turnos por tenant
-// Tabela SHARED (public schema) - cada tenant ativa/desativa turnos que usa
+// Tabela TENANT-SCOPED (schema do tenant) - customizações opcionais dos 5 turnos padrão
+// Se não existir config, usa valores padrão de public.shift_templates
 model TenantShiftConfig {
   id              String  @id @default(uuid()) @db.Uuid
-  tenantId        String  @db.Uuid
-  shiftTemplateId String  @db.Uuid
-  isEnabled       Boolean @default(true) // Tenant pode ativar/desativar turnos
-  customName      String? @db.VarChar(50) // Nome customizado (ex: "Turno Manhã")
+  tenantId        String  @db.Uuid // Stored for reference, no FK (cross-schema)
+  shiftTemplateId String  @db.Uuid // FK para public.shift_templates (cross-schema, validated in app)
+  isEnabled       Boolean @default(true) // Tenant pode desabilitar turnos que não usa
+  customName      String? @db.VarChar(50) // Nome customizado (ex: "Plantão Manhã")
 
   // Horários customizados (opcional) - se null, usa o padrão do ShiftTemplate
   customStartTime String? @db.VarChar(5) // "08:00" (se ILPI inicia às 08h ao invés de 07h)
@@ -51,10 +53,6 @@ model TenantShiftConfig {
 
   notes String? @db.Text
 
-  // Relações
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  shiftTemplate ShiftTemplate @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
-
   // Auditoria
   createdBy String    @db.Uuid
   updatedBy String?   @db.Uuid
@@ -62,10 +60,11 @@ model TenantShiftConfig {
   updatedAt DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
 
-  @@unique([tenantId, shiftTemplateId])
-  @@index([tenantId, isEnabled])
+  @@unique([shiftTemplateId, deletedAt])
+  @@index([tenantId])
+  @@index([isEnabled])
   @@index([deletedAt])
-  @@map("tenant_shift_configs")
+  @@map("tenant_shift_config")
 }
 
 // ==========================================
@@ -84,10 +83,9 @@ model Team {
 
   // Relações
   members               TeamMember[]
-  weeklyAssignments     WeeklySchedulePatternAssignment[]
   shifts                Shift[]
-  originalSubstitutions ShiftSubstitution[]               @relation("OriginalTeam")
-  newSubstitutions      ShiftSubstitution[]               @relation("NewTeam")
+  originalSubstitutions ShiftSubstitution[]    @relation("OriginalTeam")
+  newSubstitutions      ShiftSubstitution[]    @relation("NewTeam")
 
   // Auditoria
   createdBy String    @db.Uuid
@@ -128,68 +126,6 @@ model TeamMember {
 }
 
 // ==========================================
-// PADRÃO SEMANAL DE ESCALA
-// ==========================================
-
-// WeeklySchedulePattern: Padrão semanal recorrente
-// Tabela TENANT-SCOPED - apenas 1 ativo por vez
-model WeeklySchedulePattern {
-  id            String    @id @default(uuid()) @db.Uuid
-  tenantId      String    @db.Uuid // Stored for reference, no FK (cross-schema)
-  name          String    @db.VarChar(100) // "Escala Padrão 2026"
-  description   String?   @db.Text
-  isActive      Boolean   @default(true) // Apenas 1 padrão ativo por vez
-  startDate     DateTime  @db.Date // Data de início de vigência
-  endDate       DateTime? @db.Date // null = sem fim definido
-  numberOfWeeks Int       @default(1) // Número de semanas no ciclo (1-4)
-
-  // Relações
-  assignments WeeklySchedulePatternAssignment[]
-  shifts      Shift[] // Plantões gerados deste padrão
-
-  // Auditoria
-  createdBy String    @db.Uuid
-  updatedBy String?   @db.Uuid
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  deletedAt DateTime? @db.Timestamptz(3)
-
-  @@index([tenantId, isActive])
-  @@index([tenantId, startDate])
-  @@index([deletedAt])
-  @@map("weekly_schedule_patterns")
-}
-
-// WeeklySchedulePatternAssignment: Designações do padrão semanal
-// Tabela TENANT-SCOPED - define equipe por dia da semana + turno
-model WeeklySchedulePatternAssignment {
-  id              String  @id @default(uuid()) @db.Uuid
-  tenantId        String  @db.Uuid // Stored for reference, no FK (cross-schema)
-  patternId       String  @db.Uuid
-  weekNumber      Int     @default(0) // Número da semana no ciclo (0-3)
-  dayOfWeek       Int // 0=Domingo, 1=Segunda, ..., 6=Sábado
-  shiftTemplateId String  @db.Uuid
-  teamId          String? @db.Uuid // null = sem equipe padrão
-
-  // Relações
-  pattern       WeeklySchedulePattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
-  shiftTemplate ShiftTemplate         @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
-  team          Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
-
-  // Auditoria
-  createdBy String   @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  updatedBy String?  @db.Uuid
-  updatedAt DateTime @updatedAt @db.Timestamptz(3)
-
-  @@unique([patternId, weekNumber, dayOfWeek, shiftTemplateId])
-  @@index([tenantId, patternId])
-  @@index([patternId, weekNumber, dayOfWeek])
-  @@index([teamId])
-  @@map("weekly_schedule_pattern_assignments")
-}
-
-// ==========================================
 // PLANTÕES CONCRETOS
 // ==========================================
 
@@ -199,17 +135,14 @@ model Shift {
   id              String      @id @default(uuid()) @db.Uuid
   tenantId        String      @db.Uuid // Stored for reference, no FK (cross-schema)
   date            DateTime    @db.Date
-  shiftTemplateId String      @db.Uuid
+  shiftTemplateId String      @db.Uuid // Stored for reference, no FK (cross-schema to public.shift_templates)
   teamId          String?     @db.Uuid // null = sem equipe ou membros individuais
   status          ShiftStatus @default(SCHEDULED)
-  isFromPattern   Boolean     @default(false) // true = gerado automaticamente
-  patternId       String?     @db.Uuid // Referência ao padrão que gerou (se aplicável)
   notes           String?     @db.Text
 
-  // Relações
-  shiftTemplate ShiftTemplate          @relation(fields: [shiftTemplateId], references: [id], onDelete: Restrict)
-  team          Team?                  @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  pattern       WeeklySchedulePattern? @relation(fields: [patternId], references: [id], onDelete: SetNull)
+  // Relações (apenas same-schema)
+  // shiftTemplate - NO FK (cross-schema to public.shift_templates, validated in app layer)
+  team          Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
   members       ShiftAssignment[]
   substitutions ShiftSubstitution[]
   history       ShiftHistory[]
@@ -244,7 +177,7 @@ model ShiftAssignment {
 
   // Relações
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  user  User  @relation("ShiftAssignmentUser", fields: [userId], references: [id], onDelete: Restrict)
+  // user - NO FK (userId stored for reference, validated in app layer)
 
   // Auditoria
   assignedBy String    @db.Uuid
@@ -284,8 +217,8 @@ model ShiftSubstitution {
   shift        Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   originalTeam Team? @relation("OriginalTeam", fields: [originalTeamId], references: [id], onDelete: SetNull)
   newTeam      Team? @relation("NewTeam", fields: [newTeamId], references: [id], onDelete: SetNull)
-  originalUser User? @relation("OriginalUserSubstitution", fields: [originalUserId], references: [id], onDelete: SetNull)
-  newUser      User? @relation("NewUserSubstitution", fields: [newUserId], references: [id], onDelete: SetNull)
+  // originalUser - NO FK (originalUserId stored for reference, validated in app layer)
+  // newUser - NO FK (newUserId stored for reference, validated in app layer)
 
   // Auditoria
   substitutedBy String   @db.Uuid
@@ -317,7 +250,7 @@ model ShiftHistory {
 
   // Relações
   shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  user  User  @relation("ShiftHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+  // user - NO FK (changedBy stored for reference, validated in app layer)
 
   // Auditoria
   changedBy String   @db.Uuid

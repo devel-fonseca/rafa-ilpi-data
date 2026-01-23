@@ -19,10 +19,10 @@ export class ListShiftsQueryDto {
 
   @ApiProperty({
     description: 'Filtrar por turno específico (opcional)',
-    example: 'uuid-do-turno',
+    example: '10000000-0000-0000-0000-000000000004',
     required: false,
   })
-  @IsUUID('4', { message: 'shiftTemplateId deve ser um UUID válido' })
+  @IsUUID('all', { message: 'shiftTemplateId deve ser um UUID válido' })
   @IsOptional()
   shiftTemplateId?: string;
 

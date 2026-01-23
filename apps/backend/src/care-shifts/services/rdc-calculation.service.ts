@@ -1,6 +1,7 @@
-import { Injectable, Scope } from '@nestjs/common';
+import { Injectable, Scope, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { parseISO } from 'date-fns';
+import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContextService } from '../../prisma/tenant-context.service';
 import {
   RDCCalculationResult,
@@ -23,7 +24,10 @@ import {
  */
 @Injectable({ scope: Scope.REQUEST })
 export class RDCCalculationService {
-  constructor(private readonly tenantContext: TenantContextService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantContext: TenantContextService,
+  ) {}
 
   /**
    * Calcular mínimo de cuidadores exigido pela RDC 502/2021 para uma data específica
@@ -37,7 +41,9 @@ export class RDCCalculationService {
     shiftTemplateId?: string,
   ): Promise<RDCCalculationResult> {
     // Converter string para DateTime (Prisma espera DateTime mesmo para @db.Date)
-    const dateObj = parseISO(`${date}T12:00:00.000`);
+    // Garantir formato YYYY-MM-DD antes de adicionar tempo
+    const cleanDate = date.split('T')[0]; // Remove qualquer parte de tempo se existir
+    const dateObj = parseISO(`${cleanDate}T12:00:00.000`);
 
     // 1. Buscar residentes ativos na data
     const residents = await this.tenantContext.client.resident.findMany({
@@ -97,8 +103,37 @@ export class RDCCalculationService {
     endDate: string,
   ): Promise<CoverageReportResult> {
     // Converter strings para DateTime (Prisma espera DateTime mesmo para @db.Date)
-    const startDateObj = parseISO(`${startDate}T12:00:00.000`);
-    const endDateObj = parseISO(`${endDate}T12:00:00.000`);
+    // Garantir formato YYYY-MM-DD antes de adicionar tempo
+    const cleanStartDate = startDate.split('T')[0];
+    const cleanEndDate = endDate.split('T')[0];
+    const startDateObj = parseISO(`${cleanStartDate}T12:00:00.000`);
+    const endDateObj = parseISO(`${cleanEndDate}T12:00:00.000`);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Validar que startDate não é maior que endDate
+    if (startDateObj > endDateObj) {
+      throw new BadRequestException(
+        'A data inicial não pode ser posterior à data final',
+      );
+    }
+
+    // Validar que o período não ultrapassa 60 dias
+    const daysDiff = Math.ceil(
+      (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (daysDiff > 60) {
+      throw new BadRequestException(
+        'O período máximo para relatório de cobertura é de 60 dias',
+      );
+    }
+
+    // Validar que as datas são do passado (não pode incluir hoje ou futuro)
+    if (startDateObj >= today || endDateObj >= today) {
+      throw new BadRequestException(
+        'O relatório de cobertura só pode ser gerado para datas passadas',
+      );
+    }
 
     // 1. Buscar plantões do período
     const shifts = await this.tenantContext.client.shift.findMany({
@@ -110,27 +145,94 @@ export class RDCCalculationService {
         deletedAt: null,
       },
       include: {
-        shiftTemplate: true,
         team: {
           select: {
             id: true,
             name: true,
+            members: {
+              where: { removedAt: null },
+              select: {
+                userId: true,
+                role: true,
+              },
+            },
           },
         },
         members: {
           where: { removedAt: null },
-          select: { userId: true },
+          select: {
+            userId: true,
+          },
         },
       },
-      orderBy: [{ date: 'asc' }, { shiftTemplate: { displayOrder: 'asc' } }],
+      orderBy: { date: 'asc' },
+    });
+
+    // Buscar usuários únicos de todos os shifts
+    const allUserIds = [
+      ...new Set(shifts.flatMap((s) => s.members.map((m) => m.userId))),
+    ];
+    const users = await this.tenantContext.client.user.findMany({
+      where: { id: { in: allUserIds } },
+      select: { id: true, name: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u.name]));
+
+    // Enriquecer com ShiftTemplates do public schema (fallback)
+    const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
+    const shiftTemplates = await this.prisma.shiftTemplate.findMany({
+      where: { id: { in: shiftTemplateIds } },
+    });
+    const shiftTemplateMap = new Map(shiftTemplates.map((st) => [st.id, st]));
+
+    // Buscar configurações customizadas do tenant (primária)
+    const tenantConfigs =
+      await this.tenantContext.client.tenantShiftConfig.findMany({
+        where: {
+          shiftTemplateId: { in: shiftTemplateIds },
+          deletedAt: null,
+        },
+      });
+    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+
+    const enrichedShifts = shifts.map((shift) => {
+      const template = shiftTemplateMap.get(shift.shiftTemplateId);
+      const config = configMap.get(shift.shiftTemplateId);
+
+      return {
+        ...shift,
+        shiftTemplate: template
+          ? {
+              id: template.id,
+              type: template.type,
+              name: config?.customName || template.name,
+              startTime: config?.customStartTime || template.startTime,
+              endTime: config?.customEndTime || template.endTime,
+              duration: config?.customDuration || template.duration,
+              description: template.description,
+              isActive: template.isActive,
+              displayOrder: template.displayOrder,
+            }
+          : undefined,
+      };
+    });
+
+    // Ordenar por data e depois por displayOrder do shiftTemplate
+    enrichedShifts.sort((a, b) => {
+      const dateCompare = a.date.getTime() - b.date.getTime();
+      if (dateCompare !== 0) return dateCompare;
+      return (a.shiftTemplate?.displayOrder || 0) - (b.shiftTemplate?.displayOrder || 0);
     });
 
     // 2. Para cada dia do período, calcular mínimo RDC
     const shiftReports: ShiftCoverageReport[] = [];
     const dateMap = new Map<string, RDCCalculationResult>();
 
-    for (const shift of shifts) {
-      const dateStr = shift.date as unknown as string; // DATE field retorna string
+    for (const shift of enrichedShifts) {
+      // Normalizar data: pode vir como Date object ou string
+      const dateStr = shift.date instanceof Date
+        ? shift.date.toISOString().split('T')[0]
+        : (shift.date as string).split('T')[0];
 
       // Calcular RDC para esta data (cache para evitar recalcular)
       if (!dateMap.has(dateStr)) {
@@ -151,16 +253,35 @@ export class RDCCalculationService {
         rdcCalc.minimumRequired,
       );
 
+      // Mapear membros com suas funções na equipe
+      const teamMembersMap = new Map(
+        enrichedShifts
+          .find((s) => s.date === shift.date && s.shiftTemplateId === shift.shiftTemplateId)
+          ?.team?.members?.map((tm: { userId: string; role: string | null }) => [
+            tm.userId,
+            tm.role,
+          ]) || [],
+      );
+
       shiftReports.push({
         date: dateStr,
         shiftTemplate: {
-          id: shift.shiftTemplate.id,
-          name: shift.shiftTemplate.name,
+          id: shift.shiftTemplate?.id || shift.shiftTemplateId,
+          name: shift.shiftTemplate?.name || 'Turno desconhecido',
+          startTime: shift.shiftTemplate?.startTime || '00:00',
+          endTime: shift.shiftTemplate?.endTime || '00:00',
         },
         minimumRequired: rdcCalc.minimumRequired,
         assignedCount,
         complianceStatus,
-        team: shift.team || undefined,
+        team: shift.team
+          ? { id: shift.team.id, name: shift.team.name }
+          : undefined,
+        members: shift.members.map((m) => ({
+          userId: m.userId,
+          userName: userMap.get(m.userId) || 'Nome não disponível',
+          teamFunction: teamMembersMap.get(m.userId) || null,
+        })),
       });
     }
 
@@ -229,22 +350,25 @@ export class RDCCalculationService {
       where.id = shiftTemplateId;
     }
 
-    const templates = await this.tenantContext.client.shiftTemplate.findMany({
+    // Buscar templates do public schema
+    const templates = await this.tenantContext.publicClient.shiftTemplate.findMany({
       where,
       orderBy: { displayOrder: 'asc' },
-      include: {
-        tenantConfigs: {
-          where: {
-            tenantId: this.tenantContext.tenantId,
-            deletedAt: null,
-          },
-        },
+    });
+
+    // Buscar configurações do tenant separadamente (cross-schema)
+    const tenantConfigs = await this.tenantContext.client.tenantShiftConfig.findMany({
+      where: {
+        shiftTemplateId: { in: templates.map((t) => t.id) },
+        deletedAt: null,
       },
     });
 
+    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+
     // Filtrar apenas habilitados no tenant
     return templates.filter((template) => {
-      const tenantConfig = template.tenantConfigs[0];
+      const tenantConfig = configMap.get(template.id);
       if (!tenantConfig) return true; // Sem config = habilitado por padrão
       return tenantConfig.isEnabled;
     });
@@ -254,7 +378,7 @@ export class RDCCalculationService {
    * Calcular mínimo exigido para um turno específico
    */
   private calculateForShiftTemplate(
-    template: Prisma.ShiftTemplateGetPayload<{ include: { tenantConfigs: true } }>,
+    template: Prisma.ShiftTemplateGetPayload<Record<string, never>>,
     residents: ResidentsByDependencyLevel,
   ): ShiftRDCCalculation {
     const { grauI, grauII, grauIII } = residents;

@@ -8,7 +8,7 @@ import type {
   RDCCalculationResult,
   RDCCalculationQueryDto,
   CoverageReportQueryDto,
-  CoverageReport,
+  CoverageReportResult,
 } from '@/types/care-shifts/rdc-calculation';
 import { tenantKey } from '@/lib/query-keys';
 
@@ -32,7 +32,7 @@ export function useRDCCalculation(query: RDCCalculationQueryDto) {
  * Hook para obter relatório de cobertura de um período
  */
 export function useCoverageReport(query: CoverageReportQueryDto) {
-  return useQuery<CoverageReport>({
+  return useQuery<CoverageReportResult>({
     queryKey: tenantKey(
       'care-shifts',
       'coverage-report',
@@ -43,3 +43,8 @@ export function useCoverageReport(query: CoverageReportQueryDto) {
     enabled: !!query.startDate && !!query.endDate,
   });
 }
+
+/**
+ * Alias para useCoverageReport (nome mais descritivo)
+ */
+export const useGenerateCoverageReport = useCoverageReport;

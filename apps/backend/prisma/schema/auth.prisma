@@ -137,10 +137,10 @@ model User {
 
   // Escala de Cuidados (Gestão de Turnos e Plantões)
   // teamMemberships - NO FK (evita problemas de referência, Prisma gerencia a relação)
-  shiftAssignments      ShiftAssignment[]   @relation("ShiftAssignmentUser")
-  originalSubstitutions ShiftSubstitution[] @relation("OriginalUserSubstitution")
-  newSubstitutions      ShiftSubstitution[] @relation("NewUserSubstitution")
-  shiftHistory          ShiftHistory[]      @relation("ShiftHistoryUser")
+  // shiftAssignments - NO relation (userId stored in ShiftAssignment, validated in app layer)
+  // originalSubstitutions - NO relation (originalUserId stored in ShiftSubstitution, validated in app layer)
+  // newSubstitutions - NO relation (newUserId stored in ShiftSubstitution, validated in app layer)
+  // shiftHistory - NO relation (changedBy stored in ShiftHistory, validated in app layer)
 
   @@unique([tenantId, email])
   @@index([createdBy])

@@ -50,6 +50,8 @@ export interface ShiftCoverageReport {
   shiftTemplate: {
     id: string;
     name: string;
+    startTime: string; // HH:mm
+    endTime: string; // HH:mm
   };
   minimumRequired: number;
   assignedCount: number;
@@ -58,4 +60,9 @@ export interface ShiftCoverageReport {
     id: string;
     name: string;
   };
+  members: {
+    userId: string;
+    userName: string;
+    teamFunction: string | null; // Função do membro na equipe (ex: "Líder", "Substituto")
+  }[];
 }

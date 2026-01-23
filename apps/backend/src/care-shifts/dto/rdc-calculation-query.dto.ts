@@ -12,10 +12,10 @@ export class RDCCalculationQueryDto {
 
   @ApiProperty({
     description: 'ID do turno específico (opcional, calcula para todos se não fornecido)',
-    example: 'uuid-do-turno',
+    example: '10000000-0000-4000-8000-000000000004',
     required: false,
   })
-  @IsUUID('4', { message: 'shiftTemplateId deve ser um UUID válido' })
+  @IsUUID('all', { message: 'shiftTemplateId deve ser um UUID válido' })
   @IsOptional()
   shiftTemplateId?: string;
 }

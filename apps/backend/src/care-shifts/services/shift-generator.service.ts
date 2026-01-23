@@ -47,7 +47,6 @@ export class ShiftGeneratorService {
           include: {
             assignments: {
               include: {
-                shiftTemplate: true,
                 team: {
                   select: {
                     id: true,
@@ -91,7 +90,8 @@ export class ShiftGeneratorService {
       // 4. Iterar sobre próximos N dias
       for (let i = 0; i < daysAhead; i++) {
         const targetDate = addDays(today, i);
-        const dateStr = formatDateOnly(targetDate); // YYYY-MM-DD
+        const dateStr = formatDateOnly(targetDate); // YYYY-MM-DD para logs
+        const dateObj = parseISO(`${dateStr}T12:00:00.000Z`); // Date object para Prisma
 
         // Verificar se data está dentro do período do padrão
         // Converter Date do Prisma para string YYYY-MM-DD (conforme DATETIME_STANDARD.md)
@@ -143,7 +143,7 @@ export class ShiftGeneratorService {
             // Verificar se já existe plantão para esta data+turno
             const existing = await this.tenantContext.client.shift.findFirst({
               where: {
-                date: dateStr,
+                date: dateObj,
                 shiftTemplateId,
                 deletedAt: null,
               },
@@ -165,7 +165,7 @@ export class ShiftGeneratorService {
             const shift = await this.tenantContext.client.shift.create({
               data: {
                 tenantId: this.tenantContext.tenantId,
-                date: dateStr,
+                date: dateObj,
                 shiftTemplateId,
                 teamId: assignment.teamId,
                 status: assignment.teamId ? 'CONFIRMED' : 'SCHEDULED',
