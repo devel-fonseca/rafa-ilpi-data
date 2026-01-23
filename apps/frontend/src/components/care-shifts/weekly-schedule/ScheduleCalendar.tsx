@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isBefore, startOfDay } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isBefore, startOfDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -78,10 +78,8 @@ export function ScheduleCalendar({
   // Obter todos os dias do mês atual + dias do mês anterior/próximo para preencher o grid
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const calendarStart = new Date(monthStart);
-  calendarStart.setDate(calendarStart.getDate() - monthStart.getDay()); // Voltar até domingo
-  const calendarEnd = new Date(monthEnd);
-  calendarEnd.setDate(calendarEnd.getDate() + (6 - monthEnd.getDay())); // Avançar até sábado
+  const calendarStart = addDays(monthStart, -monthStart.getDay()); // Voltar até domingo
+  const calendarEnd = addDays(monthEnd, 6 - monthEnd.getDay()); // Avançar até sábado
 
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 

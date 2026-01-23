@@ -13,6 +13,7 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
+  addDays,
   startOfDay,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,10 +53,8 @@ export function ShiftsCalendar({
   // Obter todos os dias do mês atual + dias do mês anterior/próximo
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const calendarStart = new Date(monthStart);
-  calendarStart.setDate(calendarStart.getDate() - monthStart.getDay());
-  const calendarEnd = new Date(monthEnd);
-  calendarEnd.setDate(calendarEnd.getDate() + (6 - monthEnd.getDay()));
+  const calendarStart = addDays(monthStart, -monthStart.getDay());
+  const calendarEnd = addDays(monthEnd, 6 - monthEnd.getDay());
 
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
