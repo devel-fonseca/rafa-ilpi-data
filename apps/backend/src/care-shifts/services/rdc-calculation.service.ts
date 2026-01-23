@@ -1,6 +1,6 @@
 import { Injectable, Scope, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { parseISO } from 'date-fns';
+import { parseISO, startOfDay } from 'date-fns';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantContextService } from '../../prisma/tenant-context.service';
 import {
@@ -108,8 +108,7 @@ export class RDCCalculationService {
     const cleanEndDate = endDate.split('T')[0];
     const startDateObj = parseISO(`${cleanStartDate}T12:00:00.000`);
     const endDateObj = parseISO(`${cleanEndDate}T12:00:00.000`);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     // Validar que startDate não é maior que endDate
     if (startDateObj > endDateObj) {

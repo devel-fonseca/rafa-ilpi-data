@@ -4,6 +4,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
+import { startOfDay } from 'date-fns';
 import { isValidDateOnly, isValidTime } from '../../utils/date.helpers';
 
 /**
@@ -148,8 +149,7 @@ export class IsNotPastDateConstraint implements ValidatorConstraintInterface {
 
     // Compara data fornecida com hoje (apenas dia, sem horas)
     const inputDate = new Date(dateStr + 'T12:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfDay(new Date());
 
     return inputDate >= today;
   }

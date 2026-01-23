@@ -1014,7 +1014,7 @@ export class CareShiftsService {
     userId: string,
   ) {
     const results = {
-      created: [] as any[],
+      created: [] as Array<{ id: string; date: Date; shiftTemplateId: string; teamId: string | null }>,
       skipped: [] as Array<{ date: string; shiftTemplateId: string; reason: string }>,
       errors: [] as Array<{ date: string; shiftTemplateId: string; error: string }>,
     };
@@ -1099,7 +1099,7 @@ export class CareShiftsService {
             versionNumber: 1,
             changeType: 'CREATE',
             changeReason: 'Criação em lote via calendário',
-            newData: shift as any,
+            newData: shift as unknown as Prisma.InputJsonValue,
             changedFields: [],
             changedBy: userId,
           },
