@@ -24,6 +24,11 @@ import { ConformidadePage } from '@/pages/dashboards/ConformidadePage'
 import { ConformidadeRDCPage } from '@/pages/dashboards/ConformidadeRDCPage'
 import { EventosSentinelaPage } from '@/pages/dashboards/EventosSentinelaPage'
 
+// Compliance Assessments Pages
+import { AssessmentFormPage } from '@/pages/compliance-assessments/AssessmentFormPage'
+import { AssessmentListPage } from '@/pages/compliance-assessments/AssessmentListPage'
+import { AssessmentResultPage } from '@/pages/compliance-assessments/AssessmentResultPage'
+
 // Compliance Pages
 import DocumentComplianceDashboard from '@/pages/compliance/DocumentComplianceDashboard'
 import InstitutionalDocumentManagement from '@/pages/compliance/InstitutionalDocumentManagement'
@@ -312,6 +317,35 @@ export const router = createBrowserRouter([
                 </ProtectedRoute>
               </FeatureGate>
             ),
+          },
+          {
+            path: 'autodiagnostico',
+            element: (
+              <FeatureGate featureKey="autodiagnostico_rdc">
+                <ProtectedRoute
+                  requiredPermissions={[
+                    PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+                    PermissionType.MANAGE_COMPLIANCE_ASSESSMENT,
+                  ]}
+                >
+                  <Outlet />
+                </ProtectedRoute>
+              </FeatureGate>
+            ),
+            children: [
+              {
+                index: true,
+                element: <AssessmentListPage />,
+              },
+              {
+                path: ':id',
+                element: <AssessmentFormPage />,
+              },
+              {
+                path: ':id/result',
+                element: <AssessmentResultPage />,
+              },
+            ],
           },
         ],
       },

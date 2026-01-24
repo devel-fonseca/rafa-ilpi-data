@@ -1,0 +1,161 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPLIANCE ANVISA - RDC 502/2021
+// Schema para Autodiagnóstico de Conformidade Regulatória em ILPIs
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABELAS NO SCHEMA PÚBLICO (public)
+// Questões regulatórias compartilhadas por todos os tenants
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Versão da regulamentação RDC 502/2021
+/// Permite manter histórico quando ANVISA atualizar o roteiro de inspeção
+model ComplianceQuestionVersion {
+  id             String    @id @default(uuid()) @db.Uuid
+  regulationName String    @db.VarChar(100) // "RDC 502/2021"
+  versionNumber  Int       @default(1)
+  effectiveDate  DateTime  @db.Timestamptz(3) // Data de vigência da versão
+  expiresAt      DateTime? @db.Timestamptz(3) // Null = versão atual/ativa
+  description    String?   @db.Text // Ex: "Versão 1.2 do Roteiro de Inspeção ANVISA (05/12/2022)"
+
+  // Metadados de criação
+  createdBy String   @db.Uuid // ID do admin que criou a versão
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  questions ComplianceQuestion[]
+
+  // Constraints e Índices
+  @@unique([regulationName, versionNumber])
+  @@index([effectiveDate])
+  @@index([expiresAt])
+  @@map("compliance_question_versions")
+}
+
+/// Questão de conformidade (indicador) do Roteiro ANVISA
+/// Imutável após criação - representa snapshot da regulamentação
+model ComplianceQuestion {
+  id        String @id @default(uuid()) @db.Uuid
+  versionId String @db.Uuid
+
+  // Identificação da questão
+  questionNumber Int // 1-37
+  questionText   String @db.Text // Ex: "Alvará Sanitário"
+
+  // Criticidade regulatória
+  criticalityLevel String @db.VarChar(5) // "C" (Crítico) ou "NC" (Não Crítico)
+
+  // Referência legal
+  legalReference String @db.Text // Ex: "Art. 8º da RDC 502/2021"
+
+  // Categorização (opcional - para facilitar agrupamento)
+  category String? @db.VarChar(100) // Ex: "Documentação", "RH", "Infraestrutura"
+
+  // Opções de resposta (JSON array)
+  // Estrutura: [{ points: 0, text: "Não possui...", isNA: false }, ...]
+  // Pontos: 0-5 (escala ANVISA)
+  // isNA: true para opções "Não Aplicável" (quando houver)
+  responseOptions Json @db.JsonB
+
+  // Relações
+  version ComplianceQuestionVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  // Constraints e Índices
+  @@unique([versionId, questionNumber])
+  @@index([versionId])
+  @@index([criticalityLevel])
+  @@index([category])
+  @@map("compliance_questions")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TABELAS NO SCHEMA TENANT (tenant_*)
+// Autodiagnósticos e respostas isoladas por ILPI
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Autodiagnóstico realizado por um tenant (ILPI)
+model ComplianceAssessment {
+  id        String @id @default(uuid()) @db.Uuid
+  tenantId  String @db.Uuid // Tenant que realizou a avaliação
+  versionId String @db.Uuid // Versão das questões utilizada
+
+  // Metadados da avaliação
+  assessmentDate DateTime @db.Timestamptz(3) // Data da realização
+  performedBy    String?  @db.Uuid // Usuário que realizou (opcional)
+  status         String   @db.VarChar(20) // DRAFT, COMPLETED, ARCHIVED
+
+  // Contadores de progresso
+  totalQuestions      Int // 37 (total de questões da versão)
+  questionsAnswered   Int @default(0) // Quantas foram respondidas
+  questionsNA         Int @default(0) // Quantas foram marcadas como N/A
+  applicableQuestions Int @default(37) // totalQuestions - questionsNA
+
+  // Resultados calculados (preenchidos ao finalizar)
+  totalPointsObtained  Float @default(0) // Soma dos pontos obtidos
+  totalPointsPossible  Float @default(0) // Pontuação máxima possível (aplicableQuestions × 3)
+  compliancePercentage Float @default(0) // (obtained / possible) × 100
+
+  // Classificação de conformidade
+  // REGULAR: ≥75% | PARCIAL: 50-74% | IRREGULAR: <50%
+  complianceLevel String @default("IRREGULAR") @db.VarChar(20)
+
+  // Análise de criticidade (JSON array)
+  // Lista de questões críticas (C) com pontuação < 3
+  // Estrutura: [{ questionNumber: 1, questionText: "...", pointsObtained: 1 }]
+  criticalNonCompliant Json? @db.JsonB
+
+  // Observações gerais
+  notes String? @db.Text
+
+  // Auditoria
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  responses ComplianceAssessmentResponse[]
+
+  // Constraints e Índices
+  @@index([tenantId, assessmentDate(sort: Desc)])
+  @@index([status])
+  @@index([versionId])
+  @@index([performedBy])
+  @@index([deletedAt])
+  @@map("compliance_assessments")
+}
+
+/// Resposta individual de cada questão do autodiagnóstico
+model ComplianceAssessmentResponse {
+  id             String @id @default(uuid()) @db.Uuid
+  tenantId       String @db.Uuid
+  assessmentId   String @db.Uuid
+  questionId     String @db.Uuid // Referência à questão (public schema)
+  questionNumber Int // Denormalizado para facilitar queries e ordenação
+
+  // Resposta selecionada
+  selectedPoints  Int? // 0-5 ou NULL se isNotApplicable = true
+  selectedText    String? @db.Text // Texto da opção selecionada
+  isNotApplicable Boolean @default(false) // Se marcou "N/A"
+
+  // Snapshot da questão (para auditoria)
+  // Preserva dados mesmo se a questão for alterada em futuras versões
+  questionTextSnapshot String @db.Text
+  criticalityLevel     String @db.VarChar(5)
+
+  // Observações do avaliador
+  observations String? @db.Text
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  assessment ComplianceAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  // Constraints e Índices
+  @@unique([assessmentId, questionNumber])
+  @@index([assessmentId])
+  @@index([tenantId])
+  @@index([questionId])
+  @@map("compliance_assessment_responses")
+}

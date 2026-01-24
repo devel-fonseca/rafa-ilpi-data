@@ -39,6 +39,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'indicadores_mensais': 'Indicadores mensais obrigatórios',
   'eventos_sentinela': 'Eventos sentinela',
   'documentos_institucionais': 'Documentos institucionais',
+  'autodiagnostico_rdc': 'Autodiagnóstico RDC 502/2021',
 
   // Gestão e operações
   'agenda': 'Agenda de atividades',
@@ -73,6 +74,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'Indicadores mensais obrigatórios': 'Indicadores mensais obrigatórios',
   'Eventos sentinela': 'Eventos sentinela',
   'Documentos institucionais': 'Documentos institucionais',
+  'Autodiagnóstico RDC 502/2021': 'Autodiagnóstico RDC 502/2021',
 
   // Operações
   'Agenda de atividades': 'Agenda de atividades',
@@ -129,6 +131,7 @@ export const AVAILABLE_FEATURES = [
   'Indicadores mensais obrigatórios',
   'Eventos sentinela',
   'Documentos institucionais',
+  'Autodiagnóstico RDC 502/2021',
 
   // ═══════════════════════════════════════════════════════════════
   // GESTÃO E OPERAÇÕES

@@ -1,0 +1,1453 @@
+{
+  "regulationName": "RDC 502/2021",
+  "versionNumber": 1,
+  "effectiveDate": "2021-08-01",
+  "description": "Versão 1.2 do Roteiro Objetivo de Inspeção ILPI (ANVISA - 05/12/2022)",
+  "documentVersion": "1.2",
+  "documentDate": "05/12/2022",
+  "questions": [
+    {
+      "questionNumber": 1,
+      "questionText": "Alvará Sanitário",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 8º da RDC 502/2021",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui Alvará Sanitário.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Alvará Sanitário vencido, sem pedido de renovação.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Alvará Sanitário vencido, com pedido de renovação ou em processo inicial de licenciamento.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Alvará Sanitário atualizado.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Alvará Sanitário atualizado, com pedido de renovação.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Solicitou renovação do Alvará Sanitário antes do vencimento nos últimos dois anos.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 2,
+      "questionText": "Constituição Legal",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 7º e Art. 9º da RDC 502/2021; Parágrafo único do Art. 48 da Lei 10.741/2003",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "A ILPI não é legalmente constituída.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "É legalmente constituída porém não dispõe de Estatuto registrado ou registro de entidade social ou Regimento Interno.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "É legalmente constituída, porém algum dos seus documentos constitutivos está desatualizado, não condizendo com a realidade de serviço. Ou a ILPI não está inscrita no Conselho do Idoso, quando existir.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Está legalmente constituída, dispõe de Estatuto registrado, registro de entidade social, Regimento Interno e está inscrita no Conselho do Idoso, quando existir.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Documentos estão disponíveis eletronicamente e de acesso público.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza reuniões periódicas para avaliação dos seus documentos de constituição.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 3,
+      "questionText": "Responsável Técnico (RT)",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 10, Art.11 e Inciso I do Art. 16 da RDC 502/2021",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui RT.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "O Responsável Técnico não possui vínculo formal de trabalho ou não cumpre a carga horária de 20 horas semanais.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "O RT com vínculo formal de trabalho difere do apresentado pelo serviço.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui Responsável Técnico com vínculo formal de trabalho, formação de nível superior e carga horária mínima de 20 horas semanais.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "RT possui especialização na área de gerontologia/atenção ao idoso ou é da área de saúde.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui RT e substituto com pós graduação na área de gerontologia ou atenção ao idoso.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 4,
+      "questionText": "Contrato de Prestação de Serviço",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 12 da RDC 502/2021",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não celebra contrato formal de prestação de serviço com o idoso, responsável legal ou curador.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Celebra contrato formal, mas com rasuras ou sem identificação das partes que assinam.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Celebra contrato formal de prestação de serviço com o idoso, porém não especifica o serviço prestado ou os direitos e obrigações da entidade e do usuário.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Celebra contrato formal de prestação de serviço com o idoso, responsável legal ou curador, em caso de interdição judicial, especificando o tipo de serviço prestado bem como os direitos e as obrigações da entidade e do usuário.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Contrato de prestação de serviço dispõe de prazo de vigência e renovação periódica.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui histórico do contrato de prestação de serviço, com relatório anual dos serviços prestados.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 5,
+      "questionText": "Documentação",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 13 e Art. 17 da RDC 502/2021",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui nenhum documento disponível no momento da inspeção sanitária.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não foi apresentado no mínimo, um dos documentos solicitados.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui todos os documentos disponíveis, mas alguns estão desatualizados.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Mantém atualizados e com fácil acesso, os documentos necessários à fiscalização, avaliação e controle social.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui todos os documentos em formato digital.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui todos os documentos em formato digital e com indexação e rastreabilidade das versões.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 6,
+      "questionText": "Terceirização (Alimentação, limpeza ou lavanderia)",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 14 da RDC 502/2021",
+      "category": "Documentação e Regularização",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui os contratos dos serviços terceirizados ou as empresas terceirizadas não estão regularizadas junto aos órgãos sanitários.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Mantém disponível documentação referente a apenas alguns contratos de terceirização.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Existem contratos com todos os serviços terceirizados, mas nem todos estão dentro da vigência.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Em caso de terceirização dos serviços de alimentação, limpeza ou lavanderia, existe contrato formal de terceirização com empresas regularizadas junto aos órgãos sanitários, com alvará sanitário válido.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui registro digital dos contratos de terceirização, com cópia de segurança (backup) e relatório com indicação das vigências.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza avaliação anual dos contratos, com qualificação dos fornecedores e plano de ação.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 7,
+      "questionText": "Recursos Humanos (cuidadores)",
+      "criticalityLevel": "C",
+      "legalReference": "Incisos II do Art. 16 da RDC 502/2021",
+      "category": "Recursos Humanos",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui vínculo formal com nenhum dos profissionais da equipe.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Existe profissional sem vínculo formal atuando na ILPI ou em quantidade menor que a preconizada.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Apresenta recursos humanos, com vínculo formal de trabalho, em quantidade preconizada, porém não atende toda a jornada necessária.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Apresenta recursos humanos, com vínculo formal de trabalho, que garante a realização das seguintes atividades: II- cuidados aos residentes: a) grau de dependência I: 1 cuidador/cada 20 idosos, ou fração, com CH de 8 h/dia; b) grau de dependência II: 1 cuidador/cada 10 idosos, ou fração, por turno; e c) grau de dependência III:1 cuidador/cada 6 idosos, ou fração, por turno.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "O número de profissionais da ILPI é superior ao exigido, ou alguns cuidadores possuem formação técnica em saúde ou em gerontologia.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Atende a demanda preconizada com equipe em dedicação exclusiva na ILPI ou todos os cuidadores possuem formação técnica em saúde ou em gerontologia.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 8,
+      "questionText": "Recursos Humanos (lazer, limpeza, alimentação, lavanderia)",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 15 e Incisos III, IV, V e VI do Art. 16 da RDC 502/2021",
+      "category": "Recursos Humanos",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui vínculo formal com nenhum dos profissionais de equipe ou não possui profissional para alguma das atividades.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Existe profissional sem vínculo formal atuando na ILPI ou em quantidade menor que a preconizada.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Apresenta recursos humanos, com vínculo formal de trabalho, em quantidade preconizada, porém não atende toda a jornada necessária.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Apresenta recursos humanos, com vínculo formal de trabalho (exceto nos casos em que há terceirização), que garante a realização das seguintes atividades: III – atividades de lazer: 1 profissional com formação de nível superior a cada 40 idosos, com CH de 12 h/ sem; IV - serviços de limpeza: 1 profissional a cada 100m2 de área interna ou fração ou turno diariamente; V – serviço de alimentação:1 profissional para cada 20 idosos, garantindo a cobertura de dois turnos de 8 horas; e VI – serviço de lavanderia: 1 profissional para cada 30 idosos, ou fração, diariamente.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "O número de profissionais da ILPI é superior ao exigido.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Atende a demanda preconizada com equipe em dedicação exclusiva na ILPI.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 9,
+      "questionText": "Educação Permanente",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 18 da RDC 502/2021",
+      "category": "Recursos Humanos",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não realiza atividades de educação permanente na área de gerontologia.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não realiza atividades de educação permanente para toda a equipe.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Não realiza atividades de educação permanente periodicamente.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "A Instituição realiza atividades de educação continuada em gerontologia.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Profissionais possuem comprovação de participação em cursos e eventos em outras áreas da saúde.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Mesma situação anterior e a educação permanente é valorizada dentro da ILPI sendo este item determinante na avaliação do desempenho dos profissionais.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 10,
+      "questionText": "Projeto Arquitetônico",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 19 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui Projeto Arquitetônico aprovado pela VISA.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "O Projeto Arquitetônico aprovado junto a autoridade sanitária difere da estrutura física da ILPI ou está em análise pela VISA.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui Projeto Arquitetônico aprovado pela VISA, porém a ILPI passa por reforma ou adaptação na estrutura física sem aprovação prévia.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de Projeto Arquitetônico aprovado junto a autoridade sanitária. Toda construção, reforma ou adaptação é precedida da aprovação do projeto arquitetônico junto a autoridade sanitária.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Projeto Arquitetônico revisado periodicamente para verificação de possíveis adequações.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Existe procedimento interno estabelecendo a necessidade de atualização e aprovação do Projeto Arquitetônico na VISA antes de qualquer intervenção no serviço.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 11,
+      "questionText": "Infraestrutura Física",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 20 e Art. 24 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não atende a nenhum dos requisitos da legislação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não atende a dois ou mais requisitos.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Não dispõe de pisos externos e internos uniformes e antiderrapantes.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de no mínimo: 2 portas de acesso externo, sendo uma preferencialmente de serviço; Pisos externos e internos são de fácil limpeza e conservação, uniformes e antiderrapante; Rampas com corrimão, sinalização e no mínimo 1,20m de largura.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui no mínimo um requisito de infraestrutura que supera as exigências especificadas na legislação.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Infraestrutura projetada em área plana, sem rampas ou desníveis.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 12,
+      "questionText": "Circulações, Portas e Janelas",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 25, Art. 27 e Art. 28 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não atende a nenhum dos requisitos da legislação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não atende a dois ou mais requisitos.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Atende a todos os requisitos de dimensões, porém a luz de vigília não funciona ou não existe.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Circulações internas principais possuem largura mínima de 1m e as secundárias de 0,8m, com luz de vigília permanente. Circulações com largura maior ou igual a 1,50m possuem corrimão dos dois lados. Largura menor que 1,50m dispõe de corrimão em um dos lados. Portas dispõem de vão livre com largura mínima de 1,10m, com travamento simples. Janelas e guarda corpos possuem peitoris de no mínimo 1m.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Todas as circulações possuem corrimão nos dois lados.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui iluminação de emergência, em caso de falta de energia elétrica.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 13,
+      "questionText": "Dormitórios",
+      "criticalityLevel": "C",
+      "legalReference": "Inciso I do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não atende a nenhum dos requisitos da legislação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não atende a dois ou mais requisitos.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Atende a todos os requisitos de dimensões, porém a luz de vigília ou campainha não funcionam ou não existem.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de dormitórios separados por sexo p/ no máx. 4 pessoas, dotados de banheiro, sendo: dimensão mínima de 7,5m² p/ dormitório individual; 5,5m²/cama, com distanciamento de 0,8m entre camas, para dormitórios de 2 a 4 pessoas; Luz de vigília e campainha de alarme; Banheiro com área mínima de 3,6m², 1 bacia, 1 lavatório e 1 chuveiro, não sendo permitido qualquer desnível nem uso de revestimentos que produzam brilhos e reflexos. Os dormitórios incluem área para guarda de roupas e pertences do residente.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui no mínimo um requisito de infraestrutura que supera as exigências especificadas na legislação.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Todas as dimensões superam as especificações.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 14,
+      "questionText": "Área para atividades coletivas com residentes com dependências I e II",
+      "criticalityLevel": "NC",
+      "legalReference": "Inciso II do Art. 29 e Art. 30 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não atende a nenhum dos requisitos da legislação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não possui alguma das áreas para atividades.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui todas as áreas, entretanto uma dessas não possui as dimensões mínimas.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui sala para atividades coletivas p/ no máx. 15 residentes, com área mínima de 1m²/pessoa; Sala de convivência com área mínima de 1,3m²/pessoa; Sala para atividades de apoio individual a sócio-familiar com área mínima de 9m². Os ambientes, quando compartilhados, estão de acordo com a afinidade funcional e a utilização em horários ou situações diferenciadas.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Áreas para atividades com dimensões superiores às exigências especificadas na legislação.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui mais áreas do que as exigidas em legislação.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 15,
+      "questionText": "Banheiros",
+      "criticalityLevel": "NC",
+      "legalReference": "Inciso IV do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Banheiro coletivo não é separado por sexo ou este não possui box individualizado para vasos sanitários e/ou chuveiros.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Box não permite a transferências de pessoas em cadeira de rodas.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Existe algum box sem porta ou com porta danificada.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Banheiros coletivos, separados por sexo, com no mínimo, um box para vaso sanitário que permita a transferência de uma pessoa em cadeira de rodas, com as portas dos box possuindo vão livre de 0,20 m na parte inferior.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Além dos banheiros coletivos, possui banheiros individuais.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Todos os banheiros são individuais, estando em quantidade e dimensões adequadas para todo atendimento.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 16,
+      "questionText": "Refeitório, Cozinha e Despensa",
+      "criticalityLevel": "C",
+      "legalReference": "Incisos VII e VIII do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui refeitório ou cozinha.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não possui lavatório de mãos ou não possui local para guarda de lanches ou despensa.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui todas as áreas, mas o refeitório não possui a área mínima necessária.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de refeitório com área mínima de 1m²/pessoa, acrescido de local para guarda de lanches, lavatório de mãos e luz de vigília. Possui cozinha e despensa.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui área maior que a mínima necessária.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui mais ambientes/áreas destinadas a alimentação do que as mínimas necessárias.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 17,
+      "questionText": "Lavanderia (Caso não tenha terceirizado completa do processamento de roupa)",
+      "criticalityLevel": "NC",
+      "legalReference": "Incisos IX e X do Art. 29 e 48 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de lavanderia.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Dispõe de lavanderia, porém não dispõe de local para guarda de roupa de uso coletivo.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Dispõe de lavanderia e local para guarda de roupa de uso coletivo, mas não possibilita aos idosos independentes efetuarem o processamento de roupas de uso pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de lavanderia, local para guarda de roupa de uso coletivo e possibilita aos idosos independentes efetuarem o processamento de roupas de uso pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Dispõe de equipamento e área para passadoria.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui lavadora e secadora industrial.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 18,
+      "questionText": "Processamento de Roupas",
+      "criticalityLevel": "NC",
+      "legalReference": "Artigos 47, 48, 49 e 50 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de rotinas técnicas do processamento de roupas ou utiliza produtos sem registro ou notificação junto à ANVISA ou não há identificação das roupas de uso pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Dispõe de normas e rotinas, porém não são compatíveis com a realidade da ILPI, não possibilita que os idosos independentes realizem o processamento da sua roupa pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Normas e rotinas desatualizadas ou incompletas.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "A instituição possui disponíveis as rotinas técnicas do processamento de roupas para: I - lavar, secar, passar e reparar as roupas; e II - guarda e troca de roupas de uso coletivo. Os produtos utilizados no processamento são registrados ou notificados na Anvisa. As roupas de uso pessoal são identificadas e é possível que os idosos independentes efetuem o processamento da sua roupa pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Realiza periodicamente análise crítica das rotinas de processamento e implanta ações de melhoria.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Embala individualmente as roupas lavadas.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 19,
+      "questionText": "Processamento de Roupas (idosos com dependência nível 3 e roupas com presença de secreções e sangue)",
+      "criticalityLevel": "C",
+      "legalReference": "Artigos 47, 49 e 50 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de rotinas técnicas do processamento de roupas ou utiliza produtos sem registro ou notificação junto à ANVISA ou não há identificação das roupas de uso pessoal.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Dispõe de normas e rotinas, porém não são compatíveis com a realidade da ILPI.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Normas e rotinas desatualizadas ou incompletas.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "A instituição possui disponíveis as rotinas técnicas do processamento de roupas para: I - lavar, secar, passar e reparar as roupas; e II - guarda e troca de roupas de uso coletivo. Os produtos utilizados no processamento são registrados ou notificados na Anvisa. As roupas de uso pessoal são identificadas.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Embala individualmente as roupas lavadas.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui lavadora e secadora industrial, com responsável pelo processo.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 20,
+      "questionText": "Guarda de Material de Limpeza, Almoxarifado",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 21 e Incisos XI, XVI do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de local para guarda de material de limpeza e almoxarifado.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Guarda de material sem condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Dimensão do almoxarifado menor que a mínima.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de local para guarda de material de limpeza e almoxarifado com no mínimo 10m², em condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Guarda de material com identificação e segregação por tipo de material.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Controle dos produtos de limpeza e informatização, com alertas de prazo de validade.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 21,
+      "questionText": "Ambientes Gerais",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 21 e Incisos V, VI e XV do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de área externa descoberta e sala administrativa/reunião.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Áreas com dimensões incompatíveis com as demandas ou atividades desenvolvidas.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Os espaços não estão em condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe sala administrativa/reunião e área externa descoberta para convivência e desenvolvimento de atividades ao ar livre, em condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Além da área descoberta, possui área externa coberta.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui duplicidade em, no mínimo, uma das áreas externas ou área externa descoberta e arborizada e provida de jardim.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 22,
+      "questionText": "Espaço Ecumênico",
+      "criticalityLevel": "NC",
+      "legalReference": "Inciso III do Art. 6º, Art. 21 e Inciso V do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de espaço ecumênico e/ou para meditação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Os espaços não estão em condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Local destinado ao espaço ecumênico e/ou para meditação não promove ambiência acolhedora.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de espaço ecumênico e/ou para meditação, em condições de higiene, salubridade e segurança.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Dispõe de espaço ecumênico e para meditação separados.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Promove atividades específicas, atendendo a diversidade da comunidade interna.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 23,
+      "questionText": "Vestiário e Banheiro para Funcionários",
+      "criticalityLevel": "NC",
+      "legalReference": "Inciso XIII do Art. 29 da RDC 502/2021",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui vestiário ou banheiro ou não se possui separados por sexo.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Quantitativo de bacia, lavatório e chuveiros inferiores a mínima necessária.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Vestiário ou banheiro com dimensões inferiores a mínima necessária.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de vestiário e banheiro para funcionários, separados por sexo: a) banheiro com área mín. de 3,6m², contendo 1 bacia, 1 lavatório e 1 chuveiro para cada 10 funcionários ou fração; b) vestiário com área mín. de 0,5m² por funcionário/turno.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Vestiário ou banheiro com área maior que a mínima necessária.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Banheiros individualizados.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 24,
+      "questionText": "Resíduos",
+      "criticalityLevel": "NC",
+      "legalReference": "Inciso XIV do Art. 29 da RDC 502/2021 e Inciso I do Art. 5º da RDC 222/2018.",
+      "category": "Infraestrutura Física",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui lixeira ou abrigo externo à edificação para armazenamento de resíduos até o momento da coleta.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Possui lixeira ou abrigo externo à edificação, porém a lixeira ou o abrigo estão danificados.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Lixeiras ou coletores em quantidade insuficiente.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de lixeira ou coletor compatível com o tipo de resíduo gerado/produzido pelo estabelecimento, além de lixeira ou abrigo externo à edificação para armazenamento de resíduos até o momento da coleta.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui lixeira e abrigo externo.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui abrigo interno e externo, com espaço para coleta seletiva.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 25,
+      "questionText": "Plano de Trabalho",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 31 e Art. 32 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui plano de trabalho.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Plano de trabalho não contempla todos os requisitos do Art. 6 da RDC 502/21.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Plano de trabalho elaborado sem a participação dos idosos.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui plano de trabalho, elaborado com a participação efetiva dos idosos, contemplando todos os requisitos do Art. 6 da RDC 502/21.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Plano de trabalho revisado periodicamente e coletivamente, envolvendo inclusive os familiares.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Existe rotina de coleta e registro contínuo para sugestões ao plano de trabalho, cuja avaliação das novas propostas é realizada periodicamente e coletivamente.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 26,
+      "questionText": "Registro Individual",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 33 e inciso II do Art 37 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui nenhum registro dos idosos.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não existe registro de todos os idosos.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui registro de todos os idosos, mas de forma incompleta.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui registro de cada idoso, contendo: data e circunstâncias do atendimento, nome do idoso, responsável, parentes, endereços, cidade onde nasceu, pertences, valor de contribuições e demais dados que possibilitem sua identificação e a individualização do atendimento, com indicação dos recursos de saúde disponíveis para cada residente, em todos os níveis de atenção",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Verificação semestral dos registros.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Sistema eletrônico com controle dos registros e alterações, permitindo atualização direta pelos familiares.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 27,
+      "questionText": "Plano de Atenção Integral à Saúde",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 36 e Art. 37 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui Plano de Atenção Integral à Saúde.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Plano de Atenção Integral à Saúde não está completo ou é incompatível com a realidade da ILPI.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Possui Plano de Atenção Integral à Saúde completo, porém não está atualizado.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Elabora, a cada 2 anos, o Plano de Atenção Integral à Saúde: I- Compatível com os princípios da universalização, equidade e integralidade; II-com indicação dos recursos de saúde disponíveis para cada residente, em todos os níveis de atenção; III - prever a atenção integral à saúde do idoso, abordando os aspectos de promoção, proteção e prevenção; e IV – conter informações acerca das patologias incidentes e prevalentes nos residentes.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "O Plano possui critérios objetivos, quali-quantitativos, para avaliação do acesso, resolutibilidade e humanização.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui plano individual de atenção integral à saúde.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 28,
+      "questionText": "Avaliação do Plano de Atenção à Saúde",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 38 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não avalia o Plano de Atenção Integrada.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não avalia todos os critérios.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Avalia em periodicidade maior que anual.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Avalia anualmente a implantação e efetividade das ações previstas no plano, considera, no mínimo, os critérios de acesso, resolutibilidade e humanização.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Avalia a evolução histórica dos critérios.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza análise crítica dos critérios objetivos estabelecidos no plano.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 29,
+      "questionText": "Esquema Vacinal",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 39 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui comprovação da vacinação dos residentes.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não possui a comprovação da vacinação de todos os residentes.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Existem residentes com esquema vacinal incompleto ou em descordo ao estipulado pelo PNI.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui comprovação da vacinação obrigatória dos residentes, conforme estipulado pelo Plano Nacional de Imunização (PNI) do Ministério da Saúde.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui comprovação da vacinação obrigatória e complementar ao PNI.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui sistema informatizado de controle e aviso das vacinações.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 30,
+      "questionText": "Rotinas e Procedimentos (cuidado ao idoso)",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 41 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não dispõe de rotinas e procedimentos escritos relacionados ao cuidado com o idoso.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Rotinas e procedimentos incompatíveis com a realidade da ILPI.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Rotinas e procedimentos desatualizados ou incompletos.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Dispõe de rotinas e procedimentos escritos, referente ao cuidado com o idoso.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Rotinas e procedimentos atualizados com periodicidade definida.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza análise das rotinas e procedimentos, implementando ações de melhoria.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 31,
+      "questionText": "Controle e Guarda dos Medicamentos",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 40 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui controle da guarda ou da administração dos medicamentos.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "O RT não é o responsável pelos medicamentos ou possui estoque de medicamentos sem prescrição.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Medicamentos armazenados em condições inadequadas, sob calor ou umidade excessivos, incidência de luz solar ou outras circunstâncias que possam comprometer a segurança e uso.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "O RT é o responsável pelos medicamentos nos idosos, respeita os regulamentos da VISA quanto à guarda e administração e não possui estoque de medicamentos sem prescrição médica.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui registro informatizado de todos os medicamentos, com alertas sobre quantidades e validades.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui farmacêutico responsável pelos medicamentos e presente na ILPI.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 32,
+      "questionText": "Intercorrência Médica",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 42 e 43 da RDC 502/2021",
+      "category": "Assistência e Cuidado",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não existe previsão de encaminhamento dos idosos ou responsabiliza a família pelo encaminhamento o ao serviço de saúde.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "O encaminhamento é realizado apenas é alguns turnos diários.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Encaminha imediatamente, mas em transporte distinto do previsto no Plano de Atenção à Saúde.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Em caso de intercorrência médica, o RT da ILPI providencia o encaminhamento imediato do idoso ao serviço de referência previsto no plano de atenção e comunica a sua família ou representante legal. Dispõe de serviço de remoção para transporte do idoso, conforme previsto no Plano de Atenção à Saúde.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "A ILPI dispõe de remoção própria ou contratada, disponível 24h serviço.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui sala de atendimento de intercorrências com profissionais habilitados e equipamentos.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 33,
+      "questionText": "Serviço de Alimentação",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 44 e Art. 45 da RDC 502/2021",
+      "category": "Gestão e Qualidade",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não oferece as seis refeições diárias ou não cumpre os requisitos de boas práticas da RDC 216/2004.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Não oferece, pelo menos em dois dias da semana, em algum dos dias da semana.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Não cumpre algum dos requisitos de boas práticas da RDC 216/2004.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Oferece, no mínimo, seis refeições diárias, atendo todo do processo conforme o estabelecido na RDC 216/2004.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui nutricionista.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Refeições individualizadas e balanceadas a depender do idoso, considerando inclusive as questões culturais.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 34,
+      "questionText": "Normas e Rotinas Técnicas dos procedimentos relacionados ao serviço de alimentação",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 46 da RDC 502/2021",
+      "category": "Gestão e Qualidade",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não possui normas e rotinas técnicas dos procedimentos relacionados ao serviço de alimentação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "As normas e rotinas dos procedimentos relacionados ao serviço de alimentação são incompatíveis com a realidade da ILPI.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "As normas e rotinas dos procedimentos relacionados ao serviço de alimentação desatualizadas ou incompletas.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Possui, disponíveis, normas e rotinas técnicas quanto aos seguintes procedimentos relacionados ao serviço de alimentação: I - limpeza e descontaminação dos alimentos; II - armazenagem de alimentos; III - preparo dos alimentos com enfoque nas boas práticas de manipulação; IV - boas práticas para prevenção e controla de vetores; e V - acondicionamento dos resíduos.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Controla as versões das normas e rotinas.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Normas e rotinas atualizadas com periodicidade definida.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 35,
+      "questionText": "Limpeza",
+      "criticalityLevel": "C",
+      "legalReference": "Art. 51e Art. 53 da RDC 502/2021",
+      "category": "Gestão e Qualidade",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Os ambientes estão com muita sujidade ou acúmulo de resíduos ou a ILPI não dispõe de rotinas quanto à limpeza e higienização.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Dispõe de rotinas de limpeza e higienização, porém não são compatíveis com a realidade da ILPI.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "A Instituição mantém os ambientes limpos, livres de resíduos e odores incompatíveis com a atividade, mas não mantém disponíveis as rotinas de limpeza e higienização dos artigos e ambientes.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "A Instituição mantém os ambientes limpos, livres de resíduos e odores incompatíveis com a atividade. Mantém disponíveis as rotinas de limpeza e higienização dos artigos e ambientes.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui sistema de registro de limpeza nos ambientes.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza o monitoramento do processo de limpeza.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 36,
+      "questionText": "Notificação Compulsória",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 54, 55 e 57 da RDC 502/2021",
+      "category": "Gestão e Qualidade",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não realiza qualquer ação de notificação.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Notifica os eventos sentinelas, porém sem regularidade.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Notifica com regularidade, mas foi verificado alguma falha na notificação.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "A equipe de saúde realiza notificação à vigilância epidemiológica ou órgão de doenças de notificação compulsória. A ILPI comunica à VISA qualquer irregularidade de funcionamento e notifica os seguintes eventos sentinelas: queda com lesão e tentativa de suicídio.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui plano de prevenção de eventos adversos, queda, tentativa de suicídio, lesão por pressão etc.",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Possui responsável pelas notificações ou realiza análise crítica anual ou quando necessário das ocorrência.",
+          "isNA": false
+        }
+      ]
+    },
+    {
+      "questionNumber": 37,
+      "questionText": "Avaliação de Desempenho",
+      "criticalityLevel": "NC",
+      "legalReference": "Art. 58, Art. 59, Art. 60 e Art. 61 da RDC 502/2021",
+      "category": "Gestão e Qualidade",
+      "responseOptions": [
+        {
+          "points": 0,
+          "text": "Não realiza a avaliação de desempenho e padrão de funcionamento.",
+          "isNA": false
+        },
+        {
+          "points": 1,
+          "text": "Realiza a avaliação de desempenho e padrão de funcionamento, porém não avalia no mínimo um dos 06 indicadores ou não encaminha o consolidado dos dados à VISA com atraso.",
+          "isNA": false
+        },
+        {
+          "points": 2,
+          "text": "Avalia todos os 06 indicadores, porém encaminha o consolidado dos dados à VISA com atraso.",
+          "isNA": false
+        },
+        {
+          "points": 3,
+          "text": "Realiza avaliação de desempenho e padrão de funcionamento com, no mínimo, os seguintes indicadores: 1 - Taxa de mortalidade, 2 - Taxa incidência de doença diarréica, 3- Taxa incidência de escabiose, 4-Taxa de incidência de desidratação, 5-Taxa de prevalência de úlcera de decúbito, 6 - Taxa de prevalência de desnutrição. Todo mês de janeiro, encaminha à VISA o consolidado dos indicadores do ano anterior.",
+          "isNA": false
+        },
+        {
+          "points": 4,
+          "text": "Possui sistema informatizado, atualizado e com avaliação crítica dos dados",
+          "isNA": false
+        },
+        {
+          "points": 5,
+          "text": "Realiza avaliação crítica, implanta e avalia ações de mitigação.",
+          "isNA": false
+        }
+      ]
+    }
+  ]
+}

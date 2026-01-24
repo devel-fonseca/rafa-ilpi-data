@@ -164,6 +164,7 @@ enum PermissionType {
 
   // Conformidade RDC 502/2021 (acesso restrito a gestores)
   VIEW_COMPLIANCE_DASHBOARD // Acessar dashboard de conformidade RDC
+  MANAGE_COMPLIANCE_ASSESSMENT // Criar e gerenciar autodiagnósticos RDC 502/2021
   VIEW_SENTINEL_EVENTS // Visualizar e gerenciar eventos sentinela
 
   // Configurações Institucionais

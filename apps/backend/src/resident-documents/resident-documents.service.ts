@@ -7,6 +7,16 @@ import { StampMetadata } from '../files/interfaces/stamp-metadata.interface';
 import { CreateResidentDocumentDto } from './dto/create-resident-document.dto';
 import { UpdateResidentDocumentDto } from './dto/update-resident-document.dto';
 import { randomUUID } from 'crypto';
+import { Readable } from 'stream';
+
+/**
+ * Interface para o perfil do usuário com dados de registro profissional
+ */
+interface UserProfileWithRegistry {
+  professionalRegistry?: string;
+  professionalRegistryType?: string;
+  professionalRegistryState?: string;
+}
 
 @Injectable()
 export class ResidentDocumentsService {
@@ -294,7 +304,7 @@ export class ResidentDocumentsService {
   /**
    * Formata registro profissional do usuário
    */
-  private formatProfessionalRegistry(profile: any): string {
+  private formatProfessionalRegistry(profile: UserProfileWithRegistry): string {
     if (!profile?.professionalRegistry) {
       return 'N/A';
     }
@@ -321,7 +331,7 @@ export class ResidentDocumentsService {
       size: buffer.length,
       fieldname: 'file',
       encoding: '7bit',
-      stream: null as any,
+      stream: Readable.from(buffer),
       destination: '',
       filename: '',
       path: '',

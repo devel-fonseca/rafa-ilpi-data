@@ -285,6 +285,7 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.VIEW_AUDIT_LOGS,
       // Conformidade RDC 502/2021 (restrito a gestores)
       PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.MANAGE_COMPLIANCE_ASSESSMENT,
       PermissionType.VIEW_SENTINEL_EVENTS,
       // POPs - Gestão Administrativa
       PermissionType.VIEW_POPS,      // Ver POPs em rascunho e templates
@@ -338,6 +339,7 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.BROADCAST_MESSAGES,
       // Conformidade RDC 502/2021 (restrito a gestores)
       PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.MANAGE_COMPLIANCE_ASSESSMENT,
       PermissionType.VIEW_SENTINEL_EVENTS,
       // Escala de Cuidados - Gestão Completa
       PermissionType.CREATE_CARE_SHIFTS,        // Criar plantões

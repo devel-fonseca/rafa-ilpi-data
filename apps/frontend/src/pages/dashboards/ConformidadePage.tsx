@@ -10,9 +10,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { FileText, BarChart3, Shield, AlertTriangle, Lock, Zap } from 'lucide-react';
+import { FileText, BarChart3, Shield, AlertTriangle, Lock, Zap, ClipboardCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSentinelEvents } from '@/hooks/useSentinelEvents';
+import { useAssessments } from '@/hooks/useComplianceAssessments';
 import { useFeatures } from '@/hooks/useFeatures';
 import { differenceInHours } from 'date-fns';
 import { useState } from 'react';
@@ -33,6 +34,10 @@ export function ConformidadePage() {
       const hoursElapsed = differenceInHours(new Date(), new Date(e.createdAt));
       return hoursElapsed > 24;
     }) || [];
+
+  // Buscar último autodiagnóstico para mostrar status
+  const { data: assessmentsData } = useAssessments({ page: 1, limit: 1 });
+  const lastAssessment = assessmentsData?.data?.[0];
 
   /**
    * Manipula clique em card - verifica feature antes de navegar
@@ -161,7 +166,64 @@ export function ConformidadePage() {
           </CardContent>
         </Card>
 
-        {/* Card 4: Placeholder Futuro */}
+        {/* Card 4: Autodiagnóstico RDC 502/2021 */}
+        <Card
+          className="hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() =>
+            handleCardClick(
+              'autodiagnostico_rdc',
+              '/dashboard/conformidade/autodiagnostico',
+              'Autodiagnóstico RDC 502/2021',
+              'Avaliação de conformidade com o Roteiro Objetivo de Inspeção ILPI da ANVISA.'
+            )
+          }
+        >
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <ClipboardCheck className="h-12 w-12 text-primary" />
+              {lastAssessment && lastAssessment.status === 'COMPLETED' && (
+                <Badge
+                  variant={
+                    lastAssessment.complianceLevel === 'REGULAR'
+                      ? 'default'
+                      : lastAssessment.complianceLevel === 'PARCIAL'
+                        ? 'secondary'
+                        : 'destructive'
+                  }
+                  className={
+                    lastAssessment.complianceLevel === 'REGULAR'
+                      ? 'bg-green-600'
+                      : lastAssessment.complianceLevel === 'PARCIAL'
+                        ? 'bg-orange-600'
+                        : ''
+                  }
+                >
+                  {lastAssessment.compliancePercentage.toFixed(1)}%
+                </Badge>
+              )}
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              Autodiagnóstico RDC 502/2021
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Avaliação de conformidade com indicadores regulatórios da ANVISA.
+            </p>
+            {lastAssessment && lastAssessment.status === 'COMPLETED' && (
+              <p className="text-xs text-muted-foreground mb-2">
+                Último resultado: <strong>{lastAssessment.complianceLevel}</strong>
+              </p>
+            )}
+            <Button variant="outline" className="w-full">
+              {lastAssessment && lastAssessment.status === 'DRAFT'
+                ? 'Continuar Rascunho →'
+                : lastAssessment && lastAssessment.status === 'COMPLETED'
+                  ? 'Ver Resultados →'
+                  : 'Iniciar Autodiagnóstico →'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Card 5: Placeholder Futuro */}
         <Card className="opacity-60">
           <CardContent className="p-6">
             <Shield className="h-12 w-12 text-muted-foreground mb-4" />

@@ -61,6 +61,7 @@ import { ValidationModule } from './validation/validation.module';
 import { TeamsModule } from './teams/teams.module';
 import { ShiftTemplatesModule } from './shift-templates/shift-templates.module';
 import { CareShiftsModule } from './care-shifts/care-shifts.module';
+import { ComplianceAssessmentsModule } from './compliance-assessments/compliance-assessments.module';
 
 @Module({
   imports: [
@@ -143,6 +144,7 @@ import { CareShiftsModule } from './care-shifts/care-shifts.module';
     // Conformidade RDC 502/2021
     SentinelEventsModule,
     RdcIndicatorsModule,
+    ComplianceAssessmentsModule,
     AdminDashboardModule,
 
     // Escala de Cuidados (Gestão de Turnos e Plantões)

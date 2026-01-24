@@ -140,6 +140,7 @@ export enum PermissionType {
 
   // Conformidade RDC 502/2021 (acesso restrito a gestores)
   VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  MANAGE_COMPLIANCE_ASSESSMENT = 'MANAGE_COMPLIANCE_ASSESSMENT',
   VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
 
   // Escalas e Plantões (Gestão de Turnos e Equipes)
@@ -294,6 +295,7 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
 
   [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
+  [PermissionType.MANAGE_COMPLIANCE_ASSESSMENT]: 'Gerenciar autodiagnósticos RDC 502/2021',
   [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
 
   [PermissionType.VIEW_CARE_SHIFTS]: 'Visualizar plantões',
@@ -417,6 +419,7 @@ export const PERMISSION_GROUPS = {
     label: 'Conformidade RDC 502/2021',
     permissions: [
       PermissionType.VIEW_COMPLIANCE_DASHBOARD,
+      PermissionType.MANAGE_COMPLIANCE_ASSESSMENT,
       PermissionType.VIEW_SENTINEL_EVENTS,
     ],
   },

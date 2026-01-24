@@ -84,8 +84,8 @@ model Team {
   // Relações
   members               TeamMember[]
   shifts                Shift[]
-  originalSubstitutions ShiftSubstitution[]    @relation("OriginalTeam")
-  newSubstitutions      ShiftSubstitution[]    @relation("NewTeam")
+  originalSubstitutions ShiftSubstitution[] @relation("OriginalTeam")
+  newSubstitutions      ShiftSubstitution[] @relation("NewTeam")
 
   // Auditoria
   createdBy String    @db.Uuid
@@ -142,7 +142,7 @@ model Shift {
 
   // Relações (apenas same-schema)
   // shiftTemplate - NO FK (cross-schema to public.shift_templates, validated in app layer)
-  team          Team?                 @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  team          Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
   members       ShiftAssignment[]
   substitutions ShiftSubstitution[]
   history       ShiftHistory[]
