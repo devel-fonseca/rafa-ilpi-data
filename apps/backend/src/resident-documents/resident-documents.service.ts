@@ -198,7 +198,7 @@ export class ResidentDocumentsService {
       tenantId,
       userName: user.name,
       userRole: user.role || 'USER',
-      userProfessionalRegistry: this.formatProfessionalRegistry(user.profile),
+      userProfessionalRegistry: user.profile ? this.formatProfessionalRegistry(user.profile) : undefined,
       uploadDate: new Date(),
       publicToken,
       hashOriginal: '', // Será preenchido pelo FileProcessingService
