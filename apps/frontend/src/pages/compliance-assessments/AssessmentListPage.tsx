@@ -65,8 +65,8 @@ export function AssessmentListPage() {
 
   const getComplianceBadge = (level: string, percentage: number) => {
     const variants = {
-      REGULAR: { variant: 'default' as const, className: 'bg-green-600', label: 'Regular' },
-      PARCIAL: { variant: 'secondary' as const, className: 'bg-orange-600', label: 'Parcial' },
+      REGULAR: { variant: 'default' as const, className: 'bg-success', label: 'Regular' },
+      PARCIAL: { variant: 'secondary' as const, className: 'bg-warning', label: 'Parcial' },
       IRREGULAR: { variant: 'destructive' as const, className: '', label: 'Irregular' },
     }
 
@@ -175,7 +175,7 @@ export function AssessmentListPage() {
                       {/* Progresso */}
                       <div className="flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <CheckCircle2 className="h-4 w-4 text-success" />
                           <span>
                             <strong>{assessment.questionsAnswered}</strong>/{assessment.totalQuestions}{' '}
                             questões respondidas
@@ -193,7 +193,7 @@ export function AssessmentListPage() {
                         assessment.criticalNonCompliant &&
                         Array.isArray(assessment.criticalNonCompliant) &&
                         assessment.criticalNonCompliant.length > 0 && (
-                          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                          <div className="flex items-center gap-2 text-sm text-danger">
                             <AlertCircle className="h-4 w-4" />
                             <span>
                               <strong>{assessment.criticalNonCompliant.length}</strong> não

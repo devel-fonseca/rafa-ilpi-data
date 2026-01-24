@@ -32,14 +32,14 @@ export function AssessmentProgressBar({
       {/* Estatísticas */}
       <div className="flex items-center gap-4 text-sm">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <CheckCircle2 className="h-4 w-4 text-success" />
           <span className="text-muted-foreground">
             <strong className="text-foreground">{questionsWithResponse}</strong> respondidas
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <MinusCircle className="h-4 w-4 text-orange-600" />
+          <MinusCircle className="h-4 w-4 text-warning" />
           <span className="text-muted-foreground">
             <strong className="text-foreground">{questionsNA}</strong> N/A
           </span>
@@ -56,7 +56,7 @@ export function AssessmentProgressBar({
 
       {/* Status Badge */}
       {questionsAnswered === totalQuestions && (
-        <Badge variant="default" className="bg-green-600">
+        <Badge variant="default" className="bg-success">
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Todas as questões foram respondidas
         </Badge>

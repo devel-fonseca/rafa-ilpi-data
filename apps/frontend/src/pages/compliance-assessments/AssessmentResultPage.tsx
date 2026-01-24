@@ -173,7 +173,7 @@ export function AssessmentResultPage() {
           <TabsTrigger value="critical">
             Não Conformidades Críticas
             {criticalIssues.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-red-600 text-white rounded-full">
+              <span className="ml-2 px-2 py-0.5 text-xs bg-danger text-danger-foreground rounded-full">
                 {criticalIssues.length}
               </span>
             )}
@@ -210,7 +210,7 @@ export function AssessmentResultPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-mono font-semibold">Q{response.questionNumber}</span>
                           {response.criticalityLevel === 'C' && (
-                            <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
+                            <span className="text-xs px-2 py-0.5 bg-danger/10 text-danger rounded">
                               Crítica
                             </span>
                           )}

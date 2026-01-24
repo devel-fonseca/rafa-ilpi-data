@@ -192,9 +192,9 @@ export function ConformidadePage() {
                   }
                   className={
                     lastAssessment.complianceLevel === 'REGULAR'
-                      ? 'bg-green-600'
+                      ? 'bg-success'
                       : lastAssessment.complianceLevel === 'PARCIAL'
-                        ? 'bg-orange-600'
+                        ? 'bg-warning'
                         : ''
                   }
                 >

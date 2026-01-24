@@ -109,7 +109,7 @@ export function QuestionCard({
                 {question.criticalityLevel === 'C' ? 'Crítica' : 'Não Crítica'}
               </Badge>
               {isAnswered && (
-                <Badge variant="default" className="text-xs bg-green-600">
+                <Badge variant="default" className="text-xs bg-success">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
                   Respondida
                 </Badge>
@@ -200,8 +200,8 @@ export function QuestionCard({
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-green-600">Resposta salva automaticamente</span>
+                <CheckCircle2 className="h-4 w-4 text-success" />
+                <span className="text-success">Resposta salva automaticamente</span>
               </>
             )}
           </div>
@@ -209,13 +209,13 @@ export function QuestionCard({
 
         {/* Aviso para Questões Críticas */}
         {question.criticalityLevel === 'C' && selectedValue !== 'NA' && Number(selectedValue) < 3 && (
-          <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-3 p-4 bg-danger/10 border border-danger/30 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-danger mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              <p className="text-sm font-medium text-danger">
                 Não Conformidade Crítica
               </p>
-              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+              <p className="text-sm text-danger/80 mt-1">
                 Esta questão é considerada crítica pela ANVISA e a pontuação selecionada ({selectedValue} pontos)
                 indica não conformidade. Isto impactará negativamente na classificação final do estabelecimento.
               </p>

@@ -34,25 +34,25 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
     const configs = {
       REGULAR: {
         icon: CheckCircle2,
-        color: 'text-green-600',
-        bgColor: 'bg-green-50 dark:bg-green-950',
-        borderColor: 'border-green-200 dark:border-green-800',
+        color: 'text-success',
+        bgColor: 'bg-success/10',
+        borderColor: 'border-success/30',
         label: 'Conformidade Regular',
         description: '≥ 75% de conformidade com indicadores aplicáveis',
       },
       PARCIAL: {
         icon: AlertTriangle,
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50 dark:bg-orange-950',
-        borderColor: 'border-orange-200 dark:border-orange-800',
+        color: 'text-warning',
+        bgColor: 'bg-warning/10',
+        borderColor: 'border-warning/30',
         label: 'Conformidade Parcial',
         description: '50-74% de conformidade com indicadores aplicáveis',
       },
       IRREGULAR: {
         icon: XCircle,
-        color: 'text-red-600',
-        bgColor: 'bg-red-50 dark:bg-red-950',
-        borderColor: 'border-red-200 dark:border-red-800',
+        color: 'text-danger',
+        bgColor: 'bg-danger/10',
+        borderColor: 'border-danger/30',
         label: 'Irregularidade',
         description: '< 50% de conformidade com indicadores aplicáveis',
       },
@@ -144,7 +144,7 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
         </Card>
 
         {/* Questões Críticas */}
-        <Card className={assessment.criticalNonCompliant && (assessment.criticalNonCompliant as unknown[]).length > 0 ? 'border-red-200 dark:border-red-800' : ''}>
+        <Card className={assessment.criticalNonCompliant && (assessment.criticalNonCompliant as unknown[]).length > 0 ? 'border-danger/30' : ''}>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Não Conformidades Críticas
@@ -152,13 +152,13 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-bold ${(assessment.criticalNonCompliant as unknown[])?.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className={`text-3xl font-bold ${(assessment.criticalNonCompliant as unknown[])?.length > 0 ? 'text-danger' : 'text-success'}`}>
                 {(assessment.criticalNonCompliant as unknown[])?.length || 0}
               </span>
               <span className="text-sm text-muted-foreground">questões</span>
             </div>
             {(assessment.criticalNonCompliant as unknown[])?.length > 0 && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              <p className="text-xs text-danger mt-1">
                 Requerem atenção imediata
               </p>
             )}
@@ -189,13 +189,13 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       {trend === 'up' && (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
+                        <TrendingUp className="h-4 w-4 text-success" />
                       )}
                       {trend === 'neutral' && (
-                        <Minus className="h-4 w-4 text-orange-600" />
+                        <Minus className="h-4 w-4 text-warning" />
                       )}
                       {trend === 'down' && (
-                        <TrendingDown className="h-4 w-4 text-red-600" />
+                        <TrendingDown className="h-4 w-4 text-danger" />
                       )}
                       <span className="font-semibold">{percentage.toFixed(1)}%</span>
                     </div>
@@ -222,8 +222,8 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{metrics.fullyCompliant}</p>
@@ -232,8 +232,8 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{metrics.partiallyCompliant}</p>
@@ -242,8 +242,8 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950">
-                <XCircle className="h-5 w-5 text-red-600" />
+              <div className="p-2 rounded-lg bg-danger/10">
+                <XCircle className="h-5 w-5 text-danger" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{metrics.nonCompliant}</p>
