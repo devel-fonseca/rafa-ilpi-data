@@ -2,19 +2,24 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { FilesService } from '../files/files.service'
+import { FileProcessingService } from '../files/file-processing.service'
 import { CreateTenantProfileDto, UpdateTenantProfileDto, CreateTenantDocumentDto, UpdateTenantDocumentDto, UpdateInstitutionalProfileDto } from './dto'
 import { DocumentStatus, Prisma } from '@prisma/client'
 import { getRequiredDocuments, getDocumentLabel, isAllowedFileType, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { getCurrentDateInTz } from '../utils/date.helpers'
 import { formatDateOnly } from '../utils/date.helpers'
 import { parseISO } from 'date-fns'
+import { StampMetadata } from '../files/interfaces/stamp-metadata.interface'
+import { randomUUID } from 'crypto'
+import { Readable } from 'stream'
 
 @Injectable()
 export class InstitutionalProfileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
-    private readonly filesService: FilesService
+    private readonly filesService: FilesService,
+    private readonly fileProcessingService: FileProcessingService
   ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -268,7 +273,7 @@ export class InstitutionalProfileService {
       }
     }
 
-    const documents = await this.prisma.tenantDocument.findMany({
+    const documents = await this.tenantContext.client.tenantDocument.findMany({
       where,
       orderBy: [
         { status: 'asc' }, // VENCIDO, VENCENDO, PENDENTE, OK
@@ -295,7 +300,7 @@ export class InstitutionalProfileService {
    * Busca um documento específico
    */
   async getDocument(tenantId: string, documentId: string) {
-    const document = await this.prisma.tenantDocument.findFirst({
+    const document = await this.tenantContext.client.tenantDocument.findFirst({
       where: { id: documentId, tenantId, deletedAt: null },
     })
 
@@ -313,7 +318,16 @@ export class InstitutionalProfileService {
   }
 
   /**
-   * Upload de documento institucional
+   * Upload de documento institucional COM processamento e carimbo institucional
+   *
+   * Fluxo:
+   * 1. Validar arquivo (tipo e tamanho)
+   * 2. Buscar dados do usuário e tenant para carimbo
+   * 3. Gerar publicToken único
+   * 4. Processar arquivo (converter imagem → PDF ou adicionar carimbo a PDF)
+   * 5. Upload arquivo ORIGINAL (backup auditoria)
+   * 6. Upload arquivo PROCESSADO (PDF com carimbo)
+   * 7. Criar registro no banco com TODOS os campos
    */
   async uploadDocument(
     tenantId: string,
@@ -321,7 +335,11 @@ export class InstitutionalProfileService {
     file: Express.Multer.File,
     dto: CreateTenantDocumentDto
   ) {
-    // Validar tipo de arquivo
+    console.log('🚀 [uploadDocument] Iniciando upload...')
+    console.log('📄 [uploadDocument] Arquivo:', { name: file.originalname, size: file.size, mimetype: file.mimetype })
+    console.log('📋 [uploadDocument] DTO:', dto)
+
+    // 1. Validar tipo de arquivo
     if (!isAllowedFileType(file.mimetype)) {
       throw new BadRequestException('Tipo de arquivo não permitido. Use PDF, JPG, PNG ou WebP.')
     }
@@ -331,34 +349,110 @@ export class InstitutionalProfileService {
       throw new BadRequestException(`Arquivo muito grande. Tamanho máximo: ${MAX_FILE_SIZE / 1024 / 1024}MB`)
     }
 
-    // Upload do arquivo
-    const uploadResult = await this.filesService.uploadFile(
-      tenantId,
-      file,
-      'institutional-documents'
-    )
+    console.log('✅ [uploadDocument] Validações OK')
 
-    // Buscar timezone do tenant para cálculo correto do status
+    // 2. Buscar dados do usuário para carimbo institucional
+    console.log('👤 [uploadDocument] Buscando usuário:', userId)
+    const user = await this.tenantContext.client.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        email: true,
+        role: true,
+        profile: {
+          select: {
+            registrationType: true,
+            registrationNumber: true,
+            registrationState: true,
+            positionCode: true,
+          },
+        },
+      },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado')
+    }
+
+    console.log('✅ [uploadDocument] Usuário encontrado:', user.name)
+
+    // Buscar dados do tenant para carimbo
+    console.log('🏢 [uploadDocument] Buscando tenant:', tenantId)
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
-      select: { timezone: true },
+      select: { name: true, cnpj: true, timezone: true },
     })
-    const timezone = tenant?.timezone || 'America/Sao_Paulo'
 
-    // Calcular status do documento (timezone-safe)
-    const status = this.calculateDocumentStatus(dto.expiresAt || null, timezone)
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado')
+    }
 
-    // Criar registro do documento
-    return this.prisma.tenantDocument.create({
+    console.log('✅ [uploadDocument] Tenant encontrado:', tenant.name)
+
+    const timezone = tenant.timezone || 'America/Sao_Paulo'
+
+    // 3. Gerar publicToken único
+    const publicToken = randomUUID()
+    console.log('🔑 [uploadDocument] Token público gerado:', publicToken)
+
+    // 4. Processar arquivo com FileProcessingService
+    console.log('⚙️ [uploadDocument] Iniciando processamento do arquivo...')
+    const stampMetadata: StampMetadata = {
+      tenantName: tenant.name,
+      tenantCnpj: tenant.cnpj || 'N/A',
+      tenantId,
+      userName: user.name,
+      userRole: user.role || 'USER',
+      userProfessionalRegistry: this.formatProfessionalRegistry(user.profile),
+      uploadDate: new Date(),
+      publicToken,
+      hashOriginal: '', // Será preenchido pelo FileProcessingService
+    }
+
+    try {
+      const processedResult =
+        file.mimetype === 'application/pdf'
+          ? await this.fileProcessingService.processPdf(file.buffer, stampMetadata)
+          : await this.fileProcessingService.processImage(file.buffer, stampMetadata)
+
+      console.log('✅ [uploadDocument] Arquivo processado! Hash original:', processedResult.hashOriginal)
+      console.log('✅ [uploadDocument] Hash final:', processedResult.hashFinal)
+
+      // 5. Upload do arquivo ORIGINAL para S3 (backup auditoria)
+      console.log('☁️ [uploadDocument] Enviando arquivo ORIGINAL para S3...')
+      const originalUpload = await this.filesService.uploadFile(
+        tenantId,
+        file,
+        'institutional-documents'
+      )
+      console.log('✅ [uploadDocument] Original enviado:', originalUpload.fileUrl)
+
+      // 6. Upload do arquivo PROCESSADO para S3 (PDF com carimbo)
+      console.log('☁️ [uploadDocument] Enviando arquivo PROCESSADO para S3...')
+      const processedFile = this.createMulterFileFromBuffer(
+        processedResult.pdfBuffer,
+        `${dto.type}_${Date.now()}.pdf`,
+        'application/pdf'
+      )
+
+      const processedUpload = await this.filesService.uploadFile(
+        tenantId,
+        processedFile,
+        'institutional-documents'
+      )
+      console.log('✅ [uploadDocument] Processado enviado:', processedUpload.fileUrl)
+
+      // 7. Calcular status do documento (timezone-safe)
+      const status = this.calculateDocumentStatus(dto.expiresAt || null, timezone)
+      console.log('📊 [uploadDocument] Status calculado:', status)
+
+      // 8. Criar registro do documento com TODOS os campos
+      console.log('💾 [uploadDocument] Salvando no banco de dados...')
+      const document = await this.tenantContext.client.tenantDocument.create({
       data: {
         tenantId,
         uploadedBy: userId,
         type: dto.type,
-        fileUrl: uploadResult.fileUrl,
-        fileKey: uploadResult.fileId,
-        fileName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype,
         issuedAt: dto.issuedAt ? new Date(dto.issuedAt) : null,
         expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
         status,
@@ -366,9 +460,55 @@ export class InstitutionalProfileService {
         issuerEntity: dto.issuerEntity,
         tags: dto.tags || [],
         notes: dto.notes,
-        version: 1, // Novo documento sempre começa na versão 1
+        version: 1,
+
+        // Arquivo original (backup auditoria)
+        originalFileUrl: originalUpload.fileUrl,
+        originalFileKey: originalUpload.fileId,
+        originalFileName: originalUpload.fileName,
+        originalFileSize: originalUpload.fileSize,
+        originalFileMimeType: originalUpload.mimeType,
+        originalFileHash: processedResult.hashOriginal,
+
+        // Arquivo processado (PDF com carimbo)
+        processedFileUrl: processedUpload.fileUrl,
+        processedFileKey: processedUpload.fileId,
+        processedFileName: processedUpload.fileName,
+        processedFileSize: processedUpload.fileSize,
+        processedFileHash: processedResult.hashFinal,
+
+        // Token e metadados
+        publicToken,
+        processingMetadata: {
+          validatorName: user.name,
+          validatorRole: user.role,
+          positionCode: user.profile?.positionCode,
+          registrationType: user.profile?.registrationType,
+          registrationNumber: user.profile?.registrationNumber,
+          registrationState: user.profile?.registrationState,
+          tenantName: tenant.name,
+          tenantCnpj: tenant.cnpj,
+          processedAt: new Date().toISOString(),
+        },
+
+        // Backward compatibility (apontar para processado)
+        fileUrl: processedUpload.fileUrl,
+        fileKey: processedUpload.fileId,
+        fileName: processedUpload.fileName,
+        fileSize: processedUpload.fileSize,
+        mimeType: 'application/pdf', // Sempre PDF após processamento
       },
-    })
+      })
+
+      console.log('✅ [uploadDocument] Documento salvo no banco! ID:', document.id)
+      console.log('🎉 [uploadDocument] Upload concluído com sucesso!')
+
+      return document
+    } catch (error) {
+      console.error('❌ [uploadDocument] ERRO durante processamento:', error)
+      console.error('❌ [uploadDocument] Stack:', error.stack)
+      throw error
+    }
   }
 
   /**
@@ -397,7 +537,7 @@ export class InstitutionalProfileService {
     const status = this.calculateDocumentStatus(dto.expiresAt || null, timezone)
 
     // Criar registro do documento
-    return this.prisma.tenantDocument.create({
+    return this.tenantContext.client.tenantDocument.create({
       data: {
         tenantId,
         uploadedBy: userId,
@@ -451,7 +591,7 @@ export class InstitutionalProfileService {
       data.status = this.calculateDocumentStatus(data.expiresAt, timezone)
     }
 
-    return this.prisma.tenantDocument.update({
+    return this.tenantContext.client.tenantDocument.update({
       where: { id: documentId },
       data,
     })
@@ -492,7 +632,7 @@ export class InstitutionalProfileService {
     )
 
     // Atualizar documento
-    return this.prisma.tenantDocument.update({
+    return this.tenantContext.client.tenantDocument.update({
       where: { id: documentId },
       data: {
         fileUrl: uploadResult.fileUrl,
@@ -511,7 +651,7 @@ export class InstitutionalProfileService {
     const document = await this.getDocument(tenantId, documentId)
 
     // Soft delete
-    await this.prisma.tenantDocument.update({
+    await this.tenantContext.client.tenantDocument.update({
       where: { id: documentId },
       data: { deletedAt: new Date() },
     })
@@ -543,7 +683,7 @@ export class InstitutionalProfileService {
     const requiredDocuments = getRequiredDocuments(profile?.legalNature)
 
     // Buscar todos os documentos ativos
-    const documents = await this.prisma.tenantDocument.findMany({
+    const documents = await this.tenantContext.client.tenantDocument.findMany({
       where: { tenantId, deletedAt: null },
       select: {
         id: true,
@@ -611,7 +751,7 @@ export class InstitutionalProfileService {
    * Deve ser executado periodicamente (cron job)
    */
   async updateDocumentsStatus() {
-    const documents = await this.prisma.tenantDocument.findMany({
+    const documents = await this.tenantContext.client.tenantDocument.findMany({
       where: { deletedAt: null, expiresAt: { not: null } },
       include: {
         tenant: {
@@ -625,7 +765,7 @@ export class InstitutionalProfileService {
       const newStatus = this.calculateDocumentStatus(document.expiresAt, timezone)
 
       if (newStatus !== document.status) {
-        await this.prisma.tenantDocument.update({
+        await this.tenantContext.client.tenantDocument.update({
           where: { id: document.id },
           data: { status: newStatus },
         })
@@ -638,6 +778,45 @@ export class InstitutionalProfileService {
   // ──────────────────────────────────────────────────────────────────────────
   // MÉTODOS AUXILIARES
   // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Formatar registro profissional (ex: COREN/SP 123456)
+   */
+  private formatProfessionalRegistry(profile: { registrationType?: string | null; registrationNumber?: string | null; registrationState?: string | null } | null): string | undefined {
+    if (!profile?.registrationType || !profile?.registrationNumber) {
+      return undefined
+    }
+
+    const parts = [profile.registrationType, profile.registrationNumber]
+    if (profile.registrationState) {
+      parts.push(`-${profile.registrationState}`)
+    }
+
+    return parts.join(' ')
+  }
+
+  /**
+   * Criar objeto Express.Multer.File a partir de buffer
+   * Usado para fazer upload do arquivo processado (PDF com carimbo)
+   */
+  private createMulterFileFromBuffer(
+    buffer: Buffer,
+    filename: string,
+    mimetype: string
+  ): Express.Multer.File {
+    return {
+      buffer,
+      originalname: filename,
+      filename,
+      mimetype,
+      size: buffer.length,
+      fieldname: 'file',
+      encoding: '7bit',
+      stream: new Readable(),
+      destination: '',
+      path: '',
+    }
+  }
 
   /**
    * Calcula o status do documento baseado na data de vencimento

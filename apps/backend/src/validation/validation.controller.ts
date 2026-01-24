@@ -67,8 +67,18 @@ export class ValidationController {
   private renderValidationPage(
     validation: PublicDocumentValidationDto,
   ): string {
-    const docType =
-      validation.documentType === 'vaccination' ? 'Comprovante de Vacinação' : 'Contrato de Residência';
+    const docTypeMap: Record<string, string> = {
+      vaccination: 'Comprovante de Vacinação',
+      contract: 'Contrato de Residência',
+      institutional_document: 'Documento Institucional',
+    };
+
+    const docType = docTypeMap[validation.documentType] || 'Documento';
+
+    // Se for documento institucional, mostrar tipo específico
+    const docTypeLine = validation.documentType === 'institutional_document'
+      ? `${docType} - ${validation.documentInfo.metadata?.documentType || 'Não especificado'}`
+      : docType;
 
     const professionalRegistryHtml = validation.documentInfo.professionalRegistry
       ? `<p class="registry">${validation.documentInfo.professionalRegistry}</p>`
@@ -362,7 +372,7 @@ export class ValidationController {
       </div>
 
       <h1>Validação Bem-Sucedida</h1>
-      <h2>${docType}</h2>
+      <h2>${docTypeLine}</h2>
 
       <div class="info-grid">
         <div class="info-item">

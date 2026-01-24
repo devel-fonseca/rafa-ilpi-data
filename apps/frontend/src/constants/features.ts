@@ -42,6 +42,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Gestão e operações
   'agenda': 'Agenda de atividades',
+  'escalas_plantoes': 'Escalas e Plantões',
   'quartos': 'Estrutura de Leitos',
   'mapa_leitos': 'Mapa de Ocupação',
   'gestao_leitos': 'Gestão de Leitos',
@@ -75,6 +76,7 @@ export const FEATURES_MAP: Record<string, string> = {
 
   // Operações
   'Agenda de atividades': 'Agenda de atividades',
+  'Escalas e Plantões': 'Escalas e Plantões',
   'Estrutura de Leitos': 'Estrutura de Leitos',
   'Mapa de Ocupação': 'Mapa de Ocupação',
   'Gestão de Leitos': 'Gestão de Leitos',
@@ -132,6 +134,7 @@ export const AVAILABLE_FEATURES = [
   // GESTÃO E OPERAÇÕES
   // ═══════════════════════════════════════════════════════════════
   'Agenda de atividades',
+  'Escalas e Plantões',
   'Estrutura de Leitos',
   'Mapa de Ocupação',
   'Gestão de Leitos',

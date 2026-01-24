@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcrypt";
-import { seedShiftTemplates } from "./seeds/shift-templates.seed";
 
 const prisma = new PrismaClient();
 
@@ -118,9 +117,6 @@ async function main() {
   }
 
   console.log("✅ SuperAdmin seeded!");
-
-  // Seed Shift Templates (Turnos Fixos - Public Schema)
-  await seedShiftTemplates(prisma);
 
   console.log("✅ Seeding completed!");
 }

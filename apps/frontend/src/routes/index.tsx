@@ -250,11 +250,13 @@ export const router = createBrowserRouter([
       {
         path: 'escala-cuidados',
         element: (
-          <ProtectedRoute
-            requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
-          >
-            <CareShiftsPage />
-          </ProtectedRoute>
+          <FeatureGate featureKey="escalas_plantoes">
+            <ProtectedRoute
+              requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
+            >
+              <CareShiftsPage />
+            </ProtectedRoute>
+          </FeatureGate>
         ),
       },
       {

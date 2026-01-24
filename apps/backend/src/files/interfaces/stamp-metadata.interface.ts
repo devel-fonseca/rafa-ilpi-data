@@ -12,6 +12,10 @@ export interface StampMetadata {
   hashOriginal: string;
   hashFinal?: string; // Preenchido após gerar PDF final
   publicToken: string; // Token público para validação (não expõe ID interno)
+
+  // Campos opcionais para documentos de residentes
+  residentName?: string;
+  residentCpf?: string;
 }
 
 /**

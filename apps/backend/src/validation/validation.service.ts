@@ -35,6 +35,36 @@ interface ContractResult {
   schema: string;
 }
 
+interface InstitutionalDocumentResult {
+  id: string;
+  publicToken: string;
+  type: string;
+  originalFileHash: string | null;
+  processedFileHash: string | null;
+  processingMetadata: Record<string, unknown> | null;
+  createdAt: Date;
+  tenantId: string;
+  tenantName: string;
+  tenantCnpj: string;
+  schema: string;
+}
+
+interface ResidentDocumentResult {
+  id: string;
+  publicToken: string;
+  type: string;
+  originalFileHash: string | null;
+  processedFileHash: string | null;
+  processingMetadata: Record<string, unknown> | null;
+  createdAt: Date;
+  residentName: string;
+  residentCpf: string;
+  tenantId: string;
+  tenantName: string;
+  tenantCnpj: string;
+  schema: string;
+}
+
 @Injectable()
 export class ValidationService {
   private readonly logger = new Logger(ValidationService.name);
@@ -89,6 +119,20 @@ export class ValidationService {
     if (contract) {
       this.logger.log(`Found contract in schema: ${contract.schema}`);
       return this.buildContractResponse(contract);
+    }
+
+    // 3. Buscar em tenant_documents (cross-tenant)
+    const document = await this.findInstitutionalDocumentByToken(token);
+    if (document) {
+      this.logger.log(`Found institutional document in schema: ${document.schema}`);
+      return this.buildInstitutionalDocumentResponse(document);
+    }
+
+    // 4. Buscar em resident_documents (cross-tenant) - NOVO
+    const residentDoc = await this.findResidentDocumentByToken(token);
+    if (residentDoc) {
+      this.logger.log(`Found resident document in schema: ${residentDoc.schema}`);
+      return this.buildResidentDocumentResponse(residentDoc);
     }
 
     // Documento não encontrado
@@ -201,6 +245,104 @@ export class ValidationService {
   }
 
   /**
+   * Buscar documento institucional por token em TODOS os schemas de tenant
+   */
+  private async findInstitutionalDocumentByToken(
+    token: string,
+  ): Promise<InstitutionalDocumentResult | null> {
+    // 1. Obter todos os schemas de tenant
+    const schemas = await this.prisma.$queryRaw<{ schema_name: string }[]>`
+      SELECT schema_name
+      FROM information_schema.schemata
+      WHERE schema_name LIKE 'tenant_%'
+    `;
+
+    // 2. Buscar em cada schema sequencialmente
+    for (const { schema_name } of schemas) {
+      try {
+        const result = await this.prisma.$queryRawUnsafe<InstitutionalDocumentResult[]>(`
+          SELECT
+            d.id::text,
+            d."publicToken"::text AS "publicToken",
+            d.type,
+            d."originalFileHash",
+            d."processedFileHash",
+            d."processingMetadata",
+            d."createdAt",
+            t.id::text AS "tenantId",
+            t.name AS "tenantName",
+            t.cnpj AS "tenantCnpj",
+            '${schema_name}' AS schema
+          FROM "${schema_name}".tenant_documents d
+          JOIN public.tenants t ON t.id = d."tenantId"
+          WHERE d."publicToken" = $1
+          LIMIT 1
+        `, token);
+
+        if (result.length > 0) {
+          return result[0];
+        }
+      } catch (error) {
+        // Schema pode não ter a tabela tenant_documents ainda
+        this.logger.error(`Schema ${schema_name} - document error: ${error.message}`, error.stack);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Buscar documento de residente por token em TODOS os schemas de tenant
+   * Estratégia: Iterar por todos os schemas e fazer query em cada um
+   */
+  private async findResidentDocumentByToken(
+    token: string,
+  ): Promise<ResidentDocumentResult | null> {
+    // 1. Obter todos os schemas de tenant
+    const schemas = await this.prisma.$queryRaw<{ schema_name: string }[]>`
+      SELECT schema_name
+      FROM information_schema.schemata
+      WHERE schema_name LIKE 'tenant_%'
+    `;
+
+    // 2. Buscar em cada schema sequencialmente
+    for (const { schema_name } of schemas) {
+      try {
+        const result = await this.prisma.$queryRawUnsafe<ResidentDocumentResult[]>(`
+          SELECT
+            d.id::text,
+            d."publicToken"::text AS "publicToken",
+            d.type,
+            d."originalFileHash",
+            d."processedFileHash",
+            d."processingMetadata",
+            d."createdAt",
+            r."fullName" AS "residentName",
+            r.cpf AS "residentCpf",
+            t.id::text AS "tenantId",
+            t.name AS "tenantName",
+            t.cnpj AS "tenantCnpj",
+            '${schema_name}' AS schema
+          FROM "${schema_name}".resident_documents d
+          JOIN "${schema_name}".residents r ON r.id = d."residentId"
+          JOIN public.tenants t ON t.id = d."tenantId"
+          WHERE d."publicToken" = $1
+          LIMIT 1
+        `, token);
+
+        if (result.length > 0) {
+          return result[0];
+        }
+      } catch (error) {
+        // Schema pode não ter a tabela resident_documents ainda ou com os novos campos
+        this.logger.error(`Schema ${schema_name} - resident document error: ${error.message}`, error.stack);
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Construir resposta para vacinação
    */
   private buildVaccinationResponse(
@@ -280,6 +422,92 @@ export class ValidationService {
         metadata,
       },
       publicToken: contract.publicToken,
+      consultedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Construir resposta para documento institucional
+   */
+  private buildInstitutionalDocumentResponse(
+    document: InstitutionalDocumentResult,
+  ): PublicDocumentValidationDto {
+    const metadata = document.processingMetadata as Record<string, unknown>;
+    const validatorName = (metadata?.validatorName as string) || 'Não informado';
+    const validatorRole = (metadata?.validatorRole as string) || 'Não informado';
+
+    // Montar registro profissional se disponível
+    let professionalRegistry: string | undefined = undefined;
+    const regType = metadata?.registrationType as string | null;
+    const regNumber = metadata?.registrationNumber as string | null;
+    const regState = metadata?.registrationState as string | null;
+
+    if (regType && regNumber && regState) {
+      professionalRegistry = `${regType} ${regNumber}-${regState}`;
+    }
+
+    return {
+      valid: true,
+      documentType: 'institutional_document',
+      documentInfo: {
+        processedAt: document.createdAt.toISOString(),
+        validatedBy: validatorName,
+        validatorRole,
+        professionalRegistry,
+        institutionName: document.tenantName,
+        institutionCnpj: document.tenantCnpj,
+        hashOriginal: document.originalFileHash || 'N/A',
+        hashFinal: document.processedFileHash || 'N/A',
+        metadata: {
+          ...metadata,
+          documentType: document.type,
+        },
+      },
+      publicToken: document.publicToken,
+      consultedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Construir resposta para documento de residente
+   */
+  private buildResidentDocumentResponse(
+    document: ResidentDocumentResult,
+  ): PublicDocumentValidationDto {
+    const metadata = document.processingMetadata as Record<string, unknown>;
+    const validatorName = (metadata?.validatorName as string) || 'Não informado';
+    const validatorRole = (metadata?.validatorRole as string) || 'Não informado';
+
+    // Montar registro profissional se disponível
+    let professionalRegistry: string | undefined = undefined;
+    const regType = metadata?.registrationType as string | null;
+    const regNumber = metadata?.registrationNumber as string | null;
+    const regState = metadata?.registrationState as string | null;
+
+    if (regType && regNumber && regState) {
+      professionalRegistry = `${regType} ${regNumber}-${regState}`;
+    }
+
+    return {
+      valid: true,
+      documentType: 'resident_document',
+      documentInfo: {
+        processedAt: document.createdAt.toISOString(),
+        validatedBy: validatorName,
+        validatorRole,
+        professionalRegistry,
+        institutionName: document.tenantName,
+        institutionCnpj: document.tenantCnpj,
+        hashOriginal: document.originalFileHash || 'N/A',
+        hashFinal: document.processedFileHash || 'N/A',
+        metadata: {
+          ...metadata,
+          documentType: document.type,
+          residentName: document.residentName,
+          residentCpf: document.residentCpf,
+        },
+      },
+      publicToken: document.publicToken,
       consultedAt: new Date().toISOString(),
     };
   }

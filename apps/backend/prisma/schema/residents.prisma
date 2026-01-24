@@ -192,12 +192,33 @@ model ResidentDocument {
   // - TERMO_CONSENTIMENTO_IMAGEM
   // - TERMO_CONSENTIMENTO_LGPD
 
-  // Arquivo
-  fileUrl  String // URL completa do arquivo no S3/MinIO
-  fileKey  String? // Chave do arquivo no S3 para deleção
-  fileName String // Nome original do arquivo
-  fileSize Int? // Tamanho em bytes
-  mimeType String? @db.VarChar(100) // application/pdf, image/jpeg, etc.
+  // ========== Arquivo Original (backup auditoria) ==========
+  originalFileUrl      String?
+  originalFileKey      String?
+  originalFileName     String?
+  originalFileSize     Int?
+  originalFileMimeType String?
+  originalFileHash     String? @db.VarChar(64) // SHA-256
+
+  // ========== Arquivo Processado (PDF com carimbo institucional) ==========
+  processedFileUrl  String?
+  processedFileKey  String?
+  processedFileName String?
+  processedFileSize Int?
+  processedFileHash String? @db.VarChar(64) // SHA-256
+
+  // ========== Token Público para Validação Externa ==========
+  publicToken String? @unique @db.VarChar(64)
+
+  // ========== Metadados do Processamento (JSON) ==========
+  processingMetadata Json? @db.JsonB
+
+  // ========== Campos Legados (backward compatibility) ==========
+  fileUrl  String  // URL completa do arquivo no S3/MinIO (aponta para processedFileUrl)
+  fileKey  String? // Chave do arquivo no S3 para deleção (aponta para processedFileKey)
+  fileName String  // Nome original do arquivo (aponta para processedFileName)
+  fileSize Int?    // Tamanho em bytes (aponta para processedFileSize)
+  mimeType String? @db.VarChar(100) // application/pdf após processamento
 
   // Detalhes opcionais (ex: "Unimed", "Laudo de entrada", etc.)
   details String? @db.Text
@@ -216,5 +237,6 @@ model ResidentDocument {
   @@index([tenantId, residentId])
   @@index([residentId, type])
   @@index([deletedAt])
+  @@index([publicToken])
   @@map("resident_documents")
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import {
 import { formatDate, formatLegalNature } from '@/utils/formatters'
 import { Page, PageHeader } from '@/design-system/components'
 import { useNavigate } from 'react-router-dom'
+import { DocumentUploadModal } from '@/pages/institutional-profile/DocumentUploadModal'
 
 /**
  * Mapeamento de cores para os status
@@ -78,6 +80,18 @@ export default function DocumentComplianceDashboard() {
   const { data: fullProfile } = useProfile()
   const { data: dashboard, isLoading } = useComplianceDashboard()
 
+  // Estado para controlar o modal de upload
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string | undefined>(undefined)
+
+  /**
+   * Handler para abrir modal com tipo de documento pré-selecionado
+   */
+  const handleOpenUploadModal = (documentType: string) => {
+    setSelectedDocumentType(documentType)
+    setIsUploadModalOpen(true)
+  }
+
   if (isLoading) {
     return (
       <Page>
@@ -121,7 +135,6 @@ export default function DocumentComplianceDashboard() {
     expiredDocuments,
     pendingDocuments,
     requiredDocuments,
-    missingDocuments,
     alerts,
     compliancePercentage,
   } = dashboard
@@ -288,7 +301,7 @@ export default function DocumentComplianceDashboard() {
               <div className="space-y-3">
                 {requiredDocuments.map((doc) => {
                   const isUploaded = doc.uploaded
-                  const Icon = isUploaded ? CheckCircle : XCircle
+                  const Icon = isUploaded ? CheckCircle : AlertTriangle
 
                   return (
                     <div
@@ -296,18 +309,18 @@ export default function DocumentComplianceDashboard() {
                       className={`flex items-center justify-between p-4 rounded-lg border ${
                         isUploaded
                           ? 'border-success/30 bg-success/5'
-                          : 'border-muted bg-muted/20'
+                          : 'border-warning/30 bg-warning/5'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            isUploaded ? 'bg-success/10' : 'bg-muted'
+                            isUploaded ? 'bg-success/10' : 'bg-warning/10'
                           }`}
                         >
                           <Icon
                             className={`h-5 w-5 ${
-                              isUploaded ? 'text-success' : 'text-muted-foreground'
+                              isUploaded ? 'text-success' : 'text-warning'
                             }`}
                           />
                         </div>
@@ -323,7 +336,7 @@ export default function DocumentComplianceDashboard() {
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-2"
-                          onClick={() => navigate('/dashboard/conformidade/documentos/gestao')}
+                          onClick={() => handleOpenUploadModal(doc.type)}
                         >
                           <Upload className="h-4 w-4" />
                           Enviar
@@ -336,45 +349,6 @@ export default function DocumentComplianceDashboard() {
             )}
           </CardContent>
         </Card>
-
-        {/* Documentos Pendentes (Faltantes) */}
-        {missingDocuments.length > 0 && (
-          <Card className="border-warning/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-warning">
-                <AlertTriangle className="h-5 w-5" />
-                Documentos Faltantes ({missingDocuments.length})
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Estes documentos são obrigatórios e ainda não foram enviados
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {missingDocuments.map((doc) => (
-                  <div
-                    key={doc.type}
-                    className="flex items-center justify-between p-3 bg-warning/5 border border-warning/30 rounded-md"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
-                      <span className="text-sm font-medium">{doc.label}</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                      onClick={() => navigate('/dashboard/conformidade/documentos/gestao')}
-                    >
-                      <Upload className="h-4 w-4" />
-                      Enviar
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Mensagem de Sucesso Total */}
         {compliancePercentage === 100 && alerts.length === 0 && (
@@ -392,6 +366,13 @@ export default function DocumentComplianceDashboard() {
           </Card>
         )}
       </div>
+
+      {/* Modal de Upload de Documento */}
+      <DocumentUploadModal
+        open={isUploadModalOpen}
+        onOpenChange={setIsUploadModalOpen}
+        defaultType={selectedDocumentType}
+      />
     </Page>
   )
 }

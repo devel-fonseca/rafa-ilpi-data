@@ -22,7 +22,9 @@ import {
 import { PermissionType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireAnyPermission } from '../permissions/decorators/require-permissions.decorator';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { RequestWithUser } from '../common/types/request-with-user.type';
 import { CareShiftsService } from './care-shifts.service';
 import { RDCCalculationService } from './services';
@@ -41,7 +43,8 @@ import {
 
 @ApiTags('Care Shifts - Plantões de Cuidadores')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('escalas_plantoes')
 @Controller('care-shifts')
 export class CareShiftsController {
   constructor(

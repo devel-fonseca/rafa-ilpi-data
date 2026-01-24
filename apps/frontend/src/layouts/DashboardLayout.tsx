@@ -559,7 +559,7 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
-              {/* Escala de Cuidados */}
+              {/* Escalas e Plantões */}
               {canViewCareShifts && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -570,11 +570,11 @@ export function DashboardLayout() {
                       }`}
                     >
                       <CalendarClock className="h-4 w-4 flex-shrink-0" />
-                      {!preferences.sidebarCollapsed && 'Escala de Cuidados'}
+                      {!preferences.sidebarCollapsed && 'Escalas e Plantões'}
                     </Link>
                   </TooltipTrigger>
                   {preferences.sidebarCollapsed && (
-                    <TooltipContent side="right">Escala de Cuidados</TooltipContent>
+                    <TooltipContent side="right">Escalas e Plantões</TooltipContent>
                   )}
                 </Tooltip>
               )}
@@ -816,7 +816,7 @@ export function DashboardLayout() {
                 </Link>
               )}
 
-              {/* Escala de Cuidados */}
+              {/* Escalas e Plantões */}
               {canViewCareShifts && (
                 <Link
                   to="/dashboard/escala-cuidados"
@@ -824,7 +824,7 @@ export function DashboardLayout() {
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
                   <CalendarClock className="h-4 w-4" />
-                  Escala de Cuidados
+                  Escalas e Plantões
                 </Link>
               )}
 

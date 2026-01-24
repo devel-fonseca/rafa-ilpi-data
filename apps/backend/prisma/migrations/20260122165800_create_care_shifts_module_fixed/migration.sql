@@ -117,7 +117,7 @@ BEGIN
         -- CreateTable teams
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.teams (
+            CREATE TABLE IF NOT EXISTS %I.teams (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 name VARCHAR(100) NOT NULL,
@@ -138,7 +138,7 @@ BEGIN
         -- CreateTable team_members
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.team_members (
+            CREATE TABLE IF NOT EXISTS %I.team_members (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 "teamId" UUID NOT NULL,
@@ -157,7 +157,7 @@ BEGIN
         -- CreateTable weekly_schedule_patterns (com numberOfWeeks)
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.weekly_schedule_patterns (
+            CREATE TABLE IF NOT EXISTS %I.weekly_schedule_patterns (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 name VARCHAR(100) NOT NULL,
@@ -180,7 +180,7 @@ BEGIN
         -- CreateTable weekly_schedule_pattern_assignments (com weekNumber)
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.weekly_schedule_pattern_assignments (
+            CREATE TABLE IF NOT EXISTS %I.weekly_schedule_pattern_assignments (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 "patternId" UUID NOT NULL,
@@ -201,7 +201,7 @@ BEGIN
         -- CreateTable shifts
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.shifts (
+            CREATE TABLE IF NOT EXISTS %I.shifts (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 date DATE NOT NULL,
@@ -226,7 +226,7 @@ BEGIN
         -- CreateTable shift_assignments
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.shift_assignments (
+            CREATE TABLE IF NOT EXISTS %I.shift_assignments (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 "shiftId" UUID NOT NULL,
@@ -245,7 +245,7 @@ BEGIN
         -- CreateTable shift_substitutions
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.shift_substitutions (
+            CREATE TABLE IF NOT EXISTS %I.shift_substitutions (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 "shiftId" UUID NOT NULL,
@@ -266,7 +266,7 @@ BEGIN
         -- CreateTable shift_history
         -- ==========================================
         EXECUTE format('
-            CREATE TABLE %I.shift_history (
+            CREATE TABLE IF NOT EXISTS %I.shift_history (
                 id UUID NOT NULL DEFAULT gen_random_uuid(),
                 "tenantId" UUID NOT NULL,
                 "shiftId" UUID NOT NULL,

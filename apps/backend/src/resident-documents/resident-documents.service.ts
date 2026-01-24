@@ -2,8 +2,11 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
+import { FileProcessingService } from '../files/file-processing.service';
+import { StampMetadata } from '../files/interfaces/stamp-metadata.interface';
 import { CreateResidentDocumentDto } from './dto/create-resident-document.dto';
 import { UpdateResidentDocumentDto } from './dto/update-resident-document.dto';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ResidentDocumentsService {
@@ -13,6 +16,7 @@ export class ResidentDocumentsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
+    private readonly fileProcessingService: FileProcessingService,
   ) {}
 
   /**
@@ -65,7 +69,7 @@ export class ResidentDocumentsService {
   }
 
   /**
-   * Faz upload de um novo documento
+   * Faz upload de um novo documento (LEGADO - sem processamento)
    */
   async uploadDocument(
     residentId: string,
@@ -110,6 +114,217 @@ export class ResidentDocumentsService {
     return {
       ...document,
       fileUrl: await this.filesService.getFileUrl(document.fileUrl),
+    };
+  }
+
+  /**
+   * Faz upload de um novo documento COM PROCESSAMENTO E CARIMBO INSTITUCIONAL
+   * - Converte imagem para PDF
+   * - Adiciona carimbo institucional com dados do residente
+   * - Gera hash SHA-256 e publicToken
+   * - Armazena original + processado
+   */
+  async uploadDocumentWithStamp(
+    residentId: string,
+    userId: string,
+    file: Express.Multer.File,
+    metadata: CreateResidentDocumentDto,
+  ) {
+    const tenantId = this.tenantContext.tenantId;
+
+    this.logger.log(`📄 [uploadDocumentWithStamp] Iniciando upload para residente ${residentId}`);
+
+    // 1. Verificar se o residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
+      where: {
+        id: residentId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        cpf: true,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    this.logger.log(`✅ [uploadDocumentWithStamp] Residente encontrado: ${resident.fullName}`);
+
+    // 2. Buscar dados do tenant e do usuário
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true, cnpj: true, timezone: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    const user = await this.tenantContext.client.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    this.logger.log(`✅ [uploadDocumentWithStamp] Tenant: ${tenant.name}, Usuário: ${user.name}`);
+
+    // 3. Gerar publicToken único
+    const publicToken = randomUUID();
+    this.logger.log(`🔑 [uploadDocumentWithStamp] Token público gerado: ${publicToken}`);
+
+    // 4. Processar arquivo com FileProcessingService
+    this.logger.log(`⚙️ [uploadDocumentWithStamp] Processando arquivo...`);
+    const stampMetadata: StampMetadata = {
+      tenantName: tenant.name,
+      tenantCnpj: tenant.cnpj || 'N/A',
+      tenantId,
+      userName: user.name,
+      userRole: user.role || 'USER',
+      userProfessionalRegistry: this.formatProfessionalRegistry(user.profile),
+      uploadDate: new Date(),
+      publicToken,
+      hashOriginal: '', // Será preenchido pelo FileProcessingService
+      // Adicionar dados do residente ao carimbo
+      residentName: resident.fullName,
+      residentCpf: resident.cpf,
+    };
+
+    try {
+      const processedResult =
+        file.mimetype === 'application/pdf'
+          ? await this.fileProcessingService.processPdf(file.buffer, stampMetadata)
+          : await this.fileProcessingService.processImage(file.buffer, stampMetadata);
+
+      this.logger.log(`✅ [uploadDocumentWithStamp] Arquivo processado! Hash original: ${processedResult.hashOriginal}`);
+
+      // 5. Upload do arquivo ORIGINAL para S3 (backup auditoria)
+      this.logger.log(`☁️ [uploadDocumentWithStamp] Enviando arquivo ORIGINAL para S3...`);
+      const originalUpload = await this.filesService.uploadFile(
+        tenantId,
+        file,
+        'resident-documents',
+        residentId
+      );
+
+      // 6. Upload do arquivo PROCESSADO para S3 (PDF com carimbo)
+      this.logger.log(`☁️ [uploadDocumentWithStamp] Enviando arquivo PROCESSADO para S3...`);
+      const processedFile = this.createMulterFileFromBuffer(
+        processedResult.pdfBuffer,
+        `${metadata.type}_${Date.now()}.pdf`,
+        'application/pdf'
+      );
+
+      const processedUpload = await this.filesService.uploadFile(
+        tenantId,
+        processedFile,
+        'resident-documents',
+        residentId
+      );
+
+      // 7. Criar registro do documento com TODOS os campos
+      this.logger.log(`💾 [uploadDocumentWithStamp] Salvando no banco de dados...`);
+      const document = await this.tenantContext.client.residentDocument.create({
+        data: {
+          tenantId,
+          residentId,
+          uploadedBy: userId,
+          type: metadata.type,
+          details: metadata.details,
+
+          // Arquivo ORIGINAL (backup auditoria)
+          originalFileUrl: originalUpload.fileUrl,
+          originalFileKey: originalUpload.fileUrl,
+          originalFileName: file.originalname,
+          originalFileSize: file.size,
+          originalFileMimeType: file.mimetype,
+          originalFileHash: processedResult.hashOriginal,
+
+          // Arquivo PROCESSADO (PDF com carimbo)
+          processedFileUrl: processedUpload.fileUrl,
+          processedFileKey: processedUpload.fileUrl,
+          processedFileName: processedFile.originalname,
+          processedFileSize: processedFile.size,
+          processedFileHash: processedResult.hashFinal,
+
+          // Token público para validação
+          publicToken,
+
+          // Metadados do processamento
+          processingMetadata: {
+            processedAt: new Date().toISOString(),
+            processorVersion: '1.0.0',
+            validatorName: user.name,
+            tenantName: tenant.name,
+            residentName: resident.fullName,
+            residentCpf: resident.cpf,
+          },
+
+          // Campos LEGADOS (para backward compatibility)
+          fileUrl: processedUpload.fileUrl,
+          fileKey: processedUpload.fileUrl,
+          fileName: processedFile.originalname,
+          fileSize: processedFile.size,
+          mimeType: 'application/pdf',
+        },
+      });
+
+      this.logger.log(`✅ [uploadDocumentWithStamp] Documento ${document.id} criado com sucesso!`);
+
+      // Retornar com URL assinada
+      return {
+        ...document,
+        fileUrl: await this.filesService.getFileUrl(document.fileUrl),
+        originalFileUrl: await this.filesService.getFileUrl(document.originalFileUrl!),
+        processedFileUrl: await this.filesService.getFileUrl(document.processedFileUrl!),
+      };
+    } catch (error) {
+      this.logger.error(`❌ [uploadDocumentWithStamp] Erro no processamento:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Formata registro profissional do usuário
+   */
+  private formatProfessionalRegistry(profile: any): string {
+    if (!profile?.professionalRegistry) {
+      return 'N/A';
+    }
+
+    const type = profile.professionalRegistryType || 'REG';
+    const number = profile.professionalRegistry;
+    const state = profile.professionalRegistryState || '';
+
+    return state ? `${type} ${number}/${state}` : `${type} ${number}`;
+  }
+
+  /**
+   * Cria um objeto Multer.File a partir de um buffer
+   */
+  private createMulterFileFromBuffer(
+    buffer: Buffer,
+    originalname: string,
+    mimetype: string
+  ): Express.Multer.File {
+    return {
+      buffer,
+      originalname,
+      mimetype,
+      size: buffer.length,
+      fieldname: 'file',
+      encoding: '7bit',
+      stream: null as any,
+      destination: '',
+      filename: '',
+      path: '',
     };
   }
 

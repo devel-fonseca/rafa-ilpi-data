@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { uploadFileDetailed } from '@/services/upload'
 import {
   institutionalProfileAPI,
   type CreateTenantDocumentDto,
@@ -108,29 +107,22 @@ export function useDocument(documentId: string) {
 
 /**
  * Hook para upload de novo documento
- * Separa o upload do arquivo (usando /files/upload) dos metadados
+ * Usa uploadDocument() que processa o arquivo com carimbo institucional
  */
 export function useUploadDocument() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async ({ file, metadata }: { file: File; metadata: CreateTenantDocumentDto }) => {
-      // 1. Primeiro faz upload do arquivo usando o serviço genérico de files
-      const uploadResult = await uploadFileDetailed(file, 'institutional-documents')
-
-      // 2. Depois cria o registro do documento com a URL do arquivo e os metadados
-      return institutionalProfileAPI.createDocumentWithFileUrl(
-        uploadResult.fileUrl,
-        uploadResult.fileId,
-        uploadResult.fileName,
-        uploadResult.fileSize,
-        uploadResult.mimeType,
-        metadata
-      )
+      // Usa o método que processa o arquivo com carimbo institucional
+      return institutionalProfileAPI.uploadDocument(file, metadata)
     },
     onSuccess: () => {
-      // Invalidar todas as queries de documentos e compliance
-      queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
+      // Invalidar TODAS as queries que começam com documents() - isso pega documentsList com qualquer filtro
+      queryClient.invalidateQueries({
+        queryKey: institutionalProfileKeys.documents(),
+        exact: false  // Invalidar todas as queries que começam com 'documents'
+      })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.compliance() })
     },
   })

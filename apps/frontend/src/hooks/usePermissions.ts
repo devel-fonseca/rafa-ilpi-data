@@ -126,7 +126,7 @@ export enum PermissionType {
   VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
   VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
 
-  // Escala de Cuidados (Gestão de Turnos e Plantões)
+  // Escalas e Plantões (Gestão de Turnos e Equipes)
   VIEW_CARE_SHIFTS = 'VIEW_CARE_SHIFTS',
   CREATE_CARE_SHIFTS = 'CREATE_CARE_SHIFTS',
   UPDATE_CARE_SHIFTS = 'UPDATE_CARE_SHIFTS',

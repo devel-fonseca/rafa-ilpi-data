@@ -18,7 +18,7 @@ export default function CareShiftsPage() {
   return (
     <Page>
       <PageHeader
-        title="Escala de Cuidados"
+        title="Escalas e Plantões"
         subtitle="Gestão de turnos, equipes e plantões de cuidadores em conformidade com RDC 502/2021"
       />
 

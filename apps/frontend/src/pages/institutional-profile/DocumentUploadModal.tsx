@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -83,12 +83,13 @@ type DocumentFormData = z.infer<typeof documentSchema>
 interface DocumentUploadModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  defaultType?: string // Tipo de documento pré-selecionado (opcional)
 }
 
 /**
  * Modal para upload de documentos institucionais
  */
-export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalProps) {
+export function DocumentUploadModal({ open, onOpenChange, defaultType }: DocumentUploadModalProps) {
   const { toast } = useToast()
   const { data: fullProfile } = useProfile()
   const { data: allDocumentTypes } = useAllDocumentTypes(fullProfile?.profile?.legalNature)
@@ -112,6 +113,13 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
   })
 
   const documentType = watch('type')
+
+  // Efeito para pré-selecionar tipo de documento quando defaultType é fornecido
+  useEffect(() => {
+    if (defaultType && open) {
+      setValue('type', defaultType, { shouldValidate: true })
+    }
+  }, [defaultType, open, setValue])
 
   /**
    * Validação de arquivo selecionado
@@ -194,7 +202,7 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
       }
 
       // Montar payload com todos os metadados
-      const metadata: Record<string, unknown> = {
+      const metadata = {
         type: data.type,
         ...(data.issuedAt && { issuedAt: data.issuedAt }),
         ...(data.expiresAt && { expiresAt: data.expiresAt }),
@@ -212,10 +220,10 @@ export function DocumentUploadModal({ open, onOpenChange }: DocumentUploadModalP
 
       toast({
         title: 'Sucesso',
-        description: 'Documento enviado com sucesso',
+        description: 'Documento enviado e processado com sucesso',
       })
 
-      // Resetar formulário e fechar modal
+      // Limpar formulário e fechar modal sem confirmação
       reset()
       setSelectedFile(null)
       setFileError(null)

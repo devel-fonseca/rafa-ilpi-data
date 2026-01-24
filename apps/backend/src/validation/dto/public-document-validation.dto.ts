@@ -7,7 +7,7 @@ export interface PublicDocumentValidationDto {
   valid: boolean;
 
   /** Tipo do documento */
-  documentType: 'vaccination' | 'contract' | 'unknown';
+  documentType: 'vaccination' | 'contract' | 'institutional_document' | 'resident_document' | 'unknown';
 
   /** Informações do documento (sem dados pessoais sensíveis) */
   documentInfo: {

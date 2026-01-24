@@ -49,6 +49,29 @@ export interface TenantDocument {
   version: number                 // Versão do documento (incrementa a cada substituição)
   replacedById?: string           // ID do documento que substituiu este
   replacedAt?: string             // Data em que foi substituído
+
+  // ========== PROCESSAMENTO COM CARIMBO INSTITUCIONAL ==========
+  // Arquivo original (backup auditoria)
+  originalFileUrl?: string
+  originalFileKey?: string
+  originalFileName?: string
+  originalFileSize?: number
+  originalFileMimeType?: string
+  originalFileHash?: string       // SHA-256
+
+  // Arquivo processado (PDF com carimbo)
+  processedFileUrl?: string
+  processedFileKey?: string
+  processedFileName?: string
+  processedFileSize?: number
+  processedFileHash?: string      // SHA-256
+
+  // Token público para validação externa
+  publicToken?: string
+
+  // Metadados do processamento (JSON)
+  processingMetadata?: Record<string, unknown>
+
   uploadedBy: string
   createdAt: string
   updatedAt: string

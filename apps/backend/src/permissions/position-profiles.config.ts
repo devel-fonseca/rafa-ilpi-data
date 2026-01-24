@@ -34,6 +34,7 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.VIEW_POPS,
     PermissionType.VIEW_RESIDENT_SCHEDULE,
+    PermissionType.VIEW_CARE_SHIFTS, // Ver plantões
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,
@@ -64,6 +65,8 @@ const BASE_PERMISSIONS = {
     PermissionType.CREATE_POPS, // Enfermeiros podem criar sugestões (DRAFT)
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
+    // Escala de Cuidados
+    PermissionType.VIEW_CARE_SHIFTS, // Ver plantões
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,
@@ -128,6 +131,8 @@ const BASE_PERMISSIONS = {
     PermissionType.CREATE_INSTITUTIONAL_EVENTS,
     PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
     PermissionType.DELETE_INSTITUTIONAL_EVENTS,
+    // Escala de Cuidados
+    PermissionType.VIEW_CARE_SHIFTS, // Ver plantões
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,
@@ -219,6 +224,8 @@ const BASE_PERMISSIONS = {
     PermissionType.CREATE_INSTITUTIONAL_EVENTS,
     PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
     PermissionType.DELETE_INSTITUTIONAL_EVENTS,
+    // Escala de Cuidados
+    PermissionType.VIEW_CARE_SHIFTS, // Ver plantões
     // Mensagens Internas
     PermissionType.VIEW_MESSAGES,
     PermissionType.SEND_MESSAGES,
@@ -285,6 +292,14 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_POPS,    // Editar POPs em rascunho
       PermissionType.DELETE_POPS,    // Deletar POPs em rascunho
       // ⚠️ ADMINISTRATOR NÃO tem PUBLISH_POPS (apenas RT publica)
+      // Escala de Cuidados - Gestão Completa
+      PermissionType.VIEW_CARE_SHIFTS,          // Ver plantões
+      PermissionType.CREATE_CARE_SHIFTS,        // Criar plantões
+      PermissionType.UPDATE_CARE_SHIFTS,        // Atualizar plantões
+      PermissionType.DELETE_CARE_SHIFTS,        // Deletar plantões
+      PermissionType.MANAGE_TEAMS,              // Gerenciar equipes de plantão
+      PermissionType.VIEW_RDC_COMPLIANCE,       // Ver conformidade RDC 502/2021
+      PermissionType.CONFIGURE_SHIFT_SETTINGS,  // Configurar padrões de plantão
       // Mensagens Internas
       PermissionType.VIEW_MESSAGES,
       PermissionType.SEND_MESSAGES,
@@ -324,6 +339,13 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Conformidade RDC 502/2021 (restrito a gestores)
       PermissionType.VIEW_COMPLIANCE_DASHBOARD,
       PermissionType.VIEW_SENTINEL_EVENTS,
+      // Escala de Cuidados - Gestão Completa
+      PermissionType.CREATE_CARE_SHIFTS,        // Criar plantões
+      PermissionType.UPDATE_CARE_SHIFTS,        // Atualizar plantões
+      PermissionType.DELETE_CARE_SHIFTS,        // Deletar plantões
+      PermissionType.MANAGE_TEAMS,              // Gerenciar equipes de plantão
+      PermissionType.VIEW_RDC_COMPLIANCE,       // Ver conformidade RDC 502/2021
+      PermissionType.CONFIGURE_SHIFT_SETTINGS,  // Configurar padrões de plantão
     ],
   },
 
@@ -333,7 +355,16 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     description: 'Coordena e supervisiona a equipe de enfermagem',
     requiredRegistration: 'COREN',
     defaultRole: 'manager',
-    permissions: [...BASE_PERMISSIONS.MANAGER],
+    permissions: [
+      ...BASE_PERMISSIONS.MANAGER,
+      // Escala de Cuidados - Gestão Completa
+      PermissionType.CREATE_CARE_SHIFTS,        // Criar plantões
+      PermissionType.UPDATE_CARE_SHIFTS,        // Atualizar plantões
+      PermissionType.DELETE_CARE_SHIFTS,        // Deletar plantões
+      PermissionType.MANAGE_TEAMS,              // Gerenciar equipes de plantão
+      PermissionType.VIEW_RDC_COMPLIANCE,       // Ver conformidade RDC 502/2021
+      PermissionType.CONFIGURE_SHIFT_SETTINGS,  // Configurar padrões de plantão
+    ],
   },
 
   // ─────────────────────────────────────────────────────────────────────────

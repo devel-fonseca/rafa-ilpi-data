@@ -68,10 +68,10 @@ export class ResidentDocumentsController {
 
   /**
    * POST /residents/:residentId/documents
-   * Upload de novo documento
+   * Upload de novo documento COM PROCESSAMENTO E CARIMBO INSTITUCIONAL
    */
   @Post()
-  @ApiOperation({ summary: 'Fazer upload de novo documento' })
+  @ApiOperation({ summary: 'Fazer upload de novo documento com carimbo institucional' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -120,7 +120,8 @@ export class ResidentDocumentsController {
     @Req() req: Request & { user: JwtPayload },
   ) {
     const user = req.user;
-    return this.documentsService.uploadDocument(
+    // Usar o novo método com processamento e carimbo
+    return this.documentsService.uploadDocumentWithStamp(
       residentId,
       user.id,
       file,

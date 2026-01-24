@@ -75,6 +75,28 @@ model TenantDocument {
   // Observações
   notes String? @db.Text
 
+  // ========== PROCESSAMENTO COM CARIMBO INSTITUCIONAL ==========
+  // Arquivo original (backup para auditoria)
+  originalFileUrl      String? // URL do arquivo original no S3/MinIO
+  originalFileKey      String? // Chave do arquivo original no S3
+  originalFileName     String? // Nome do arquivo original
+  originalFileSize     Int? // Tamanho em bytes do arquivo original
+  originalFileMimeType String? @db.VarChar(100) // MIME type do arquivo original
+  originalFileHash     String? @db.VarChar(64) // Hash SHA-256 do arquivo original
+
+  // Arquivo processado (PDF com carimbo institucional)
+  processedFileUrl  String? // URL do PDF processado no S3/MinIO
+  processedFileKey  String? // Chave do PDF processado no S3
+  processedFileName String? // Nome do arquivo processado
+  processedFileSize Int? // Tamanho em bytes do arquivo processado
+  processedFileHash String? @db.VarChar(64) // Hash SHA-256 do arquivo processado
+
+  // Token público para validação externa (sem autenticação)
+  publicToken String? @unique @db.VarChar(64)
+
+  // Metadados do processamento (JSON com dados do carimbo)
+  processingMetadata Json? @db.JsonB
+
   // Versionamento e substituição
   version      Int       @default(1) // Versão do documento (incrementa a cada substituição)
   replacedById String?   @db.Uuid // ID do documento que substituiu este
