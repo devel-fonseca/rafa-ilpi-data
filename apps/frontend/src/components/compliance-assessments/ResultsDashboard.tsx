@@ -22,12 +22,13 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
   const categoryBreakdown = report.categoryStats || []
 
   // Calcular métricas derivadas
+  // Conformidade: 3+ pontos | Não conformidade: < 3 pontos (inclui 0, 1 e 2)
   const metrics = {
     totalPointsObtained: report.totalPointsObtained,
     totalPointsPossible: report.totalPointsPossible,
-    fullyCompliant: report.responses?.filter(r => !r.isNotApplicable && r.selectedPoints === 5).length || 0,
-    partiallyCompliant: report.responses?.filter(r => !r.isNotApplicable && r.selectedPoints !== undefined && r.selectedPoints > 0 && r.selectedPoints < 5).length || 0,
-    nonCompliant: report.responses?.filter(r => !r.isNotApplicable && r.selectedPoints === 0).length || 0,
+    compliant: report.responses?.filter(r => !r.isNotApplicable && r.selectedPoints !== undefined && r.selectedPoints >= 3).length || 0,
+    nonCompliant: report.responses?.filter(r => !r.isNotApplicable && r.selectedPoints !== undefined && r.selectedPoints < 3).length || 0,
+    notApplicable: report.questionsNA || 0,
   }
 
   const getComplianceLevelConfig = (level: string) => {
@@ -220,24 +221,14 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
           <CardTitle>Distribuição de Respostas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-success/10">
                 <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{metrics.fullyCompliant}</p>
-                <p className="text-xs text-muted-foreground">100% conformes</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-warning/10">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{metrics.partiallyCompliant}</p>
-                <p className="text-xs text-muted-foreground">Parcialmente</p>
+                <p className="text-2xl font-bold">{metrics.compliant}</p>
+                <p className="text-xs text-muted-foreground">Conformes (≥3 pts)</p>
               </div>
             </div>
 
@@ -247,16 +238,16 @@ export function ResultsDashboard({ report }: ResultsDashboardProps) {
               </div>
               <div>
                 <p className="text-2xl font-bold">{metrics.nonCompliant}</p>
-                <p className="text-xs text-muted-foreground">Não conformes</p>
+                <p className="text-xs text-muted-foreground">Não conformes (&lt;3 pts)</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900">
-                <MinusCircle className="h-5 w-5 text-gray-600" />
+              <div className="p-2 rounded-lg bg-muted/50">
+                <MinusCircle className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{assessment.questionsNA}</p>
+                <p className="text-2xl font-bold">{metrics.notApplicable}</p>
                 <p className="text-xs text-muted-foreground">Não aplicáveis</p>
               </div>
             </div>

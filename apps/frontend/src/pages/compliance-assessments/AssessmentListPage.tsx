@@ -121,7 +121,9 @@ export function AssessmentListPage() {
         <AlertDescription>
           <strong>Sobre o Autodiagnóstico:</strong> Ferramenta baseada no Roteiro Objetivo de
           Inspeção ILPI da ANVISA. Permite avaliar periodicamente o nível de
-          conformidade da instituição com a RDC 502/2021.
+          conformidade da instituição com a RDC 502/2021. <br />
+          <strong>Critério de conformidade:</strong> Questões com pontuação de 3 ou mais pontos são
+          consideradas conformes (Regular). Pontuações de 4 e 5 indicam ótimo e excelente desempenho.
         </AlertDescription>
       </Alert>
 

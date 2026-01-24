@@ -1,12 +1,17 @@
 /**
  * Utilitário para cálculo de pontuação de conformidade RDC 502/2021
  *
- * Algoritmo baseado no HTML original:
+ * Algoritmo baseado no Roteiro Objetivo de Inspeção ILPI da ANVISA:
  * - Pontuação: 0-5 pontos por questão
+ * - Critério de conformidade:
+ *   - 0-2 pontos: Não conforme (requer ação corretiva)
+ *   - 3 pontos: Conforme (Regular)
+ *   - 4 pontos: Ótimo
+ *   - 5 pontos: Excelente
  * - Questões podem ser marcadas como N/A (Não Aplicável)
  * - Pontuação possível = (questões aplicáveis) × 3 pontos
  * - % conformidade = (pontos obtidos / pontos possíveis) × 100
- * - Classificação:
+ * - Classificação final:
  *   - REGULAR: ≥75%
  *   - PARCIAL: 50-74%
  *   - IRREGULAR: <50%
