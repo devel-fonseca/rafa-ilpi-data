@@ -13,9 +13,9 @@ import { Readable } from 'stream';
  * Interface para o perfil do usuário com dados de registro profissional
  */
 interface UserProfileWithRegistry {
-  professionalRegistry?: string;
-  professionalRegistryType?: string;
-  professionalRegistryState?: string;
+  registrationNumber?: string | null;
+  registrationType?: string | null;
+  registrationState?: string | null;
 }
 
 @Injectable()
@@ -305,15 +305,15 @@ export class ResidentDocumentsService {
    * Formata registro profissional do usuário
    */
   private formatProfessionalRegistry(profile: UserProfileWithRegistry): string {
-    if (!profile?.professionalRegistry) {
+    if (!profile?.registrationNumber) {
       return 'N/A';
     }
 
-    const type = profile.professionalRegistryType || 'REG';
-    const number = profile.professionalRegistry;
-    const state = profile.professionalRegistryState || '';
+    const type = profile.registrationType || 'REG';
+    const number = profile.registrationNumber;
+    const state = profile.registrationState || '';
 
-    return state ? `${type} ${number}/${state}` : `${type} ${number}`;
+    return state ? `${type} ${number}-${state}` : `${type} ${number}`;
   }
 
   /**
