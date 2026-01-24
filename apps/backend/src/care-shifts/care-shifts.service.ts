@@ -123,7 +123,6 @@ export class CareShiftsService {
         shiftTemplateId,
         teamId: teamId || null,
         status: teamId ? 'CONFIRMED' : 'SCHEDULED',
-        isFromPattern: false, // Criado manualmente
         notes,
         createdBy: userId,
         versionNumber: 1,
@@ -1107,7 +1106,7 @@ export class CareShiftsService {
 
         results.created.push({
           id: shift.id,
-          date,
+          date: shift.date,
           shiftTemplateId,
           teamId,
         });
