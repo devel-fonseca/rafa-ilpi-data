@@ -420,4 +420,16 @@ export const PERMISSION_GROUPS = {
       PermissionType.VIEW_SENTINEL_EVENTS,
     ],
   },
+  careShifts: {
+    label: 'Escala de Cuidados',
+    permissions: [
+      PermissionType.VIEW_CARE_SHIFTS,
+      PermissionType.CREATE_CARE_SHIFTS,
+      PermissionType.UPDATE_CARE_SHIFTS,
+      PermissionType.DELETE_CARE_SHIFTS,
+      PermissionType.MANAGE_TEAMS,
+      PermissionType.VIEW_RDC_COMPLIANCE,
+      PermissionType.CONFIGURE_SHIFT_SETTINGS,
+    ],
+  },
 };
