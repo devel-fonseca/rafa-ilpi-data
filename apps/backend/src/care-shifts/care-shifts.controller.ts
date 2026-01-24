@@ -25,7 +25,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequireAnyPermission } from '../permissions/decorators/require-permissions.decorator';
 import { RequestWithUser } from '../common/types/request-with-user.type';
 import { CareShiftsService } from './care-shifts.service';
-import { RDCCalculationService, ShiftGeneratorService } from './services';
+import { RDCCalculationService } from './services';
 import {
   ListShiftsQueryDto,
   CreateShiftDto,
@@ -47,7 +47,6 @@ export class CareShiftsController {
   constructor(
     private readonly careShiftsService: CareShiftsService,
     private readonly rdcCalculationService: RDCCalculationService,
-    private readonly shiftGeneratorService: ShiftGeneratorService,
   ) {}
 
   // ========== CRUD de Plantões ==========
@@ -391,27 +390,4 @@ export class CareShiftsController {
     );
   }
 
-  // ========== Geração Automática ==========
-
-  @Post('generate')
-  @RequireAnyPermission(PermissionType.CONFIGURE_SHIFT_SETTINGS)
-  @ApiOperation({
-    summary: 'Gerar plantões do padrão semanal',
-    description:
-      'Gera plantões automaticamente para os próximos N dias (padrão: 14) com base no padrão semanal ativo. NÃO sobrescreve plantões existentes.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Geração concluída',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Nenhum padrão semanal ativo encontrado',
-  })
-  generateShifts(@Req() req: RequestWithUser) {
-    return this.shiftGeneratorService.generateShiftsFromPattern(
-      14,
-      req.user.id,
-    );
-  }
 }
