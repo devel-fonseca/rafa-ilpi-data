@@ -23,6 +23,7 @@ import {
 } from '@/hooks/useComplianceAssessments'
 import { ResultsDashboard } from '@/components/compliance-assessments/ResultsDashboard'
 import { CriticalIssuesList } from '@/components/compliance-assessments/CriticalIssuesList'
+import { AllNonCompliantList } from '@/components/compliance-assessments/AllNonCompliantList'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -80,6 +81,21 @@ export function AssessmentResultPage() {
   const criticalIssues = Array.isArray(assessment.criticalNonCompliant)
     ? assessment.criticalNonCompliant
     : []
+
+  // Filtrar todas as não conformidades (< 3 pontos) das respostas
+  const allNonCompliant = assessment.responses
+    ?.filter(
+      (r) =>
+        !r.isNotApplicable &&
+        r.selectedPoints !== undefined &&
+        r.selectedPoints < 3
+    )
+    .map((r) => ({
+      questionNumber: r.questionNumber,
+      questionText: r.questionTextSnapshot,
+      pointsObtained: r.selectedPoints ?? 0,
+      criticalityLevel: r.criticalityLevel,
+    })) || []
 
   return (
     <Page>
@@ -168,17 +184,25 @@ export function AssessmentResultPage() {
 
       {/* Tabs com Seções do Relatório */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="critical">
-            Não Conformidades Críticas
+            Críticas
             {criticalIssues.length > 0 && (
               <span className="ml-2 px-2 py-0.5 text-xs bg-danger text-danger-foreground rounded-full">
                 {criticalIssues.length}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="details">Detalhes por Questão</TabsTrigger>
+          <TabsTrigger value="all-non-compliant">
+            Não Conformes
+            {allNonCompliant.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-warning text-warning-foreground rounded-full">
+                {allNonCompliant.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="details">Detalhes</TabsTrigger>
         </TabsList>
 
         {/* Tab: Visão Geral */}
@@ -189,6 +213,11 @@ export function AssessmentResultPage() {
         {/* Tab: Não Conformidades Críticas */}
         <TabsContent value="critical" className="space-y-6">
           <CriticalIssuesList criticalIssues={criticalIssues} />
+        </TabsContent>
+
+        {/* Tab: Todas as Não Conformidades */}
+        <TabsContent value="all-non-compliant" className="space-y-6">
+          <AllNonCompliantList issues={allNonCompliant} />
         </TabsContent>
 
         {/* Tab: Detalhes por Questão */}

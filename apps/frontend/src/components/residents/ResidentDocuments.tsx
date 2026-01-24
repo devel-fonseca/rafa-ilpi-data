@@ -45,6 +45,7 @@ import {
   useUploadResidentDocument,
   useDeleteResidentDocument,
 } from '@/hooks/useResidentDocuments'
+import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 
 interface ResidentDocumentsProps {
   residentId: string
@@ -59,6 +60,11 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
   const [uploadType, setUploadType] = useState('')
   const [uploadDetails, setUploadDetails] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Estados do modal de visualização
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>('')
+  const [selectedDocumentTitle, setSelectedDocumentTitle] = useState<string>('Documento')
 
   // Hooks
   const {
@@ -151,21 +157,27 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
     }
   }
 
-  const handleView = async (fileUrl: string) => {
+  const handleView = async (fileUrl: string, fileName: string, documentType: string) => {
     try {
-      // Se já é uma URL completa (http/https), abrir diretamente
-      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-        window.open(fileUrl, '_blank')
-        return
+      let urlToOpen = fileUrl
+
+      // Se não é uma URL completa (http/https), obter URL assinada do MinIO
+      if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+        const { getSignedFileUrl } = await import('@/services/upload')
+        urlToOpen = await getSignedFileUrl(fileUrl)
       }
 
-      // Caso contrário, obter URL assinada do MinIO
-      const { getSignedFileUrl } = await import('@/services/upload')
-      const signedUrl = await getSignedFileUrl(fileUrl)
-      window.open(signedUrl, '_blank')
+      // Construir título do documento
+      const typeLabel = getTypeLabel(documentType)
+      const title = `${typeLabel} - ${fileName}`
+
+      // Abrir modal de visualização
+      setSelectedDocumentUrl(urlToOpen)
+      setSelectedDocumentTitle(title)
+      setDocumentViewerOpen(true)
     } catch (error) {
       console.error('Erro ao abrir documento:', error)
-      toast.error('Erro ao abrir documento')
+      toast.error('Erro ao carregar documento')
     }
   }
 
@@ -293,7 +305,7 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleView(doc.fileUrl)}
+                            onClick={() => handleView(doc.fileUrl, doc.fileName, doc.type)}
                             title="Visualizar"
                           >
                             <Eye className="h-4 w-4" />
@@ -454,6 +466,15 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Visualização de Documento */}
+      <DocumentViewerModal
+        open={documentViewerOpen}
+        onOpenChange={setDocumentViewerOpen}
+        documentUrl={selectedDocumentUrl}
+        documentTitle={selectedDocumentTitle}
+        documentType="auto"
+      />
     </div>
   )
 }

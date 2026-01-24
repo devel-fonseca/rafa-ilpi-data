@@ -17,6 +17,8 @@ import { usePrescriptions } from '@/hooks/usePrescriptions'
 import { useVaccinationsByResident } from '@/hooks/useVaccinations'
 import { useClinicalNoteDocuments } from '@/hooks/useClinicalNotes'
 import { getRegistrationPrefix } from '@/utils/clinicalNotesConstants'
+import { api } from '@/services/api'
+import { toast } from 'sonner'
 
 interface HealthDocumentsTabProps {
   residentId: string
@@ -82,17 +84,18 @@ export function HealthDocumentsTab({ residentId }: HealthDocumentsTabProps) {
         })
     }
 
-    // Comprovantes de vacinação (apenas com certificado)
+    // Comprovantes de vacinação (PDF processado com carimbo institucional)
     if (Array.isArray(vaccinations)) {
       vaccinations
-        .filter(v => v.certificateUrl)
+        .filter(v => v.processedFileUrl)
         .forEach(v => {
+          const formattedDate = format(new Date(v.date), 'dd/MM/yyyy', { locale: ptBR })
           documents.push({
             id: v.id,
             type: 'VACCINATION',
-            title: `Comprovante - ${v.vaccine}`,
+            title: `Comprovante - ${v.vaccine} - ${v.dose} - ${formattedDate}`,
             date: v.date,
-            url: v.certificateUrl!,
+            url: v.processedFileUrl!,
           })
         })
     }
@@ -171,10 +174,16 @@ export function HealthDocumentsTab({ residentId }: HealthDocumentsTabProps) {
     }
   }
 
-  const handleViewDocument = (url: string, title: string) => {
-    setSelectedDocumentUrl(url)
-    setSelectedDocumentTitle(title)
-    setDocumentViewerOpen(true)
+  const handleViewDocument = async (filePath: string, title: string) => {
+    try {
+      const response = await api.get<{ url: string }>(`/files/download/${filePath}`)
+      setSelectedDocumentUrl(response.data.url)
+      setSelectedDocumentTitle(title)
+      setDocumentViewerOpen(true)
+    } catch (error) {
+      toast.error('Erro ao carregar documento')
+      console.error('Erro ao buscar URL do arquivo:', error)
+    }
   }
 
   const isLoading = prescriptionsLoading || vaccinationsLoading || documentsLoading

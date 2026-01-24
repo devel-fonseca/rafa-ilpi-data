@@ -23,6 +23,7 @@ import { useDeleteVaccination } from '@/hooks/useVaccinationVersioning'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { VaccinationForm } from './VaccinationForm'
 import { VaccinationPrintView } from './VaccinationPrintView'
+import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 
 interface VaccinationListProps {
   residentId: string
@@ -35,6 +36,9 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
   const [deletingVaccination, setDeletingVaccination] = useState<Vaccination | undefined>(undefined)
   const [deleteReason, setDeleteReason] = useState('')
   const [deleteReasonError, setDeleteReasonError] = useState('')
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>('')
+  const [selectedDocumentTitle, setSelectedDocumentTitle] = useState<string>('Comprovante de Vacinação')
   const printRef = useRef<HTMLDivElement>(null)
 
   // Verificar permissões
@@ -95,10 +99,12 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
     handleFormClose()
   }
 
-  const handleViewCertificate = async (filePath: string) => {
+  const handleViewCertificate = async (filePath: string, title: string) => {
     try {
       const response = await api.get<{ url: string }>(`/files/download/${filePath}`)
-      window.open(response.data.url, '_blank')
+      setSelectedDocumentUrl(response.data.url)
+      setSelectedDocumentTitle(title)
+      setDocumentViewerOpen(true)
     } catch (error) {
       toast.error('Erro ao carregar comprovante')
       console.error('Erro ao buscar URL do arquivo:', error)
@@ -252,7 +258,10 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
                     <div>
                       <p className="font-medium text-muted-foreground mb-1">Comprovante</p>
                       <button
-                        onClick={() => handleViewCertificate(vaccination.processedFileUrl || vaccination.certificateUrl!)}
+                        onClick={() => handleViewCertificate(
+                          vaccination.processedFileUrl || vaccination.certificateUrl!,
+                          `Comprovante - ${vaccination.vaccine} - ${vaccination.dose}`
+                        )}
                         className="inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline"
                       >
                         <Eye className="h-3 w-3" />
@@ -368,6 +377,15 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Visualização de Comprovante */}
+      <DocumentViewerModal
+        open={documentViewerOpen}
+        onOpenChange={setDocumentViewerOpen}
+        documentUrl={selectedDocumentUrl}
+        documentTitle={selectedDocumentTitle}
+        documentType="auto"
+      />
     </Card>
   )
 }

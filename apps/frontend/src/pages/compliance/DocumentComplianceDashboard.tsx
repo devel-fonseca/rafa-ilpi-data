@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { useComplianceDashboard, useProfile } from '@/hooks/useInstitutionalProfile'
+import { useComplianceDashboard, useProfile, useDocuments } from '@/hooks/useInstitutionalProfile'
 import {
   FileText,
   Loader2,
@@ -16,11 +16,13 @@ import {
   TrendingUp,
   AlertCircle,
   FolderOpen,
+  Eye,
 } from 'lucide-react'
 import { formatDate, formatLegalNature } from '@/utils/formatters'
 import { Page, PageHeader } from '@/design-system/components'
 import { useNavigate } from 'react-router-dom'
 import { DocumentUploadModal } from '@/pages/institutional-profile/DocumentUploadModal'
+import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 
 /**
  * Mapeamento de cores para os status
@@ -80,9 +82,17 @@ export default function DocumentComplianceDashboard() {
   const { data: fullProfile } = useProfile()
   const { data: dashboard, isLoading } = useComplianceDashboard()
 
+  // Buscar todos os documentos enviados
+  const { data: allDocuments = [] } = useDocuments()
+
   // Estado para controlar o modal de upload
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [selectedDocumentType, setSelectedDocumentType] = useState<string | undefined>(undefined)
+
+  // Estado para controlar o modal de visualização
+  const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>('')
+  const [selectedDocumentTitle, setSelectedDocumentTitle] = useState<string>('Documento')
 
   /**
    * Handler para abrir modal com tipo de documento pré-selecionado
@@ -90,6 +100,15 @@ export default function DocumentComplianceDashboard() {
   const handleOpenUploadModal = (documentType: string) => {
     setSelectedDocumentType(documentType)
     setIsUploadModalOpen(true)
+  }
+
+  /**
+   * Handler para visualizar documento
+   */
+  const handleViewDocument = (fileUrl: string, title: string) => {
+    setSelectedDocumentUrl(fileUrl)
+    setSelectedDocumentTitle(title)
+    setDocumentViewerOpen(true)
   }
 
   if (isLoading) {
@@ -303,6 +322,11 @@ export default function DocumentComplianceDashboard() {
                   const isUploaded = doc.uploaded
                   const Icon = isUploaded ? CheckCircle : AlertTriangle
 
+                  // Buscar o documento enviado (se houver)
+                  const uploadedDocument = isUploaded
+                    ? allDocuments.find(d => d.type === doc.type)
+                    : null
+
                   return (
                     <div
                       key={doc.type}
@@ -331,17 +355,30 @@ export default function DocumentComplianceDashboard() {
                           </p>
                         </div>
                       </div>
-                      {!isUploaded && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-2"
-                          onClick={() => handleOpenUploadModal(doc.type)}
-                        >
-                          <Upload className="h-4 w-4" />
-                          Enviar
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isUploaded && uploadedDocument && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={() => handleViewDocument(uploadedDocument.fileUrl, doc.label)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            Visualizar
+                          </Button>
+                        )}
+                        {!isUploaded && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={() => handleOpenUploadModal(doc.type)}
+                          >
+                            <Upload className="h-4 w-4" />
+                            Enviar
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -372,6 +409,15 @@ export default function DocumentComplianceDashboard() {
         open={isUploadModalOpen}
         onOpenChange={setIsUploadModalOpen}
         defaultType={selectedDocumentType}
+      />
+
+      {/* Modal de Visualização de Documento */}
+      <DocumentViewerModal
+        open={documentViewerOpen}
+        onOpenChange={setDocumentViewerOpen}
+        documentUrl={selectedDocumentUrl}
+        documentTitle={selectedDocumentTitle}
+        documentType="auto"
       />
     </Page>
   )

@@ -1,4 +1,4 @@
-import { X, Download, ZoomIn, ZoomOut, RotateCw } from 'lucide-react'
+import { Download, ZoomIn, ZoomOut, RotateCw } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
@@ -150,16 +150,6 @@ export function DocumentViewerModal({
               title="Baixar documento"
             >
               <Download className="h-4 w-4" />
-            </Button>
-
-            {/* Fechar */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              title="Fechar"
-            >
-              <X className="h-4 w-4" />
             </Button>
           </div>
         </DialogHeader>
