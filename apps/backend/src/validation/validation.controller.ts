@@ -71,6 +71,7 @@ export class ValidationController {
       vaccination: 'Comprovante de Vacinação',
       contract: 'Contrato de Residência',
       institutional_document: 'Documento Institucional',
+      prescription: 'Prescrição Médica',
     };
 
     const docType = docTypeMap[validation.documentType] || 'Documento';

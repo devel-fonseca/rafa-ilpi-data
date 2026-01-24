@@ -51,14 +51,6 @@ export class MedicalReviewPrescriptionDto {
   newReviewDate?: string
 
   @ApiProperty({
-    description: 'URL da nova receita médica (upload obrigatório)',
-    example: 'https://storage.example.com/prescriptions/abc123.pdf',
-  })
-  @IsString()
-  @IsNotEmpty()
-  prescriptionImageUrl: string
-
-  @ApiProperty({
     description: 'Observações sobre a revisão médica (mínimo 10 caracteres)',
     example: 'Dr. João confirmou mesma prescrição. Residente está estável.',
   })

@@ -171,11 +171,11 @@ export default function PrescriptionDetails() {
 
   // Processar medicações expandidas por horário com filtros (NOVO)
   const expandedMedicationCards = useMemo(() => {
-    if (!prescription?.data?.medications || prescription.data.medications.length === 0) {
+    if (!prescription?.medications || prescription.medications.length === 0) {
       return []
     }
 
-    const prescriptionData = prescription.data
+    const prescriptionData = prescription
 
     const cards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
       (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
@@ -233,15 +233,15 @@ export default function PrescriptionDetails() {
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prescription?.data?.medications, viewDate, statusFilter, sortMode])
+  }, [prescription?.medications, viewDate, statusFilter, sortMode])
 
   // Calcular contadores para as tabs de status
   const statusCounts = useMemo(() => {
-    if (!prescription?.data?.medications || prescription.data.medications.length === 0) {
+    if (!prescription?.medications || prescription.medications.length === 0) {
       return { all: 0, pending: 0, administered: 0 }
     }
 
-    const prescriptionData = prescription.data
+    const prescriptionData = prescription
 
     const allCards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
       (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
@@ -274,7 +274,7 @@ export default function PrescriptionDetails() {
       administered: allCards.filter((s) => s === 'administered').length,
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prescription?.data?.medications, viewDate])
+  }, [prescription?.medications, viewDate])
 
   // Early returns após hooks
   if (isLoading) {
@@ -317,7 +317,7 @@ export default function PrescriptionDetails() {
     )
   }
 
-  const prescriptionData = prescription.data
+  const prescriptionData = prescription
 
   return (
     <Page maxWidth="wide">
@@ -420,14 +420,14 @@ export default function PrescriptionDetails() {
                   {formatDateOnlySafe(prescriptionData.prescriptionDate)}
                 </p>
               </div>
-              {prescriptionData.prescriptionImageUrl && (
+              {prescriptionData.processedFileUrl && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="w-full"
                   onClick={async () => {
                     try {
-                      const fileUrl = prescriptionData.prescriptionImageUrl!
+                      const fileUrl = prescriptionData.processedFileUrl!
 
                       // Se já é uma URL completa (http/https), abrir diretamente
                       if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
@@ -536,11 +536,11 @@ export default function PrescriptionDetails() {
                   {prescriptionData.notificationType || '-'}
                 </p>
               </div>
-              {prescriptionData.prescriptionImageUrl && (
+              {prescriptionData.processedFileUrl && (
                 <div>
                   <p className="text-sm text-muted-foreground">Receita</p>
                   <a
-                    href={prescriptionData.prescriptionImageUrl}
+                    href={prescriptionData.processedFileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-medication-controlled/80 hover:underline"

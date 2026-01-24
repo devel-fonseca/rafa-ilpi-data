@@ -13,7 +13,9 @@ import {
   HttpCode,
   HttpStatus,
   Request,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Request as ExpressRequest } from 'express';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -349,5 +351,41 @@ export class PrescriptionsController {
       residentId,
       date,
     );
+  }
+
+  // ========== UPLOAD DE PRESCRIÇÃO COM PROCESSAMENTO INSTITUCIONAL ==========
+
+  /**
+   * Upload de prescrição médica (imagem ou PDF)
+   *
+   * Processa arquivo (converte imagem → PDF se necessário)
+   * Adiciona carimbo institucional com:
+   * - Dados da ILPI (nome, CNPJ)
+   * - Dados do médico prescritor (nome, CRM, UF)
+   * - Hash SHA-256 do arquivo
+   * - Token público para validação
+   *
+   * Armazena:
+   * - Arquivo original (backup para auditoria)
+   * - Arquivo processado (PDF com carimbo institucional)
+   */
+  @Post(':id/upload')
+  @RequirePermissions(PermissionType.UPDATE_PRESCRIPTIONS)
+  @AuditAction('UPDATE')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Upload de prescrição médica',
+    description: 'Faz upload de prescrição (imagem ou PDF) e processa com carimbo institucional',
+  })
+  @ApiResponse({ status: 200, description: 'Prescrição processada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido ou ausente' })
+  @ApiResponse({ status: 404, description: 'Prescrição não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
+  uploadPrescription(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.prescriptionsService.uploadPrescription(id, file, user);
   }
 }

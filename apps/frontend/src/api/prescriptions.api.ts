@@ -74,8 +74,21 @@ export interface Prescription {
   controlledClass?: ControlledClass
   notificationNumber?: string
   notificationType?: NotificationType
-  prescriptionImageUrl?: string
   notes?: string
+  // Campos de Processamento de Arquivo (novo padrão)
+  originalFileUrl?: string | null
+  originalFileKey?: string | null
+  originalFileName?: string | null
+  originalFileSize?: number | null
+  originalFileMimeType?: string | null
+  originalFileHash?: string | null
+  processedFileUrl?: string | null
+  processedFileKey?: string | null
+  processedFileName?: string | null
+  processedFileSize?: number | null
+  processedFileHash?: string | null
+  publicToken?: string | null
+  processingMetadata?: Record<string, unknown> | null
   // Campos de Revisão Médica
   lastMedicalReviewDate?: string
   lastReviewedByDoctor?: string
@@ -165,7 +178,6 @@ export interface MedicalReviewPrescriptionDto {
   reviewDoctorCrm: string // CRM do médico revisor
   reviewDoctorState: string // UF do CRM (2 caracteres)
   newReviewDate?: string // Nova data de revisão (YYYY-MM-DD)
-  prescriptionImageUrl: string // URL da nova receita (obrigatório)
   reviewNotes: string // Observações da revisão (mínimo 10 caracteres)
 }
 
@@ -272,56 +284,110 @@ export interface PrescriptionHistoryResponse {
   totalVersions: number
 }
 
+// ========== UPLOAD ==========
+
+export interface UploadPrescriptionResponse {
+  message: string
+  prescription: Prescription
+  publicToken: string
+  validationUrl: string
+}
+
 // ========== API METHODS ==========
 
 export const prescriptionsApi = {
   // CRUD
-  create: (data: CreatePrescriptionDto) =>
-    api.post<Prescription>('/prescriptions', data),
+  async create(data: CreatePrescriptionDto): Promise<Prescription> {
+    const response = await api.post<Prescription>('/prescriptions', data)
+    return response.data
+  },
 
-  findAll: (params?: QueryPrescriptionParams) =>
-    api.get<PrescriptionsResponse>('/prescriptions', { params }),
+  async findAll(params?: QueryPrescriptionParams): Promise<PrescriptionsResponse> {
+    const response = await api.get<PrescriptionsResponse>('/prescriptions', { params })
+    return response.data
+  },
 
-  findOne: (id: string) =>
-    api.get<Prescription>(`/prescriptions/${id}`),
+  async findOne(id: string): Promise<Prescription> {
+    const response = await api.get<Prescription>(`/prescriptions/${id}`)
+    return response.data
+  },
 
-  update: (id: string, data: UpdatePrescriptionDto) =>
-    api.patch<Prescription>(`/prescriptions/${id}`, data),
+  async update(id: string, data: UpdatePrescriptionDto): Promise<Prescription> {
+    const response = await api.patch<Prescription>(`/prescriptions/${id}`, data)
+    return response.data
+  },
 
-  recordMedicalReview: (id: string, data: MedicalReviewPrescriptionDto) =>
-    api.patch<Prescription>(`/prescriptions/${id}/medical-review`, data),
+  async recordMedicalReview(id: string, data: MedicalReviewPrescriptionDto): Promise<Prescription> {
+    const response = await api.patch<Prescription>(`/prescriptions/${id}/medical-review`, data)
+    return response.data
+  },
 
-  remove: (id: string, deleteReason: string) =>
-    api.delete(`/prescriptions/${id}`, {
+  async remove(id: string, deleteReason: string): Promise<{ message: string }> {
+    const response = await api.delete(`/prescriptions/${id}`, {
       data: { deleteReason }
-    }),
+    })
+    return response.data
+  },
 
   // Versionamento
-  getHistory: (id: string) =>
-    api.get<PrescriptionHistoryResponse>(`/prescriptions/${id}/history`),
+  async getHistory(id: string): Promise<PrescriptionHistoryResponse> {
+    const response = await api.get<PrescriptionHistoryResponse>(`/prescriptions/${id}/history`)
+    return response.data
+  },
 
-  getHistoryVersion: (id: string, versionNumber: number) =>
-    api.get<PrescriptionHistoryEntry>(`/prescriptions/${id}/history/${versionNumber}`),
+  async getHistoryVersion(id: string, versionNumber: number): Promise<PrescriptionHistoryEntry> {
+    const response = await api.get<PrescriptionHistoryEntry>(`/prescriptions/${id}/history/${versionNumber}`)
+    return response.data
+  },
 
   // Dashboard & Stats
-  getDashboardStats: () =>
-    api.get<DashboardStats>('/prescriptions/stats/dashboard'),
+  async getDashboardStats(): Promise<DashboardStats> {
+    const response = await api.get<DashboardStats>('/prescriptions/stats/dashboard')
+    return response.data
+  },
 
-  getCriticalAlerts: () =>
-    api.get<CriticalAlert[]>('/prescriptions/alerts/critical'),
+  async getCriticalAlerts(): Promise<CriticalAlert[]> {
+    const response = await api.get<CriticalAlert[]>('/prescriptions/alerts/critical')
+    return response.data
+  },
 
-  getExpiringPrescriptions: (days: number = 5) =>
-    api.get<ExpiringPrescription[]>('/prescriptions/expiring/list', {
+  async getExpiringPrescriptions(days: number = 5): Promise<ExpiringPrescription[]> {
+    const response = await api.get<ExpiringPrescription[]>('/prescriptions/expiring/list', {
       params: { days }
-    }),
+    })
+    return response.data
+  },
 
-  getResidentsWithControlled: () =>
-    api.get<ResidentWithControlled[]>('/prescriptions/controlled/residents'),
+  async getResidentsWithControlled(): Promise<ResidentWithControlled[]> {
+    const response = await api.get<ResidentWithControlled[]>('/prescriptions/controlled/residents')
+    return response.data
+  },
 
   // Administration
-  administerMedication: (data: AdministerMedicationDto) =>
-    api.post('/prescriptions/administer', data),
+  async administerMedication(data: AdministerMedicationDto): Promise<MedicationAdministrationResponse> {
+    const response = await api.post<MedicationAdministrationResponse>('/prescriptions/administer', data)
+    return response.data
+  },
 
-  administerSOS: (data: AdministerSOSDto) =>
-    api.post('/prescriptions/administer-sos', data),
+  async administerSOS(data: AdministerSOSDto): Promise<SOSAdministrationResponse> {
+    const response = await api.post<SOSAdministrationResponse>('/prescriptions/administer-sos', data)
+    return response.data
+  },
+
+  // Upload
+  uploadPrescription: async (prescriptionId: string, file: File): Promise<UploadPrescriptionResponse> => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await api.post<UploadPrescriptionResponse>(
+      `/prescriptions/${prescriptionId}/upload`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
+    )
+    return response.data
+  },
 }

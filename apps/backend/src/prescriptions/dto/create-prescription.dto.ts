@@ -92,14 +92,6 @@ export class CreatePrescriptionDto {
   @IsOptional()
   notificationType?: string;
 
-  @ApiProperty({
-    description: 'URL da imagem da receita médica (obrigatório para CONTROLADO)',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  prescriptionImageUrl?: string;
-
   @ApiProperty({ description: 'Observações gerais', required: false })
   @IsString()
   @IsOptional()

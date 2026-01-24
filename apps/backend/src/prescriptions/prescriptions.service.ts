@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
+import { FileProcessingService } from '../files/file-processing.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
@@ -19,6 +20,9 @@ import { Logger } from 'winston';
 import { startOfDay, endOfDay, addDays, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { formatDateOnly } from '../utils/date.helpers';
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import { Readable } from 'stream';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   PrescriptionType,
   ControlledClass,
@@ -35,6 +39,7 @@ export class PrescriptionsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
+    private readonly fileProcessingService: FileProcessingService,
     private readonly notificationsService: NotificationsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -94,7 +99,6 @@ export class PrescriptionsService {
       'controlledClass',
       'notificationNumber',
       'notificationType',
-      'prescriptionImageUrl',
       'notes',
       'isActive',
       'lastMedicalReviewDate',
@@ -192,8 +196,6 @@ export class PrescriptionsService {
             controlledClass: createPrescriptionDto.controlledClass as ControlledClass | null,
             notificationNumber: createPrescriptionDto.notificationNumber || null,
             notificationType: createPrescriptionDto.notificationType as NotificationType | null,
-            prescriptionImageUrl:
-              createPrescriptionDto.prescriptionImageUrl || null,
             notes: createPrescriptionDto.notes || null,
             versionNumber: 1, // Versão inicial
             createdBy: userId,
@@ -269,24 +271,6 @@ export class PrescriptionsService {
           [], // changedFields vazio em CREATE (todos os campos são novos)
           tx,
         );
-
-        // 4.4 Se houver imagem da prescrição, criar documento do residente
-        if (createPrescriptionDto.prescriptionImageUrl) {
-          const prescriptionDate = new Date(createPrescriptionDto.prescriptionDate);
-          const formattedDate = prescriptionDate.toLocaleDateString('pt-BR');
-
-          await tx.residentDocument.create({
-            data: {
-              tenantId: this.tenantContext.tenantId,
-              residentId: createPrescriptionDto.residentId,
-              type: 'PRESCRICAO_MEDICA',
-              fileUrl: createPrescriptionDto.prescriptionImageUrl,
-              fileName: `Prescrição - Dr. ${createPrescriptionDto.doctorName} - ${formattedDate}`,
-              details: `Laudo Dr. ${createPrescriptionDto.doctorName} - ${formattedDate}`,
-              uploadedBy: userId,
-            },
-          });
-        }
 
         return newPrescription;
       });
@@ -438,16 +422,16 @@ export class PrescriptionsService {
       this.tenantContext.client.prescription.count({ where }),
     ]);
 
-    // Processar URLs assinadas para prescriptionImageUrl
+    // Processar URLs assinadas para processedFileUrl
     const prescriptionsWithSignedUrls = await Promise.all(
       prescriptions.map(async (prescription) => {
-        if (prescription.prescriptionImageUrl) {
+        if (prescription.processedFileUrl) {
           const signedUrl = await this.filesService.getFileUrl(
-            prescription.prescriptionImageUrl,
+            prescription.processedFileUrl,
           );
           return {
             ...prescription,
-            prescriptionImageUrl: signedUrl,
+            processedFileUrl: signedUrl,
           };
         }
         return prescription;
@@ -611,7 +595,6 @@ export class PrescriptionsService {
             controlledClass: updatePrescriptionDto.controlledClass as ControlledClass | undefined,
             notificationNumber: updatePrescriptionDto.notificationNumber,
             notificationType: updatePrescriptionDto.notificationType as NotificationType | undefined,
-            prescriptionImageUrl: updatePrescriptionDto.prescriptionImageUrl,
             notes: updatePrescriptionDto.notes,
             isActive: updatePrescriptionDto.isActive,
             versionNumber: existing.versionNumber + 1, // Incrementar versão
@@ -726,7 +709,6 @@ export class PrescriptionsService {
             lastReviewDoctorCrm: dto.reviewDoctorCrm,
             lastReviewDoctorState: dto.reviewDoctorState,
             lastReviewNotes: dto.reviewNotes,
-            prescriptionImageUrl: dto.prescriptionImageUrl, // Nova receita
             reviewDate: dto.newReviewDate ? parseISO(dto.newReviewDate) : undefined,
             versionNumber: prescription.versionNumber + 1, // Incrementar versão
             updatedBy: userId, // Registrar quem fez a revisão
@@ -1147,7 +1129,7 @@ export class PrescriptionsService {
       where: {
         isActive: true,
         prescriptionType: 'CONTROLADO',
-        prescriptionImageUrl: null,
+        processedFileUrl: null,
         deletedAt: null,
       },
       include: {
@@ -1569,11 +1551,6 @@ export class PrescriptionsService {
           'Validade é obrigatória para medicamentos controlados',
         );
       }
-      if (!dto.prescriptionImageUrl) {
-        throw new BadRequestException(
-          'Receita médica é obrigatória para medicamentos controlados',
-        );
-      }
       if (!dto.notificationNumber) {
         throw new BadRequestException(
           'Número da notificação é obrigatório para medicamentos controlados',
@@ -1858,6 +1835,233 @@ export class PrescriptionsService {
 
     if (!resident) {
       throw new NotFoundException('Residente não encontrado');
+    }
+  }
+
+  // ========== UPLOAD DE PRESCRIÇÃO COM PROCESSAMENTO INSTITUCIONAL ==========
+
+  /**
+   * Upload de prescrição médica com processamento institucional
+   *
+   * Fluxo:
+   * 1. Validar arquivo (tamanho, formato)
+   * 2. Buscar prescrição e dados relacionados
+   * 3. Gerar publicToken único
+   * 4. Processar arquivo com carimbo institucional
+   * 5. Upload de ambos os arquivos para S3
+   * 6. Atualizar registro de prescrição com metadados
+   */
+  async uploadPrescription(
+    prescriptionId: string,
+    file: Express.Multer.File,
+    user: JwtPayload,
+  ) {
+    // 1. Validação
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo fornecido');
+    }
+
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      throw new BadRequestException('Arquivo muito grande (máximo 10MB)');
+    }
+
+    const ALLOWED_MIMETYPES = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'application/pdf',
+    ];
+    if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato inválido. Permitidos: JPG, PNG, WEBP, PDF',
+      );
+    }
+
+    // 2. Buscar prescrição
+    const prescription = await this.tenantContext.client.prescription.findFirst({
+      where: {
+        id: prescriptionId,
+        deletedAt: null,
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    if (!prescription) {
+      throw new NotFoundException('Prescrição não encontrada');
+    }
+
+    // 3. Buscar dados do usuário (para carimbo institucional)
+    const userData = await this.tenantContext.client.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        profile: {
+          select: {
+            registrationType: true,
+            registrationNumber: true,
+            registrationState: true,
+          },
+        },
+      },
+    });
+
+    if (!userData) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    // 4. Buscar dados do tenant
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: user.tenantId! },
+      select: {
+        id: true,
+        name: true,
+        cnpj: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    try {
+      // 5. Gerar publicToken único
+      const publicToken = randomUUID();
+
+      // 6. Processar arquivo com carimbo institucional
+      const stampMetadata = {
+        tenantName: tenant.name,
+        tenantCnpj: tenant.cnpj || 'N/A',
+        tenantId: tenant.id,
+        userName: userData.name,
+        userRole: userData.role || 'N/A',
+        userProfessionalRegistry: userData.profile?.registrationNumber
+          ? `${userData.profile.registrationType || ''} ${userData.profile.registrationNumber}${userData.profile.registrationState ? '-' + userData.profile.registrationState : ''}`
+          : undefined,
+        uploadDate: new Date(),
+        hashOriginal: '',
+        publicToken,
+      };
+
+      const processedResult =
+        file.mimetype === 'application/pdf'
+          ? await this.fileProcessingService.processPdf(
+              file.buffer,
+              stampMetadata,
+            )
+          : await this.fileProcessingService.processImage(
+              file.buffer,
+              stampMetadata,
+            );
+
+      // 6. Upload do arquivo original
+      const originalUpload = await this.filesService.uploadFile(
+        this.tenantContext.tenantId,
+        file,
+        'prescriptions',
+        prescriptionId,
+      );
+
+      // 7. Upload do arquivo processado
+      const processedFile: Express.Multer.File = {
+        fieldname: 'file',
+        originalname: `prescricao_${prescription.resident.fullName}_processado.pdf`,
+        encoding: '7bit',
+        mimetype: 'application/pdf',
+        size: processedResult.pdfBuffer.length,
+        buffer: processedResult.pdfBuffer,
+        stream: Readable.from(processedResult.pdfBuffer),
+        destination: '',
+        filename: '',
+        path: '',
+      };
+
+      const processedUpload = await this.filesService.uploadFile(
+        this.tenantContext.tenantId,
+        processedFile,
+        'prescriptions',
+        prescriptionId,
+      );
+
+      // 8. Atualizar prescrição
+      const updatedPrescription = await this.tenantContext.client.prescription.update({
+        where: { id: prescriptionId },
+        data: {
+          // Arquivo original
+          originalFileUrl: originalUpload.fileUrl,
+          originalFileKey: originalUpload.fileId,
+          originalFileName: originalUpload.fileName,
+          originalFileSize: originalUpload.fileSize,
+          originalFileMimeType: originalUpload.mimeType,
+          originalFileHash: processedResult.hashOriginal,
+
+          // Arquivo processado
+          processedFileUrl: processedUpload.fileUrl,
+          processedFileKey: processedUpload.fileId,
+          processedFileName: processedUpload.fileName,
+          processedFileSize: processedUpload.fileSize,
+          processedFileHash: processedResult.hashFinal,
+
+          // Token público
+          publicToken,
+
+          // Metadados
+          processingMetadata: {
+            // Dados do usuário que fez upload (para validação pública)
+            uploadedBy: userData.name,
+            uploadedAt: new Date().toISOString(),
+            userRole: userData.role,
+            registrationType: userData.profile?.registrationType,
+            registrationNumber: userData.profile?.registrationNumber,
+            registrationState: userData.profile?.registrationState,
+            // Dados do médico prescritor (mantidos como referência)
+            doctorName: prescription.doctorName,
+            doctorCrm: prescription.doctorCrm,
+            doctorCrmState: prescription.doctorCrmState,
+            // Dados da instituição
+            tenantName: tenant.name,
+            tenantCnpj: tenant.cnpj,
+            // Metadados técnicos
+            originalMimeType: file.mimetype,
+            prescriptionType: prescription.prescriptionType,
+            prescriptionDate: prescription.prescriptionDate.toISOString(),
+          } as Prisma.InputJsonValue,
+
+          // Auditoria
+          updatedBy: user.id,
+        },
+      });
+
+      this.logger.info('Prescrição processada com sucesso', {
+        prescriptionId,
+        publicToken,
+        originalFileHash: processedResult.hashOriginal,
+        processedFileHash: processedResult.hashFinal,
+      });
+
+      return {
+        message: 'Prescrição processada e salva com sucesso',
+        prescription: updatedPrescription,
+        publicToken,
+        validationUrl: `/validar/${publicToken}`,
+      };
+    } catch (error) {
+      this.logger.error('Erro ao processar prescrição', {
+        error: error.message,
+        prescriptionId,
+      });
+      throw error;
     }
   }
 }

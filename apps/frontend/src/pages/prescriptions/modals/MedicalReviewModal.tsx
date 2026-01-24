@@ -25,9 +25,10 @@ import {
 } from '@/components/ui/select'
 import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import { useRecordMedicalReview } from '@/hooks/usePrescriptions'
-import { uploadFile } from '@/services/upload'
+import { prescriptionsApi } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { useState } from 'react'
 
 /**
  * Lista de estados brasileiros (UF)
@@ -127,12 +128,12 @@ interface MedicalReviewModalProps {
  */
 export function MedicalReviewModal({
   prescriptionId,
-  residentId,
   open,
   onClose,
 }: MedicalReviewModalProps) {
   const { toast } = useToast()
   const recordReview = useRecordMedicalReview()
+  const [isUploadingFile, setIsUploadingFile] = useState(false)
 
   const {
     register,
@@ -165,26 +166,7 @@ export function MedicalReviewModal({
 
   const onSubmit = async (data: MedicalReviewFormData) => {
     try {
-      let prescriptionImageUrl: string | undefined
-
-      // Upload da prescrição (obrigatório)
-      if (data.prescriptionImage && data.prescriptionImage instanceof File) {
-        toast({
-          title: 'Enviando prescrição...',
-          description: 'Aguarde enquanto fazemos o upload.',
-        })
-        prescriptionImageUrl = await uploadFile(data.prescriptionImage, 'medical', residentId)
-      }
-
-      if (!prescriptionImageUrl) {
-        toast({
-          variant: 'destructive',
-          title: 'Erro',
-          description: 'É necessário fazer upload da prescrição.',
-        })
-        return
-      }
-
+      // 1. Registrar revisão médica (apenas metadados)
       await recordReview.mutateAsync({
         id: prescriptionId,
         data: {
@@ -192,16 +174,45 @@ export function MedicalReviewModal({
           reviewedByDoctor: data.reviewedByDoctor,
           reviewDoctorCrm: data.reviewDoctorCrm,
           reviewDoctorState: data.reviewDoctorState,
-          prescriptionImageUrl,
           newReviewDate: data.newReviewDate || undefined,
           reviewNotes: data.reviewNotes,
         },
       })
 
-      toast({
-        title: 'Revisão médica registrada',
-        description: 'A revisão médica foi registrada com sucesso no histórico da prescrição.',
-      })
+      // 2. Upload da nova prescrição com processamento institucional
+      if (data.prescriptionImage && data.prescriptionImage instanceof File) {
+        try {
+          setIsUploadingFile(true)
+          toast({
+            title: 'Processando prescrição...',
+            description: 'Aguarde enquanto processamos o arquivo com carimbo institucional.',
+          })
+
+          await prescriptionsApi.uploadPrescription(
+            prescriptionId,
+            data.prescriptionImage
+          )
+
+          toast({
+            title: 'Revisão médica registrada',
+            description: 'A revisão médica e a nova prescrição foram processadas com sucesso.',
+          })
+        } catch (uploadError) {
+          console.error('Erro ao processar prescrição:', uploadError)
+          toast({
+            variant: 'destructive',
+            title: 'Atenção',
+            description: 'Revisão registrada, mas houve erro ao processar o arquivo da prescrição.',
+          })
+        } finally {
+          setIsUploadingFile(false)
+        }
+      } else {
+        toast({
+          title: 'Revisão médica registrada',
+          description: 'A revisão médica foi registrada com sucesso no histórico da prescrição.',
+        })
+      }
 
       handleClose()
     } catch (error) {
@@ -393,16 +404,18 @@ export function MedicalReviewModal({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={recordReview.isPending}
+              disabled={recordReview.isPending || isUploadingFile}
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={recordReview.isPending}
+              disabled={recordReview.isPending || isUploadingFile}
             >
               {recordReview.isPending ? (
                 'Registrando...'
+              ) : isUploadingFile ? (
+                'Processando prescrição...'
               ) : (
                 <>
                   <FileCheck className="mr-2 h-4 w-4" />

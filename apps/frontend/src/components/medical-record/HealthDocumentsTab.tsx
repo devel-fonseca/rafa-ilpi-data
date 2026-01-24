@@ -68,10 +68,10 @@ export function HealthDocumentsTab({ residentId }: HealthDocumentsTabProps) {
   const healthDocuments = useMemo<ConsolidatedDocument[]>(() => {
     const documents: ConsolidatedDocument[] = []
 
-    // Prescrições (apenas as que possuem imagem/PDF anexado)
+    // Prescrições (apenas as que possuem arquivo processado)
     if (Array.isArray(prescriptions)) {
       prescriptions
-        .filter(p => p.prescriptionImageUrl)
+        .filter(p => p.processedFileUrl)
         .forEach(p => {
           const formattedDate = format(new Date(p.prescriptionDate), 'dd/MM/yyyy', { locale: ptBR })
           documents.push({
@@ -79,7 +79,7 @@ export function HealthDocumentsTab({ residentId }: HealthDocumentsTabProps) {
             type: 'PRESCRIPTION',
             title: `Prescrição ${formattedDate} - Dr. ${p.doctorName} (CRM-${p.doctorCrmState} ${p.doctorCrm})`,
             date: p.prescriptionDate,
-            url: p.prescriptionImageUrl!,
+            url: p.processedFileUrl!,
           })
         })
     }

@@ -30,8 +30,8 @@ export function usePrescriptions(initialQuery?: QueryPrescriptionParams) {
     ...result,
     query,
     setQuery,
-    prescriptions: result.data?.data.data || [],
-    meta: result.data?.data.meta,
+    prescriptions: result.data?.data || [],
+    meta: result.data?.meta,
   }
 }
 
@@ -205,10 +205,10 @@ export function usePrescriptionsDashboard() {
   const controlled = useResidentsWithControlled()
 
   return {
-    stats: stats.data?.data,
-    alerts: alerts.data?.data,
-    expiring: expiring.data?.data,
-    controlled: controlled.data?.data,
+    stats: stats.data,
+    alerts: alerts.data,
+    expiring: expiring.data,
+    controlled: controlled.data,
     isLoading: stats.isLoading || alerts.isLoading || expiring.isLoading || controlled.isLoading,
     isError: stats.isError || alerts.isError || expiring.isError || controlled.isError,
     refetchAll: () => {
@@ -324,7 +324,7 @@ export function usePrescriptionsForCalendar(
       const response = await prescriptionsApi.findAll(queryParams)
 
       // Transformar dados
-      let prescriptions = response.data.data.map(transformPrescriptionForCalendar)
+      let prescriptions = response.data.map(transformPrescriptionForCalendar)
 
       // Filtrar por período (validUntil ou reviewDate dentro do intervalo)
       const start = new Date(`${startDate}T00:00:00`)

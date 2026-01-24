@@ -23,8 +23,34 @@ model Prescription {
   notificationNumber String?
   notificationType   NotificationType?
 
-  // Anexos
-  prescriptionImageUrl String? // URL da receita médica (obrigatório para controlado)
+  // ──────────────────────────────────────────────────────────────────────────────
+  // ARQUIVO ORIGINAL (backup para auditoria)
+  // ──────────────────────────────────────────────────────────────────────────────
+  originalFileUrl      String? @db.Text
+  originalFileKey      String? @db.Text
+  originalFileName     String? @db.Text
+  originalFileSize     Int?
+  originalFileMimeType String? @db.VarChar(100)
+  originalFileHash     String? @db.VarChar(64) // SHA-256
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // ARQUIVO PROCESSADO (PDF com carimbo institucional)
+  // ──────────────────────────────────────────────────────────────────────────────
+  processedFileUrl  String? @db.Text
+  processedFileKey  String? @db.Text
+  processedFileName String? @db.Text
+  processedFileSize Int?
+  processedFileHash String? @db.VarChar(64) // SHA-256
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // TOKEN PÚBLICO PARA VALIDAÇÃO
+  // ──────────────────────────────────────────────────────────────────────────────
+  publicToken String? @unique @db.VarChar(64) // UUID para validação externa
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // METADADOS DO PROCESSAMENTO
+  // ──────────────────────────────────────────────────────────────────────────────
+  processingMetadata Json? @db.JsonB // Dados do carimbo institucional
 
   // Observações gerais
   notes String? @db.Text

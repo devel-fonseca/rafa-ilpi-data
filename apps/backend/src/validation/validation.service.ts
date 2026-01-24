@@ -65,6 +65,22 @@ interface ResidentDocumentResult {
   schema: string;
 }
 
+interface PrescriptionResult {
+  id: string;
+  publicToken: string;
+  originalFileHash: string | null;
+  processedFileHash: string | null;
+  processingMetadata: unknown;
+  createdAt: Date;
+  doctorName: string;
+  doctorCrm: string;
+  doctorCrmState: string;
+  tenantId: string;
+  tenantName: string;
+  tenantCnpj: string | null;
+  schema: string;
+}
+
 @Injectable()
 export class ValidationService {
   private readonly logger = new Logger(ValidationService.name);
@@ -114,21 +130,28 @@ export class ValidationService {
       return this.buildVaccinationResponse(vaccination);
     }
 
-    // 2. Buscar em resident_contracts (cross-tenant)
+    // 2. Buscar em prescriptions (cross-tenant)
+    const prescription = await this.findPrescriptionByToken(token);
+    if (prescription) {
+      this.logger.log(`Found prescription in schema: ${prescription.schema}`);
+      return this.buildPrescriptionResponse(prescription);
+    }
+
+    // 3. Buscar em resident_contracts (cross-tenant)
     const contract = await this.findContractByToken(token);
     if (contract) {
       this.logger.log(`Found contract in schema: ${contract.schema}`);
       return this.buildContractResponse(contract);
     }
 
-    // 3. Buscar em tenant_documents (cross-tenant)
+    // 4. Buscar em tenant_documents (cross-tenant)
     const document = await this.findInstitutionalDocumentByToken(token);
     if (document) {
       this.logger.log(`Found institutional document in schema: ${document.schema}`);
       return this.buildInstitutionalDocumentResponse(document);
     }
 
-    // 4. Buscar em resident_documents (cross-tenant) - NOVO
+    // 5. Buscar em resident_documents (cross-tenant)
     const residentDoc = await this.findResidentDocumentByToken(token);
     if (residentDoc) {
       this.logger.log(`Found resident document in schema: ${residentDoc.schema}`);
@@ -182,6 +205,53 @@ export class ValidationService {
       } catch (error) {
         // Schema pode não ter a tabela vaccinations ainda
         this.logger.error(`Schema ${schema_name} - vaccination error: ${error.message}`, error.stack);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Buscar prescrição por token em TODOS os schemas de tenant
+   */
+  private async findPrescriptionByToken(
+    token: string,
+  ): Promise<PrescriptionResult | null> {
+    const schemas = await this.prisma.$queryRaw<{ schema_name: string }[]>`
+      SELECT schema_name
+      FROM information_schema.schemata
+      WHERE schema_name LIKE 'tenant_%'
+    `;
+
+    for (const { schema_name } of schemas) {
+      try {
+        const result = await this.prisma.$queryRawUnsafe<PrescriptionResult[]>(`
+          SELECT
+            p.id::text,
+            p."publicToken"::text AS "publicToken",
+            p."originalFileHash",
+            p."processedFileHash",
+            p."processingMetadata",
+            p."createdAt",
+            p."doctorName",
+            p."doctorCrm",
+            p."doctorCrmState",
+            t.id::text AS "tenantId",
+            t.name AS "tenantName",
+            t.cnpj AS "tenantCnpj",
+            '${schema_name}' AS schema
+          FROM "${schema_name}".prescriptions p
+          JOIN "${schema_name}".residents r ON r.id = p."residentId"
+          JOIN public.tenants t ON t.id = r."tenantId"
+          WHERE p."publicToken" = $1
+          LIMIT 1
+        `, token);
+
+        if (result.length > 0) {
+          return result[0];
+        }
+      } catch (error) {
+        this.logger.error(`Schema ${schema_name} - prescription error: ${error.message}`);
       }
     }
 
@@ -378,6 +448,55 @@ export class ValidationService {
         metadata,
       },
       publicToken: vaccination.publicToken,
+      consultedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Construir resposta para prescrição
+   */
+  private buildPrescriptionResponse(
+    data: PrescriptionResult,
+  ): PublicDocumentValidationDto {
+    const metadata = data.processingMetadata as Record<string, unknown>;
+
+    // Extrair dados do usuário que fez upload do processingMetadata
+    const validatorName = (metadata?.validatorName as string) || (metadata?.uploadedBy as string) || (metadata?.userName as string) || 'Não informado';
+    const validatorRole = (metadata?.validatorRole as string) || (metadata?.userRole as string) || 'Não informado';
+
+    // Montar registro profissional se disponível
+    let professionalRegistry: string | undefined = undefined;
+    const regType = metadata?.registrationType as string | null;
+    const regNumber = metadata?.registrationNumber as string | null;
+    const regState = metadata?.registrationState as string | null;
+
+    if (regType && regNumber && regState) {
+      professionalRegistry = `${regType} ${regNumber}-${regState}`;
+    } else if (metadata?.userProfessionalRegistry) {
+      professionalRegistry = metadata.userProfessionalRegistry as string;
+    }
+
+    return {
+      valid: true,
+      documentType: 'prescription',
+      documentInfo: {
+        processedAt: data.createdAt.toISOString(),
+        validatedBy: validatorName,
+        validatorRole,
+        professionalRegistry,
+        institutionName: data.tenantName,
+        institutionCnpj: data.tenantCnpj || 'N/A',
+        hashOriginal: data.originalFileHash || 'N/A',
+        hashFinal: data.processedFileHash || 'N/A',
+        metadata: {
+          prescriptionType: metadata?.prescriptionType,
+          prescriptionDate: metadata?.prescriptionDate,
+          doctorName: data.doctorName,
+          doctorCrm: data.doctorCrm,
+          doctorCrmState: data.doctorCrmState,
+        },
+      },
+      publicToken: data.publicToken,
       consultedAt: new Date().toISOString(),
     };
   }

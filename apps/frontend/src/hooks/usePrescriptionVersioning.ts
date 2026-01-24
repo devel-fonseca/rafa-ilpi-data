@@ -39,7 +39,6 @@ export function useUpdatePrescription() {
         controlledClass?: string
         notificationNumber?: string
         notificationType?: string
-        prescriptionImageUrl?: string
         notes?: string
         isActive?: boolean
       }

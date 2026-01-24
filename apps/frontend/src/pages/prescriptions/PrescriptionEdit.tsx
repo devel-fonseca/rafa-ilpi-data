@@ -78,10 +78,10 @@ export default function PrescriptionEdit() {
 
   // Sincronizar com dados carregados
   useEffect(() => {
-    if (prescription?.data?.isActive !== undefined) {
-      setIsActive(prescription.data.isActive)
+    if (prescription?.isActive !== undefined) {
+      setIsActive(prescription.isActive)
     }
-  }, [prescription?.data?.isActive])
+  }, [prescription?.isActive])
 
   const handleSave = async () => {
     if (!id) return
@@ -267,14 +267,14 @@ export default function PrescriptionEdit() {
                 <p className="font-medium text-foreground/80">{prescriptionData.notes}</p>
               </div>
             )}
-            {prescriptionData.prescriptionImageUrl && (
+            {prescriptionData.processedFileUrl && (
               <div className="md:col-span-2 lg:col-span-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={async () => {
                     try {
-                      const fileUrl = prescriptionData.prescriptionImageUrl!
+                      const fileUrl = prescriptionData.processedFileUrl!
 
                       // Se já é uma URL completa (http/https), abrir diretamente
                       if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
@@ -292,7 +292,7 @@ export default function PrescriptionEdit() {
                   }}
                 >
                   <Eye className="h-4 w-4 mr-2" />
-                  Ver Prescrição (Imagem)
+                  Ver Prescrição
                 </Button>
               </div>
             )}

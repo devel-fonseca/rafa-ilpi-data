@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Stepper } from '@/components/ui/stepper'
 import { useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
-import { uploadFile } from '@/services/upload'
+import { prescriptionsApi } from '@/api/prescriptions.api'
 import { toast } from 'sonner'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
@@ -53,20 +53,14 @@ export default function PrescriptionForm() {
   const createMutation = useCreatePrescription()
   const updateMutation = useUpdatePrescription()
 
-  const onSubmit = async (data: CreatePrescriptionDto) => {
+  const onSubmit = async (data: CreatePrescriptionDto & { prescriptionImage?: File }) => {
     try {
-      let prescriptionImageUrl: string | undefined
-
-      // Upload da imagem da prescrição (se houver)
-      if (data.prescriptionImage && data.prescriptionImage instanceof File) {
-        toast.info('Enviando imagem da prescrição...')
-        prescriptionImageUrl = await uploadFile(data.prescriptionImage, 'medical', data.residentId)
-      }
+      // Salvar arquivo para upload posterior
+      const prescriptionFile = data.prescriptionImage instanceof File ? data.prescriptionImage : null
 
       // Limpar campos de data vazios (converter "" para undefined)
       const sanitizedData = {
         ...data,
-        prescriptionImageUrl,
         prescriptionImage: undefined, // Remover o File do payload
         validUntil: data.validUntil || undefined,
         reviewDate: data.reviewDate || undefined,
@@ -82,11 +76,39 @@ export default function PrescriptionForm() {
 
       if (isEditing && id) {
         await updateMutation.mutateAsync({ id, data: sanitizedData })
-        toast.success('Prescrição atualizada com sucesso!')
+
+        // Se há arquivo, processar com carimbo institucional
+        if (prescriptionFile) {
+          toast.info('Processando prescrição médica...')
+          try {
+            await prescriptionsApi.uploadPrescription(id, prescriptionFile)
+            toast.success('Prescrição atualizada e processada com sucesso!')
+          } catch (uploadError) {
+            console.error('Erro ao processar prescrição:', uploadError)
+            toast.warning('Prescrição atualizada, mas houve erro ao processar o arquivo')
+          }
+        } else {
+          toast.success('Prescrição atualizada com sucesso!')
+        }
       } else {
-        await createMutation.mutateAsync(sanitizedData)
-        toast.success('Prescrição criada com sucesso!')
+        // Criar prescrição SEM arquivo
+        const createdPrescription = await createMutation.mutateAsync(sanitizedData)
+
+        // Se há arquivo, processar com carimbo institucional
+        if (prescriptionFile && createdPrescription?.id) {
+          toast.info('Processando prescrição médica...')
+          try {
+            await prescriptionsApi.uploadPrescription(createdPrescription.id, prescriptionFile)
+            toast.success('Prescrição registrada e processada com sucesso!')
+          } catch (uploadError) {
+            console.error('Erro ao processar prescrição:', uploadError)
+            toast.warning('Prescrição registrada, mas houve erro ao processar o arquivo')
+          }
+        } else {
+          toast.success('Prescrição criada com sucesso!')
+        }
       }
+
       navigate('/dashboard/prescricoes')
     } catch (error: unknown) {
       toast.error(error?.response?.data?.message || 'Erro ao salvar prescrição')

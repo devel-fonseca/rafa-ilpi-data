@@ -43,7 +43,7 @@ const ROUTE_LABELS: Record<string, string> = {
 }
 
 export function Step5Review() {
-  const { watch, setValue } = useFormContext<CreatePrescriptionDto>()
+  const { watch, setValue } = useFormContext<CreatePrescriptionDto & { prescriptionImage?: File }>()
   const formData = watch()
 
   const { data: resident } = useQuery({
