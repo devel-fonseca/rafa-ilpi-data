@@ -15,7 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { Loader2, ArrowLeft, FileText, Download, AlertCircle, Trash2 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Loader2, ArrowLeft, FileText, Download, AlertCircle, Trash2, Info } from 'lucide-react'
 import {
   useAssessmentReport,
   useExportPDF,
@@ -172,11 +178,37 @@ export function AssessmentResultPage() {
         }
       />
 
+      {/* Disclaimer Legal - Sempre visível e em destaque */}
+      <Alert variant="default" className="border-warning/50 bg-warning/5 py-2.5">
+        <AlertCircle className="h-4 w-4 text-warning" />
+        <AlertDescription className="text-xs flex items-start gap-2">
+          <span className="flex-1">
+            <strong>Importante:</strong> Este autodiagnóstico é interno.{' '}
+            <strong>Não substitui inspeção oficial</strong> e{' '}
+            <strong>não gera certificação</strong>. A conformidade é confirmada por{' '}
+            <strong>vistoria da Vigilância Sanitária</strong>.
+          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-warning cursor-help flex-shrink-0 mt-0.5" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Use os resultados para planejar melhorias internas. Apenas inspeção oficial pode
+                  confirmar conformidade.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </AlertDescription>
+      </Alert>
+
       {/* Alert Informativo */}
-      <Alert>
+      <Alert className="py-2.5">
         <FileText className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Relatório Completo:</strong> Este documento apresenta análise detalhada da
+        <AlertDescription className="text-xs">
+          <strong>Relatório Completo:</strong> Análise detalhada da
           conformidade com a RDC 502/2021 da ANVISA. Os resultados servem como base para
           elaboração de planos de ação corretiva e acompanhamento regulatório.
         </AlertDescription>

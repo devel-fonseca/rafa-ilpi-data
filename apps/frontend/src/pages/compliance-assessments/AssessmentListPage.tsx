@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   Plus,
   FileText,
   Calendar,
@@ -14,15 +20,20 @@ import {
   Archive,
   Loader2,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Info,
 } from 'lucide-react'
 import { useAssessments, useCreateAssessment } from '@/hooks/useComplianceAssessments'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { ComplianceAssessment } from '@/api/compliance-assessments.api'
+import { ComplianceEvolutionChart } from '@/components/compliance-assessments/ComplianceEvolutionChart'
 
 export function AssessmentListPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
+  const [isInfoExpanded, setIsInfoExpanded] = useState(false)
   const limit = 10
 
   const { data: assessmentsData, isLoading } = useAssessments({ page, limit })
@@ -115,17 +126,78 @@ export function AssessmentListPage() {
         }
       />
 
-      {/* Instruções */}
-      <Alert>
-        <FileText className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Sobre o Autodiagnóstico:</strong> Ferramenta baseada no Roteiro Objetivo de
-          Inspeção ILPI da ANVISA. Permite avaliar periodicamente o nível de
-          conformidade da instituição com a RDC 502/2021. <br />
-          <strong>Critério de conformidade:</strong> Questões com pontuação de 3 ou mais pontos são
-          consideradas conformes (Regular). Pontuações de 4 e 5 indicam ótimo e excelente desempenho.
+      {/* Disclaimer Legal - Sempre visível e em destaque */}
+      <Alert variant="default" className="border-warning/50 bg-warning/5 py-2.5">
+        <AlertCircle className="h-4 w-4 text-warning" />
+        <AlertDescription className="text-xs flex items-start gap-2">
+          <span className="flex-1">
+            <strong>Importante:</strong> Este autodiagnóstico é interno.{' '}
+            <strong>Não substitui inspeção oficial</strong> e{' '}
+            <strong>não gera certificação</strong>. A conformidade é confirmada por{' '}
+            <strong>vistoria da Vigilância Sanitária</strong>.
+          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-warning cursor-help flex-shrink-0 mt-0.5" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Use os resultados para planejar melhorias internas. Apenas inspeção oficial pode
+                  confirmar conformidade.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </AlertDescription>
       </Alert>
+
+      {/* Informações - Colapsável */}
+      <Alert className="py-2.5">
+        <FileText className="h-4 w-4" />
+        <AlertDescription>
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-xs flex-1">
+              Ferramenta interna baseada no roteiro da RDC 502/2021. Use para acompanhar evolução de conformidade.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 -mt-1 flex-shrink-0"
+              onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+            >
+              <span className="text-xs font-medium mr-1">
+                {isInfoExpanded ? 'Ocultar' : 'Como funciona'}
+              </span>
+              {isInfoExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </div>
+
+          {isInfoExpanded && (
+            <div className="mt-3 pt-3 border-t space-y-2 text-xs">
+              <p>
+                <strong>Sobre o Autodiagnóstico:</strong> Baseado no Roteiro Objetivo de
+                Inspeção ILPI da ANVISA. Permite avaliar periodicamente o nível de
+                conformidade da instituição com a RDC 502/2021.
+              </p>
+              <p>
+                <strong>Critério de conformidade:</strong> Questões com pontuação de 3 ou mais pontos são
+                consideradas conformes (Regular). Pontuações de 4 e 5 indicam ótimo e excelente desempenho.
+              </p>
+              <p>
+                <strong>Classificação final:</strong> IRREGULAR (&lt;50%), PARCIAL (50-74%), REGULAR (≥75%).
+              </p>
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+
+      {/* Gráfico de Evolução */}
+      {assessments.length > 0 && <ComplianceEvolutionChart assessments={assessments} />}
 
       {/* Lista de Autodiagnósticos */}
       <div className="space-y-4">
