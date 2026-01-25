@@ -167,7 +167,9 @@ export function VitalSignsPage() {
       <PageHeader
         title={`Sinais Vitais - ${resident.fullName}`}
         subtitle="Visualização completa de gráficos, tabelas e histórico de sinais vitais"
-        onBack={() => navigate(`/dashboard/residentes/${residentId}`)}
+        backButton={{
+          onClick: () => navigate(`/dashboard/residentes/${residentId}`),
+        }}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
@@ -292,7 +294,7 @@ export function VitalSignsPage() {
               <CardContent>
                 <Sparkline
                   data={sparklineData.bloodPressure}
-                  color="#ef4444"
+                  color="hsl(var(--danger))"
                   height={60}
                   domain={[80, 180]}
                   unit="mmHg"
@@ -307,7 +309,7 @@ export function VitalSignsPage() {
               <CardContent>
                 <Sparkline
                   data={sparklineData.temperature}
-                  color="#f59e0b"
+                  color="hsl(var(--warning))"
                   height={60}
                   domain={[35, 40]}
                   unit="°C"
@@ -322,7 +324,7 @@ export function VitalSignsPage() {
               <CardContent>
                 <Sparkline
                   data={sparklineData.glucose}
-                  color="#10b981"
+                  color="hsl(var(--success))"
                   height={60}
                   domain={[50, 250]}
                   unit="mg/dL"
