@@ -297,6 +297,26 @@ export async function updateUserProfile(userId: string, data: {
 }
 
 /**
+ * Upload de foto de perfil (avatar)
+ * @param file Arquivo de imagem
+ */
+export async function uploadMyAvatar(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.patch('/user-profiles/me/avatar', formData)
+  return response.data
+}
+
+/**
+ * Remove foto de perfil (avatar)
+ */
+export async function removeMyAvatar() {
+  const response = await api.delete('/user-profiles/me/avatar')
+  return response.data
+}
+
+/**
  * Altera senha do usuário
  */
 export async function changePassword(userId: string, data: {

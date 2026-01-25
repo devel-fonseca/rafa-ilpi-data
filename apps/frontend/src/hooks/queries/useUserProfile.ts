@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getMyProfile, updateUserProfile } from '@/services/api'
+import { getMyProfile, updateUserProfile, uploadMyAvatar, removeMyAvatar } from '@/services/api'
 import { useAuthStore } from '@/stores/auth.store'
 
 export interface UserProfile {
@@ -90,6 +90,51 @@ export function useUpdateProfile() {
       queryClient.invalidateQueries({ queryKey: ['auth'] })
 
       // Atualizar o cache imediatamente com os novos dados (optimistic update)
+      queryClient.setQueryData(profileKeys.me(), updatedProfile)
+    },
+  })
+}
+
+/**
+ * Hook para upload de avatar (foto de perfil)
+ * Upload independente - não precisa salvar formulário
+ */
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (file: File) => uploadMyAvatar(file),
+    onSuccess: (updatedProfile) => {
+      // Invalidar cache do perfil
+      queryClient.invalidateQueries({ queryKey: profileKeys.me() })
+      queryClient.invalidateQueries({ queryKey: profileKeys.all })
+
+      // IMPORTANTE: Invalidar auth para atualizar avatar no header
+      queryClient.invalidateQueries({ queryKey: ['auth'] })
+
+      // Atualizar cache imediatamente (optimistic update)
+      queryClient.setQueryData(profileKeys.me(), updatedProfile)
+    },
+  })
+}
+
+/**
+ * Hook para remover avatar (foto de perfil)
+ */
+export function useRemoveAvatar() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => removeMyAvatar(),
+    onSuccess: (updatedProfile) => {
+      // Invalidar cache do perfil
+      queryClient.invalidateQueries({ queryKey: profileKeys.me() })
+      queryClient.invalidateQueries({ queryKey: profileKeys.all })
+
+      // IMPORTANTE: Invalidar auth para atualizar avatar no header
+      queryClient.invalidateQueries({ queryKey: ['auth'] })
+
+      // Atualizar cache imediatamente (optimistic update)
       queryClient.setQueryData(profileKeys.me(), updatedProfile)
     },
   })

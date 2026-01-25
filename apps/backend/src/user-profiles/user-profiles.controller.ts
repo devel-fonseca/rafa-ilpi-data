@@ -11,7 +11,10 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UserProfilesService } from './user-profiles.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
@@ -77,6 +80,47 @@ export class UserProfilesController {
     res.setHeader('Expires', '0');
 
     return await this.userProfilesService.findMyProfile(user.id);
+  }
+
+  @Patch('me/avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Atualizar minha foto de perfil' })
+  @ApiResponse({ status: 200, description: 'Foto atualizada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Arquivo inválido' })
+  @ApiResponse({ status: 404, description: 'Perfil não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @HttpCode(HttpStatus.OK)
+  async uploadMyAvatar(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile() file: Express.Multer.File,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Desabilitar cache HTTP
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    return await this.userProfilesService.uploadAvatar(user.id, file);
+  }
+
+  @Delete('me/avatar')
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Remover minha foto de perfil' })
+  @ApiResponse({ status: 200, description: 'Foto removida com sucesso' })
+  @ApiResponse({ status: 404, description: 'Perfil não encontrado' })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @HttpCode(HttpStatus.OK)
+  async removeMyAvatar(
+    @CurrentUser() user: JwtPayload,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Desabilitar cache HTTP
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    return await this.userProfilesService.removeAvatar(user.id);
   }
 
   @Patch('me/preferences')

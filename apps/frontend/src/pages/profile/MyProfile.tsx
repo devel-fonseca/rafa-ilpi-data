@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
-import { useMyProfile, useUpdateProfile } from '@/hooks/queries/useUserProfile'
+import { useMyProfile, useUpdateProfile, useUploadAvatar, useRemoveAvatar } from '@/hooks/queries/useUserProfile'
 import { useActiveSessions, useRevokeSession, useRevokeAllOtherSessions } from '@/hooks/queries/useActiveSessions'
 import { useAccessLogs } from '@/hooks/queries/useAccessLogs'
-import { uploadFile } from '@/services/upload'
 import { changePassword } from '@/services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,8 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
-import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
-import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History, AlertCircle } from 'lucide-react'
+import { Loader2, User, Phone, Briefcase, Building2, Calendar, FileText, Shield, Award, KeyRound, Eye, EyeOff, Wifi, Monitor, Smartphone, Tablet, X, History, AlertCircle, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 import { getErrorMessage } from '@/utils/errorHandling'
 import { extractDateOnly } from '@/utils/dateHelpers'
@@ -25,6 +23,8 @@ import {
   REGISTRATION_TYPE_LABELS
 } from '@/types/permissions'
 import { Page, PageHeader, EmptyState } from '@/design-system/components'
+import { PhotoViewer } from '@/components/form/PhotoViewer'
+import { useRef } from 'react'
 
 export default function MyProfile() {
   const { user } = useAuthStore()
@@ -33,9 +33,10 @@ export default function MyProfile() {
   // React Query hooks
   const { data: profile, isLoading, isError, error, refetch } = useMyProfile()
   const updateProfileMutation = useUpdateProfile()
+  const uploadAvatarMutation = useUploadAvatar()
+  const removeAvatarMutation = useRemoveAvatar()
 
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<{
     profilePhoto: string | undefined
@@ -90,34 +91,88 @@ export default function MyProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, refetch])
 
+  // Handler para mudança de arquivo (upload imediato com processamento)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Formato inválido',
+        description: 'Selecione um arquivo de imagem válido',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Arquivo muito grande',
+        description: 'A imagem deve ter no máximo 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      // Processar imagem com detecção facial, resize e conversão para WebP
+      const { processImageWithFaceDetection } = await import('@/services/faceDetection')
+      const result = await processImageWithFaceDetection(file)
+
+      // Criar File a partir do blob processado
+      const webpFile = new File([result.blob], 'avatar.webp', {
+        type: 'image/webp',
+      })
+
+      // Upload do arquivo processado
+      await uploadAvatarMutation.mutateAsync(webpFile)
+
+      toast({
+        title: 'Foto atualizada',
+        description: result.hasFace
+          ? 'Rosto detectado e foto atualizada com sucesso'
+          : 'Foto atualizada com sucesso',
+      })
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao atualizar foto',
+        description: getErrorMessage(error, 'Não foi possível atualizar a foto'),
+        variant: 'destructive',
+      })
+    } finally {
+      // Limpar input para permitir selecionar o mesmo arquivo novamente
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  // Handler para remoção imediata de avatar
+  const handleAvatarRemove = async () => {
+    try {
+      await removeAvatarMutation.mutateAsync()
+      toast({
+        title: 'Foto removida',
+        description: 'Sua foto de perfil foi removida com sucesso',
+      })
+    } catch (error: unknown) {
+      toast({
+        title: 'Erro ao remover foto',
+        description: getErrorMessage(error, 'Não foi possível remover a foto'),
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!user) return
 
     try {
-      let photoUrl = formData.profilePhoto
-
-      // Se há um novo arquivo de foto, fazer upload primeiro
-      if (photoFile) {
-        setUploadingPhoto(true)
-        try {
-          photoUrl = await uploadFile(photoFile, 'user-photos', user.id)
-        } catch (uploadError: unknown) {
-          const error = uploadError as { message?: string }
-          toast({
-            title: 'Erro ao fazer upload da foto',
-            description: error.message || 'Não foi possível enviar a foto',
-            variant: 'destructive',
-          })
-          setUploadingPhoto(false)
-          return
-        }
-        setUploadingPhoto(false)
-      }
-
       await updateProfileMutation.mutateAsync({
-        profilePhoto: photoUrl || undefined,
         phone: formData.phone || undefined,
         birthDate: formData.birthDate || undefined,
         notes: formData.notes || undefined,
@@ -127,9 +182,6 @@ export default function MyProfile() {
         title: 'Perfil atualizado',
         description: 'Suas informações foram salvas com sucesso',
       })
-
-      // Limpar arquivo de foto após salvar
-      setPhotoFile(null)
     } catch (error: unknown) {
       toast({
         title: 'Erro ao atualizar perfil',
@@ -151,7 +203,6 @@ export default function MyProfile() {
         birthDate: profile.birthDate ? extractDateOnly(profile.birthDate) : '',
         notes: profile.notes || '',
       })
-      setPhotoFile(null)
     }
   }
 
@@ -240,7 +291,7 @@ export default function MyProfile() {
           icon={Loader2}
           title="Carregando seu perfil..."
           description="Aguarde enquanto buscamos suas informações"
-          variant="loading"
+          variant="info"
         />
       </Page>
     )
@@ -284,7 +335,7 @@ export default function MyProfile() {
     )
   }
 
-  const isSaving = updateProfileMutation.isPending || uploadingPhoto
+  const isSaving = updateProfileMutation.isPending
 
   return (
     <Page maxWidth="wide">
@@ -293,8 +344,40 @@ export default function MyProfile() {
         subtitle="Gerencie suas informações pessoais e dados de contato"
       />
 
-      {/* Foto de Perfil + Informações da Conta */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      {/* Abas: Conta, Dados Pessoais, Alterar Senha, Autorização ILPI, Sessões Ativas e Logs de Acesso */}
+      <Tabs defaultValue="account" className="space-y-4">
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex w-full md:grid md:grid-cols-6 min-w-max">
+            <TabsTrigger value="account" className="whitespace-nowrap">
+              <User className="h-4 w-4 mr-2" />
+              Conta
+            </TabsTrigger>
+            <TabsTrigger value="personal" className="whitespace-nowrap">
+              <FileText className="h-4 w-4 mr-2" />
+              Dados Pessoais
+            </TabsTrigger>
+            <TabsTrigger value="password" className="whitespace-nowrap">
+              <KeyRound className="h-4 w-4 mr-2" />
+              Alterar Senha
+            </TabsTrigger>
+            <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)} className="whitespace-nowrap">
+              <Shield className="h-4 w-4 mr-2" />
+              Autorização ILPI
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="whitespace-nowrap">
+              <Wifi className="h-4 w-4 mr-2" />
+              Sessões Ativas
+            </TabsTrigger>
+            <TabsTrigger value="access-logs" className="whitespace-nowrap">
+              <History className="h-4 w-4 mr-2" />
+              Histórico de Acesso
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Aba: Conta (Foto de Perfil + Informações da Conta) */}
+        <TabsContent value="account" className="space-y-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card de Foto (1/3) */}
           <Card>
             <CardHeader>
@@ -306,14 +389,66 @@ export default function MyProfile() {
                 Sua foto de perfil
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <PhotoUploadNew
-                onPhotoSelect={setPhotoFile}
-                currentPhotoUrl={formData.profilePhoto}
-                label="Foto do Perfil"
-                description="Clique para selecionar ou arraste uma imagem"
-                maxSize={5}
-              />
+            <CardContent className="flex flex-col items-center gap-4">
+              {/* Avatar Preview */}
+              {profile?.profilePhoto ? (
+                <div className="relative inline-block">
+                  <PhotoViewer
+                    photoUrl={profile.profilePhoto}
+                    altText="Foto de perfil"
+                    size="md"
+                    rounded
+                    className="!w-24 !h-24 sm:!w-32 sm:!h-32"
+                  />
+
+                  {/* Loading Overlay */}
+                  {(uploadAvatarMutation.isPending || removeAvatarMutation.isPending) && (
+                    <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin" />
+                    </div>
+                  )}
+
+                  {/* Remove Button */}
+                  {!uploadAvatarMutation.isPending && !removeAvatarMutation.isPending && (
+                    <button
+                      type="button"
+                      onClick={handleAvatarRemove}
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 sm:p-2 shadow-lg transition-colors"
+                      title="Remover foto"
+                    >
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                  <User className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
+                </div>
+              )}
+
+              {/* Upload Button */}
+              <div className="flex flex-col items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadAvatarMutation.isPending || removeAvatarMutation.isPending}
+                  className="w-full max-w-xs"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {profile?.profilePhoto ? 'Trocar Foto' : 'Adicionar Foto'}
+                </Button>
+                <p className="text-xs text-gray-500 text-center">
+                  JPG, PNG ou WEBP (máximo 5MB)
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -358,127 +493,7 @@ export default function MyProfile() {
               </div>
             </CardContent>
           </Card>
-      </div>
-
-      {/* Abas: Autorização ILPI, Dados Pessoais, Alterar Senha, Sessões Ativas e Logs de Acesso */}
-      <Tabs defaultValue={(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator) ? "authorization" : "personal"} className="space-y-4">
-        <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-5 min-w-max">
-            <TabsTrigger value="authorization" disabled={!(profile.positionCode || profile.department || profile.isTechnicalManager || profile.isNursingCoordinator)} className="whitespace-nowrap">
-              <Shield className="h-4 w-4 mr-2" />
-              Autorização ILPI
-            </TabsTrigger>
-            <TabsTrigger value="personal" className="whitespace-nowrap">
-              <FileText className="h-4 w-4 mr-2" />
-              Dados Pessoais
-            </TabsTrigger>
-            <TabsTrigger value="password" className="whitespace-nowrap">
-              <KeyRound className="h-4 w-4 mr-2" />
-              Alterar Senha
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="whitespace-nowrap">
-              <Wifi className="h-4 w-4 mr-2" />
-              Sessões Ativas
-            </TabsTrigger>
-            <TabsTrigger value="access-logs" className="whitespace-nowrap">
-              <History className="h-4 w-4 mr-2" />
-              Histórico de Acesso
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* Aba: Autorização ILPI */}
-        <TabsContent value="authorization" className="space-y-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Autorização e Estrutura Corporativa ILPI
-              </CardTitle>
-              <CardDescription>
-                Informações de autorização gerenciadas pelo Administrador, RT ou Administrativo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cargo ILPI */}
-                {profile.positionCode && (
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4" />
-                      Cargo ILPI
-                    </Label>
-                    <div className="mt-2">
-                      <Badge variant="default" className="text-sm py-1 px-3">
-                        {POSITION_CODE_LABELS[profile.positionCode as PositionCode]}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-
-                {/* Departamento */}
-                {profile.department && (
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Departamento
-                    </Label>
-                    <div className="mt-2">
-                      <div className="text-sm font-medium">
-                        {profile.department}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Registro Profissional */}
-                {profile.registrationType && profile.registrationNumber && (
-                  <div>
-                    <Label>Registro Profissional</Label>
-                    <div className="mt-2 space-y-1">
-                      <div className="font-medium text-sm">
-                        {REGISTRATION_TYPE_LABELS[profile.registrationType as RegistrationType]}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {profile.registrationNumber}
-                        {profile.registrationState && ` - ${profile.registrationState}`}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Badges especiais */}
-              {(profile.isTechnicalManager || profile.isNursingCoordinator) && (
-                <div className="pt-2">
-                  <Label className="mb-2 block">Responsabilidades Especiais</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {profile.isTechnicalManager && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-300">
-                        <Award className="h-3 w-3 mr-1" />
-                        Responsável Técnico (RT)
-                      </Badge>
-                    )}
-                    {profile.isNursingCoordinator && (
-                      <Badge variant="outline" className="text-primary border-primary/30">
-                        <Briefcase className="h-3 w-3 mr-1" />
-                        Coordenador de Enfermagem
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Aviso de permissões */}
-              <div className="mt-4 p-3 bg-muted rounded-md">
-                <p className="text-sm text-muted-foreground">
-                  <Shield className="h-4 w-4 inline mr-1" />
-                  Estas informações só podem ser alteradas por usuários com permissão administrativa.
-                  Entre em contato com o Administrador, RT ou setor Administrativo para solicitar alterações.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </TabsContent>
 
         {/* Aba: Dados Pessoais */}
@@ -548,7 +563,7 @@ export default function MyProfile() {
                 </Button>
                 <Button type="submit" disabled={isSaving}>
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {uploadingPhoto ? 'Enviando foto...' : 'Salvar Alterações'}
+                  Salvar Alterações
                 </Button>
               </div>
             </CardContent>
@@ -673,6 +688,100 @@ export default function MyProfile() {
             </CardContent>
           </Card>
           </form>
+        </TabsContent>
+
+        {/* Aba: Autorização ILPI */}
+        <TabsContent value="authorization" className="space-y-0">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Autorização e Estrutura Corporativa ILPI
+              </CardTitle>
+              <CardDescription>
+                Informações de autorização gerenciadas pelo Administrador, RT ou Administrativo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Cargo ILPI */}
+                {profile.positionCode && (
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Cargo ILPI
+                    </Label>
+                    <div className="mt-2">
+                      <Badge variant="default" className="text-sm py-1 px-3">
+                        {POSITION_CODE_LABELS[profile.positionCode as PositionCode]}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Departamento */}
+                {profile.department && (
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Departamento
+                    </Label>
+                    <div className="mt-2">
+                      <div className="text-sm font-medium">
+                        {profile.department}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Registro Profissional */}
+                {profile.registrationType && profile.registrationNumber && (
+                  <div>
+                    <Label>Registro Profissional</Label>
+                    <div className="mt-2 space-y-1">
+                      <div className="font-medium text-sm">
+                        {REGISTRATION_TYPE_LABELS[profile.registrationType as RegistrationType]}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {profile.registrationNumber}
+                        {profile.registrationState && ` - ${profile.registrationState}`}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Badges especiais */}
+              {(profile.isTechnicalManager || profile.isNursingCoordinator) && (
+                <div className="pt-2">
+                  <Label className="mb-2 block">Responsabilidades Especiais</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {profile.isTechnicalManager && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-300">
+                        <Award className="h-3 w-3 mr-1" />
+                        Responsável Técnico (RT)
+                      </Badge>
+                    )}
+                    {profile.isNursingCoordinator && (
+                      <Badge variant="outline" className="text-primary border-primary/30">
+                        <Briefcase className="h-3 w-3 mr-1" />
+                        Coordenador de Enfermagem
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso de permissões */}
+              <div className="mt-4 p-3 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <Shield className="h-4 w-4 inline mr-1" />
+                  Estas informações só podem ser alteradas por usuários com permissão administrativa.
+                  Entre em contato com o Administrador, RT ou setor Administrativo para solicitar alterações.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Aba: Sessões Ativas */}

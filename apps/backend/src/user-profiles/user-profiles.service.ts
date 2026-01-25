@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { CreateUserProfileDto } from './dto/create-user-profile.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
+import { FilesService } from '../files/files.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
@@ -18,6 +19,7 @@ export class UserProfilesService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
 
@@ -318,5 +320,125 @@ export class UserProfilesService {
     });
 
     return { message: 'Perfil removido com sucesso' };
+  }
+
+  /**
+   * Upload de foto de perfil (avatar)
+   * - Faz upload com redimensionamento automático
+   * - Atualiza apenas o campo profilePhoto
+   * @param userId ID do usuário
+   * @param file Arquivo de imagem
+   */
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('Nenhum arquivo fornecido');
+    }
+
+    // Validar tipo de arquivo
+    const ALLOWED_MIMETYPES = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ];
+    if (!ALLOWED_MIMETYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        'Formato inválido. Permitidos: JPG, PNG, WEBP',
+      );
+    }
+
+    // Validar tamanho (5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      throw new BadRequestException('Arquivo muito grande (máximo 5MB)');
+    }
+
+    // Buscar perfil
+    const profile = await this.tenantContext.client.userProfile.findFirst({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Perfil não encontrado');
+    }
+
+    // Upload do arquivo com redimensionamento automático
+    const upload = await this.filesService.uploadFile(
+      this.tenantContext.tenantId,
+      file,
+      'user-photos',
+      userId,
+    );
+
+    // Atualizar apenas o campo profilePhoto
+    const updatedProfile = await this.tenantContext.client.userProfile.update({
+      where: { id: profile.id },
+      data: {
+        profilePhoto: upload.fileUrl,
+        updatedBy: userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    this.logger.info('Foto de perfil atualizada', {
+      userId,
+      photoUrl: upload.fileUrl,
+      tenantId: this.tenantContext.tenantId,
+    });
+
+    return updatedProfile;
+  }
+
+  /**
+   * Remove foto de perfil (avatar)
+   * - Define profilePhoto como null
+   * @param userId ID do usuário
+   */
+  async removeAvatar(userId: string) {
+    // Buscar perfil
+    const profile = await this.tenantContext.client.userProfile.findFirst({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Perfil não encontrado');
+    }
+
+    // Atualizar apenas o campo profilePhoto para null
+    const updatedProfile = await this.tenantContext.client.userProfile.update({
+      where: { id: profile.id },
+      data: {
+        profilePhoto: null,
+        updatedBy: userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    this.logger.info('Foto de perfil removida', {
+      userId,
+      tenantId: this.tenantContext.tenantId,
+    });
+
+    return updatedProfile;
   }
 }
