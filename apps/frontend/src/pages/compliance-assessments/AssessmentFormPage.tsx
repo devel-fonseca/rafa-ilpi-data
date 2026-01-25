@@ -186,6 +186,11 @@ export function AssessmentFormPage() {
       <PageHeader
         title="Autodiagnóstico RDC 502/2021"
         subtitle={`Versão ${questionsData.version.versionNumber} • ${questionsData.version.regulationName}`}
+        breadcrumbs={[
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
+          { label: 'Avaliação' },
+        ]}
         actions={
           <div className="flex items-center gap-2">
             <Button

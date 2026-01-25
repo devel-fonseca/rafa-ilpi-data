@@ -15,7 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSentinelEvents } from '@/hooks/useSentinelEvents';
 import { useAssessments } from '@/hooks/useComplianceAssessments';
 import { useFeatures } from '@/hooks/useFeatures';
-import { differenceInHours } from 'date-fns';
+import { differenceInHours, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 
 export function ConformidadePage() {
@@ -94,7 +95,7 @@ export function ConformidadePage() {
               'indicadores_mensais',
               '/dashboard/conformidade/indicadores-mensais',
               'Indicadores Mensais Obrigatórios',
-              'Indicadores RDC 502/2021 (ANVISA): mortalidade, doenças, úlceras e desnutrição.'
+              'RDC 502/2021: mortalidade, diarreia aguda, escabiose, desidratação, úlcera de decúbito e desnutrição.'
             )
           }
         >
@@ -104,8 +105,7 @@ export function ConformidadePage() {
               Indicadores Mensais Obrigatórios
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Indicadores RDC 502/2021 (ANVISA): mortalidade, doenças, úlceras e
-              desnutrição.
+              RDC 502/2021: mortalidade, diarreia aguda, escabiose, desidratação, úlcera de decúbito e desnutrição.
             </p>
             <Button variant="outline" className="w-full">
               Ver Indicadores →
@@ -203,21 +203,29 @@ export function ConformidadePage() {
               )}
             </div>
             <h3 className="text-lg font-semibold mb-2">
-              Autodiagnóstico RDC 502/2021
+              Autodiagnóstico
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               Avaliação de conformidade com indicadores regulatórios da ANVISA.
             </p>
             {lastAssessment && lastAssessment.status === 'COMPLETED' && (
-              <p className="text-xs text-muted-foreground mb-2">
-                Último resultado: <strong>{lastAssessment.complianceLevel}</strong>
-              </p>
+              <div className="space-y-1 mb-4">
+                <p className="text-xs text-muted-foreground">
+                  Último resultado: <strong>{lastAssessment.complianceLevel}</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Última avaliação:{' '}
+                  <strong>
+                    {format(new Date(lastAssessment.assessmentDate), "dd/MM/yyyy", { locale: ptBR })}
+                  </strong>
+                </p>
+              </div>
             )}
             <Button variant="outline" className="w-full">
               {lastAssessment && lastAssessment.status === 'DRAFT'
                 ? 'Continuar Rascunho →'
                 : lastAssessment && lastAssessment.status === 'COMPLETED'
-                  ? 'Ver Resultados →'
+                  ? 'Ver Histórico →'
                   : 'Iniciar Autodiagnóstico →'}
             </Button>
           </CardContent>
@@ -247,11 +255,9 @@ export function ConformidadePage() {
             📋 Sobre a Conformidade Regulatória
           </h4>
           <p className="text-sm text-muted-foreground">
-            Esta central reúne todas as áreas de conformidade exigidas pela
-            legislação brasileira para Instituições de Longa Permanência para
-            Idosos (ILPIs). Mantenha sua documentação e indicadores sempre
-            atualizados para garantir conformidade com ANVISA, Vigilância
-            Sanitária e demais órgãos reguladores.
+            Este hub reúne controles internos de conformidade da ILPI com base na RDC 502/2021 e
+            boas práticas do setor. Os registros auxiliam a gestão e a preparação para inspeções,
+            sem substituir avaliações oficiais de órgãos competentes.
           </p>
         </CardContent>
       </Card>

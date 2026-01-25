@@ -107,8 +107,12 @@ export function AssessmentListPage() {
   return (
     <Page>
       <PageHeader
-        title="Autodiagnósticos RDC 502/2021"
+        title="Autodiagnósticos"
         subtitle="Histórico de avaliações de conformidade regulatória"
+        breadcrumbs={[
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Autodiagnósticos' },
+        ]}
         actions={
           <Button onClick={handleCreateNew} disabled={createAssessmentMutation.isPending}>
             {createAssessmentMutation.isPending ? (

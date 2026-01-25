@@ -108,6 +108,11 @@ export function AssessmentResultPage() {
       <PageHeader
         title="Resultados do Autodiagnóstico"
         subtitle={`Avaliação realizada em ${format(new Date(assessment.assessmentDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
+        breadcrumbs={[
+          { label: 'Hub de Conformidade', href: '/dashboard/conformidade' },
+          { label: 'Autodiagnósticos', href: '/dashboard/conformidade/autodiagnostico' },
+          { label: 'Resultados' },
+        ]}
         actions={
           <div className="flex items-center gap-2">
             <Button
