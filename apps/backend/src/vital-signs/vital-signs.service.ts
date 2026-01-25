@@ -20,6 +20,7 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
+import { getDayRangeInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
 
 @Injectable()
 export class VitalSignsService {
@@ -152,18 +153,33 @@ export class VitalSignsService {
    */
   async findByResident(
     residentId: string,
-    startDate?: Date,
-    endDate?: Date,
+    startDateStr?: string,
+    endDateStr?: string,
   ) {
     const where: Prisma.VitalSignWhereInput = {
       residentId,
       deletedAt: null,
     };
 
-    if (startDate || endDate) {
+    // Se forneceu range de datas, buscar timezone do tenant e construir range UTC
+    if (startDateStr || endDateStr) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: this.tenantContext.tenantId },
+        select: { timezone: true },
+      });
+      const timezone = tenant?.timezone || DEFAULT_TIMEZONE;
+
       where.timestamp = {};
-      if (startDate) where.timestamp.gte = startDate;
-      if (endDate) where.timestamp.lte = endDate;
+
+      if (startDateStr) {
+        const { start } = getDayRangeInTz(startDateStr, timezone);
+        where.timestamp.gte = start;
+      }
+
+      if (endDateStr) {
+        const { end } = getDayRangeInTz(endDateStr, timezone);
+        where.timestamp.lte = end;
+      }
     }
 
     return await this.tenantContext.client.vitalSign.findMany({
@@ -181,6 +197,7 @@ export class VitalSignsService {
       },
     });
   }
+
 
   /**
    * Atualizar sinal vital COM versionamento

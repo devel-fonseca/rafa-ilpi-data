@@ -30,7 +30,7 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
-import { parseISO } from 'date-fns';
+import { parseDateOnly } from '../utils/date.helpers';
 
 @ApiTags('vital-signs')
 @ApiBearerAuth('JWT-auth')
@@ -72,8 +72,10 @@ export class VitalSignsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const start = startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined;
-    const end = endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined;
+    // Extrair apenas YYYY-MM-DD das strings ISO enviadas pelo frontend
+    const start = startDate ? parseDateOnly(startDate) : undefined;
+    const end = endDate ? parseDateOnly(endDate) : undefined;
+
     return this.vitalSignsService.findByResident(
       residentId,
       start,
