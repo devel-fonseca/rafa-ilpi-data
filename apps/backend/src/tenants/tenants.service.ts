@@ -634,12 +634,16 @@ export class TenantsService {
     // Enviar email de convite se solicitado
     if (addUserDto.sendInviteEmail && this.emailService) {
       try {
-        const emailSent = await this.emailService.sendUserInvite(user.email, {
-          name: user.name,
-          email: user.email,
-          temporaryPassword,
-          tenantName: tenant.name,
-        });
+        const emailSent = await this.emailService.sendUserInvite(
+          user.email,
+          {
+            name: user.name,
+            email: user.email,
+            temporaryPassword,
+            tenantName: tenant.name,
+          },
+          tenantId, // Incluir tenantId para tracking no histórico de emails
+        );
 
         if (emailSent) {
           this.logger.log(`Email de convite enviado com sucesso para ${user.email}`);

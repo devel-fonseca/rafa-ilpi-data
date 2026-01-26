@@ -65,13 +65,17 @@ export class CollectionsService {
     )
 
     // Enviar email de lembrete
-    const emailSent = await this.emailService.sendPaymentReminder(invoice.tenant.email, {
-      tenantName: invoice.tenant.name,
-      invoiceNumber: invoice.invoiceNumber,
-      amount: Number(invoice.amount),
-      dueDate: new Date(invoice.dueDate),
-      daysOverdue,
-    })
+    const emailSent = await this.emailService.sendPaymentReminder(
+      invoice.tenant.email,
+      {
+        tenantName: invoice.tenant.name,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: Number(invoice.amount),
+        dueDate: new Date(invoice.dueDate),
+        daysOverdue,
+      },
+      invoice.tenant.id, // Incluir tenantId para tracking no histórico de emails
+    )
 
     if (emailSent) {
       this.logger.log(
