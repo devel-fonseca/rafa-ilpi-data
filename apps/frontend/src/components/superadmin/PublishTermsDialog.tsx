@@ -7,25 +7,25 @@ import { AlertTriangle } from 'lucide-react'
 import { usePublishTermsOfService } from '@/hooks/useTermsOfService'
 import type { TermsOfService } from '@/api/terms-of-service.api'
 
-interface PublishContractDialogProps {
-  contract: TermsOfService | null
+interface PublishTermsDialogProps {
+  terms: TermsOfService | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function PublishContractDialog({
-  contract,
+export function PublishTermsDialog({
+  terms,
   open,
   onOpenChange,
-}: PublishContractDialogProps) {
+}: PublishTermsDialogProps) {
   const [confirmed, setConfirmed] = useState(false)
-  const publishContract = usePublishTermsOfService()
+  const publishTerms = usePublishTermsOfService()
 
   const handlePublish = async () => {
-    if (!contract || !confirmed) return
+    if (!terms || !confirmed) return
 
-    await publishContract.mutateAsync({
-      id: contract.id,
+    await publishTerms.mutateAsync({
+      id: terms.id,
       dto: {}, // effectiveFrom será now() por padrão
     })
 
@@ -37,14 +37,14 @@ export function PublishContractDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Publicar Contrato</DialogTitle>
+          <DialogTitle>Publicar Termo de Uso</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <Alert className="bg-warning/5 border-warning/30">
             <AlertTriangle className="h-4 w-4 text-warning" />
             <AlertDescription className="text-warning/90">
-              <strong>Atenção!</strong> Ao publicar este contrato:
+              <strong>Atenção!</strong> Ao publicar este termo de uso:
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>Ele ficará disponível para novos cadastros</li>
                 <li>A versão anterior do mesmo plano será revogada automaticamente</li>
@@ -53,18 +53,18 @@ export function PublishContractDialog({
             </AlertDescription>
           </Alert>
 
-          {contract && (
+          {terms && (
             <div className="bg-slate-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">Contrato a ser publicado:</h4>
+              <h4 className="font-semibold mb-2">Termo de uso a ser publicado:</h4>
               <p className="text-sm text-muted-foreground">
-                <strong>Versão:</strong> {contract.version}
+                <strong>Versão:</strong> {terms.version}
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Título:</strong> {contract.title}
+                <strong>Título:</strong> {terms.title}
               </p>
               <p className="text-sm text-muted-foreground">
                 <strong>Plano:</strong>{' '}
-                {contract.plan ? contract.plan.displayName : 'Genérico (todos os planos)'}
+                {terms.plan ? terms.plan.displayName : 'Genérico (todos os planos)'}
               </p>
             </div>
           )}
@@ -79,7 +79,7 @@ export function PublishContractDialog({
               htmlFor="confirm"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Confirmo que revisei o contrato e desejo publicá-lo
+              Confirmo que revisei o termo de uso e desejo publicá-lo
             </label>
           </div>
 
@@ -89,10 +89,10 @@ export function PublishContractDialog({
             </Button>
             <Button
               onClick={handlePublish}
-              disabled={!confirmed || publishContract.isPending}
+              disabled={!confirmed || publishTerms.isPending}
               className="bg-success/60 hover:bg-success/70"
             >
-              {publishContract.isPending ? 'Publicando...' : 'Publicar Contrato'}
+              {publishTerms.isPending ? 'Publicando...' : 'Publicar Termo de Uso'}
             </Button>
           </div>
         </div>

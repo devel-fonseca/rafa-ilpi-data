@@ -16,7 +16,7 @@ import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
 import { ApplyDiscountDialog } from '@/components/superadmin/ApplyDiscountDialog'
 import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
-import { ContractAcceptanceModal } from '@/components/superadmin/ContractAcceptanceModal'
+import { TermsAcceptanceModal } from '@/components/superadmin/TermsAcceptanceModal'
 import { PrivacyPolicyAcceptanceModal } from '@/components/superadmin/PrivacyPolicyAcceptanceModal'
 import {
   useTenant,
@@ -458,8 +458,8 @@ export function TenantDetails() {
         </Card>
       )}
 
-      {/* Modal de Detalhes do Contrato */}
-      <ContractAcceptanceModal
+      {/* Modal de Detalhes do Termo de Uso */}
+      <TermsAcceptanceModal
         acceptance={contractAcceptance || null}
         open={contractModalOpen}
         onClose={() => setContractModalOpen(false)}

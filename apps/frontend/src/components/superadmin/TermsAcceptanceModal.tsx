@@ -7,31 +7,31 @@ import {
 import { Separator } from '@/components/ui/separator'
 import type { ContractAcceptance } from '@/api/contracts.api'
 
-interface ContractAcceptanceModalProps {
+interface TermsAcceptanceModalProps {
   acceptance: ContractAcceptance | null
   open: boolean
   onClose: () => void
 }
 
-export function ContractAcceptanceModal({
+export function TermsAcceptanceModal({
   acceptance,
   open,
   onClose,
-}: ContractAcceptanceModalProps) {
+}: TermsAcceptanceModalProps) {
   if (!acceptance) return null
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Detalhes do Contrato Aceito</DialogTitle>
+          <DialogTitle>Detalhes do Termo de Uso Aceito</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
           {/* Informações Principais */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-slate-500 mb-1">Versão do Contrato</p>
+              <p className="text-slate-500 mb-1">Versão do Termo</p>
               <p className="text-slate-900 font-medium">
                 {acceptance.contractVersion}
               </p>
@@ -63,9 +63,9 @@ export function ContractAcceptanceModal({
 
           {/* Título e Conteúdo */}
           <div>
-            <p className="text-slate-500 text-sm mb-2">Título do Contrato</p>
+            <p className="text-slate-500 text-sm mb-2">Título do Termo de Uso</p>
             <p className="text-slate-900 font-medium text-lg mb-6">
-              {acceptance.contract?.title || 'Contrato de Prestação de Serviços'}
+              {acceptance.contract?.title || 'Termo de Aceite e Termos de Uso'}
             </p>
 
             <p className="text-slate-500 text-sm mb-3">Conteúdo Completo</p>
@@ -86,7 +86,7 @@ export function ContractAcceptanceModal({
               {acceptance.contractHash}
             </p>
             <p className="text-xs text-primary/80 mt-2">
-              Este hash criptográfico garante que o conteúdo do contrato aceito
+              Este hash criptográfico garante que o conteúdo do termo de uso aceito
               não foi alterado desde o momento da aceitação, servindo como prova
               jurídica de integridade.
             </p>

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { PublishContractDialog } from '@/components/superadmin/PublishContractDialog'
+import { PublishTermsDialog } from '@/components/superadmin/PublishTermsDialog'
 import { toast } from 'sonner'
 
 const statusColors = {
@@ -233,8 +233,8 @@ export function ContractDetails() {
         </TabsContent>
       </Tabs>
 
-      <PublishContractDialog
-        contract={contract}
+      <PublishTermsDialog
+        terms={contract}
         open={publishDialogOpen}
         onOpenChange={setPublishDialogOpen}
       />
