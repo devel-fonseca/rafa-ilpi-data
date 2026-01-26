@@ -337,8 +337,8 @@ export function ContractNew() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Criar Novo Contrato</h1>
-            <p className="text-muted-foreground">Preencha os campos para criar um contrato DRAFT</p>
+            <h1 className="text-3xl font-bold">Criar Novo Termo de Uso</h1>
+            <p className="text-muted-foreground">Preencha os campos para criar um termo de uso DRAFT</p>
           </div>
         </div>
       </div>
@@ -364,8 +364,8 @@ export function ContractNew() {
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 {planId === 'ALL'
-                  ? 'Contrato genérico aplicável a todos os planos'
-                  : 'Contrato específico para este plano'}
+                  ? 'Termo de uso genérico aplicável a todos os planos'
+                  : 'Termo de uso específico para este plano'}
               </p>
             </div>
 
@@ -383,9 +383,9 @@ export function ContractNew() {
 
           <div className="mt-4 p-3 bg-primary/5 border border-primary/30 rounded-lg">
             <p className="text-xs text-primary/95">
-              <strong>ℹ️ Versionamento automático:</strong> A versão será gerada automaticamente ao criar o contrato.
+              <strong>ℹ️ Versionamento automático:</strong> A versão será gerada automaticamente ao criar o termo de uso.
               {planId === 'ALL'
-                ? ' Próxima versão do contrato genérico.'
+                ? ' Próxima versão do termo de uso genérico.'
                 : ' Próxima versão para o plano selecionado.'}
             </p>
           </div>
@@ -393,10 +393,10 @@ export function ContractNew() {
 
         <Card className="p-6">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg mb-3">Conteúdo do Contrato</h3>
+            <h3 className="font-semibold text-lg mb-3">Conteúdo do Termo de Uso</h3>
             <Card className="p-4 bg-primary/5 border-primary/30">
               <p className="text-xs font-semibold text-primary/95 mb-2">
-                📝 Variáveis disponíveis para usar no contrato:
+                📝 Variáveis disponíveis para usar no termo de uso:
               </p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-primary/90">
                 <div><code className="bg-white px-1.5 py-0.5 rounded">{'{{tenant.name}}'}</code> - Nome do tenant</div>
@@ -459,7 +459,7 @@ export function ContractNew() {
           </Button>
           <Button type="submit" disabled={createContract.isPending}>
             <Save className="h-4 w-4 mr-2" />
-            {createContract.isPending ? 'Criando...' : 'Criar Contrato'}
+            {createContract.isPending ? 'Criando...' : 'Criar Termo de Uso'}
           </Button>
         </div>
       </form>

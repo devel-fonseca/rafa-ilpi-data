@@ -1,0 +1,58 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  TERMOS DE USO SaaS
+//
+//  Modelos para gerenciar termos de uso, aceites e compliance LGPD
+//  (Substitui ServiceContract - nova terminologia)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Termos de Uso (Templates Versionados)
+model TermsOfService {
+  id            String         @id @default(uuid()) @db.Uuid
+  version       String // "v1.0", "v1.1", "v2.0"
+  planId        String?        @db.Uuid // NULL = genérico para todos planos
+  status        ContractStatus @default(DRAFT)
+  effectiveFrom DateTime?      @db.Timestamptz(3)
+  title         String         @db.VarChar(255)
+  content       String // HTML/Markdown
+  contentHash   String         @db.VarChar(64) // SHA-256
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  revokedAt     DateTime?      @db.Timestamptz(3)
+  revokedBy     String?        @db.Uuid
+
+  // Relações
+  plan        Plan?                      @relation(fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                       @relation("TermsOfServiceCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                      @relation("TermsOfServiceRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  acceptances TermsOfServiceAcceptance[]
+
+  @@unique([version, planId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@map("terms_of_service")
+}
+
+// Registros de Aceite dos Termos de Uso (Prova Jurídica)
+model TermsOfServiceAcceptance {
+  id              String   @id @default(uuid()) @db.Uuid
+  termsId         String   @db.Uuid
+  tenantId        String   @unique @db.Uuid // Tenant só aceita uma vez
+  userId          String   @db.Uuid // Stored for reference, no FK (cross-schema)
+  acceptedAt      DateTime @default(now()) @db.Timestamptz(3)
+  ipAddress       String   @db.VarChar(45)
+  userAgent       String
+  termsVersion    String   @db.VarChar(50) // Snapshot imutável
+  termsHash       String   @db.VarChar(64) // Snapshot imutável
+  termsContent    String // Snapshot imutável
+
+  // Relações
+  terms  TermsOfService @relation(fields: [termsId], references: [id], onDelete: Restrict)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // user - NO FK (cross-schema: public → tenant_xxx)
+
+  @@index([termsId])
+  @@index([acceptedAt])
+  @@map("terms_of_service_acceptances")
+}

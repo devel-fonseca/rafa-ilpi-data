@@ -24,8 +24,9 @@ model Plan {
   createdAt             DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
 
-  subscriptions Subscription[]
-  contracts     ServiceContract[]
+  subscriptions    Subscription[]
+  contracts        ServiceContract[] // DEPRECATED - migrar para termsOfService
+  termsOfService   TermsOfService[] // Nova tabela de termos de uso
 
   @@map("plans")
 }
@@ -110,10 +111,11 @@ model Tenant {
   residentScheduledEvents    ResidentScheduledEvent[]
   invoices                   Invoice[] // SuperAdmin - Faturas
   usageMetrics               UsageMetrics[] // SuperAdmin - Métricas de uso
-  systemAlerts               SystemAlert[] // SuperAdmin - Alertas
-  contractAcceptance         ContractAcceptance?
-  privacyPolicyAcceptance    PrivacyPolicyAcceptance?
-  messages                   Message[]
+  systemAlerts                SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance          ContractAcceptance? // DEPRECATED - migrar para termsOfServiceAcceptance
+  termsOfServiceAcceptance    TermsOfServiceAcceptance? // Nova tabela de aceite de termos de uso
+  privacyPolicyAcceptance     PrivacyPolicyAcceptance?
+  messages                    Message[]
   messageRecipients          MessageRecipient[]
   messageAttachments         MessageAttachment[]
   emailLogs                  EmailLog[] // Auditoria de emails enviados

@@ -33,7 +33,7 @@ export function ContractDetails() {
   const [copiedHash, setCopiedHash] = useState(false)
 
   const handleDelete = async () => {
-    if (!contract || !confirm('Tem certeza que deseja deletar este contrato?')) return
+    if (!contract || !confirm('Tem certeza que deseja deletar este termo de uso?')) return
 
     await deleteContract.mutateAsync(contract.id)
     navigate('/superadmin/contracts')
@@ -64,7 +64,7 @@ export function ContractDetails() {
   if (!contract) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Contrato não encontrado</p>
+        <p className="text-muted-foreground">Termo de uso não encontrado</p>
       </div>
     )
   }
@@ -225,7 +225,7 @@ export function ContractDetails() {
             ) : (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                  Nenhum aceite registrado para este contrato
+                  Nenhum aceite registrado para este termo de uso
                 </p>
               </div>
             )}

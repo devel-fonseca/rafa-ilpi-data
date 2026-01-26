@@ -53,7 +53,7 @@ export function ContractEdit() {
   if (!contract) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Contrato não encontrado</p>
+        <p className="text-muted-foreground">Termo de uso não encontrado</p>
       </div>
     )
   }
@@ -69,12 +69,12 @@ export function ContractEdit() {
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">Editar Contrato</h1>
+          <h1 className="text-3xl font-bold">Editar Termo de Uso</h1>
         </div>
 
         <Alert variant="destructive">
           <AlertDescription>
-            Apenas contratos com status DRAFT podem ser editados. Este contrato está como{' '}
+            Apenas termos de uso com status DRAFT podem ser editados. Este termo de uso está como{' '}
             <strong>{contract.status}</strong>.
           </AlertDescription>
         </Alert>
@@ -98,7 +98,7 @@ export function ContractEdit() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Editar Contrato</h1>
+            <h1 className="text-3xl font-bold">Editar Termo de Uso</h1>
             <p className="text-muted-foreground">
               Versão {contract.version} • Apenas título e conteúdo podem ser editados
             </p>
@@ -133,10 +133,10 @@ export function ContractEdit() {
 
         <Card className="p-6">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg mb-3">Conteúdo do Contrato</h3>
+            <h3 className="font-semibold text-lg mb-3">Conteúdo do Termo de Uso</h3>
             <Card className="p-4 bg-primary/5 border-primary/30">
               <p className="text-xs font-semibold text-primary/95 mb-2">
-                📝 Variáveis disponíveis para usar no contrato:
+                📝 Variáveis disponíveis para usar no termo de uso:
               </p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-primary/90">
                 <div><code className="bg-white px-1.5 py-0.5 rounded">{'{{tenant.name}}'}</code> - Nome do tenant</div>

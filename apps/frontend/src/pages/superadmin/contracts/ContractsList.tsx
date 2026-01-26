@@ -32,14 +32,14 @@ export function ContractsList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Contratos</h1>
+          <h1 className="text-3xl font-bold">Termos de Uso</h1>
           <p className="text-muted-foreground">
-            Gerencie os contratos de prestação de serviços
+            Gerencie os termos de uso da plataforma
           </p>
         </div>
         <Button onClick={() => navigate('/superadmin/contracts/new')}>
           <Plus className="h-4 w-4 mr-2" />
-          Novo Contrato
+          Novo Termo de Uso
         </Button>
       </div>
 
@@ -102,13 +102,13 @@ export function ContractsList() {
       ) : (
         <Card className="p-12 text-center">
           <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Nenhum contrato encontrado</h3>
+          <h3 className="text-lg font-semibold mb-2">Nenhum termo de uso encontrado</h3>
           <p className="text-muted-foreground mb-4">
-            Crie um novo contrato para começar
+            Crie um novo termo de uso para começar
           </p>
           <Button onClick={() => navigate('/superadmin/contracts/new')}>
             <Plus className="h-4 w-4 mr-2" />
-            Criar Primeiro Contrato
+            Criar Primeiro Termo de Uso
           </Button>
         </Card>
       )}
