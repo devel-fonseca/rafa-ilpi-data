@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PaymentsModule } from '../payments/payments.module'
 import { ContractsModule } from '../contracts/contracts.module'
@@ -36,7 +36,13 @@ import { SuperAdminController } from './superadmin.controller'
  * - Fase 5: Sistema de alertas
  */
 @Module({
-  imports: [PrismaModule, PaymentsModule, ContractsModule, EmailModule],
+  imports: [
+    PrismaModule,
+    // forwardRef() evita dependência circular com PaymentsModule
+    forwardRef(() => PaymentsModule),
+    ContractsModule,
+    EmailModule,
+  ],
   controllers: [SuperAdminController],
   providers: [
     MetricsService,
