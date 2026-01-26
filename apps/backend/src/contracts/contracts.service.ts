@@ -410,6 +410,11 @@ export class ContractsService {
             title: true,
           },
         },
+        tenant: {
+          select: {
+            schemaName: true,
+          },
+        },
         // ⚠️ REMOVED user include - User está em schema de tenant, não pode fazer JOIN com ContractAcceptance (public schema)
       },
     });
@@ -418,6 +423,28 @@ export class ContractsService {
       throw new NotFoundException('Aceite não encontrado para este tenant');
     }
 
-    return acceptance;
+    // Buscar dados do usuário no schema do tenant
+    let user: { name: string; email: string } | null = null;
+    if (acceptance.userId && acceptance.tenant?.schemaName) {
+      try {
+        const userResult = await this.prisma.$queryRawUnsafe<[{ name: string; email: string }]>(
+          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1 LIMIT 1`,
+          acceptance.userId
+        );
+        if (userResult[0]) {
+          user = {
+            name: userResult[0].name,
+            email: userResult[0].email,
+          };
+        }
+      } catch (_error) {
+        // Se falhar, deixar user como null
+      }
+    }
+
+    return {
+      ...acceptance,
+      user,
+    };
   }
 }

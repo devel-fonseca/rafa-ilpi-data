@@ -727,12 +727,43 @@ export class SuperAdminController {
     const acceptance = await this.prismaService.privacyPolicyAcceptance.findUnique({
       where: { tenantId },
       include: {
+        tenant: {
+          select: {
+            schemaName: true,
+          },
+        },
         // NOTA: Relação 'user' removida (incompatível com multi-tenancy)
         // userId aponta para tenant_xyz.users, não public.users
       },
     })
 
-    return acceptance
+    if (!acceptance) {
+      return null
+    }
+
+    // Buscar dados do usuário no schema do tenant
+    let user: { name: string; email: string } | null = null
+    if (acceptance.userId && acceptance.tenant?.schemaName) {
+      try {
+        const userResult = await this.prismaService.$queryRawUnsafe<[{ name: string; email: string }]>(
+          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1 LIMIT 1`,
+          acceptance.userId
+        )
+        if (userResult[0]) {
+          user = {
+            name: userResult[0].name,
+            email: userResult[0].email,
+          }
+        }
+      } catch (_error) {
+        // Se falhar, deixar user como null
+      }
+    }
+
+    return {
+      ...acceptance,
+      user,
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
