@@ -36,7 +36,7 @@ export function ContractDetails() {
     if (!contract || !confirm('Tem certeza que deseja deletar este termo de uso?')) return
 
     await deleteContract.mutateAsync(contract.id)
-    navigate('/superadmin/contracts')
+    navigate('/superadmin/terms')
   }
 
   const handleCopyHash = async () => {
@@ -76,7 +76,7 @@ export function ContractDetails() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={() => navigate('/superadmin/contracts')}>
+          <Button variant="outline" size="icon" onClick={() => navigate('/superadmin/terms')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

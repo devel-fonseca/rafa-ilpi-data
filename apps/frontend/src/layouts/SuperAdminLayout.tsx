@@ -74,7 +74,7 @@ export function SuperAdminLayout() {
       icon: Package,
     },
     {
-      to: '/superadmin/contracts',
+      to: '/superadmin/terms',
       label: 'Termos de Uso',
       icon: FileText,
     },

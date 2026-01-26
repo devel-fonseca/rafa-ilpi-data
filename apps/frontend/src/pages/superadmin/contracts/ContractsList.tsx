@@ -37,7 +37,7 @@ export function ContractsList() {
             Gerencie os termos de uso da plataforma
           </p>
         </div>
-        <Button onClick={() => navigate('/superadmin/contracts/new')}>
+        <Button onClick={() => navigate('/superadmin/terms/new')}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Termo de Uso
         </Button>
@@ -71,7 +71,7 @@ export function ContractsList() {
       ) : contracts && contracts.length > 0 ? (
         <div className="grid gap-4">
           {contracts.map((contract: TermsOfService) => (
-            <Link key={contract.id} to={`/superadmin/contracts/${contract.id}`}>
+            <Link key={contract.id} to={`/superadmin/terms/${contract.id}`}>
               <Card className="p-6 hover:bg-accent transition-colors cursor-pointer">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -106,7 +106,7 @@ export function ContractsList() {
           <p className="text-muted-foreground mb-4">
             Crie um novo termo de uso para começar
           </p>
-          <Button onClick={() => navigate('/superadmin/contracts/new')}>
+          <Button onClick={() => navigate('/superadmin/terms/new')}>
             <Plus className="h-4 w-4 mr-2" />
             Criar Primeiro Termo de Uso
           </Button>

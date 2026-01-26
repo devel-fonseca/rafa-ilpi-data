@@ -265,7 +265,7 @@ export function ContractNew() {
         planId: actualPlanId,
       })
 
-      navigate('/superadmin/contracts')
+      navigate('/superadmin/terms')
     } catch (error) {
       toast.error('Erro ao criar contrato')
     }
@@ -278,7 +278,7 @@ export function ContractNew() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => navigate('/superadmin/contracts')}
+            onClick={() => navigate('/superadmin/terms')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -399,7 +399,7 @@ export function ContractNew() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/superadmin/contracts')}
+            onClick={() => navigate('/superadmin/terms')}
           >
             Cancelar
           </Button>

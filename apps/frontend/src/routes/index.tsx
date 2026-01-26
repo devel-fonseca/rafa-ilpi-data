@@ -617,19 +617,19 @@ export const router = createBrowserRouter([
         element: <PlanDetails />,
       },
       {
-        path: 'contracts',
+        path: 'terms',
         element: <ContractsList />,
       },
       {
-        path: 'contracts/new',
+        path: 'terms/new',
         element: <ContractNew />,
       },
       {
-        path: 'contracts/:id/edit',
+        path: 'terms/:id/edit',
         element: <ContractEdit />,
       },
       {
-        path: 'contracts/:id',
+        path: 'terms/:id',
         element: <ContractDetails />,
       },
       {
