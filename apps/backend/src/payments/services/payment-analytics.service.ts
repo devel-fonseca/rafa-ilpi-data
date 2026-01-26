@@ -206,7 +206,8 @@ export class PaymentAnalyticsService {
    * Obtém MRR breakdown por método de pagamento
    *
    * MRR (Monthly Recurring Revenue) é calculado com base em:
-   * - Subscriptions ATIVAS (não canceladas/trial/suspensas)
+   * - Subscriptions que geram RECEITA REAL (ACTIVE e PAST_DUE apenas)
+   * - TRIAL/trialing NÃO conta pois não gera receita ainda
    * - Valor normalizado para mensal (planos anuais divididos por 12)
    * - Método de pagamento baseado na última fatura paga de cada subscription
    */
@@ -214,11 +215,12 @@ export class PaymentAnalyticsService {
     total: number
     byMethod: Array<{ billingType: string; mrr: number; percentage: number }>
   }> {
-    // Buscar todas as subscriptions ativas (incluindo TRIAL para MRR potencial)
+    // Buscar subscriptions que geram receita real (ACTIVE e PAST_DUE)
+    // TRIAL/trialing NÃO conta para MRR pois não gera receita ainda
     const activeSubscriptions = await this.prisma.subscription.findMany({
       where: {
         status: {
-          in: ['ACTIVE', 'active', 'TRIAL', 'trialing'], // Incluir trials no MRR
+          in: ['ACTIVE', 'active', 'PAST_DUE', 'past_due'], // ✅ Apenas receita real
         },
       },
       include: {
