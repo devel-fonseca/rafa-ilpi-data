@@ -8,13 +8,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useContract, useUpdateContract } from '@/hooks/useContracts'
+import { useTermsOfServiceById, useUpdateTermsOfService } from '@/hooks/useTermsOfService'
 
 export function ContractEdit() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: contract, isLoading } = useContract(id!)
-  const updateContract = useUpdateContract()
+  const { data: contract, isLoading } = useTermsOfServiceById(id!)
+  const updateContract = useUpdateTermsOfService()
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')

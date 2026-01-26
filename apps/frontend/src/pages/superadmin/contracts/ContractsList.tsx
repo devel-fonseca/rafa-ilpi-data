@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FileText, Plus } from 'lucide-react'
-import { useContracts } from '@/hooks/useContracts'
+import { useTermsOfService } from '@/hooks/useTermsOfService'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Contract } from '@/api/contracts.api'
+import type { TermsOfService } from '@/api/terms-of-service.api'
 
 const statusColors = {
   DRAFT: 'bg-muted/20 text-foreground/90',
@@ -26,7 +26,7 @@ export function ContractsList() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const filters = statusFilter === 'all' ? {} : { status: statusFilter as 'DRAFT' | 'ACTIVE' | 'REVOKED' }
-  const { data: contracts, isLoading } = useContracts(filters)
+  const { data: contracts, isLoading } = useTermsOfService(filters)
 
   return (
     <div className="space-y-6">
@@ -70,7 +70,7 @@ export function ContractsList() {
         </div>
       ) : contracts && contracts.length > 0 ? (
         <div className="grid gap-4">
-          {contracts.map((contract: Contract) => (
+          {contracts.map((contract: TermsOfService) => (
             <Link key={contract.id} to={`/superadmin/contracts/${contract.id}`}>
               <Card className="p-6 hover:bg-accent transition-colors cursor-pointer">
                 <div className="flex items-start justify-between">

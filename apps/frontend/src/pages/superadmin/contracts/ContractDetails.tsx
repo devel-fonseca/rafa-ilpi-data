@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Edit, Rocket, Trash2, Copy, Check } from 'lucide-react'
-import { useContract, useDeleteContract, useContractAcceptances } from '@/hooks/useContracts'
+import { useTermsOfServiceById, useDeleteTermsOfService, useTermsOfServiceAcceptances } from '@/hooks/useTermsOfService'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,9 +25,9 @@ const statusLabels = {
 export function ContractDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: contract, isLoading } = useContract(id!)
-  const { data: acceptances, isLoading: loadingAcceptances } = useContractAcceptances(id!)
-  const deleteContract = useDeleteContract()
+  const { data: contract, isLoading } = useTermsOfServiceById(id!)
+  const { data: acceptances, isLoading: loadingAcceptances } = useTermsOfServiceAcceptances(id!)
+  const deleteContract = useDeleteTermsOfService()
 
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
   const [copiedHash, setCopiedHash] = useState(false)

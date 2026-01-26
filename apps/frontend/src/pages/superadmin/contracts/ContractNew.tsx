@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCreateContract } from '@/hooks/useContracts'
-import { getNextVersion } from '@/api/contracts.api'
+import { useCreateTermsOfService } from '@/hooks/useTermsOfService'
+import { getNextVersion } from '@/api/terms-of-service.api'
 import { getPlans } from '@/api/plans.api'
 import type { Plan } from '@/api/plans.api'
 import { toast } from 'sonner'
@@ -235,7 +235,7 @@ export function ContractNew() {
   const [planId, setPlanId] = useState<string>('ALL')
   const [plans, setPlans] = useState<Plan[]>([])
 
-  const createContract = useCreateContract()
+  const createContract = useCreateTermsOfService()
 
   // Carregar planos ao montar componente
   useEffect(() => {

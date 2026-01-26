@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
-import { usePublishContract } from '@/hooks/useContracts'
-import type { Contract } from '@/api/contracts.api'
+import { usePublishTermsOfService } from '@/hooks/useTermsOfService'
+import type { TermsOfService } from '@/api/terms-of-service.api'
 
 interface PublishContractDialogProps {
-  contract: Contract | null
+  contract: TermsOfService | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -19,7 +19,7 @@ export function PublishContractDialog({
   onOpenChange,
 }: PublishContractDialogProps) {
   const [confirmed, setConfirmed] = useState(false)
-  const publishContract = usePublishContract()
+  const publishContract = usePublishTermsOfService()
 
   const handlePublish = async () => {
     if (!contract || !confirmed) return
