@@ -1264,22 +1264,40 @@ export default function Register() {
             )}
           </div>
 
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-slate-700">
-              <Check className="h-4 w-4 text-success flex-shrink-0" />
-              <span>{selectedPlan.maxUsers === -1 ? 'Usuários ilimitados' : `Até ${selectedPlan.maxUsers} usuários`}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-700">
-              <Check className="h-4 w-4 text-success flex-shrink-0" />
-              <span>{selectedPlan.maxResidents === -1 ? 'Residentes ilimitados' : `Até ${selectedPlan.maxResidents} residentes`}</span>
-            </div>
-            {selectedPlan.trialDays > 0 && (
-              <div className="flex items-center gap-2 text-success font-medium">
+          {/* Seção Colapsável de Features */}
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-center gap-2 text-sm text-primary font-medium hover:text-primary/80 transition-colors">
+              <span>Saiba mais sobre o plano</span>
+              <span className="transform transition-transform group-open:rotate-180">▼</span>
+            </summary>
+            <div className="mt-4 space-y-2 text-sm border-t pt-4">
+              <div className="flex items-center gap-2 text-slate-700">
                 <Check className="h-4 w-4 text-success flex-shrink-0" />
-                <span>{selectedPlan.trialDays} dias de teste grátis</span>
+                <span>{selectedPlan.maxUsers === -1 ? 'Usuários ilimitados' : `Até ${selectedPlan.maxUsers} usuários`}</span>
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2 text-slate-700">
+                <Check className="h-4 w-4 text-success flex-shrink-0" />
+                <span>{selectedPlan.maxResidents === -1 ? 'Residentes ilimitados' : `Até ${selectedPlan.maxResidents} residentes`}</span>
+              </div>
+              {selectedPlan.trialDays > 0 && (
+                <div className="flex items-center gap-2 text-success font-medium">
+                  <Check className="h-4 w-4 text-success flex-shrink-0" />
+                  <span>{selectedPlan.trialDays} dias de teste grátis</span>
+                </div>
+              )}
+
+              {/* Features do plano */}
+              <div className="pt-3 border-t">
+                <p className="text-xs text-slate-600 mb-2 font-medium">Funcionalidades incluídas:</p>
+                {featuresToArray(selectedPlan.features).map((feature, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-slate-700 py-1">
+                    <Check className="h-4 w-4 text-success flex-shrink-0" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </details>
         </Card>
 
         {/* Seção 2: Ciclo de Cobrança (só aparece se plano tem preço) */}
@@ -1349,10 +1367,14 @@ export default function Register() {
 
         {/* Seção 3: Método de Pagamento */}
         <div className="space-y-3">
-          <Label className="text-base font-semibold">Método de Pagamento Preferido</Label>
-          <p className="text-xs text-muted-foreground">
-            Você poderá alterar esta preferência posteriormente no painel de configurações.
-          </p>
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold">Método de Pagamento Preferido</Label>
+            {formData.paymentMethod && (
+              <p className="text-xs text-muted-foreground italic">
+                Você poderá alterar posteriormente
+              </p>
+            )}
+          </div>
 
           <RadioGroup
             value={formData.paymentMethod}
