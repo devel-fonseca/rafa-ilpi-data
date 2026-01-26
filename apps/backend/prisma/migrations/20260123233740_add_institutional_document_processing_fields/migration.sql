@@ -59,16 +59,17 @@ BEGIN
         ', schema_name);
 
         -- Criar constraint UNIQUE no publicToken (idempotente)
+        -- IMPORTANTE: PostgreSQL converte nomes para lowercase, então verificamos lowercase
         EXECUTE format('
             DO $inner$
             BEGIN
                 IF NOT EXISTS (
                     SELECT 1 FROM pg_constraint
-                    WHERE conname = ''tenant_documents_publicToken_key''
+                    WHERE conname = ''tenant_documents_publictoken_key''
                     AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %L)
                 ) THEN
                     ALTER TABLE %I.tenant_documents
-                    ADD CONSTRAINT tenant_documents_publicToken_key UNIQUE ("publicToken");
+                    ADD CONSTRAINT tenant_documents_publictoken_key UNIQUE ("publicToken");
                 END IF;
             END $inner$;
         ', schema_name, schema_name);

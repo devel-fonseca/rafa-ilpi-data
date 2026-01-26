@@ -224,12 +224,19 @@ BEGIN
         -- ==========================================
         -- AddForeignKey compliance_assessment_responses
         -- ==========================================
-        EXECUTE format('
-            ALTER TABLE %I.compliance_assessment_responses
-                ADD CONSTRAINT compliance_assessment_responses_assessmentId_fkey
-                FOREIGN KEY ("assessmentId") REFERENCES %I.compliance_assessments(id)
-                ON DELETE CASCADE ON UPDATE CASCADE;
-        ', schema_name, schema_name);
+        -- IMPORTANTE: PostgreSQL converte nomes para lowercase, então verificamos lowercase
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'compliance_assessment_responses_assessmentid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('
+                ALTER TABLE %I.compliance_assessment_responses
+                    ADD CONSTRAINT compliance_assessment_responses_assessmentId_fkey
+                    FOREIGN KEY ("assessmentId") REFERENCES %I.compliance_assessments(id)
+                    ON DELETE CASCADE ON UPDATE CASCADE;
+            ', schema_name, schema_name);
+        END IF;
 
         RAISE NOTICE '✅ Schema % processado com sucesso', schema_name;
     END LOOP;

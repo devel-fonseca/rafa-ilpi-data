@@ -286,62 +286,62 @@ BEGIN
         -- ==========================================
         -- ÍNDICES (teams)
         -- ==========================================
-        EXECUTE format('CREATE INDEX teams_tenantId_isActive_idx ON %I.teams("tenantId", "isActive");', schema_name);
-        EXECUTE format('CREATE INDEX teams_deletedAt_idx ON %I.teams("deletedAt");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS teams_tenantId_isActive_idx ON %I.teams("tenantId", "isActive");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS teams_deletedAt_idx ON %I.teams("deletedAt");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (team_members)
         -- ==========================================
-        EXECUTE format('CREATE UNIQUE INDEX team_members_teamId_userId_removedAt_key ON %I.team_members("teamId", "userId", "removedAt");', schema_name);
-        EXECUTE format('CREATE INDEX team_members_tenantId_teamId_idx ON %I.team_members("tenantId", "teamId");', schema_name);
-        EXECUTE format('CREATE INDEX team_members_userId_idx ON %I.team_members("userId");', schema_name);
-        EXECUTE format('CREATE INDEX team_members_removedAt_idx ON %I.team_members("removedAt");', schema_name);
+        EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS team_members_teamId_userId_removedAt_key ON %I.team_members("teamId", "userId", "removedAt");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS team_members_tenantId_teamId_idx ON %I.team_members("tenantId", "teamId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS team_members_userId_idx ON %I.team_members("userId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS team_members_removedAt_idx ON %I.team_members("removedAt");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (weekly_schedule_patterns)
         -- ==========================================
-        EXECUTE format('CREATE INDEX weekly_schedule_patterns_tenantId_isActive_idx ON %I.weekly_schedule_patterns("tenantId", "isActive");', schema_name);
-        EXECUTE format('CREATE INDEX weekly_schedule_patterns_tenantId_startDate_idx ON %I.weekly_schedule_patterns("tenantId", "startDate");', schema_name);
-        EXECUTE format('CREATE INDEX weekly_schedule_patterns_deletedAt_idx ON %I.weekly_schedule_patterns("deletedAt");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS weekly_schedule_patterns_tenantId_isActive_idx ON %I.weekly_schedule_patterns("tenantId", "isActive");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS weekly_schedule_patterns_tenantId_startDate_idx ON %I.weekly_schedule_patterns("tenantId", "startDate");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS weekly_schedule_patterns_deletedAt_idx ON %I.weekly_schedule_patterns("deletedAt");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (weekly_schedule_pattern_assignments)
         -- ==========================================
-        EXECUTE format('CREATE UNIQUE INDEX weekly_schedule_pattern_assignments_patternId_weekNumber_dayOfWeek_shiftTemplateId_key ON %I.weekly_schedule_pattern_assignments("patternId", "weekNumber", "dayOfWeek", "shiftTemplateId");', schema_name);
-        EXECUTE format('CREATE INDEX weekly_schedule_pattern_assignments_tenantId_patternId_idx ON %I.weekly_schedule_pattern_assignments("tenantId", "patternId");', schema_name);
-        EXECUTE format('CREATE INDEX wspa_pattern_week_day_idx ON %I.weekly_schedule_pattern_assignments("patternId", "weekNumber", "dayOfWeek");', schema_name);
-        EXECUTE format('CREATE INDEX weekly_schedule_pattern_assignments_teamId_idx ON %I.weekly_schedule_pattern_assignments("teamId");', schema_name);
+        EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS weekly_schedule_pattern_assignments_patternId_weekNumber_dayOfWeek_shiftTemplateId_key ON %I.weekly_schedule_pattern_assignments("patternId", "weekNumber", "dayOfWeek", "shiftTemplateId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS weekly_schedule_pattern_assignments_tenantId_patternId_idx ON %I.weekly_schedule_pattern_assignments("tenantId", "patternId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS wspa_pattern_week_day_idx ON %I.weekly_schedule_pattern_assignments("patternId", "weekNumber", "dayOfWeek");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS weekly_schedule_pattern_assignments_teamId_idx ON %I.weekly_schedule_pattern_assignments("teamId");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (shifts)
         -- ==========================================
-        EXECUTE format('CREATE UNIQUE INDEX shifts_tenantId_date_shiftTemplateId_deletedAt_key ON %I.shifts("tenantId", date, "shiftTemplateId", "deletedAt");', schema_name);
-        EXECUTE format('CREATE INDEX shifts_tenantId_date_idx ON %I.shifts("tenantId", date);', schema_name);
-        EXECUTE format('CREATE INDEX shifts_tenantId_date_status_idx ON %I.shifts("tenantId", date, status);', schema_name);
-        EXECUTE format('CREATE INDEX shifts_teamId_idx ON %I.shifts("teamId");', schema_name);
-        EXECUTE format('CREATE INDEX shifts_status_idx ON %I.shifts(status);', schema_name);
-        EXECUTE format('CREATE INDEX shifts_deletedAt_idx ON %I.shifts("deletedAt");', schema_name);
+        EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS shifts_tenantId_date_shiftTemplateId_deletedAt_key ON %I.shifts("tenantId", date, "shiftTemplateId", "deletedAt");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shifts_tenantId_date_idx ON %I.shifts("tenantId", date);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shifts_tenantId_date_status_idx ON %I.shifts("tenantId", date, status);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shifts_teamId_idx ON %I.shifts("teamId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shifts_status_idx ON %I.shifts(status);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shifts_deletedAt_idx ON %I.shifts("deletedAt");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (shift_assignments)
         -- ==========================================
-        EXECUTE format('CREATE UNIQUE INDEX shift_assignments_shiftId_userId_removedAt_key ON %I.shift_assignments("shiftId", "userId", "removedAt");', schema_name);
-        EXECUTE format('CREATE INDEX shift_assignments_tenantId_shiftId_idx ON %I.shift_assignments("tenantId", "shiftId");', schema_name);
-        EXECUTE format('CREATE INDEX shift_assignments_userId_idx ON %I.shift_assignments("userId");', schema_name);
-        EXECUTE format('CREATE INDEX shift_assignments_removedAt_idx ON %I.shift_assignments("removedAt");', schema_name);
+        EXECUTE format('CREATE UNIQUE INDEX IF NOT EXISTS shift_assignments_shiftId_userId_removedAt_key ON %I.shift_assignments("shiftId", "userId", "removedAt");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_assignments_tenantId_shiftId_idx ON %I.shift_assignments("tenantId", "shiftId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_assignments_userId_idx ON %I.shift_assignments("userId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_assignments_removedAt_idx ON %I.shift_assignments("removedAt");', schema_name);
 
         -- ==========================================
         -- ÍNDICES (shift_substitutions)
         -- ==========================================
-        EXECUTE format('CREATE INDEX shift_substitutions_tenantId_shiftId_idx ON %I.shift_substitutions("tenantId", "shiftId");', schema_name);
-        EXECUTE format('CREATE INDEX shift_substitutions_shiftId_type_idx ON %I.shift_substitutions("shiftId", type);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_substitutions_tenantId_shiftId_idx ON %I.shift_substitutions("tenantId", "shiftId");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_substitutions_shiftId_type_idx ON %I.shift_substitutions("shiftId", type);', schema_name);
 
         -- ==========================================
         -- ÍNDICES (shift_history)
         -- ==========================================
-        EXECUTE format('CREATE INDEX shift_history_tenantId_shiftId_versionNumber_idx ON %I.shift_history("tenantId", "shiftId", "versionNumber" DESC);', schema_name);
-        EXECUTE format('CREATE INDEX shift_history_tenantId_changedAt_idx ON %I.shift_history("tenantId", "changedAt" DESC);', schema_name);
-        EXECUTE format('CREATE INDEX shift_history_changedBy_idx ON %I.shift_history("changedBy");', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_history_tenantId_shiftId_versionNumber_idx ON %I.shift_history("tenantId", "shiftId", "versionNumber" DESC);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_history_tenantId_changedAt_idx ON %I.shift_history("tenantId", "changedAt" DESC);', schema_name);
+        EXECUTE format('CREATE INDEX IF NOT EXISTS shift_history_changedBy_idx ON %I.shift_history("changedBy");', schema_name);
 
         -- ==========================================
         -- FOREIGN KEYS (tenant-scoped) - SEM FKs cross-schema problemáticas
@@ -350,33 +350,97 @@ BEGIN
         -- IMPORTANTE: Sem FKs para public.users (cross-schema violation - users estão em tenant_* schemas)
         -- IMPORTANTE: Validação de integridade feita em camada de aplicação
 
-        -- team_members
-        EXECUTE format('ALTER TABLE %I.team_members ADD CONSTRAINT team_members_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        -- team_members - Verificar se constraint já existe antes de criar
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'team_members_teamid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.team_members ADD CONSTRAINT team_members_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: team_members_userId_fkey (userId validado em app layer)
 
         -- weekly_schedule_pattern_assignments
-        EXECUTE format('ALTER TABLE %I.weekly_schedule_pattern_assignments ADD CONSTRAINT weekly_schedule_pattern_assignments_patternId_fkey FOREIGN KEY ("patternId") REFERENCES %I.weekly_schedule_patterns(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
-        EXECUTE format('ALTER TABLE %I.weekly_schedule_pattern_assignments ADD CONSTRAINT weekly_schedule_pattern_assignments_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'weekly_schedule_pattern_assignments_patternid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.weekly_schedule_pattern_assignments ADD CONSTRAINT weekly_schedule_pattern_assignments_patternId_fkey FOREIGN KEY ("patternId") REFERENCES %I.weekly_schedule_patterns(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'weekly_schedule_pattern_assignments_teamid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.weekly_schedule_pattern_assignments ADD CONSTRAINT weekly_schedule_pattern_assignments_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: weekly_schedule_pattern_assignments_shiftTemplateId_fkey (cross-schema, validado em app layer)
 
         -- shifts
-        EXECUTE format('ALTER TABLE %I.shifts ADD CONSTRAINT shifts_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
-        EXECUTE format('ALTER TABLE %I.shifts ADD CONSTRAINT shifts_patternId_fkey FOREIGN KEY ("patternId") REFERENCES %I.weekly_schedule_patterns(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shifts_teamid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shifts ADD CONSTRAINT shifts_teamId_fkey FOREIGN KEY ("teamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shifts_patternid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shifts ADD CONSTRAINT shifts_patternId_fkey FOREIGN KEY ("patternId") REFERENCES %I.weekly_schedule_patterns(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: shifts_shiftTemplateId_fkey (cross-schema, validado em app layer)
 
         -- shift_assignments
-        EXECUTE format('ALTER TABLE %I.shift_assignments ADD CONSTRAINT shift_assignments_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shift_assignments_shiftid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shift_assignments ADD CONSTRAINT shift_assignments_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: shift_assignments_userId_fkey (userId validado em app layer)
 
         -- shift_substitutions
-        EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
-        EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_originalTeamId_fkey FOREIGN KEY ("originalTeamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
-        EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_newTeamId_fkey FOREIGN KEY ("newTeamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shift_substitutions_shiftid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shift_substitutions_originalteamid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_originalTeamId_fkey FOREIGN KEY ("originalTeamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shift_substitutions_newteamid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shift_substitutions ADD CONSTRAINT shift_substitutions_newTeamId_fkey FOREIGN KEY ("newTeamId") REFERENCES %I.teams(id) ON DELETE SET NULL ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: shift_substitutions_originalUserId_fkey (userId validado em app layer)
         -- ❌ REMOVIDO: shift_substitutions_newUserId_fkey (userId validado em app layer)
 
         -- shift_history
-        EXECUTE format('ALTER TABLE %I.shift_history ADD CONSTRAINT shift_history_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'shift_history_shiftid_fkey'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.shift_history ADD CONSTRAINT shift_history_shiftId_fkey FOREIGN KEY ("shiftId") REFERENCES %I.shifts(id) ON DELETE CASCADE ON UPDATE CASCADE;', schema_name, schema_name);
+        END IF;
         -- ❌ REMOVIDO: shift_history_changedBy_fkey (changedBy validado em app layer)
 
         RAISE NOTICE '✅ Schema % processado com sucesso (SEM FKs cross-schema problemáticas)', schema_name;

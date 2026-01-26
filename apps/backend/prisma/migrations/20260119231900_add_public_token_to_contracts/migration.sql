@@ -41,19 +41,18 @@ BEGIN
         ', schema_name);
 
         -- Criar constraint UNIQUE (idempotente)
-        EXECUTE format('
-            DO $inner$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint
-                    WHERE conname = ''resident_contracts_publicToken_key''
-                    AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %L)
-                ) THEN
-                    ALTER TABLE %I.resident_contracts
-                    ADD CONSTRAINT resident_contracts_publicToken_key UNIQUE ("publicToken");
-                END IF;
-            END $inner$;
-        ', schema_name, schema_name);
+        -- Verifica se constraint já existe antes de criar
+        -- IMPORTANTE: PostgreSQL converte nomes para lowercase, então verificamos lowercase
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'resident_contracts_publictoken_key'
+            AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = schema_name)
+        ) THEN
+            EXECUTE format('
+                ALTER TABLE %I.resident_contracts
+                ADD CONSTRAINT resident_contracts_publictoken_key UNIQUE ("publicToken");
+            ', schema_name);
+        END IF;
 
         -- Criar índice para performance em queries de validação
         EXECUTE format('

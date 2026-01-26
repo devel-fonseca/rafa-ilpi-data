@@ -34,16 +34,17 @@ BEGIN
         ', schema_name);
 
         -- Criar unique constraint
+        -- IMPORTANTE: PostgreSQL converte nomes para lowercase, então verificamos lowercase
         EXECUTE format('
             DO $inner$
             BEGIN
                 IF NOT EXISTS (
                     SELECT 1 FROM pg_constraint
-                    WHERE conname = ''tenant_shift_config_shiftTemplateId_deletedAt_key''
+                    WHERE conname = ''tenant_shift_config_shifttemplateid_deletedat_key''
                     AND connamespace = (SELECT oid FROM pg_namespace WHERE nspname = %L)
                 ) THEN
                     ALTER TABLE %I.tenant_shift_config
-                    ADD CONSTRAINT tenant_shift_config_shiftTemplateId_deletedAt_key
+                    ADD CONSTRAINT tenant_shift_config_shifttemplateid_deletedat_key
                     UNIQUE ("shiftTemplateId", "deletedAt");
                 END IF;
             END $inner$;
