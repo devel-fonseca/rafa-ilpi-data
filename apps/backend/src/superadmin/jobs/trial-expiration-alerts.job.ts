@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { addDays } from 'date-fns'
+import { AlertsService } from '../services/alerts.service'
 
 /**
  * TrialExpirationAlertsJob
@@ -27,6 +28,7 @@ export class TrialExpirationAlertsJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly alertsService: AlertsService,
   ) {}
 
   @Cron('0 8 * * *') // Todos os dias às 08:00
@@ -105,6 +107,20 @@ export class TrialExpirationAlertsJob {
           `❌ Erro ao enviar D-7 para ${subscription.tenant.email}:`,
           error,
         )
+
+        // Criar alerta de falha no envio de email
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falha no Envio de Email de Trial (D-7)',
+          message: `Erro ao enviar alerta D-7 para ${subscription.tenant.name} (${subscription.tenant.email})`,
+          error,
+          metadata: {
+            job: 'trial-expiration-alerts',
+            alertType: 'D-7',
+            tenantId: subscription.tenantId,
+            subscriptionId: subscription.id,
+            timestamp: new Date().toISOString(),
+          },
+        })
       }
     }
   }
@@ -163,6 +179,20 @@ export class TrialExpirationAlertsJob {
           `❌ Erro ao enviar D-3 para ${subscription.tenant.email}:`,
           error,
         )
+
+        // Criar alerta de falha no envio de email
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falha no Envio de Email de Trial (D-3)',
+          message: `Erro ao enviar alerta D-3 para ${subscription.tenant.name} (${subscription.tenant.email})`,
+          error,
+          metadata: {
+            job: 'trial-expiration-alerts',
+            alertType: 'D-3',
+            tenantId: subscription.tenantId,
+            subscriptionId: subscription.id,
+            timestamp: new Date().toISOString(),
+          },
+        })
       }
     }
   }
@@ -225,6 +255,20 @@ export class TrialExpirationAlertsJob {
           `❌ Erro ao enviar D-1 para ${subscription.tenant.email}:`,
           error,
         )
+
+        // Criar alerta de falha no envio de email
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falha no Envio de Email de Trial (D-1)',
+          message: `Erro ao enviar alerta D-1 para ${subscription.tenant.name} (${subscription.tenant.email})`,
+          error,
+          metadata: {
+            job: 'trial-expiration-alerts',
+            alertType: 'D-1',
+            tenantId: subscription.tenantId,
+            subscriptionId: subscription.id,
+            timestamp: new Date().toISOString(),
+          },
+        })
       }
     }
   }

@@ -4,6 +4,7 @@ import { subDays, parseISO } from 'date-fns'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { InvoiceStatus } from '@prisma/client'
+import { AlertsService } from '../services/alerts.service'
 
 @Injectable()
 export class OverdueReportsJob {
@@ -12,6 +13,7 @@ export class OverdueReportsJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly alertsService: AlertsService,
   ) {}
 
   /**
@@ -39,9 +41,33 @@ export class OverdueReportsJob {
         this.logger.log('Relatório diário enviado com sucesso')
       } else {
         this.logger.warn('Falha ao enviar relatório diário')
+
+        // Criar alerta de falha no envio de email
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falha no Envio de Relatório Diário de Inadimplência',
+          message: 'Erro ao enviar relatório diário de inadimplência para SuperAdmin',
+          error: new Error('Email service returned false'),
+          metadata: {
+            job: 'overdue-reports',
+            reportType: 'daily',
+            timestamp: new Date().toISOString(),
+          },
+        })
       }
     } catch (error) {
       this.logger.error(`Erro ao gerar relatório diário: ${error.message}`, error.stack)
+
+      // Criar alerta de erro crítico
+      await this.alertsService.createSystemErrorAlert({
+        title: 'Erro Crítico no Job de Relatório Diário',
+        message: 'Falha ao gerar relatório diário de inadimplência',
+        error,
+        metadata: {
+          job: 'overdue-reports',
+          reportType: 'daily',
+          timestamp: new Date().toISOString(),
+        },
+      })
     }
   }
 
@@ -77,9 +103,33 @@ export class OverdueReportsJob {
         this.logger.log('Relatório semanal enviado com sucesso')
       } else {
         this.logger.warn('Falha ao enviar relatório semanal')
+
+        // Criar alerta de falha no envio de email
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falha no Envio de Relatório Semanal de Inadimplência',
+          message: 'Erro ao enviar relatório semanal de inadimplência para SuperAdmin',
+          error: new Error('Email service returned false'),
+          metadata: {
+            job: 'overdue-reports',
+            reportType: 'weekly',
+            timestamp: new Date().toISOString(),
+          },
+        })
       }
     } catch (error) {
       this.logger.error(`Erro ao gerar relatório semanal: ${error.message}`, error.stack)
+
+      // Criar alerta de erro crítico
+      await this.alertsService.createSystemErrorAlert({
+        title: 'Erro Crítico no Job de Relatório Semanal',
+        message: 'Falha ao gerar relatório semanal de inadimplência',
+        error,
+        metadata: {
+          job: 'overdue-reports',
+          reportType: 'weekly',
+          timestamp: new Date().toISOString(),
+        },
+      })
     }
   }
 

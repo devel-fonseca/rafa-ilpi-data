@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { InvoiceService } from '../services/invoice.service'
 import { InvoiceCreationMode } from '../dto/create-invoice.dto'
+import { AlertsService } from '../../superadmin/services/alerts.service'
 
 /**
  * Job para geração automática de faturas mensais
@@ -17,6 +18,7 @@ export class InvoiceGenerationJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly invoiceService: InvoiceService,
+    private readonly alertsService: AlertsService,
   ) {}
 
   /**
@@ -152,21 +154,35 @@ export class InvoiceGenerationJob {
 
       if (errors.length > 0) {
         this.logger.warn(`Errors details:`, errors)
-      }
 
-      // TODO: Criar alertas para erros (Fase 5)
-      // if (errors.length > 0) {
-      //   await this.alertsService.create({
-      //     type: 'INVOICE_GENERATION_FAILED',
-      //     severity: 'WARNING',
-      //     message: `Failed to generate ${errors.length} invoices`,
-      //     metadata: { errors },
-      //   })
-      // }
+        // Criar alerta para erros de geração de faturas
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Falhas na Geração Automática de Faturas',
+          message: `Falha ao gerar ${errors.length} fatura(s) mensais`,
+          error: new Error(`${errors.length} invoices failed to generate`),
+          metadata: {
+            job: 'invoice-generation',
+            successCount,
+            errorCount,
+            errors: errors.slice(0, 10), // Limitar a 10 para não sobrecarregar
+            timestamp: new Date().toISOString(),
+          },
+        })
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       this.logger.error(`❌ Critical error in invoice generation job: ${errorMessage}`)
-      // TODO: Criar alerta crítico (Fase 5)
+
+      // Criar alerta crítico de falha no job
+      await this.alertsService.createSystemErrorAlert({
+        title: 'Erro Crítico no Job de Geração de Faturas',
+        message: 'Falha crítica ao executar geração automática mensal de faturas',
+        error: error instanceof Error ? error : new Error(errorMessage),
+        metadata: {
+          job: 'invoice-generation',
+          timestamp: new Date().toISOString(),
+        },
+      })
     }
   }
 

@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { SubscriptionAdminService } from '../services/subscription-admin.service'
 import { InvoiceService } from '../../payments/services/invoice.service'
+import { AlertsService } from '../services/alerts.service'
 
 /**
  * TrialToActiveConversionJob
@@ -34,6 +35,7 @@ export class TrialToActiveConversionJob {
     private readonly subscriptionAdminService: SubscriptionAdminService,
     private readonly invoiceService: InvoiceService,
     private readonly emailService: EmailService,
+    private readonly alertsService: AlertsService,
   ) {}
 
   @Cron('0 2 * * *') // Todos os dias às 02:00
@@ -124,6 +126,20 @@ export class TrialToActiveConversionJob {
             error,
           )
           errorCount++
+
+          // Criar alerta de falha na conversão
+          await this.alertsService.createSystemErrorAlert({
+            title: 'Falha na Conversão de Trial para Ativo',
+            message: `Erro ao converter trial para plano ativo: ${subscription.tenant.name}`,
+            error: error instanceof Error ? error : new Error('Unknown error'),
+            metadata: {
+              job: 'trial-to-active-conversion',
+              tenantId: subscription.tenantId,
+              subscriptionId: subscription.id,
+              planName: subscription.plan.displayName,
+              timestamp: new Date().toISOString(),
+            },
+          })
           // Continua para o próximo (não interrompe o job)
         }
       }
@@ -136,8 +152,36 @@ export class TrialToActiveConversionJob {
       this.logger.log(`   ❌ Erros: ${errorCount}`)
       this.logger.log(`   📋 Total processado: ${expiredTrials.length}`)
       this.logger.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+      // Criar alerta resumo se houver erros
+      if (errorCount > 0) {
+        await this.alertsService.createSystemErrorAlert({
+          title: 'Erros na Conversão Automática de Trials',
+          message: `${errorCount} trial(s) não puderam ser convertidos para planos ativos`,
+          error: new Error(`${errorCount} trials failed to convert`),
+          metadata: {
+            job: 'trial-to-active-conversion',
+            successCount,
+            skipCount,
+            errorCount,
+            totalProcessed: expiredTrials.length,
+            timestamp: new Date().toISOString(),
+          },
+        })
+      }
     } catch (error) {
       this.logger.error('❌ Erro crítico ao processar conversão de trials:', error)
+
+      // Criar alerta de erro crítico
+      await this.alertsService.createSystemErrorAlert({
+        title: 'Erro Crítico no Job de Conversão de Trials',
+        message: 'Falha crítica ao executar conversão automática de trials',
+        error: error instanceof Error ? error : new Error('Unknown error'),
+        metadata: {
+          job: 'trial-to-active-conversion',
+          timestamp: new Date().toISOString(),
+        },
+      })
     }
   }
 }
