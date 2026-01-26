@@ -105,10 +105,10 @@ model User {
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
   // Relações de contratos e políticas
-  createdContracts         ServiceContract[]  @relation("ContractCreator") // DEPRECATED
-  revokedContracts         ServiceContract[]  @relation("ContractRevoker") // DEPRECATED
-  createdTermsOfService    TermsOfService[]   @relation("TermsOfServiceCreator") // Nova relação
-  revokedTermsOfService    TermsOfService[]   @relation("TermsOfServiceRevoker") // Nova relação
+  createdContracts      ServiceContract[] @relation("ContractCreator") // DEPRECATED
+  revokedContracts      ServiceContract[] @relation("ContractRevoker") // DEPRECATED
+  createdTerms          TermsOfService[]  @relation("TermsCreator") // Nova relação
+  revokedTerms          TermsOfService[]  @relation("TermsRevoker") // Nova relação
   // contractAcceptances - NO FK (cross-schema: tenant_xxx → public)
   // termsOfServiceAcceptances - NO FK (cross-schema: tenant_xxx → public)
   // privacyPolicyAcceptances - NO FK (cross-schema: tenant_xxx → public)

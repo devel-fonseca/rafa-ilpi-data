@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PaymentsModule } from '../payments/payments.module'
 import { ContractsModule } from '../contracts/contracts.module'
+import { TermsOfServiceModule } from '../terms-of-service/terms-of-service.module'
 import { EmailModule } from '../email/email.module'
 import { MetricsService } from './services/metrics.service'
 import { TenantAdminService } from './services/tenant-admin.service'
@@ -42,6 +43,7 @@ import { SuperAdminController } from './superadmin.controller'
     // forwardRef() evita dependência circular com PaymentsModule
     forwardRef(() => PaymentsModule),
     ContractsModule,
+    TermsOfServiceModule,
     EmailModule,
   ],
   controllers: [SuperAdminController],

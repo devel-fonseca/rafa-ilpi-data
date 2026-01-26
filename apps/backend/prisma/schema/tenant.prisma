@@ -24,9 +24,9 @@ model Plan {
   createdAt             DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime     @updatedAt @db.Timestamptz(3)
 
-  subscriptions    Subscription[]
-  contracts        ServiceContract[] // DEPRECATED - migrar para termsOfService
-  termsOfService   TermsOfService[] // Nova tabela de termos de uso
+  subscriptions  Subscription[]
+  contracts      ServiceContract[] // DEPRECATED - migrar para termsOfService
+  termsOfService TermsOfService[]  @relation("TermsOfServicePlan") // Nova tabela de termos de uso
 
   @@map("plans")
 }

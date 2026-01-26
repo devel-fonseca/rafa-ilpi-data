@@ -25,6 +25,10 @@ import { CollectionsService } from './services/collections.service'
 import { CreateContractDto } from '../contracts/dto/create-contract.dto'
 import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
 import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
+import { TermsOfServiceService } from '../terms-of-service/terms-of-service.service'
+import { CreateTermsOfServiceDto } from '../terms-of-service/dto/create-terms-of-service.dto'
+import { UpdateTermsOfServiceDto } from '../terms-of-service/dto/update-terms-of-service.dto'
+import { PublishTermsOfServiceDto } from '../terms-of-service/dto/publish-terms-of-service.dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { PrismaService } from '../prisma/prisma.service'
 import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
@@ -60,6 +64,7 @@ export class SuperAdminController {
     private readonly analyticsService: PaymentAnalyticsService,
     private readonly alertsService: AlertsService,
     private readonly contractsService: ContractsService,
+    private readonly termsOfServiceService: TermsOfServiceService,
     private readonly collectionsService: CollectionsService,
     private readonly prismaService: PrismaService,
     private readonly trialAlertsJob: TrialExpirationAlertsJob,
@@ -779,6 +784,95 @@ export class SuperAdminController {
       ...acceptance,
       user,
     }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // TERMOS DE USO (TERMS OF SERVICE)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * GET /superadmin/terms-of-service
+   * Lista termos de uso com filtros opcionais
+   */
+  @Get('terms-of-service')
+  async listTermsOfService(
+    @Query('status') status?: ContractStatus,
+    @Query('planId') planId?: string,
+  ) {
+    return this.termsOfServiceService.findAll({ status, planId })
+  }
+
+  /**
+   * GET /superadmin/terms-of-service/:id
+   * Busca detalhes de um termo de uso específico
+   */
+  @Get('terms-of-service/:id')
+  async getTermsOfService(@Param('id') id: string) {
+    return this.termsOfServiceService.findOne(id)
+  }
+
+  /**
+   * POST /superadmin/terms-of-service
+   * Cria novo termo de uso DRAFT
+   */
+  @Post('terms-of-service')
+  async createTermsOfService(
+    @Body() dto: CreateTermsOfServiceDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.termsOfServiceService.create(dto, user.sub)
+  }
+
+  /**
+   * PATCH /superadmin/terms-of-service/:id
+   * Atualiza termo de uso DRAFT
+   */
+  @Patch('terms-of-service/:id')
+  async updateTermsOfService(
+    @Param('id') id: string,
+    @Body() dto: UpdateTermsOfServiceDto,
+  ) {
+    return this.termsOfServiceService.update(id, dto)
+  }
+
+  /**
+   * POST /superadmin/terms-of-service/:id/publish
+   * Publica termo de uso (DRAFT → ACTIVE)
+   */
+  @Post('terms-of-service/:id/publish')
+  async publishTermsOfService(
+    @Param('id') id: string,
+    @Body() dto: PublishTermsOfServiceDto,
+    @CurrentUser() user: { sub: string },
+  ) {
+    return this.termsOfServiceService.publish(id, dto, user.sub)
+  }
+
+  /**
+   * DELETE /superadmin/terms-of-service/:id
+   * Deleta termo de uso DRAFT sem aceites
+   */
+  @Delete('terms-of-service/:id')
+  async deleteTermsOfService(@Param('id') id: string) {
+    return this.termsOfServiceService.delete(id)
+  }
+
+  /**
+   * GET /superadmin/terms-of-service/:id/acceptances
+   * Lista aceites de um termo de uso
+   */
+  @Get('terms-of-service/:id/acceptances')
+  async getTermsOfServiceAcceptances(@Param('id') id: string) {
+    return this.termsOfServiceService.getAcceptances(id)
+  }
+
+  /**
+   * GET /superadmin/tenants/:id/terms-of-service-acceptance
+   * Busca aceite de termo de uso de um tenant específico
+   */
+  @Get('tenants/:id/terms-of-service-acceptance')
+  async getTenantTermsOfServiceAcceptance(@Param('id') tenantId: string) {
+    return this.termsOfServiceService.getTenantAcceptance(tenantId)
   }
 
   // ──────────────────────────────────────────────────────────────────────────

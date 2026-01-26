@@ -157,6 +157,8 @@ model User {
   // Relações de contratos e políticas
   createdContracts ServiceContract[] @relation("ContractCreator")
   revokedContracts ServiceContract[] @relation("ContractRevoker")
+  createdTerms     TermsOfService[]  @relation("TermsCreator")
+  revokedTerms     TermsOfService[]  @relation("TermsRevoker")
   // NOTA: Relações com acceptances REMOVIDAS (incompatíveis com multi-tenancy)
   // contractAcceptances      ContractAcceptance[]
   // privacyPolicyAcceptances PrivacyPolicyAcceptance[]
@@ -1104,6 +1106,57 @@ model ServiceContract {
   @@index([effectiveFrom])
   @@index([planId])
   @@map("service_contracts")
+}
+
+// Termos de Uso (nova nomenclatura)
+model TermsOfService {
+  id            String         @id @default(uuid()) @db.Uuid
+  version       String         @db.VarChar(50)
+  planId        String?        @db.Uuid
+  status        ContractStatus @default(DRAFT)
+  effectiveFrom DateTime?      @map("effective_from") @db.Timestamptz(3)
+  title         String         @db.VarChar(255)
+  content       String         @db.Text
+  contentHash   String         @map("content_hash") @db.VarChar(64)
+  createdBy     String         @map("created_by") @db.Uuid
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+  revokedAt     DateTime?      @map("revoked_at") @db.Timestamptz(3)
+  revokedBy     String?        @map("revoked_by") @db.Uuid
+
+  // Relações
+  plan        Plan?                         @relation("TermsOfServicePlan", fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                          @relation("TermsCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                         @relation("TermsRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  acceptances TermsOfServiceAcceptance[]
+
+  @@unique([version, planId])
+  @@index([status])
+  @@index([effectiveFrom])
+  @@index([planId])
+  @@map("terms_of_service")
+}
+
+// Registros de Aceite de Termos de Uso (Prova Jurídica)
+model TermsOfServiceAcceptance {
+  id           String   @id @default(uuid()) @db.Uuid
+  termsId      String   @map("terms_id") @db.Uuid
+  tenantId     String   @unique @db.Uuid
+  userId       String   @db.Uuid
+  acceptedAt   DateTime @default(now()) @map("accepted_at") @db.Timestamptz(3)
+  ipAddress    String   @map("ip_address") @db.VarChar(45)
+  userAgent    String   @map("user_agent") @db.Text
+  termsVersion String   @map("terms_version") @db.VarChar(50)
+  termsHash    String   @map("terms_hash") @db.VarChar(64)
+  termsContent String   @map("terms_content") @db.Text
+
+  // Relações
+  terms  TermsOfService @relation(fields: [termsId], references: [id], onDelete: Restrict)
+  tenant Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([termsId])
+  @@index([acceptedAt])
+  @@map("terms_of_service_acceptances")
 }
 
 // Registros de Aceite (Prova Jurídica)
@@ -3593,6 +3646,7 @@ model Plan {
 
   subscriptions Subscription[]
   contracts     ServiceContract[]
+  termsOfService TermsOfService[] @relation("TermsOfServicePlan")
 
   @@map("plans")
 }
@@ -3682,6 +3736,7 @@ model Tenant {
   usageMetrics               UsageMetrics[] // SuperAdmin - Métricas de uso
   systemAlerts               SystemAlert[] // SuperAdmin - Alertas
   contractAcceptance         ContractAcceptance?
+  termsOfServiceAcceptance   TermsOfServiceAcceptance?
   privacyPolicyAcceptance    PrivacyPolicyAcceptance?
   messages                   Message[]
   messageRecipients          MessageRecipient[]
