@@ -97,6 +97,7 @@ import { InvoicesList } from '@/pages/superadmin/InvoicesList'
 import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
 import { AlertCenter } from '@/pages/superadmin/AlertCenter'
 import { PlansList } from '@/pages/superadmin/PlansList'
+import { PlanDetails } from '@/pages/superadmin/PlanDetails'
 import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
 import { OverdueDashboard } from '@/pages/superadmin/OverdueDashboard'
 import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
@@ -610,6 +611,10 @@ export const router = createBrowserRouter([
       {
         path: 'plans',
         element: <PlansList />,
+      },
+      {
+        path: 'plans/:id',
+        element: <PlanDetails />,
       },
       {
         path: 'contracts',

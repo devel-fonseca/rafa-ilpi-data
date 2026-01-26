@@ -45,6 +45,21 @@ export interface UpdatePlanDto {
   trialDays?: number
 }
 
+export interface CreatePlanDto {
+  name: string
+  displayName: string
+  type: PlanType
+  billingCycle: BillingCycle
+  price: number
+  annualDiscountPercent?: number // 0-100
+  maxUsers: number
+  maxResidents: number
+  trialDays?: number
+  isPopular?: boolean
+  isActive?: boolean
+  features?: Record<string, unknown>
+}
+
 export interface PlanStats {
   total: number
   active: number
@@ -66,6 +81,15 @@ export interface ApplyCustomPriceDto {
 // ============================================
 // API METHODS - PLANS (Templates Globais)
 // ============================================
+
+/**
+ * Criar novo plano
+ * Endpoint: POST /superadmin/plans
+ */
+export const createPlan = async (data: CreatePlanDto): Promise<Plan> => {
+  const response = await api.post<Plan>('/superadmin/plans', data)
+  return response.data
+}
 
 /**
  * Listar todos os planos

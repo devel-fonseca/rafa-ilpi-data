@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  createPlan,
   getPlans,
   getPlan,
   updatePlan,
@@ -23,6 +24,27 @@ export function usePlans() {
     queryKey: ['plans'],
     queryFn: getPlans,
     staleTime: 1000 * 60 * 5, // 5 minutos (planos mudam raramente)
+  })
+}
+
+/**
+ * Hook para criar um novo plano
+ */
+export function useCreatePlan() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createPlan,
+    onSuccess: () => {
+      toast.success('Plano criado com sucesso')
+      queryClient.invalidateQueries({ queryKey: ['plans'] })
+    },
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast.error('Erro ao criar plano', {
+        description: errorResponse?.data?.message || 'Tente novamente',
+      })
+    },
   })
 }
 

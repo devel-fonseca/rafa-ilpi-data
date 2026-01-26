@@ -11,6 +11,7 @@ import { SuspendTenantDto } from './dto/suspend-tenant.dto'
 import { ChangePlanDto } from './dto/change-plan.dto'
 import { ExtendPeriodDto } from './dto/extend-period.dto'
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto'
+import { CreatePlanDto } from './dto/create-plan.dto'
 import { UpdatePlanDto } from './dto/update-plan.dto'
 import { ApplyDiscountDto } from './dto/apply-discount.dto'
 import { ApplyCustomPriceDto } from './dto/apply-custom-price.dto'
@@ -293,6 +294,15 @@ export class SuperAdminController {
   // ========================================
   // PLAN MANAGEMENT
   // ========================================
+
+  /**
+   * POST /superadmin/plans
+   * Criar novo plano
+   */
+  @Post('plans')
+  async createPlan(@Body() createDto: CreatePlanDto) {
+    return this.plansAdminService.create(createDto)
+  }
 
   /**
    * GET /superadmin/plans

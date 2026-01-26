@@ -77,21 +77,49 @@ export class TenantAdminService {
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
-          _count: {
-            select: {
-              users: true,
-              residents: true,
-            },
-          },
         },
       }),
       this.prisma.tenant.count({ where }),
     ])
 
+    // Adicionar contadores de users e residents consultando schema de cada tenant
+    const enrichedData = await Promise.all(
+      data.map(async (tenant) => {
+        try {
+          // Consultar schema específico do tenant
+          const [usersCount, residentsCount] = await Promise.all([
+            this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+              `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."users" WHERE "deletedAt" IS NULL`
+            ),
+            this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+              `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."residents" WHERE "deletedAt" IS NULL`
+            ),
+          ])
+
+          return {
+            ...tenant,
+            _count: {
+              users: Number(usersCount[0].count),
+              residents: Number(residentsCount[0].count),
+            },
+          }
+        } catch (_error) {
+          // Se falhar (ex: schema não existe), retornar 0
+          return {
+            ...tenant,
+            _count: {
+              users: 0,
+              residents: 0,
+            },
+          }
+        }
+      })
+    )
+
     const totalPages = Math.ceil(total / limit)
 
     return {
-      data,
+      data: enrichedData,
       meta: {
         total,
         page,
@@ -123,8 +151,6 @@ export class TenantAdminService {
         },
         _count: {
           select: {
-            users: true,
-            residents: true,
             dailyRecords: true,
             prescriptions: true,
           },
@@ -136,7 +162,36 @@ export class TenantAdminService {
       throw new NotFoundException(`Tenant com ID ${id} não encontrado`)
     }
 
-    return tenant
+    // Adicionar contadores de users e residents consultando schema específico
+    try {
+      const [usersCount, residentsCount] = await Promise.all([
+        this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+          `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."users" WHERE "deletedAt" IS NULL`
+        ),
+        this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
+          `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."residents" WHERE "deletedAt" IS NULL`
+        ),
+      ])
+
+      return {
+        ...tenant,
+        _count: {
+          ...tenant._count,
+          users: Number(usersCount[0].count),
+          residents: Number(residentsCount[0].count),
+        },
+      }
+    } catch (_error) {
+      // Se falhar, retornar com contadores zerados
+      return {
+        ...tenant,
+        _count: {
+          ...tenant._count,
+          users: 0,
+          residents: 0,
+        },
+      }
+    }
   }
 
   /**
@@ -263,8 +318,6 @@ export class TenantAdminService {
       include: {
         _count: {
           select: {
-            users: true,
-            residents: true,
             dailyRecords: true,
             prescriptions: true,
             vaccinations: true,

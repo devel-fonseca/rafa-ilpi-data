@@ -255,10 +255,10 @@ export function TenantsList() {
                         {activeSub?.plan.displayName || 'Sem plano'}
                       </TableCell>
                       <TableCell className="text-right text-slate-400">
-                        {tenant._count.users}
+                        {tenant._count?.users ?? 0}
                       </TableCell>
                       <TableCell className="text-right text-slate-400">
-                        {tenant._count.residents}
+                        {tenant._count?.residents ?? 0}
                       </TableCell>
                       <TableCell className="text-slate-400">
                         {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}

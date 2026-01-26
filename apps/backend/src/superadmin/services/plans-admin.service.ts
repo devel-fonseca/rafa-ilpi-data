@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { Prisma } from '@prisma/client'
+import { Prisma, PlanType, BillingCycle } from '@prisma/client'
 
 /**
  * PlansAdminService
@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client'
  * Serviço para gerenciar Plans (Templates Globais de Planos).
  *
  * Funcionalidades:
+ * - Criar novos planos
  * - Listar todos os planos
  * - Atualizar planos (preço, limites, features)
  * - Toggle isPopular
@@ -20,6 +21,73 @@ import { Prisma } from '@prisma/client'
 @Injectable()
 export class PlansAdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Criar novo plano
+   */
+  async create(data: {
+    name: string
+    displayName: string
+    type: PlanType
+    billingCycle: BillingCycle
+    price: number
+    annualDiscountPercent?: number
+    maxUsers: number
+    maxResidents: number
+    trialDays?: number
+    isPopular?: boolean
+    isActive?: boolean
+    features?: object
+  }) {
+    // Validações
+    if (data.price < 0) {
+      throw new BadRequestException('Preço não pode ser negativo')
+    }
+    if (data.annualDiscountPercent !== undefined) {
+      if (data.annualDiscountPercent < 0 || data.annualDiscountPercent > 100) {
+        throw new BadRequestException('Desconto anual deve estar entre 0 e 100%')
+      }
+    }
+    if (data.maxUsers < 1) {
+      throw new BadRequestException('maxUsers deve ser no mínimo 1')
+    }
+    if (data.maxResidents < 1) {
+      throw new BadRequestException('maxResidents deve ser no mínimo 1')
+    }
+
+    // Verificar se já existe plano com mesmo nome
+    const existingPlan = await this.prisma.plan.findUnique({
+      where: { name: data.name },
+    })
+
+    if (existingPlan) {
+      throw new ConflictException(`Já existe um plano com o nome "${data.name}"`)
+    }
+
+    // Criar plano
+    const createData: Prisma.PlanCreateInput = {
+      name: data.name,
+      displayName: data.displayName,
+      type: data.type,
+      billingCycle: data.billingCycle,
+      price: new Prisma.Decimal(data.price),
+      annualDiscountPercent: data.annualDiscountPercent !== undefined
+        ? new Prisma.Decimal(data.annualDiscountPercent)
+        : new Prisma.Decimal(0),
+      maxUsers: data.maxUsers,
+      maxResidents: data.maxResidents,
+      trialDays: data.trialDays || 0,
+      isPopular: data.isPopular || false,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      features: (data.features || {}) as Prisma.InputJsonValue,
+    }
+
+    const newPlan = await this.prisma.plan.create({
+      data: createData,
+    })
+
+    return newPlan
+  }
 
   /**
    * Listar todos os planos
