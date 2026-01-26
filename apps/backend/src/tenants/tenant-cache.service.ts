@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Tenant } from '@prisma/client';
+import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 
 /**
  * Interface para Tenant cacheado (com subscriptions e plan)
@@ -104,7 +105,7 @@ export class TenantCacheService {
       include: {
         subscriptions: {
           where: {
-            status: { in: ['trialing', 'active', 'TRIAL', 'ACTIVE'] },
+            status: { in: ACTIVE_STATUSES },
           },
           include: {
             plan: {

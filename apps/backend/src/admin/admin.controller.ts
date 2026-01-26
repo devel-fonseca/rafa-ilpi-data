@@ -24,6 +24,7 @@ import { ContractsService } from '../contracts/contracts.service'
 import { PrismaService } from '../prisma/prisma.service'
 import { InvoiceStatus } from '@prisma/client'
 import { InvoiceCreationMode } from '../payments/dto/create-invoice.dto'
+import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum'
 
 interface SubscriptionChangeMetadata {
   oldPlanId?: string
@@ -68,7 +69,7 @@ export class AdminController {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId,
-        status: { in: ['active', 'trialing'] },
+        status: { in: ACTIVE_STATUSES },
       },
       include: { plan: true },
       orderBy: { createdAt: 'desc' },
@@ -104,7 +105,7 @@ export class AdminController {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId,
-        status: { in: ['active', 'trialing'] },
+        status: { in: ACTIVE_STATUSES },
       },
       include: { plan: true },
       orderBy: { createdAt: 'desc' },
@@ -145,7 +146,7 @@ export class AdminController {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId,
-        status: { in: ['active', 'trialing'] },
+        status: { in: ACTIVE_STATUSES },
       },
       include: { plan: true },
       orderBy: { createdAt: 'desc' },
@@ -300,7 +301,7 @@ export class AdminController {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId,
-        status: { in: ['active', 'trialing'] },
+        status: { in: ACTIVE_STATUSES },
       },
       orderBy: { createdAt: 'desc' },
     })

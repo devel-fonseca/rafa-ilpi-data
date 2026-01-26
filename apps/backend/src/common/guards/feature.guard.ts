@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ACTIVE_STATUSES } from '../../payments/types/subscription-status.enum';
 
 /**
  * FeatureGuard - Guard para validar acesso baseado em features do plano
@@ -68,7 +69,7 @@ export class FeatureGuard implements CanActivate {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         tenantId: user.tenantId,
-        status: { in: ['active', 'trialing', 'ACTIVE', 'TRIAL'] },
+        status: { in: ACTIVE_STATUSES },
       },
       include: { plan: true },
       orderBy: { createdAt: 'desc' },

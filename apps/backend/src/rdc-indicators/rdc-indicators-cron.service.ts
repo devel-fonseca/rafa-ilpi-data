@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { RdcIndicatorsService } from './rdc-indicators.service';
+import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 
 /**
  * Serviço de cron job para cálculo automático dos indicadores RDC 502/2021.
@@ -34,7 +35,11 @@ export class RdcIndicatorsCronService {
       const tenants = await this.prisma.tenant.findMany({
         where: {
           deletedAt: null,
-          status: { in: ['TRIAL', 'ACTIVE'] }, // Apenas tenants ativos ou em trial
+          subscriptions: {
+            some: {
+              status: { in: ACTIVE_STATUSES }, // ✅ Apenas tenants ativos ou em trial
+            },
+          },
         },
         select: {
           id: true,

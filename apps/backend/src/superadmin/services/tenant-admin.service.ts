@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma, TenantStatus } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
+import { ACTIVE_STATUSES } from '../../payments/types/subscription-status.enum'
 
 interface FindAllFilters {
   status?: TenantStatus
@@ -53,7 +54,7 @@ export class TenantAdminService {
         some: {
           planId,
           status: {
-            in: ['ACTIVE', 'active', 'TRIAL', 'trialing']
+            in: ACTIVE_STATUSES, // ✅ Usa constante padronizada
           },
         },
       }
@@ -70,7 +71,7 @@ export class TenantAdminService {
           subscriptions: {
             where: {
               status: {
-                in: ['ACTIVE', 'active', 'TRIAL', 'trialing']
+                in: ACTIVE_STATUSES, // ✅ Usa constante padronizada
               }
             },
             include: { plan: true },

@@ -13,6 +13,7 @@ import { QueryResidentDto } from './dto/query-resident.dto';
 import { TransferBedDto } from './dto/transfer-bed.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 import { ChangeType, Gender, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -334,7 +335,7 @@ export class ResidentsService {
         include: {
           subscriptions: {
             where: {
-              status: { in: ['trialing', 'active'] },
+              status: { in: ACTIVE_STATUSES },
             },
             include: { plan: true },
             take: 1,
