@@ -433,7 +433,7 @@ export class ContractsService {
         });
 
         const userResult = await this.prisma.$queryRawUnsafe<[{ name: string; email: string }]>(
-          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1 LIMIT 1`,
+          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1::uuid LIMIT 1`,
           acceptance.userId
         );
 

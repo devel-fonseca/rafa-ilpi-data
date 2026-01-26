@@ -751,7 +751,7 @@ export class SuperAdminController {
         })
 
         const userResult = await this.prismaService.$queryRawUnsafe<[{ name: string; email: string }]>(
-          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1 LIMIT 1`,
+          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1::uuid LIMIT 1`,
           acceptance.userId
         )
 
