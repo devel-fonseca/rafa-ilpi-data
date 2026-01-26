@@ -84,7 +84,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId,
-        type: 'SYSTEM_ERROR', // Usar tipo existente (TODO: adicionar PLAN_CHANGED)
+        type: 'PLAN_CHANGED',
         severity: 'INFO',
         title: 'Plano Alterado',
         message: `Plano alterado de "${currentSubscription.planId}" para "${newPlan.name}". ${reason || ''}`,
@@ -131,7 +131,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId: subscription.tenantId,
-        type: 'SYSTEM_ERROR',
+        type: 'PERIOD_EXTENDED',
         severity: 'INFO',
         title: 'Período de Subscription Estendido',
         message: `Subscription estendida por ${days} dias. Nova data de término: ${newEndDate.toLocaleDateString('pt-BR')}`,
@@ -229,7 +229,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId: subscription.tenantId,
-        type: 'SYSTEM_ERROR',
+        type: 'SUBSCRIPTION_REACTIVATED',
         severity: 'INFO',
         title: 'Subscription Reativada',
         message: `Subscription do plano "${subscription.plan.name}" foi reativada`,
@@ -316,7 +316,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId: subscription.tenantId,
-        type: 'SYSTEM_ERROR',
+        type: 'DISCOUNT_APPLIED',
         severity: 'INFO',
         title: 'Desconto Aplicado',
         message: `Desconto de ${discountPercent}% aplicado à subscription. Motivo: ${reason}`,
@@ -362,7 +362,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId: subscription.tenantId,
-        type: 'SYSTEM_ERROR',
+        type: 'CUSTOM_PRICE_APPLIED',
         severity: 'INFO',
         title: 'Preço Customizado Aplicado',
         message: `Preço customizado de R$ ${customPrice.toFixed(2)} aplicado à subscription. Motivo: ${reason}`,
@@ -394,7 +394,7 @@ export class SubscriptionAdminService {
     await this.prisma.systemAlert.create({
       data: {
         tenantId: subscription.tenantId,
-        type: 'SYSTEM_ERROR',
+        type: 'DISCOUNT_REMOVED',
         severity: 'INFO',
         title: 'Desconto Removido',
         message: 'Subscription voltou a usar o preço base do plano',
@@ -477,7 +477,7 @@ export class SubscriptionAdminService {
       await tx.systemAlert.create({
         data: {
           tenantId: subscription.tenantId,
-          type: 'SYSTEM_ERROR', // TODO: Adicionar tipo TRIAL_CONVERTED
+          type: 'TRIAL_CONVERTED',
           severity: 'INFO',
           title: 'Trial Convertido para Plano Ativo',
           message: `Período de teste finalizado. Plano "${subscription.plan.name}" ativado com sucesso.`,
