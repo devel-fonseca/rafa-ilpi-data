@@ -62,6 +62,8 @@ import { TeamsModule } from './teams/teams.module';
 import { ShiftTemplatesModule } from './shift-templates/shift-templates.module';
 import { CareShiftsModule } from './care-shifts/care-shifts.module';
 import { ComplianceAssessmentsModule } from './compliance-assessments/compliance-assessments.module';
+import { ContractsModule } from './contracts/contracts.module';
+import { TermsOfServiceModule } from './terms-of-service/terms-of-service.module';
 
 @Module({
   imports: [
@@ -157,6 +159,10 @@ import { ComplianceAssessmentsModule } from './compliance-assessments/compliance
 
     // Onboarding
     TenantProfileModule,
+
+    // Contratos e Termos de Uso (SaaS)
+    ContractsModule,
+    TermsOfServiceModule,
 
     // Validação pública de documentos
     ValidationModule,

@@ -13,278 +13,224 @@ import { getPlans } from '@/api/plans.api'
 import type { Plan } from '@/api/plans.api'
 import { toast } from 'sonner'
 
-// Template padrão RAFA ILPI - Contrato v2.0 (Completo)
-const DEFAULT_CONTRACT_TEMPLATE = `<h2>Contrato de Prestação de Serviços – Plataforma RAFA ILPI</h2>
-<p><strong>Plano contratado:</strong> {{plan.displayName}} (<code>{{plan.name}}</code>)<br>
-<strong>Data:</strong> {{today}}</p>
+// Template padrão RAFA ILPI - Termos de Uso v1.0 (Oficial)
+const DEFAULT_CONTRACT_TEMPLATE = `<h1>TERMO DE ACEITE E TERMOS DE USO – PLATAFORMA RAFA ILPI</h1>
+
+<p><strong>Plano contratado:</strong> {{plan.displayName}} (<code>{{plan.name}}</code>)<br><strong>Data:</strong> {{today}}</p>
+
 <hr>
+
 <h2>1. Identificação das Partes</h2>
 <p><strong>CONTRATADA:</strong></p>
-<p><strong>RAFA LABS DESENVOLVIMENTO E TECNOLOGIA I.S.</strong><br>
-CNPJ nº <strong>63.409.303/0001-82</strong><br>
-E-mails institucionais:</p>
+<p><strong>RAFA LABS DESENVOLVIMENTO E TECNOLOGIA I.S.</strong> CNPJ nº <strong>63.409.303/0001-82</strong> E-mails institucionais:</p>
 <ul>
-<li>Contato: <a href="mailto:contato@rafalabs.com.br">contato@rafalabs.com.br</a></li>
-<li>Financeiro: <a href="mailto:financeiro@rafalabs.com.br">financeiro@rafalabs.com.br</a></li>
-<li>Suporte: <a href="mailto:suporte@rafalabs.com.br">suporte@rafalabs.com.br</a></li>
+  <li>Contato: contato@rafalabs.com.br</li>
+  <li>Financeiro: financeiro@rafalabs.com.br</li>
+  <li>Suporte: suporte@rafalabs.com.br</li>
 </ul>
 <hr>
 <p><strong>CONTRATANTE (Pessoa Jurídica):</strong></p>
-<p><strong>Nome:</strong> {{tenant.name}}<br>
-<strong>CNPJ:</strong> {{tenant.cnpj}}<br>
-<strong>E-mail de contato:</strong> {{tenant.email}}</p>
+<p><strong>Nome:</strong> {{tenant.name}} <strong>CNPJ:</strong> {{tenant.cnpj}} <strong>E-mail de contato:</strong> {{tenant.email}}</p>
 <hr>
-<p><strong>RESPONSÁVEL PELA CONTRATAÇÃO / REPRESENTANTE NO ACEITE (Pessoa Física):</strong></p>
-<p><strong>Nome:</strong> {{user.name}}<br>
-<strong>CPF:</strong> {{user.cpf}}<br>
-<strong>E-mail:</strong> {{user.email}}</p>
-<p><em>O responsável identificado acima declara, no momento do aceite, possuir poderes para representar a Contratante e assumir as obrigações deste contrato.</em></p>
+<p><strong>RESPONSÁVEL PELO ACEITE / REPRESENTANTE (Pessoa Física):</strong></p>
+<p><strong>Nome:</strong> {{user.name}} <strong>CPF:</strong> {{user.cpf}} <strong>E-mail:</strong> {{user.email}}</p>
+<p><em>O responsável identificado acima declara, no momento do aceite, possuir poderes para representar a Contratante e assumir as obrigações deste Termo.</em></p>
 <hr>
-<h2>2. Objeto</h2>
-<p>2.1. O presente contrato tem por objeto a disponibilização do sistema <strong>RAFA ILPI</strong>, plataforma digital destinada ao apoio à gestão administrativa, operacional e documental de Instituições de Longa Permanência para Idosos (ILPIs), na modalidade <strong>Software as a Service (SaaS)</strong>.</p>
-<p>2.2. O sistema constitui <strong>ferramenta de apoio</strong> à organização e ao registro de informações, <strong>não substituindo obrigações legais, regulatórias, técnicas, administrativas ou assistenciais</strong> da Contratante.</p>
-<p>2.3. A Contratada <strong>não realiza avaliação clínica, diagnóstico, prescrição ou tomada de decisão em saúde</strong>, limitando-se a fornecer infraestrutura tecnológica para registro e organização de informações pela Contratante e seus profissionais autorizados.</p>
+<h2>2. Objeto e Natureza do Serviço (SaaS)</h2>
+<p>2.1. Este Termo regula o acesso e o uso da plataforma <strong>RAFA ILPI</strong>, solução digital destinada ao apoio à gestão administrativa, operacional e documental de Instituições de Longa Permanência para Idosos (ILPIs), na modalidade <strong>Software as a Service (SaaS)</strong>.</p>
+<p>2.2. A Contratada concede à Contratante uma <strong>licença de uso</strong> do sistema, <strong>não exclusiva, intransferível, revogável e limitada</strong> ao período de assinatura ativa e às condições deste Termo.</p>
+<p>2.3. O sistema constitui <strong>ferramenta de apoio</strong> à organização e ao registro de informações, <strong>não substituindo obrigações legais, regulatórias, técnicas, administrativas ou assistenciais</strong> da Contratante.</p>
+<p>2.4. A Contratada <strong>não realiza avaliação clínica, diagnóstico, prescrição, validação assistencial ou tomada de decisão em saúde</strong>, limitando-se a fornecer infraestrutura tecnológica para registro e organização de informações pela Contratante e seus profissionais autorizados.</p>
+<p>2.5. <strong>Aviso de uso e responsabilidade.</strong> A Contratante declara ciência de que o RAFA ILPI é ferramenta de apoio e organização, não substitui rotinas internas, profissionais habilitados, protocolos assistenciais e obrigações legais e regulatórias. A Contratante permanece integralmente responsável por validar, revisar e executar as decisões e condutas adotadas com base nas informações registradas no sistema.</p>
 <hr>
 <h2>3. Plano Contratado, Limites e Preço</h2>
 <p>3.1. A Contratante adere ao plano <strong>{{plan.displayName}}</strong> (<code>{{plan.name}}</code>), pelo valor de <strong>{{plan.price}}</strong>, cobrado de forma recorrente conforme periodicidade definida no momento da contratação.</p>
 <p>3.2. O plano contratado contempla os seguintes <strong>limites operacionais</strong>:</p>
 <ul>
-<li><strong>Máximo de usuários:</strong> {{plan.maxUsers}}</li>
-<li><strong>Máximo de residentes:</strong> {{plan.maxResidents}}</li>
+  <li><strong>Máximo de usuários:</strong> {{plan.maxUsers}}</li>
+  <li><strong>Máximo de residentes:</strong> {{plan.maxResidents}}</li>
 </ul>
 <p>3.3. Caso aplicável, a Contratante poderá usufruir de <strong>período de teste (trial)</strong> de <strong>{{trial.days}} dias</strong>. Encerrado o período de trial, a cobrança será iniciada automaticamente, salvo cancelamento prévio.</p>
 <p>3.4. A superação dos limites do plano poderá resultar em <strong>bloqueio técnico</strong> de novas inclusões, necessidade de migração de plano ou contratação adicional, sem que isso configure falha ou inadimplemento da Contratada.</p>
 <hr>
-<h2>4. Forma de Pagamento e Vencimento</h2>
+<h2>4. Pagamento, Vencimento e Reajuste</h2>
 <p>4.1. O pagamento será realizado de forma <strong>recorrente e automática</strong>, conforme periodicidade escolhida pela Contratante:</p>
 <ul>
-<li><strong>Mensal:</strong> Vencimento no mesmo dia do mês da contratação</li>
-<li><strong>Anual:</strong> Vencimento no mesmo mês/dia da contratação (com desconto quando aplicável)</li>
+  <li><strong>Mensal:</strong> vencimento no mesmo dia do mês da contratação</li>
+  <li><strong>Anual:</strong> vencimento no mesmo mês/dia da contratação (com desconto quando aplicável)</li>
 </ul>
 <p>4.2. <strong>Formas de pagamento aceitas:</strong></p>
 <ul>
-<li>Boleto bancário (vencimento em até 5 dias úteis após emissão)</li>
-<li>PIX (pagamento instantâneo)</li>
-<li>Cartão de crédito (débito automático recorrente)</li>
+  <li>Boleto bancário (vencimento em até 5 dias úteis após emissão)</li>
+  <li>PIX (pagamento instantâneo)</li>
+  <li>Cartão de crédito (débito automático recorrente)</li>
 </ul>
-<p>4.3. O processamento de pagamentos é realizado através de plataforma de pagamentos especializada, que garante segurança para dados financeiros.</p>
-<p>4.4. A Contratada <strong>não armazena</strong> dados completos de cartão de crédito, apenas tokens criptografados fornecidos pelo processador de pagamentos.</p>
+<p>4.3. O processamento de pagamentos é realizado através de plataforma de pagamentos especializada.</p>
+<p>4.4. A Contratada <strong>não armazena</strong> dados completos de cartão de crédito, apenas tokens fornecidos pelo processador de pagamentos.</p>
+<h3>4.5. Reajuste de preço</h3>
+<p>4.5.1. O valor da assinatura poderá ser reajustado <strong>anualmente</strong>, contado da data de início da assinatura ou do primeiro pagamento confirmado, com base na variação acumulada do <strong>IPCA/IBGE</strong>.</p>
+<p>4.5.2. Na hipótese de extinção do índice indicado, será aplicado índice oficial que o substitua. Na ausência, poderá ser adotado índice equivalente, preservando o equilíbrio econômico da assinatura.</p>
+<p>4.5.3. Além do reajuste anual, a Contratada poderá atualizar os valores em caso de <strong>alteração relevante de custos operacionais</strong>, tais como infraestrutura, tributos, meios de pagamento, serviços essenciais de terceiros ou exigências regulatórias que impactem diretamente a prestação do serviço.</p>
+<p>4.5.4. A Contratante será comunicada com antecedência mínima de <strong>30 (trinta) dias</strong>, por e-mail cadastrado e/ou aviso no sistema.</p>
+<p>4.5.5. A continuidade de uso após a vigência do reajuste será considerada <strong>aceite do novo valor</strong>, sem prejuízo do direito de cancelamento antes da renovação do ciclo de cobrança.</p>
 <hr>
 <h2>5. Vigência, Cancelamento e Suspensão</h2>
-<p>5.1. O presente contrato entra em vigor na data do aceite eletrônico e vigora por <strong>prazo indeterminado</strong> enquanto houver assinatura ativa.</p>
+<p>5.1. Este Termo entra em vigor na data do aceite eletrônico e vigora por <strong>prazo indeterminado</strong>, enquanto houver assinatura ativa.</p>
 <p>5.2. A Contratante poderá solicitar o <strong>cancelamento a qualquer tempo</strong>, produzindo efeitos ao final do período já pago.</p>
-<h3>5.3. Inadimplência e Suspensão</h3>
-<p>5.3.1. Em caso de inadimplência, o sistema exibirá <strong>aviso de cobrança pendente</strong> a todos os usuários da Contratante.</p>
-<p>5.3.2. Após <strong>5 (cinco) dias corridos</strong> de atraso, o acesso ao sistema será <strong>suspenso temporariamente</strong> (modo somente leitura).</p>
-<p>5.3.3. Após <strong>15 (quinze) dias corridos</strong> de atraso, o acesso será <strong>bloqueado totalmente</strong>, sem prejuízo da cobrança dos valores devidos.</p>
+<h3>5.3. Inadimplência e suspensão</h3>
+<p>5.3.1. Em caso de inadimplência, o sistema poderá exibir <strong>aviso de cobrança pendente</strong> aos usuários da Contratante.</p>
+<p>5.3.2. Após <strong>5 (cinco) dias corridos</strong> de atraso, o acesso poderá ser <strong>suspenso temporariamente</strong> (modo somente leitura).</p>
+<p>5.3.3. Após <strong>15 (quinze) dias corridos</strong> de atraso, o acesso poderá ser <strong>bloqueado totalmente</strong>, sem prejuízo da cobrança dos valores devidos.</p>
 <p>5.3.4. O acesso será restaurado em até <strong>24 horas</strong> após confirmação do pagamento.</p>
-<p>5.3.5. A suspensão por inadimplência <strong>não implica exclusão de dados</strong>, que permanecerão armazenados por até <strong>90 (noventa) dias</strong> após o bloqueio.</p>
-<h3>5.4. Cancelamento e Exclusão de Dados</h3>
-<p>5.4.1. Após o cancelamento do contrato, a Contratante terá <strong>90 (noventa) dias</strong> para exportar dados completos do sistema.</p>
-<p>5.4.2. Decorrido o prazo de 90 dias, os dados administrativos serão excluídos permanentemente.</p>
-<p>5.4.3. A Contratada <strong>disponibiliza meios técnicos</strong> para que a Contratante cumpra seus deveres legais de guarda de prontuários eletrônicos (Resolução CFM 1.821/2007 – mínimo de 20 anos), mantendo os dados clínicos armazenados pelo prazo que a Contratante determinar, observada a legislação aplicável.</p>
+<p>5.3.5. A suspensão por inadimplência <strong>não implica exclusão imediata de dados</strong>, que permanecerão armazenados por até <strong>90 (noventa) dias</strong> após o bloqueio.</p>
+<p>5.5. <strong>Suspensão por segurança.</strong> A Contratada poderá suspender temporariamente acessos ou funcionalidades, total ou parcialmente, caso identifique indícios razoáveis de risco à segurança, abuso, violação deste Termo, tentativa de acesso indevido ou incidente que comprometa a integridade da plataforma, comunicando a Contratante em prazo razoável.</p>
+<h3>5.4. Cancelamento e exclusão de dados</h3>
+<p>5.4.1. Após o cancelamento, a Contratante terá <strong>90 (noventa) dias</strong> para exportar dados completos do sistema.</p>
+<p>5.4.2. Decorrido o prazo, os dados administrativos poderão ser excluídos permanentemente.</p>
+<p>5.4.3. A Contratada disponibiliza meios técnicos para exportação e portabilidade, cabendo à Contratante cumprir seus deveres legais de guarda e arquivamento conforme a legislação aplicável.</p>
 <hr>
-<h2>6. Migração de Plano (Upgrade/Downgrade)</h2>
-<p>6.1. A Contratante poderá solicitar <strong>upgrade de plano</strong> a qualquer momento, com aplicação imediata e cobrança proporcional (pro rata) no período vigente.</p>
-<p>6.2. A Contratante poderá solicitar <strong>downgrade de plano</strong>, com efeito a partir da próxima renovação (evitando cobranças retroativas).</p>
-<p>6.3. <strong>Limitações no downgrade:</strong></p>
-<ul>
-<li>Se a Contratante possui mais usuários ou residentes que o limite do novo plano, o downgrade será <strong>bloqueado tecnicamente</strong> até adequação</li>
-<li>A Contratante deverá inativar usuários/residentes excedentes antes de confirmar o downgrade</li>
-</ul>
-<p>6.4. Migração de plano pode exigir <strong>reaceite de contrato</strong> caso haja alteração substancial de termos.</p>
+<h2>6. Alteração de Planos, Recursos e Preços (Upgrade/Downgrade)</h2>
+<p>6.1. A Contratante poderá solicitar <strong>upgrade de plano</strong> a qualquer momento, com aplicação imediata e cobrança proporcional (<strong>pro rata</strong>) no período vigente.</p>
+<p>6.2. A Contratante poderá solicitar <strong>downgrade de plano</strong>, com efeito a partir da próxima renovação.</p>
+<p>6.3. O downgrade poderá ser bloqueado tecnicamente caso a Contratante possua quantidade de usuários, residentes ou consumo de recursos acima do limite do novo plano, cabendo à Contratante adequar previamente sua conta.</p>
+<h3>6.4. Alteração de planos e preços pela Contratada</h3>
+<p>6.4.1. A Contratada poderá, a seu critério, <strong>criar, alterar, reorganizar, renomear, substituir, descontinuar ou reprecificar</strong> planos, módulos, recursos, limites operacionais e funcionalidades da plataforma.</p>
+<p>6.4.2. As alterações <strong>não terão efeito retroativo</strong> sobre valores já pagos, produzindo efeitos, quando aplicável, <strong>a partir do próximo ciclo de cobrança</strong>.</p>
+<p>6.4.3. Em caso de alteração que impacte o preço ou limites do plano ativo, a Contratada comunicará a Contratante com antecedência mínima de <strong>30 (trinta) dias</strong>, por e-mail cadastrado e/ou aviso no sistema.</p>
+<p>6.4.4. Caso a Contratante não concorde com as novas condições, poderá solicitar o cancelamento antes da renovação do ciclo de cobrança, mantendo o acesso até o final do período já pago.</p>
+<p>6.4.5. A continuidade de uso após a vigência da alteração será considerada <strong>aceite das novas condições</strong>, sem prejuízo das regras de cancelamento previstas neste Termo.</p>
 <hr>
 <h2>7. Acesso, Disponibilidade e Atualizações</h2>
-<p>7.1. O acesso ao sistema é <strong>remoto, não exclusivo</strong> e condicionado à disponibilidade técnica.</p>
-<p>7.2. A Contratada <strong>envidará seus melhores esforços técnicos e operacionais</strong> para manter a disponibilidade do sistema, <strong>sem garantia de disponibilidade contínua ou ininterrupta</strong>.</p>
-<p>7.3. O sistema poderá sofrer <strong>interrupções pontuais</strong> para manutenção, atualização, correções de segurança ou adequações legais, preferencialmente em horários de menor impacto.</p>
-<p>7.4. A Contratada poderá, a seu critério, modificar interfaces, fluxos e funcionalidades, desde que preservada a finalidade essencial do serviço e <strong>não inviabilize o uso regular do sistema</strong> ou descaracterize sua finalidade principal.</p>
-<p>7.5. <strong>Não se caracteriza falha na prestação do serviço</strong> a indisponibilidade decorrente de fatores externos, tais como falhas de internet, energia elétrica, dispositivos da Contratante ou serviços de terceiros.</p>
+<p>7.1. O acesso ao sistema é remoto, não exclusivo e depende de disponibilidade técnica.</p>
+<p>7.2. A Contratada empregará <strong>melhores esforços</strong> para manter a plataforma disponível, <strong>sem garantia de disponibilidade contínua ou ininterrupta</strong>.</p>
+<p>7.3. O sistema poderá sofrer interrupções pontuais para manutenção, atualização, correções de segurança ou adequações legais.</p>
+<p>7.4. A Contratada poderá modificar interfaces, fluxos e funcionalidades, desde que preserve a finalidade essencial do serviço.</p>
+<p>7.5. Não se caracteriza falha na prestação do serviço a indisponibilidade decorrente de fatores externos (internet, energia, dispositivos, serviços de terceiros).</p>
+<p>7.6. <strong>Alertas e notificações.</strong> Caso o sistema disponibilize alertas, lembretes, avisos por e-mail, WhatsApp ou notificações internas, a Contratante reconhece que tais recursos possuem caráter auxiliar. A Contratada não garante entrega, leitura ou acionamento em tempo real, nem se responsabiliza por falhas decorrentes de configurações, filtros, indisponibilidade de terceiros ou desativação pelo usuário.</p>
 <hr>
 <h2>8. Suporte Técnico</h2>
-<p>8.1. O suporte técnico será prestado por <strong>e-mail e WhatsApp comercial</strong>, em regime de <strong>melhores esforços</strong>, sem garantia de prazo específico para resposta ou resolução.</p>
+<p>8.1. O suporte será prestado por e-mail e WhatsApp comercial, em regime de melhores esforços.</p>
 <p>8.2. <strong>Canais de suporte:</strong></p>
 <ul>
-<li>E-mail: <a href="mailto:suporte@rafalabs.com.br">suporte@rafalabs.com.br</a></li>
-<li>WhatsApp: (19) 98152-4849</li>
+  <li>E-mail: suporte@rafalabs.com.br</li>
+  <li>WhatsApp: (19) 98152-4849, a critério da Contratada (planos)</li>
 </ul>
 <p>8.3. <strong>Horário de atendimento:</strong></p>
 <ul>
-<li>Segunda a Sexta: 9h às 18h (horário de Brasília)</li>
-<li>Sábados, Domingos e Feriados: Apenas emergências críticas <strong>a critério exclusivo da Contratada</strong> (via e-mail)</li>
+  <li>Segunda a Sexta: 9h às 18h (horário de Brasília)</li>
+  <li>Sábados, Domingos e Feriados: apenas emergências críticas, a critério da Contratada (via e-mail)</li>
 </ul>
-<p>8.4. A Contratada priorizará atendimento de incidentes críticos que afetem disponibilidade total do sistema, sem garantia de tempo de resolução.</p>
+<p>8.4. A Contratada poderá priorizar incidentes críticos que afetem a disponibilidade total do sistema, sem garantia de tempo de resolução.</p>
 <hr>
 <h2>9. Backup e Recuperação de Dados</h2>
-<p>9.1. A Contratada adota <strong>rotinas regulares de backup</strong> e procedimentos de recuperação <strong>compatíveis com boas práticas de mercado</strong>, sem garantia de prazo específico para restauração.</p>
-<p>9.2. A Contratante pode solicitar <strong>exportação manual de dados</strong> a qualquer momento, nos formatos:</p>
+<p>9.1. A Contratada adota rotinas regulares de backup compatíveis com boas práticas, sem garantia de prazo específico para restauração.</p>
+<p>9.2. A Contratante poderá solicitar exportação manual de dados a qualquer momento, nos formatos:</p>
 <ul>
-<li>PDF (prontuários e relatórios)</li>
-<li>JSON (dados estruturados - portabilidade LGPD)</li>
-<li>CSV (planilhas para análise externa)</li>
+  <li>PDF</li>
+  <li>JSON</li>
+  <li>CSV</li>
 </ul>
-<p>9.3. <strong>Não há garantia absoluta de recuperação total</strong> em cenários excepcionais (falha catastrófica, perda de dados ou corrompimento de backups), sendo a Contratada responsável por empregar seus <strong>melhores esforços técnicos</strong> para minimizar perdas e restabelecer o acesso aos dados.</p>
+<p>9.3. Não há garantia absoluta de recuperação total em cenários excepcionais, cabendo à Contratada empregar melhores esforços para minimizar perdas e restabelecer o acesso.</p>
 <hr>
-<h2>10. Obrigações e Responsabilidades da Contratante</h2>
-<p>10.1. Utilizar o sistema de forma <strong>lícita, ética e conforme a legislação vigente</strong>.</p>
-<p>10.2. Garantir que possui <strong>autorização legal, ética e regulatória</strong> para inserir, tratar e armazenar os dados cadastrados no sistema.</p>
-<p>10.3. Manter <strong>controle sobre usuários, perfis de acesso e credenciais</strong>.</p>
-<p>10.4. Assumir <strong>integral responsabilidade</strong> pelas informações inseridas, atualizadas ou omitidas no sistema.</p>
-<p>10.5. <strong>Obter consentimento</strong> de responsáveis legais dos residentes para tratamento de dados de saúde, quando exigido pela legislação.</p>
-<p>10.6. Cumprir obrigações da <strong>RDC 502/2021 ANVISA</strong> e demais regulamentações aplicáveis a ILPIs.</p>
+<h2>10. Obrigações da Contratante e dos Usuários</h2>
+<p>10.1. Utilizar o sistema de forma lícita e conforme a legislação vigente.</p>
+<p>10.2. Garantir autorização legal e regulatória para inserir, tratar e armazenar os dados cadastrados.</p>
+<p>10.3. Manter controle sobre usuários, perfis de acesso e credenciais.</p>
+<p>10.4. Assumir responsabilidade pelas informações inseridas, atualizadas ou omitidas no sistema.</p>
+<p>10.5. Obter consentimento de responsáveis legais dos residentes quando exigido, ou adotar outra base legal aplicável.</p>
+<p>10.6. Cumprir obrigações da RDC 502/2021 ANVISA e demais normas aplicáveis a ILPIs.</p>
+<p>10.7. <strong>Conferência e validação.</strong> A Contratante compromete-se a manter rotinas internas de conferência e validação das informações registradas no sistema, incluindo, quando aplicável, registros clínicos, prescrições, sinais vitais, intercorrências, vacinações, escalas e documentos operacionais, reconhecendo que o uso do sistema não elimina a necessidade de revisão humana.</p>
+<p>10.8. <strong>Uso proibido.</strong> É vedado à Contratante e seus usuários: a) utilizar o sistema para fins ilícitos ou em desconformidade com normas sanitárias, éticas e de proteção de dados; b) tentar acessar dados de terceiros ou burlar controles de acesso; c) inserir conteúdo malicioso (vírus, scripts, automações abusivas); d) praticar engenharia reversa, cópia ou exploração indevida da plataforma; e) revender, sublicenciar ou disponibilizar acesso a terceiros não autorizados.</p>
 <hr>
 <h2>11. Dados Pessoais, Dados Sensíveis e LGPD</h2>
-<p>11.1. A Contratada realizará o tratamento de dados pessoais exclusivamente nos <strong>limites necessários à execução deste contrato</strong>, observando a <strong>Lei nº 13.709/2018 (LGPD)</strong>.</p>
-<p>11.2. A Contratante declara-se <strong>controladora dos dados</strong> inseridos no sistema, incluindo dados pessoais e <strong>dados pessoais sensíveis</strong> (dados de saúde), assumindo integral responsabilidade por sua <strong>base legal, finalidade, conteúdo, veracidade e atualização</strong>.</p>
-<p>11.3. A Contratada atuará, para fins da LGPD, na condição de <strong>operadora de dados</strong>, realizando o tratamento conforme as instruções da Contratante e as funcionalidades disponibilizadas no sistema.</p>
-<p>11.4. O sistema RAFA ILPI poderá armazenar <strong>dados sensíveis relacionados à saúde</strong> dos residentes, tais como informações clínicas, registros assistenciais, prescrições, evoluções multiprofissionais e dados correlatos, os quais são inseridos, geridos e utilizados exclusivamente pela Contratante e seus usuários autorizados.</p>
-<p>11.5. A Contratada <strong>não realiza avaliação clínica, diagnóstico, prescrição, validação assistencial ou tomada de decisão em saúde</strong>, limitando-se a fornecer infraestrutura tecnológica para registro e organização das informações.</p>
-<p>11.6. A Contratante declara que possui <strong>autorização legal, ética e regulatória</strong> para coletar, registrar e tratar os dados sensíveis de saúde inseridos no sistema, inclusive consentimento do titular quando exigido, ou outra base legal aplicável.</p>
-<p>11.7. A Contratada adota <strong>medidas técnicas e organizacionais adequadas</strong>, compatíveis com o estado da técnica e com a natureza dos dados tratados, para proteção dos dados contra acessos não autorizados, perdas ou incidentes de segurança.</p>
-<p>11.8. <strong>Política de Privacidade:</strong> A Contratante declara ter lido e concordado com a <strong>Política de Privacidade</strong> da plataforma, disponível em <a href="https://rafalabs.com.br/politica-de-privacidade">https://rafalabs.com.br/politica-de-privacidade</a>, que integra o presente contrato para todos os efeitos legais.</p>
-<h3>11.9. Suboperadores de Dados</h3>
-<p>11.9.1. A Contratada poderá utilizar <strong>terceiros para suporte à infraestrutura</strong> (hospedagem, armazenamento, processamento de pagamentos), desde que observados <strong>padrões de segurança e confidencialidade equivalentes</strong>.</p>
-<p>11.9.2. Todos os suboperadores são contratualmente obrigados a <strong>observar os requisitos do art. 33 da LGPD</strong> para tratamento e transferência internacional de dados pessoais.</p>
-<p>11.9.3. A Contratada notificará a Contratante sobre alteração de suboperadores críticos com <strong>30 (trinta) dias de antecedência</strong>, permitindo eventual oposição justificada.</p>
-<h3>11.10. Incidentes de Segurança</h3>
-<p>11.10.1. Em caso de incidente de segurança envolvendo acesso não autorizado, vazamento ou perda de dados pessoais, a Contratada compromete-se a comunicar a Contratante <strong>em prazo razoável</strong>, após confirmação da ocorrência e avaliação de impacto.</p>
-<p>11.10.2. A notificação conterá, no mínimo:</p>
-<ul>
-<li>Descrição da natureza do incidente</li>
-<li>Tipos de dados potencialmente afetados</li>
-<li>Número estimado de residentes/usuários impactados</li>
-<li>Medidas técnicas já adotadas para mitigação</li>
-<li>Recomendações de ações para a Contratante</li>
-</ul>
-<p>11.10.3. A <strong>responsabilidade de comunicar responsáveis legais e titulares afetados</strong> é da Contratante (na condição de Controladora), com suporte técnico da Contratada quando solicitado.</p>
-<h3>11.11. Propriedade dos Dados</h3>
-<p>11.11.1. Todos os dados inseridos, armazenados ou processados no sistema são de <strong>propriedade exclusiva da Contratante</strong>.</p>
-<p>11.11.2. A Contratada <strong>NÃO</strong> utiliza, compartilha, vende ou transfere dados da Contratante para:</p>
-<ul>
-<li>Treinamento de modelos de inteligência artificial</li>
-<li>Análises estatísticas agregadas (mesmo anonimizadas) sem consentimento prévio</li>
-<li>Marketing ou prospecção comercial</li>
-<li>Terceiros não autorizados</li>
-</ul>
-<p>11.11.3. A Contratada poderá acessar dados da Contratante <strong>apenas</strong> para:</p>
-<ul>
-<li>Suporte técnico (mediante solicitação e autorização da Contratante)</li>
-<li>Correção de bugs críticos (com notificação posterior)</li>
-<li>Cumprimento de ordem judicial</li>
-</ul>
-<p>11.11.4. Todo acesso da Contratada aos dados é <strong>registrado em log de auditoria</strong> com identificação do profissional, data/hora e justificativa.</p>
+<p>11.1. A Contratada realizará tratamento de dados pessoais nos limites necessários à execução deste Termo, observando a Lei nº 13.709/2018 (LGPD).</p>
+<p>11.2. A Contratante declara-se <strong>Controladora</strong> dos dados inseridos no sistema, incluindo dados pessoais e dados pessoais sensíveis (dados de saúde).</p>
+<p>11.3. A Contratada atuará como <strong>Operadora</strong>, tratando dados conforme as instruções da Contratante e as funcionalidades disponibilizadas.</p>
+<p>11.4. O RAFA ILPI poderá armazenar dados sensíveis de saúde inseridos e geridos exclusivamente pela Contratante e seus usuários autorizados.</p>
+<p>11.5. A Contratada não realiza avaliação clínica, diagnóstico, prescrição ou validação assistencial.</p>
+<p>11.6. A Contratante declara possuir autorização legal e regulatória para coletar e tratar dados sensíveis inseridos.</p>
+<p>11.7. A Contratada adota medidas técnicas e organizacionais adequadas para proteção contra acessos não autorizados, perdas ou incidentes.</p>
+<p>11.8. A Contratante declara ciência e concordância com a Política de Privacidade da plataforma, disponível em: https://rafalabs.com.br/politica-de-privacidade</p>
+<h3>11.9. Suboperadores</h3>
+<p>11.9.1. A Contratada poderá utilizar terceiros (hospedagem, armazenamento, pagamentos), com padrões equivalentes de segurança e confidencialidade.</p>
+<p>11.9.2. A Contratada notificará alteração de suboperadores críticos com 30 dias de antecedência, quando aplicável.</p>
+<h3>11.10. Incidentes de segurança</h3>
+<p>11.10.1. A Contratada comunicará a Contratante em prazo razoável após confirmação e avaliação de impacto.</p>
+<p>11.10.2. A Contratante permanece responsável por comunicações a titulares e responsáveis legais, quando cabíveis, com suporte técnico da Contratada quando solicitado.</p>
+<h3>11.11. Propriedade dos dados</h3>
+<p>11.11.1. Os dados inseridos no sistema são de propriedade da Contratante.</p>
+<p>11.11.2. A Contratada não vende, transfere ou utiliza dados da Contratante para treinamento de IA, marketing ou terceiros não autorizados.</p>
+<p>11.11.3. A Contratada poderá acessar dados apenas para suporte, correção de bugs críticos (com notificação posterior) ou cumprimento de ordem judicial.</p>
+<p>11.11.4. Todo acesso será registrado em log de auditoria.</p>
 <hr>
 <h2>12. Auditoria e Conformidade</h2>
-<p>12.1. A Contratada fornecerá, mediante solicitação formal da Contratante, <strong>relatório declaratório de conformidade LGPD</strong> contendo evidências das medidas técnicas e organizacionais de proteção de dados.</p>
-<p>12.2. <strong>Não será permitida auditoria técnica presencial ou remota</strong> em sistemas da Contratada, em razão de:</p>
-<ul>
-<li>Natureza multi-tenant (isolamento de dados de outros clientes)</li>
-<li>Segredos comerciais e industriais</li>
-<li>Risco de exposição indireta de dados de terceiros</li>
-</ul>
-<p>12.3. A Contratada poderá fornecer <strong>documentos genéricos</strong> (certificados, relatórios de segurança, políticas internas) que demonstrem conformidade, sem acesso direto a sistemas ou infraestrutura.</p>
+<p>12.1. A Contratada poderá fornecer relatório declaratório de conformidade LGPD mediante solicitação.</p>
+<p>12.2. Não será permitida auditoria técnica direta em sistemas da Contratada, em razão de multi-tenant, segredos comerciais e risco de exposição de terceiros.</p>
+<p>12.3. A Contratada poderá fornecer documentos genéricos de conformidade, sem acesso direto à infraestrutura.</p>
 <hr>
 <h2>13. Limitação de Responsabilidade</h2>
-<p>13.1. O RAFA ILPI constitui <strong>ferramenta de apoio</strong> à gestão, <strong>não substituindo controles internos, profissionais habilitados ou obrigações legais</strong> da Contratante.</p>
-<p>13.2. A Contratada <strong>não será responsável</strong> por:</p>
-<ul>
-<li>Danos indiretos, lucros cessantes, perda de chance ou expectativas de resultado</li>
-<li>Decisões tomadas com base nas informações registradas no sistema</li>
-<li>Erros ou omissões nas informações inseridas pela Contratante</li>
-<li>Indisponibilidade decorrente de fatores externos (internet, energia, dispositivos)</li>
-<li>Perda de dados por uso inadequado, falha de backup externo ou força maior</li>
-</ul>
-<p>13.3. Em nenhuma hipótese a responsabilidade da Contratada excederá o <strong>valor efetivamente pago pela Contratante nos últimos 12 (doze) meses</strong> de contrato.</p>
+<p>13.1. O RAFA ILPI é ferramenta de apoio e não substitui controles internos, profissionais habilitados ou obrigações legais.</p>
+<p>13.2. A Contratada não será responsável por danos indiretos, lucros cessantes, perda de chance, decisões tomadas com base nos dados, erros de cadastro, indisponibilidade externa ou força maior.</p>
+<p>13.3. <strong>Teto de responsabilidade.</strong> Em qualquer hipótese, eventual responsabilidade da Contratada ficará limitada ao valor efetivamente pago pela Contratante nos <strong>12 (doze) meses anteriores</strong> ao evento que originou a reclamação, excluídos tributos, encargos de meios de pagamento e valores de terceiros, sem prejuízo das exclusões previstas neste Termo.</p>
 <hr>
-<h2>14. Atualizações Contratuais e Reaceite</h2>
-<p>14.1. A Contratada poderá publicar novas versões deste contrato para atualização legal, técnica, comercial ou operacional.</p>
-<p>14.2. Quando aplicável, o sistema poderá exigir <strong>novo aceite eletrônico</strong> como condição para continuidade do uso.</p>
-<p>14.3. A migração para plano vinculado a condições contratuais distintas poderá exigir reaceite prévio, sem que isso configure alteração unilateral indevida.</p>
-<p>14.4. Alterações substanciais serão comunicadas com <strong>30 (trinta) dias de antecedência</strong> via e-mail cadastrado.</p>
+<h2>14. Atualizações deste Termo e Reaceite</h2>
+<p>14.1. A Contratada poderá publicar novas versões deste Termo para atualização legal, técnica, comercial ou operacional.</p>
+<p>14.2. O sistema poderá exigir novo aceite eletrônico como condição de continuidade.</p>
+<p>14.3. Alterações substanciais serão comunicadas com antecedência mínima de 30 dias.</p>
 <hr>
 <h2>15. Propriedade Intelectual</h2>
-<p>15.1. Todos os direitos de propriedade intelectual sobre o sistema RAFA ILPI, incluindo códigos-fonte, interfaces, logotipos, marcas e documentação, são de <strong>titularidade exclusiva da Contratada</strong>.</p>
-<p>15.2. Este contrato <strong>não transfere</strong> qualquer direito de propriedade intelectual à Contratante, concedendo apenas <strong>licença de uso</strong> não exclusiva, intransferível e limitada à vigência do contrato.</p>
-<p>15.3. É <strong>vedado à Contratante</strong>:</p>
-<ul>
-<li>Copiar, reproduzir, modificar ou criar obras derivadas do sistema</li>
-<li>Realizar engenharia reversa, descompilação ou desassembly</li>
-<li>Sublicenciar, vender, alugar ou ceder acesso a terceiros</li>
-</ul>
+<p>15.1. Todos os direitos de propriedade intelectual do RAFA ILPI pertencem exclusivamente à Contratada.</p>
+<p>15.2. Este Termo não transfere direitos de propriedade, concedendo apenas licença de uso.</p>
+<p>15.3. É vedado copiar, modificar, realizar engenharia reversa, sublicenciar ou ceder acesso a terceiros.</p>
 <hr>
 <h2>16. Confidencialidade</h2>
-<p>16.1. As partes se comprometem a manter sigilo sobre <strong>informações confidenciais</strong> trocadas durante a execução do contrato.</p>
-<p>16.2. <strong>Não se consideram confidenciais</strong> informações:</p>
-<ul>
-<li>Já públicas ou de domínio público</li>
-<li>Obtidas legitimamente de terceiros</li>
-<li>Desenvolvidas independentemente sem uso de informação confidencial</li>
-<li>Divulgadas por ordem judicial ou requisição legal</li>
-</ul>
-<p>16.3. A obrigação de confidencialidade permanece válida por <strong>5 (cinco) anos</strong> após o término do contrato.</p>
+<p>16.1. As partes manterão sigilo sobre informações confidenciais trocadas.</p>
+<p>16.2. Exceções: informações públicas, obtidas de terceiros, desenvolvidas independentemente ou divulgadas por ordem judicial/legal.</p>
+<p>16.3. A confidencialidade permanece por 5 anos após o término.</p>
 <hr>
 <h2>17. Caso Fortuito e Força Maior</h2>
-<p>17.1. Nenhuma das partes será responsabilizada por inadimplemento decorrente de <strong>caso fortuito ou força maior</strong>, incluindo:</p>
-<ul>
-<li>Desastres naturais (enchentes, incêndios, terremotos)</li>
-<li>Atos governamentais, guerra, greves, lockouts</li>
-<li>Falhas de infraestrutura de terceiros (provedores de internet, energia, data centers)</li>
-<li>Ataques cibernéticos em larga escala (DDoS, ransomware)</li>
-</ul>
-<p>17.2. A parte afetada deverá comunicar a outra <strong>imediatamente</strong>, descrevendo o evento e as medidas tomadas para mitigação.</p>
-<p>17.3. Caso o evento perdure por mais de <strong>30 (trinta) dias</strong>, qualquer das partes poderá rescindir o contrato sem ônus.</p>
+<p>17.1. Nenhuma parte será responsabilizada por eventos de caso fortuito ou força maior.</p>
+<p>17.2. A parte afetada comunicará imediatamente a outra.</p>
+<p>17.3. Persistindo por mais de 30 dias, qualquer parte poderá rescindir sem ônus.</p>
 <hr>
 <h2>18. Aceite Eletrônico e Validade Jurídica</h2>
-<p>18.1. Ao clicar em <strong>"Aceitar"</strong>, o responsável identificado neste instrumento declara que leu, compreendeu e concorda integralmente com os termos deste contrato, em nome da Contratante.</p>
-<p>18.2. O aceite eletrônico realizado no ambiente do sistema possui <strong>plena validade jurídica</strong> e será registrado com:</p>
+<p>18.1. Ao clicar em "Aceitar", o responsável declara ciência e concordância integral com este Termo, em nome da Contratante.</p>
+<p>18.2. O aceite eletrônico será registrado com:</p>
 <ul>
-<li>Data e hora do aceite (timestamp)</li>
-<li>Identificação completa do responsável e da Contratante</li>
-<li>Endereço IP de origem</li>
-<li>Hash SHA-256 do conteúdo do contrato aceito</li>
-<li>Versão do contrato</li>
+  <li>Data e hora (timestamp)</li>
+  <li>Identificação do responsável e da Contratante</li>
+  <li>IP de origem</li>
+  <li>Hash SHA-256 do conteúdo aceito</li>
+  <li>Versão do Termo</li>
 </ul>
-<p>18.3. O registro do aceite constitui <strong>prova documental</strong> para todos os efeitos legais.</p>
+<p>18.3. O registro constitui prova documental para todos os efeitos legais.</p>
 <hr>
 <h2>19. Disposições Gerais</h2>
-<p>19.1. Este contrato substitui e cancela <strong>todos os acordos, propostas e comunicações anteriores</strong>, verbais ou escritos, entre as partes sobre o objeto aqui tratado.</p>
-<p>19.2. A invalidade ou inexequibilidade de qualquer cláusula <strong>não afetará</strong> a validade das demais, que permanecerão em pleno vigor.</p>
-<p>19.3. A tolerância de uma parte quanto ao descumprimento de qualquer obrigação pela outra <strong>não constituirá novação ou renúncia</strong> de direitos, podendo ser exigida a qualquer tempo.</p>
-<p>19.4. Este contrato <strong>não estabelece</strong> relação de sociedade, joint venture, mandato ou vínculo empregatício entre as partes.</p>
-<p>19.5. <strong>Cessão:</strong> Nenhuma das partes poderá ceder ou transferir este contrato a terceiros sem anuência prévia e escrita da outra parte.</p>
+<p>19.1. Este Termo substitui acordos anteriores sobre o mesmo objeto.</p>
+<p>19.2. A invalidade de cláusula não invalida as demais.</p>
+<p>19.3. A tolerância não implica renúncia ou novação.</p>
+<p>19.4. Este Termo não cria sociedade, mandato ou vínculo empregatício.</p>
+<p>19.5. Cessão: nenhuma parte poderá ceder este Termo sem anuência prévia e escrita da outra.</p>
 <hr>
 <h2>20. Foro e Lei Aplicável</h2>
-<p>20.1. Este contrato é regido pelas <strong>leis da República Federativa do Brasil</strong>, especialmente:</p>
+<p>20.1. Aplica-se a legislação brasileira, especialmente:</p>
 <ul>
-<li>Lei nº 13.709/2018 (LGPD - Lei Geral de Proteção de Dados)</li>
-<li>Lei nº 10.406/2002 (Código Civil)</li>
-<li>RDC 502/2021 ANVISA (Regulamento Técnico para ILPIs)</li>
-<li>Resolução CFM 1.821/2007 (Prontuário Eletrônico)</li>
+  <li>Lei nº 13.709/2018 (LGPD)</li>
+  <li>Lei nº 10.406/2002 (Código Civil)</li>
+  <li>RDC 502/2021 ANVISA</li>
+  <li>Resolução CFM 1.821/2007 (quando aplicável)</li>
 </ul>
-<p>20.2. Fica eleito o <strong>foro da comarca de Campinas</strong>, Estado de São Paulo, para dirimir quaisquer controvérsias decorrentes deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.</p>
-<p>20.3. As partes poderão, de comum acordo, submeter eventuais litígios à <strong>mediação ou arbitragem</strong> antes de recorrer ao Poder Judiciário.</p>
+<p>20.2. Fica eleito o foro da comarca de <strong>Campinas/SP</strong>, com renúncia de qualquer outro.</p>
+<p>20.3. As partes poderão buscar mediação ou arbitragem antes do Judiciário, por comum acordo.</p>
 <hr>
 <h2>Identificação para fins de registro do aceite</h2>
-<p><strong>Pessoa Jurídica (Contratante):</strong></p>
-<p><strong>Nome:</strong> {{tenant.name}}<br>
-<strong>CNPJ:</strong> {{tenant.cnpj}}<br>
-<strong>E-mail:</strong> {{tenant.email}}</p>
-<hr>
-<p><strong>Pessoa Física (Responsável pelo aceite):</strong></p>
-<p><strong>Nome:</strong> {{user.name}}<br>
-<strong>CPF:</strong> {{user.cpf}}<br>
-<strong>E-mail:</strong> {{user.email}}</p>
-<hr>
-<p><strong>Data do aceite:</strong> {{today}}</p>
-<hr>
-<p><strong>Versão do contrato:</strong> 2.0<br>
-<strong>Hash SHA-256:</strong> [gerado automaticamente pelo sistema no momento do aceite]</p>
-<hr>
-<p><em>Este contrato foi elaborado em conformidade com a Lei nº 13.709/2018 (LGPD), Código Civil, RDC 502/2021 ANVISA e Resolução CFM 1.821/2007.</em></p>`
+<p><strong>Pessoa Jurídica (Contratante):</strong> Nome: {{tenant.name}} CNPJ: {{tenant.cnpj}} E-mail: {{tenant.email}}</p>
+<p><strong>Pessoa Física (Responsável pelo aceite):</strong> Nome: {{user.name}} CPF: {{user.cpf}} E-mail: {{user.email}}</p>
+<p><strong>Data do aceite:</strong> {{today}} <strong>Versão:</strong> 1.0 <strong>Hash SHA-256:</strong> [gerado automaticamente pelo sistema no momento do aceite]</p>`
 
 export function ContractNew() {
   const navigate = useNavigate()
-  const [title, setTitle] = useState('Contrato de Prestação de Serviços – Plataforma RAFA ILPI')
+  const [title, setTitle] = useState('Termo de Aceite e Termos de Uso – Plataforma RAFA ILPI')
   const [content, setContent] = useState(DEFAULT_CONTRACT_TEMPLATE)
   const [planId, setPlanId] = useState<string>('ALL')
   const [plans, setPlans] = useState<Plan[]>([])
