@@ -427,20 +427,35 @@ export class ContractsService {
     let user: { name: string; email: string } | null = null;
     if (acceptance.userId && acceptance.tenant?.schemaName) {
       try {
+        console.log('[getTenantAcceptance] Buscando usuário:', {
+          userId: acceptance.userId,
+          schemaName: acceptance.tenant.schemaName,
+        });
+
         const userResult = await this.prisma.$queryRawUnsafe<[{ name: string; email: string }]>(
           `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1 LIMIT 1`,
           acceptance.userId
         );
+
+        console.log('[getTenantAcceptance] Resultado da query:', userResult);
+
         if (userResult[0]) {
           user = {
             name: userResult[0].name,
             email: userResult[0].email,
           };
         }
-      } catch (_error) {
-        // Se falhar, deixar user como null
+      } catch (error) {
+        console.error('[getTenantAcceptance] Erro ao buscar usuário:', error);
       }
+    } else {
+      console.log('[getTenantAcceptance] Dados ausentes:', {
+        userId: acceptance.userId,
+        schemaName: acceptance.tenant?.schemaName,
+      });
     }
+
+    console.log('[getTenantAcceptance] Retornando user:', user);
 
     return {
       ...acceptance,
