@@ -40,7 +40,7 @@ interface Plan {
   isActive?: boolean
 }
 
-interface ContractWithContent {
+interface TermsOfServiceWithContent {
   id: string
   version: string
   planId: string | null
@@ -68,14 +68,14 @@ export default function Register() {
   const [loadingCNPJ, setLoadingCNPJ] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
-  const [currentContract, setCurrentContract] = useState<ContractWithContent | null>(null)
-  const [loadingContract, setLoadingContract] = useState(false)
+  const [currentTerms, setCurrentTerms] = useState<TermsOfServiceWithContent | null>(null)
+  const [loadingTerms, setLoadingTerms] = useState(false)
   const [privacyPolicy, setPrivacyPolicy] = useState<PrivacyPolicyResponse | null>(null)
   const [loadingPrivacyPolicy, setLoadingPrivacyPolicy] = useState(false)
 
   // Timers de leitura
   const [privacyReadTime, setPrivacyReadTime] = useState(0)
-  const [contractReadTime, setContractReadTime] = useState(0)
+  const [termsReadTime, setTermsReadTime] = useState(0)
   const [readingStarted, setReadingStarted] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -114,12 +114,12 @@ export default function Register() {
     // Privacy Policy (Step 5)
     privacyPolicyAccepted: false,
 
-    // Contract (Step 6)
-    contractId: '',
-    contractAccepted: false
+    // Terms of Service (Step 6)
+    termsId: '',
+    termsAccepted: false
   })
 
-  const [showContractAlert, setShowContractAlert] = useState(false)
+  const [showTermsAlert, setShowTermsAlert] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -159,10 +159,10 @@ export default function Register() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep])
 
-  // Carregar contrato quando chegar no step 6 (antes era step 4)
+  // Carregar termo de uso quando chegar no step 6 (antes era step 4)
   useEffect(() => {
-    if (currentStep === 6 && formData.planId && !currentContract) {
-      loadActiveContract()
+    if (currentStep === 6 && formData.planId && !currentTerms) {
+      loadActiveTerms()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, formData.planId])
@@ -180,12 +180,12 @@ export default function Register() {
     }
   }, [currentStep, readingStarted])
 
-  // Timer de leitura do Contrato (step 6)
+  // Timer de leitura do Termo de Uso (step 6)
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null
     if (currentStep === 6 && readingStarted) {
       interval = setInterval(() => {
-        setContractReadTime(prev => prev + 1)
+        setTermsReadTime(prev => prev + 1)
       }, 1000)
     }
     return () => {
@@ -203,17 +203,17 @@ export default function Register() {
   }, [currentStep])
 
 
-  const loadActiveContract = async () => {
-    setLoadingContract(true)
+  const loadActiveTerms = async () => {
+    setLoadingTerms(true)
     try {
-      // 1. Buscar contrato ativo
-      const contractResponse = await api.get(`/contracts/active?planId=${formData.planId}`)
-      const contract = contractResponse.data
+      // 1. Buscar termo de uso ativo
+      const termsResponse = await api.get(`/terms-of-service/active?planId=${formData.planId}`)
+      const terms = termsResponse.data
 
       // 2. Buscar dados do plano para renderizar
       const plan = plans.find(p => p.id === formData.planId)
 
-      // 3. Renderizar contrato com variáveis
+      // 3. Renderizar termo de uso com variáveis
       const variables = {
         tenant: {
           name: formData.name,
@@ -237,21 +237,21 @@ export default function Register() {
         }
       }
 
-      const renderResponse = await api.post('/contracts/render', {
-        contractId: contract.id,
+      const renderResponse = await api.post('/terms-of-service/render', {
+        termsId: terms.id,
         variables
       })
 
-      setCurrentContract({
-        ...contract,
+      setCurrentTerms({
+        ...terms,
         content: renderResponse.data.content
       })
-      setFormData(prev => ({ ...prev, contractId: contract.id }))
+      setFormData(prev => ({ ...prev, termsId: terms.id }))
     } catch (err) {
-      // Sem contrato disponível - bloquear cadastro
-      setErrors({ contract: 'Nenhum contrato disponível no momento. Entre em contato com o suporte.' })
+      // Nenhum termo de uso disponível - bloquear cadastro
+      setErrors({ terms: 'Nenhum termo de uso disponível no momento. Entre em contato com o suporte.' })
     } finally {
-      setLoadingContract(false)
+      setLoadingTerms(false)
     }
   }
 
@@ -351,12 +351,12 @@ export default function Register() {
         }
         break
 
-      case 6: // Contract
-        if (contractReadTime < 3) {
-          newErrors.contract = 'Você deve ler o Contrato por pelo menos 3 segundos antes de aceitar'
+      case 6: // Terms of Service
+        if (termsReadTime < 3) {
+          newErrors.terms = 'Você deve ler o Termo de Uso por pelo menos 3 segundos antes de aceitar'
         }
-        if (!formData.contractAccepted) {
-          newErrors.contractAccepted = 'Você deve aceitar o contrato para continuar'
+        if (!formData.termsAccepted) {
+          newErrors.termsAccepted = 'Você deve aceitar o Termo de Uso para continuar'
         }
         break
 
@@ -385,9 +385,9 @@ export default function Register() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
-    // Verificar aceite do contrato ANTES da validação completa
-    if (!formData.contractAccepted) {
-      setShowContractAlert(true)
+    // Verificar aceite do termo de uso ANTES da validação completa
+    if (!formData.termsAccepted) {
+      setShowTermsAlert(true)
       return
     }
 
@@ -406,7 +406,7 @@ export default function Register() {
         throw new Error('Plano não encontrado')
       }
 
-      // Preparar variáveis para substituição no template do contrato
+      // Preparar variáveis para substituição no template do termo de uso
       const variables = {
         tenant: {
           name: formData.name,
@@ -431,9 +431,9 @@ export default function Register() {
         today: new Date().toLocaleDateString('pt-BR'),
       }
 
-      // Preparar aceite do contrato com variáveis
-      const acceptanceResponse = await api.post('/contracts/accept/prepare', {
-        contractId: formData.contractId,
+      // Preparar aceite do termo de uso com variáveis
+      const acceptanceResponse = await api.post('/terms-of-service/accept/prepare', {
+        termsId: formData.termsId,
         ipAddress,
         userAgent,
         variables,
@@ -443,7 +443,7 @@ export default function Register() {
 
       // Enviar dados de registro com token
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { adminPasswordConfirm, addressZip, contractId, contractAccepted, ...rest } = formData
+      const { adminPasswordConfirm, addressZip, termsId, termsAccepted, ...rest } = formData
       const dataToSubmit = {
         ...rest,
         addressZipCode: addressZip,
@@ -1108,7 +1108,7 @@ export default function Register() {
               Declaro que possuo <strong>base legal</strong> para tratamento de dados dos residentes
             </label>
             <p className="text-xs text-muted-foreground mt-1">
-              A ILPI possui autorização legal (contrato de prestação de serviços com responsáveis legais, tutela, curatela ou consentimento) para coletar e tratar dados pessoais sensíveis de saúde.
+              A ILPI possui autorização legal (Termos de Uso com responsáveis legais, tutela, curatela ou consentimento) para coletar e tratar dados pessoais sensíveis de saúde.
             </p>
           </div>
         </div>
@@ -1217,65 +1217,65 @@ export default function Register() {
     </div>
   )
 
-  // Step 6: Aceite do Contrato (antes era Step 4)
+  // Step 6: Aceite do Termo de Uso (antes era Step 4)
   const renderStep6 = () => (
     <div className="space-y-6">
       <Alert className="bg-primary/5 border-primary/30">
         <AlertDescription>
-          Leia atentamente o contrato de prestação de serviços antes de continuar. <strong>Tempo mínimo de leitura: 60 segundos.</strong>
+          Leia atentamente o Termos de Uso antes de continuar. <strong>Tempo mínimo de leitura: 60 segundos.</strong>
         </AlertDescription>
       </Alert>
 
       {/* Timer de leitura */}
       <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg border border-primary/30">
         <span className="text-sm font-medium text-primary/95">
-          {contractReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Contrato de Serviço...'}
+          {termsReadTime >= 3 ? '✅ Tempo mínimo de leitura atingido' : '⏱️ Lendo Termo de Uso...'}
         </span>
         <span className={cn(
           "text-lg font-bold",
-          contractReadTime >= 3 ? "text-success" : "text-primary"
+          termsReadTime >= 3 ? "text-success" : "text-primary"
         )}>
-          {contractReadTime}s / 3s
+          {termsReadTime}s / 3s
         </span>
       </div>
 
-      {loadingContract ? (
+      {loadingTerms ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
-      ) : currentContract ? (
+      ) : currentTerms ? (
         <Card className="p-6 max-h-96 overflow-y-auto border-2">
-          <div dangerouslySetInnerHTML={{ __html: currentContract.content }} />
+          <div dangerouslySetInnerHTML={{ __html: currentTerms.content }} />
         </Card>
       ) : null}
 
-      {errors.contract && (
+      {errors.terms && (
         <Alert variant="destructive">
-          <AlertDescription>{errors.contract}</AlertDescription>
+          <AlertDescription>{errors.terms}</AlertDescription>
         </Alert>
       )}
 
       <div className="flex items-start space-x-2 p-4 bg-muted/50 rounded-lg">
         <Checkbox
-          id="contractAccepted"
-          checked={formData.contractAccepted}
-          disabled={contractReadTime < 3}
+          id="termsAccepted"
+          checked={formData.termsAccepted}
+          disabled={termsReadTime < 3}
           onCheckedChange={(checked) =>
-            setFormData(prev => ({ ...prev, contractAccepted: !!checked }))
+            setFormData(prev => ({ ...prev, termsAccepted: !!checked }))
           }
         />
         <label
-          htmlFor="contractAccepted"
+          htmlFor="termsAccepted"
           className={cn(
             "text-sm leading-relaxed cursor-pointer",
-            contractReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
+            termsReadTime < 3 && "text-muted-foreground/70 cursor-not-allowed"
           )}
         >
-          Li e aceito os termos do contrato de prestação de serviços da plataforma RAFA ILPI
+          Li e aceito os Termos de Uso da plataforma RAFA ILPI
         </label>
       </div>
-      {errors.contractAccepted && (
-        <p className="text-sm text-danger">{errors.contractAccepted}</p>
+      {errors.termsAccepted && (
+        <p className="text-sm text-danger">{errors.termsAccepted}</p>
       )}
     </div>
   )
@@ -1443,7 +1443,7 @@ export default function Register() {
             {currentStep === 3 && "Escolha o Plano"}
             {currentStep === 4 && "Declarações LGPD"}
             {currentStep === 5 && "Política de Privacidade"}
-            {currentStep === 6 && "Contrato de Serviço"}
+            {currentStep === 6 && "Termos de Uso"}
             {currentStep === 7 && "Dados de Cobrança"}
           </div>
         </CardHeader>
@@ -1504,21 +1504,21 @@ export default function Register() {
       </Card>
 
       {/* Alert Dialog: Aceite Obrigatório */}
-      <AlertDialog open={showContractAlert} onOpenChange={setShowContractAlert}>
+      <AlertDialog open={showTermsAlert} onOpenChange={setShowTermsAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertCircle className="h-5 w-5" />
-              Aceite do Contrato Necessário
+              Aceite do Termo de Uso Necessário
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Para prosseguir com a criação da conta, você precisa ler e aceitar o Contrato de Prestação de Serviços.
+              Para prosseguir com a criação da conta, você precisa ler e aceitar o Termos de Uso.
               <br /><br />
-              Por favor, marque a caixa de seleção <strong>"Li e aceito os termos do contrato"</strong> antes de clicar em "Criar conta".
+              Por favor, marque a caixa de seleção <strong>"Li e aceito o Termo de Uso"</strong> antes de clicar em "Criar conta".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowContractAlert(false)}>
+            <AlertDialogAction onClick={() => setShowTermsAlert(false)}>
               Entendi
             </AlertDialogAction>
           </AlertDialogFooter>

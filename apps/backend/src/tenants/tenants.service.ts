@@ -65,13 +65,13 @@ export class TenantsService {
       paymentMethod,
     } = createTenantDto;
 
-    // Decodificar e validar token de aceite do contrato
+    // Decodificar e validar token de aceite do termo de uso
     let acceptanceData: Record<string, unknown>;
     try {
       acceptanceData = this.jwtService.verify(acceptanceToken) as Record<string, unknown>;
     } catch (_error) {
       throw new BadRequestException(
-        'Token de aceite do contrato inválido ou expirado',
+        'Token de aceite do termo de uso inválido ou expirado',
       );
     }
 
@@ -284,30 +284,30 @@ export class TenantsService {
         return { user, userProfile };
       });
 
-      // STEP 5: Registrar aceites do contrato e LGPD no schema PUBLIC (tabelas compartilhadas)
+      // STEP 5: Registrar aceites do termo de uso e LGPD no schema PUBLIC (tabelas compartilhadas)
       // IMPORTANTE: userId está no schema do tenant, mas acceptances estão no public
       // FKs userId foram REMOVIDAS permanentemente via migration (20260117000000_drop_cross_schema_user_fks)
       // porque são incompatíveis com multi-tenancy schema-per-tenant
       // Integridade referencial garantida por: validação em código + aceites append-only
 
-      const contractAcceptanceId = crypto.randomUUID();
+      const termsAcceptanceId = crypto.randomUUID();
       const privacyPolicyAcceptanceId = crypto.randomUUID();
       const acceptedAt = new Date();
 
       // Agora podemos inserir sem validação de FK
       await this.prisma.$executeRawUnsafe(
-        `INSERT INTO public.contract_acceptances (id, "contractId", "tenantId", "userId", "acceptedAt", "ipAddress", "userAgent", "contractVersion", "contractHash", "contractContent")
+        `INSERT INTO public.terms_of_service_acceptances (id, "termsId", "tenantId", "userId", "acceptedAt", "ipAddress", "userAgent", "termsVersion", "termsHash", "termsContent")
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, $9, $10)`,
-        contractAcceptanceId,
-        acceptanceData.contractId,
+        termsAcceptanceId,
+        acceptanceData.termsId,
         tenant.id,
         userResult.user.id,
         acceptedAt,
         acceptanceData.ipAddress,
         acceptanceData.userAgent,
-        acceptanceData.contractVersion,
-        acceptanceData.contractHash,
-        acceptanceData.contractContent,
+        acceptanceData.termsVersion,
+        acceptanceData.termsHash,
+        acceptanceData.termsContent,
       );
 
       await this.prisma.$executeRawUnsafe(
@@ -328,8 +328,8 @@ export class TenantsService {
       );
 
       // Buscar registros criados para retornar
-      const contractAcceptance = await this.prisma.contractAcceptance.findUnique({
-        where: { id: contractAcceptanceId },
+      const termsAcceptance = await this.prisma.termsOfServiceAcceptance.findUnique({
+        where: { id: termsAcceptanceId },
       });
 
       const privacyPolicyAcceptance = await this.prisma.privacyPolicyAcceptance.findUnique({
@@ -348,7 +348,7 @@ export class TenantsService {
           role: userResult.user.role,
         },
         userProfile: userResult.userProfile,
-        contractAcceptance,
+        termsAcceptance,
         privacyPolicyAcceptance,
       };
     } catch (error) {
