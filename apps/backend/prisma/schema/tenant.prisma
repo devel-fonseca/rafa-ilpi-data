@@ -144,7 +144,11 @@ model Subscription {
   status             String // trialing | active | past_due | canceled | unpaid | incomplete
 
   // Asaas Integration
-  asaasSubscriptionId String? @unique @db.VarChar(255) // ID da assinatura no Asaas
+  asaasSubscriptionId String?   @unique @db.VarChar(255) // ID da assinatura no Asaas
+  asaasCreatedAt      DateTime? @db.Timestamptz(3) @map("asaas_created_at") // Data de criação no Asaas
+  asaasCreationError  String?   @db.Text @map("asaas_creation_error") // Erro na tentativa de criação (retry manual)
+  lastSyncedAt        DateTime? @db.Timestamptz(3) @map("last_synced_at") // Última sincronização com Asaas
+  asaasSyncError      String?   @db.Text @map("asaas_sync_error") // Erro na sincronização
 
   // Pricing Overrides (Descontos e Preços Personalizados)
   discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)

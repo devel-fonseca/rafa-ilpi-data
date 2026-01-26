@@ -5,6 +5,11 @@ import { EmailService } from '../../email/email.service'
 import { SubscriptionAdminService } from '../services/subscription-admin.service'
 import { InvoiceService } from '../../payments/services/invoice.service'
 import { AlertsService } from '../services/alerts.service'
+import { AsaasService } from '../../payments/services/asaas.service'
+import {
+  AsaasBillingType,
+  AsaasSubscriptionCycle,
+} from '../../payments/gateways/payment-gateway.interface'
 
 /**
  * TrialToActiveConversionJob
@@ -36,6 +41,7 @@ export class TrialToActiveConversionJob {
     private readonly invoiceService: InvoiceService,
     private readonly emailService: EmailService,
     private readonly alertsService: AlertsService,
+    private readonly asaasService: AsaasService,
   ) {}
 
   @Cron('0 2 * * *') // Todos os dias às 02:00
@@ -88,6 +94,120 @@ export class TrialToActiveConversionJob {
             await this.subscriptionAdminService.convertTrialToActive(
               subscription.id,
             )
+
+          // 1.5. ✅ NOVO: Criar subscription recorrente no Asaas
+          try {
+            this.logger.log(
+              `💳 Criando subscription no Asaas para ${subscription.tenant.name}`,
+            )
+
+            // Garantir asaasCustomerId
+            let asaasCustomerId = subscription.tenant.asaasCustomerId
+
+            if (!asaasCustomerId) {
+              const customer = await this.asaasService.createCustomer({
+                name: subscription.tenant.name,
+                cpfCnpj: subscription.tenant.cnpj?.replace(/\D/g, '') || '',
+                email: subscription.tenant.email,
+                phone: subscription.tenant.phone || undefined,
+                address: subscription.tenant.addressStreet || undefined,
+                addressNumber: subscription.tenant.addressNumber || undefined,
+                complement: subscription.tenant.addressComplement || undefined,
+                province: subscription.tenant.addressDistrict || undefined,
+                city: subscription.tenant.addressCity || undefined,
+                state: subscription.tenant.addressState || undefined,
+                postalCode: subscription.tenant.addressZipCode || undefined,
+              })
+
+              asaasCustomerId = customer.id
+
+              // Atualizar tenant
+              await this.prisma.tenant.update({
+                where: { id: subscription.tenantId },
+                data: { asaasCustomerId: customer.id },
+              })
+            }
+
+            // Calcular valor final (customPrice ou plan.price com desconto)
+            const basePrice = subscription.customPrice
+              ? Number(subscription.customPrice)
+              : subscription.plan.price
+              ? Number(subscription.plan.price)
+              : 0
+
+            const discount = subscription.discountPercent
+              ? Number(subscription.discountPercent)
+              : 0
+
+            const finalValue = basePrice * (1 - discount / 100)
+
+            // Mapear billing cycle: ANNUAL → YEARLY, MONTHLY → MONTHLY
+            const cycle =
+              subscription.plan.billingCycle === 'ANNUAL'
+                ? AsaasSubscriptionCycle.YEARLY
+                : AsaasSubscriptionCycle.MONTHLY
+
+            // Mapear payment method
+            const billingType =
+              (subscription.preferredPaymentMethod as keyof typeof AsaasBillingType) ||
+              'BOLETO'
+
+            // Criar subscription recorrente no Asaas
+            const asaasSubscription = await this.asaasService.createSubscription(
+              {
+                customerId: asaasCustomerId,
+                billingType: AsaasBillingType[billingType],
+                value: finalValue,
+                cycle,
+                description: `Assinatura ${subscription.plan.displayName} - ${subscription.tenant.name}`,
+                externalReference: subscription.id,
+              },
+            )
+
+            // Atualizar subscription local
+            await this.prisma.subscription.update({
+              where: { id: subscription.id },
+              data: {
+                asaasSubscriptionId: asaasSubscription.id,
+                asaasCreatedAt: new Date(),
+                lastSyncedAt: new Date(),
+                asaasCreationError: null, // Limpar erro anterior
+              },
+            })
+
+            this.logger.log(
+              `✅ Asaas subscription created: ${asaasSubscription.id}`,
+            )
+          } catch (error) {
+            // ⚠️ CRÍTICO: NÃO bloquear tenant se criação no Asaas falhar
+            // Salvar erro para retry manual posterior
+            this.logger.error(
+              `❌ Erro ao criar subscription no Asaas: ${error.message}`,
+            )
+
+            await this.prisma.subscription.update({
+              where: { id: subscription.id },
+              data: {
+                asaasCreationError: error.message,
+                lastSyncedAt: new Date(),
+              },
+            })
+
+            // Criar alerta para SuperAdmin
+            await this.alertsService.createSystemErrorAlert({
+              title: 'Falha ao Criar Subscription no Asaas',
+              message: `Erro ao criar subscription recorrente: ${subscription.tenant.name}`,
+              error: error instanceof Error ? error : new Error('Unknown error'),
+              metadata: {
+                job: 'trial-to-active-conversion',
+                tenantId: subscription.tenantId,
+                subscriptionId: subscription.id,
+                errorMessage: error.message,
+              },
+            })
+
+            // Continuar com geração manual de fatura (fallback)
+          }
 
           // 2. Gerar primeira fatura
           this.logger.log(
