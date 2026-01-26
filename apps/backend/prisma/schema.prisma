@@ -5,6 +5,33 @@
 //
 //  CONFIGURAÇÃO BASE - Generators e Datasources
 //  Este arquivo deve ser processado primeiro (ordem alfabética garante isso)
+//
+//  ⚠️  ARQUITETURA DE SCHEMAS MODULARES (Prisma 5+)
+//
+//  Este projeto usa schemas modulares organizados por domínio em prisma/schema/*.prisma
+//  para melhor manutenibilidade e separação de responsabilidades.
+//
+//  📂 Estrutura:
+//  - prisma/schema.prisma (ESTE ARQUIVO)
+//    → Generator, Datasource e models compartilhados (AuditLog, etc)
+//  - prisma/schema/*.prisma (SCHEMAS MODULARES)
+//    → auth.prisma: User, Role, Permission
+//    → tenant.prisma: Plan, Tenant, Subscription
+//    → billing.prisma: Invoice, Payment, UsageMetrics
+//    → residents.prisma: Resident, Bed, Building
+//    → clinical.prisma: VitalSign, Medication, ClinicalNote
+//    → ... e outros domínios
+//
+//  🔧 Como modificar:
+//  1. Identifique o domínio correto (ex: Subscription está em tenant.prisma)
+//  2. Edite o arquivo modular correspondente em prisma/schema/
+//  3. Execute: npx prisma generate (regenera client com todos os schemas)
+//  4. Execute: npx prisma migrate dev --name nome_da_migration
+//
+//  ⚙️  Preview Feature habilitada: "prismaSchemaFolder"
+//  Permite múltiplos arquivos .prisma em prisma/schema/*.prisma
+//
+//  📖 Documentação: https://www.prisma.io/docs/orm/prisma-schema/overview/location
 // ──────────────────────────────────────────────────────────────────────────────
 
 generator client {
