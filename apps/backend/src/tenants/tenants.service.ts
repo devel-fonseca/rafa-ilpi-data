@@ -296,7 +296,7 @@ export class TenantsService {
 
       // Agora podemos inserir sem validação de FK
       await this.prisma.$executeRawUnsafe(
-        `INSERT INTO public.terms_of_service_acceptances (id, "termsId", "tenantId", "userId", "acceptedAt", "ipAddress", "userAgent", "termsVersion", "termsHash", "termsContent")
+        `INSERT INTO public.terms_of_service_acceptances (id, terms_id, "tenantId", "userId", accepted_at, ip_address, user_agent, terms_version, terms_hash, terms_content)
          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7, $8, $9, $10)`,
         termsAcceptanceId,
         acceptanceData.termsId,
