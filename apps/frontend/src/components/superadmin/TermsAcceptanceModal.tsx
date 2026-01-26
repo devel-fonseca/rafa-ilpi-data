@@ -33,7 +33,7 @@ export function TermsAcceptanceModal({
             <div>
               <p className="text-slate-500 mb-1">Versão do Termo</p>
               <p className="text-slate-900 font-medium">
-                {acceptance.contractVersion}
+                {acceptance.termsVersion}
               </p>
             </div>
             <div>
@@ -65,13 +65,13 @@ export function TermsAcceptanceModal({
           <div>
             <p className="text-slate-500 text-sm mb-2">Título do Termo de Uso</p>
             <p className="text-slate-900 font-medium text-lg mb-6">
-              {acceptance.contract?.title || 'Termo de Aceite e Termos de Uso'}
+              {acceptance.terms?.title || 'Termo de Aceite e Termos de Uso'}
             </p>
 
             <p className="text-slate-500 text-sm mb-3">Conteúdo Completo</p>
             <div
               className="p-6 bg-slate-50 rounded-lg border border-slate-200 prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: acceptance.contractContent }}
+              dangerouslySetInnerHTML={{ __html: acceptance.termsContent }}
             />
           </div>
 
@@ -83,7 +83,7 @@ export function TermsAcceptanceModal({
               <strong>Hash SHA-256 (Prova de Integridade):</strong>
             </p>
             <p className="text-xs font-mono break-all text-primary/90 bg-primary/10 p-2 rounded">
-              {acceptance.contractHash}
+              {acceptance.termsHash}
             </p>
             <p className="text-xs text-primary/80 mt-2">
               Este hash criptográfico garante que o conteúdo do termo de uso aceito

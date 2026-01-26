@@ -36,15 +36,15 @@ export interface Contract {
 
 export interface ContractAcceptance {
   id: string
-  contractId: string
+  termsId: string
   tenantId: string
   userId: string
   acceptedAt: string
   ipAddress: string
   userAgent: string
-  contractVersion: string
-  contractHash: string
-  contractContent: string
+  termsVersion: string
+  termsHash: string
+  termsContent: string
   tenant?: {
     id: string
     name: string
@@ -55,7 +55,7 @@ export interface ContractAcceptance {
     name: string
     email: string
   }
-  contract?: {
+  terms?: {
     id: string
     version: string
     title: string

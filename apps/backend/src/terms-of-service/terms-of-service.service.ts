@@ -412,6 +412,9 @@ export class TermsOfServiceService {
         },
         tenant: {
           select: {
+            id: true,
+            name: true,
+            email: true,
             schemaName: true,
           },
         },

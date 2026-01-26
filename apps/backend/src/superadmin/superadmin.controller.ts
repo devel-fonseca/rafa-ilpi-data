@@ -716,11 +716,11 @@ export class SuperAdminController {
 
   /**
    * GET /superadmin/tenants/:id/contract-acceptance
-   * Busca aceite de contrato de um tenant específico
+   * Busca aceite de Termos de Uso de um tenant específico
    */
   @Get('tenants/:id/contract-acceptance')
   async getTenantContractAcceptance(@Param('id') tenantId: string) {
-    return this.contractsService.getTenantAcceptance(tenantId)
+    return this.termsOfServiceService.getTenantAcceptance(tenantId)
   }
 
   /**
@@ -734,6 +734,9 @@ export class SuperAdminController {
       include: {
         tenant: {
           select: {
+            id: true,
+            name: true,
+            email: true,
             schemaName: true,
           },
         },

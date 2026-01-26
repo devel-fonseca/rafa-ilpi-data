@@ -11,6 +11,7 @@ import {
   Receipt,
   ExternalLink,
   FileText,
+  Download,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
@@ -27,6 +28,7 @@ import {
 import { useTenantInvoices } from '@/hooks/useInvoices'
 import type { Invoice } from '@/api/invoices.api'
 import { useTenantContractAcceptance, useTenantPrivacyPolicyAcceptance } from '@/hooks/useContracts'
+import { generateTermsAcceptancePDF, generatePrivacyPolicyAcceptancePDF } from '@/utils/acceptance-pdf'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -346,13 +348,13 @@ export function TenantDetails() {
         </CardContent>
       </Card>
 
-      {/* Contrato Aceito */}
+      {/* Termos de Uso Aceitos */}
       {contractAcceptance && (
         <Card className="bg-white border-slate-200">
           <CardHeader>
             <CardTitle className="text-slate-900 flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Contrato de Prestação de Serviços
+              Termos de Uso
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -368,7 +370,7 @@ export function TenantDetails() {
               <TableBody>
                 <TableRow className="border-slate-200">
                   <TableCell className="text-slate-900 font-medium">
-                    {contractAcceptance.contractVersion}
+                    {contractAcceptance.termsVersion}
                   </TableCell>
                   <TableCell className="text-slate-400">
                     {new Date(contractAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
@@ -386,14 +388,25 @@ export function TenantDetails() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setContractModalOpen(true)}
-                      className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                    >
-                      Ver Detalhes
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setContractModalOpen(true)}
+                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                      >
+                        Ver Detalhes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateTermsAcceptancePDF(contractAcceptance)}
+                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                        title="Baixar PDF do comprovante de aceite"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -442,14 +455,25 @@ export function TenantDetails() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPrivacyPolicyModalOpen(true)}
-                      className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                    >
-                      Ver Detalhes
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPrivacyPolicyModalOpen(true)}
+                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                      >
+                        Ver Detalhes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generatePrivacyPolicyAcceptancePDF(privacyPolicyAcceptance)}
+                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                        title="Baixar PDF do comprovante de aceite"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               </TableBody>
