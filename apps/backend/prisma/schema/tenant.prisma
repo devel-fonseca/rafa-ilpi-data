@@ -121,6 +121,7 @@ model Tenant {
   vitalSignAlerts            VitalSignAlert[] // Alertas médicos de sinais vitais
   institutionalEvents        InstitutionalEvent[] // Eventos institucionais
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
+  stats                      TenantStats? // Cache de estatísticas (evita N+1 queries)
 
   @@index([timezone])
   @@map("tenants")

@@ -59,7 +59,7 @@ export class TenantAdminService {
       }
     }
 
-    // Buscar dados e total
+    // Buscar dados e total (✅ COM stats cacheados)
     const [data, total] = await Promise.all([
       this.prisma.tenant.findMany({
         where,
@@ -77,44 +77,21 @@ export class TenantAdminService {
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
+          stats: true, // ✅ Incluir stats cacheados (evita N+1 queries)
         },
       }),
       this.prisma.tenant.count({ where }),
     ])
 
-    // Adicionar contadores de users e residents consultando schema de cada tenant
-    const enrichedData = await Promise.all(
-      data.map(async (tenant) => {
-        try {
-          // Consultar schema específico do tenant
-          const [usersCount, residentsCount] = await Promise.all([
-            this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
-              `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."users" WHERE "deletedAt" IS NULL`
-            ),
-            this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
-              `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."residents" WHERE "deletedAt" IS NULL`
-            ),
-          ])
-
-          return {
-            ...tenant,
-            _count: {
-              users: Number(usersCount[0].count),
-              residents: Number(residentsCount[0].count),
-            },
-          }
-        } catch (_error) {
-          // Se falhar (ex: schema não existe), retornar 0
-          return {
-            ...tenant,
-            _count: {
-              users: 0,
-              residents: 0,
-            },
-          }
-        }
-      })
-    )
+    // ✅ Usar stats cacheados ao invés de queries cross-schema
+    // Performance: De O(2N) queries para O(1) query
+    const enrichedData = data.map((tenant) => ({
+      ...tenant,
+      _count: {
+        users: tenant.stats?.usersCount ?? 0,
+        residents: tenant.stats?.residentsCount ?? 0,
+      },
+    }))
 
     const totalPages = Math.ceil(total / limit)
 
@@ -149,6 +126,7 @@ export class TenantAdminService {
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
+        stats: true, // ✅ Incluir stats cacheados
         _count: {
           select: {
             dailyRecords: true,
@@ -162,35 +140,14 @@ export class TenantAdminService {
       throw new NotFoundException(`Tenant com ID ${id} não encontrado`)
     }
 
-    // Adicionar contadores de users e residents consultando schema específico
-    try {
-      const [usersCount, residentsCount] = await Promise.all([
-        this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
-          `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."users" WHERE "deletedAt" IS NULL`
-        ),
-        this.prisma.$queryRawUnsafe<[{ count: bigint }]>(
-          `SELECT COUNT(*) as count FROM "${tenant.schemaName}"."residents" WHERE "deletedAt" IS NULL`
-        ),
-      ])
-
-      return {
-        ...tenant,
-        _count: {
-          ...tenant._count,
-          users: Number(usersCount[0].count),
-          residents: Number(residentsCount[0].count),
-        },
-      }
-    } catch (_error) {
-      // Se falhar, retornar com contadores zerados
-      return {
-        ...tenant,
-        _count: {
-          ...tenant._count,
-          users: 0,
-          residents: 0,
-        },
-      }
+    // ✅ Usar stats cacheados ao invés de queries cross-schema
+    return {
+      ...tenant,
+      _count: {
+        ...tenant._count,
+        users: tenant.stats?.usersCount ?? 0,
+        residents: tenant.stats?.residentsCount ?? 0,
+      },
     }
   }
 
