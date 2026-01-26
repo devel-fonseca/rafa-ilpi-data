@@ -21,11 +21,12 @@ export class MetricsService {
    * Retorna visão geral das métricas principais
    */
   async getOverview() {
-    // Buscar todos os tenants e suas subscriptions ativas (incluindo TRIAL)
+    // Buscar subscriptions que geram receita real (ACTIVE e PAST_DUE)
+    // TRIAL/trialing NÃO conta para MRR pois não gera receita ainda
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
         status: {
-          in: ['ACTIVE', 'active', 'TRIAL', 'trialing'],
+          in: ['ACTIVE', 'active', 'PAST_DUE', 'past_due'],
         },
       },
       include: {
@@ -195,6 +196,7 @@ export class MetricsService {
    *
    * Considera subscriptions que estavam ativas naquele período,
    * incluindo customPrice, descontos e normalização de planos anuais.
+   * Conta apenas ACTIVE e PAST_DUE (receita real), não inclui TRIAL.
    */
   private async calculateMrrForPeriod(
     startDate: Date,
@@ -202,11 +204,11 @@ export class MetricsService {
   ): Promise<number> {
     const targetDate = endDate || new Date()
 
-    // Buscar subscriptions que estavam ativas no período
+    // Buscar subscriptions que geravam receita real no período
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
         status: {
-          in: ['ACTIVE', 'active', 'TRIAL', 'trialing'],
+          in: ['ACTIVE', 'active', 'PAST_DUE', 'past_due'],
         },
         startDate: {
           lte: targetDate,
