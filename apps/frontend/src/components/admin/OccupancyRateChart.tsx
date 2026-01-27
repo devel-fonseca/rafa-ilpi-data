@@ -114,7 +114,7 @@ export function OccupancyRateChart({
       name: 'Vazio',
       value: 100 - occupancyRate,
       fill: 'hsl(var(--muted))',
-      fillOpacity: 0.5,
+      fillOpacity: 0.7,
     },
   ]
 
