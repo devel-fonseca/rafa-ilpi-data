@@ -3,8 +3,9 @@ import { useMySubscription } from '@/hooks/useTenant'
 import { useTenantInvoices } from '@/hooks/useBilling'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Loader2, AlertTriangle, TrendingUp, X } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingUp, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useFeatures } from '@/hooks/useFeatures'
 
 interface PlanStatusSectionProps {
   showManageButton?: boolean // Se true, mostra botão "Gerenciar Plano" (para dashboard)
@@ -14,6 +15,7 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
   const navigate = useNavigate()
   const { data: subscriptionData, isLoading } = useMySubscription()
   const { data: invoicesData } = useTenantInvoices({ status: 'OPEN', limit: 1 })
+  const { hasCustomizations, maxUsers, maxResidents } = useFeatures()
 
   // Estado para controlar se os alerts foram fechados
   const [trialAlertDismissed, setTrialAlertDismissed] = useState(false)
@@ -132,9 +134,13 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
     return tenantStatus
   }
 
-  // Calcular percentuais de uso
-  const userPercentage = plan.maxUsers > 0 ? (usage.activeUsers / plan.maxUsers) * 100 : 0
-  const residentPercentage = plan.maxResidents > 0 ? (usage.activeResidents / plan.maxResidents) * 100 : 0
+  // Usar limites customizados se disponíveis, caso contrário usar limites do plano
+  const effectiveMaxUsers = maxUsers ?? plan.maxUsers
+  const effectiveMaxResidents = maxResidents ?? plan.maxResidents
+
+  // Calcular percentuais de uso com limites efetivos
+  const userPercentage = effectiveMaxUsers > 0 ? (usage.activeUsers / effectiveMaxUsers) * 100 : 0
+  const residentPercentage = effectiveMaxResidents > 0 ? (usage.activeResidents / effectiveMaxResidents) * 100 : 0
 
   // Verificar se está próximo dos limites (>=80%) ou atingiu (100%)
   const userLimitStatus = userPercentage >= 100 ? 'critical' : userPercentage >= 80 ? 'warning' : 'normal'
@@ -174,9 +180,12 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
               </div>
             )}
             <div>
-              <p className="text-sm font-medium text-foreground">
+              <p className="text-sm font-medium text-foreground flex items-center gap-1">
                 Plano Atual:{' '}
                 <span className="font-bold">{formatPlanName(plan.name)}</span>
+                {hasCustomizations && (
+                  <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" title="Plano customizado com limites aprimorados" />
+                )}
               </p>
               <p className="text-xs text-muted-foreground">
                 Status: <span className="font-medium">{getStatusLabel()}</span>
@@ -196,7 +205,7 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
                   userLimitStatus === 'warning' && 'text-warning',
                   userLimitStatus === 'normal' && 'text-foreground'
                 )}>
-                  {usage.activeUsers}/{plan.maxUsers}
+                  {usage.activeUsers}/{effectiveMaxUsers === -1 ? '∞' : effectiveMaxUsers}
                 </span>
               </div>
               <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
@@ -222,7 +231,7 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
                   residentLimitStatus === 'warning' && 'text-warning',
                   residentLimitStatus === 'normal' && 'text-foreground'
                 )}>
-                  {usage.activeResidents}/{plan.maxResidents}
+                  {usage.activeResidents}/{effectiveMaxResidents === -1 ? '∞' : effectiveMaxResidents}
                 </span>
               </div>
               <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
