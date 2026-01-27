@@ -133,8 +133,8 @@ export function OccupancyRateChart({
               outerRadius="100%"
               barSize={20}
               data={chartData}
-              startAngle={180}
-              endAngle={-180}
+              startAngle={90}
+              endAngle={450}
             >
               <RadialBar
                 background={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
