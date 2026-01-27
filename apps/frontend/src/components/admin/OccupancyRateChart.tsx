@@ -46,7 +46,7 @@ export function OccupancyRateChart({
           <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[280px] flex items-center justify-center">
+          <div className="h-[240px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
         </CardContent>
@@ -65,7 +65,7 @@ export function OccupancyRateChart({
           <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[280px] flex flex-col items-center justify-center gap-3">
+          <div className="h-[240px] flex flex-col items-center justify-center gap-3">
             <AlertCircle className="h-8 w-8 text-warning" />
             <p className="text-sm text-muted-foreground text-center">
               Configure leitos em <strong>Gestão de Leitos</strong> para visualizar a taxa de ocupação
@@ -86,7 +86,7 @@ export function OccupancyRateChart({
           <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[280px] flex items-center justify-center">
+          <div className="h-[240px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
           </div>
         </CardContent>
@@ -124,14 +124,14 @@ export function OccupancyRateChart({
         <CardDescription>Taxa atual</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="relative h-[280px]">
+        <div className="relative h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart
               cx="50%"
               cy="50%"
-              innerRadius="70%"
+              innerRadius="75%"
               outerRadius="100%"
-              barSize={24}
+              barSize={20}
               data={chartData}
               startAngle={90}
               endAngle={-270}
@@ -158,10 +158,10 @@ export function OccupancyRateChart({
 
           {/* Valor central */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <div className="text-4xl font-bold" style={{ color: getOccupancyColor(occupancyRate) }}>
+            <div className="text-3xl font-bold" style={{ color: getOccupancyColor(occupancyRate) }}>
               {occupancyRate.toFixed(1)}%
             </div>
-            <div className="text-xs text-muted-foreground mt-1">Taxa de Ocupação</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">Taxa de Ocupação</div>
           </div>
         </div>
 
