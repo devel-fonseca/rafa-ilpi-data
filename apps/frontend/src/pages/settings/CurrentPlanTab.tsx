@@ -1,5 +1,6 @@
 import { PlanStatusSection } from '@/components/admin/PlanStatusSection'
 import { TrialAlert } from '@/components/billing/TrialAlert'
+import { BillingCycleSelector } from '@/components/billing/BillingCycleSelector'
 import { PaymentMethodSelector } from '@/components/billing/PaymentMethodSelector'
 import { SubscriptionChangeHistory } from '@/components/billing/SubscriptionChangeHistory'
 import { PlanFeaturesCard } from '@/components/billing/PlanFeaturesCard'
@@ -51,6 +52,16 @@ export function CurrentPlanTab() {
 
       {/* Features do Plano */}
       <PlanFeaturesCard />
+
+      {/* Ciclo de Cobrança */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Ciclo de Cobrança</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BillingCycleSelector />
+        </CardContent>
+      </Card>
 
       {/* Método de Pagamento */}
       <Card className="bg-card border-border">

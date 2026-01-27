@@ -331,7 +331,65 @@ export class AdminController {
   }
 
   /**
-   * 7. Cancelar subscription durante trial
+   * 7. Atualizar ciclo de cobrança (MONTHLY ↔ ANNUAL)
+   */
+  @Patch('subscription/billing-cycle')
+  @Roles('ADMIN', 'MANAGER')
+  async updateBillingCycle(
+    @Body() dto: { billingCycle: 'MONTHLY' | 'ANNUAL' },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const tenantId = this.validateTenantId(user)
+
+    // Buscar subscription ativa
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        tenantId,
+        status: { in: ACTIVE_STATUSES },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!subscription) {
+      throw new NotFoundException('Nenhuma subscription ativa encontrada')
+    }
+
+    // Log de auditoria ANTES da operação
+    this.logger.log(
+      `[TENANT-SELF-SERVICE] Ciclo de cobrança alterado: ${tenantId} (${subscription.billingCycle || 'NENHUM'} → ${dto.billingCycle}) user=${user.email}`,
+    )
+
+    // Atualizar ciclo
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        billingCycle: dto.billingCycle,
+      },
+      include: { plan: true },
+    })
+
+    // Se mudou para MONTHLY e estava usando PIX, mudar para BOLETO
+    if (dto.billingCycle === 'MONTHLY' && updated.preferredPaymentMethod === 'PIX') {
+      this.logger.warn(
+        `PIX não suportado para MONTHLY. Convertendo para BOLETO. Tenant: ${tenantId}`,
+      )
+
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: {
+          preferredPaymentMethod: 'BOLETO',
+        },
+      })
+    }
+
+    return {
+      subscription: updated,
+      message: 'Ciclo de cobrança atualizado com sucesso',
+    }
+  }
+
+  /**
+   * 8. Cancelar subscription durante trial
    */
   @Post('subscription/cancel-trial')
   @Roles('ADMIN', 'MANAGER')

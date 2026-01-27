@@ -1380,23 +1380,30 @@ export default function Register() {
             value={formData.paymentMethod}
             onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value as 'PIX' | 'BOLETO' | 'CREDIT_CARD' }))}
           >
-            {/* PIX */}
-            <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
-              <RadioGroupItem value="PIX" id="pix" />
-              <Label htmlFor="pix" className="flex-1 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">⚡</span>
+            {/* PIX - Apenas para ANNUAL */}
+            {formData.billingCycle === 'ANNUAL' && (
+              <div className="flex items-center space-x-2 border-2 border-[#059669] rounded-lg p-4 hover:bg-muted/50 cursor-pointer relative">
+                <RadioGroupItem value="PIX" id="pix" />
+                <Label htmlFor="pix" className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+                      <span className="text-2xl">⚡</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">PIX</p>
+                        <span className="inline-flex items-center rounded-full bg-[#059669] px-2 py-0.5 text-xs font-medium text-white">
+                          Recomendado
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Confirmação instantânea • Apenas pagamento anual
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium">PIX</p>
-                    <p className="text-sm text-muted-foreground">
-                      Confirmação instantânea
-                    </p>
-                  </div>
-                </div>
-              </Label>
-            </div>
+                </Label>
+              </div>
+            )}
 
             {/* Boleto */}
             <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
@@ -1416,9 +1423,9 @@ export default function Register() {
               </Label>
             </div>
 
-            {/* Cartão de Crédito */}
-            <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer">
-              <RadioGroupItem value="CREDIT_CARD" id="credit-card" />
+            {/* Cartão de Crédito - DESABILITADO temporariamente */}
+            {/* <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50 cursor-pointer opacity-50">
+              <RadioGroupItem value="CREDIT_CARD" id="credit-card" disabled />
               <Label htmlFor="credit-card" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -1427,13 +1434,23 @@ export default function Register() {
                   <div>
                     <p className="font-medium">Cartão de Crédito</p>
                     <p className="text-sm text-muted-foreground">
-                      Renovação automática mensal
+                      Renovação automática mensal (em breve)
                     </p>
                   </div>
                 </div>
               </Label>
-            </div>
+            </div> */}
           </RadioGroup>
+
+          {/* Aviso PIX para planos mensais */}
+          {formData.billingCycle === 'MONTHLY' && (
+            <div className="rounded-lg bg-[#059669]/10 border border-[#059669]/20 p-3">
+              <p className="text-sm text-[#059669]">
+                💡 <strong>PIX disponível para pagamento anual.</strong> Selecione "Anual" acima para habilitar PIX como método de pagamento.
+              </p>
+            </div>
+          )}
+
           {errors.paymentMethod && (
             <p className="text-sm text-danger">{errors.paymentMethod}</p>
           )}

@@ -80,6 +80,22 @@ export function useUpdatePaymentMethod() {
   })
 }
 
+// PATCH /admin/subscription/billing-cycle
+export function useUpdateBillingCycle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (billingCycle: 'MONTHLY' | 'ANNUAL') => {
+      const response = await api.patch('/admin/subscription/billing-cycle', {
+        billingCycle,
+      })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('tenant', 'subscription') })
+    },
+  })
+}
+
 // POST /admin/subscription/cancel-trial
 export function useCancelTrial() {
   const queryClient = useQueryClient()

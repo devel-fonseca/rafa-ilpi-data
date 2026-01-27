@@ -20,10 +20,11 @@ const PAYMENT_METHODS = {
     label: 'Boleto Bancário',
     description: 'Boleto com vencimento em até 3 dias úteis',
   },
-  CREDIT_CARD: {
-    label: 'Cartão de Crédito',
-    description: 'Pagamento parcelado no cartão',
-  },
+  // CREDIT_CARD: Desabilitado temporariamente - não implementado
+  // CREDIT_CARD: {
+  //   label: 'Cartão de Crédito',
+  //   description: 'Pagamento parcelado no cartão',
+  // },
 }
 
 interface SubscriptionWithPaymentMethod {
