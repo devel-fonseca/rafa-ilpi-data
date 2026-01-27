@@ -130,15 +130,15 @@ export function OccupancyRateChart({
             <RadialBarChart
               cx="50%"
               cy="50%"
-              innerRadius="75%"
-              outerRadius="100%"
-              barSize={20}
+              innerRadius="70%"
+              outerRadius="95%"
+              barSize={18}
               data={chartData}
               startAngle={90}
               endAngle={450}
             >
               <RadialBar
-                background={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
+                background={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
                 dataKey="value"
                 cornerRadius={8}
                 fill={getOccupancyColor(occupancyRate)}
