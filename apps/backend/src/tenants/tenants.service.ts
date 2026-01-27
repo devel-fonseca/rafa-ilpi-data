@@ -1140,6 +1140,9 @@ export class TenantsService {
       hasCustomizations: effectiveLimits.hasCustomizations,
       maxUsers: effectiveLimits.effectiveLimits.maxUsers,
       maxResidents: effectiveLimits.effectiveLimits.maxResidents,
+      // Detalhes para tenant admin
+      subscribedFeatures: effectiveLimits.subscribedFeatures,
+      customOverrides: effectiveLimits.customOverrides,
     };
   }
 }

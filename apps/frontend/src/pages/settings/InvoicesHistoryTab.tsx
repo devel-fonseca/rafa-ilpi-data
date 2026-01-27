@@ -3,6 +3,7 @@ import { useTenantInvoices } from '@/hooks/useBilling'
 import { Loader2, ExternalLink, QrCode as QrCodeIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { formatDateOnlySafe, isDateBefore, getCurrentDate } from '@/utils/dateHelpers'
 import {
   Table,
   TableBody,
@@ -107,7 +108,7 @@ export function InvoicesHistoryTab() {
 
                     const isOverdue =
                       invoice.status === 'OPEN' &&
-                      new Date(invoice.dueDate) < new Date()
+                      isDateBefore(invoice.dueDate, getCurrentDate())
 
                     return (
                       <TableRow
@@ -147,11 +148,7 @@ export function InvoicesHistoryTab() {
 
                         <TableCell>
                           <span className="text-sm text-foreground">
-                            {new Date(invoice.dueDate).toLocaleDateString('pt-BR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: '2-digit',
-                            })}
+                            {formatDateOnlySafe(invoice.dueDate)}
                           </span>
                         </TableCell>
 

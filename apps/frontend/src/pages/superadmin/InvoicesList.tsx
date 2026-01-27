@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { formatDateOnlySafe, isDateBefore, getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import {
   Table,
   TableBody,
@@ -84,7 +85,7 @@ export function InvoicesList() {
     // Filtro de apenas vencidas
     if (filters.onlyOverdue) {
       const isOverdue =
-        invoice.status === 'OPEN' && new Date(invoice.dueDate) < new Date()
+        invoice.status === 'OPEN' && isDateBefore(invoice.dueDate, getCurrentDate())
       if (!isOverdue) return false
     }
 
@@ -219,11 +220,11 @@ export function InvoicesList() {
 
                   const isOverdue =
                     invoice.status === 'OPEN' &&
-                    new Date(invoice.dueDate) < new Date()
+                    isDateBefore(invoice.dueDate, getCurrentDate())
 
                   const daysOverdue = isOverdue
                     ? Math.floor(
-                        (new Date().getTime() - new Date(invoice.dueDate).getTime()) /
+                        (new Date(getCurrentDate()).getTime() - new Date(extractDateOnly(invoice.dueDate)).getTime()) /
                           (1000 * 60 * 60 * 24),
                       )
                     : 0
@@ -304,11 +305,7 @@ export function InvoicesList() {
                       {/* Vencimento */}
                       <TableCell>
                         <span className="text-sm text-slate-700">
-                          {new Date(invoice.dueDate).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: '2-digit',
-                          })}
+                          {formatDateOnlySafe(invoice.dueDate)}
                         </span>
                       </TableCell>
 

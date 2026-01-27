@@ -4,9 +4,11 @@ import { BillingCycleSelector } from '@/components/billing/BillingCycleSelector'
 import { PaymentMethodSelector } from '@/components/billing/PaymentMethodSelector'
 import { SubscriptionChangeHistory } from '@/components/billing/SubscriptionChangeHistory'
 import { PlanFeaturesCard } from '@/components/billing/PlanFeaturesCard'
+import { CustomLimitsCard } from '@/components/billing/CustomLimitsCard'
 import { useMySubscription } from '@/hooks/useTenant'
 import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatDateLongSafe } from '@/utils/dateHelpers'
 
 interface SubscriptionWithDiscount {
   status: string
@@ -52,6 +54,9 @@ export function CurrentPlanTab() {
 
       {/* Features do Plano */}
       <PlanFeaturesCard />
+
+      {/* Limites Customizados (se houver) */}
+      <CustomLimitsCard />
 
       {/* Ciclo de Cobrança */}
       <Card className="bg-card border-border">
@@ -144,11 +149,7 @@ export function CurrentPlanTab() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Data de renovação:</span>
                 <span className="text-sm font-medium text-foreground">
-                  {new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
+                  {formatDateLongSafe(subscription.currentPeriodEnd)}
                 </span>
               </div>
               <div className="flex justify-between items-center">

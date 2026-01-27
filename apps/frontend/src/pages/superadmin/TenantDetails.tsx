@@ -48,6 +48,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
+import { formatDateOnlySafe, isDateBefore, getCurrentDate } from '@/utils/dateHelpers'
 
 // Helper para obter nome humanizado de uma feature
 const getFeatureName = (key: string): string => FEATURES_MAP[key] || key
@@ -752,7 +753,7 @@ export function TenantDetails() {
 
                     const isOverdue =
                       invoice.status === 'OPEN' &&
-                      new Date(invoice.dueDate) < new Date()
+                      isDateBefore(invoice.dueDate, getCurrentDate())
 
                     return (
                       <TableRow key={invoice.id} className="border-slate-200">
@@ -775,10 +776,10 @@ export function TenantDetails() {
                           R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-slate-400">
-                          {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+                          {formatDateOnlySafe(invoice.dueDate)}
                         </TableCell>
                         <TableCell className="text-slate-400">
-                          {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
+                          {formatDateOnlySafe(invoice.createdAt)}
                         </TableCell>
                         <TableCell>
                           {invoice.paymentUrl && (

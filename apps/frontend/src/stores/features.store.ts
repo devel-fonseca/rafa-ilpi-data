@@ -7,6 +7,15 @@ interface FeaturesState {
   plan: string | null
   planType: string | null
   features: Record<string, boolean>
+  subscribedFeatures: Record<string, boolean> | null
+  customOverrides: {
+    customMaxUsers: number | null
+    customMaxResidents: number | null
+    customFeatures: Record<string, boolean>
+  } | null
+  hasCustomizations: boolean
+  maxUsers: number | null
+  maxResidents: number | null
   isLoading: boolean
   error: string | null
   lastFetch: number | null
@@ -27,6 +36,11 @@ export const useFeaturesStore = create<FeaturesState>()(
       plan: null,
       planType: null,
       features: {},
+      subscribedFeatures: null,
+      customOverrides: null,
+      hasCustomizations: false,
+      maxUsers: null,
+      maxResidents: null,
       isLoading: false,
       error: null,
       lastFetch: null,
@@ -45,18 +59,33 @@ export const useFeaturesStore = create<FeaturesState>()(
         set({ isLoading: true, error: null })
         try {
           const response = await api.get('/tenants/me/features')
-          const { plan, planType, features } = response.data
+          const {
+            plan,
+            planType,
+            features,
+            subscribedFeatures,
+            customOverrides,
+            hasCustomizations,
+            maxUsers,
+            maxResidents
+          } = response.data
 
           console.log('✅ Features Store - Features carregadas:', {
             plan,
             planType,
             featuresCount: Object.keys(features).length,
+            hasCustomizations,
           })
 
           set({
             plan,
             planType,
             features,
+            subscribedFeatures,
+            customOverrides,
+            hasCustomizations,
+            maxUsers,
+            maxResidents,
             isLoading: false,
             error: null,
             lastFetch: now,
@@ -96,6 +125,11 @@ export const useFeaturesStore = create<FeaturesState>()(
           plan: null,
           planType: null,
           features: {},
+          subscribedFeatures: null,
+          customOverrides: null,
+          hasCustomizations: false,
+          maxUsers: null,
+          maxResidents: null,
           error: null,
           lastFetch: null,
         })
@@ -113,6 +147,11 @@ export const useFeaturesStore = create<FeaturesState>()(
         plan: state.plan,
         planType: state.planType,
         features: state.features,
+        subscribedFeatures: state.subscribedFeatures,
+        customOverrides: state.customOverrides,
+        hasCustomizations: state.hasCustomizations,
+        maxUsers: state.maxUsers,
+        maxResidents: state.maxResidents,
         lastFetch: state.lastFetch,
       }),
     },

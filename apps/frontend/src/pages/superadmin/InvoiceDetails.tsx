@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
+import { formatDateOnlySafe, isDateBefore, getCurrentDate } from '@/utils/dateHelpers'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   DRAFT: { label: 'Rascunho', variant: 'outline' },
@@ -64,7 +65,7 @@ export function InvoiceDetails() {
 
   const isOverdue =
     invoice.status === 'OPEN' &&
-    new Date(invoice.dueDate) < new Date()
+    isDateBefore(invoice.dueDate, getCurrentDate())
 
   const handleSync = async () => {
     try {
@@ -195,7 +196,7 @@ export function InvoiceDetails() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-slate-900">
-              {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+              {formatDateOnlySafe(invoice.dueDate)}
             </div>
           </CardContent>
         </Card>
