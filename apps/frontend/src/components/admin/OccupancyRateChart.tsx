@@ -195,7 +195,7 @@ export function OccupancyRateChart({
           </ResponsiveContainer>
 
           {/* Valor central */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className={`text-2xl font-bold ${
               occupancyRate >= 90 ? 'text-danger' :
               occupancyRate >= 75 ? 'text-warning' :
@@ -204,7 +204,6 @@ export function OccupancyRateChart({
             }`}>
               {occupancyRate.toFixed(1)}%
             </div>
-            <div className="text-[9px] text-muted-foreground mt-0.5">Taxa de Ocupação</div>
           </div>
         </div>
       </CardContent>
