@@ -96,10 +96,11 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { tenantId, name, email, password } = registerDto;
 
-    // Verificar se tenant existe
+    // Verificar se tenant existe e buscar customizações
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: { subscriptions: { include: { plan: true }, take: 1 } },
+      // ✅ Incluir campos de customização para calcular limites efetivos
     });
 
     if (!tenant) {
@@ -121,15 +122,18 @@ export class AuthService {
       throw new ConflictException('Email já cadastrado para este tenant');
     }
 
-    // Verificar limite de usuários do plano
+    // Verificar limite de usuários (usando limites efetivos com overrides)
     const userCount = await tenantClient.user.count({
       where: { deletedAt: null },
     });
 
-    const maxUsers = tenant.subscriptions[0]?.plan.maxUsers || 0;
-    if (maxUsers !== -1 && userCount >= maxUsers) {
+    // ✅ Calcular limite efetivo: customMaxUsers ?? plan.maxUsers ?? 0
+    const planMaxUsers = tenant.subscriptions[0]?.plan.maxUsers || 0;
+    const effectiveMaxUsers = tenant.customMaxUsers ?? planMaxUsers;
+
+    if (effectiveMaxUsers !== -1 && userCount >= effectiveMaxUsers) {
       throw new BadRequestException(
-        `Limite de ${maxUsers} usuários atingido para o plano atual`,
+        `Limite de ${effectiveMaxUsers} usuários atingido para o plano atual`,
       );
     }
 

@@ -347,7 +347,7 @@ export class ResidentsService {
         throw new NotFoundException('Tenant não encontrado');
       }
 
-      // Verificar limite de residentes
+      // Verificar limite de residentes (usando limites efetivos com overrides)
       if (tenant.subscriptions[0]?.plan) {
         const currentCount = await this.tenantContext.client.resident.count({
           where: {
@@ -355,10 +355,13 @@ export class ResidentsService {
           },
         });
 
-        const maxResidents = tenant.subscriptions[0].plan.maxResidents;
-        if (maxResidents !== -1 && currentCount >= maxResidents) {
+        // ✅ Calcular limite efetivo: customMaxResidents ?? plan.maxResidents
+        const planMaxResidents = tenant.subscriptions[0].plan.maxResidents;
+        const effectiveMaxResidents = tenant.customMaxResidents ?? planMaxResidents;
+
+        if (effectiveMaxResidents !== -1 && currentCount >= effectiveMaxResidents) {
           throw new BadRequestException(
-            `Limite de ${maxResidents} residentes atingido para o plano atual`,
+            `Limite de ${effectiveMaxResidents} residentes atingido para o plano atual`,
           );
         }
       }
