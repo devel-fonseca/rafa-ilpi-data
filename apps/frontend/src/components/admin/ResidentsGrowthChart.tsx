@@ -54,7 +54,7 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
           <CardDescription>Crescimento nos últimos 6 meses</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[160px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
         </CardContent>
@@ -72,7 +72,7 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
           <CardDescription>Crescimento nos últimos 6 meses</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[160px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
           </div>
         </CardContent>
@@ -89,7 +89,7 @@ export function ResidentsGrowthChart({ data = [], isLoading = false }: Residents
         <CardDescription>Crescimento nos últimos 6 meses</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={160}>
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">

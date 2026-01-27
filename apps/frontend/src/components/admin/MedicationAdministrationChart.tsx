@@ -56,7 +56,7 @@ export function MedicationAdministrationChart({
           <CardDescription>Últimos 7 dias</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[160px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
         </CardContent>
@@ -74,7 +74,7 @@ export function MedicationAdministrationChart({
           <CardDescription>Últimos 7 dias</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[160px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
           </div>
         </CardContent>
@@ -91,7 +91,7 @@ export function MedicationAdministrationChart({
         <CardDescription>Últimos 7 dias</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={160}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
