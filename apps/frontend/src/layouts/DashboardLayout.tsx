@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -226,10 +226,16 @@ export function DashboardLayout() {
                     <span>Meu Perfil</span>
                   </DropdownMenuItem>
                   {user?.role?.toUpperCase() === 'ADMIN' && (
-                    <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Gerenciar Usuários</span>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Gerenciar Usuários</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard/settings/billing')}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Gerenciar Plano</span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -295,10 +301,16 @@ export function DashboardLayout() {
                     <span>Meu Perfil</span>
                   </DropdownMenuItem>
                   {user?.role?.toUpperCase() === 'ADMIN' && (
-                    <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>Gerenciar Usuários</span>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard/usuarios')}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Gerenciar Usuários</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard/settings/billing')}>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        <span>Gerenciar Plano</span>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

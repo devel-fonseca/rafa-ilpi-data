@@ -28,9 +28,6 @@ export function AdminDashboard() {
         isLoading={isLoadingCompliance}
       />
 
-      {/* Plan Status Section */}
-      <PlanStatusSection />
-
       {/* Atividades Recentes e Pendentes */}
       <Section title="Atividades Recentes">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -38,6 +35,9 @@ export function AdminDashboard() {
           <PendingActivities />
         </div>
       </Section>
+
+      {/* Plan Status Section */}
+      <PlanStatusSection />
     </Page>
   )
 }
