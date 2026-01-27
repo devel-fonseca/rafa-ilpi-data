@@ -196,12 +196,15 @@ export function OccupancyRateChart({
 
           {/* Valor central */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className={`text-2xl font-bold ${
-              occupancyRate >= 90 ? 'text-danger' :
-              occupancyRate >= 75 ? 'text-warning' :
-              occupancyRate >= 50 ? 'text-success' :
-              'text-info'
-            }`}>
+            <div
+              className={`font-bold ${
+                occupancyRate >= 90 ? 'text-danger' :
+                occupancyRate >= 75 ? 'text-warning' :
+                occupancyRate >= 50 ? 'text-success' :
+                'text-info'
+              }`}
+              style={{ fontSize: 'clamp(1.5rem, 8vw, 2.5rem)' }}
+            >
               {occupancyRate.toFixed(1)}%
             </div>
           </div>
