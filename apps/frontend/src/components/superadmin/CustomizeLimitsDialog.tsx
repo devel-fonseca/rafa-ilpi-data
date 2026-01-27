@@ -1,0 +1,324 @@
+import { useState, useEffect } from 'react'
+import { Settings2, X } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { useCustomizeTenantLimits, useTenantEffectiveLimits } from '@/hooks/useSuperAdmin'
+import { useToast } from '@/components/ui/use-toast'
+import type { Tenant } from '@/api/superadmin.api'
+
+interface CustomizeLimitsDialogProps {
+  tenant: Tenant
+}
+
+export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
+  const [open, setOpen] = useState(false)
+  const { toast } = useToast()
+  const customizeMutation = useCustomizeTenantLimits()
+  const { data: effectiveLimits } = useTenantEffectiveLimits(tenant.id, open)
+
+  // Form state
+  const [customMaxUsers, setCustomMaxUsers] = useState<number | null>(null)
+  const [customMaxResidents, setCustomMaxResidents] = useState<number | null>(null)
+  const [enableUsersOverride, setEnableUsersOverride] = useState(false)
+  const [enableResidentsOverride, setEnableResidentsOverride] = useState(false)
+
+  // Atualizar form quando effectiveLimits carrega
+  useEffect(() => {
+    if (effectiveLimits) {
+      const hasUsersOverride = effectiveLimits.customOverrides.customMaxUsers !== null
+      const hasResidentsOverride = effectiveLimits.customOverrides.customMaxResidents !== null
+
+      setEnableUsersOverride(hasUsersOverride)
+      setEnableResidentsOverride(hasResidentsOverride)
+      setCustomMaxUsers(effectiveLimits.customOverrides.customMaxUsers)
+      setCustomMaxResidents(effectiveLimits.customOverrides.customMaxResidents)
+    }
+  }, [effectiveLimits])
+
+  const handleSubmit = async () => {
+    try {
+      await customizeMutation.mutateAsync({
+        tenantId: tenant.id,
+        data: {
+          customMaxUsers: enableUsersOverride ? customMaxUsers : null,
+          customMaxResidents: enableResidentsOverride ? customMaxResidents : null,
+          customFeatures: null, // TODO: Implementar customização de features
+        },
+      })
+
+      toast({
+        title: '✓ Limites customizados',
+        description: `Os limites de "${tenant.name}" foram atualizados com sucesso.`,
+      })
+      setOpen(false)
+    } catch (error: unknown) {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast({
+        title: 'Falha ao customizar limites',
+        description:
+          errorResponse?.data?.message ||
+          'Ocorreu um erro ao atualizar os limites. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleRemoveAll = async () => {
+    if (!confirm('Remover todas as customizações? O tenant voltará a usar os limites do plano base.')) {
+      return
+    }
+
+    try {
+      await customizeMutation.mutateAsync({
+        tenantId: tenant.id,
+        data: {
+          customMaxUsers: null,
+          customMaxResidents: null,
+          customFeatures: null,
+        },
+      })
+
+      toast({
+        title: '✓ Customizações removidas',
+        description: `"${tenant.name}" voltou a usar os limites do plano base.`,
+      })
+      setOpen(false)
+    } catch (error: unknown) {
+      toast({
+        title: 'Falha ao remover customizações',
+        description: 'Ocorreu um erro. Tente novamente.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const activeSub = tenant.subscriptions.find((s) => s.status === 'active' || s.status === 'trialing')
+  const basePlan = activeSub?.plan
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
+        >
+          <Settings2 className="h-4 w-4 mr-2" />
+          Customizar Limites
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-white border-slate-200 text-slate-900 max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-slate-900">Customizar Limites do Tenant</DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Sobrescreva os limites do plano base para {tenant.name}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Informação do Plano Base */}
+          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-600">Plano Base</span>
+              {effectiveLimits?.hasCustomizations && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  Customizado
+                </Badge>
+              )}
+            </div>
+            <div className="text-lg font-semibold text-slate-900">
+              {basePlan?.displayName || 'Nenhum plano'}
+            </div>
+            {basePlan && (
+              <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-slate-500">Usuários: </span>
+                  <span className="font-medium text-slate-900">
+                    {basePlan.maxUsers === -1 ? 'Ilimitado' : basePlan.maxUsers}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Residentes: </span>
+                  <span className="font-medium text-slate-900">
+                    {basePlan.maxResidents === -1 ? 'Ilimitado' : basePlan.maxResidents}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator className="bg-slate-200" />
+
+          {/* Customização de Usuários */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label htmlFor="users-override" className="text-slate-600 font-medium">
+                  Limite de Usuários
+                </Label>
+                <p className="text-xs text-slate-400 mt-1">
+                  Sobrescrever limite do plano base
+                </p>
+              </div>
+              <Switch
+                id="users-override"
+                checked={enableUsersOverride}
+                onCheckedChange={setEnableUsersOverride}
+              />
+            </div>
+            {enableUsersOverride && (
+              <div className="pl-4 space-y-2">
+                <Label htmlFor="custom-max-users" className="text-slate-600 text-sm">
+                  Limite Customizado
+                </Label>
+                <Input
+                  id="custom-max-users"
+                  type="number"
+                  min="1"
+                  value={customMaxUsers ?? ''}
+                  onChange={(e) => setCustomMaxUsers(e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder={`Base: ${basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers}`}
+                  className="bg-white border-slate-200 text-slate-900"
+                />
+                <p className="text-xs text-slate-400">
+                  Plano base: {basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers} usuários
+                  {customMaxUsers && customMaxUsers !== basePlan?.maxUsers && (
+                    <span className="ml-2 text-blue-600 font-medium">
+                      → Efetivo: {customMaxUsers}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Separator className="bg-slate-200" />
+
+          {/* Customização de Residentes */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <Label htmlFor="residents-override" className="text-slate-600 font-medium">
+                  Limite de Residentes
+                </Label>
+                <p className="text-xs text-slate-400 mt-1">
+                  Sobrescrever limite do plano base
+                </p>
+              </div>
+              <Switch
+                id="residents-override"
+                checked={enableResidentsOverride}
+                onCheckedChange={setEnableResidentsOverride}
+              />
+            </div>
+            {enableResidentsOverride && (
+              <div className="pl-4 space-y-2">
+                <Label htmlFor="custom-max-residents" className="text-slate-600 text-sm">
+                  Limite Customizado
+                </Label>
+                <Input
+                  id="custom-max-residents"
+                  type="number"
+                  min="1"
+                  value={customMaxResidents ?? ''}
+                  onChange={(e) =>
+                    setCustomMaxResidents(e.target.value ? parseInt(e.target.value) : null)
+                  }
+                  placeholder={`Base: ${basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents}`}
+                  className="bg-white border-slate-200 text-slate-900"
+                />
+                <p className="text-xs text-slate-400">
+                  Plano base: {basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents} residentes
+                  {customMaxResidents && customMaxResidents !== basePlan?.maxResidents && (
+                    <span className="ml-2 text-blue-600 font-medium">
+                      → Efetivo: {customMaxResidents}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Preview dos Limites Efetivos */}
+          {(enableUsersOverride || enableResidentsOverride) && (
+            <>
+              <Separator className="bg-slate-200" />
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="text-sm font-medium text-blue-900 mb-2">
+                  📊 Limites Efetivos (após customização)
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-blue-700">Usuários: </span>
+                    <span className="font-semibold text-blue-900">
+                      {enableUsersOverride && customMaxUsers
+                        ? customMaxUsers
+                        : basePlan?.maxUsers === -1
+                          ? 'Ilimitado'
+                          : basePlan?.maxUsers}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Residentes: </span>
+                    <span className="font-semibold text-blue-900">
+                      {enableResidentsOverride && customMaxResidents
+                        ? customMaxResidents
+                        : basePlan?.maxResidents === -1
+                          ? 'Ilimitado'
+                          : basePlan?.maxResidents}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <DialogFooter className="flex justify-between">
+          <div>
+            {effectiveLimits?.hasCustomizations && (
+              <Button
+                variant="outline"
+                onClick={handleRemoveAll}
+                disabled={customizeMutation.isPending}
+                className="border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Remover Customizações
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="bg-white border-slate-200 text-slate-400"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={customizeMutation.isPending || (!enableUsersOverride && !enableResidentsOverride)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {customizeMutation.isPending ? 'Salvando...' : 'Salvar Customizações'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

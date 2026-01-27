@@ -137,6 +137,36 @@ export interface SuspendData {
   reason: string
 }
 
+export interface CustomizeLimitsData {
+  customMaxUsers?: number | null
+  customMaxResidents?: number | null
+  customFeatures?: Record<string, boolean> | null
+}
+
+export interface EffectiveLimits {
+  tenantId: string
+  tenantName: string
+  plan: string
+  planType: string
+  subscriptionStatus: string
+  baseLimits: {
+    maxUsers: number
+    maxResidents: number
+    features: Record<string, boolean>
+  }
+  customOverrides: {
+    customMaxUsers: number | null
+    customMaxResidents: number | null
+    customFeatures: Record<string, boolean>
+  }
+  effectiveLimits: {
+    maxUsers: number
+    maxResidents: number
+    features: Record<string, boolean>
+  }
+  hasCustomizations: boolean
+}
+
 // ============================================
 // API METHODS
 // ============================================
@@ -344,5 +374,36 @@ export const getSubscription = async (id: string): Promise<Subscription> => {
  */
 export const getPlans = async (): Promise<Plan[]> => {
   const response = await api.get<Plan[]>('/plans')
+  return response.data
+}
+
+// ============================================
+// TENANT CUSTOMIZATION
+// ============================================
+
+/**
+ * Customiza limites e features de um tenant
+ * Sobrescreve os limites do plano base para casos especiais
+ */
+export const customizeTenantLimits = async (
+  tenantId: string,
+  data: CustomizeLimitsData
+): Promise<Tenant> => {
+  const response = await api.patch<Tenant>(
+    `/superadmin/tenants/${tenantId}/customize-limits`,
+    data
+  )
+  return response.data
+}
+
+/**
+ * Busca limites efetivos de um tenant (base + overrides)
+ */
+export const getTenantEffectiveLimits = async (
+  tenantId: string
+): Promise<EffectiveLimits> => {
+  const response = await api.get<EffectiveLimits>(
+    `/superadmin/tenants/${tenantId}/effective-limits`
+  )
   return response.data
 }

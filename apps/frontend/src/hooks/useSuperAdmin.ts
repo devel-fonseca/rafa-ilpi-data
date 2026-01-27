@@ -36,12 +36,15 @@ import {
   reactivateSubscription,
   getSubscriptionHistory,
   getSubscription,
+  customizeTenantLimits,
+  getTenantEffectiveLimits,
   type TenantFilters,
   type UpdateTenantData,
   type SuspendData,
   type ChangePlanData,
   type ExtendPeriodData,
   type CancelData,
+  type CustomizeLimitsData,
 } from '@/api/superadmin.api'
 
 // ============================================
@@ -301,6 +304,49 @@ export function useReactivateSubscription() {
       })
       // Invalidar métricas
       queryClient.invalidateQueries({ queryKey: ['superadmin', 'metrics'] })
+    },
+  })
+}
+
+// ============================================
+// TENANT CUSTOMIZATION
+// ============================================
+
+/**
+ * Hook para buscar limites efetivos de um tenant
+ * Retorna base limits + custom overrides + effective limits
+ */
+export function useTenantEffectiveLimits(tenantId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['superadmin', 'tenant', tenantId, 'effective-limits'],
+    queryFn: () => getTenantEffectiveLimits(tenantId),
+    enabled: enabled && !!tenantId,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+  })
+}
+
+/**
+ * Hook para customizar limites de um tenant
+ */
+export function useCustomizeTenantLimits() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ tenantId, data }: { tenantId: string; data: CustomizeLimitsData }) =>
+      customizeTenantLimits(tenantId, data),
+    onSuccess: (updatedTenant) => {
+      // Invalidar tenant específico
+      queryClient.invalidateQueries({
+        queryKey: ['superadmin', 'tenant', updatedTenant.id],
+      })
+      // Invalidar effective limits
+      queryClient.invalidateQueries({
+        queryKey: ['superadmin', 'tenant', updatedTenant.id, 'effective-limits'],
+      })
+      // Invalidar lista de tenants (para atualizar badges)
+      queryClient.invalidateQueries({
+        queryKey: ['superadmin', 'tenants'],
+      })
     },
   })
 }

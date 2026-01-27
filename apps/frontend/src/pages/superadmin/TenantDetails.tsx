@@ -17,6 +17,7 @@ import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
 import { ApplyDiscountDialog } from '@/components/superadmin/ApplyDiscountDialog'
 import { DeleteTenantDialog } from '@/components/superadmin/DeleteTenantDialog'
+import { CustomizeLimitsDialog } from '@/components/superadmin/CustomizeLimitsDialog'
 import { TermsAcceptanceModal } from '@/components/superadmin/TermsAcceptanceModal'
 import { PrivacyPolicyAcceptanceModal } from '@/components/superadmin/PrivacyPolicyAcceptanceModal'
 import {
@@ -24,6 +25,7 @@ import {
   useTenantStats,
   useSubscriptionHistory,
   useReactivateTenant,
+  useTenantEffectiveLimits,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
 import type { Invoice } from '@/api/invoices.api'
@@ -74,6 +76,7 @@ export function TenantDetails() {
   const { data: invoicesData } = useTenantInvoices(id!)
   const { data: contractAcceptance } = useTenantContractAcceptance(id!)
   const { data: privacyPolicyAcceptance } = useTenantPrivacyPolicyAcceptance(id!)
+  const { data: effectiveLimits } = useTenantEffectiveLimits(id!, !!id)
 
   const reactivateMutation = useReactivateTenant()
 
@@ -144,22 +147,32 @@ export function TenantDetails() {
             <h1 className="text-3xl font-bold text-slate-900">{tenant.name}</h1>
             <p className="text-slate-400 mt-1">{tenant.email}</p>
           </div>
-          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+          <div className="flex gap-2">
+            <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+            {effectiveLimits?.hasCustomizations && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                🎯 Customizado
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-2">
           <EditTenantDialog tenant={tenant} />
           <ChangePlanDialog tenant={tenant} />
           {activeSub && (
-            <ApplyDiscountDialog
-              subscriptionId={activeSub.id}
-              currentDiscount={{
-                discountPercent: activeSub.discountPercent,
-                discountReason: activeSub.discountReason,
-                customPrice: activeSub.customPrice,
-              }}
-              planPrice={activeSub.plan.price !== null ? activeSub.plan.price.toString() : null}
-            />
+            <>
+              <ApplyDiscountDialog
+                subscriptionId={activeSub.id}
+                currentDiscount={{
+                  discountPercent: activeSub.discountPercent,
+                  discountReason: activeSub.discountReason,
+                  customPrice: activeSub.customPrice,
+                }}
+                planPrice={activeSub.plan.price !== null ? activeSub.plan.price.toString() : null}
+              />
+              <CustomizeLimitsDialog tenant={tenant} />
+            </>
           )}
           {tenant.status === 'SUSPENDED' && (
             <Button
