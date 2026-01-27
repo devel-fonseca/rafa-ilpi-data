@@ -59,6 +59,19 @@ model Tenant {
   // Timezone
   timezone String @default("America/Sao_Paulo") @db.VarChar(50) // Timezone IANA do tenant
 
+  // ========== CUSTOMIZAÇÕES DE PLANO (OVERRIDES) ==========
+  // Estes campos sobrescrevem os limites do plano base para casos especiais:
+  // - Retenção de clientes (oferecer +users/features para evitar cancelamento)
+  // - Testes e validações (liberar features temporariamente)
+  // - Negociações comerciais (ajuste fino antes de fechar contrato)
+  //
+  // Lógica de resolução: customField ?? plan.field ?? default
+  customMaxUsers     Int?  // null = usa Plan.maxUsers | número = override
+  customMaxResidents Int?  // null = usa Plan.maxResidents | número = override
+  customFeatures     Json? // null = usa Plan.features | objeto = merge com plano base
+  // Exemplo customFeatures: {"evolucoes_clinicas": true, "agenda": false}
+  // Adiciona "evolucoes_clinicas" e remove "agenda" do plano base
+
   deletedAt DateTime? @db.Timestamptz(3)
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
