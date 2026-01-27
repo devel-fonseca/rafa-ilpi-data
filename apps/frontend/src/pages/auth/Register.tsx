@@ -891,7 +891,7 @@ export default function Register() {
       ) : (
         <RadioGroup value={formData.planId} onValueChange={(value) => setFormData(prev => ({ ...prev, planId: value }))}>
           <div className="grid gap-4">
-            {plans.map((plan) => (
+            {plans.filter(plan => plan.isActive !== false).map((plan) => (
               <div
                 key={plan.id}
                 className={cn(
