@@ -25,6 +25,16 @@ export interface MedicationsHistoryData {
   data: DailyMedicationStats[]
 }
 
+export interface DailyRecordStats {
+  day: string // 'YYYY-MM-DD'
+  expected: number
+  completed: number
+}
+
+export interface MandatoryRecordsHistoryData {
+  data: DailyRecordStats[]
+}
+
 // ============================================================================
 // HOOKS
 // ============================================================================
@@ -54,6 +64,22 @@ export function useMedicationsHistory() {
     queryKey: tenantKey('admin-medications-history'),
     queryFn: async () => {
       const response = await api.get('/admin-dashboard/medications-history')
+      return response.data
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
+  })
+}
+
+/**
+ * Hook para buscar histórico de registros obrigatórios (últimos 7 dias)
+ * Usado no gráfico de barras do AdminDashboard
+ */
+export function useMandatoryRecordsHistory() {
+  return useQuery<MandatoryRecordsHistoryData>({
+    queryKey: tenantKey('admin-mandatory-records-history'),
+    queryFn: async () => {
+      const response = await api.get('/admin-dashboard/mandatory-records-history')
       return response.data
     },
     staleTime: 2 * 60 * 1000, // 2 minutos

@@ -10,6 +10,7 @@ import {
   DailyComplianceResponseDto,
   ResidentsGrowthResponseDto,
   MedicationsHistoryResponseDto,
+  MandatoryRecordsHistoryResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -77,5 +78,23 @@ export class AdminDashboardController {
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
   async getMedicationsHistory(): Promise<MedicationsHistoryResponseDto> {
     return this.adminDashboardService.getMedicationsHistory();
+  }
+
+  @Get('mandatory-records-history')
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  @ApiOperation({
+    summary: 'Obter histórico de registros obrigatórios nos últimos 7 dias',
+    description:
+      'Retorna dados diários de registros esperados vs completados para gráfico (Acesso restrito: Administrador e Responsável Técnico)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Histórico de registros obrigatórios retornado com sucesso',
+    type: MandatoryRecordsHistoryResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
+  async getMandatoryRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
+    return this.adminDashboardService.getMandatoryRecordsHistory();
   }
 }

@@ -6,8 +6,10 @@ import {
   DailyComplianceResponseDto,
   ResidentsGrowthResponseDto,
   MedicationsHistoryResponseDto,
+  MandatoryRecordsHistoryResponseDto,
   MonthlyResidentCountDto,
   DailyMedicationStatsDto,
+  DailyRecordStatsDto,
 } from './dto';
 import { ResidentScheduleConfig } from '@prisma/client';
 
@@ -332,6 +334,73 @@ export class AdminDashboardService {
         day: dayStr,
         scheduled,
         administered,
+      })
+    }
+
+    return { data: daysData }
+  }
+
+  /**
+   * Retorna dados de registros obrigatórios esperados vs completados nos últimos 7 dias
+   * Formato: [{ day: '2026-01-21', expected: 35, completed: 32 }, ...]
+   */
+  async getMandatoryRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+    const daysData: DailyRecordStatsDto[] = []
+    const todayStr = getCurrentDateInTz(timezone)
+
+    for (let i = 6; i >= 0; i--) {
+      // Calcular data alvo (i dias atrás)
+      const todayDate = new Date(todayStr + 'T12:00:00.000')
+      todayDate.setDate(todayDate.getDate() - i)
+      const dayStr = todayDate.toISOString().split('T')[0]
+
+      // Obter range do dia
+      const { start: dayStart, end: dayEnd } = getDayRangeInTz(dayStr, timezone)
+
+      // Buscar configurações de agendamento recorrente ativas
+      const activeConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
+        where: {
+          isActive: true,
+          resident: {
+            status: 'Ativo',
+          },
+        },
+        include: {
+          resident: true,
+        },
+      })
+
+      // Calcular quantos registros são esperados neste dia
+      let expected = 0
+      const targetDate = new Date(dayStr + 'T12:00:00.000')
+
+      for (const config of activeConfigs) {
+        const isExpectedThisDay = this.isRecordExpectedToday(config, targetDate)
+        if (isExpectedThisDay) {
+          expected++
+        }
+      }
+
+      // Contar registros diários completados neste dia
+      const completed = await this.tenantContext.client.dailyRecord.count({
+        where: {
+          date: {
+            gte: dayStart,
+            lt: dayEnd,
+          },
+        },
+      })
+
+      daysData.push({
+        day: dayStr,
+        expected,
+        completed,
       })
     }
 
