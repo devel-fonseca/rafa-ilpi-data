@@ -8,8 +8,60 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Seed Plans
-  // ⚠️ IMPORTANTE: Planos vêm apenas com features CORE
-  // Features opcionais devem ser adicionadas via SuperAdmin Portal
+  // Configuração de features por plano conforme estratégia de pricing
+  const freeFeaturesOnly = {
+    pops: true,
+    usuarios: true,
+    medicacoes: true,
+    prontuario: true,
+    residentes: true,
+    conformidade: true,
+    notificacoes: true,
+    registros_diarios: true,
+  };
+
+  const basicoFeatures = {
+    pops: true,
+    agenda: true,
+    quartos: true,
+    usuarios: true,
+    medicacoes: true,
+    prontuario: true,
+    residentes: true,
+    mapa_leitos: true,
+    conformidade: true,
+    notificacoes: true,
+    gestao_leitos: true,
+    sinais_vitais: true,
+    escalas_plantoes: true,
+    registros_diarios: true,
+    documentos_institucionais: true,
+  };
+
+  const profissionalFeatures = {
+    pops: true,
+    agenda: true,
+    quartos: true,
+    usuarios: true,
+    contratos: true,
+    mensagens: true,
+    medicacoes: true,
+    prontuario: true,
+    residentes: true,
+    mapa_leitos: true,
+    conformidade: true,
+    notificacoes: true,
+    gestao_leitos: true,
+    sinais_vitais: true,
+    escalas_plantoes: true,
+    eventos_sentinela: true,
+    registros_diarios: true,
+    evolucoes_clinicas: true,
+    autodiagnostico_rdc: true,
+    indicadores_mensais: true,
+    documentos_institucionais: true,
+  };
+
   const coreFeaturesOnly = {
     residentes: true,
     usuarios: true,
@@ -28,29 +80,29 @@ async function main() {
       price: 0,
       trialDays: 0,
       isPopular: false,
-      features: coreFeaturesOnly,
+      features: freeFeaturesOnly,
     },
     {
       name: "basico",
       displayName: "Plano Básico",
       type: "BASICO" as const,
       maxResidents: 20,
-      maxUsers: 5,
+      maxUsers: 8,
       price: 299,
       trialDays: 7,
       isPopular: true,
-      features: coreFeaturesOnly,
+      features: basicoFeatures,
     },
     {
       name: "profissional",
       displayName: "Plano Profissional",
       type: "PROFISSIONAL" as const,
-      maxResidents: 100,
-      maxUsers: 15,
+      maxResidents: 150,
+      maxUsers: 16,
       price: 499,
-      trialDays: 14,
+      trialDays: 7,
       isPopular: false,
-      features: coreFeaturesOnly,
+      features: profissionalFeatures,
     },
     {
       name: "enterprise",
