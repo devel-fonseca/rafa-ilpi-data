@@ -143,12 +143,6 @@ export function OccupancyRateChart({
                 cornerRadius={8}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--popover))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  color: 'hsl(var(--popover-foreground))',
-                }}
                 content={({ active }) => {
                   if (active) {
                     return (
