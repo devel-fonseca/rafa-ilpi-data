@@ -158,7 +158,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
           Customizar Limites
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-white border-slate-200 max-w-2xl">
+      <DialogContent className="bg-white border-slate-200 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-900">Customizar Limites do Tenant</DialogTitle>
           <DialogDescription className="text-slate-400">
