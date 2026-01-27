@@ -73,11 +73,8 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
 
-        console.log('Tentando login com:', { email, password: password.substring(0, 3) + '***' })
-
         try {
           const response = await api.post('/auth/login', { email, password })
-          console.log('Resposta do login:', response.data)
 
           // Se usuário tem múltiplos tenants, retornar lista
           if (response.data.requiresTenantSelection) {
