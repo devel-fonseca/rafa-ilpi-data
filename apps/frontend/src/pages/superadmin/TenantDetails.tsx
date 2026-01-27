@@ -130,9 +130,9 @@ export function TenantDetails() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -143,53 +143,58 @@ export function TenantDetails() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">{tenant.name}</h1>
-            <p className="text-slate-400 mt-1">{tenant.email}</p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-            {effectiveLimits?.hasCustomizations && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                🎯 Customizado
-              </Badge>
-            )}
-          </div>
         </div>
 
-        <div className="flex gap-2">
-          <EditTenantDialog tenant={tenant} />
-          <ChangePlanDialog tenant={tenant} />
-          {activeSub && (
-            <>
-              <ApplyDiscountDialog
-                subscriptionId={activeSub.id}
-                currentDiscount={{
-                  discountPercent: activeSub.discountPercent,
-                  discountReason: activeSub.discountReason,
-                  customPrice: activeSub.customPrice,
-                }}
-                planPrice={activeSub.plan.price !== null ? activeSub.plan.price.toString() : null}
-              />
-              <CustomizeLimitsDialog tenant={tenant} />
-            </>
-          )}
-          {tenant.status === 'SUSPENDED' && (
-            <Button
-              variant="default"
-              onClick={handleReactivate}
-              disabled={reactivateMutation.isPending}
-              className="bg-success/60 hover:bg-success/70"
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Reativar
-            </Button>
-          )}
-          <DeleteTenantDialog
-            tenantId={tenant.id}
-            tenantName={tenant.name}
-            variant="button"
-          />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-bold text-slate-900">{tenant.name}</h1>
+              <div className="flex gap-2">
+                <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                {effectiveLimits?.hasCustomizations && (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                    🎯 Customizado
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <p className="text-slate-400 mt-1">{tenant.email}</p>
+          </div>
+
+          <div className="flex gap-2 flex-wrap">
+            <EditTenantDialog tenant={tenant} />
+            <ChangePlanDialog tenant={tenant} />
+            {activeSub && (
+              <>
+                <ApplyDiscountDialog
+                  subscriptionId={activeSub.id}
+                  currentDiscount={{
+                    discountPercent: activeSub.discountPercent,
+                    discountReason: activeSub.discountReason,
+                    customPrice: activeSub.customPrice,
+                  }}
+                  planPrice={activeSub.plan.price !== null ? activeSub.plan.price.toString() : null}
+                />
+                <CustomizeLimitsDialog tenant={tenant} />
+              </>
+            )}
+            {tenant.status === 'SUSPENDED' && (
+              <Button
+                variant="default"
+                onClick={handleReactivate}
+                disabled={reactivateMutation.isPending}
+                className="bg-success/60 hover:bg-success/70"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Reativar
+              </Button>
+            )}
+            <DeleteTenantDialog
+              tenantId={tenant.id}
+              tenantName={tenant.name}
+              variant="button"
+            />
+          </div>
         </div>
       </div>
 
@@ -300,59 +305,61 @@ export function TenantDetails() {
         </CardHeader>
         <CardContent>
           {subscriptions && subscriptions.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200">
-                  <TableHead className="text-slate-400">Plano</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Início</TableHead>
-                  <TableHead className="text-slate-400">Término</TableHead>
-                  <TableHead className="text-slate-400 text-right">
-                    Valor
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {subscriptions.map((sub) => {
-                  const subStatus = SUBSCRIPTION_STATUS[sub.status] || {
-                    label: sub.status,
-                    variant: 'outline' as const,
-                  }
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-400">Plano</TableHead>
+                    <TableHead className="text-slate-400">Status</TableHead>
+                    <TableHead className="text-slate-400">Início</TableHead>
+                    <TableHead className="text-slate-400">Término</TableHead>
+                    <TableHead className="text-slate-400 text-right">
+                      Valor
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {subscriptions.map((sub) => {
+                    const subStatus = SUBSCRIPTION_STATUS[sub.status] || {
+                      label: sub.status,
+                      variant: 'outline' as const,
+                    }
 
-                  return (
-                    <TableRow key={sub.id} className="border-slate-200">
-                      <TableCell className="text-slate-900">
-                        {sub.plan.displayName}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={subStatus.variant}>
-                          {subStatus.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        {sub.currentPeriodStart
-                          ? new Date(sub.currentPeriodStart).toLocaleDateString(
-                              'pt-BR'
-                            )
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        {sub.currentPeriodEnd
-                          ? new Date(sub.currentPeriodEnd).toLocaleDateString(
-                              'pt-BR'
-                            )
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-right text-slate-400">
-                        {sub.plan.price
-                          ? `R$ ${sub.plan.price.toLocaleString('pt-BR')}`
-                          : 'Gratuito'}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow key={sub.id} className="border-slate-200">
+                        <TableCell className="text-slate-900">
+                          {sub.plan.displayName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={subStatus.variant}>
+                            {subStatus.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {sub.currentPeriodStart
+                            ? new Date(sub.currentPeriodStart).toLocaleDateString(
+                                'pt-BR'
+                              )
+                            : '-'}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {sub.currentPeriodEnd
+                            ? new Date(sub.currentPeriodEnd).toLocaleDateString(
+                                'pt-BR'
+                              )
+                            : '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-slate-400">
+                          {sub.plan.price
+                            ? `R$ ${sub.plan.price.toLocaleString('pt-BR')}`
+                            : 'Gratuito'}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <p className="text-center text-slate-500 py-8">
               Nenhum histórico de assinatura
@@ -371,59 +378,61 @@ export function TenantDetails() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200">
-                  <TableHead className="text-slate-400">Versão</TableHead>
-                  <TableHead className="text-slate-400">Data de Aceite</TableHead>
-                  <TableHead className="text-slate-400">Aceito por</TableHead>
-                  <TableHead className="text-slate-400">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="border-slate-200">
-                  <TableCell className="text-slate-900 font-medium">
-                    {contractAcceptance.termsVersion}
-                  </TableCell>
-                  <TableCell className="text-slate-400">
-                    {new Date(contractAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
-                    <span className="text-xs ml-2">
-                      {new Date(contractAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-slate-400">
-                    <div>
-                      <p className="text-slate-900">{contractAcceptance.user?.name || 'N/A'}</p>
-                      <p className="text-xs text-slate-500">{contractAcceptance.user?.email || ''}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setContractModalOpen(true)}
-                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                      >
-                        Ver Detalhes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateTermsAcceptancePDF(contractAcceptance)}
-                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                        title="Baixar PDF do comprovante de aceite"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-400">Versão</TableHead>
+                    <TableHead className="text-slate-400">Data de Aceite</TableHead>
+                    <TableHead className="text-slate-400">Aceito por</TableHead>
+                    <TableHead className="text-slate-400">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="border-slate-200">
+                    <TableCell className="text-slate-900 font-medium">
+                      {contractAcceptance.termsVersion}
+                    </TableCell>
+                    <TableCell className="text-slate-400">
+                      {new Date(contractAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
+                      <span className="text-xs ml-2">
+                        {new Date(contractAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-slate-400">
+                      <div>
+                        <p className="text-slate-900">{contractAcceptance.user?.name || 'N/A'}</p>
+                        <p className="text-xs text-slate-500">{contractAcceptance.user?.email || ''}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setContractModalOpen(true)}
+                          className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                        >
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generateTermsAcceptancePDF(contractAcceptance)}
+                          className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                          title="Baixar PDF do comprovante de aceite"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -438,59 +447,61 @@ export function TenantDetails() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200">
-                  <TableHead className="text-slate-400">Versão</TableHead>
-                  <TableHead className="text-slate-400">Data de Aceite</TableHead>
-                  <TableHead className="text-slate-400">Aceito por</TableHead>
-                  <TableHead className="text-slate-400">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="border-slate-200">
-                  <TableCell className="text-slate-900 font-medium">
-                    {privacyPolicyAcceptance.policyVersion}
-                  </TableCell>
-                  <TableCell className="text-slate-400">
-                    {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
-                    <span className="text-xs ml-2">
-                      {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-slate-400">
-                    <div>
-                      <p className="text-slate-900">{privacyPolicyAcceptance.user?.name || 'N/A'}</p>
-                      <p className="text-xs text-slate-500">{privacyPolicyAcceptance.user?.email || ''}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPrivacyPolicyModalOpen(true)}
-                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                      >
-                        Ver Detalhes
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generatePrivacyPolicyAcceptancePDF(privacyPolicyAcceptance)}
-                        className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
-                        title="Baixar PDF do comprovante de aceite"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-400">Versão</TableHead>
+                    <TableHead className="text-slate-400">Data de Aceite</TableHead>
+                    <TableHead className="text-slate-400">Aceito por</TableHead>
+                    <TableHead className="text-slate-400">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow className="border-slate-200">
+                    <TableCell className="text-slate-900 font-medium">
+                      {privacyPolicyAcceptance.policyVersion}
+                    </TableCell>
+                    <TableCell className="text-slate-400">
+                      {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleDateString('pt-BR')}
+                      <span className="text-xs ml-2">
+                        {new Date(privacyPolicyAcceptance.acceptedAt).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-slate-400">
+                      <div>
+                        <p className="text-slate-900">{privacyPolicyAcceptance.user?.name || 'N/A'}</p>
+                        <p className="text-xs text-slate-500">{privacyPolicyAcceptance.user?.email || ''}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPrivacyPolicyModalOpen(true)}
+                          className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                        >
+                          Ver Detalhes
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generatePrivacyPolicyAcceptancePDF(privacyPolicyAcceptance)}
+                          className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+                          title="Baixar PDF do comprovante de aceite"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -519,79 +530,81 @@ export function TenantDetails() {
         </CardHeader>
         <CardContent>
           {invoicesData && invoicesData.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-slate-200">
-                  <TableHead className="text-slate-400">Número</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Valor</TableHead>
-                  <TableHead className="text-slate-400">Vencimento</TableHead>
-                  <TableHead className="text-slate-400">Criada em</TableHead>
-                  <TableHead className="text-slate-400">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoicesData.map((invoice: Invoice) => {
-                  const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-                    DRAFT: { label: 'Rascunho', variant: 'outline' },
-                    OPEN: { label: 'Pendente', variant: 'secondary' },
-                    PAID: { label: 'Pago', variant: 'default' },
-                    VOID: { label: 'Cancelado', variant: 'destructive' },
-                    UNCOLLECTIBLE: { label: 'Incobrável', variant: 'destructive' },
-                  }
-                  const statusInfo = statusLabels[invoice.status] || {
-                    label: invoice.status,
-                    variant: 'outline' as const,
-                  }
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-400">Número</TableHead>
+                    <TableHead className="text-slate-400">Status</TableHead>
+                    <TableHead className="text-slate-400">Valor</TableHead>
+                    <TableHead className="text-slate-400">Vencimento</TableHead>
+                    <TableHead className="text-slate-400">Criada em</TableHead>
+                    <TableHead className="text-slate-400">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoicesData.map((invoice: Invoice) => {
+                    const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+                      DRAFT: { label: 'Rascunho', variant: 'outline' },
+                      OPEN: { label: 'Pendente', variant: 'secondary' },
+                      PAID: { label: 'Pago', variant: 'default' },
+                      VOID: { label: 'Cancelado', variant: 'destructive' },
+                      UNCOLLECTIBLE: { label: 'Incobrável', variant: 'destructive' },
+                    }
+                    const statusInfo = statusLabels[invoice.status] || {
+                      label: invoice.status,
+                      variant: 'outline' as const,
+                    }
 
-                  const isOverdue =
-                    invoice.status === 'OPEN' &&
-                    new Date(invoice.dueDate) < new Date()
+                    const isOverdue =
+                      invoice.status === 'OPEN' &&
+                      new Date(invoice.dueDate) < new Date()
 
-                  return (
-                    <TableRow key={invoice.id} className="border-slate-200">
-                      <TableCell className="text-slate-900 font-mono text-sm">
-                        {invoice.invoiceNumber}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant={statusInfo.variant}>
-                            {statusInfo.label}
-                          </Badge>
-                          {isOverdue && (
-                            <Badge variant="destructive" className="text-xs">
-                              Vencida
+                    return (
+                      <TableRow key={invoice.id} className="border-slate-200">
+                        <TableCell className="text-slate-900 font-mono text-sm">
+                          {invoice.invoiceNumber}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={statusInfo.variant}>
+                              {statusInfo.label}
                             </Badge>
+                            {isOverdue && (
+                              <Badge variant="destructive" className="text-xs">
+                                Vencida
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-slate-400">
+                          {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          {invoice.paymentUrl && (
+                            <a
+                              href={invoice.paymentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-slate-400 hover:text-slate-900 inline-flex items-center gap-1 text-sm"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              Ver no Asaas
+                            </a>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        {new Date(invoice.dueDate).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-slate-400">
-                        {new Date(invoice.createdAt).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.paymentUrl && (
-                          <a
-                            href={invoice.paymentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-slate-400 hover:text-slate-900 inline-flex items-center gap-1 text-sm"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Ver no Asaas
-                          </a>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <p className="text-center text-slate-500 py-8">
               Nenhuma fatura encontrada

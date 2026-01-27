@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings2, X } from 'lucide-react'
+import { Settings2, X, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,11 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { useCustomizeTenantLimits, useTenantEffectiveLimits } from '@/hooks/useSuperAdmin'
 import { useToast } from '@/components/ui/use-toast'
+import { AVAILABLE_FEATURES, CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
 import type { Tenant } from '@/api/superadmin.api'
+
+// Helper para obter nome humanizado de uma feature
+const getFeatureName = (key: string): string => FEATURES_MAP[key] || key
 
 interface CustomizeLimitsDialogProps {
   tenant: Tenant
@@ -109,42 +113,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
 
   const activeSub = tenant.subscriptions.find((s) => s.status === 'active' || s.status === 'trialing')
   const basePlan = activeSub?.plan
-
-  // Funções helper para manipular features
-  const toggleFeature = (featureKey: string, currentValue: boolean) => {
-    setCustomFeatures((prev) => {
-      const newFeatures = { ...prev }
-      // Se o valor for igual ao base do plano, remover override (null = usa plano)
-      const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
-      if (currentValue === basePlanFeatures[featureKey]) {
-        delete newFeatures[featureKey]
-      } else {
-        newFeatures[featureKey] = currentValue
-      }
-      return newFeatures
-    })
-  }
-
-  const getEffectiveFeatureValue = (featureKey: string): boolean => {
-    // Ordem de resolução: custom → base → false
-    if (customFeatures[featureKey] !== undefined) {
-      return customFeatures[featureKey]
-    }
-    const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
-    return basePlanFeatures[featureKey] || false
-  }
-
-  const hasFeatureOverride = (featureKey: string): boolean => {
-    return customFeatures[featureKey] !== undefined
-  }
-
-  // Lista todas as features disponíveis (união de base + customs)
-  const allFeatureKeys = Array.from(
-    new Set([
-      ...Object.keys((basePlan?.features as Record<string, boolean>) || {}),
-      ...Object.keys(customFeatures),
-    ])
-  ).sort()
+  const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -293,54 +262,145 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
           <Separator className="bg-slate-200" />
 
           {/* Customização de Features */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
               <Label className="text-slate-600 font-medium">Features do Plano</Label>
               <p className="text-xs text-slate-400 mt-1">
-                Adicione ou remova features individuais. Valores em azul foram customizados.
+                Clique para adicionar ou remover features do plano base
               </p>
             </div>
 
-            {allFeatureKeys.length > 0 ? (
-              <div className="pl-4 space-y-2 max-h-60 overflow-y-auto">
-                {allFeatureKeys.map((featureKey) => {
-                  const effectiveValue = getEffectiveFeatureValue(featureKey)
-                  const isOverridden = hasFeatureOverride(featureKey)
-                  const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
-                  const baseValue = basePlanFeatures[featureKey] || false
-
-                  return (
-                    <div
-                      key={featureKey}
-                      className={`flex items-center justify-between p-2 rounded ${
-                        isOverridden ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <Label
-                          htmlFor={`feature-${featureKey}`}
-                          className={`text-sm ${isOverridden ? 'text-blue-700 font-medium' : 'text-slate-600'}`}
-                        >
-                          {featureKey}
-                        </Label>
-                        {isOverridden && (
-                          <p className="text-xs text-blue-600 mt-0.5">
-                            Base: {baseValue ? '✓ Ativo' : '✗ Inativo'} → Custom:{' '}
-                            {effectiveValue ? '✓ Ativo' : '✗ Inativo'}
-                          </p>
-                        )}
-                      </div>
-                      <Switch
-                        id={`feature-${featureKey}`}
-                        checked={effectiveValue}
-                        onCheckedChange={(checked) => toggleFeature(featureKey, checked)}
-                      />
-                    </div>
-                  )
-                })}
+            {/* Features Core (sempre habilitadas) */}
+            <div className="p-3 bg-slate-100 rounded-md border border-slate-200">
+              <p className="text-xs font-medium text-slate-600 mb-2">
+                🔒 Features Core (sempre ativas):
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {CORE_FEATURES.map((feature, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="secondary"
+                    className="bg-slate-200 text-slate-700 border border-slate-300"
+                  >
+                    {feature}
+                  </Badge>
+                ))}
               </div>
-            ) : (
-              <p className="text-sm text-slate-400 pl-4">Nenhuma feature disponível no plano base.</p>
+            </div>
+
+            {/* Features do Plano Base (ativas) */}
+            {basePlanFeatures && Object.entries(basePlanFeatures).filter(([key, val]) =>
+              val === true && !(CORE_FEATURES as readonly string[]).includes(key)
+            ).length > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
+                <p className="text-xs font-medium text-emerald-900 mb-2">
+                  ✓ Features do Plano Base (
+                    {Object.entries(basePlanFeatures).filter(([key, val]) =>
+                      val === true && !(CORE_FEATURES as readonly string[]).includes(key)
+                    ).length}
+                  ):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(basePlanFeatures)
+                    .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
+                    .map(([feature], idx) => {
+                      const isRemoved = customFeatures[feature] === false
+
+                      return (
+                        <Badge
+                          key={idx}
+                          className={
+                            isRemoved
+                              ? 'bg-red-100 text-red-700 border border-red-300 line-through cursor-pointer hover:bg-red-200'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer pr-1'
+                          }
+                          onClick={() => {
+                            setCustomFeatures((prev) => ({
+                              ...prev,
+                              [feature]: isRemoved ? undefined : false,
+                            }))
+                          }}
+                        >
+                          {getFeatureName(feature)}
+                          {!isRemoved && (
+                            <X className="h-3 w-3 ml-2" />
+                          )}
+                        </Badge>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Features Disponíveis para Adicionar */}
+            {AVAILABLE_FEATURES.filter(
+              (f) =>
+                !(CORE_FEATURES as readonly string[]).includes(f) &&
+                !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                customFeatures[f] !== true
+            ).length > 0 && (
+              <div className="p-3 bg-white rounded-md border border-slate-200">
+                <p className="text-xs font-medium text-slate-600 mb-2">
+                  ➕ Adicionar Features ({AVAILABLE_FEATURES.filter(
+                    (f) =>
+                      !(CORE_FEATURES as readonly string[]).includes(f) &&
+                      !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                      customFeatures[f] !== true
+                  ).length} disponíveis):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_FEATURES.filter(
+                    (f) =>
+                      !(CORE_FEATURES as readonly string[]).includes(f) &&
+                      !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                      customFeatures[f] !== true
+                  ).map((feature, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="cursor-pointer bg-white border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
+                      onClick={() => {
+                        setCustomFeatures((prev) => ({
+                          ...prev,
+                          [feature]: true,
+                        }))
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      {getFeatureName(feature)}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Features Adicionadas (customizadas) */}
+            {Object.entries(customFeatures).filter(([, val]) => val === true).length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                <p className="text-xs font-medium text-blue-900 mb-2">
+                  🎯 Features Adicionadas ({Object.entries(customFeatures).filter(([, val]) => val === true).length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(customFeatures)
+                    .filter(([, val]) => val === true)
+                    .map(([feature], idx) => (
+                      <Badge
+                        key={idx}
+                        className="bg-blue-600 text-white hover:bg-blue-700 cursor-pointer pr-1"
+                        onClick={() => {
+                          setCustomFeatures((prev) => {
+                            const newFeatures = { ...prev }
+                            delete newFeatures[feature]
+                            return newFeatures
+                          })
+                        }}
+                      >
+                        {getFeatureName(feature)}
+                        <X className="h-3 w-3 ml-2" />
+                      </Badge>
+                    ))}
+                </div>
+              </div>
             )}
           </div>
 
@@ -348,36 +408,40 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
           {(enableUsersOverride || enableResidentsOverride || Object.keys(customFeatures).length > 0) && (
             <>
               <Separator className="bg-slate-200" />
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-sm font-medium text-blue-900 mb-2">
-                  📊 Limites Efetivos (após customização)
+              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="text-sm font-medium text-emerald-900 mb-2">
+                  📊 Resumo das Customizações
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-blue-700">Usuários: </span>
-                    <span className="font-semibold text-blue-900">
-                      {enableUsersOverride && customMaxUsers
-                        ? customMaxUsers
-                        : basePlan?.maxUsers === -1
-                          ? 'Ilimitado'
-                          : basePlan?.maxUsers}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-blue-700">Residentes: </span>
-                    <span className="font-semibold text-blue-900">
-                      {enableResidentsOverride && customMaxResidents
-                        ? customMaxResidents
-                        : basePlan?.maxResidents === -1
-                          ? 'Ilimitado'
-                          : basePlan?.maxResidents}
-                    </span>
-                  </div>
-                  {Object.keys(customFeatures).length > 0 && (
-                    <div className="col-span-2">
-                      <span className="text-blue-700">Features customizadas: </span>
-                      <span className="font-semibold text-blue-900">
-                        {Object.keys(customFeatures).length} override{Object.keys(customFeatures).length > 1 ? 's' : ''}
+                <div className="space-y-2 text-sm">
+                  {enableUsersOverride && (
+                    <div>
+                      <span className="text-emerald-700">• Usuários: </span>
+                      <span className="font-semibold text-emerald-900">
+                        {customMaxUsers} (base: {basePlan?.maxUsers === -1 ? 'ilimitado' : basePlan?.maxUsers})
+                      </span>
+                    </div>
+                  )}
+                  {enableResidentsOverride && (
+                    <div>
+                      <span className="text-emerald-700">• Residentes: </span>
+                      <span className="font-semibold text-emerald-900">
+                        {customMaxResidents} (base: {basePlan?.maxResidents === -1 ? 'ilimitado' : basePlan?.maxResidents})
+                      </span>
+                    </div>
+                  )}
+                  {Object.entries(customFeatures).filter(([, val]) => val === true).length > 0 && (
+                    <div>
+                      <span className="text-emerald-700">• Features adicionadas: </span>
+                      <span className="font-semibold text-emerald-900">
+                        {Object.entries(customFeatures).filter(([, val]) => val === true).length}
+                      </span>
+                    </div>
+                  )}
+                  {Object.entries(customFeatures).filter(([, val]) => val === false).length > 0 && (
+                    <div>
+                      <span className="text-emerald-700">• Features removidas: </span>
+                      <span className="font-semibold text-emerald-900">
+                        {Object.entries(customFeatures).filter(([, val]) => val === false).length}
                       </span>
                     </div>
                   )}
