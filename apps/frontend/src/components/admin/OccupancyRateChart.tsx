@@ -130,8 +130,8 @@ export function OccupancyRateChart({
             <RadialBarChart
               cx="50%"
               cy="50%"
-              innerRadius="70%"
-              outerRadius="95%"
+              innerRadius="60%"
+              outerRadius="80%"
               barSize={18}
               data={chartData}
               startAngle={90}
