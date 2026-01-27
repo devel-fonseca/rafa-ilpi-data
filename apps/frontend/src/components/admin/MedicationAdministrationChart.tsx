@@ -118,12 +118,12 @@ export function MedicationAdministrationChart({
             />
             <Bar
               dataKey="Agendadas"
-              fill="hsl(var(--primary))"
+              fill="hsl(var(--info))"
               radius={[4, 4, 0, 0]}
             />
             <Bar
               dataKey="Administradas"
-              fill="hsl(var(--chart-2))"
+              fill="hsl(var(--success))"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
