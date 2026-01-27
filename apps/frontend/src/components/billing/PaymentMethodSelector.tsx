@@ -103,8 +103,8 @@ export function PaymentMethodSelector() {
       <p className="text-xs text-muted-foreground">
         Este será o método padrão para geração de novas faturas. Você poderá alterar a qualquer momento.
         {!isAnnual && (
-          <span className="block mt-1 text-amber-600">
-            ℹ️ PIX está disponível apenas para planos anuais.
+          <span className="block mt-1 text-[#059669]">
+            💡 PIX disponível para pagamento anual.
           </span>
         )}
       </p>
