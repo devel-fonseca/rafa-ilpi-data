@@ -12,6 +12,7 @@ import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { CaregiverDashboard } from '@/pages/dashboards/CaregiverDashboard'
 import { AdminDashboard } from '@/pages/dashboards/AdminDashboard'
+import { TechnicalManagerDashboard } from '@/pages/dashboards/TechnicalManagerDashboard'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { Page, PageHeader, Section, QuickActionsGrid } from '@/design-system/components'
 import { tenantKey } from '@/lib/query-keys'
@@ -47,6 +48,10 @@ export default function Dashboard() {
 
   if (user?.profile?.positionCode === 'ADMINISTRATOR') {
     return <AdminDashboard />
+  }
+
+  if (user?.profile?.positionCode === 'TECHNICAL_MANAGER') {
+    return <TechnicalManagerDashboard />
   }
 
   const totalResidents = residentsStats?.total || 0

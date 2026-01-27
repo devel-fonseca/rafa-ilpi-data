@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { MedicationTask } from '@/hooks/useCaregiverTasks'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useAuthStore } from '@/stores/auth.store'
 
 interface Props {
   title: string
@@ -29,8 +30,12 @@ export function MedicationsSection({
   onAdministerMedication,
   isLoading,
 }: Props) {
+  const { user } = useAuthStore()
   const { hasPermission } = usePermissions()
   const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
+
+  // Responsável técnico não precisa ver aviso sobre POPs (ele é quem os cria)
+  const isTechnicalManager = user?.profile?.positionCode === 'TECHNICAL_MANAGER'
 
   // Estado de paginação
   const [currentPage, setCurrentPage] = useState(1)
@@ -243,24 +248,26 @@ export function MedicationsSection({
           </div>
         )}
 
-        {/* Banner informativo - movido para baixo */}
-        <Alert className="mt-4">
-          <Info className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            {canAdministerMedications ? (
-              <>
-                <strong>Autorização concedida.</strong> Você possui autorização
-                para administrar medicações. Siga rigorosamente o POP de
-                Administração de Medicamentos da instituição.
-              </>
-            ) : (
-              <>
-                <strong>Visualização apenas.</strong> Apenas enfermeiros e
-                responsáveis técnicos podem administrar medicações.
-              </>
-            )}
-          </AlertDescription>
-        </Alert>
+        {/* Banner informativo - apenas para cuidadores e enfermeiros executores */}
+        {!isTechnicalManager && (
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              {canAdministerMedications ? (
+                <>
+                  <strong>Autorização concedida.</strong> Você possui autorização
+                  para administrar medicações. Siga rigorosamente o POP de
+                  Administração de Medicamentos da instituição.
+                </>
+              ) : (
+                <>
+                  <strong>Visualização apenas.</strong> Apenas enfermeiros e
+                  responsáveis técnicos podem administrar medicações.
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   )

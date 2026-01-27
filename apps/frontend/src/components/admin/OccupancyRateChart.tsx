@@ -119,14 +119,14 @@ export function OccupancyRateChart({
   ]
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="bg-card border-border h-[320px] flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-medium text-foreground">
           Taxa de Ocupação
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="relative aspect-square max-h-[240px] w-full">
+      <CardContent className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="relative aspect-square h-full max-w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart
               cx="50%"

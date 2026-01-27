@@ -25,8 +25,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
     return (
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-xl">📊</span>
+          <CardTitle className="text-lg font-semibold">
             Situação Operacional – Hoje
           </CardTitle>
         </CardHeader>
@@ -59,8 +58,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <span className="text-xl">📊</span>
+        <CardTitle className="text-lg font-semibold">
           Situação Operacional – Hoje
         </CardTitle>
       </CardHeader>
