@@ -14,9 +14,11 @@ export {
   Page,
   PageHeader,
   Section,
+  CollapsibleSection,
   type PageProps,
   type PageHeaderProps,
   type SectionProps,
+  type CollapsibleSectionProps,
   type Breadcrumb,
   type BackButtonConfig,
 } from './layout'

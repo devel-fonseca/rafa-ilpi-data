@@ -10,7 +10,7 @@ import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
 import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
 import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
-import { Page, PageHeader, Section } from '@/design-system/components'
+import { Page, PageHeader, CollapsibleSection } from '@/design-system/components'
 
 export function AdminDashboard() {
   const { user } = useAuthStore()
@@ -38,7 +38,11 @@ export function AdminDashboard() {
       />
 
       {/* Gráficos de Análise */}
-      <Section title="Análise de Dados">
+      <CollapsibleSection
+        id="admin-analysis-charts"
+        title="Análise de Dados"
+        defaultCollapsed={false}
+      >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ResidentsGrowthChart
             data={residentsGrowth?.data || []}
@@ -60,15 +64,19 @@ export function AdminDashboard() {
             isLoading={isLoadingMedications}
           />
         </div>
-      </Section>
+      </CollapsibleSection>
 
       {/* Atividades Recentes e Pendentes */}
-      <Section title="Atividades Recentes">
+      <CollapsibleSection
+        id="admin-recent-activities"
+        title="Atividades Recentes"
+        defaultCollapsed={false}
+      >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RecentActivity />
           <PendingActivities />
         </div>
-      </Section>
+      </CollapsibleSection>
 
       {/* Plan Status Section */}
       <PlanStatusSection />
