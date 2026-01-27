@@ -18,7 +18,7 @@ import { OperationalComplianceSection } from '@/components/admin/OperationalComp
 import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
-import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
+import { useTechnicalManagerTasks } from '@/hooks/useTechnicalManagerTasks'
 import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
 import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
 import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
@@ -59,7 +59,7 @@ export function TechnicalManagerDashboard() {
 
   // Buscar estatísticas reais (hooks devem ser chamados antes de early returns)
   const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
-  const { data: caregiverTasks, isLoading: isLoadingTasks, refetch: refetchTasks } = useCaregiverTasks()
+  const { data: managerTasks, isLoading: isLoadingTasks, refetch: refetchTasks } = useTechnicalManagerTasks()
   const { data: residentsStats } = useResidentStats()
 
   const { data: prescriptionsStats } = useQuery({
@@ -139,7 +139,7 @@ export function TechnicalManagerDashboard() {
       return
     }
 
-    const medicationTask = caregiverTasks?.medications.find(
+    const medicationTask = managerTasks?.medications.find(
       (m) => m.medicationId === medicationId && m.scheduledTime === scheduledTime
     )
 
@@ -233,7 +233,7 @@ export function TechnicalManagerDashboard() {
       >
         <EventsSection
           title="Eventos"
-          events={caregiverTasks?.scheduledEvents || []}
+          events={managerTasks?.scheduledEvents || []}
           onViewResident={handleViewResident}
           isLoading={isLoadingTasks}
         />
@@ -249,7 +249,7 @@ export function TechnicalManagerDashboard() {
           {/* Coluna 1: Tarefas Recorrentes */}
           <TasksSection
             title="Tarefas"
-            tasks={caregiverTasks?.recurringTasks || []}
+            tasks={managerTasks?.recurringTasks || []}
             onRegister={handleRegister}
             onViewResident={handleViewResident}
             isLoading={isLoadingTasks}
@@ -258,7 +258,7 @@ export function TechnicalManagerDashboard() {
           {/* Coluna 2: Medicações */}
           <MedicationsSection
             title="Medicações"
-            medications={caregiverTasks?.medications || []}
+            medications={managerTasks?.medications || []}
             onViewResident={handleViewResident}
             onAdministerMedication={handleAdministerMedication}
             isLoading={isLoadingTasks}
