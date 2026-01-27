@@ -414,6 +414,11 @@ export class AdminDashboardService {
    * Formato: [{ month: '2025-08', residents: 12, capacity: 20, occupancyRate: 60.0 }, ...]
    */
   async getOccupancyRate(): Promise<OccupancyRateResponseDto> {
+    // Buscar dados do tenant (capacidades declarada e licenciada que já existem no schema)
+    const tenantData = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+    })
+
     // Verificar se tenant tem leitos configurados
     const totalBeds = await this.tenantContext.client.bed.count({
       where: { deletedAt: null },
@@ -482,6 +487,8 @@ export class AdminDashboardService {
     return {
       data: monthsData,
       hasBedsConfigured,
+      capacityDeclared: (tenantData as any)?.capacityDeclared ?? null,
+      capacityLicensed: (tenantData as any)?.capacityLicensed ?? null,
     }
   }
 }

@@ -55,6 +55,8 @@ export function AdminDashboard() {
           <OccupancyRateChart
             data={occupancyRate?.data || []}
             hasBedsConfigured={occupancyRate?.hasBedsConfigured}
+            capacityDeclared={occupancyRate?.capacityDeclared}
+            capacityLicensed={occupancyRate?.capacityLicensed}
             isLoading={isLoadingOccupancy}
           />
         </div>

@@ -1,12 +1,13 @@
 import {
-  AreaChart,
-  Area,
+  ComposedChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Legend,
+  ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { format } from 'date-fns'
@@ -24,19 +25,25 @@ interface MonthlyOccupancyData {
 interface OccupancyRateChartProps {
   data?: MonthlyOccupancyData[]
   hasBedsConfigured?: boolean
+  capacityDeclared?: number | null
+  capacityLicensed?: number | null
   isLoading?: boolean
 }
 
 /**
  * OccupancyRateChart
  *
- * Gráfico de área mostrando taxa de ocupação (residentes/leitos) ao longo do tempo.
+ * Gráfico composto (barras + linhas) mostrando ocupação vs capacidades ao longo do tempo.
+ * - Barras: Residentes (ocupados) e Leitos Configurados (capacidade real)
+ * - Linhas tracejadas: Capacidade Declarada e Licenciada (referências regulatórias)
  * Exibe os últimos 6 meses de dados.
  * Mostra alerta caso não haja leitos configurados.
  */
 export function OccupancyRateChart({
   data = [],
   hasBedsConfigured = false,
+  capacityDeclared = null,
+  capacityLicensed = null,
   isLoading = false,
 }: OccupancyRateChartProps) {
   // Formatar mês para exibição (Jan, Fev, Mar, etc.) - timezone-safe
@@ -50,10 +57,19 @@ export function OccupancyRateChart({
   // Preparar dados para o gráfico
   const chartData = data.map((item) => ({
     month: formatMonth(item.month),
-    'Taxa (%)': item.occupancyRate !== null ? item.occupancyRate : 0,
     Residentes: item.residents,
-    Leitos: item.capacity,
+    'Leitos Configurados': item.capacity,
+    ...(capacityDeclared && { 'Cap. Declarada': capacityDeclared }),
+    ...(capacityLicensed && { 'Cap. Licenciada': capacityLicensed }),
   }))
+
+  // Calcular domínio do YAxis (máximo entre todos os valores)
+  const maxValue = Math.max(
+    ...data.map((d) => Math.max(d.residents, d.capacity)),
+    capacityDeclared ?? 0,
+    capacityLicensed ?? 0,
+  )
+  const yAxisMax = Math.ceil(maxValue * 1.1) // 10% margem
 
   if (isLoading) {
     return (
@@ -117,19 +133,13 @@ export function OccupancyRateChart({
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-base font-medium text-foreground">
-          Taxa de Ocupação
+          Ocupação vs Capacidades
         </CardTitle>
-        <CardDescription>Últimos 6 meses</CardDescription>
+        <CardDescription>Últimos 6 meses - Residentes, Leitos e Limites Regulatórios</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={chartData}>
-            <defs>
-              <linearGradient id="colorOccupancy" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
+          <ComposedChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
             <XAxis
               dataKey="month"
@@ -139,8 +149,7 @@ export function OccupancyRateChart({
             <YAxis
               stroke="hsl(var(--muted-foreground))"
               style={{ fontSize: '12px' }}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
+              domain={[0, yAxisMax]}
             />
             <Tooltip
               contentStyle={{
@@ -149,12 +158,6 @@ export function OccupancyRateChart({
                 borderRadius: '8px',
                 color: 'hsl(var(--popover-foreground))',
               }}
-              formatter={(value: number, name: string) => {
-                if (name === 'Taxa (%)') {
-                  return [`${value.toFixed(1)}%`, 'Taxa de Ocupação']
-                }
-                return [value, name]
-              }}
             />
             <Legend
               wrapperStyle={{
@@ -162,15 +165,49 @@ export function OccupancyRateChart({
                 color: 'hsl(var(--foreground))',
               }}
             />
-            <Area
-              type="monotone"
-              dataKey="Taxa (%)"
-              stroke="hsl(var(--chart-1))"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#colorOccupancy)"
+
+            {/* Linhas de referência das capacidades regulatórias */}
+            {capacityDeclared && (
+              <ReferenceLine
+                y={capacityDeclared}
+                stroke="hsl(var(--warning))"
+                strokeDasharray="5 5"
+                strokeWidth={2}
+                label={{
+                  value: `Declarada: ${capacityDeclared}`,
+                  position: 'insideTopRight',
+                  fill: 'hsl(var(--warning))',
+                  fontSize: 11,
+                }}
+              />
+            )}
+            {capacityLicensed && (
+              <ReferenceLine
+                y={capacityLicensed}
+                stroke="hsl(var(--danger))"
+                strokeDasharray="5 5"
+                strokeWidth={2}
+                label={{
+                  value: `Licenciada: ${capacityLicensed}`,
+                  position: 'insideBottomRight',
+                  fill: 'hsl(var(--danger))',
+                  fontSize: 11,
+                }}
+              />
+            )}
+
+            {/* Barras de dados */}
+            <Bar
+              dataKey="Residentes"
+              fill="hsl(var(--primary))"
+              radius={[4, 4, 0, 0]}
             />
-          </AreaChart>
+            <Bar
+              dataKey="Leitos Configurados"
+              fill="hsl(var(--info))"
+              radius={[4, 4, 0, 0]}
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

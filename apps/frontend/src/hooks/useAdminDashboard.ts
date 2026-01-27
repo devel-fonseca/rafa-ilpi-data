@@ -45,6 +45,8 @@ export interface MonthlyOccupancy {
 export interface OccupancyRateData {
   data: MonthlyOccupancy[]
   hasBedsConfigured: boolean
+  capacityDeclared: number | null
+  capacityLicensed: number | null
 }
 
 // ============================================================================

@@ -47,4 +47,18 @@ export class OccupancyRateResponseDto {
     example: true,
   })
   hasBedsConfigured: boolean;
+
+  @ApiProperty({
+    description: 'Capacidade declarada pelo tenant (cadastro institucional)',
+    example: 30,
+    nullable: true,
+  })
+  capacityDeclared: number | null;
+
+  @ApiProperty({
+    description: 'Capacidade licenciada pela vigilância sanitária',
+    example: 28,
+    nullable: true,
+  })
+  capacityLicensed: number | null;
 }
