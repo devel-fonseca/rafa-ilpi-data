@@ -2,7 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
-import { DailyComplianceResponseDto } from './dto';
+import {
+  DailyComplianceResponseDto,
+  ResidentsGrowthResponseDto,
+  MedicationsHistoryResponseDto,
+  MonthlyResidentCountDto,
+  DailyMedicationStatsDto,
+} from './dto';
 import { ResidentScheduleConfig } from '@prisma/client';
 
 @Injectable()
@@ -192,5 +198,145 @@ export class AdminDashboardService {
       default:
         return false
     }
+  }
+
+  /**
+   * Retorna contagem de residentes ativos nos últimos 6 meses (mensal)
+   * Formato: [{ month: '2025-08', count: 12 }, ...]
+   */
+  async getResidentsGrowth(): Promise<ResidentsGrowthResponseDto> {
+    // Gerar últimos 6 meses (incluindo o mês atual)
+    const monthsData: MonthlyResidentCountDto[] = []
+    const today = new Date()
+
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1)
+      const year = targetDate.getFullYear()
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+      const monthStr = `${year}-${month}`
+
+      // Contar residentes ativos no último dia do mês
+      // (ou hoje, se for o mês atual)
+      const isCurrentMonth = i === 0
+      let countDate: Date
+
+      if (isCurrentMonth) {
+        countDate = new Date()
+      } else {
+        // Último dia do mês
+        countDate = new Date(year, targetDate.getMonth() + 1, 0)
+      }
+
+      // Contar residentes que estavam ativos naquela data
+      // (createdAt <= countDate AND (status = 'Ativo' OR updatedAt >= countDate))
+      const count = await this.tenantContext.client.resident.count({
+        where: {
+          createdAt: { lte: countDate },
+          OR: [
+            { status: 'Ativo' },
+            {
+              AND: [
+                { status: { not: 'Ativo' } },
+                { updatedAt: { gte: countDate } }
+              ]
+            }
+          ]
+        },
+      })
+
+      monthsData.push({
+        month: monthStr,
+        count,
+      })
+    }
+
+    return { data: monthsData }
+  }
+
+  /**
+   * Retorna dados de medicações agendadas vs administradas nos últimos 7 dias
+   * Formato: [{ day: '2026-01-21', scheduled: 45, administered: 48 }, ...]
+   */
+  async getMedicationsHistory(): Promise<MedicationsHistoryResponseDto> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+
+    const daysData: DailyMedicationStatsDto[] = []
+    const today = getCurrentDateInTz(timezone)
+
+    for (let i = 6; i >= 0; i--) {
+      // Calcular data alvo (i dias atrás)
+      const daysAgo = i
+      const year = today.getFullYear()
+      const month = today.getMonth()
+      const day = today.getDate()
+      const targetDate = new Date(year, month, day - daysAgo)
+      const dayStr = targetDate.toISOString().split('T')[0]
+
+      // Obter range do dia
+      const { start: dayStart, end: dayEnd } = getDayRangeInTz(dayStr, timezone)
+
+      // Calcular medicações programadas neste dia
+      const prescriptions = await this.tenantContext.client.prescription.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          medications: {
+            some: {
+              deletedAt: null,
+              startDate: { lte: dayEnd },
+              OR: [
+                { endDate: null },
+                { endDate: { gte: dayStart } },
+              ],
+            },
+          },
+        },
+        include: {
+          medications: {
+            where: {
+              deletedAt: null,
+              startDate: { lte: dayEnd },
+              OR: [
+                { endDate: null },
+                { endDate: { gte: dayStart } },
+              ],
+            },
+          },
+        },
+      })
+
+      let scheduled = 0
+      for (const prescription of prescriptions) {
+        for (const medication of prescription.medications) {
+          const scheduledTimes = medication.scheduledTimes as string[]
+          if (scheduledTimes && Array.isArray(scheduledTimes)) {
+            scheduled += scheduledTimes.length
+          }
+        }
+      }
+
+      // Contar medicações administradas neste dia
+      const administered = await this.tenantContext.client.medicationAdministration.count({
+        where: {
+          date: {
+            gte: dayStart,
+            lt: dayEnd,
+          },
+          wasAdministered: true,
+        },
+      })
+
+      daysData.push({
+        day: dayStr,
+        scheduled,
+        administered,
+      })
+    }
+
+    return { data: daysData }
   }
 }

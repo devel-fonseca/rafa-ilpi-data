@@ -184,7 +184,9 @@ export function PlanStatusSection({ showManageButton = true }: PlanStatusSection
                 Plano Atual:{' '}
                 <span className="font-bold">{formatPlanName(plan.name)}</span>
                 {hasCustomizations && (
-                  <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" title="Plano customizado com limites aprimorados" />
+                  <span title="Plano customizado com limites aprimorados">
+                    <Plus className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </span>
                 )}
               </p>
               <p className="text-xs text-muted-foreground">
