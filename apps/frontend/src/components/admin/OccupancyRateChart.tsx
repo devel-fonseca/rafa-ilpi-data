@@ -4,7 +4,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
 
 interface MonthlyOccupancyData {
@@ -43,7 +43,6 @@ export function OccupancyRateChart({
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[240px] flex items-center justify-center">
@@ -62,7 +61,6 @@ export function OccupancyRateChart({
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[240px] flex flex-col items-center justify-center gap-3">
@@ -83,7 +81,6 @@ export function OccupancyRateChart({
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[240px] flex items-center justify-center">
@@ -106,12 +103,17 @@ export function OccupancyRateChart({
     return 'hsl(var(--info))' // Azul - baixa ocupação
   }
 
-  // Dados para o gráfico radial
+  // Dados para o gráfico radial (domínio 0-100)
   const chartData = [
     {
       name: 'Ocupação',
       value: occupancyRate,
       fill: getOccupancyColor(occupancyRate),
+    },
+    {
+      name: 'Max',
+      value: 100,
+      fill: 'transparent',
     },
   ]
 
@@ -121,7 +123,6 @@ export function OccupancyRateChart({
         <CardTitle className="text-base font-medium text-foreground">
           Taxa de Ocupação
         </CardTitle>
-        <CardDescription>Taxa atual</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="relative h-[200px]">
