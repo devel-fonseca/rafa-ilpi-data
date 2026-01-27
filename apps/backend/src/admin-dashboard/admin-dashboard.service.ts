@@ -265,16 +265,14 @@ export class AdminDashboardService {
     const timezone = tenant?.timezone || 'America/Sao_Paulo'
 
     const daysData: DailyMedicationStatsDto[] = []
-    const today = getCurrentDateInTz(timezone)
+    const todayStr = getCurrentDateInTz(timezone) // Retorna string 'YYYY-MM-DD'
 
     for (let i = 6; i >= 0; i--) {
       // Calcular data alvo (i dias atrás)
-      const daysAgo = i
-      const year = today.getFullYear()
-      const month = today.getMonth()
-      const day = today.getDate()
-      const targetDate = new Date(year, month, day - daysAgo)
-      const dayStr = targetDate.toISOString().split('T')[0]
+      // Converter string para Date, subtrair dias, converter de volta para string
+      const todayDate = new Date(todayStr + 'T12:00:00.000') // Meio-dia para evitar problemas de timezone
+      todayDate.setDate(todayDate.getDate() - i)
+      const dayStr = todayDate.toISOString().split('T')[0]
 
       // Obter range do dia
       const { start: dayStart, end: dayEnd } = getDayRangeInTz(dayStr, timezone)

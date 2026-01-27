@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface DailyData {
   day: string
@@ -31,9 +32,9 @@ export function MedicationAdministrationChart({
   data = [],
   isLoading = false,
 }: MedicationAdministrationChartProps) {
-  // Formatar dia da semana
+  // Formatar dia da semana (timezone-safe seguindo DATETIME_STANDARD.md)
   const formatDay = (dayStr: string): string => {
-    const date = new Date(dayStr + 'T00:00:00')
+    const date = normalizeUTCDate(dayStr) // Converte YYYY-MM-DD para Date sem timezone shift
     const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' })
     return dayName.charAt(0).toUpperCase() + dayName.slice(1)
   }

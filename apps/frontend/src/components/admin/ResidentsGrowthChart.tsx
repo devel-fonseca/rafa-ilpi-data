@@ -8,6 +8,9 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { normalizeUTCDate } from '@/utils/dateHelpers'
 
 interface MonthlyData {
   month: string
@@ -26,12 +29,13 @@ interface ResidentsGrowthChartProps {
  * Exibe os últimos 6 meses de dados.
  */
 export function ResidentsGrowthChart({ data = [], isLoading = false }: ResidentsGrowthChartProps) {
-  // Formatar mês para exibição (Jan, Fev, Mar, etc.)
+  // Formatar mês para exibição (Jan, Fev, Mar, etc.) - timezone-safe
   const formatMonth = (monthStr: string): string => {
-    const [year, month] = monthStr.split('-')
-    const date = new Date(parseInt(year), parseInt(month) - 1)
-    return date.toLocaleDateString('pt-BR', { month: 'short' }).charAt(0).toUpperCase() +
-           date.toLocaleDateString('pt-BR', { month: 'short' }).slice(1)
+    // monthStr vem como 'YYYY-MM', precisamos converter para 'YYYY-MM-01' para normalizar
+    const dateStr = `${monthStr}-01` // Primeiro dia do mês
+    const date = normalizeUTCDate(dateStr)
+    const formatted = format(date, 'MMM', { locale: ptBR })
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
   }
 
   // Preparar dados para o gráfico
