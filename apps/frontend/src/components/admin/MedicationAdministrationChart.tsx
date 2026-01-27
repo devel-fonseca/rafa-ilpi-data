@@ -1,0 +1,134 @@
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+interface DailyData {
+  day: string
+  scheduled: number
+  administered: number
+}
+
+interface MedicationAdministrationChartProps {
+  data?: DailyData[]
+  isLoading?: boolean
+}
+
+/**
+ * MedicationAdministrationChart
+ *
+ * Gráfico de barras comparando medicações agendadas vs administradas.
+ * Exibe os últimos 7 dias de dados.
+ */
+export function MedicationAdministrationChart({
+  data = [],
+  isLoading = false,
+}: MedicationAdministrationChartProps) {
+  // Formatar dia da semana
+  const formatDay = (dayStr: string): string => {
+    const date = new Date(dayStr + 'T00:00:00')
+    const dayName = date.toLocaleDateString('pt-BR', { weekday: 'short' })
+    return dayName.charAt(0).toUpperCase() + dayName.slice(1)
+  }
+
+  // Preparar dados para o gráfico
+  const chartData = data.map((item) => ({
+    day: formatDay(item.day),
+    Agendadas: item.scheduled,
+    Administradas: item.administered,
+  }))
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground">
+            Administração de Medicações
+          </CardTitle>
+          <CardDescription>Últimos 7 dias</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground">
+            Administração de Medicações
+          </CardTitle>
+          <CardDescription>Últimos 7 dias</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-medium text-foreground">
+          Administração de Medicações
+        </CardTitle>
+        <CardDescription>Últimos 7 dias</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+            <XAxis
+              dataKey="day"
+              stroke="hsl(var(--muted-foreground))"
+              style={{ fontSize: '12px' }}
+            />
+            <YAxis
+              stroke="hsl(var(--muted-foreground))"
+              style={{ fontSize: '12px' }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '8px',
+                color: 'hsl(var(--popover-foreground))',
+              }}
+            />
+            <Legend
+              wrapperStyle={{
+                fontSize: '12px',
+                color: 'hsl(var(--foreground))',
+              }}
+            />
+            <Bar
+              dataKey="Agendadas"
+              fill="hsl(var(--primary))"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              dataKey="Administradas"
+              fill="hsl(var(--chart-2))"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  )
+}
