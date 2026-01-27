@@ -5,7 +5,7 @@ import {
   Tooltip,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, Users, Bed } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 interface MonthlyOccupancyData {
   month: string
@@ -149,7 +149,48 @@ export function OccupancyRateChart({
                   borderRadius: '8px',
                   color: 'hsl(var(--popover-foreground))',
                 }}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Taxa de Ocupação']}
+                content={({ active }) => {
+                  if (active) {
+                    return (
+                      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                        <div className="text-sm font-semibold mb-2 text-foreground">Taxa de Ocupação</div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-xs text-muted-foreground">Taxa:</span>
+                            <span className="text-sm font-bold" style={{ color: getOccupancyColor(occupancyRate) }}>
+                              {occupancyRate.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-xs text-muted-foreground">Residentes:</span>
+                            <span className="text-sm font-semibold text-primary">{currentMonth.residents}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-xs text-muted-foreground">Leitos:</span>
+                            <span className="text-sm font-semibold text-info">{currentMonth.capacity}</span>
+                          </div>
+                          {(capacityDeclared || capacityLicensed) && (
+                            <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+                              {capacityDeclared && (
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="text-xs text-muted-foreground">Cap. Declarada:</span>
+                                  <span className="text-sm font-medium text-warning">{capacityDeclared}</span>
+                                </div>
+                              )}
+                              {capacityLicensed && (
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="text-xs text-muted-foreground">Cap. Licenciada:</span>
+                                  <span className="text-sm font-medium text-danger">{capacityLicensed}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                }}
               />
             </RadialBarChart>
           </ResponsiveContainer>
@@ -162,42 +203,6 @@ export function OccupancyRateChart({
             <div className="text-[10px] text-muted-foreground mt-0.5">Taxa de Ocupação</div>
           </div>
         </div>
-
-        {/* Informações adicionais */}
-        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-primary" />
-            <div>
-              <div className="text-xs text-muted-foreground">Residentes</div>
-              <div className="text-lg font-semibold text-foreground">{currentMonth.residents}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Bed className="h-4 w-4 text-info" />
-            <div>
-              <div className="text-xs text-muted-foreground">Leitos</div>
-              <div className="text-lg font-semibold text-foreground">{currentMonth.capacity}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Capacidades regulatórias (se existirem) */}
-        {(capacityDeclared || capacityLicensed) && (
-          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-border/50">
-            {capacityDeclared && (
-              <div>
-                <div className="text-xs text-muted-foreground">Cap. Declarada</div>
-                <div className="text-sm font-medium text-warning">{capacityDeclared}</div>
-              </div>
-            )}
-            {capacityLicensed && (
-              <div>
-                <div className="text-xs text-muted-foreground">Cap. Licenciada</div>
-                <div className="text-sm font-medium text-danger">{capacityLicensed}</div>
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   )
