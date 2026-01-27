@@ -133,13 +133,11 @@ export function OccupancyRateChart({
               outerRadius="100%"
               barSize={20}
               data={chartData}
-              startAngle={90}
-              endAngle={-270}
+              startAngle={180}
+              endAngle={-180}
             >
               <RadialBar
-                minAngle={15}
-                background={{ fill: 'hsl(var(--muted))' }}
-                clockWise
+                background={{ fill: 'hsl(var(--muted))', opacity: 0.3 }}
                 dataKey="value"
                 cornerRadius={8}
                 fill={getOccupancyColor(occupancyRate)}
