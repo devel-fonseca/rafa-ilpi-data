@@ -103,12 +103,18 @@ export function OccupancyRateChart({
     return 'hsl(var(--info))' // Azul - baixa ocupação
   }
 
-  // Dados para o gráfico radial
+  // Dados para o gráfico radial - técnica correta para gráfico parcial
   const chartData = [
     {
-      name: 'Ocupação',
+      name: 'Preenchido',
       value: occupancyRate,
       fill: getOccupancyColor(occupancyRate),
+    },
+    {
+      name: 'Vazio',
+      value: 100 - occupancyRate,
+      fill: 'hsl(var(--muted))',
+      fillOpacity: 0.5,
     },
   ]
 
@@ -133,11 +139,8 @@ export function OccupancyRateChart({
               endAngle={450}
             >
               <RadialBar
-                background={{ fill: 'hsl(var(--muted))', opacity: 0.5 }}
                 dataKey="value"
                 cornerRadius={8}
-                fill={getOccupancyColor(occupancyRate)}
-                maxValue={100}
               />
               <Tooltip
                 contentStyle={{
