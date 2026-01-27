@@ -252,7 +252,14 @@ export function TenantsList() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-400">
-                        {activeSub?.plan.displayName || 'Sem plano'}
+                        <div className="flex items-center gap-1.5">
+                          <span>{activeSub?.plan.displayName || 'Sem plano'}</span>
+                          {(tenant.customMaxUsers !== null ||
+                            tenant.customMaxResidents !== null ||
+                            (tenant.customFeatures && Object.keys(tenant.customFeatures).length > 0)) && (
+                            <span title="Plano customizado" className="text-base">🎯</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right text-slate-400">
                         {tenant._count?.users ?? 0}

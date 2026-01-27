@@ -56,6 +56,9 @@ export interface Tenant {
   addressCity: string | null
   addressState: string | null
   createdAt: string
+  customMaxUsers: number | null
+  customMaxResidents: number | null
+  customFeatures: Record<string, boolean> | null
   subscriptions: Subscription[]
   _count: {
     users: number
