@@ -366,7 +366,7 @@ export function TenantDetails() {
             </div>
 
             {/* Features do Plano/Assinadas */}
-            {Object.entries(effectiveLimits.effectiveFeatures)
+            {effectiveLimits.effectiveFeatures && Object.entries(effectiveLimits.effectiveFeatures)
               .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
               .length > 0 && (
               <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
@@ -378,7 +378,7 @@ export function TenantDetails() {
                   ):
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(effectiveLimits.effectiveFeatures)
+                  {effectiveLimits.effectiveFeatures && Object.entries(effectiveLimits.effectiveFeatures)
                     .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
                     .map(([feature], idx) => (
                       <Badge
