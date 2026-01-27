@@ -69,7 +69,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     if (!user) {
       // Desconectar se havia socket ativo
       if (socketRef.current) {
-        console.log('[WS] User logged out, disconnecting...')
         socketRef.current.disconnect()
         socketRef.current = null
         setSocket(null)
@@ -85,8 +84,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
     const WS_URL = BACKEND_URL.replace('/api', '') // Remove /api suffix
-
-    console.log('[WS] Connecting to:', `${WS_URL}/events`)
 
     // Buscar accessToken do Zustand auth store (persisted em 'rafa-ilpi-auth')
     const token = useAuthStore.getState().accessToken
@@ -104,17 +101,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     // Event handlers
     newSocket.on('connect', () => {
-      console.log('[WS] Connected successfully')
       setIsConnected(true)
       setError(null)
     })
 
-    newSocket.on('connection:success', (data) => {
-      console.log('[WS] Connection confirmed:', data)
+    newSocket.on('connection:success', () => {
+      // Connection confirmed - user data not logged for security
     })
 
     newSocket.on('disconnect', (reason) => {
-      console.log('[WS] Disconnected:', reason)
       setIsConnected(false)
 
       // Se desconexão foi do servidor, tentar reconectar
@@ -134,7 +129,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     // Cleanup: desconectar ao desmontar
     return () => {
-      console.log('[WS] Cleaning up connection...')
       newSocket.disconnect()
       socketRef.current = null
     }
