@@ -12,18 +12,23 @@ import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 const PAYMENT_METHODS = {
-  CREDIT_CARD: {
-    label: 'Cartão de Crédito',
-    description: 'Pagamento parcelado no cartão',
+  PIX: {
+    label: 'PIX',
+    description: 'Pagamento instantâneo via QR Code',
   },
   BOLETO: {
     label: 'Boleto Bancário',
     description: 'Boleto com vencimento em até 3 dias úteis',
   },
+  CREDIT_CARD: {
+    label: 'Cartão de Crédito',
+    description: 'Pagamento parcelado no cartão',
+  },
 }
 
 interface SubscriptionWithPaymentMethod {
   preferredPaymentMethod?: string
+  billingCycle?: string
 }
 
 export function PaymentMethodSelector() {
@@ -43,11 +48,17 @@ export function PaymentMethodSelector() {
   }
 
   const subscriptionTyped = subscriptionData.subscription as unknown as SubscriptionWithPaymentMethod
-  const currentMethod = subscriptionTyped.preferredPaymentMethod || 'CREDIT_CARD'
+  const billingCycle = subscriptionTyped.billingCycle
+
+  // PIX não é suportado para cobranças recorrentes mensais no Asaas
+  // Apenas ANNUAL (cobrança única anual) permite PIX
+  const isAnnual = billingCycle === 'ANNUAL'
+  const defaultMethod = isAnnual ? 'PIX' : 'BOLETO'
+  const currentMethod = subscriptionTyped.preferredPaymentMethod || defaultMethod
 
   const handleChange = async (value: string) => {
     try {
-      await updatePaymentMethod.mutateAsync(value as 'BOLETO' | 'CREDIT_CARD')
+      await updatePaymentMethod.mutateAsync(value as 'PIX' | 'BOLETO' | 'CREDIT_CARD')
 
       toast.success('Método de pagamento atualizado', {
         description: `Suas próximas faturas serão geradas com ${PAYMENT_METHODS[value as keyof typeof PAYMENT_METHODS].label}`,
@@ -60,6 +71,15 @@ export function PaymentMethodSelector() {
     }
   }
 
+  // Filtrar métodos de pagamento disponíveis
+  const availableMethods = Object.entries(PAYMENT_METHODS).filter(([key]) => {
+    // PIX apenas para planos anuais (não suporta recorrência mensal)
+    if (key === 'PIX' && !isAnnual) {
+      return false
+    }
+    return true
+  })
+
   return (
     <div className="space-y-3">
       <Label htmlFor="payment-method" className="text-foreground">
@@ -70,7 +90,7 @@ export function PaymentMethodSelector() {
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="bg-popover border-border">
-          {Object.entries(PAYMENT_METHODS).map(([key, { label, description }]) => (
+          {availableMethods.map(([key, { label, description }]) => (
             <SelectItem key={key} value={key} className="text-foreground hover:bg-accent">
               <div>
                 <div className="font-medium">{label}</div>
@@ -82,6 +102,11 @@ export function PaymentMethodSelector() {
       </Select>
       <p className="text-xs text-muted-foreground">
         Este será o método padrão para geração de novas faturas. Você poderá alterar a qualquer momento.
+        {!isAnnual && (
+          <span className="block mt-1 text-amber-600">
+            ℹ️ PIX está disponível apenas para planos anuais.
+          </span>
+        )}
       </p>
     </div>
   )

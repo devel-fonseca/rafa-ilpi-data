@@ -22,6 +22,8 @@ model Invoice {
   asaasInvoiceId   String?       @unique @db.VarChar(255)
   asaasInvoiceUrl  String?       @db.Text @map("asaas_invoice_url") // URL para visualizar fatura no Asaas
   asaasBankSlipUrl String?       @db.Text @map("asaas_bank_slip_url") // URL do boleto PDF
+  asaasPixQrCodeId String?       @db.Text @map("asaas_pix_qr_code_id") // ID do QR Code PIX no Asaas
+  asaasPixPayload  String?       @db.Text @map("asaas_pix_payload") // Código PIX copia-e-cola
   paymentUrl       String?       @db.Text
   createdAt        DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime      @updatedAt @db.Timestamptz(3)

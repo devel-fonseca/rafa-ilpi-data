@@ -284,6 +284,35 @@ export class AsaasService implements IPaymentGateway {
   }
 
   /**
+   * Busca QR Code PIX para um pagamento
+   * @see https://docs.asaas.com/reference/get-qr-code-for-pix-payments
+   * @param paymentId - ID do pagamento no Asaas
+   * @returns QR Code encodedImage (Base64) e outras informações
+   */
+  @RetryWithBackoff(3, 1000, [429, 500, 502, 503, 504])
+  async getPixQrCode(paymentId: string): Promise<{
+    encodedImage: string
+    payload: string
+    expirationDate: string
+  }> {
+    try {
+      this.logger.log(`Fetching PIX QR Code for payment: ${paymentId}`)
+
+      const response = await this.client.get(`/payments/${paymentId}/pixQrCode`)
+
+      this.logger.log(`✓ PIX QR Code fetched for payment: ${paymentId}`)
+
+      return {
+        encodedImage: response.data.encodedImage,
+        payload: response.data.payload,
+        expirationDate: response.data.expirationDate,
+      }
+    } catch (error) {
+      this.handleError('getPixQrCode', error)
+    }
+  }
+
+  /**
    * Busca uma subscription por ID no Asaas
    * @param subscriptionId - ID da subscription no Asaas
    * @returns Dados da subscription

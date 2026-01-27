@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTenantInvoices } from '@/hooks/useBilling'
-import { Loader2, ExternalLink } from 'lucide-react'
+import { Loader2, ExternalLink, QrCode as QrCodeIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -19,6 +19,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { PixPaymentDisplay } from '@/components/billing/PixPaymentDisplay'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   DRAFT: { label: 'Rascunho', variant: 'outline' },
@@ -147,17 +156,50 @@ export function InvoicesHistoryTab() {
                         </TableCell>
 
                         <TableCell className="text-right">
-                          {invoice.paymentUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:text-primary hover:bg-accent"
-                              onClick={() => window.open(invoice.paymentUrl, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-1" />
-                              Ver no Asaas
-                            </Button>
-                          )}
+                          <div className="flex justify-end gap-2">
+                            {/* Botão PIX se houver dados PIX */}
+                            {invoice.asaasPixPayload && invoice.status === 'OPEN' && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-[#059669] text-[#059669] hover:bg-[#059669] hover:text-white"
+                                  >
+                                    <QrCodeIcon className="h-4 w-4 mr-1" />
+                                    Pagar com PIX
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-lg">
+                                  <DialogHeader>
+                                    <DialogTitle>Pagamento via PIX</DialogTitle>
+                                    <DialogDescription>
+                                      Escaneie o QR Code ou copie o código abaixo
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <PixPaymentDisplay
+                                    pixPayload={invoice.asaasPixPayload}
+                                    pixQrCodeId={invoice.asaasPixQrCodeId}
+                                    amount={Number(invoice.amount)}
+                                    dueDate={invoice.dueDate}
+                                  />
+                                </DialogContent>
+                              </Dialog>
+                            )}
+
+                            {/* Botão Ver no Asaas (sempre disponível se tiver URL) */}
+                            {invoice.paymentUrl && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary hover:text-primary hover:bg-accent"
+                                onClick={() => window.open(invoice.paymentUrl, '_blank')}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                Ver no Asaas
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     )

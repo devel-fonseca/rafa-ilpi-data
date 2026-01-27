@@ -400,8 +400,10 @@ export class InvoiceService {
 
     // ✅ AJUSTE 4: Mapear método escolhido no onboarding
     // Evita fricção e melhora conversão de pagamento
+    // PIX apenas para ANNUAL (Asaas não suporta PIX recorrente mensal)
     const billingType = this.mapPaymentMethod(
       subscription.preferredPaymentMethod ?? undefined,
+      subscription.billingCycle ?? undefined,
     )
 
     // Gerar número da fatura
@@ -532,6 +534,10 @@ export class InvoiceService {
 
     const status = statusMap[asaasPaymentData.status as string] || InvoiceStatus.OPEN
 
+    // Extrair dados PIX se disponíveis
+    const pixData = asaasPaymentData.pix as Record<string, unknown> | undefined
+    const pixQrCode = pixData?.qrCode as Record<string, unknown> | undefined
+
     // Criar invoice local
     const invoice = await this.prisma.invoice.create({
       data: {
@@ -545,6 +551,8 @@ export class InvoiceService {
         asaasInvoiceId: asaasPaymentData.id as string,
         asaasInvoiceUrl: (asaasPaymentData.invoiceUrl as string) || null,
         asaasBankSlipUrl: (asaasPaymentData.bankSlipUrl as string) || null,
+        asaasPixQrCodeId: (pixQrCode?.id as string) || null,
+        asaasPixPayload: (pixQrCode?.payload as string) || null,
         paymentUrl: (asaasPaymentData.invoiceUrl as string) || null, // Manter por compatibilidade
       },
     })
@@ -558,16 +566,26 @@ export class InvoiceService {
 
   /**
    * ✅ Helper para mapear nome do método de pagamento
-   * NOTA: PIX foi removido - apenas BOLETO e CREDIT_CARD são permitidos
+   * NOTA: PIX apenas para planos ANNUAL (não suporta recorrência mensal no Asaas)
    */
-  private mapPaymentMethod(method?: string): AsaasBillingType {
+  private mapPaymentMethod(method?: string, billingCycle?: string): AsaasBillingType {
+    // Se método for PIX mas plano for MONTHLY, forçar BOLETO
+    if (method === 'PIX' && billingCycle === 'MONTHLY') {
+      this.logger.warn(
+        `PIX não suportado para planos MONTHLY. Convertendo para BOLETO.`,
+      )
+      return AsaasBillingType.BOLETO
+    }
+
     switch (method) {
+      case 'PIX':
+        return AsaasBillingType.PIX
       case 'BOLETO':
         return AsaasBillingType.BOLETO
       case 'CREDIT_CARD':
         return AsaasBillingType.CREDIT_CARD
       default:
-        // Fallback para BOLETO se não definido ou se for PIX (legacy)
+        // Fallback para BOLETO se não definido
         return AsaasBillingType.BOLETO
     }
   }
