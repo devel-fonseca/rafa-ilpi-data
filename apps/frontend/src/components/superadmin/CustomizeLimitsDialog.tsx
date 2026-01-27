@@ -34,6 +34,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
   const [customMaxResidents, setCustomMaxResidents] = useState<number | null>(null)
   const [enableUsersOverride, setEnableUsersOverride] = useState(false)
   const [enableResidentsOverride, setEnableResidentsOverride] = useState(false)
+  const [customFeatures, setCustomFeatures] = useState<Record<string, boolean>>({})
 
   // Atualizar form quando effectiveLimits carrega
   useEffect(() => {
@@ -45,6 +46,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
       setEnableResidentsOverride(hasResidentsOverride)
       setCustomMaxUsers(effectiveLimits.customOverrides.customMaxUsers)
       setCustomMaxResidents(effectiveLimits.customOverrides.customMaxResidents)
+      setCustomFeatures(effectiveLimits.customOverrides.customFeatures || {})
     }
   }, [effectiveLimits])
 
@@ -55,7 +57,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
         data: {
           customMaxUsers: enableUsersOverride ? customMaxUsers : null,
           customMaxResidents: enableResidentsOverride ? customMaxResidents : null,
-          customFeatures: null, // TODO: Implementar customização de features
+          customFeatures: Object.keys(customFeatures).length > 0 ? customFeatures : null,
         },
       })
 
@@ -108,19 +110,55 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
   const activeSub = tenant.subscriptions.find((s) => s.status === 'active' || s.status === 'trialing')
   const basePlan = activeSub?.plan
 
+  // Funções helper para manipular features
+  const toggleFeature = (featureKey: string, currentValue: boolean) => {
+    setCustomFeatures((prev) => {
+      const newFeatures = { ...prev }
+      // Se o valor for igual ao base do plano, remover override (null = usa plano)
+      const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
+      if (currentValue === basePlanFeatures[featureKey]) {
+        delete newFeatures[featureKey]
+      } else {
+        newFeatures[featureKey] = currentValue
+      }
+      return newFeatures
+    })
+  }
+
+  const getEffectiveFeatureValue = (featureKey: string): boolean => {
+    // Ordem de resolução: custom → base → false
+    if (customFeatures[featureKey] !== undefined) {
+      return customFeatures[featureKey]
+    }
+    const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
+    return basePlanFeatures[featureKey] || false
+  }
+
+  const hasFeatureOverride = (featureKey: string): boolean => {
+    return customFeatures[featureKey] !== undefined
+  }
+
+  // Lista todas as features disponíveis (união de base + customs)
+  const allFeatureKeys = Array.from(
+    new Set([
+      ...Object.keys((basePlan?.features as Record<string, boolean>) || {}),
+      ...Object.keys(customFeatures),
+    ])
+  ).sort()
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
-          className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
+          className="border-slate-200 text-slate-900 hover:bg-slate-100"
         >
           <Settings2 className="h-4 w-4 mr-2" />
           Customizar Limites
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-white border-slate-200 text-slate-900 max-w-2xl">
+      <DialogContent className="bg-white border-slate-200 max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-slate-900">Customizar Limites do Tenant</DialogTitle>
           <DialogDescription className="text-slate-400">
@@ -130,7 +168,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
 
         <div className="space-y-6">
           {/* Informação do Plano Base */}
-          <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-600">Plano Base</span>
               {effectiveLimits?.hasCustomizations && (
@@ -193,7 +231,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                   placeholder={`Base: ${basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers}`}
                   className="bg-white border-slate-200 text-slate-900"
                 />
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Plano base: {basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers} usuários
                   {customMaxUsers && customMaxUsers !== basePlan?.maxUsers && (
                     <span className="ml-2 text-blue-600 font-medium">
@@ -252,8 +290,62 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
             )}
           </div>
 
+          <Separator className="bg-slate-200" />
+
+          {/* Customização de Features */}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-slate-600 font-medium">Features do Plano</Label>
+              <p className="text-xs text-slate-400 mt-1">
+                Adicione ou remova features individuais. Valores em azul foram customizados.
+              </p>
+            </div>
+
+            {allFeatureKeys.length > 0 ? (
+              <div className="pl-4 space-y-2 max-h-60 overflow-y-auto">
+                {allFeatureKeys.map((featureKey) => {
+                  const effectiveValue = getEffectiveFeatureValue(featureKey)
+                  const isOverridden = hasFeatureOverride(featureKey)
+                  const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
+                  const baseValue = basePlanFeatures[featureKey] || false
+
+                  return (
+                    <div
+                      key={featureKey}
+                      className={`flex items-center justify-between p-2 rounded ${
+                        isOverridden ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={`feature-${featureKey}`}
+                          className={`text-sm ${isOverridden ? 'text-blue-700 font-medium' : 'text-slate-600'}`}
+                        >
+                          {featureKey}
+                        </Label>
+                        {isOverridden && (
+                          <p className="text-xs text-blue-600 mt-0.5">
+                            Base: {baseValue ? '✓ Ativo' : '✗ Inativo'} → Custom:{' '}
+                            {effectiveValue ? '✓ Ativo' : '✗ Inativo'}
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        id={`feature-${featureKey}`}
+                        checked={effectiveValue}
+                        onCheckedChange={(checked) => toggleFeature(featureKey, checked)}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 pl-4">Nenhuma feature disponível no plano base.</p>
+            )}
+          </div>
+
           {/* Preview dos Limites Efetivos */}
-          {(enableUsersOverride || enableResidentsOverride) && (
+          {(enableUsersOverride || enableResidentsOverride || Object.keys(customFeatures).length > 0) && (
             <>
               <Separator className="bg-slate-200" />
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -281,6 +373,14 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                           : basePlan?.maxResidents}
                     </span>
                   </div>
+                  {Object.keys(customFeatures).length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-blue-700">Features customizadas: </span>
+                      <span className="font-semibold text-blue-900">
+                        {Object.keys(customFeatures).length} override{Object.keys(customFeatures).length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -305,14 +405,14 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
             <Button
               variant="outline"
               onClick={() => setOpen(false)}
-              className="bg-white border-slate-200 text-slate-400"
+              className="border-slate-200 text-slate-900 hover:bg-slate-100"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={customizeMutation.isPending || (!enableUsersOverride && !enableResidentsOverride)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={customizeMutation.isPending || (!enableUsersOverride && !enableResidentsOverride && Object.keys(customFeatures).length === 0)}
+              className="bg-[#059669] hover:bg-slate-600 text-white"
             >
               {customizeMutation.isPending ? 'Salvando...' : 'Salvar Customizações'}
             </Button>
