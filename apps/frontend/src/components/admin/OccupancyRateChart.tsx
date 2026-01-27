@@ -143,10 +143,11 @@ export function OccupancyRateChart({
                 cornerRadius={8}
               />
               <Tooltip
+                wrapperStyle={{ zIndex: 50 }}
                 content={({ active }) => {
                   if (active) {
                     return (
-                      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
+                      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg z-50">
                         <div className="text-sm font-semibold mb-2 text-foreground">Taxa de Ocupação</div>
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-4">
