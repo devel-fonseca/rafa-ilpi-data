@@ -7,9 +7,11 @@ import {
   ResidentsGrowthResponseDto,
   MedicationsHistoryResponseDto,
   MandatoryRecordsHistoryResponseDto,
+  OccupancyRateResponseDto,
   MonthlyResidentCountDto,
   DailyMedicationStatsDto,
   DailyRecordStatsDto,
+  MonthlyOccupancyDto,
 } from './dto';
 import { ResidentScheduleConfig } from '@prisma/client';
 
@@ -405,5 +407,81 @@ export class AdminDashboardService {
     }
 
     return { data: daysData }
+  }
+
+  /**
+   * Retorna taxa de ocupação (residentes/leitos) nos últimos 6 meses
+   * Formato: [{ month: '2025-08', residents: 12, capacity: 20, occupancyRate: 60.0 }, ...]
+   */
+  async getOccupancyRate(): Promise<OccupancyRateResponseDto> {
+    // Verificar se tenant tem leitos configurados
+    const totalBeds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null },
+    })
+
+    const hasBedsConfigured = totalBeds > 0
+
+    // Gerar últimos 6 meses (incluindo o mês atual)
+    const monthsData: MonthlyOccupancyDto[] = []
+    const today = new Date()
+
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1)
+      const year = targetDate.getFullYear()
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+      const monthStr = `${year}-${month}`
+
+      // Determinar data de contagem (último dia do mês ou hoje se for mês atual)
+      const isCurrentMonth = i === 0
+      let countDate: Date
+
+      if (isCurrentMonth) {
+        countDate = new Date()
+      } else {
+        // Último dia do mês
+        countDate = new Date(year, targetDate.getMonth() + 1, 0)
+      }
+
+      // Contar residentes ativos naquela data
+      const residents = await this.tenantContext.client.resident.count({
+        where: {
+          createdAt: { lte: countDate },
+          OR: [
+            { status: 'Ativo' },
+            {
+              AND: [
+                { status: { not: 'Ativo' } },
+                { updatedAt: { gte: countDate } }
+              ]
+            }
+          ]
+        },
+      })
+
+      // Contar leitos disponíveis naquela data
+      // Para simplificar, usamos contagem atual de leitos (assumindo estrutura não muda muito)
+      // Se precisar histórico preciso de leitos, considerar adicionar snapshot mensal
+      const capacity = await this.tenantContext.client.bed.count({
+        where: {
+          deletedAt: null,
+          createdAt: { lte: countDate }, // Leitos que existiam naquela data
+        },
+      })
+
+      // Calcular taxa de ocupação
+      const occupancyRate = capacity > 0 ? (residents / capacity) * 100 : null
+
+      monthsData.push({
+        month: monthStr,
+        residents,
+        capacity,
+        occupancyRate: occupancyRate !== null ? parseFloat(occupancyRate.toFixed(1)) : null,
+      })
+    }
+
+    return {
+      data: monthsData,
+      hasBedsConfigured,
+    }
   }
 }

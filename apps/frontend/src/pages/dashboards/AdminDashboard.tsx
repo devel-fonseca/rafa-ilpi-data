@@ -7,9 +7,9 @@ import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
 import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
 import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
-import { PlaceholderChart } from '@/components/admin/PlaceholderChart'
+import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
-import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory } from '@/hooks/useAdminDashboard'
+import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
 import { Page, PageHeader, Section } from '@/design-system/components'
 
 export function AdminDashboard() {
@@ -19,6 +19,7 @@ export function AdminDashboard() {
   const { data: residentsGrowth, isLoading: isLoadingResidents } = useResidentsGrowth()
   const { data: medicationsHistory, isLoading: isLoadingMedications } = useMedicationsHistory()
   const { data: recordsHistory, isLoading: isLoadingRecords } = useMandatoryRecordsHistory()
+  const { data: occupancyRate, isLoading: isLoadingOccupancy } = useOccupancyRate()
 
   return (
     <Page>
@@ -51,9 +52,10 @@ export function AdminDashboard() {
             data={recordsHistory?.data || []}
             isLoading={isLoadingRecords}
           />
-          <PlaceholderChart
-            title="Análise Adicional"
-            description="Espaço reservado para próximas métricas"
+          <OccupancyRateChart
+            data={occupancyRate?.data || []}
+            hasBedsConfigured={occupancyRate?.hasBedsConfigured}
+            isLoading={isLoadingOccupancy}
           />
         </div>
       </Section>

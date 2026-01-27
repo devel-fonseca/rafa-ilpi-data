@@ -35,6 +35,18 @@ export interface MandatoryRecordsHistoryData {
   data: DailyRecordStats[]
 }
 
+export interface MonthlyOccupancy {
+  month: string // 'YYYY-MM'
+  residents: number
+  capacity: number
+  occupancyRate: number | null
+}
+
+export interface OccupancyRateData {
+  data: MonthlyOccupancy[]
+  hasBedsConfigured: boolean
+}
+
 // ============================================================================
 // HOOKS
 // ============================================================================
@@ -84,5 +96,21 @@ export function useMandatoryRecordsHistory() {
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
     refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
+  })
+}
+
+/**
+ * Hook para buscar taxa de ocupação (últimos 6 meses)
+ * Usado no gráfico de área do AdminDashboard
+ */
+export function useOccupancyRate() {
+  return useQuery<OccupancyRateData>({
+    queryKey: tenantKey('admin-occupancy-rate'),
+    queryFn: async () => {
+      const response = await api.get('/admin-dashboard/occupancy-rate')
+      return response.data
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos - dados mudam lentamente
+    refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
   })
 }

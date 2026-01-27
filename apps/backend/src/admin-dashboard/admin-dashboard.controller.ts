@@ -11,6 +11,7 @@ import {
   ResidentsGrowthResponseDto,
   MedicationsHistoryResponseDto,
   MandatoryRecordsHistoryResponseDto,
+  OccupancyRateResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -96,5 +97,23 @@ export class AdminDashboardController {
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
   async getMandatoryRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
     return this.adminDashboardService.getMandatoryRecordsHistory();
+  }
+
+  @Get('occupancy-rate')
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  @ApiOperation({
+    summary: 'Obter taxa de ocupação nos últimos 6 meses',
+    description:
+      'Retorna dados mensais de residentes, capacidade de leitos e taxa de ocupação para gráfico (Acesso restrito: Administrador e Responsável Técnico)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Taxa de ocupação retornada com sucesso',
+    type: OccupancyRateResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
+  async getOccupancyRate(): Promise<OccupancyRateResponseDto> {
+    return this.adminDashboardService.getOccupancyRate();
   }
 }
