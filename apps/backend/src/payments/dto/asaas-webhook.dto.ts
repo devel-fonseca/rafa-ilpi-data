@@ -94,6 +94,7 @@ export class AsaasWebhookDto {
       status: 'RECEIVED',
     },
   })
+  @IsOptional()
   @IsObject()
   payment?: Record<string, unknown>
 
@@ -117,4 +118,15 @@ export class AsaasWebhookDto {
   @IsOptional()
   @IsString()
   dateCreated?: string
+
+  @ApiProperty({
+    description: 'Dados da conta Asaas',
+    example: {
+      id: '7484ddc9-9c17-41be-8607-94c3576c9bb1',
+      ownerId: null,
+    },
+  })
+  @IsOptional()
+  @IsObject()
+  account?: Record<string, unknown>
 }

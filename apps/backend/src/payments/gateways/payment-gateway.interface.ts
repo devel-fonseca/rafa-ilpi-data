@@ -68,6 +68,7 @@ export interface CreateSubscriptionData {
   value: number
   cycle: AsaasSubscriptionCycle
   description: string
+  nextDueDate?: string // Data de vencimento da primeira cobrança (formato: YYYY-MM-DD)
   externalReference?: string
 }
 
@@ -118,6 +119,7 @@ export interface PaymentResponse {
   value: number
   dueDate: string
   status: AsaasPaymentStatus
+  paymentDate?: string // Data em que o pagamento foi confirmado
   invoiceUrl?: string
   bankSlipUrl?: string
   invoiceNumber?: string

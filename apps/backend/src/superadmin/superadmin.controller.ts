@@ -33,6 +33,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { PrismaService } from '../prisma/prisma.service'
 import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
 import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
+import { AsaasSyncJob } from '../payments/jobs/asaas-sync.job'
 import { parseISO } from 'date-fns'
 
 /**
@@ -69,6 +70,7 @@ export class SuperAdminController {
     private readonly prismaService: PrismaService,
     private readonly trialAlertsJob: TrialExpirationAlertsJob,
     private readonly trialConversionJob: TrialToActiveConversionJob,
+    private readonly asaasSyncJob: AsaasSyncJob,
   ) {}
 
   /**
@@ -976,6 +978,32 @@ export class SuperAdminController {
       return {
         success: true,
         message: 'Trial conversion job executado com sucesso',
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Erro ao executar job: ${error.message}`,
+      }
+    }
+  }
+
+  /**
+   * POST /superadmin/jobs/asaas-sync
+   *
+   * Dispara manualmente a sincronização bidirecional Asaas ↔ Local.
+   * Sincroniza status de subscriptions e payments pendentes com o Asaas.
+   *
+   * ⚠️  Uso: Testes, correção de falhas, recuperar eventos perdidos
+   *
+   * Retorna: { success: boolean, message: string }
+   */
+  @Post('jobs/asaas-sync')
+  async triggerAsaasSync() {
+    try {
+      await this.asaasSyncJob.runManualSync()
+      return {
+        success: true,
+        message: 'Asaas sync job executado com sucesso',
       }
     } catch (error) {
       return {

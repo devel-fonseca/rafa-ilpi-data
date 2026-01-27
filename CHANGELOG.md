@@ -6,6 +6,70 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-27] - Migração para Asaas Subscriptions + Webhooks 💳
+
+### ✨ Adicionado
+
+**BACKEND - Integração com Asaas Subscriptions:**
+
+- **Job de Conversão Trial → Active (Fase 1):**
+  - `TrialToActiveConversionJob`: Executa diariamente às 02:00 BRT
+  - Converte trials expirados em subscriptions recorrentes no Asaas
+  - Cria customers automaticamente se não existirem
+  - Correção de timezone (usa `America/Sao_Paulo` para cálculo de `nextDueDate`)
+  - Primeira cobrança agendada para +7 dias após conversão
+  - Campos de auditoria: `asaasCreatedAt`, `asaasCreationError`, `lastSyncedAt`, `asaasSyncError`
+
+- **Webhook Handlers (Fase 2):**
+  - Endpoint `/api/webhooks/asaas` para receber eventos do Asaas
+  - `PAYMENT_CREATED`: Cria invoice local automaticamente quando Asaas gera cobrança
+  - `SUBSCRIPTION_CREATED/UPDATED/INACTIVATED`: Sincroniza status de subscriptions
+  - Idempotência: Não reprocessa eventos duplicados
+  - Auditoria completa na tabela `webhook_events`
+
+- **Job de Sincronização Bidirecional (Fase 3):**
+  - `AsaasSyncJob`: Executa a cada 6 horas (00:00, 06:00, 12:00, 18:00)
+  - Sincroniza status de subscriptions ativas (active ↔ canceled)
+  - Atualiza invoices pendentes que foram pagas no Asaas
+  - **Fix crítico:** Processa TODOS os tenants (limitando 50 invoices POR tenant, não 100 totais)
+  - Recupera eventos perdidos caso webhook falhe
+  - Salva erros de sync para retry manual
+  - Endpoint manual: `POST /superadmin/jobs/asaas-sync` (exportado via PaymentsModule)
+
+- **Database Schema:**
+  - **Subscriptions:** `asaasSubscriptionId`, `asaasCreatedAt`, `asaasCreationError`, `lastSyncedAt`, `asaasSyncError`
+  - **Invoices:** `asaasInvoiceUrl`, `asaasBankSlipUrl` (URLs do Asaas para fatura e boleto)
+  - **Webhook Events:** Tabela de auditoria com `gateway`, `eventType`, `payload`, `processed`, `error`
+
+- **AsaasService - Novos Métodos:**
+  - `getSubscription(subscriptionId)`: Busca subscription no Asaas para sync
+  - `getPayment(paymentId)`: Busca payment no Asaas para verificar status
+  - Suporte a `paymentDate` na interface `PaymentResponse`
+
+**FRONTEND - Portal SuperAdmin:**
+
+- **Página de Configurações do Sistema:**
+  - Nova rota: `/superadmin/settings`
+  - Botões para executar jobs manualmente (testes e emergências)
+  - **Job de Alertas de Trial:** `POST /superadmin/jobs/trial-alerts`
+  - **Job de Conversão Trial:** `POST /superadmin/jobs/trial-conversion`
+  - **Job de Sync Asaas:** `POST /superadmin/jobs/asaas-sync`
+  - Feedback visual de execução (loading, success, error)
+  - Informações sobre horários de execução automática
+
+### 🔧 Corrigido
+
+- **Timezone:** Cálculo de `nextDueDate` usa `America/Sao_Paulo` ao invés de UTC (evita diferenças de 1 dia)
+- **Webhook Route:** Alterada de `/payments/webhooks` para `/webhooks` (match com URL do ngrok)
+- **Duplicate Invoice:** Removida geração manual de invoice (Asaas gera automaticamente via subscription)
+
+### 📝 Alterado
+
+- **Invoice Creation:** Migrada de geração manual para automática via webhook `PAYMENT_CREATED`
+- **Payment Gateway Interface:** Adicionado `paymentDate?: string` em `PaymentResponse`
+
+---
+
 ## [2026-01-24] - Autodiagnóstico RDC 502/2021 📋
 
 ### ✨ Adicionado

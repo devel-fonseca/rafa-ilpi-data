@@ -9,6 +9,7 @@ import { PaymentAnalyticsService } from './services/payment-analytics.service'
 import { WebhooksController } from './webhooks.controller'
 import { InvoiceGenerationJob } from './jobs/invoice-generation.job'
 import { PaymentSyncJob } from './jobs/payment-sync.job'
+import { AsaasSyncJob } from './jobs/asaas-sync.job'
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { PaymentSyncJob } from './jobs/payment-sync.job'
     PaymentAnalyticsService,
     InvoiceGenerationJob,
     PaymentSyncJob,
+    AsaasSyncJob,
   ],
-  exports: [AsaasService, InvoiceService, PaymentService, PaymentAnalyticsService],
+  exports: [AsaasService, InvoiceService, PaymentService, PaymentAnalyticsService, AsaasSyncJob],
 })
 export class PaymentsModule {}

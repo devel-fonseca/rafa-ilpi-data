@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
+import { addDays } from 'date-fns'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { SubscriptionAdminService } from '../services/subscription-admin.service'
@@ -96,6 +97,20 @@ export class TrialToActiveConversionJob {
             )
 
           // 1.5. ✅ NOVO: Criar subscription recorrente no Asaas
+
+          // Calcular valor final ANTES do try-catch (usado no email posteriormente)
+          const basePrice = subscription.customPrice
+            ? Number(subscription.customPrice)
+            : subscription.plan.price
+            ? Number(subscription.plan.price)
+            : 0
+
+          const discount = subscription.discountPercent
+            ? Number(subscription.discountPercent)
+            : 0
+
+          const finalValue = basePrice * (1 - discount / 100)
+
           try {
             this.logger.log(
               `💳 Criando subscription no Asaas para ${subscription.tenant.name}`,
@@ -128,19 +143,6 @@ export class TrialToActiveConversionJob {
               })
             }
 
-            // Calcular valor final (customPrice ou plan.price com desconto)
-            const basePrice = subscription.customPrice
-              ? Number(subscription.customPrice)
-              : subscription.plan.price
-              ? Number(subscription.plan.price)
-              : 0
-
-            const discount = subscription.discountPercent
-              ? Number(subscription.discountPercent)
-              : 0
-
-            const finalValue = basePrice * (1 - discount / 100)
-
             // Mapear billing cycle: ANNUAL → YEARLY, MONTHLY → MONTHLY
             const cycle =
               subscription.plan.billingCycle === 'ANNUAL'
@@ -152,6 +154,16 @@ export class TrialToActiveConversionJob {
               (subscription.preferredPaymentMethod as keyof typeof AsaasBillingType) ||
               'BOLETO'
 
+            // Calcular data de vencimento da primeira cobrança (+7 dias)
+            // Usar timezone de São Paulo para garantir consistência
+            const nextDueDate = addDays(new Date(), 7)
+
+            // Formatar como YYYY-MM-DD (sem conversão UTC para evitar mudança de dia)
+            const year = nextDueDate.getFullYear()
+            const month = String(nextDueDate.getMonth() + 1).padStart(2, '0')
+            const day = String(nextDueDate.getDate()).padStart(2, '0')
+            const nextDueDateStr = `${year}-${month}-${day}`
+
             // Criar subscription recorrente no Asaas
             const asaasSubscription = await this.asaasService.createSubscription(
               {
@@ -160,6 +172,7 @@ export class TrialToActiveConversionJob {
                 value: finalValue,
                 cycle,
                 description: `Assinatura ${subscription.plan.displayName} - ${subscription.tenant.name}`,
+                nextDueDate: nextDueDateStr, // Primeira cobrança em +7 dias
                 externalReference: subscription.id,
               },
             )
@@ -209,17 +222,15 @@ export class TrialToActiveConversionJob {
             // Continuar com geração manual de fatura (fallback)
           }
 
-          // 2. Gerar primeira fatura
+          // 2. ⚠️ NOTA: Primeira fatura é gerada AUTOMATICAMENTE pela Asaas Subscription
+          // Não precisamos gerar manualmente, pois o Asaas cria a primeira cobrança ao criar a subscription
+          // A fatura será sincronizada via webhook PAYMENT_CREATED (Fase 2)
+
           this.logger.log(
-            `💰 Gerando primeira fatura para ${subscription.tenant.name}`,
+            `ℹ️  Primeira fatura será gerada automaticamente pela subscription no Asaas`,
           )
 
-          const invoice =
-            await this.invoiceService.createFirstInvoiceAfterTrial(
-              subscription.id,
-            )
-
-          // 3. Enviar email de confirmação
+          // 3. Enviar email de confirmação (sem dados da fatura, pois virá via webhook)
           this.logger.log(
             `📧 Enviando email de confirmação para ${subscription.tenant.email}`,
           )
@@ -229,10 +240,10 @@ export class TrialToActiveConversionJob {
             {
               tenantName: subscription.tenant.name,
               planName: subscription.plan.displayName,
-              invoiceAmount: Number(invoice.amount),
-              dueDate: invoice.dueDate,
-              paymentUrl: invoice.paymentUrl || '',
-              billingType: subscription.preferredPaymentMethod || undefined, // ✅ Informar método
+              invoiceAmount: finalValue, // Valor calculado localmente
+              dueDate: new Date(), // Temporário - será atualizado via webhook
+              paymentUrl: '', // Virá via webhook PAYMENT_CREATED
+              billingType: subscription.preferredPaymentMethod || undefined,
             },
           )
 

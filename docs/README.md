@@ -1,7 +1,7 @@
 # Documentação Técnica - Rafa ILPI Data
 
 **Versão do Projeto:** 1.0.0
-**Última atualização:** 23/12/2025
+**Última atualização:** 27/01/2026
 
 Bem-vindo à documentação técnica completa do sistema Rafa ILPI Data - plataforma de gestão para Instituições de Longa Permanência para Idosos (ILPIs).
 
@@ -40,6 +40,14 @@ Documentação de arquitetura e infraestrutura:
 | **Storage de Arquivos** | [file-storage.md](architecture/file-storage.md) |
 | **Schema do Banco** | [database-schema.md](architecture/database-schema.md) |
 | **Autenticação** | [authentication.md](architecture/authentication.md) |
+
+### 💳 Integrações
+
+Documentação de integrações com serviços externos:
+
+| Serviço | Arquivo | Descrição |
+|---------|---------|-----------|
+| **Asaas** | [INTEGRACAO-ASAAS.md](INTEGRACAO-ASAAS.md) | Gateway de pagamentos recorrentes (subscriptions) |
 
 ### 📝 Outros Documentos
 
@@ -172,4 +180,4 @@ Propriedade de Rafa Labs Desenvolvimento e Tecnologia.
 ---
 
 **Desenvolvedor:** Emanuel (Dr. E.) + Claude Sonnet 4.5
-**Última revisão:** 23/12/2025
+**Última revisão:** 27/01/2026

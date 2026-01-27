@@ -9,9 +9,9 @@ import { PaymentGateway, PaymentMethod, Prisma } from '@prisma/client'
 
 /**
  * Controller para receber webhooks do Asaas
- * URL: https://seu-dominio.com/api/payments/webhooks/asaas
+ * URL: https://seu-dominio.com/api/webhooks/asaas
  */
-@Controller('payments/webhooks')
+@Controller('webhooks')
 @ApiTags('Webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name)
@@ -104,6 +104,10 @@ export class WebhooksController {
    */
   private async processWebhookEvent(webhook: AsaasWebhookDto) {
     switch (webhook.event) {
+      case AsaasEventType.PAYMENT_CREATED:
+        await this.handlePaymentCreated(webhook)
+        break
+
       case AsaasEventType.PAYMENT_RECEIVED:
       case AsaasEventType.PAYMENT_CONFIRMED:
         await this.handlePaymentReceived(webhook)
@@ -121,9 +125,96 @@ export class WebhooksController {
         await this.handlePaymentRefunded(webhook)
         break
 
+      case AsaasEventType.SUBSCRIPTION_CREATED:
+      case AsaasEventType.SUBSCRIPTION_UPDATED:
+      case AsaasEventType.SUBSCRIPTION_INACTIVATED:
+        await this.handleSubscriptionEvent(webhook)
+        break
+
       default:
         this.logger.log(`ℹ️  Unhandled event type: ${webhook.event}`)
     }
+  }
+
+  /**
+   * Trata criação de pagamento/fatura
+   * (Fase 2 - Sincronizar invoices criadas pelo Asaas Subscription)
+   */
+  private async handlePaymentCreated(webhook: AsaasWebhookDto) {
+    const paymentData = webhook.payment as Record<string, unknown> | undefined
+
+    if (!paymentData) {
+      this.logger.warn('No payment data in webhook')
+      return
+    }
+
+    this.logger.log(
+      `📝 Payment created: ${paymentData.id} | Subscription: ${paymentData.subscription || 'N/A'} | Due: ${paymentData.dueDate}`,
+    )
+
+    // Se for de subscription, buscar subscription local pelo asaasSubscriptionId
+    if (paymentData.subscription) {
+      const subscription = await this.prisma.subscription.findUnique({
+        where: { asaasSubscriptionId: paymentData.subscription as string },
+        include: { tenant: true },
+      })
+
+      if (!subscription) {
+        this.logger.warn(`Subscription not found: ${paymentData.subscription}`)
+        return
+      }
+
+      // Criar invoice local para rastrear essa cobrança
+      const invoice = await this.invoiceService.createInvoiceFromAsaasPayment({
+        tenantId: subscription.tenantId,
+        subscriptionId: subscription.id,
+        asaasPaymentData: paymentData,
+      })
+
+      this.logger.log(
+        `✓ Invoice created from Asaas subscription payment: ${invoice.invoiceNumber}`,
+      )
+    } else {
+      // Pagamento avulso (não é de subscription)
+      this.logger.log(`ℹ️  Standalone payment created (not from subscription): ${paymentData.id}`)
+    }
+  }
+
+  /**
+   * Trata eventos de subscription (CREATED, UPDATED, INACTIVATED)
+   */
+  private async handleSubscriptionEvent(webhook: AsaasWebhookDto) {
+    const subscriptionData = webhook.subscription as Record<string, unknown> | undefined
+
+    if (!subscriptionData) {
+      this.logger.warn('No subscription data in webhook')
+      return
+    }
+
+    this.logger.log(
+      `📋 Subscription event: ${webhook.event} | ID: ${subscriptionData.id} | Status: ${subscriptionData.status}`,
+    )
+
+    // Buscar subscription local
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { asaasSubscriptionId: subscriptionData.id as string },
+    })
+
+    if (!subscription) {
+      this.logger.warn(`Subscription not found locally: ${subscriptionData.id}`)
+      return
+    }
+
+    // Atualizar lastSyncedAt e asaasSyncError (limpar erro se houver)
+    await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        lastSyncedAt: new Date(),
+        asaasSyncError: null,
+      },
+    })
+
+    this.logger.log(`✓ Subscription ${subscription.id} synced via webhook`)
   }
 
   /**

@@ -109,6 +109,7 @@ import EmailLogs from '@/pages/superadmin/EmailLogs'
 import TenantMessages from '@/pages/superadmin/TenantMessages'
 import TenantMessageForm from '@/pages/superadmin/TenantMessageForm'
 import TenantMessageView from '@/pages/superadmin/TenantMessageView'
+import { SystemSettings } from '@/pages/superadmin/SystemSettings'
 
 // Settings Pages
 import { BillingPage } from '@/pages/settings/BillingPage'
@@ -667,6 +668,10 @@ export const router = createBrowserRouter([
       {
         path: 'tenant-messages/:id/edit',
         element: <TenantMessageForm />,
+      },
+      {
+        path: 'settings',
+        element: <SystemSettings />,
       },
     ],
   },

@@ -11,6 +11,7 @@ import {
   LogOut,
   AlertTriangle,
   Mail,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/hooks/useAlerts'
@@ -98,6 +99,11 @@ export function SuperAdminLayout() {
       label: 'Alertas',
       icon: Bell,
       badge: unreadCount,
+    },
+    {
+      to: '/superadmin/settings',
+      label: 'Configurações',
+      icon: Settings,
     },
   ]
 

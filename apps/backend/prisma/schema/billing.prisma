@@ -16,13 +16,15 @@ model Invoice {
   billingCycle    String?       @map("billing_cycle") @db.VarChar(20) // MONTHLY | ANNUAL
   description     String?       @db.Text // Descrição da fatura
   currency        String        @default("BRL") @db.VarChar(3)
-  status          InvoiceStatus
-  dueDate         DateTime      @db.Date
-  paidAt          DateTime?     @db.Timestamptz(3)
-  asaasInvoiceId  String?       @unique @db.VarChar(255)
-  paymentUrl      String?       @db.Text
-  createdAt       DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+  status           InvoiceStatus
+  dueDate          DateTime      @db.Date
+  paidAt           DateTime?     @db.Timestamptz(3)
+  asaasInvoiceId   String?       @unique @db.VarChar(255)
+  asaasInvoiceUrl  String?       @db.Text @map("asaas_invoice_url") // URL para visualizar fatura no Asaas
+  asaasBankSlipUrl String?       @db.Text @map("asaas_bank_slip_url") // URL do boleto PDF
+  paymentUrl       String?       @db.Text
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(3)
 
   // Relações
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)

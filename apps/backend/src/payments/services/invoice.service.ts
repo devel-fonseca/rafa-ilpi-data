@@ -498,6 +498,65 @@ export class InvoiceService {
   }
 
   /**
+   * Cria invoice local a partir de payment criado pelo Asaas Subscription
+   * (Chamado via webhook PAYMENT_CREATED - Fase 2)
+   */
+  async createInvoiceFromAsaasPayment(params: {
+    tenantId: string
+    subscriptionId: string
+    asaasPaymentData: Record<string, unknown>
+  }): Promise<Invoice> {
+    const { tenantId, subscriptionId, asaasPaymentData } = params
+
+    // Verificar se invoice já existe (idempotência)
+    const existingInvoice = await this.prisma.invoice.findUnique({
+      where: { asaasInvoiceId: asaasPaymentData.id as string },
+    })
+
+    if (existingInvoice) {
+      this.logger.log(`Invoice already exists: ${existingInvoice.invoiceNumber}`)
+      return existingInvoice
+    }
+
+    // Gerar número de invoice
+    const invoiceNumber = await this.generateInvoiceNumber()
+
+    // Mapear status do Asaas para status local
+    const statusMap: Record<string, InvoiceStatus> = {
+      PENDING: InvoiceStatus.OPEN,
+      RECEIVED: InvoiceStatus.PAID,
+      CONFIRMED: InvoiceStatus.PAID,
+      OVERDUE: InvoiceStatus.OPEN,
+      REFUNDED: InvoiceStatus.VOID,
+    }
+
+    const status = statusMap[asaasPaymentData.status as string] || InvoiceStatus.OPEN
+
+    // Criar invoice local
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        invoiceNumber,
+        tenantId,
+        subscriptionId,
+        amount: asaasPaymentData.value as number,
+        status,
+        dueDate: new Date(asaasPaymentData.dueDate as string),
+        paidAt: asaasPaymentData.paymentDate ? new Date(asaasPaymentData.paymentDate as string) : null,
+        asaasInvoiceId: asaasPaymentData.id as string,
+        asaasInvoiceUrl: (asaasPaymentData.invoiceUrl as string) || null,
+        asaasBankSlipUrl: (asaasPaymentData.bankSlipUrl as string) || null,
+        paymentUrl: (asaasPaymentData.invoiceUrl as string) || null, // Manter por compatibilidade
+      },
+    })
+
+    this.logger.log(
+      `✓ Invoice created from Asaas payment: ${invoice.invoiceNumber} (${asaasPaymentData.id})`,
+    )
+
+    return invoice
+  }
+
+  /**
    * ✅ Helper para mapear nome do método de pagamento
    * NOTA: PIX foi removido - apenas BOLETO e CREDIT_CARD são permitidos
    */

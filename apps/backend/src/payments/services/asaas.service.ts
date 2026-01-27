@@ -98,6 +98,7 @@ export class AsaasService implements IPaymentGateway {
         value: data.value,
         cycle: data.cycle,
         description: data.description,
+        nextDueDate: data.nextDueDate, // Data de vencimento da primeira cobrança
         externalReference: data.externalReference,
       })
 
@@ -209,6 +210,7 @@ export class AsaasService implements IPaymentGateway {
         value: response.data.value,
         dueDate: response.data.dueDate,
         status: response.data.status,
+        paymentDate: response.data.paymentDate,
         invoiceUrl: response.data.invoiceUrl,
         bankSlipUrl: response.data.bankSlipUrl,
         invoiceNumber: response.data.invoiceNumber,
@@ -278,6 +280,26 @@ export class AsaasService implements IPaymentGateway {
       this.logger.log(`✓ Payment refunded: ${paymentId}`)
     } catch (error) {
       this.handleError('refundPayment', error)
+    }
+  }
+
+  /**
+   * Busca uma subscription por ID no Asaas
+   * @param subscriptionId - ID da subscription no Asaas
+   * @returns Dados da subscription
+   */
+  @RetryWithBackoff(3, 1000, [429, 500, 502, 503, 504])
+  async getSubscription(subscriptionId: string): Promise<SubscriptionResponse> {
+    try {
+      this.logger.debug(`📋 Fetching subscription ${subscriptionId} from Asaas...`)
+
+      const response = await this.client.get(`/subscriptions/${subscriptionId}`)
+
+      this.logger.debug(`✓ Subscription ${subscriptionId} fetched successfully`)
+
+      return response.data
+    } catch (error) {
+      this.handleError('getSubscription', error)
     }
   }
 
