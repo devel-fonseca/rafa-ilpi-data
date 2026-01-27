@@ -1,19 +1,11 @@
 import {
-  ComposedChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
+  RadialBarChart,
+  RadialBar,
   ResponsiveContainer,
-  Legend,
-  ReferenceLine,
+  Tooltip,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { normalizeUTCDate } from '@/utils/dateHelpers'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Users, Bed } from 'lucide-react'
 
 interface MonthlyOccupancyData {
   month: string
@@ -33,10 +25,8 @@ interface OccupancyRateChartProps {
 /**
  * OccupancyRateChart
  *
- * Gráfico composto (barras + linhas) mostrando ocupação vs capacidades ao longo do tempo.
- * - Barras: Residentes (ocupados) e Leitos Configurados (capacidade real)
- * - Linhas tracejadas: Capacidade Declarada e Licenciada (referências regulatórias)
- * Exibe os últimos 6 meses de dados.
+ * Gráfico radial mostrando taxa de ocupação atual.
+ * Exibe a taxa do mês mais recente com indicação visual de capacidade.
  * Mostra alerta caso não haja leitos configurados.
  */
 export function OccupancyRateChart({
@@ -46,31 +36,6 @@ export function OccupancyRateChart({
   capacityLicensed = null,
   isLoading = false,
 }: OccupancyRateChartProps) {
-  // Formatar mês para exibição (Jan, Fev, Mar, etc.) - timezone-safe
-  const formatMonth = (monthStr: string): string => {
-    const dateStr = `${monthStr}-01` // Primeiro dia do mês
-    const date = normalizeUTCDate(dateStr)
-    const formatted = format(date, 'MMM', { locale: ptBR })
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }
-
-  // Preparar dados para o gráfico
-  const chartData = data.map((item) => ({
-    month: formatMonth(item.month),
-    Residentes: item.residents,
-    'Leitos Configurados': item.capacity,
-    ...(capacityDeclared && { 'Cap. Declarada': capacityDeclared }),
-    ...(capacityLicensed && { 'Cap. Licenciada': capacityLicensed }),
-  }))
-
-  // Calcular domínio do YAxis (máximo entre todos os valores)
-  const maxValue = Math.max(
-    ...data.map((d) => Math.max(d.residents, d.capacity)),
-    capacityDeclared ?? 0,
-    capacityLicensed ?? 0,
-  )
-  const yAxisMax = Math.ceil(maxValue * 1.1) // 10% margem
-
   if (isLoading) {
     return (
       <Card className="bg-card border-border">
@@ -78,10 +43,10 @@ export function OccupancyRateChart({
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Últimos 6 meses</CardDescription>
+          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[280px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
         </CardContent>
@@ -97,10 +62,10 @@ export function OccupancyRateChart({
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Últimos 6 meses</CardDescription>
+          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex flex-col items-center justify-center gap-3">
+          <div className="h-[280px] flex flex-col items-center justify-center gap-3">
             <AlertCircle className="h-8 w-8 text-warning" />
             <p className="text-sm text-muted-foreground text-center">
               Configure leitos em <strong>Gestão de Leitos</strong> para visualizar a taxa de ocupação
@@ -111,17 +76,17 @@ export function OccupancyRateChart({
     )
   }
 
-  if (chartData.length === 0) {
+  if (data.length === 0) {
     return (
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-base font-medium text-foreground">
             Taxa de Ocupação
           </CardTitle>
-          <CardDescription>Últimos 6 meses</CardDescription>
+          <CardDescription>Taxa atual</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[280px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
           </div>
         </CardContent>
@@ -129,86 +94,111 @@ export function OccupancyRateChart({
     )
   }
 
+  // Pegar dados do mês mais recente
+  const currentMonth = data[data.length - 1]
+  const occupancyRate = currentMonth.occupancyRate ?? 0
+
+  // Determinar cor baseada na taxa de ocupação
+  const getOccupancyColor = (rate: number) => {
+    if (rate >= 90) return 'hsl(var(--danger))' // Vermelho - muito cheio
+    if (rate >= 75) return 'hsl(var(--warning))' // Amarelo - atenção
+    if (rate >= 50) return 'hsl(var(--success))' // Verde - ideal
+    return 'hsl(var(--info))' // Azul - baixa ocupação
+  }
+
+  // Dados para o gráfico radial
+  const chartData = [
+    {
+      name: 'Ocupação',
+      value: occupancyRate,
+      fill: getOccupancyColor(occupancyRate),
+    },
+  ]
+
   return (
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-base font-medium text-foreground">
-          Ocupação vs Capacidades
+          Taxa de Ocupação
         </CardTitle>
-        <CardDescription>Últimos 6 meses - Residentes, Leitos e Limites Regulatórios</CardDescription>
+        <CardDescription>Taxa atual</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <ComposedChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-            <XAxis
-              dataKey="month"
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-            />
-            <YAxis
-              stroke="hsl(var(--muted-foreground))"
-              style={{ fontSize: '12px' }}
-              domain={[0, yAxisMax]}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--popover))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                color: 'hsl(var(--popover-foreground))',
-              }}
-            />
-            <Legend
-              wrapperStyle={{
-                fontSize: '12px',
-                color: 'hsl(var(--foreground))',
-              }}
-            />
-
-            {/* Linhas de referência das capacidades regulatórias */}
-            {capacityDeclared && (
-              <ReferenceLine
-                y={capacityDeclared}
-                stroke="hsl(var(--warning))"
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                label={{
-                  value: `Declarada: ${capacityDeclared}`,
-                  position: 'insideTopRight',
-                  fill: 'hsl(var(--warning))',
-                  fontSize: 11,
-                }}
+        <div className="relative h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadialBarChart
+              cx="50%"
+              cy="50%"
+              innerRadius="70%"
+              outerRadius="100%"
+              barSize={24}
+              data={chartData}
+              startAngle={90}
+              endAngle={-270}
+            >
+              <RadialBar
+                minAngle={15}
+                background={{ fill: 'hsl(var(--muted))' }}
+                clockWise
+                dataKey="value"
+                cornerRadius={8}
               />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--popover))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  color: 'hsl(var(--popover-foreground))',
+                }}
+                formatter={(value: number) => [`${value.toFixed(1)}%`, 'Taxa de Ocupação']}
+              />
+            </RadialBarChart>
+          </ResponsiveContainer>
+
+          {/* Valor central */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div className="text-4xl font-bold" style={{ color: getOccupancyColor(occupancyRate) }}>
+              {occupancyRate.toFixed(1)}%
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">Taxa de Ocupação</div>
+          </div>
+        </div>
+
+        {/* Informações adicionais */}
+        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <div>
+              <div className="text-xs text-muted-foreground">Residentes</div>
+              <div className="text-lg font-semibold text-foreground">{currentMonth.residents}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Bed className="h-4 w-4 text-info" />
+            <div>
+              <div className="text-xs text-muted-foreground">Leitos</div>
+              <div className="text-lg font-semibold text-foreground">{currentMonth.capacity}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Capacidades regulatórias (se existirem) */}
+        {(capacityDeclared || capacityLicensed) && (
+          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-border/50">
+            {capacityDeclared && (
+              <div>
+                <div className="text-xs text-muted-foreground">Cap. Declarada</div>
+                <div className="text-sm font-medium text-warning">{capacityDeclared}</div>
+              </div>
             )}
             {capacityLicensed && (
-              <ReferenceLine
-                y={capacityLicensed}
-                stroke="hsl(var(--danger))"
-                strokeDasharray="5 5"
-                strokeWidth={2}
-                label={{
-                  value: `Licenciada: ${capacityLicensed}`,
-                  position: 'insideBottomRight',
-                  fill: 'hsl(var(--danger))',
-                  fontSize: 11,
-                }}
-              />
+              <div>
+                <div className="text-xs text-muted-foreground">Cap. Licenciada</div>
+                <div className="text-sm font-medium text-danger">{capacityLicensed}</div>
+              </div>
             )}
-
-            {/* Barras de dados */}
-            <Bar
-              dataKey="Residentes"
-              fill="hsl(var(--primary))"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              dataKey="Leitos Configurados"
-              fill="hsl(var(--info))"
-              radius={[4, 4, 0, 0]}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

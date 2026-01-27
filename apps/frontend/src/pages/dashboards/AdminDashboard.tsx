@@ -44,20 +44,20 @@ export function AdminDashboard() {
             data={residentsGrowth?.data || []}
             isLoading={isLoadingResidents}
           />
-          <MedicationAdministrationChart
-            data={medicationsHistory?.data || []}
-            isLoading={isLoadingMedications}
-          />
-          <MandatoryRecordsChart
-            data={recordsHistory?.data || []}
-            isLoading={isLoadingRecords}
-          />
           <OccupancyRateChart
             data={occupancyRate?.data || []}
             hasBedsConfigured={occupancyRate?.hasBedsConfigured}
             capacityDeclared={occupancyRate?.capacityDeclared}
             capacityLicensed={occupancyRate?.capacityLicensed}
             isLoading={isLoadingOccupancy}
+          />
+          <MandatoryRecordsChart
+            data={recordsHistory?.data || []}
+            isLoading={isLoadingRecords}
+          />
+          <MedicationAdministrationChart
+            data={medicationsHistory?.data || []}
+            isLoading={isLoadingMedications}
           />
         </div>
       </Section>
