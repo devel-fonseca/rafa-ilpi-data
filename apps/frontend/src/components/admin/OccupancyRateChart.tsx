@@ -103,17 +103,12 @@ export function OccupancyRateChart({
     return 'hsl(var(--info))' // Azul - baixa ocupação
   }
 
-  // Dados para o gráfico radial (domínio 0-100)
+  // Dados para o gráfico radial
   const chartData = [
     {
       name: 'Ocupação',
       value: occupancyRate,
       fill: getOccupancyColor(occupancyRate),
-    },
-    {
-      name: 'Max',
-      value: 100,
-      fill: 'transparent',
     },
   ]
 
@@ -142,6 +137,7 @@ export function OccupancyRateChart({
                 dataKey="value"
                 cornerRadius={8}
                 fill={getOccupancyColor(occupancyRate)}
+                maxValue={100}
               />
               <Tooltip
                 contentStyle={{
