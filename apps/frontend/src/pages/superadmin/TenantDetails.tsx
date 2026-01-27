@@ -285,12 +285,12 @@ export function TenantDetails() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-700">Usuários</span>
                 <span className="text-sm text-slate-500">
-                  {tenant._count.users} / {effectiveLimits.effectiveMaxUsers === -1 ? '∞' : effectiveLimits.effectiveMaxUsers}
+                  {tenant._count.users} / {effectiveLimits.maxUsers === -1 ? '∞' : effectiveLimits.maxUsers}
                 </span>
               </div>
-              {effectiveLimits.effectiveMaxUsers !== -1 && (
+              {effectiveLimits.maxUsers !== -1 && (
                 <Progress
-                  value={(tenant._count.users / effectiveLimits.effectiveMaxUsers) * 100}
+                  value={(tenant._count.users / effectiveLimits.maxUsers) * 100}
                   className="h-2"
                 />
               )}
@@ -311,12 +311,12 @@ export function TenantDetails() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-700">Residentes</span>
                 <span className="text-sm text-slate-500">
-                  {tenant._count.residents} / {effectiveLimits.effectiveMaxResidents === -1 ? '∞' : effectiveLimits.effectiveMaxResidents}
+                  {tenant._count.residents} / {effectiveLimits.maxResidents === -1 ? '∞' : effectiveLimits.maxResidents}
                 </span>
               </div>
-              {effectiveLimits.effectiveMaxResidents !== -1 && (
+              {effectiveLimits.maxResidents !== -1 && (
                 <Progress
-                  value={(tenant._count.residents / effectiveLimits.effectiveMaxResidents) * 100}
+                  value={(tenant._count.residents / effectiveLimits.maxResidents) * 100}
                   className="h-2"
                 />
               )}
@@ -366,19 +366,19 @@ export function TenantDetails() {
             </div>
 
             {/* Features do Plano/Assinadas */}
-            {effectiveLimits.effectiveFeatures && Object.entries(effectiveLimits.effectiveFeatures)
+            {effectiveLimits.features && Object.entries(effectiveLimits.features)
               .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
               .length > 0 && (
               <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
                 <p className="text-xs font-medium text-emerald-900 mb-2">
                   ✓ Features da Assinatura (
-                    {Object.entries(effectiveLimits.effectiveFeatures)
+                    {Object.entries(effectiveLimits.features)
                       .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
                       .length}
                   ):
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {effectiveLimits.effectiveFeatures && Object.entries(effectiveLimits.effectiveFeatures)
+                  {effectiveLimits.features && Object.entries(effectiveLimits.features)
                     .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
                     .map(([feature], idx) => (
                       <Badge
