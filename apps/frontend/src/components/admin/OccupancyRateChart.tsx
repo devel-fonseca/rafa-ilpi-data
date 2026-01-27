@@ -142,6 +142,7 @@ export function OccupancyRateChart({
                 clockWise
                 dataKey="value"
                 cornerRadius={8}
+                fill={getOccupancyColor(occupancyRate)}
               />
               <Tooltip
                 contentStyle={{
