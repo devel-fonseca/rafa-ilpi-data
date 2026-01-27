@@ -12,6 +12,8 @@ import {
   ExternalLink,
   FileText,
   Download,
+  Lock,
+  Zap,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
@@ -36,6 +38,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
+import { Progress } from '@/components/ui/progress'
 import {
   Table,
   TableBody,
@@ -44,6 +47,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
+
+// Helper para obter nome humanizado de uma feature
+const getFeatureName = (key: string): string => FEATURES_MAP[key] || key
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   ACTIVE: { label: 'Ativo', variant: 'default' },
@@ -257,6 +264,193 @@ export function TenantDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Limites Efetivos */}
+      {effectiveLimits && (
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Limites Efetivos
+              {effectiveLimits.hasCustomizations && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
+                  Customizado
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Limite de Usuários */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-700">Usuários</span>
+                <span className="text-sm text-slate-500">
+                  {tenant._count.users} / {effectiveLimits.effectiveMaxUsers === -1 ? '∞' : effectiveLimits.effectiveMaxUsers}
+                </span>
+              </div>
+              {effectiveLimits.effectiveMaxUsers !== -1 && (
+                <Progress
+                  value={(tenant._count.users / effectiveLimits.effectiveMaxUsers) * 100}
+                  className="h-2"
+                />
+              )}
+              {effectiveLimits.customOverrides.customMaxUsers && (
+                <p className="text-xs text-blue-600">
+                  🎯 Customizado: {effectiveLimits.customOverrides.customMaxUsers}
+                  <span className="text-slate-400 ml-1">
+                    (base do plano: {activeSub?.plan.maxUsers === -1 ? 'ilimitado' : activeSub?.plan.maxUsers})
+                  </span>
+                </p>
+              )}
+            </div>
+
+            <Separator className="bg-slate-200" />
+
+            {/* Limite de Residentes */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-slate-700">Residentes</span>
+                <span className="text-sm text-slate-500">
+                  {tenant._count.residents} / {effectiveLimits.effectiveMaxResidents === -1 ? '∞' : effectiveLimits.effectiveMaxResidents}
+                </span>
+              </div>
+              {effectiveLimits.effectiveMaxResidents !== -1 && (
+                <Progress
+                  value={(tenant._count.residents / effectiveLimits.effectiveMaxResidents) * 100}
+                  className="h-2"
+                />
+              )}
+              {effectiveLimits.customOverrides.customMaxResidents && (
+                <p className="text-xs text-blue-600">
+                  🎯 Customizado: {effectiveLimits.customOverrides.customMaxResidents}
+                  <span className="text-slate-400 ml-1">
+                    (base do plano: {activeSub?.plan.maxResidents === -1 ? 'ilimitado' : activeSub?.plan.maxResidents})
+                  </span>
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Features Efetivas */}
+      {effectiveLimits && (
+        <Card className="bg-white border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-slate-900 flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Features Efetivas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Features Core */}
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-300">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="h-3 w-3 text-slate-600" />
+                <p className="text-xs font-medium text-slate-700">
+                  Features Core ({CORE_FEATURES.length}):
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {CORE_FEATURES.map((feature, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="secondary"
+                    className="bg-slate-200 text-slate-700 border border-slate-300 text-xs"
+                  >
+                    <Lock className="h-3 w-3 mr-1" />
+                    {getFeatureName(feature)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Features do Plano/Assinadas */}
+            {Object.entries(effectiveLimits.effectiveFeatures)
+              .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
+              .length > 0 && (
+              <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
+                <p className="text-xs font-medium text-emerald-900 mb-2">
+                  ✓ Features da Assinatura (
+                    {Object.entries(effectiveLimits.effectiveFeatures)
+                      .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
+                      .length}
+                  ):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(effectiveLimits.effectiveFeatures)
+                    .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
+                    .map(([feature], idx) => (
+                      <Badge
+                        key={idx}
+                        className="bg-emerald-600 text-white text-xs"
+                      >
+                        {getFeatureName(feature)}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Features Customizadas Adicionadas */}
+            {effectiveLimits.customOverrides.customFeatures &&
+             Object.entries(effectiveLimits.customOverrides.customFeatures)
+               .filter(([, val]) => val === true)
+               .length > 0 && (
+              <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
+                <p className="text-xs font-medium text-blue-900 mb-2">
+                  🎯 Features Customizadas Adicionadas (
+                    {Object.entries(effectiveLimits.customOverrides.customFeatures)
+                      .filter(([, val]) => val === true)
+                      .length}
+                  ):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(effectiveLimits.customOverrides.customFeatures)
+                    .filter(([, val]) => val === true)
+                    .map(([feature], idx) => (
+                      <Badge
+                        key={idx}
+                        className="bg-blue-600 text-white text-xs"
+                      >
+                        {getFeatureName(feature)}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Features Customizadas Removidas */}
+            {effectiveLimits.customOverrides.customFeatures &&
+             Object.entries(effectiveLimits.customOverrides.customFeatures)
+               .filter(([, val]) => val === false)
+               .length > 0 && (
+              <div className="p-3 bg-red-50 rounded-md border border-red-200">
+                <p className="text-xs font-medium text-red-900 mb-2">
+                  ✗ Features Customizadas Removidas (
+                    {Object.entries(effectiveLimits.customOverrides.customFeatures)
+                      .filter(([, val]) => val === false)
+                      .length}
+                  ):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(effectiveLimits.customOverrides.customFeatures)
+                    .filter(([, val]) => val === false)
+                    .map(([feature], idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="border-red-300 text-red-700 text-xs line-through"
+                      >
+                        {getFeatureName(feature)}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Informações Gerais */}
       <Card className="bg-white border-slate-200">

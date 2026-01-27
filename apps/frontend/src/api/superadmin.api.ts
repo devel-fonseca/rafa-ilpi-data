@@ -74,6 +74,7 @@ export interface Subscription {
   discountPercent: string | null
   discountReason: string | null
   customPrice: string | null
+  subscribedFeatures?: Record<string, boolean> | null
   createdAt: string
   plan: Plan
 }

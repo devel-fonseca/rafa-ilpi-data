@@ -168,6 +168,9 @@ model Subscription {
   discountReason  String? // Razão do desconto (ex: "Promoção Black Friday", "Cliente VIP")
   customPrice     Decimal? @db.Decimal(10, 2) // Preço customizado (override total do plan.price)
 
+  // Feature Snapshot (Features no momento da assinatura)
+  subscribedFeatures Json? @map("subscribed_features")
+
   // Billing Preferences (Onboarding)
   billingCycle           String? @map("billing_cycle") @db.VarChar(20) // MONTHLY | ANNUAL
   preferredPaymentMethod String? @map("preferred_payment_method") @db.VarChar(50) // PIX | BOLETO | CREDIT_CARD

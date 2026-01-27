@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings2, X, Plus } from 'lucide-react'
+import { Settings2, X, Plus, Lock } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCustomizeTenantLimits, useTenantEffectiveLimits } from '@/hooks/useSuperAdmin'
 import { useToast } from '@/components/ui/use-toast'
 import { AVAILABLE_FEATURES, CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
@@ -115,6 +116,14 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
   const basePlan = activeSub?.plan
   const basePlanFeatures = (basePlan?.features as Record<string, boolean>) || {}
 
+  // Features assinadas (snapshot no momento da assinatura)
+  const subscribedFeatures = (activeSub?.subscribedFeatures as Record<string, boolean>) || {}
+
+  // Se não houver snapshot, usar features do plano como fallback
+  const baseFeatures = Object.keys(subscribedFeatures).length > 0
+    ? subscribedFeatures
+    : basePlanFeatures
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -135,21 +144,21 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Informação do Plano Base */}
-          <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600">Plano Base</span>
-              {effectiveLimits?.hasCustomizations && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                  Customizado
-                </Badge>
-              )}
-            </div>
-            <div className="text-lg font-semibold text-slate-900">
-              {basePlan?.displayName || 'Nenhum plano'}
-            </div>
-            {basePlan && (
+        {/* Informação do Plano Base */}
+        <div className="p-4 bg-slate-100 rounded-lg border border-slate-200 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-slate-600">Assinatura Atual</span>
+            {effectiveLimits?.hasCustomizations && (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                Customizado
+              </Badge>
+            )}
+          </div>
+          <div className="text-lg font-semibold text-slate-900">
+            {basePlan?.displayName || 'Nenhum plano'}
+          </div>
+          {basePlan && (
+            <>
               <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-slate-500">Usuários: </span>
@@ -164,117 +173,150 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                   </span>
                 </div>
               </div>
-            )}
-          </div>
+              {Object.keys(subscribedFeatures).length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-300">
+                  <p className="text-xs text-slate-500 mb-2">
+                    📦 Features assinadas (snapshot do momento da contratação):
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(subscribedFeatures)
+                      .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
+                      .slice(0, 5)
+                      .map(([feature], idx) => (
+                        <Badge
+                          key={idx}
+                          variant="secondary"
+                          className="bg-slate-200 text-slate-700 text-xs"
+                        >
+                          {getFeatureName(feature)}
+                        </Badge>
+                      ))}
+                    {Object.entries(subscribedFeatures).filter(([key, val]) =>
+                      val === true && !(CORE_FEATURES as readonly string[]).includes(key)
+                    ).length > 5 && (
+                      <Badge variant="secondary" className="bg-slate-200 text-slate-700 text-xs">
+                        +{Object.entries(subscribedFeatures).filter(([key, val]) =>
+                          val === true && !(CORE_FEATURES as readonly string[]).includes(key)
+                        ).length - 5}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
-          <Separator className="bg-slate-200" />
+        <Tabs defaultValue="limits" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="limits">📊 Limites</TabsTrigger>
+            <TabsTrigger value="features">⚡ Features</TabsTrigger>
+            <TabsTrigger value="summary">📋 Resumo</TabsTrigger>
+          </TabsList>
 
-          {/* Customização de Usuários */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="users-override" className="text-slate-600 font-medium">
-                  Limite de Usuários
-                </Label>
-                <p className="text-xs text-slate-400 mt-1">
-                  Sobrescrever limite do plano base
-                </p>
-              </div>
-              <Switch
-                id="users-override"
-                checked={enableUsersOverride}
-                onCheckedChange={setEnableUsersOverride}
-              />
-            </div>
-            {enableUsersOverride && (
-              <div className="pl-4 space-y-2">
-                <Label htmlFor="custom-max-users" className="text-slate-600 text-sm">
-                  Limite Customizado
-                </Label>
-                <Input
-                  id="custom-max-users"
-                  type="number"
-                  min="1"
-                  value={customMaxUsers ?? ''}
-                  onChange={(e) => setCustomMaxUsers(e.target.value ? parseInt(e.target.value) : null)}
-                  placeholder={`Base: ${basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers}`}
-                  className="bg-white border-slate-200 text-slate-900"
+          {/* Tab: Limites */}
+          <TabsContent value="limits" className="space-y-4 pr-2">
+            {/* Customização de Usuários */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="users-override" className="text-slate-600 font-medium">
+                    Limite de Usuários
+                  </Label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Sobrescrever limite do plano base
+                  </p>
+                </div>
+                <Switch
+                  id="users-override"
+                  checked={enableUsersOverride}
+                  onCheckedChange={setEnableUsersOverride}
                 />
-                <p className="text-xs text-slate-500">
-                  Plano base: {basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers} usuários
-                  {customMaxUsers && customMaxUsers !== basePlan?.maxUsers && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      → Efetivo: {customMaxUsers}
-                    </span>
-                  )}
-                </p>
               </div>
-            )}
-          </div>
-
-          <Separator className="bg-slate-200" />
-
-          {/* Customização de Residentes */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="residents-override" className="text-slate-600 font-medium">
-                  Limite de Residentes
-                </Label>
-                <p className="text-xs text-slate-400 mt-1">
-                  Sobrescrever limite do plano base
-                </p>
-              </div>
-              <Switch
-                id="residents-override"
-                checked={enableResidentsOverride}
-                onCheckedChange={setEnableResidentsOverride}
-              />
+              {enableUsersOverride && (
+                <div className="pl-4 space-y-2">
+                  <Label htmlFor="custom-max-users" className="text-slate-600 text-sm">
+                    Limite Customizado
+                  </Label>
+                  <Input
+                    id="custom-max-users"
+                    type="number"
+                    min="1"
+                    value={customMaxUsers ?? ''}
+                    onChange={(e) => setCustomMaxUsers(e.target.value ? parseInt(e.target.value) : null)}
+                    placeholder={`Base: ${basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers}`}
+                    className="bg-white border-slate-200 text-slate-900"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Plano base: {basePlan?.maxUsers === -1 ? 'Ilimitado' : basePlan?.maxUsers} usuários
+                    {customMaxUsers && customMaxUsers !== basePlan?.maxUsers && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        → Efetivo: {customMaxUsers}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
-            {enableResidentsOverride && (
-              <div className="pl-4 space-y-2">
-                <Label htmlFor="custom-max-residents" className="text-slate-600 text-sm">
-                  Limite Customizado
-                </Label>
-                <Input
-                  id="custom-max-residents"
-                  type="number"
-                  min="1"
-                  value={customMaxResidents ?? ''}
-                  onChange={(e) =>
-                    setCustomMaxResidents(e.target.value ? parseInt(e.target.value) : null)
-                  }
-                  placeholder={`Base: ${basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents}`}
-                  className="bg-white border-slate-200 text-slate-900"
+
+            <Separator className="bg-slate-200" />
+
+            {/* Customização de Residentes */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="residents-override" className="text-slate-600 font-medium">
+                    Limite de Residentes
+                  </Label>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Sobrescrever limite do plano base
+                  </p>
+                </div>
+                <Switch
+                  id="residents-override"
+                  checked={enableResidentsOverride}
+                  onCheckedChange={setEnableResidentsOverride}
                 />
-                <p className="text-xs text-slate-400">
-                  Plano base: {basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents} residentes
-                  {customMaxResidents && customMaxResidents !== basePlan?.maxResidents && (
-                    <span className="ml-2 text-blue-600 font-medium">
-                      → Efetivo: {customMaxResidents}
-                    </span>
-                  )}
-                </p>
               </div>
-            )}
-          </div>
-
-          <Separator className="bg-slate-200" />
-
-          {/* Customização de Features */}
-          <div className="space-y-4">
-            <div>
-              <Label className="text-slate-600 font-medium">Features do Plano</Label>
-              <p className="text-xs text-slate-400 mt-1">
-                Clique para adicionar ou remover features do plano base
-              </p>
+              {enableResidentsOverride && (
+                <div className="pl-4 space-y-2">
+                  <Label htmlFor="custom-max-residents" className="text-slate-600 text-sm">
+                    Limite Customizado
+                  </Label>
+                  <Input
+                    id="custom-max-residents"
+                    type="number"
+                    min="1"
+                    value={customMaxResidents ?? ''}
+                    onChange={(e) =>
+                      setCustomMaxResidents(e.target.value ? parseInt(e.target.value) : null)
+                    }
+                    placeholder={`Base: ${basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents}`}
+                    className="bg-white border-slate-200 text-slate-900"
+                  />
+                  <p className="text-xs text-slate-400">
+                    Plano base: {basePlan?.maxResidents === -1 ? 'Ilimitado' : basePlan?.maxResidents} residentes
+                    {customMaxResidents && customMaxResidents !== basePlan?.maxResidents && (
+                      <span className="ml-2 text-blue-600 font-medium">
+                        → Efetivo: {customMaxResidents}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
+          </TabsContent>
 
+          {/* Tab: Features */}
+          <TabsContent value="features" className="space-y-4 pr-2">
             {/* Features Core (sempre habilitadas) */}
-            <div className="p-3 bg-slate-100 rounded-md border border-slate-200">
-              <p className="text-xs font-medium text-slate-600 mb-2">
-                🔒 Features Core (sempre ativas):
-              </p>
+            <div className="p-3 bg-slate-50 rounded-md border border-slate-300">
+              <div className="flex items-center gap-2 mb-2">
+                <Lock className="h-3 w-3 text-slate-600" />
+                <p className="text-xs font-medium text-slate-700">
+                  Features Core (sempre habilitadas em todos os planos):
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {CORE_FEATURES.map((feature, idx) => (
                   <Badge
@@ -282,26 +324,30 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                     variant="secondary"
                     className="bg-slate-200 text-slate-700 border border-slate-300"
                   >
-                    {feature}
+                    <Lock className="h-3 w-3 mr-1" />
+                    {getFeatureName(feature)}
                   </Badge>
                 ))}
               </div>
             </div>
 
-            {/* Features do Plano Base (ativas) */}
-            {basePlanFeatures && Object.entries(basePlanFeatures).filter(([key, val]) =>
+            {/* Features Assinadas (base do tenant) */}
+            {baseFeatures && Object.entries(baseFeatures).filter(([key, val]) =>
               val === true && !(CORE_FEATURES as readonly string[]).includes(key)
             ).length > 0 && (
               <div className="p-3 bg-emerald-50 rounded-md border border-emerald-200">
                 <p className="text-xs font-medium text-emerald-900 mb-2">
-                  ✓ Features do Plano Base (
-                    {Object.entries(basePlanFeatures).filter(([key, val]) =>
+                  ✓ Features Assinadas (
+                    {Object.entries(baseFeatures).filter(([key, val]) =>
                       val === true && !(CORE_FEATURES as readonly string[]).includes(key)
                     ).length}
                   ):
                 </p>
+                <p className="text-xs text-emerald-700 mb-2">
+                  📦 Snapshot das features no momento da contratação. Clique para remover.
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(basePlanFeatures)
+                  {Object.entries(baseFeatures)
                     .filter(([key, val]) => val === true && !(CORE_FEATURES as readonly string[]).includes(key))
                     .map(([feature], idx) => {
                       const isRemoved = customFeatures[feature] === false
@@ -332,11 +378,58 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
               </div>
             )}
 
+            {/* Diferenças: Features do Plano Atual que não estão nas Features Assinadas */}
+            {Object.keys(subscribedFeatures).length > 0 && Object.entries(basePlanFeatures).filter(([key, val]) =>
+              val === true &&
+              !(CORE_FEATURES as readonly string[]).includes(key) &&
+              !subscribedFeatures[key]
+            ).length > 0 && (
+              <div className="p-3 bg-amber-50 rounded-md border border-amber-200">
+                <p className="text-xs font-medium text-amber-900 mb-2">
+                  🔄 Novas Features do Plano Atual (
+                    {Object.entries(basePlanFeatures).filter(([key, val]) =>
+                      val === true &&
+                      !(CORE_FEATURES as readonly string[]).includes(key) &&
+                      !subscribedFeatures[key]
+                    ).length}
+                  ):
+                </p>
+                <p className="text-xs text-amber-700 mb-2">
+                  ⚠️ Essas features estão no plano atual, mas não foram incluídas na assinatura original.
+                  Adicione-as manualmente se desejar.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(basePlanFeatures)
+                    .filter(([key, val]) =>
+                      val === true &&
+                      !(CORE_FEATURES as readonly string[]).includes(key) &&
+                      !subscribedFeatures[key]
+                    )
+                    .map(([feature], idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="cursor-pointer bg-white border-amber-400 text-amber-700 hover:bg-amber-50"
+                        onClick={() => {
+                          setCustomFeatures((prev) => ({
+                            ...prev,
+                            [feature]: true,
+                          }))
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {getFeatureName(feature)}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* Features Disponíveis para Adicionar */}
             {AVAILABLE_FEATURES.filter(
               (f) =>
                 !(CORE_FEATURES as readonly string[]).includes(f) &&
-                !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                !(baseFeatures && baseFeatures[f] === true) &&
                 customFeatures[f] !== true
             ).length > 0 && (
               <div className="p-3 bg-white rounded-md border border-slate-200">
@@ -344,7 +437,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                   ➕ Adicionar Features ({AVAILABLE_FEATURES.filter(
                     (f) =>
                       !(CORE_FEATURES as readonly string[]).includes(f) &&
-                      !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                      !(baseFeatures && baseFeatures[f] === true) &&
                       customFeatures[f] !== true
                   ).length} disponíveis):
                 </p>
@@ -352,7 +445,7 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                   {AVAILABLE_FEATURES.filter(
                     (f) =>
                       !(CORE_FEATURES as readonly string[]).includes(f) &&
-                      !(basePlanFeatures && basePlanFeatures[f] === true) &&
+                      !(baseFeatures && baseFeatures[f] === true) &&
                       customFeatures[f] !== true
                   ).map((feature, idx) => (
                     <Badge
@@ -402,54 +495,88 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                 </div>
               </div>
             )}
-          </div>
+          </TabsContent>
 
-          {/* Preview dos Limites Efetivos */}
-          {(enableUsersOverride || enableResidentsOverride || Object.keys(customFeatures).length > 0) && (
-            <>
-              <Separator className="bg-slate-200" />
-              <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                <div className="text-sm font-medium text-emerald-900 mb-2">
-                  📊 Resumo das Customizações
+          {/* Tab: Resumo */}
+          <TabsContent value="summary" className="space-y-4 pr-2">
+            {(enableUsersOverride || enableResidentsOverride || Object.keys(customFeatures).length > 0) ? (
+              <>
+                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <div className="text-sm font-medium text-emerald-900 mb-3">
+                    📊 Resumo das Customizações
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {enableUsersOverride && (
+                      <div className="flex justify-between items-center py-2 border-b border-emerald-200 last:border-0">
+                        <span className="text-emerald-700 font-medium">Limite de Usuários:</span>
+                        <span className="text-emerald-900">
+                          <span className="font-bold">{customMaxUsers}</span>
+                          <span className="text-xs ml-2 text-emerald-600">
+                            (base: {basePlan?.maxUsers === -1 ? 'ilimitado' : basePlan?.maxUsers})
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {enableResidentsOverride && (
+                      <div className="flex justify-between items-center py-2 border-b border-emerald-200 last:border-0">
+                        <span className="text-emerald-700 font-medium">Limite de Residentes:</span>
+                        <span className="text-emerald-900">
+                          <span className="font-bold">{customMaxResidents}</span>
+                          <span className="text-xs ml-2 text-emerald-600">
+                            (base: {basePlan?.maxResidents === -1 ? 'ilimitado' : basePlan?.maxResidents})
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {Object.entries(customFeatures).filter(([, val]) => val === true).length > 0 && (
+                      <div className="py-2 border-b border-emerald-200 last:border-0">
+                        <span className="text-emerald-700 font-medium">Features Adicionadas:</span>
+                        <span className="ml-2 font-bold text-emerald-900">
+                          {Object.entries(customFeatures).filter(([, val]) => val === true).length}
+                        </span>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {Object.entries(customFeatures)
+                            .filter(([, val]) => val === true)
+                            .map(([feature], idx) => (
+                              <Badge key={idx} className="bg-emerald-600 text-white text-xs">
+                                {getFeatureName(feature)}
+                              </Badge>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                    {Object.entries(customFeatures).filter(([, val]) => val === false).length > 0 && (
+                      <div className="py-2">
+                        <span className="text-emerald-700 font-medium">Features Removidas:</span>
+                        <span className="ml-2 font-bold text-emerald-900">
+                          {Object.entries(customFeatures).filter(([, val]) => val === false).length}
+                        </span>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {Object.entries(customFeatures)
+                            .filter(([, val]) => val === false)
+                            .map(([feature], idx) => (
+                              <Badge key={idx} variant="outline" className="border-red-300 text-red-700 text-xs line-through">
+                                {getFeatureName(feature)}
+                              </Badge>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2 text-sm">
-                  {enableUsersOverride && (
-                    <div>
-                      <span className="text-emerald-700">• Usuários: </span>
-                      <span className="font-semibold text-emerald-900">
-                        {customMaxUsers} (base: {basePlan?.maxUsers === -1 ? 'ilimitado' : basePlan?.maxUsers})
-                      </span>
-                    </div>
-                  )}
-                  {enableResidentsOverride && (
-                    <div>
-                      <span className="text-emerald-700">• Residentes: </span>
-                      <span className="font-semibold text-emerald-900">
-                        {customMaxResidents} (base: {basePlan?.maxResidents === -1 ? 'ilimitado' : basePlan?.maxResidents})
-                      </span>
-                    </div>
-                  )}
-                  {Object.entries(customFeatures).filter(([, val]) => val === true).length > 0 && (
-                    <div>
-                      <span className="text-emerald-700">• Features adicionadas: </span>
-                      <span className="font-semibold text-emerald-900">
-                        {Object.entries(customFeatures).filter(([, val]) => val === true).length}
-                      </span>
-                    </div>
-                  )}
-                  {Object.entries(customFeatures).filter(([, val]) => val === false).length > 0 && (
-                    <div>
-                      <span className="text-emerald-700">• Features removidas: </span>
-                      <span className="font-semibold text-emerald-900">
-                        {Object.entries(customFeatures).filter(([, val]) => val === false).length}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-slate-500 text-sm">
+                  ℹ️ Nenhuma customização aplicada ainda.
+                </p>
+                <p className="text-slate-400 text-xs mt-2">
+                  Use as abas "Limites" e "Features" para customizar este tenant.
+                </p>
               </div>
-            </>
-          )}
-        </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="flex justify-between">
           <div>

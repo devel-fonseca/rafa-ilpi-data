@@ -183,6 +183,8 @@ export class TenantsService {
             trialEndDate,
             currentPeriodStart: now,
             currentPeriodEnd: trialEndDate,
+            // Snapshot das features no momento da assinatura
+            subscribedFeatures: plan.features as any,
             // Novos campos de billing
             billingCycle,
             preferredPaymentMethod: paymentMethod,
@@ -1028,15 +1030,24 @@ export class TenantsService {
     const effectiveMaxResidents =
       tenant.customMaxResidents ?? plan.maxResidents;
 
-    // Resolver features efetivas (merge de plano base + customizações)
+    // Resolver features efetivas (3 camadas: subscribed → plan → custom)
+    // 1. subscribedFeatures: snapshot no momento da assinatura (base histórica)
+    // 2. plan.features: fallback se não houver snapshot (planos antigos)
+    // 3. customFeatures: overrides do SuperAdmin (adição/remoção manual)
+    const subscribedFeatures = (subscription.subscribedFeatures as Record<string, boolean>) || {};
     const planFeatures = (plan.features as Record<string, boolean>) || {};
     const customFeatures =
       (tenant.customFeatures as Record<string, boolean>) || {};
 
-    // Merge: customFeatures sobrescreve planFeatures
+    // Base: usar features assinadas, ou features do plano como fallback
+    const baseFeatures = Object.keys(subscribedFeatures).length > 0
+      ? subscribedFeatures
+      : planFeatures;
+
+    // Merge: customFeatures sobrescreve baseFeatures
     // Se customFeatures[key] === false, remove a feature
     // Se customFeatures[key] === true, adiciona a feature
-    const effectiveFeatures = { ...planFeatures };
+    const effectiveFeatures = { ...baseFeatures };
     Object.entries(customFeatures).forEach(([key, value]) => {
       if (value === false) {
         delete effectiveFeatures[key]; // Remove feature
@@ -1057,6 +1068,8 @@ export class TenantsService {
         maxResidents: plan.maxResidents,
         features: planFeatures,
       },
+      // Features assinadas (snapshot no momento da assinatura)
+      subscribedFeatures: subscribedFeatures,
       // Overrides customizados (null se não houver)
       customOverrides: {
         customMaxUsers: tenant.customMaxUsers,

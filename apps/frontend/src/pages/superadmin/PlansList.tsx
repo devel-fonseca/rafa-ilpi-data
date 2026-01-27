@@ -27,8 +27,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { usePlans, useUpdatePlan, useTogglePlanPopular, useTogglePlanActive } from '@/hooks/usePlans'
 import { Edit2, Star, Users, Home, Calendar, Check, X, Power, Plus, Lock, Search, Filter, Eye, LayoutGrid, Table2 } from 'lucide-react'
 import type { Plan, UpdatePlanDto, PlanType } from '@/api/plans.api'
-import { AVAILABLE_FEATURES, CORE_FEATURES, featuresToArray, arrayToFeatures } from '@/constants/features'
+import { AVAILABLE_FEATURES, CORE_FEATURES, featuresToArray, arrayToFeatures, FEATURES_MAP } from '@/constants/features'
 import { CreatePlanDialog } from '@/components/superadmin/CreatePlanDialog'
+
+/**
+ * Helper para converter feature key para label em português
+ */
+const getFeatureName = (featureKey: string): string => {
+  return FEATURES_MAP[featureKey] || featureKey
+}
 
 /**
  * PlansList Page
@@ -669,7 +676,7 @@ export function PlansList() {
                                 className="bg-slate-200 text-slate-700 border border-slate-300"
                               >
                                 <Lock className="h-3 w-3 mr-1" />
-                                {feature}
+                                {getFeatureName(feature)}
                               </Badge>
                             ))}
                           </div>
@@ -689,7 +696,7 @@ export function PlansList() {
                                     key={idx}
                                     className="bg-emerald-600 text-white hover:bg-emerald-700 pr-1"
                                   >
-                                    {feature}
+                                    {getFeatureName(feature)}
                                     <button
                                       type="button"
                                       onClick={() => handleRemoveFeature(feature)}

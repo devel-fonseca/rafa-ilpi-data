@@ -67,7 +67,7 @@ export class SubscriptionAdminService {
       },
     })
 
-    // Criar nova subscription
+    // Criar nova subscription (newPlan já foi buscado acima)
     const now = new Date()
     const newSubscription = await this.prisma.subscription.create({
       data: {
@@ -76,6 +76,7 @@ export class SubscriptionAdminService {
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: addDays(now, 30), // Padrão: 30 dias
+        subscribedFeatures: newPlan.features as any, // Snapshot das features
       },
       include: { plan: true },
     })
@@ -215,6 +216,7 @@ export class SubscriptionAdminService {
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: addDays(now, 30),
+        subscribedFeatures: subscription.plan.features as any, // Snapshot das features do plano
       },
       include: { plan: true },
     })

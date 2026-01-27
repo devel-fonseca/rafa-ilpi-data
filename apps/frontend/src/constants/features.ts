@@ -39,7 +39,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'indicadores_mensais': 'Indicadores mensais obrigatórios',
   'eventos_sentinela': 'Eventos sentinela',
   'documentos_institucionais': 'Documentos institucionais',
-  'autodiagnostico_rdc': 'Autodiagnóstico RDC 502/2021',
+  'autodiagnostico_rdc': 'Autodiagnóstico',
 
   // Gestão e operações
   'agenda': 'Agenda de atividades',
@@ -74,7 +74,7 @@ export const FEATURES_MAP: Record<string, string> = {
   'Indicadores mensais obrigatórios': 'Indicadores mensais obrigatórios',
   'Eventos sentinela': 'Eventos sentinela',
   'Documentos institucionais': 'Documentos institucionais',
-  'Autodiagnóstico RDC 502/2021': 'Autodiagnóstico RDC 502/2021',
+  'Autodiagnóstico RDC 502/2021': 'Autodiagnóstico',
 
   // Operações
   'Agenda de atividades': 'Agenda de atividades',
@@ -94,11 +94,14 @@ export const FEATURES_MAP: Record<string, string> = {
  * Estas são as funcionalidades core do sistema
  */
 export const CORE_FEATURES = [
-  'Gestão de residentes',
-  'Gestão de usuários',
-  'Prontuário eletrônico',
-  'Hub de conformidade',
-  'Notificações',
+  'residentes',
+  'usuarios',
+  'prontuario',
+  'notificacoes',
+  'registros_diarios',
+  'medicacoes',
+  'pops',
+  'conformidade',
 ] as const
 
 /**
@@ -131,7 +134,7 @@ export const AVAILABLE_FEATURES = [
   'Indicadores mensais obrigatórios',
   'Eventos sentinela',
   'Documentos institucionais',
-  'Autodiagnóstico RDC 502/2021',
+  'Autodiagnóstico',
 
   // ═══════════════════════════════════════════════════════════════
   // GESTÃO E OPERAÇÕES

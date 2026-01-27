@@ -66,8 +66,11 @@ async function main() {
     residentes: true,
     usuarios: true,
     prontuario: true,
-    conformidade: true,
     notificacoes: true,
+    registros_diarios: true,
+    medicacoes: true,
+    pops: true,
+    conformidade: true,
   };
 
   const plans = [
