@@ -45,7 +45,7 @@ export function OccupancyRateChart({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[160px] flex items-center justify-center">
+          <div className="aspect-square max-h-[240px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Carregando...</p>
           </div>
         </CardContent>
@@ -63,7 +63,7 @@ export function OccupancyRateChart({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[160px] flex flex-col items-center justify-center gap-3">
+          <div className="aspect-square max-h-[240px] flex flex-col items-center justify-center gap-3">
             <AlertCircle className="h-8 w-8 text-warning" />
             <p className="text-sm text-muted-foreground text-center">
               Configure leitos em <strong>Gestão de Leitos</strong> para visualizar a taxa de ocupação
@@ -83,7 +83,7 @@ export function OccupancyRateChart({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[160px] flex items-center justify-center">
+          <div className="aspect-square max-h-[240px] flex items-center justify-center">
             <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
           </div>
         </CardContent>
@@ -126,7 +126,7 @@ export function OccupancyRateChart({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative h-[160px]">
+        <div className="relative aspect-square max-h-[240px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart
               cx="50%"
@@ -202,7 +202,7 @@ export function OccupancyRateChart({
 
           {/* Valor central */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <div className={`text-3xl font-bold ${
+            <div className={`text-2xl font-bold ${
               occupancyRate >= 90 ? 'text-danger' :
               occupancyRate >= 75 ? 'text-warning' :
               occupancyRate >= 50 ? 'text-success' :
@@ -210,7 +210,7 @@ export function OccupancyRateChart({
             }`}>
               {occupancyRate.toFixed(1)}%
             </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">Taxa de Ocupação</div>
+            <div className="text-[9px] text-muted-foreground mt-0.5">Taxa de Ocupação</div>
           </div>
         </div>
       </CardContent>
