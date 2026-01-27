@@ -302,6 +302,7 @@ export class PermissionsService {
       const userPermData = await this.permissionsCacheService.get(userId);
 
       if (!userPermData || userPermData.tenantId !== this.tenantContext.tenantId) {
+        this.logger.warn(`Permissões não encontradas para userId ${userId} ou tenantId incompatível`);
         return { inherited: [], custom: [], all: [] };
       }
 

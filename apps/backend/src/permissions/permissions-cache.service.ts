@@ -131,10 +131,37 @@ export class PermissionsCacheService {
       role: string;
     };
 
-    const results = await this.prisma.$queryRawUnsafe<UserBasicInfo[]>(
-      unionQuery,
-      userId,
-    );
+    // Tentar query UNION ALL (mais eficiente)
+    let results: UserBasicInfo[] = [];
+    try {
+      results = await this.prisma.$queryRawUnsafe<UserBasicInfo[]>(
+        unionQuery,
+        userId,
+      );
+    } catch (_error) {
+      // Se a query UNION falhar (ex: schema não existe para algum tenant),
+      // tentar buscar individualmente em cada schema
+      this.logger.warn(`UNION query falhou para userId ${userId}, tentando busca individual`);
+
+      for (const tenant of tenants) {
+        try {
+          const singleQuery = `SELECT id, "tenantId", role FROM "${tenant.schemaName}".users WHERE id = $1::uuid AND "deletedAt" IS NULL LIMIT 1`;
+          const singleResult = await this.prisma.$queryRawUnsafe<UserBasicInfo[]>(
+            singleQuery,
+            userId,
+          );
+
+          if (singleResult.length > 0) {
+            results = singleResult;
+            this.logger.debug(`User encontrado em schema ${tenant.schemaName}`);
+            break;
+          }
+        } catch (_tenantError) {
+          // Schema não existe ou outro erro - ignorar e continuar para próximo tenant
+          continue;
+        }
+      }
+    }
 
     if (results.length === 0) {
       this.logger.debug(`User ${userId} não encontrado em nenhum tenant schema`);
