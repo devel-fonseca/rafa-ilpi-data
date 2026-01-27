@@ -972,6 +972,111 @@ export class TenantsService {
    * Busca features disponíveis no plano do tenant
    * SUPERADMIN (tenantId = null) recebe todas as features
    */
+  /**
+   * Calcula os limites e features efetivos de um tenant
+   * Aplica overrides customizados sobre os limites do plano base
+   *
+   * Lógica de resolução:
+   * - customMaxUsers ?? plan.maxUsers ?? -1
+   * - customMaxResidents ?? plan.maxResidents ?? -1
+   * - merge(plan.features, customFeatures)
+   *
+   * @param tenantId - ID do tenant
+   * @returns Limites e features efetivos (com overrides aplicados)
+   */
+  async getTenantEffectiveLimits(tenantId: string) {
+    // Buscar tenant com customizações
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        customMaxUsers: true,
+        customMaxResidents: true,
+        customFeatures: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant não encontrado');
+    }
+
+    // Buscar subscription ativa para pegar plano base
+    const subscription = await this.prisma.subscription.findFirst({
+      where: {
+        tenantId,
+        status: {
+          in: ['active', 'trialing', 'ACTIVE', 'TRIAL'],
+        },
+      },
+      include: {
+        plan: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Nenhuma assinatura ativa encontrada');
+    }
+
+    const plan = subscription.plan;
+
+    // Resolver limites efetivos (custom override ou plano base)
+    const effectiveMaxUsers = tenant.customMaxUsers ?? plan.maxUsers;
+    const effectiveMaxResidents =
+      tenant.customMaxResidents ?? plan.maxResidents;
+
+    // Resolver features efetivas (merge de plano base + customizações)
+    const planFeatures = (plan.features as Record<string, boolean>) || {};
+    const customFeatures =
+      (tenant.customFeatures as Record<string, boolean>) || {};
+
+    // Merge: customFeatures sobrescreve planFeatures
+    // Se customFeatures[key] === false, remove a feature
+    // Se customFeatures[key] === true, adiciona a feature
+    const effectiveFeatures = { ...planFeatures };
+    Object.entries(customFeatures).forEach(([key, value]) => {
+      if (value === false) {
+        delete effectiveFeatures[key]; // Remove feature
+      } else {
+        effectiveFeatures[key] = true; // Adiciona feature
+      }
+    });
+
+    return {
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      plan: plan.displayName || plan.name,
+      planType: plan.type,
+      subscriptionStatus: subscription.status,
+      // Limites base do plano
+      baseLimits: {
+        maxUsers: plan.maxUsers,
+        maxResidents: plan.maxResidents,
+        features: planFeatures,
+      },
+      // Overrides customizados (null se não houver)
+      customOverrides: {
+        customMaxUsers: tenant.customMaxUsers,
+        customMaxResidents: tenant.customMaxResidents,
+        customFeatures: customFeatures,
+      },
+      // Limites efetivos (base + overrides)
+      effectiveLimits: {
+        maxUsers: effectiveMaxUsers,
+        maxResidents: effectiveMaxResidents,
+        features: effectiveFeatures,
+      },
+      // Indicador se tem customizações ativas
+      hasCustomizations:
+        tenant.customMaxUsers !== null ||
+        tenant.customMaxResidents !== null ||
+        Object.keys(customFeatures).length > 0,
+    };
+  }
+
   async getMyFeatures(tenantId: string | null, _userId: string) {
     // SUPERADMIN tem acesso a todas as features
     if (!tenantId) {
@@ -1010,31 +1115,18 @@ export class TenantsService {
       };
     }
 
-    // Buscar subscription ativa do tenant
-    const subscription = await this.prisma.subscription.findFirst({
-      where: {
-        tenantId,
-        status: {
-          in: ['active', 'trialing', 'ACTIVE', 'TRIAL'],
-        },
-      },
-      include: {
-        plan: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    if (!subscription) {
-      throw new NotFoundException('Nenhuma assinatura ativa encontrada');
-    }
+    // Usar método que calcula limites efetivos (com overrides)
+    const effectiveLimits = await this.getTenantEffectiveLimits(tenantId);
 
     return {
-      plan: subscription.plan.displayName || subscription.plan.name,
-      planType: subscription.plan.type,
-      features: subscription.plan.features as Record<string, boolean>,
-      subscriptionStatus: subscription.status,
+      plan: effectiveLimits.plan,
+      planType: effectiveLimits.planType,
+      features: effectiveLimits.effectiveLimits.features,
+      subscriptionStatus: effectiveLimits.subscriptionStatus,
+      // Informações adicionais sobre customizações
+      hasCustomizations: effectiveLimits.hasCustomizations,
+      maxUsers: effectiveLimits.effectiveLimits.maxUsers,
+      maxResidents: effectiveLimits.effectiveLimits.maxResidents,
     };
   }
 }

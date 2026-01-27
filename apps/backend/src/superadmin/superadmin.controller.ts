@@ -1,4 +1,5 @@
 import { Controller, Get, Query, UseGuards, Patch, Post, Delete, Param, Body } from '@nestjs/common'
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { SuperAdminGuard } from './guards/superadmin.guard'
 import { MetricsService } from './services/metrics.service'
@@ -15,6 +16,7 @@ import { CreatePlanDto } from './dto/create-plan.dto'
 import { UpdatePlanDto } from './dto/update-plan.dto'
 import { ApplyDiscountDto } from './dto/apply-discount.dto'
 import { ApplyCustomPriceDto } from './dto/apply-custom-price.dto'
+import { CustomizeTenantLimitsDto } from '../tenants/dto/customize-tenant-limits.dto'
 import { SendReminderDto, SuspendTenantForNonPaymentDto, RenegotiateDto } from './dto/collections.dto'
 import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
@@ -31,6 +33,7 @@ import { UpdateTermsOfServiceDto } from '../terms-of-service/dto/update-terms-of
 import { PublishTermsOfServiceDto } from '../terms-of-service/dto/publish-terms-of-service.dto'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { PrismaService } from '../prisma/prisma.service'
+import { TenantsService } from '../tenants/tenants.service'
 import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
 import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
 import { AsaasSyncJob } from '../payments/jobs/asaas-sync.job'
@@ -68,6 +71,7 @@ export class SuperAdminController {
     private readonly termsOfServiceService: TermsOfServiceService,
     private readonly collectionsService: CollectionsService,
     private readonly prismaService: PrismaService,
+    private readonly tenantsService: TenantsService,
     private readonly trialAlertsJob: TrialExpirationAlertsJob,
     private readonly trialConversionJob: TrialToActiveConversionJob,
     private readonly asaasSyncJob: AsaasSyncJob,
@@ -175,6 +179,50 @@ export class SuperAdminController {
   @Patch('tenants/:id')
   async updateTenant(@Param('id') id: string, @Body() updateDto: UpdateTenantDto) {
     return this.tenantAdminService.update(id, updateDto)
+  }
+
+  /**
+   * PATCH /superadmin/tenants/:id/customize-limits
+   * Customizar limites e features de um tenant (override do plano base)
+   * Usado para: retenção de clientes, testes, negociações comerciais
+   */
+  @Patch('tenants/:id/customize-limits')
+  @ApiOperation({
+    summary: 'Customizar limites e features de um tenant',
+    description:
+      'Permite sobrescrever limites do plano base (maxUsers, maxResidents, features) ' +
+      'para casos especiais como retenção de clientes ou negociações comerciais.',
+  })
+  @ApiParam({ name: 'id', description: 'ID do tenant' })
+  @ApiResponse({
+    status: 200,
+    description: 'Limites customizados com sucesso',
+  })
+  async customizeTenantLimits(
+    @Param('id') id: string,
+    @Body() dto: CustomizeTenantLimitsDto,
+  ) {
+    return this.tenantAdminService.customizeLimits(id, dto)
+  }
+
+  /**
+   * GET /superadmin/tenants/:id/effective-limits
+   * Obter limites efetivos (base + overrides) de um tenant
+   */
+  @Get('tenants/:id/effective-limits')
+  @ApiOperation({
+    summary: 'Obter limites efetivos de um tenant',
+    description:
+      'Retorna os limites efetivos (plano base + customizações) do tenant, ' +
+      'incluindo informações sobre quais overrides estão ativos.',
+  })
+  @ApiParam({ name: 'id', description: 'ID do tenant' })
+  @ApiResponse({
+    status: 200,
+    description: 'Limites efetivos do tenant',
+  })
+  async getTenantEffectiveLimits(@Param('id') id: string) {
+    return this.tenantsService.getTenantEffectiveLimits(id)
   }
 
   /**

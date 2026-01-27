@@ -292,4 +292,59 @@ export class TenantAdminService {
 
     return tenant._count
   }
+
+  /**
+   * Customizar limites e features de um tenant
+   * Permite sobrescrever os limites do plano base para casos especiais:
+   * - Retenção de clientes (oferecer +users/features para evitar cancelamento)
+   * - Testes e validações (liberar features temporariamente)
+   * - Negociações comerciais (ajuste fino antes de fechar contrato)
+   */
+  async customizeLimits(
+    id: string,
+    customization: {
+      customMaxUsers?: number | null
+      customMaxResidents?: number | null
+      customFeatures?: Record<string, boolean> | null
+    },
+  ) {
+    // Verificar se tenant existe
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant com ID ${id} não encontrado`)
+    }
+
+    // Atualizar customizações
+    // Nota: Para campos JSON, null deve ser convertido para Prisma.JsonNull
+    const updated = await this.prisma.tenant.update({
+      where: { id },
+      data: {
+        customMaxUsers: customization.customMaxUsers,
+        customMaxResidents: customization.customMaxResidents,
+        customFeatures:
+          customization.customFeatures === null
+            ? Prisma.JsonNull
+            : customization.customFeatures === undefined
+              ? undefined
+              : customization.customFeatures,
+      },
+      include: {
+        subscriptions: {
+          where: {
+            status: {
+              in: ACTIVE_STATUSES,
+            },
+          },
+          include: { plan: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    })
+
+    return updated
+  }
 }
