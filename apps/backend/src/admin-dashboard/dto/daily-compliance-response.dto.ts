@@ -2,10 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class DailyComplianceResponseDto {
   @ApiProperty({
-    description: 'Número de residentes ativos',
+    description: 'Número total de residentes ativos',
     example: 42,
   })
   activeResidents: number;
+
+  @ApiProperty({
+    description: 'Número de residentes ativos com rotinas programadas',
+    example: 38,
+  })
+  residentsWithSchedules: number;
 
   @ApiProperty({
     description: 'Estatísticas de medicamentos',

@@ -592,49 +592,32 @@ export class AgendaService {
     isRT: boolean = false,
   ): Promise<AgendaItem[]> {
     // Determinar quais visibilidades o usuário pode ver
-    let visibilityFilter: InstitutionalEventVisibility[] = [];
+    let visibilityFilter: string[] = [];
 
     if (userRole === 'admin' || isRT) {
       // Admins e RT veem tudo
-      visibilityFilter = [
-        InstitutionalEventVisibility.ALL_USERS,
-        InstitutionalEventVisibility.RT_ONLY,
-        InstitutionalEventVisibility.ADMIN_ONLY,
-      ];
+      visibilityFilter = ['ALL_USERS', 'RT_ONLY', 'ADMIN_ONLY'];
     } else if (isRT) {
       // RT vê ALL_USERS e RT_ONLY
-      visibilityFilter = [
-        InstitutionalEventVisibility.ALL_USERS,
-        InstitutionalEventVisibility.RT_ONLY,
-      ];
+      visibilityFilter = ['ALL_USERS', 'RT_ONLY'];
     } else {
       // Outros usuários veem apenas ALL_USERS
-      visibilityFilter = [InstitutionalEventVisibility.ALL_USERS];
+      visibilityFilter = ['ALL_USERS'];
     }
 
+    // Buscar eventos institucionais usando Prisma Client (padrão da aplicação)
     const events = await this.tenantContext.client.institutionalEvent.findMany({
       where: {
         deletedAt: null,
         scheduledDate: {
-          gte: startOfDay(startDate),
-          lte: endOfDay(endDate),
+          gte: formatDateOnly(startDate),
+          lte: formatDateOnly(endDate),
         },
-        visibility: {
-          in: visibilityFilter,
-        },
+        visibility: { in: visibilityFilter as InstitutionalEventVisibility[] },
       },
       include: {
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         updatedByUser: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { name: true },
         },
       },
       orderBy: {
@@ -666,7 +649,7 @@ export class AgendaService {
         instructor: event.instructor,
         targetAudience: event.targetAudience,
         location: event.location,
-        ...((event.metadata as Record<string, unknown>) || {}),
+        ...(event.metadata && typeof event.metadata === 'object' ? event.metadata : {}),
       },
     }));
   }

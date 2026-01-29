@@ -37,20 +37,33 @@ export class AdminDashboardService {
     // Obter range do dia ATUAL (00:00 até 23:59:59.999) no timezone do tenant
     const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone)
 
-    // 1. Contar residentes ativos
+    // 1. Contar residentes ativos (total)
     const activeResidents = await this.tenantContext.client.resident.count({
       where: {
         status: 'Ativo',
       },
     })
 
-    // 2. Calcular medicamentos programados e administrados
+    // 2. Contar residentes ativos COM rotinas programadas
+    // (residentes que possuem pelo menos 1 configuração de agendamento recorrente ativa)
+    const residentsWithSchedules = await this.tenantContext.client.resident.count({
+      where: {
+        status: 'Ativo',
+        scheduleConfigs: {
+          some: {
+            isActive: true,
+          },
+        },
+      },
+    })
+
+    // 3. Calcular medicamentos programados e administrados
     const medicationsData = await this.getMedicationsCompliance(
       today,
       tomorrow,
     )
 
-    // 3. Calcular registros obrigatórios esperados e realizados
+    // 4. Calcular registros obrigatórios esperados e realizados
     const recordsData = await this.getMandatoryRecordsCompliance(
       today,
       tomorrow,
@@ -58,6 +71,7 @@ export class AdminDashboardService {
 
     return {
       activeResidents,
+      residentsWithSchedules,
       medications: medicationsData,
       mandatoryRecords: recordsData,
     }

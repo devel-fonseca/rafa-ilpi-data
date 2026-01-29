@@ -21,6 +21,7 @@ import {
   GetInstitutionalEventsDto,
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { parseISO } from 'date-fns';
 
 @Injectable()
 export class InstitutionalEventsService {
@@ -49,19 +50,19 @@ export class InstitutionalEventsService {
     const event = await this.tenantContext.client.institutionalEvent.create({
       data: {
         tenantId: this.tenantContext.tenantId,
-        eventType: dto.eventType,
-        visibility: dto.visibility ?? InstitutionalEventVisibility.ALL_USERS,
+        eventType: dto.eventType as InstitutionalEventType,
+        visibility: (dto.visibility ?? InstitutionalEventVisibility.ALL_USERS) as InstitutionalEventVisibility,
         title: dto.title,
         description: dto.description,
-        scheduledDate: new Date(dto.scheduledDate),
+        scheduledDate: parseISO(`${dto.scheduledDate}T12:00:00.000`), // parseISO com meio-dia para evitar shifts de timezone
         scheduledTime: dto.scheduledTime,
         allDay: dto.allDay ?? false,
-        status: dto.status ?? ScheduledEventStatus.SCHEDULED,
+        status: (dto.status ?? ScheduledEventStatus.SCHEDULED) as ScheduledEventStatus,
         notes: dto.notes,
         // Campos específicos para documentos
         documentType: dto.documentType,
         documentNumber: dto.documentNumber,
-        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
+        expiryDate: dto.expiryDate ? parseISO(`${dto.expiryDate}T12:00:00.000`) : undefined, // parseISO com meio-dia
         responsible: dto.responsible,
         // Campos específicos para treinamentos
         trainingTopic: dto.trainingTopic,
@@ -207,20 +208,20 @@ export class InstitutionalEventsService {
     const event = await this.tenantContext.client.institutionalEvent.update({
       where: { id },
       data: {
-        eventType: dto.eventType,
-        visibility: dto.visibility,
+        eventType: dto.eventType as InstitutionalEventType | undefined,
+        visibility: dto.visibility as InstitutionalEventVisibility | undefined,
         title: dto.title,
         description: dto.description,
-        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
+        scheduledDate: dto.scheduledDate ? parseISO(`${dto.scheduledDate}T12:00:00.000`) : undefined, // parseISO com meio-dia
         scheduledTime: dto.scheduledTime,
         allDay: dto.allDay,
-        status: dto.status,
+        status: dto.status as ScheduledEventStatus | undefined,
         completedAt: dto.completedAt,
         notes: dto.notes,
         // Campos específicos para documentos
         documentType: dto.documentType,
         documentNumber: dto.documentNumber,
-        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : undefined,
+        expiryDate: dto.expiryDate ? parseISO(`${dto.expiryDate}T12:00:00.000`) : undefined, // parseISO com meio-dia
         responsible: dto.responsible,
         // Campos específicos para treinamentos
         trainingTopic: dto.trainingTopic,
@@ -292,7 +293,7 @@ export class InstitutionalEventsService {
     const event = await this.tenantContext.client.institutionalEvent.update({
       where: { id },
       data: {
-        status: ScheduledEventStatus.COMPLETED,
+        status: ScheduledEventStatus.COMPLETED as ScheduledEventStatus,
         completedAt: new Date(),
         updatedBy: userId,
       },

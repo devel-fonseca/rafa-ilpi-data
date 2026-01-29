@@ -1,5 +1,9 @@
--- AlterTable
-ALTER TABLE "public"."subscriptions" ADD COLUMN "subscribed_features" JSONB;
+-- AlterTable (idempotente)
+DO $$ BEGIN
+  ALTER TABLE "public"."subscriptions" ADD COLUMN IF NOT EXISTS "subscribed_features" JSONB;
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
 
 -- Backfill: Copiar features do plano para subscriptions existentes
 -- Isso garante que assinantes mantenham acesso mesmo se o plano mudar

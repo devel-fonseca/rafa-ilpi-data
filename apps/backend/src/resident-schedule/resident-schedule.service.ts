@@ -559,77 +559,80 @@ export class ResidentScheduleService {
     dto: CreateScheduledEventDto,
     userId: string,
   ) {
-    // Verificar se residente existe
-    const resident = await this.tenantContext.client.resident.findFirst({
-      where: {
-        id: dto.residentId,
-        deletedAt: null,
-      },
-    });
+    try {
+      // Verificar se residente existe
+      const resident = await this.tenantContext.client.resident.findFirst({
+        where: {
+          id: dto.residentId,
+          deletedAt: null,
+        },
+      });
 
-    if (!resident) {
-      throw new NotFoundException('Residente não encontrado');
-    }
+      if (!resident) {
+        throw new NotFoundException('Residente não encontrado');
+      }
 
-    // Parse da data
-    const scheduledDate = parseISO(`${dto.scheduledDate}T12:00:00.000`);
+      // Parse da data
+      const scheduledDate = parseISO(`${dto.scheduledDate}T12:00:00.000`);
 
-    // Criar evento
-    const event = await this.tenantContext.client.residentScheduledEvent.create({
-      data: {
-        tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
+      this.logger.info('Creating ResidentScheduledEvent', {
         residentId: dto.residentId,
         eventType: dto.eventType,
-        scheduledDate,
-        scheduledTime: dto.scheduledTime,
-        title: dto.title,
-        description: dto.description,
-        vaccineData: dto.vaccineData ? (dto.vaccineData as unknown as Prisma.InputJsonValue) : undefined,
-        notes: dto.notes,
-        createdBy: userId,
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-        createdByUser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    this.logger.info('ResidentScheduledEvent created', {
-      eventId: event.id,
-      residentId: dto.residentId,
-      eventType: dto.eventType,
-      scheduledDate: dto.scheduledDate,
-      userId,
-      tenantId: this.tenantContext.tenantId,
-    });
-
-    // Criar notificação de evento agendado
-    try {
-      await this.notificationsService.createScheduledEventDueNotification(
-        event.id,
-        resident.id,
-        resident.fullName,
-        event.title,
-        event.scheduledTime,
-      );
-    } catch (error) {
-      this.logger.error('Failed to create notification for scheduled event', {
-        eventId: event.id,
-        error,
+        scheduledDate: dto.scheduledDate,
+        userId,
+        tenantId: this.tenantContext.tenantId,
       });
-    }
 
-    return event;
+      // Criar evento
+      const event = await this.tenantContext.client.residentScheduledEvent.create({
+        data: {
+          tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
+          residentId: dto.residentId,
+          eventType: dto.eventType,
+          scheduledDate,
+          scheduledTime: dto.scheduledTime,
+          title: dto.title,
+          description: dto.description,
+          vaccineData: dto.vaccineData ? (dto.vaccineData as unknown as Prisma.InputJsonValue) : undefined,
+          notes: dto.notes,
+          createdBy: userId,
+        },
+        include: {
+          resident: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+          createdByUser: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      this.logger.info('ResidentScheduledEvent created successfully', {
+        eventId: event.id,
+        residentId: dto.residentId,
+        eventType: dto.eventType,
+        scheduledDate: dto.scheduledDate,
+        userId,
+        tenantId: this.tenantContext.tenantId,
+      });
+
+      return event;
+    } catch (error) {
+      this.logger.error('ERROR creating ResidentScheduledEvent', {
+        error: error.message,
+        stack: error.stack,
+        dto,
+        userId,
+        tenantId: this.tenantContext.tenantId,
+      });
+      throw error;
+    }
   }
 
   /**

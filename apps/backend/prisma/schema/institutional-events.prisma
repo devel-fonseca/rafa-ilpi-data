@@ -1,7 +1,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
-//  EVENTOS INSTITUCIONAIS
+//  EVENTOS INSTITUCIONAIS (TENANT - Schema isolado)
 //
 //  Eventos da própria instituição (vencimentos, treinamentos, reuniões, etc.)
+//  ⚠️ IMPORTANTE: Tabela ISOLADA por schema de tenant (não compartilhada)
+//  📍 Localização: tenant_xxx.institutional_events (padrão snake_case)
 // ──────────────────────────────────────────────────────────────────────────────
 
 model InstitutionalEvent {
@@ -55,5 +57,5 @@ model InstitutionalEvent {
   @@index([tenantId, scheduledDate])
   @@index([tenantId, eventType, scheduledDate])
   @@index([expiryDate])
-  @@map("institutional_events")
+  @@map("institutional_events") // Segue padrão snake_case do projeto
 }
