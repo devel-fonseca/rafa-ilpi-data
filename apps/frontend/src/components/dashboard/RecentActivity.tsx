@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useRecentActivity, type AuditLog } from '@/hooks/useAudit'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Activity, UserPlus, Edit, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Activity, UserPlus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -178,7 +180,9 @@ function getDayLabel(date: Date): string {
 }
 
 export function RecentActivity() {
-  const { data: activities, isLoading } = useRecentActivity(10)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+  const { data: activities, isLoading } = useRecentActivity(50)
 
   if (isLoading) {
     return (
@@ -215,11 +219,17 @@ export function RecentActivity() {
     )
   }
 
+  // Calcular paginação
+  const totalPages = Math.ceil(activities.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedActivities = activities.slice(startIndex, endIndex)
+
   // Agrupar atividades por dia
   const groupedActivities: { day: string; logs: AuditLog[] }[] = []
   let currentDay: string | null = null
 
-  activities.forEach((log) => {
+  paginatedActivities.forEach((log) => {
     const logDate = new Date(log.createdAt)
     const dayLabel = getDayLabel(logDate)
 
@@ -233,8 +243,13 @@ export function RecentActivity() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Atividades Recentes</CardTitle>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle>Atividades Recentes</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Mostrando as 5 últimas ações
+          </p>
+        </div>
       </CardHeader>
       <CardContent className="py-4">
         <div className="space-y-1">
@@ -267,6 +282,41 @@ export function RecentActivity() {
             </div>
           ))}
         </div>
+
+        {/* Controles de paginação */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Mostrando {startIndex + 1}-
+              {Math.min(endIndex, activities.length)} de {activities.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="px-2"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

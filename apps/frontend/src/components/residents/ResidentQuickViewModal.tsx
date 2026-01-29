@@ -628,13 +628,13 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
               </Card>
             )}
 
-            {/* Tarefas Pendentes Hoje */}
+            {/* Registros AVDs Pendentes Hoje */}
             {todayTasks && todayTasks.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Tarefas Pendentes Hoje
+                    Registros AVDs Pendentes Hoje
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-1">
                     {todayTasks.filter((t) => t.type === 'RECURRING' && !t.isCompleted).length} pendentes

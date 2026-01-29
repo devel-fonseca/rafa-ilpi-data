@@ -69,12 +69,15 @@ export function AdminDashboard() {
       {/* Atividades Recentes e Pendentes */}
       <CollapsibleSection
         id="admin-recent-activities"
-        title="Atividades Recentes"
+        title="Pendências e Histórico"
         defaultCollapsed={false}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RecentActivity />
+          {/* Pending Activities */}
           <PendingActivities />
+
+          {/* Recent Activity */}
+          <RecentActivity />
         </div>
       </CollapsibleSection>
 

@@ -58,6 +58,7 @@ import PrescriptionsList from '@/pages/prescriptions/PrescriptionsList'
 import PrescriptionForm from '@/pages/prescriptions/PrescriptionForm'
 import PrescriptionDetails from '@/pages/prescriptions/PrescriptionDetails'
 import PrescriptionEdit from '@/pages/prescriptions/PrescriptionEdit'
+import PrescriptionsPanelPage from '@/pages/prescriptions/PrescriptionsPanelPage'
 
 // Medications Pages
 import ActiveMedicationsPage from '@/pages/medications/ActiveMedicationsPage'
@@ -400,6 +401,10 @@ export const router = createBrowserRouter([
           {
             path: 'new',
             element: <PrescriptionForm />,
+          },
+          {
+            path: 'painel',
+            element: <PrescriptionsPanelPage />,
           },
           {
             path: ':id',

@@ -30,6 +30,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useCreateScheduledEvent, ScheduledEventType } from '@/hooks/useResidentSchedule';
+import { useCreateNotification } from '@/hooks/useNotifications';
+import { SystemNotificationType, NotificationCategory, NotificationSeverity } from '@/api/notifications.api';
 
 interface CreateScheduledEventModalProps {
   open: boolean;
@@ -66,6 +68,7 @@ export function CreateScheduledEventModal({
   residentName,
 }: CreateScheduledEventModalProps) {
   const createMutation = useCreateScheduledEvent();
+  const createNotificationMutation = useCreateNotification();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -81,7 +84,7 @@ export function CreateScheduledEventModal({
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createMutation.mutateAsync({
+      const event = await createMutation.mutateAsync({
         residentId,
         eventType: data.eventType,
         scheduledDate: data.scheduledDate,
@@ -90,6 +93,36 @@ export function CreateScheduledEventModal({
         description: data.description,
         notes: data.notes,
       });
+
+      // Criar notificação APENAS se o evento for para HOJE
+      // Para datas futuras, o cronjob (notifications.cron.ts) criará a notificação no dia correto
+      const today = new Date().toISOString().split('T')[0];
+      const isToday = data.scheduledDate === today;
+
+      if (isToday) {
+        try {
+          await createNotificationMutation.mutateAsync({
+            type: SystemNotificationType.SCHEDULED_EVENT_DUE,
+            category: NotificationCategory.SCHEDULED_EVENT,
+            severity: NotificationSeverity.INFO,
+            title: 'Evento Agendado Hoje',
+            message: `${residentName} tem um agendamento hoje às ${data.scheduledTime}: ${data.title}`,
+            actionUrl: `/dashboard/residentes/${residentId}`,
+            entityType: 'SCHEDULED_EVENT',
+            entityId: event.id,
+            metadata: {
+              residentId,
+              residentName,
+              eventTitle: data.title,
+              scheduledTime: data.scheduledTime,
+              scheduledDate: data.scheduledDate,
+            },
+          });
+        } catch (notificationError) {
+          console.error('Erro ao criar notificação:', notificationError);
+          // Não bloquear o fluxo se a notificação falhar
+        }
+      }
 
       toast.success('Agendamento criado com sucesso');
       handleClose();

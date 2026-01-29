@@ -5,6 +5,7 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  createNotification,
   QueryNotificationsParams,
 } from '@/api/notifications.api'
 import { toast } from 'sonner'
@@ -95,6 +96,24 @@ export function useDeleteNotification() {
       toast.error('Erro ao remover notificação', {
         description: err.response?.data?.message || err.message,
       })
+    },
+  })
+}
+
+/**
+ * Hook para criar nova notificação
+ */
+export function useCreateNotification() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createNotification,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      console.error('Erro ao criar notificação:', err)
     },
   })
 }

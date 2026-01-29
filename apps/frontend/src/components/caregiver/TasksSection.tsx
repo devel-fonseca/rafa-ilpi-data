@@ -125,7 +125,7 @@ export function TasksSection({
 }: Props) {
   // Estado de paginação
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 5
 
   // Filtrar apenas tarefas pendentes (mesma lógica do DailyTasksPanel mas filtrando em vez de ordenar)
   const pendingTasks = tasks.filter((task) => !task.isCompleted)

@@ -12,6 +12,11 @@ import {
   Eye,
   XCircle,
   Ban,
+  FileText,
+  GraduationCap,
+  Users,
+  ClipboardCheck,
+  Wrench,
 } from 'lucide-react'
 import type { DailyTask } from '@/hooks/useResidentSchedule'
 
@@ -23,6 +28,7 @@ const EVENT_TYPE_CONFIG: Record<
   string,
   { icon: typeof Syringe; label: string; color: string }
 > = {
+  // Eventos de residentes
   VACCINATION: {
     icon: Syringe,
     label: 'Vacinação',
@@ -47,6 +53,32 @@ const EVENT_TYPE_CONFIG: Record<
     icon: Calendar,
     label: 'Outro',
     color: 'text-muted-foreground',
+  },
+  // Eventos institucionais
+  DOCUMENT_EXPIRY: {
+    icon: FileText,
+    label: 'Vencimento de Documento',
+    color: 'text-amber-600 dark:text-amber-400',
+  },
+  TRAINING: {
+    icon: GraduationCap,
+    label: 'Treinamento',
+    color: 'text-blue-600 dark:text-blue-400',
+  },
+  MEETING: {
+    icon: Users,
+    label: 'Reunião',
+    color: 'text-purple-600 dark:text-purple-400',
+  },
+  INSPECTION: {
+    icon: ClipboardCheck,
+    label: 'Inspeção',
+    color: 'text-orange-600 dark:text-orange-400',
+  },
+  MAINTENANCE: {
+    icon: Wrench,
+    label: 'Manutenção',
+    color: 'text-gray-600 dark:text-gray-400',
   },
 }
 
@@ -131,17 +163,12 @@ export function EventsSection({
 
   if (!events || events.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Calendar className="w-12 h-12 mx-auto mb-3" />
-            <p>Nenhum agendamento pontual para hoje</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-muted/30 border border-border rounded-lg p-4 flex items-center gap-3">
+        <Calendar className="w-5 h-5 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">
+          Sem eventos agendados para hoje
+        </span>
+      </div>
     )
   }
 
@@ -242,17 +269,19 @@ export function EventsSection({
                   </div>
                 </div>
 
-                {/* Right: Action */}
-                <div className="ml-4">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onViewResident(event.residentId)}
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Ver Residente
-                  </Button>
-                </div>
+                {/* Right: Action - Apenas para eventos de residentes */}
+                {event.residentId && (
+                  <div className="ml-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onViewResident(event.residentId)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Ver Residente
+                    </Button>
+                  </div>
+                )}
               </div>
             )
           })}

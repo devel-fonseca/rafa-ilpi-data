@@ -39,7 +39,7 @@ export function MedicationsSection({
 
   // Estado de paginação
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 5
 
   // Filtrar apenas medicações PENDENTES (não administradas)
   const pendingMedications = medications.filter((m) => !m.wasAdministered)

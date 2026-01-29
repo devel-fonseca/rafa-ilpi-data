@@ -1,12 +1,16 @@
 import { useAuthStore } from '@/stores/auth.store'
-import { Card, CardContent } from '@/components/ui/card'
-import { Users, Calendar, Activity, UserPlus, Pill } from 'lucide-react'
+import { Calendar, Activity, UserPlus, Pill, CheckCircle2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import type { Medication } from '@/api/medications.api'
+import type { Medication, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/medications.api'
 import { toast } from 'sonner'
+
+// Tipo estendido para medication com campo opcional preselectedScheduledTime
+type MedicationWithPreselectedTime = Medication & {
+  preselectedScheduledTime?: string
+}
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useResidentStats } from '@/hooks/useResidents'
 import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
@@ -55,7 +59,7 @@ export function TechnicalManagerDashboard() {
 
   // Estados para modais
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
-  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null)
+  const [selectedMedication, setSelectedMedication] = useState<MedicationWithPreselectedTime | null>(null)
 
   // Buscar estatísticas reais (hooks devem ser chamados antes de early returns)
   const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
@@ -87,46 +91,7 @@ export function TechnicalManagerDashboard() {
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
   const totalRecordsToday = recordsToday.length
-
-  // Cards de estatísticas
-  const stats = [
-    {
-      title: 'Residentes',
-      value: String(totalResidents),
-      description: 'Total de residentes cadastrados',
-      icon: Users,
-      iconColor: 'text-primary',
-      iconBg: 'bg-primary/10',
-      valueColor: 'text-primary',
-    },
-    {
-      title: 'Usuários',
-      value: String(usersCount || 0),
-      description: 'Usuários ativos',
-      icon: UserPlus,
-      iconColor: 'text-success',
-      iconBg: 'bg-success/10',
-      valueColor: 'text-success',
-    },
-    {
-      title: 'Registros Hoje',
-      value: String(totalRecordsToday),
-      description: 'Atividades registradas',
-      icon: Activity,
-      iconColor: 'text-medication-controlled',
-      iconBg: 'bg-medication-controlled/10',
-      valueColor: 'text-medication-controlled',
-    },
-    {
-      title: 'Prescrições',
-      value: String(totalPrescriptions),
-      description: 'Prescrições ativas',
-      icon: Pill,
-      iconColor: 'text-severity-warning',
-      iconBg: 'bg-severity-warning/10',
-      valueColor: 'text-severity-warning',
-    },
-  ]
+  const totalUsers = usersCount || 0
 
   // Handler para administrar medicação
   const handleAdministerMedication = (
@@ -146,13 +111,26 @@ export function TechnicalManagerDashboard() {
     if (medicationTask) {
       setSelectedMedication({
         id: medicationTask.medicationId,
+        prescriptionId: medicationTask.prescriptionId,
         name: medicationTask.medicationName,
-        presentation: medicationTask.presentation,
+        presentation: medicationTask.presentation as MedicationPresentation,
         concentration: medicationTask.concentration,
         dose: medicationTask.dose,
-        route: medicationTask.route,
-        requiresDoubleCheck: medicationTask.requiresDoubleCheck,
+        route: medicationTask.route as AdministrationRoute,
+        frequency: 'PERSONALIZADO' as MedicationFrequency,
         scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
+        startDate: '',
+        endDate: null,
+        isControlled: false,
+        isHighRisk: false,
+        requiresDoubleCheck: medicationTask.requiresDoubleCheck || false,
+        instructions: null,
+        versionNumber: 1,
+        createdBy: '',
+        updatedBy: null,
+        createdAt: '',
+        updatedAt: '',
+        deletedAt: null,
         preselectedScheduledTime: scheduledTime,
       })
     }
@@ -189,10 +167,10 @@ export function TechnicalManagerDashboard() {
       disabled: false,
     },
     {
-      title: 'Medicações',
-      description: 'Gerenciar medicações',
+      title: 'Prescrições',
+      description: 'Painel de Prescrições',
       icon: Pill,
-      onClick: () => navigate('/dashboard/prescricoes'),
+      onClick: () => navigate('/dashboard/prescricoes/painel'),
       disabled: false,
     },
     {
@@ -225,52 +203,110 @@ export function TechnicalManagerDashboard() {
         <QuickActionsGrid actions={quickActions} columns={4} />
       </Section>
 
-      {/* Agendamentos de Hoje */}
-      <CollapsibleSection
-        id="technical-manager-scheduled-events"
-        title="Agendamentos de Hoje"
-        defaultCollapsed={false}
-      >
-        <EventsSection
-          title="Eventos"
-          events={managerTasks?.scheduledEvents || []}
-          onViewResident={handleViewResident}
-          isLoading={isLoadingTasks}
-        />
-      </CollapsibleSection>
+      {/* Agendamentos de Hoje - Exibir apenas se houver eventos ou estiver carregando */}
+      {isLoadingTasks || (managerTasks?.scheduledEvents && managerTasks.scheduledEvents.length > 0) ? (
+        <CollapsibleSection
+          id="technical-manager-scheduled-events"
+          title="Agendamentos de Hoje"
+          defaultCollapsed={false}
+        >
+          <EventsSection
+            title="Eventos"
+            events={managerTasks?.scheduledEvents || []}
+            onViewResident={handleViewResident}
+            isLoading={isLoadingTasks}
+          />
+        </CollapsibleSection>
+      ) : (
+        <Section title="">
+          <div className="bg-muted/30 border border-border rounded-lg p-4 flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Sem eventos agendados para hoje
+            </span>
+          </div>
+        </Section>
+      )}
 
-      {/* Tarefas Pendentes */}
+      {/* Atividades Programadas */}
+      {(() => {
+        // Verificar se há tarefas PENDENTES (não concluídas)
+        const hasTasksPending = managerTasks?.recurringTasks.some(task => !task.isCompleted) || false
+        // Verificar se há medicações PENDENTES (não administradas)
+        const hasMedicationsPending = managerTasks?.medications.some(med => !med.wasAdministered) || false
+
+        // Se ambos não têm pendências, mostrar card compacto SEM título
+        if (!hasTasksPending && !hasMedicationsPending && !isLoadingTasks) {
+          return (
+            <Section title="">
+              <div className="bg-muted/30 border border-border rounded-lg p-4 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                <span className="text-sm text-muted-foreground">
+                  Sem atividades programadas pendentes
+                </span>
+              </div>
+            </Section>
+          )
+        }
+
+        // Se há pendências, mostrar COM título
+        return (
+          <CollapsibleSection
+            id="technical-manager-pending-tasks"
+            title="Atividades Programadas"
+            defaultCollapsed={false}
+          >
+            <div className={`grid grid-cols-1 gap-6 ${hasTasksPending && hasMedicationsPending ? 'lg:grid-cols-2' : ''}`}>
+              {/* Coluna 1: Registros AVDs */}
+              {hasTasksPending && (
+                <div>
+                  <TasksSection
+                    title="Registros AVDs"
+                    tasks={managerTasks?.recurringTasks || []}
+                    onRegister={handleRegister}
+                    onViewResident={handleViewResident}
+                    isLoading={isLoadingTasks}
+                  />
+                </div>
+              )}
+
+              {/* Coluna 2: Medicações */}
+              {hasMedicationsPending && (
+                <div>
+                  <MedicationsSection
+                    title="Medicações"
+                    medications={managerTasks?.medications || []}
+                    onViewResident={handleViewResident}
+                    onAdministerMedication={handleAdministerMedication}
+                    isLoading={isLoadingTasks}
+                  />
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        )
+      })()}
+
+      {/* Activities Grid - Recent & Pending */}
       <CollapsibleSection
-        id="technical-manager-pending-tasks"
-        title="Tarefas Pendentes"
+        id="technical-manager-recent-activities"
+        title="Pendências e Histórico"
         defaultCollapsed={false}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna 1: Tarefas Recorrentes */}
-          <TasksSection
-            title="Tarefas"
-            tasks={managerTasks?.recurringTasks || []}
-            onRegister={handleRegister}
-            onViewResident={handleViewResident}
-            isLoading={isLoadingTasks}
-          />
+          {/* Pending Activities */}
+          <PendingActivities />
 
-          {/* Coluna 2: Medicações */}
-          <MedicationsSection
-            title="Medicações"
-            medications={managerTasks?.medications || []}
-            onViewResident={handleViewResident}
-            onAdministerMedication={handleAdministerMedication}
-            isLoading={isLoadingTasks}
-          />
+          {/* Recent Activity */}
+          <RecentActivity />
         </div>
       </CollapsibleSection>
 
-      {/* Análise de Dados */}
+      {/* Análise de Dados - Secundário para RT */}
       <CollapsibleSection
         id="technical-manager-analysis-charts"
         title="Análise de Dados"
-        defaultCollapsed={false}
+        defaultCollapsed={true}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ResidentsGrowthChart
@@ -295,47 +331,27 @@ export function TechnicalManagerDashboard() {
         </div>
       </CollapsibleSection>
 
-      {/* Estatísticas Gerais */}
-      <CollapsibleSection
-        id="technical-manager-stats"
-        title="Estatísticas"
-        defaultCollapsed={false}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{stat.title}</h3>
-                    <p className={`text-2xl font-bold ${stat.valueColor} mt-1`}>
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div className={`flex items-center justify-center w-12 h-12 ${stat.iconBg} rounded-lg`}>
-                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Rodapé com Estatísticas Resumidas */}
+      <div className="mt-8 pt-4 border-t border-border">
+        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{totalResidents}</span>
+            <span>Residentes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{totalUsers}</span>
+            <span>Usuários</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{totalRecordsToday}</span>
+            <span>Registros Hoje</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{totalPrescriptions}</span>
+            <span>Prescrições Ativas</span>
+          </div>
         </div>
-      </CollapsibleSection>
-
-      {/* Activities Grid - Recent & Pending */}
-      <CollapsibleSection
-        id="technical-manager-recent-activities"
-        title="Atividades Recentes"
-        defaultCollapsed={false}
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Activity */}
-          <RecentActivity />
-
-          {/* Pending Activities */}
-          <PendingActivities />
-        </div>
-      </CollapsibleSection>
+      </div>
 
       {/* Modal: Visualização Rápida do Residente */}
       {selectedResidentId && (

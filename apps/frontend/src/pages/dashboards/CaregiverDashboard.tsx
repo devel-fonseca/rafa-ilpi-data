@@ -11,7 +11,6 @@ import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
-import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { getCurrentDate } from '@/utils/dateHelpers'
@@ -212,54 +211,88 @@ export function CaregiverDashboard() {
         <CaregiverStatsCards stats={data.stats} isLoading={isLoading} />
       </Section>
 
-      {/* Grid principal: Tarefas (50%) + Medicações (50%) */}
-      <Section title="Tarefas Pendentes">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna 1: Tarefas */}
-          <div>
-            <TasksSection
-              title="Tarefas"
-              tasks={data.recurringTasks}
-              onRegister={(residentId, recordType, mealType) => {
-                // Buscar nome do residente
-                const task = data.recurringTasks.find(
-                  (t) => t.residentId === residentId,
-                )
-                const residentName = task?.residentName || 'Residente'
-                handleOpenModal(residentId, residentName, recordType, mealType)
-              }}
-              onViewResident={(residentId) => setSelectedResidentId(residentId)}
-              isLoading={isLoading}
-            />
-          </div>
+      {/* Grid principal: Registros AVDs (50%) + Medicações (50%) */}
+      {(() => {
+        // Verificar se há tarefas PENDENTES (não concluídas)
+        const hasTasksPending = data.recurringTasks.some(task => !task.isCompleted)
+        // Verificar se há medicações PENDENTES (não administradas)
+        const hasMedicationsPending = data.medications.some(med => !med.wasAdministered)
 
-          {/* Coluna 2: Medicações */}
-          <div>
-            <MedicationsSection
-              title="Medicações"
-              medications={data.medications}
-              onViewResident={(residentId) => setSelectedResidentId(residentId)}
-              onAdministerMedication={handleAdministerMedication}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
-      </Section>
+        // Se ambos não têm pendências, mostrar card compacto SEM título
+        if (!hasTasksPending && !hasMedicationsPending) {
+          return (
+            <Section title="">
+              <div className="bg-muted/30 border border-border rounded-lg p-4 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                <span className="text-sm text-muted-foreground">
+                  Sem atividades programadas pendentes
+                </span>
+              </div>
+            </Section>
+          )
+        }
+
+        // Se há pendências, mostrar COM título
+        return (
+          <Section title="Atividades Programadas">
+            <div className={`grid grid-cols-1 gap-6 ${hasTasksPending && hasMedicationsPending ? 'lg:grid-cols-2' : ''}`}>
+              {/* Coluna 1: Registros AVDs */}
+              {hasTasksPending && (
+                <div>
+                  <TasksSection
+                    title="Registros AVDs"
+                    tasks={data.recurringTasks}
+                    onRegister={(residentId, recordType, mealType) => {
+                      // Buscar nome do residente
+                      const task = data.recurringTasks.find(
+                        (t) => t.residentId === residentId,
+                      )
+                      const residentName = task?.residentName || 'Residente'
+                      handleOpenModal(residentId, residentName, recordType, mealType)
+                    }}
+                    onViewResident={(residentId) => setSelectedResidentId(residentId)}
+                    isLoading={isLoading}
+                  />
+                </div>
+              )}
+
+              {/* Coluna 2: Medicações */}
+              {hasMedicationsPending && (
+                <div>
+                  <MedicationsSection
+                    title="Medicações"
+                    medications={data.medications}
+                    onViewResident={(residentId) => setSelectedResidentId(residentId)}
+                    onAdministerMedication={handleAdministerMedication}
+                    isLoading={isLoading}
+                  />
+                </div>
+              )}
+            </div>
+          </Section>
+        )
+      })()}
 
       {/* Seção: Agendamentos Pontuais (full width) */}
-      <Section title="Agendamentos de Hoje">
-        <EventsSection
-          title="Eventos"
-          events={data.scheduledEvents}
-          onViewResident={(residentId) => setSelectedResidentId(residentId)}
-          isLoading={isLoading}
-        />
-      </Section>
-
-      {/* Seção: Atividades Recentes (full width) */}
-      <Section title="Atividades Recentes">
-        <RecentActivity />
-      </Section>
+      {data.scheduledEvents.length > 0 ? (
+        <Section title="Agendamentos de Hoje">
+          <EventsSection
+            title="Eventos"
+            events={data.scheduledEvents}
+            onViewResident={(residentId) => setSelectedResidentId(residentId)}
+            isLoading={isLoading}
+          />
+        </Section>
+      ) : (
+        <Section title="">
+          <EventsSection
+            title="Eventos"
+            events={data.scheduledEvents}
+            onViewResident={(residentId) => setSelectedResidentId(residentId)}
+            isLoading={isLoading}
+          />
+        </Section>
+      )}
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (

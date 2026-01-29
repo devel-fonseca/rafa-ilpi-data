@@ -4,6 +4,7 @@ import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import type { DailyTask } from './useResidentSchedule'
 import type { MedicationTask } from './useCaregiverTasks'
 import { tenantKey } from '@/lib/query-keys'
+import { useDailyEvents } from './useDailyEvents'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -55,28 +56,32 @@ interface Prescription {
 // ──────────────────────────────────────────────────────────────────────────
 
 /**
- * Hook para buscar tarefas PENDENTES do dia para Responsável Técnico
+ * Hook para buscar tarefas do dia para Responsável Técnico
  *
  * Diferença do useCaregiverTasks:
- * - Retorna APENAS tarefas pendentes (não completadas)
+ * - Filtra medicações para mostrar apenas não administradas no hook
+ * - Retorna TODAS as tarefas recorrentes e eventos (filtragem visual no componente)
  * - Foco em supervisão, não em execução
  * - Estatísticas ajustadas para visão gerencial
  *
  * Busca:
- * 1. Tarefas obrigatórias recorrentes PENDENTES
- * 2. Agendamentos pontuais AGENDADOS
- * 3. Medicações NÃO ADMINISTRADAS
+ * 1. Tarefas obrigatórias recorrentes (todas - componente filtra visualmente)
+ * 2. Agendamentos pontuais + Eventos institucionais (todos - via useDailyEvents)
+ * 3. Medicações NÃO ADMINISTRADAS (filtradas no hook)
  */
 export function useTechnicalManagerTasks(date?: string) {
   const today = date || getCurrentDate()
 
+  // Buscar TODOS os eventos do dia (residentes + institucionais) via hook universal
+  const { data: scheduledEvents = [] } = useDailyEvents(today)
+
   return useQuery<TechnicalManagerTasksSummary>({
-    queryKey: tenantKey('technical-manager-tasks', today),
+    queryKey: tenantKey('technical-manager-tasks', today, scheduledEvents.length),
     queryFn: async () => {
       console.log('🔄 [useTechnicalManagerTasks] Fetching pending tasks for:', today)
 
       // ────────────────────────────────────────────────────────────────
-      // 1. Buscar tarefas obrigatórias + agendamentos pontuais
+      // 1. Buscar tarefas obrigatórias recorrentes
       // ────────────────────────────────────────────────────────────────
       const tasksResponse = await api.get<DailyTask[]>(
         '/resident-schedule/tasks/daily',
@@ -84,14 +89,8 @@ export function useTechnicalManagerTasks(date?: string) {
       )
       const allTasks = tasksResponse.data
 
-      // Separar por tipo E filtrar apenas pendentes
-      const recurringTasks = allTasks.filter(
-        (task) => task.type === 'RECURRING' && !task.isCompleted
-      )
-
-      const scheduledEvents = allTasks.filter(
-        (task) => task.type === 'EVENT' && task.status === 'SCHEDULED'
-      )
+      // Separar apenas tarefas recorrentes (eventos já vêm do useDailyEvents)
+      const recurringTasks = allTasks.filter((task) => task.type === 'RECURRING')
 
       // ────────────────────────────────────────────────────────────────
       // 2. Buscar prescrições ativas (para medicações)
@@ -151,11 +150,19 @@ export function useTechnicalManagerTasks(date?: string) {
       medications.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))
 
       // ────────────────────────────────────────────────────────────────
-      // 4. Calcular estatísticas (apenas pendentes)
+      // 4. Calcular estatísticas (contando apenas pendentes)
       // ────────────────────────────────────────────────────────────────
+      const recordsPending = recurringTasks.filter(
+        (task) => !task.isCompleted,
+      ).length
+
+      const eventsPending = scheduledEvents.filter(
+        (event) => event.status === 'SCHEDULED',
+      ).length
+
       const stats: TechnicalManagerTasksStats = {
-        totalPending: recurringTasks.length + scheduledEvents.length + medications.length,
-        recordsPending: recurringTasks.length,
+        totalPending: recordsPending + eventsPending + medications.length,
+        recordsPending,
         medicationsPending: medications.length,
         eventsScheduled: scheduledEvents.length,
       }

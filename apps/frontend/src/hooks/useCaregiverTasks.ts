@@ -3,6 +3,7 @@ import { api } from '@/services/api'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import type { DailyTask } from './useResidentSchedule'
 import { tenantKey } from '@/lib/query-keys'
+import { useDailyEvents } from './useDailyEvents'
 
 // ──────────────────────────────────────────────────────────────────────────
 // INTERFACES
@@ -76,7 +77,7 @@ interface Prescription {
  *
  * Busca:
  * 1. Tarefas obrigatórias recorrentes (HIGIENE, ALIMENTACAO, etc)
- * 2. Agendamentos pontuais (consultas, vacinas, etc)
+ * 2. Agendamentos pontuais (consultas, vacinas, etc) + Eventos institucionais
  * 3. Medicações agendadas (horários programados)
  *
  * Retorna:
@@ -86,12 +87,15 @@ interface Prescription {
 export function useCaregiverTasks(date?: string) {
   const today = date || getCurrentDate()
 
+  // Buscar TODOS os eventos do dia (residentes + institucionais) via hook universal
+  const { data: scheduledEvents = [] } = useDailyEvents(today)
+
   return useQuery<CaregiverTasksSummary>({
-    queryKey: tenantKey('caregiver-tasks', today),
+    queryKey: tenantKey('caregiver-tasks', today, scheduledEvents.length),
     queryFn: async () => {
       console.log('🔄 [useCaregiverTasks] Fetching tasks for:', today)
       // ────────────────────────────────────────────────────────────────
-      // 1. Buscar tarefas obrigatórias + agendamentos pontuais
+      // 1. Buscar tarefas obrigatórias recorrentes
       // ────────────────────────────────────────────────────────────────
       const tasksResponse = await api.get<DailyTask[]>(
         '/resident-schedule/tasks/daily',
@@ -99,9 +103,8 @@ export function useCaregiverTasks(date?: string) {
       )
       const allTasks = tasksResponse.data
 
-      // Separar por tipo
+      // Separar apenas tarefas recorrentes (eventos já vêm do useDailyEvents)
       const recurringTasks = allTasks.filter((task) => task.type === 'RECURRING')
-      const scheduledEvents = allTasks.filter((task) => task.type === 'EVENT')
 
       // ────────────────────────────────────────────────────────────────
       // 2. Buscar prescrições ativas (para medicações)
@@ -170,10 +173,15 @@ export function useCaregiverTasks(date?: string) {
         (event) => event.status === 'SCHEDULED',
       ).length
 
+      // Contar apenas medicações PENDENTES (não administradas)
+      const medicationsPending = medications.filter(
+        (med) => !med.wasAdministered,
+      ).length
+
       const stats: CaregiverTasksStats = {
         totalPending: recordsPending + eventsPending,
         recordsPending,
-        medicationsCount: medications.length,
+        medicationsCount: medicationsPending,
         eventsCount: scheduledEvents.length,
       }
 

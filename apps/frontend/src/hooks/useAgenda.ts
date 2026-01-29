@@ -155,12 +155,37 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
         params.endDate = dateRange.endDate
       }
 
-      const response = await api.get<AgendaItem[]>(
-        '/resident-schedule/agenda/institutional-events',
+      const response = await api.get<InstitutionalEvent[]>(
+        '/institutional-events',
         { params },
       )
 
-      return response.data
+      // Transformar InstitutionalEvent[] em AgendaItem[]
+      return response.data.map((event) => ({
+        id: event.id,
+        type: 'SCHEDULED_EVENT' as const,
+        category: 'institutional' as const,
+        residentId: '',
+        residentName: 'Institucional',
+        title: event.title,
+        description: event.description,
+        scheduledDate: event.scheduledDate,
+        scheduledTime: event.scheduledTime || '00:00',
+        status: event.status === 'COMPLETED' ? 'completed' : event.status === 'CANCELLED' ? 'cancelled' : event.status === 'MISSED' ? 'missed' : 'pending',
+        completedAt: event.completedAt,
+        metadata: {
+          eventType: event.eventType,
+          visibility: event.visibility,
+          documentType: event.documentType,
+          documentNumber: event.documentNumber,
+          expiryDate: event.expiryDate,
+          responsible: event.responsible,
+          trainingTopic: event.trainingTopic,
+          instructor: event.instructor,
+          targetAudience: event.targetAudience,
+          location: event.location,
+        },
+      }))
     },
     staleTime: 1000 * 60, // 1 minuto
     refetchOnMount: true,

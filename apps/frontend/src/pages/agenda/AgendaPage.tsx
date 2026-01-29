@@ -1,19 +1,17 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { format, addDays, subDays, parseISO, startOfMonth, endOfMonth } from 'date-fns'
+import { format, addDays, subDays, parseISO } from 'date-fns'
 import { AgendaFilters } from '@/components/agenda/AgendaFilters'
 import { DailyView } from '@/components/agenda/DailyView'
 import { DailyViewInstitutional } from '@/components/agenda/DailyViewInstitutional'
 import { WeeklyView } from '@/components/agenda/WeeklyView'
 import { MonthlyView } from '@/components/agenda/MonthlyView'
-import { PrescriptionsView } from '@/components/agenda/PrescriptionsView'
 import { InstitutionalEventModal } from '@/components/agenda/InstitutionalEventModal'
 import { useAgendaItems, useInstitutionalEvents, useInstitutionalEventMutations } from '@/hooks/useAgenda'
-import { usePrescriptionsForCalendar } from '@/hooks/usePrescriptions'
-import { ViewType, ScopeType, ContentFilterType, StatusFilterType, PrescriptionFilterType } from '@/types/agenda'
+import { ViewType, ScopeType, ContentFilterType, StatusFilterType } from '@/types/agenda'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Page, PageHeader, Section } from '@/design-system/components'
 
@@ -30,15 +28,13 @@ export default function AgendaPage() {
   const [residentId, setResidentId] = useState<string | null>(null)
   const [contentFilters, setContentFilters] = useState<ContentFilterType[]>(ALL_FILTERS)
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
-  const [prescriptionFilter, setPrescriptionFilter] = useState<PrescriptionFilterType>('all')
 
   // Estado do modal de eventos institucionais
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
 
   // Permissões
-  const { hasPermission, canViewPrescriptionCalendar } = usePermissions()
+  const { hasPermission } = usePermissions()
   const canCreateInstitutionalEvents = hasPermission(PermissionType.CREATE_INSTITUTIONAL_EVENTS)
-  const canSeePrescriptions = canViewPrescriptionCalendar()
 
   // Mutations para eventos institucionais
   const { createEvent } = useInstitutionalEventMutations()
@@ -91,26 +87,9 @@ export default function AgendaPage() {
     selectedDate,
   })
 
-  // Buscar prescrições (para scope 'prescriptions')
-  const monthStart = useMemo(() => format(startOfMonth(selectedDate), 'yyyy-MM-dd'), [selectedDate])
-  const monthEnd = useMemo(() => format(endOfMonth(selectedDate), 'yyyy-MM-dd'), [selectedDate])
-
-  const {
-    data: prescriptions = [],
-    isLoading: isLoadingPrescriptions,
-  } = usePrescriptionsForCalendar(
-    monthStart,
-    monthEnd,
-    scope === 'resident' ? residentId || undefined : undefined,
-    prescriptionFilter,
-    scope === 'prescriptions' && canSeePrescriptions
-  )
-
   // Determinar quais dados usar baseado no scope
   const items = scope === 'institutional' ? institutionalItems : agendaItems
-  const isLoading = scope === 'institutional' ? isLoadingInstitutional :
-                    scope === 'prescriptions' ? isLoadingPrescriptions :
-                    isLoadingAgenda
+  const isLoading = scope === 'institutional' ? isLoadingInstitutional : isLoadingAgenda
 
   const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1))
   const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1))
@@ -186,74 +165,56 @@ export default function AgendaPage() {
           )}
         </div>
 
-        {/* Seletor de Visualização (oculto para prescrições) */}
-        {scope !== 'prescriptions' && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewType === 'daily' ? 'default' : 'outline'}
-              onClick={() => setViewType('daily')}
-            >
-              Dia
-            </Button>
-            <Button
-              variant={viewType === 'weekly' ? 'default' : 'outline'}
-              onClick={() => setViewType('weekly')}
-            >
-              Semana
-            </Button>
-            <Button
-              variant={viewType === 'monthly' ? 'default' : 'outline'}
-              onClick={() => setViewType('monthly')}
-            >
-              Mês
-            </Button>
-          </div>
-        )}
+        {/* Seletor de Visualização */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewType === 'daily' ? 'default' : 'outline'}
+            onClick={() => setViewType('daily')}
+          >
+            Dia
+          </Button>
+          <Button
+            variant={viewType === 'weekly' ? 'default' : 'outline'}
+            onClick={() => setViewType('weekly')}
+          >
+            Semana
+          </Button>
+          <Button
+            variant={viewType === 'monthly' ? 'default' : 'outline'}
+            onClick={() => setViewType('monthly')}
+          >
+            Mês
+          </Button>
+        </div>
         </div>
 
         {/* Conteúdo da Visualização */}
-        {/* Visualização de Prescrições (scope específico) */}
-        {scope === 'prescriptions' && (
-          <PrescriptionsView
-            prescriptions={prescriptions}
+        {viewType === 'daily' && scope === 'general' && (
+          <DailyViewInstitutional items={items} isLoading={isLoading} />
+        )}
+        {viewType === 'daily' && scope === 'institutional' && (
+          <DailyViewInstitutional items={items} isLoading={isLoading} />
+        )}
+        {viewType === 'daily' && scope === 'resident' && (
+          <DailyView items={items} isLoading={isLoading} />
+        )}
+        {viewType === 'weekly' && (
+          <WeeklyView
+            items={items}
             selectedDate={selectedDate}
             isLoading={isLoading}
-            filter={prescriptionFilter}
-            onFilterChange={setPrescriptionFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
           />
         )}
-
-        {/* Visualizações normais (general, institutional, resident) */}
-        {scope !== 'prescriptions' && (
-          <>
-            {viewType === 'daily' && scope === 'general' && (
-              <DailyViewInstitutional items={items} isLoading={isLoading} />
-            )}
-            {viewType === 'daily' && scope === 'institutional' && (
-              <DailyViewInstitutional items={items} isLoading={isLoading} />
-            )}
-            {viewType === 'daily' && scope === 'resident' && (
-              <DailyView items={items} isLoading={isLoading} />
-            )}
-            {viewType === 'weekly' && (
-              <WeeklyView
-                items={items}
-                selectedDate={selectedDate}
-                isLoading={isLoading}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-              />
-            )}
-            {viewType === 'monthly' && (
-              <MonthlyView
-                items={items}
-                selectedDate={selectedDate}
-                isLoading={isLoading}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-              />
-            )}
-          </>
+        {viewType === 'monthly' && (
+          <MonthlyView
+            items={items}
+            selectedDate={selectedDate}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
       </Section>
 
