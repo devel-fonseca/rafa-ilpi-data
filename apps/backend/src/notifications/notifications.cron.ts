@@ -128,6 +128,13 @@ export class NotificationsCronService {
           })
 
           if (!existing) {
+            // 1. Atualizar status do evento para MISSED no banco de dados
+            await tenantClient.residentScheduledEvent.update({
+              where: { id: event.id },
+              data: { status: 'MISSED' },
+            })
+
+            // 2. Criar notificação
             await this.notificationsHelper.createScheduledEventMissedNotificationForTenant(
               tenant.id, // ✅ Passar tenantId explicitamente
               event.id,
