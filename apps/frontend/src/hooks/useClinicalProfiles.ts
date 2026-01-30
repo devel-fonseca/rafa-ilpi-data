@@ -8,7 +8,7 @@ import {
   type ClinicalProfile,
   type CreateClinicalProfileDto,
   type UpdateClinicalProfileDto,
-} from '@/api/clinicalProfiles.api'
+} from '@/api/clinical-profiles.api'
 import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================

@@ -25,7 +25,7 @@ import {
   useCreateDietaryRestriction,
   useUpdateDietaryRestriction,
 } from '@/hooks/useDietaryRestrictions'
-import type { DietaryRestriction, RestrictionType } from '@/api/dietaryRestrictions.api'
+import type { DietaryRestriction, RestrictionType } from '@/api/dietary-restrictions.api'
 
 const dietaryRestrictionSchema = z.object({
   restrictionType: z.enum([

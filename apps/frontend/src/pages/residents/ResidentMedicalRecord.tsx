@@ -67,6 +67,7 @@ import {
   ViewOutrosModal,
 } from '@/components/view-modals'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { DailyRecordsTimeline } from '@/components/daily-records/DailyRecordsTimeline'
 import type { DailyRecord } from '@/api/dailyRecords.api'
 import type { Allergy } from '@/api/allergies.api'
 import type { Prescription, Medication } from '@/api/prescriptions.api'
@@ -940,36 +941,45 @@ export default function ResidentProfile() {
             </CardHeader>
             <CardContent>
               {dailyRecords.length > 0 ? (
-                <div className="space-y-2">
-                  {dailyRecords.map((record: DailyRecord) => (
-                    <div
-                      key={record.id}
-                      onClick={() => handleViewRecord(record)}
-                      className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Horário */}
-                        <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
+                <>
+                  {/* Timeline de Registros */}
+                  <DailyRecordsTimeline
+                    records={dailyRecords}
+                    onRecordClick={handleViewRecord}
+                  />
 
-                        {/* Badge do Tipo */}
-                        <Badge
-                          variant="outline"
-                          className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
-                        >
-                          {RECORD_TYPE_LABELS[record.type]?.label}
-                        </Badge>
+                  {/* Lista de Registros */}
+                  <div className="space-y-2">
+                    {dailyRecords.map((record: DailyRecord) => (
+                      <div
+                        key={record.id}
+                        onClick={() => handleViewRecord(record)}
+                        className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Horário */}
+                          <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
 
-                        {/* Responsável */}
-                        <span className="text-xs text-muted-foreground">
-                          {record.recordedBy}
-                        </span>
+                          {/* Badge do Tipo */}
+                          <Badge
+                            variant="outline"
+                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
+                          >
+                            {RECORD_TYPE_LABELS[record.type]?.label}
+                          </Badge>
 
-                        {/* Ícone de visualização */}
-                        <Eye className="h-4 w-4 text-muted-foreground ml-auto mr-2" />
+                          {/* Responsável */}
+                          <span className="text-xs text-muted-foreground">
+                            {record.recordedBy}
+                          </span>
+
+                          {/* Ícone de visualização */}
+                          <Eye className="h-4 w-4 text-muted-foreground ml-auto mr-2" />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 space-y-3">
                   <Calendar className="h-12 w-12 text-muted-foreground" />

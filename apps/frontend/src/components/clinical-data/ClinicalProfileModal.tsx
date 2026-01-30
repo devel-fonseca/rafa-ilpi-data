@@ -17,7 +17,7 @@ import {
   useCreateClinicalProfile,
   useUpdateClinicalProfile,
 } from '@/hooks/useClinicalProfiles'
-import type { ClinicalProfile } from '@/api/clinicalProfiles.api'
+import type { ClinicalProfile } from '@/api/clinical-profiles.api'
 
 const clinicalProfileSchema = z.object({
   healthStatus: z.string().optional(),

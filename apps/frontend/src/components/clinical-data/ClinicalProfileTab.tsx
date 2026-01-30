@@ -26,7 +26,7 @@ import { ConditionModal } from './ConditionModal'
 import { DietaryRestrictionModal } from './DietaryRestrictionModal'
 import type { Allergy } from '@/api/allergies.api'
 import type { Condition } from '@/api/conditions.api'
-import type { DietaryRestriction } from '@/api/dietaryRestrictions.api'
+import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
 import {
   AlertDialog,
   AlertDialogAction,

@@ -38,14 +38,14 @@ export interface UpdateClinicalProfileDto {
   healthStatus?: string
   specialNeeds?: string
   functionalAspects?: string
+  mobilityAid?: boolean
+  changeReason: string
 }
 
 /**
  * DTO para atualizar perfil clínico com versionamento
  */
-export interface UpdateClinicalProfileVersionedDto extends UpdateClinicalProfileDto {
-  changeReason: string
-}
+export type UpdateClinicalProfileVersionedDto = UpdateClinicalProfileDto
 
 /**
  * Entrada de histórico de perfil clínico
@@ -90,9 +90,18 @@ export async function createClinicalProfile(data: CreateClinicalProfileDto): Pro
 /**
  * Busca perfil clínico de um residente específico
  */
-export async function getClinicalProfileByResident(residentId: string): Promise<ClinicalProfile> {
-  const response = await api.get(`/clinical-profiles/resident/${residentId}`)
-  return response.data
+export async function getClinicalProfileByResident(
+  residentId: string
+): Promise<ClinicalProfile | null> {
+  try {
+    const response = await api.get(`/clinical-profiles/resident/${residentId}`)
+    return response.data
+  } catch (error: unknown) {
+    if ((error as { response?: { status?: number } }).response?.status === 404) {
+      return null
+    }
+    throw error
+  }
 }
 
 /**
@@ -106,7 +115,10 @@ export async function getClinicalProfile(id: string): Promise<ClinicalProfile> {
 /**
  * Atualiza um perfil clínico com versionamento
  */
-export async function updateClinicalProfile(id: string, data: UpdateClinicalProfileVersionedDto): Promise<ClinicalProfile> {
+export async function updateClinicalProfile(
+  id: string,
+  data: UpdateClinicalProfileVersionedDto
+): Promise<ClinicalProfile> {
   const response = await api.patch(`/clinical-profiles/${id}`, data)
   return response.data
 }

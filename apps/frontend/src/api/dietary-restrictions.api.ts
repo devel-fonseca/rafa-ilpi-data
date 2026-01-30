@@ -8,6 +8,9 @@ export type RestrictionType =
   | 'RESTRICAO_MEDICA'
   | 'RESTRICAO_RELIGIOSA'
   | 'DISFAGIA'
+  | 'DIABETES'
+  | 'HIPERTENSAO'
+  | 'OUTRA'
 
 export interface DietaryRestriction {
   id: string

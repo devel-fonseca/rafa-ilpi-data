@@ -144,7 +144,7 @@ export function ResidentScheduleTab({
           <div>
             <h3 className="text-lg font-semibold">Agenda do Residente</h3>
             <p className="text-sm text-muted-foreground">
-              Configure registros obrigatórios e agende eventos para {residentName}
+              Programe a rotina e agende eventos para {residentName}
             </p>
           </div>
         </div>
@@ -152,11 +152,11 @@ export function ResidentScheduleTab({
         {/* Sub-Tabs */}
         <Tabs defaultValue="configs" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="configs">Registros Obrigatórios</TabsTrigger>
+            <TabsTrigger value="configs">Programação da Rotina</TabsTrigger>
             <TabsTrigger value="events">Agendamentos Pontuais</TabsTrigger>
           </TabsList>
 
-          {/* TAB: Registros Obrigatórios */}
+          {/* TAB: Programação da Rotina */}
           <TabsContent value="configs" className="space-y-4">
             {/* Cards Arrastáveis (apenas para usuários com permissão de gerenciar) */}
             {canManage && (
@@ -185,7 +185,7 @@ export function ResidentScheduleTab({
               <p className="text-sm text-muted-foreground mb-4">
                 {canManage
                   ? 'Arraste um tipo de registro acima para adicionar ou visualize as configurações existentes'
-                  : 'Configurações de registros obrigatórios para este residente'}
+                  : 'Programação da rotina para este residente'}
               </p>
 
               <ScheduleConfigList

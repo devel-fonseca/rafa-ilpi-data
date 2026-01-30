@@ -9,7 +9,7 @@ import {
   type DietaryRestriction,
   type CreateDietaryRestrictionDto,
   type UpdateDietaryRestrictionDto,
-} from '@/api/dietaryRestrictions.api'
+} from '@/api/dietary-restrictions.api'
 import { tenantKey } from '@/lib/query-keys'
 
 // ==================== QUERY HOOKS ====================

@@ -5,72 +5,85 @@
 
 export const RECORD_TYPE_LABELS: Record<
   string,
-  { label: string; color: string; bgColor: string }
+  { label: string; color: string; bgColor: string; chartColor: string }
 > = {
   HIGIENE: {
     label: 'Higiene',
     color: 'text-blue-700 dark:text-blue-300',
     bgColor: 'bg-blue-100 dark:bg-blue-950/30 border-blue-300 dark:border-blue-700/30',
+    chartColor: '#3b82f6',
   },
   ALIMENTACAO: {
     label: 'Alimentação',
     color: 'text-green-700 dark:text-green-300',
     bgColor: 'bg-green-100 dark:bg-green-950/30 border-green-300 dark:border-green-700/30',
+    chartColor: '#22c55e',
   },
   HIDRATACAO: {
     label: 'Hidratação',
     color: 'text-cyan-700 dark:text-cyan-300',
     bgColor: 'bg-cyan-100 dark:bg-cyan-950/30 border-cyan-300 dark:border-cyan-700/30',
+    chartColor: '#06b6d4',
   },
   MONITORAMENTO: {
     label: 'Monitoramento',
     color: 'text-yellow-700 dark:text-yellow-300',
     bgColor: 'bg-yellow-100 dark:bg-yellow-950/30 border-yellow-300 dark:border-yellow-700/30',
+    chartColor: '#eab308',
   },
   ELIMINACAO: {
     label: 'Eliminação',
     color: 'text-gray-700 dark:text-gray-300',
     bgColor: 'bg-gray-100 dark:bg-gray-800/30 border-gray-300 dark:border-gray-600/30',
+    chartColor: '#6b7280',
   },
   COMPORTAMENTO: {
     label: 'Estado Emocional',
     color: 'text-purple-700 dark:text-purple-300',
     bgColor: 'bg-purple-100 dark:bg-purple-950/30 border-purple-300 dark:border-purple-700/30',
+    chartColor: '#a855f7',
   },
   HUMOR: {
     label: 'Humor',
     color: 'text-violet-700 dark:text-violet-300',
     bgColor: 'bg-violet-100 dark:bg-violet-950/30 border-violet-300 dark:border-violet-700/30',
+    chartColor: '#8b5cf6',
   },
   SONO: {
     label: 'Sono',
     color: 'text-indigo-700 dark:text-indigo-300',
     bgColor: 'bg-indigo-100 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700/30',
+    chartColor: '#6366f1',
   },
   PESO: {
     label: 'Peso/Altura',
     color: 'text-teal-700 dark:text-teal-300',
     bgColor: 'bg-teal-100 dark:bg-teal-950/30 border-teal-300 dark:border-teal-700/30',
+    chartColor: '#14b8a6',
   },
   INTERCORRENCIA: {
     label: 'Intercorrência',
     color: 'text-red-700 dark:text-red-300',
     bgColor: 'bg-red-100 dark:bg-red-950/30 border-red-300 dark:border-red-700/30',
+    chartColor: '#ef4444',
   },
   ATIVIDADES: {
     label: 'Atividades',
     color: 'text-indigo-700 dark:text-indigo-300',
     bgColor: 'bg-indigo-100 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-700/30',
+    chartColor: '#6366f1',
   },
   VISITA: {
     label: 'Visita',
     color: 'text-pink-700 dark:text-pink-300',
     bgColor: 'bg-pink-100 dark:bg-pink-950/30 border-pink-300 dark:border-pink-700/30',
+    chartColor: '#ec4899',
   },
   OUTROS: {
     label: 'Outros',
     color: 'text-slate-700 dark:text-slate-300',
     bgColor: 'bg-slate-100 dark:bg-slate-800/30 border-slate-300 dark:border-slate-600/30',
+    chartColor: '#64748b',
   },
 }
 

@@ -1053,8 +1053,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       setIsUploading(false);
       setUploadProgress("");
 
-      // Invalidar cache do React Query para atualizar a lista
-      queryClient.invalidateQueries({ queryKey: tenantKey("residents") });
+      // Invalidar cache do React Query para atualizar detalhes, listas e métricas
+      if (isEditMode && id) {
+        queryClient.invalidateQueries({ queryKey: tenantKey("residents", id) });
+        queryClient.invalidateQueries({
+          queryKey: tenantKey("residents", id, "history"),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: tenantKey("residents", "list") });
+      queryClient.invalidateQueries({ queryKey: tenantKey("residents", "stats") });
+      queryClient.invalidateQueries({ queryKey: tenantKey("beds") });
 
       // Mostrar toast de sucesso
       toast.success(
