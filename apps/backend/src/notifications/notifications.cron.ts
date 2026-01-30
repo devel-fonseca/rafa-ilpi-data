@@ -36,7 +36,7 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true, timezone: true },
+        select: { id: true, name: true, timezone: true, schemaName: true },
       })
 
       let totalDue = 0
@@ -44,7 +44,7 @@ export class NotificationsCronService {
 
       for (const tenant of tenants) {
         // Obter tenant client para isolamento de schema
-        const tenantClient = this.prisma.getTenantClient(tenant.id)
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
 
         // ✅ Obter data atual no timezone do tenant (recordDate é DATE)
         const todayStr = getCurrentDateInTz(
@@ -161,7 +161,7 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true, timezone: true },
+        select: { id: true, name: true, timezone: true, schemaName: true },
       })
 
       let totalExpired = 0
@@ -169,7 +169,7 @@ export class NotificationsCronService {
 
       for (const tenant of tenants) {
         // Obter tenant client para isolamento de schema
-        const tenantClient = this.prisma.getTenantClient(tenant.id)
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
 
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
@@ -282,7 +282,7 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, timezone: true },
+        select: { id: true, timezone: true, schemaName: true },
       })
 
       let totalExpired = 0
@@ -290,7 +290,7 @@ export class NotificationsCronService {
 
       for (const tenant of tenants) {
         // Obter tenant client para isolamento de schema
-        const tenantClient = this.prisma.getTenantClient(tenant.id)
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
 
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
@@ -407,7 +407,7 @@ export class NotificationsCronService {
     try {
       const tenants = await this.prisma.tenant.findMany({
         where: { deletedAt: null },
-        select: { id: true, name: true, timezone: true },
+        select: { id: true, name: true, timezone: true, schemaName: true },
       })
 
       let totalNotifications = 0
@@ -415,7 +415,7 @@ export class NotificationsCronService {
 
       for (const tenant of tenants) {
         // Obter tenant client para isolamento de schema
-        const tenantClient = this.prisma.getTenantClient(tenant.id)
+        const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
 
         // ✅ Obter data atual no timezone do tenant
         const todayStr = getCurrentDateInTz(
