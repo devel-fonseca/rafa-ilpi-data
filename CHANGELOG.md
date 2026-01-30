@@ -6,6 +6,68 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-01-30] - Sistema de Notificações para Eventos Agendados 🔔
+
+### 🔧 Corrigido
+
+**BACKEND - Cálculo de Status de Eventos Agendados:**
+
+- **Problema:** Eventos agendados apareciam como "Perdido" quando ainda estavam pendentes (ex: evento às 09:30 do dia atual mostrava status "Perdido" às 11:00)
+- **Causa raiz:** `agenda.service.ts` comparava apenas datas sem considerar horário e timezone
+- **Solução aplicada:**
+  - Modificado `getScheduledEventItems()` para buscar timezone do tenant
+  - Implementado conversão de `scheduledDate` (DATE) + `scheduledTime` para UTC usando `localToUTC()`
+  - Status "MISSED" agora só é aplicado quando `eventDateTime < now` (comparação timezone-aware)
+  - Arquivo: `apps/backend/src/resident-schedule/agenda.service.ts:310-322`
+
+**BACKEND - Cron Job de Notificações:**
+
+- **Problema 1:** Tipo `ScheduledEventStatus` não existia nos tenant schemas (`ERROR: type "tenant_X.ScheduledEventStatus" does not exist`)
+- **Causa raiz:** Migrations do Prisma não haviam sido aplicadas nos tenant schemas após criação do modelo `ResidentScheduledEvent`
+- **Solução:** Executar `node apps/backend/scripts/apply-tenant-migrations.ts` para criar enums em todos os schemas
+- **Problema 2:** Comparação de `scheduledDate` falhava com string ao invés de Date object
+- **Solução:** Converter `todayStr` (YYYY-MM-DD) para Date usando `parseISO('${todayStr}T12:00:00.000')`
+- Arquivo: `apps/backend/src/notifications/notifications.cron.ts:54,60,103`
+
+### ✨ Adicionado
+
+**FRONTEND - Modal de Ações para Eventos Perdidos:**
+
+- Integração com notificações de eventos perdidos (`SCHEDULED_EVENT_MISSED`)
+- Modal `MissedEventActionsModal` com duas ações principais:
+  - **Reagendar:** Permite escolher nova data/hora para o evento
+  - **Marcar como Concluído:** Confirma que evento foi realizado e registra timestamp
+- Notificação marcada como lida automaticamente após ação
+- Arquivo: `apps/frontend/src/components/resident-schedule/MissedEventActionsModal.tsx`
+
+**BACKEND - Notificações de Eventos Agendados:**
+
+- Cron job `checkScheduledEvents` executando diariamente às 06:00 BRT
+- **Notificações criadas:**
+  - `SCHEDULED_EVENT_DUE`: Eventos agendados para hoje (lembrete)
+  - `SCHEDULED_EVENT_MISSED`: Eventos passados não concluídos (alertas)
+- Metadata incluída: `eventTitle`, `scheduledDate`, `scheduledTime`, `residentName`
+- URL de ação: `/dashboard/agenda?residentId={id}` para navegação direta
+
+### 📝 Documentação
+
+**Arquitetura Multi-Tenancy - Aplicação de Migrations:**
+
+- Adicionada seção "Aplicação de Migrations em Tenant Schemas" em `docs/architecture/multi-tenancy.md`
+- Documentado problema de enums não sincronizados entre tenant schemas
+- Explicação detalhada do script `apply-tenant-migrations.ts` e quando executá-lo
+- Exemplos de troubleshooting com queries SQL para verificar enums criados
+- Integração com CI/CD para aplicação automática em deploys
+
+### 🎯 Resultado
+
+- ✅ Eventos agendados agora mostram status correto (Pendente vs Perdido) considerando horário
+- ✅ Cuidadores recebem notificações diárias de eventos do dia e eventos perdidos
+- ✅ Ações rápidas (reagendar/concluir) disponíveis diretamente nas notificações
+- ✅ Documentação completa do processo de migrations multi-tenant para evitar problemas futuros
+
+---
+
 ## [2026-01-27] - Migração para Asaas Subscriptions + Webhooks 💳
 
 ### ✨ Adicionado

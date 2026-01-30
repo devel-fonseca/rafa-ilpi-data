@@ -50,12 +50,14 @@ export class NotificationsCronService {
         const todayStr = getCurrentDateInTz(
           tenant.timezone || DEFAULT_TIMEZONE,
         )
+        // Converter string YYYY-MM-DD para Date object (Prisma espera Date para @db.Date)
+        const todayDate = parseISO(`${todayStr}T12:00:00.000`)
 
         // Buscar eventos agendados para hoje (status SCHEDULED)
         const eventsToday = await tenantClient.residentScheduledEvent.findMany({
           where: {
-            status: 'SCHEDULED',
-            scheduledDate: todayStr, // Comparação direta com DATE
+            status: { equals: 'SCHEDULED' as any },
+            scheduledDate: todayDate, // Passar Date object para campo @db.Date
             deletedAt: null,
           },
           include: {
@@ -98,9 +100,9 @@ export class NotificationsCronService {
         // Buscar eventos passados não concluídos (status SCHEDULED)
         const missedEvents = await tenantClient.residentScheduledEvent.findMany({
           where: {
-            status: 'SCHEDULED',
+            status: { equals: 'SCHEDULED' as any },
             scheduledDate: {
-              lt: todayStr, // Antes de hoje (comparação de DATE strings)
+              lt: todayDate, // Antes de hoje (comparação de Date objects)
             },
             deletedAt: null,
           },

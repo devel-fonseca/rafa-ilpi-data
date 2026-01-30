@@ -232,11 +232,89 @@ private async createTenantSchema(schemaName: string): Promise<void> {
 
 ---
 
-## Scripts Úteis
+## Aplicação de Migrations em Tenant Schemas
+
+### ⚠️ IMPORTANTE: Prisma Migrate Deploy
+
+Em arquiteturas multi-tenant com schema isolation, **não basta rodar `prisma migrate deploy` apenas uma vez**. O comando deve ser executado **para cada schema de tenant** individualmente.
+
+#### Por que?
+
+Quando você cria/modifica modelos Prisma que são TENANT-SCOPED:
+
+1. **Enums do Prisma** geram tipos PostgreSQL específicos por schema (ex: `tenant_X."ScheduledEventStatus"`)
+2. **Migrations** criam tabelas, colunas, índices e **tipos enum** no schema alvo
+3. Se você rodar `prisma migrate deploy` apenas no schema público, **os tenant schemas não recebem as migrations**
+
+#### Sintoma do Problema
+
+```text
+ERROR: type "tenant_xxx.NomeDoEnum" does not exist
+```
+
+Isso ocorre quando você tenta usar um enum em queries via `getTenantClient()`, mas o tipo enum não foi criado no schema do tenant.
+
+### Script Automático: `apply-tenant-migrations.ts`
+
+O projeto inclui um script que aplica migrations em todos os tenant schemas automaticamente:
+
+```bash
+# Aplicar migrations em TODOS os tenants ativos
+node apps/backend/scripts/apply-tenant-migrations.ts
+
+# Aplicar migrations em um tenant específico
+node apps/backend/scripts/apply-tenant-migrations.ts --schema=tenant_nome_abc123
+```
+
+#### Como Funciona
+
+```typescript
+// 1. Buscar todos os tenants ativos
+const tenants = await prisma.tenant.findMany({
+  where: { deletedAt: null },
+  select: { schemaName: true },
+});
+
+// 2. Para cada tenant, criar schema (se não existir)
+await prisma.$executeRawUnsafe(
+  `CREATE SCHEMA IF NOT EXISTS "${schemaName}";`
+);
+
+// 3. Executar prisma migrate deploy com DATABASE_URL específica
+const tenantUrl = `${DATABASE_URL}?schema=${schemaName}`;
+execSync(`DATABASE_URL="${tenantUrl}" npx prisma migrate deploy`, {
+  env: { ...process.env, DATABASE_URL: tenantUrl },
+});
+```
+
+#### Quando Executar
+
+Execute o script **sempre que**:
+
+- ✅ Criar um novo modelo Prisma TENANT-SCOPED
+- ✅ Adicionar/modificar enums em modelos TENANT-SCOPED
+- ✅ Criar novas migrations que afetam tenant schemas
+- ✅ Após clonar o repositório e criar tenants manualmente
+- ✅ Após restaurar backup do banco de dados
+
+#### Integração com CI/CD
+
+```yaml
+# .github/workflows/deploy.yml
+- name: Apply tenant migrations
+  run: node apps/backend/scripts/apply-tenant-migrations.ts
+  env:
+    DATABASE_URL: ${{ secrets.DATABASE_URL }}
+```
+
+### Scripts Úteis
 
 ```bash
 # Sincronizar migrations em todos os tenants
-npm run tenants:sync-schemas
+node apps/backend/scripts/apply-tenant-migrations.ts
+
+# Sincronizar um tenant específico
+node apps/backend/scripts/apply-tenant-migrations.ts --schema=tenant_nome_abc123
 
 # Validar integridade dos schemas
 curl http://localhost:3000/health
@@ -244,6 +322,12 @@ curl http://localhost:3000/health
 # Listar schemas existentes (SQL)
 SELECT schema_name FROM information_schema.schemata
 WHERE schema_name LIKE 'tenant_%';
+
+# Verificar enums criados em um schema
+SELECT typname FROM pg_type
+WHERE typnamespace = (
+  SELECT oid FROM pg_namespace WHERE nspname = 'tenant_nome_abc123'
+) AND typtype = 'e';
 ```
 
 ---
@@ -423,8 +507,8 @@ Ao criar novo service que acessa dados de tenant:
 
 ## Referências
 
-- **Prisma Multi-Tenancy:** https://www.prisma.io/docs/guides/database/multi-tenancy
-- **PostgreSQL Schemas:** https://www.postgresql.org/docs/current/ddl-schemas.html
+- **Prisma Multi-Tenancy:** <https://www.prisma.io/docs/guides/database/multi-tenancy>
+- **PostgreSQL Schemas:** <https://www.postgresql.org/docs/current/ddl-schemas.html>
 - **RDC 502/2021 ANVISA:** Art. 62 (Proteção de dados pessoais)
 - **LGPD:** Art. 46 (Tratamento de dados por controlador)
 
