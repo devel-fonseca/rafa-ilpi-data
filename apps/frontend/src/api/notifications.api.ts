@@ -146,6 +146,14 @@ export async function markAsRead(id: string): Promise<Notification> {
 }
 
 /**
+ * Marcar notificação como não lida
+ */
+export async function markAsUnread(id: string): Promise<Notification> {
+  const response = await api.patch<Notification>(`/notifications/${id}/unread`)
+  return response.data
+}
+
+/**
  * Marcar todas as notificações como lidas
  */
 export async function markAllAsRead(): Promise<{ count: number }> {

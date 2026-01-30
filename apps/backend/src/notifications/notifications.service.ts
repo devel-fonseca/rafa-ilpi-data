@@ -252,6 +252,39 @@ export class NotificationsService {
   }
 
   /**
+   * Marcar notificação como não lida (deletar registro em NotificationRead)
+   */
+  async markAsUnread(userId: string, id: string) {
+    // Verificar se a notificação existe
+    const notification = await this.tenantContext.client.notification.findFirst({
+      where: {
+        id,
+      },
+    })
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found')
+    }
+
+    // Deletar registro em NotificationRead para marcar como não lida
+    await this.tenantContext.client.notificationRead.deleteMany({
+      where: {
+        notificationId: id,
+        userId,
+      },
+    })
+
+    this.logger.log(`Notification ${id} marked as unread by user ${userId}`)
+
+    // Retornar notificação com campo read adicionado
+    return {
+      ...notification,
+      read: false,
+      readAt: null,
+    }
+  }
+
+  /**
    * Marcar todas as notificações como lidas (criar registros em NotificationRead para todas não lidas)
    */
   async markAllAsRead(userId: string) {

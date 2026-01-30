@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Bell, Search, CheckCheck, X, Loader2 } from 'lucide-react'
+import { Bell, Search, CheckCheck, Check, X, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +17,7 @@ import {
 import {
   useNotifications,
   useMarkAsRead,
+  useMarkAsUnread,
   useMarkAllAsRead,
   useDeleteNotification,
 } from '@/hooks/useNotifications'
@@ -60,6 +61,7 @@ export function NotificationsPage() {
   })
 
   const markAsReadMutation = useMarkAsRead()
+  const markAsUnreadMutation = useMarkAsUnread()
   const markAllAsReadMutation = useMarkAllAsRead()
   const deleteMutation = useDeleteNotification()
 
@@ -81,6 +83,11 @@ export function NotificationsPage() {
 
   const handleMarkAllAsRead = () => {
     markAllAsReadMutation.mutate()
+  }
+
+  const handleMarkAsUnread = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    markAsUnreadMutation.mutate(id)
   }
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
@@ -236,11 +243,36 @@ export function NotificationsPage() {
                               <SeverityIcon
                                 className={`h-5 w-5 flex-shrink-0 ${severityColors.icon}`}
                               />
+                              {notification.read ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => handleMarkAsUnread(notification.id, e)}
+                                  title="Marcar como não lida"
+                                >
+                                  <CheckCheck className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    markAsReadMutation.mutate(notification.id)
+                                  }}
+                                  title="Marcar como lida"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={(e) => handleDelete(notification.id, e)}
+                                title="Remover notificação"
                               >
                                 <X className="h-4 w-4" />
                               </Button>

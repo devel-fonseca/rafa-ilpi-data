@@ -3,6 +3,7 @@ import {
   getNotifications,
   getUnreadCount,
   markAsRead,
+  markAsUnread,
   markAllAsRead,
   deleteNotification,
   createNotification,
@@ -52,6 +53,28 @@ export function useMarkAsRead() {
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Erro ao marcar notificação como lida', {
+        description: err.response?.data?.message || err.message,
+      })
+    },
+  })
+}
+
+/**
+ * Hook para marcar notificação como não lida
+ */
+export function useMarkAsUnread() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: markAsUnread,
+    onSuccess: () => {
+      // Invalidar queries para atualizar UI
+      queryClient.invalidateQueries({ queryKey: tenantKey('notifications') })
+      toast.success('Notificação marcada como não lida')
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Erro ao marcar notificação como não lida', {
         description: err.response?.data?.message || err.message,
       })
     },

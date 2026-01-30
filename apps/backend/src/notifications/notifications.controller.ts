@@ -61,6 +61,16 @@ export class NotificationsController {
   }
 
   /**
+   * PATCH /notifications/:id/unread
+   * Marcar notificação como não lida
+   */
+  @Patch(':id/unread')
+  async markAsUnread(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    const userId = user.id
+    return this.notificationsService.markAsUnread(userId, id)
+  }
+
+  /**
    * PATCH /notifications/read-all
    * Marcar todas as notificações como lidas
    */
