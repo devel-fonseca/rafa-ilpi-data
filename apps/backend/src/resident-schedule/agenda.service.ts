@@ -5,7 +5,7 @@ import { GetAgendaItemsDto, ContentFilterType, StatusFilterType } from './dto/ge
 import { AgendaItem, AgendaItemType, VaccineData } from './interfaces/agenda-item.interface';
 import { parseISO, startOfDay, endOfDay, eachDayOfInterval, format, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
-import { formatDateOnly } from '../utils/date.helpers';
+import { formatDateOnly, DEFAULT_TIMEZONE, localToUTC } from '../utils/date.helpers';
 
 @Injectable()
 export class AgendaService {
@@ -276,6 +276,13 @@ export class AgendaService {
     residentId?: string,
     eventTypes?: ScheduledEventType[],
   ): Promise<AgendaItem[]> {
+    // Obter timezone do tenant
+    const tenant = await this.tenantContext.client.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    });
+    const timezone = tenant?.timezone || DEFAULT_TIMEZONE;
+
     const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
         deletedAt: null,
@@ -305,10 +312,20 @@ export class AgendaService {
     const now = new Date();
 
     return events.map((event) => {
-      // Se o evento está SCHEDULED mas a data já passou, marcar como MISSED
+      // Se o evento está SCHEDULED mas a data+hora já passaram, marcar como MISSED
       let eventStatus = event.status;
-      if (eventStatus === 'SCHEDULED' && isBefore(event.scheduledDate, startOfDay(now))) {
-        eventStatus = 'MISSED';
+      if (eventStatus === 'SCHEDULED') {
+        // Converter scheduledDate (DATE) para string YYYY-MM-DD
+        const dateStr = formatDateOnly(event.scheduledDate);
+        const timeStr = event.scheduledTime || '00:00';
+
+        // Converter data+hora local do tenant para UTC (usando helper do padrão)
+        const eventDateTime = localToUTC(dateStr, timeStr, timezone);
+
+        // Verificar se já passou
+        if (isBefore(eventDateTime, now)) {
+          eventStatus = 'MISSED';
+        }
       }
 
       return {
