@@ -1,6 +1,7 @@
 import { Injectable, Scope } from '@nestjs/common'
 import { PrismaClient } from '@prisma/client'
 import { PrismaService } from './prisma.service'
+import { TenantSchemaCacheService } from '../cache/tenant-schema-cache.service'
 
 /**
  * Service com scope REQUEST para injetar automaticamente o tenant client correto.
@@ -31,13 +32,19 @@ export class TenantContextService {
   private _tenantClient: PrismaClient | null = null
   private _tenantId: string | null = null
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tenantSchemaCache: TenantSchemaCacheService,
+  ) {}
 
   /**
    * Inicializa o contexto do tenant para a request atual.
    *
    * Este método é chamado automaticamente pelo TenantContextInterceptor
    * no início de cada request autenticada.
+   *
+   * Usa cache Redis para resolver tenantId → schemaName, eliminando
+   * a query repetitiva em public.tenants.
    *
    * @param tenantId - UUID do tenant extraído do JWT
    * @throws Error se o tenant não for encontrado
@@ -47,18 +54,11 @@ export class TenantContextService {
 
     this._tenantId = tenantId
 
-    // Buscar schema name do tenant
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { schemaName: true },
-    })
-
-    if (!tenant) {
-      throw new Error(`Tenant ${tenantId} não encontrado`)
-    }
+    // Buscar schema name do tenant (com cache Redis)
+    const schemaName = await this.tenantSchemaCache.getSchemaName(tenantId)
 
     // Obter client do tenant (PrismaService mantém cache de clients)
-    this._tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+    this._tenantClient = this.prisma.getTenantClient(schemaName)
   }
 
   /**
