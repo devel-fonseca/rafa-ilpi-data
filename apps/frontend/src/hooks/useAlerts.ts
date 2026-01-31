@@ -9,14 +9,18 @@ import {
 } from '@/api/alerts.api'
 import { toast } from 'sonner'
 import { tenantKey } from '@/lib/query-keys'
+import { useAuthStore } from '@/stores/auth.store'
 
 /**
  * Hook para buscar lista de alertas
  */
 export function useAlerts(filters: AlertFilters = {}) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   return useQuery({
     queryKey: tenantKey('alerts', JSON.stringify(filters)),
     queryFn: () => getAlerts(filters),
+    enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto
     refetchOnWindowFocus: false,
     refetchInterval: 1000 * 120, // 2 minutos (reduzido de implícito)
@@ -28,12 +32,15 @@ export function useAlerts(filters: AlertFilters = {}) {
  * Hook para buscar contagem de alertas não lidos
  */
 export function useUnreadCount() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   return useQuery({
     queryKey: tenantKey('alerts', 'unread-count'),
     queryFn: getUnreadCount,
+    enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto
     refetchOnWindowFocus: false,
-    refetchInterval: 1000 * 90, // 1.5 minutos (reduzido de 1min)
+    refetchInterval: 1000 * 120, // 2 minutos
     refetchIntervalInBackground: false,
   })
 }

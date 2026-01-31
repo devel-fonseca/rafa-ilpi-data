@@ -7,9 +7,11 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 import { tenantKey } from '@/lib/query-keys';
+import { useAuthStore } from '@/stores/auth.store';
 
 // Hook para listar inbox
 export function useInbox(initialQuery?: MessageQuery) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const [query, setQuery] = useState<MessageQuery>(
     initialQuery || { page: 1, limit: 20 },
   );
@@ -17,10 +19,11 @@ export function useInbox(initialQuery?: MessageQuery) {
   const result = useQuery({
     queryKey: tenantKey('messages', 'inbox', JSON.stringify(query)),
     queryFn: () => messagesAPI.getInbox(query),
-    staleTime: 1000 * 60, // 1 minuto
+    enabled: isAuthenticated, // Só pollar quando autenticado
+    staleTime: 1000 * 120, // 2 minutos
     refetchOnMount: true,
     refetchOnWindowFocus: false,
-    refetchInterval: 1000 * 120, // 2 minutos (reduzido de 30s)
+    refetchInterval: 1000 * 300, // 5 minutos (lista completa é mais pesada)
     refetchIntervalInBackground: false,
   });
 
@@ -82,9 +85,12 @@ export function useThread(threadId: string | undefined) {
 
 // Hook para contador de não lidas
 export function useUnreadMessagesCount() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   return useQuery({
     queryKey: tenantKey('messages', 'unread-count'),
     queryFn: messagesAPI.getUnreadCount,
+    enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto
     refetchOnMount: true,
     refetchOnWindowFocus: false,

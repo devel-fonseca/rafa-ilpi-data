@@ -11,14 +11,18 @@ import {
 } from '@/api/notifications.api'
 import { toast } from 'sonner'
 import { tenantKey } from '@/lib/query-keys'
+import { useAuthStore } from '@/stores/auth.store'
 
 /**
  * Hook para buscar notificações com filtros e paginação
  */
 export function useNotifications(params: QueryNotificationsParams = {}) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   return useQuery({
     queryKey: tenantKey('notifications', 'list', JSON.stringify(params)),
     queryFn: () => getNotifications(params),
+    enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto - dados podem ser reaproveitados
     refetchOnMount: true,
     refetchOnWindowFocus: false, // Desabilitar refetch ao focar janela
@@ -31,9 +35,12 @@ export function useNotifications(params: QueryNotificationsParams = {}) {
  * Hook para contar notificações não lidas
  */
 export function useUnreadCount() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
   return useQuery({
     queryKey: tenantKey('notifications', 'unread-count'),
     queryFn: getUnreadCount,
+    enabled: isAuthenticated, // Só pollar quando autenticado
     staleTime: 1000 * 60, // 1 minuto - contador pode ser reaproveitado
     refetchOnMount: true,
     refetchOnWindowFocus: false, // Desabilitar refetch ao focar janela (evita polling desnecessário)
