@@ -4,21 +4,31 @@ import * as winston from 'winston';
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // Formato customizado para logs
-const customFormat = printf(({ level, message, timestamp, context, trace, ...metadata }) => {
-  let log = `${timestamp} [${context || 'Application'}] ${level}: ${message}`;
+const customFormat = printf(({ level, message, timestamp, context, trace, requestId, tenantId, userId, ...metadata }) => {
+  const parts = [];
 
-  // Adicionar metadata se existir
+  // Base: timestamp, context, level, message
+  parts.push(`${timestamp} [${context || 'Application'}] ${level}: ${message}`);
+
+  // IDs úteis para rastreamento (requestId, tenantId, userId)
+  const tags = [];
+  if (requestId) tags.push(`rid=${requestId}`);
+  if (tenantId) tags.push(`tid=${tenantId}`);
+  if (userId) tags.push(`uid=${userId}`);
+  if (tags.length) parts.push(`(${tags.join(' ')})`);
+
+  // Metadata restante (qualquer outro campo adicional)
   const metadataKeys = Object.keys(metadata);
   if (metadataKeys.length > 0) {
-    log += ` ${JSON.stringify(metadata)}`;
+    parts.push(JSON.stringify(metadata));
   }
 
-  // Adicionar stack trace se existir
+  // Stack trace (se existir)
   if (trace) {
-    log += `\n${trace}`;
+    parts.push(`\n${trace}`);
   }
 
-  return log;
+  return parts.join(' ');
 });
 
 // Formato JSON para produção

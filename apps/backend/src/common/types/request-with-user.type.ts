@@ -7,4 +7,5 @@ import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
  */
 export interface RequestWithUser extends Request {
   user: JwtPayload;
+  requestId: string; // UUID único gerado pelo RequestIdMiddleware
 }

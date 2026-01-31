@@ -65,7 +65,9 @@ export function useResidentsGrowth() {
       return response.data
     },
     staleTime: 5 * 60 * 1000, // 5 minutos - dados mudam lentamente
+    refetchOnWindowFocus: false,
     refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -81,7 +83,9 @@ export function useMedicationsHistory() {
       return response.data
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchOnWindowFocus: false,
     refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -97,7 +101,9 @@ export function useMandatoryRecordsHistory() {
       return response.data
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchOnWindowFocus: false,
     refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -113,6 +119,8 @@ export function useOccupancyRate() {
       return response.data
     },
     staleTime: 5 * 60 * 1000, // 5 minutos - dados mudam lentamente
+    refetchOnWindowFocus: false,
     refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
+    refetchIntervalInBackground: false,
   })
 }

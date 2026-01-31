@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -64,6 +64,8 @@ import { CareShiftsModule } from './care-shifts/care-shifts.module';
 import { ComplianceAssessmentsModule } from './compliance-assessments/compliance-assessments.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { TermsOfServiceModule } from './terms-of-service/terms-of-service.module';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interceptor';
 
 @Module({
   imports: [
@@ -187,6 +189,16 @@ import { TermsOfServiceModule } from './terms-of-service/terms-of-service.module
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
     },
+    // Interceptor global de logging HTTP (logs estruturados de requisições)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpLoggerInterceptor,
+    },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Middleware de RequestId - aplicado a todas as rotas
+    consumer.apply(RequestIdMiddleware).forRoutes('*')
+  }
+}

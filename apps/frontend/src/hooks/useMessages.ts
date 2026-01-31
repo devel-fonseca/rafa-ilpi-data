@@ -17,9 +17,11 @@ export function useInbox(initialQuery?: MessageQuery) {
   const result = useQuery({
     queryKey: tenantKey('messages', 'inbox', JSON.stringify(query)),
     queryFn: () => messagesAPI.getInbox(query),
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchInterval: 30000, // 30 segundos
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchInterval: 1000 * 120, // 2 minutos (reduzido de 30s)
+    refetchIntervalInBackground: false,
   });
 
   return {
@@ -40,8 +42,9 @@ export function useSent(initialQuery?: MessageQuery) {
   const result = useQuery({
     queryKey: tenantKey('messages', 'sent', JSON.stringify(query)),
     queryFn: () => messagesAPI.getSent(query),
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 120, // 2 minutos (mensagens enviadas mudam raramente)
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   return {
@@ -82,9 +85,11 @@ export function useUnreadMessagesCount() {
   return useQuery({
     queryKey: tenantKey('messages', 'unread-count'),
     queryFn: messagesAPI.getUnreadCount,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchInterval: 15000, // 15 segundos
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchInterval: 1000 * 60, // 1 minuto (reduzido de 15s)
+    refetchIntervalInBackground: false,
   });
 }
 

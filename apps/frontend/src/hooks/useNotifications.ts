@@ -19,9 +19,11 @@ export function useNotifications(params: QueryNotificationsParams = {}) {
   return useQuery({
     queryKey: tenantKey('notifications', 'list', JSON.stringify(params)),
     queryFn: () => getNotifications(params),
-    staleTime: 0, // SEMPRE considerar dados stale para forçar refetch
-    refetchOnMount: 'always', // SEMPRE refetch ao montar componente
-    refetchInterval: 1000 * 30, // Polling a cada 30s
+    staleTime: 1000 * 60, // 1 minuto - dados podem ser reaproveitados
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Desabilitar refetch ao focar janela
+    refetchInterval: 1000 * 120, // Polling a cada 2 minutos (reduzido de 30s)
+    refetchIntervalInBackground: false, // Não pollar quando aba estiver em background
   })
 }
 
@@ -32,9 +34,11 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: tenantKey('notifications', 'unread-count'),
     queryFn: getUnreadCount,
-    staleTime: 0, // SEMPRE considerar dados stale
-    refetchOnMount: 'always', // SEMPRE refetch ao montar
-    refetchInterval: 1000 * 15, // Polling a cada 15s para atualizar badge
+    staleTime: 1000 * 60, // 1 minuto - contador pode ser reaproveitado
+    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Desabilitar refetch ao focar janela (evita polling desnecessário)
+    refetchInterval: 1000 * 60, // Polling a cada 1 minuto (reduzido de 15s)
+    refetchIntervalInBackground: false, // Não pollar quando aba estiver em background
   })
 }
 

@@ -1,9 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger as WinstonLogger } from 'winston';
 import { createEncryptionMiddleware } from './middleware/encryption.middleware';
 import { createCpfSyncMiddleware } from './middleware/cpf-sync.middleware';
-import { queryLoggerMiddleware } from './middleware/query-logger.middleware';
+import { createQueryLoggerMiddleware } from './middleware/query-logger.middleware';
 import { PrismaQueryLoggerMiddleware } from './prisma-query-logger.middleware';
 
 @Injectable()
@@ -11,7 +13,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private tenantClients: Map<string, PrismaClient> = new Map();
   private readonly multiTenantQueryLogger = new PrismaQueryLoggerMiddleware();
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(WINSTON_MODULE_PROVIDER) private readonly winstonLogger: WinstonLogger,
+  ) {
     super({
       log: process.env.NODE_ENV === 'test' ? ['error'] : ['query', 'error', 'warn'],
     });
@@ -24,11 +29,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   /**
-   * Registrar middleware de logging de queries lentas
-   * Identifica automaticamente queries > 100ms para otimização
+   * Registrar middleware de logging de queries com contexto (requestId, tenantId, userId)
+   * Loga TODAS as queries em DEBUG e queries lentas em WARN/ERROR
    */
   private registerQueryLoggerMiddleware(): void {
-    this.$use(queryLoggerMiddleware);
+    this.$use(createQueryLoggerMiddleware(this.winstonLogger));
   }
 
   /**
@@ -110,7 +115,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       });
 
       // Registrar middlewares no tenant client também
-      tenantClient.$use(queryLoggerMiddleware);
+      tenantClient.$use(createQueryLoggerMiddleware(this.winstonLogger));
       const encryptionKey = this.configService.get<string>('ENCRYPTION_MASTER_KEY')!;
       tenantClient.$use(createEncryptionMiddleware(encryptionKey));
       tenantClient.$use(createCpfSyncMiddleware());

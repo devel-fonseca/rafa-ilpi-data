@@ -17,7 +17,10 @@ export function useAlerts(filters: AlertFilters = {}) {
   return useQuery({
     queryKey: tenantKey('alerts', JSON.stringify(filters)),
     queryFn: () => getAlerts(filters),
-    staleTime: 1000 * 30, // 30 segundos (alertas mudam frequentemente)
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnWindowFocus: false,
+    refetchInterval: 1000 * 120, // 2 minutos (reduzido de implícito)
+    refetchIntervalInBackground: false,
   })
 }
 
@@ -28,8 +31,10 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: tenantKey('alerts', 'unread-count'),
     queryFn: getUnreadCount,
-    staleTime: 1000 * 30, // 30 segundos
-    refetchInterval: 1000 * 60, // Refetch a cada 1 minuto
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnWindowFocus: false,
+    refetchInterval: 1000 * 90, // 1.5 minutos (reduzido de 1min)
+    refetchIntervalInBackground: false,
   })
 }
 
