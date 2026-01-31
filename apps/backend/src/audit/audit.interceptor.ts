@@ -22,11 +22,9 @@ export class AuditInterceptor implements NestInterceptor {
     private readonly auditService: AuditService,
     private readonly reflector: Reflector,
   ) {
-    // Log para debug
+    // Validação crítica sem log (REQUEST-scoped = executa por request)
     if (!this.reflector) {
-      console.error('[AuditInterceptor] Reflector não foi injetado corretamente!');
-    } else {
-      console.log('[AuditInterceptor] Inicializado com sucesso');
+      console.error('[AuditInterceptor] CRITICAL: Reflector não foi injetado!');
     }
   }
 

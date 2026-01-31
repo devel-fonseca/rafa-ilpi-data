@@ -176,11 +176,9 @@ export class PrismaQueryLoggerMiddleware {
 
     // LOG INFO: Queries em SHARED tables (OK, esperado)
     if (this.SHARED_MODELS.has(model)) {
-      this.logger.debug(`✅ [PUBLIC] Query em SHARED table "${model}" OK`, {
-        model,
-        action,
-        duration,
-      });
+      this.logger.debug(
+        `✅ [PUBLIC] Query em SHARED table "${model}" OK (${duration}ms)`,
+      );
     }
   }
 
