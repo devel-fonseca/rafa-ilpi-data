@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { FilesService } from '../files/files.service';
-import { CreateTermDto, UploadSignedTermDto } from './dto';
+import { CreateTermDto } from './dto';
 import {
   BelongingTermType,
   BelongingTermStatus,

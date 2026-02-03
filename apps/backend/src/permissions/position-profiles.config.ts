@@ -324,16 +324,29 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     description: 'Auxilia na gestão administrativa e documental',
     defaultRole: 'staff',
     permissions: [
-      ...BASE_PERMISSIONS.STAFF,
+      // Residentes (cadastro/administrativo)
+      PermissionType.VIEW_RESIDENTS,
       PermissionType.CREATE_RESIDENTS,
       PermissionType.UPDATE_RESIDENTS,
+      // Documentos
+      PermissionType.VIEW_DOCUMENTS,
       PermissionType.UPLOAD_DOCUMENTS,
+      // Leitos
+      PermissionType.VIEW_BEDS,
       PermissionType.MANAGE_BEDS,
+      // Relatórios
       PermissionType.VIEW_REPORTS,
       // Contratos de Residentes
       PermissionType.VIEW_CONTRACTS,
       PermissionType.CREATE_CONTRACTS,
       PermissionType.UPDATE_CONTRACTS,
+      // Agenda do Residente (somente visualização)
+      PermissionType.VIEW_RESIDENT_SCHEDULE,
+      // Escala de Cuidados (somente visualização)
+      PermissionType.VIEW_CARE_SHIFTS,
+      // Mensagens Internas
+      PermissionType.VIEW_MESSAGES,
+      PermissionType.SEND_MESSAGES,
     ],
   },
 
@@ -577,8 +590,15 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     description: 'Profissional administrativo com acesso a gestão e relatórios',
     defaultRole: 'staff',
     permissions: [
-      ...BASE_PERMISSIONS.STAFF,
+      // Residentes (cadastro/administrativo)
+      PermissionType.VIEW_RESIDENTS,
+      // Documentos
+      PermissionType.VIEW_DOCUMENTS,
+      PermissionType.UPLOAD_DOCUMENTS,
+      // Leitos
+      PermissionType.VIEW_BEDS,
       PermissionType.MANAGE_BEDS,
+      // Relatórios e Auditoria
       PermissionType.VIEW_REPORTS,
       PermissionType.VIEW_AUDIT_LOGS,
       PermissionType.EXPORT_DATA,
@@ -591,6 +611,15 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_CONTRACTS,
       PermissionType.DELETE_CONTRACTS,
       PermissionType.REPLACE_CONTRACTS,
+      // POPs (somente visualização)
+      PermissionType.VIEW_POPS,
+      // Agenda do Residente (somente visualização)
+      PermissionType.VIEW_RESIDENT_SCHEDULE,
+      // Escala de Cuidados (somente visualização)
+      PermissionType.VIEW_CARE_SHIFTS,
+      // Mensagens Internas
+      PermissionType.VIEW_MESSAGES,
+      PermissionType.SEND_MESSAGES,
     ],
   },
 
