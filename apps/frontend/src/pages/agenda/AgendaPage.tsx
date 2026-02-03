@@ -8,7 +8,8 @@ import { AgendaFilters } from '@/components/agenda/AgendaFilters'
 import { DailyView } from '@/components/agenda/DailyView'
 import { DailyViewInstitutional } from '@/components/agenda/DailyViewInstitutional'
 import { WeeklyView } from '@/components/agenda/WeeklyView'
-import { MonthlyView } from '@/components/agenda/MonthlyView'
+import { MonthlyViewOptimized } from '@/components/agenda/MonthlyViewOptimized'
+import { MonthlyViewInstitutional } from '@/components/agenda/MonthlyViewInstitutional'
 import { InstitutionalEventModal } from '@/components/agenda/InstitutionalEventModal'
 import { useAgendaItems, useInstitutionalEvents, useInstitutionalEventMutations } from '@/hooks/useAgenda'
 import { ViewType, ScopeType, ContentFilterType, StatusFilterType } from '@/types/agenda'
@@ -207,13 +208,19 @@ export default function AgendaPage() {
             onStatusFilterChange={setStatusFilter}
           />
         )}
-        {viewType === 'monthly' && (
-          <MonthlyView
+        {viewType === 'monthly' && scope !== 'institutional' && (
+          <MonthlyViewOptimized
+            selectedDate={selectedDate}
+            residentId={scope === 'resident' ? residentId : null}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+        )}
+        {viewType === 'monthly' && scope === 'institutional' && (
+          <MonthlyViewInstitutional
             items={items}
             selectedDate={selectedDate}
             isLoading={isLoading}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
           />
         )}
       </Section>

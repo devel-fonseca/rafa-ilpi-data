@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { InstitutionalEventsService } from './institutional-events.service';
 import {
@@ -58,8 +59,49 @@ export class InstitutionalEventsController {
 
   @Get()
   @RequirePermissions(PermissionType.VIEW_INSTITUTIONAL_EVENTS)
-  @ApiOperation({ summary: 'Listar eventos institucionais com filtros' })
+  @ApiOperation({
+    summary: 'Listar eventos institucionais com filtros',
+    description:
+      'Retorna eventos institucionais com suporte a filtros.\n\n' +
+      '**Modos de consulta por data:**\n' +
+      '1. **Single date**: Fornece apenas `date` (YYYY-MM-DD) - busca eventos daquele dia específico\n' +
+      '2. **Range query**: Fornece `startDate` e `endDate` (YYYY-MM-DD) - busca eventos no intervalo\n' +
+      '3. **Sem filtro**: Se nenhum fornecido, retorna todos os eventos',
+  })
   @ApiResponse({ status: 200, description: 'Lista de eventos' })
+  @ApiQuery({
+    name: 'date',
+    description: 'Data única no formato YYYY-MM-DD (modo single date)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Data inicial no formato YYYY-MM-DD (modo range)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'endDate',
+    description: 'Data final no formato YYYY-MM-DD (modo range)',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'eventType',
+    description: 'Tipo de evento institucional',
+    required: false,
+    enum: ['DOCUMENT_EXPIRY', 'TRAINING', 'MEETING', 'OTHER'],
+  })
+  @ApiQuery({
+    name: 'visibility',
+    description: 'Visibilidade do evento',
+    required: false,
+    enum: ['ALL_USERS', 'ADMIN_ONLY', 'RT_ONLY'],
+  })
+  @ApiQuery({
+    name: 'status',
+    description: 'Status do evento',
+    required: false,
+    enum: ['SCHEDULED', 'COMPLETED', 'CANCELLED', 'MISSED'],
+  })
   findAll(@Query() dto: GetInstitutionalEventsDto) {
     return this.institutionalEventsService.findAll(dto);
   }

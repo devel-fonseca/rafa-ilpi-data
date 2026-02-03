@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { AgendaItem, ContentFilterType, InstitutionalEvent, ViewType, StatusFilterType } from '@/types/agenda'
+import { CalendarSummaryResponse } from '@/types/calendar-summary'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { toast } from 'sonner'
 import { useMemo } from 'react'
@@ -102,16 +103,18 @@ interface GetInstitutionalEventsParams {
 }
 
 /**
- * Busca eventos institucionais (vencimentos, treinamentos, reuniões, etc.)
+ * Busca eventos institucionais
  * Para scope: institutional
  *
  * Suporta 3 modos baseados no viewType:
  * - 'daily': busca apenas o dia selecionado (single date query)
  * - 'weekly': busca a semana inteira (range query)
  * - 'monthly': busca o mês inteiro (range query)
+ *
+ * Retorna eventos institucionais (vencimentos, treinamentos, reuniões)
  */
 export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutionalEventsParams) {
-  // Calcular intervalo baseado no viewType (reutilizar mesma lógica)
+  // Calcular intervalo baseado no viewType
   const dateRange = useMemo(() => {
     if (viewType === 'daily') {
       return {
@@ -155,10 +158,7 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
         params.endDate = dateRange.endDate
       }
 
-      const response = await api.get<InstitutionalEvent[]>(
-        '/institutional-events',
-        { params },
-      )
+      const response = await api.get<InstitutionalEvent[]>('/institutional-events', { params })
 
       // Transformar InstitutionalEvent[] em AgendaItem[]
       return response.data.map((event) => ({
@@ -185,7 +185,11 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
           targetAudience: event.targetAudience,
           location: event.location,
         },
-      }))
+      })).sort((a, b) => {
+        const dateCompare = a.scheduledDate.localeCompare(b.scheduledDate)
+        if (dateCompare !== 0) return dateCompare
+        return (a.scheduledTime || '00:00').localeCompare(b.scheduledTime || '00:00')
+      })
     },
     staleTime: 1000 * 60, // 1 minuto
     refetchOnMount: true,
@@ -276,4 +280,47 @@ export function useInstitutionalEventMutations() {
     deleteEvent,
     markComplete,
   }
+}
+
+/**
+ * Busca sumário do calendário (otimizado para visualização mensal)
+ *
+ * Retorna apenas agregados por dia ao invés de itens completos
+ * Isso reduz ~98% do payload e número de queries
+ *
+ * Estratégia:
+ * - Use este hook para renderizar o calendário mensal
+ * - Quando usuário clicar em um dia, use useAgendaItems com single date query
+ */
+export function useCalendarSummary({ selectedDate, residentId }: { selectedDate: Date; residentId?: string | null }) {
+  const startDate = useMemo(() => format(startOfMonth(selectedDate), 'yyyy-MM-dd'), [selectedDate])
+  const endDate = useMemo(() => format(endOfMonth(selectedDate), 'yyyy-MM-dd'), [selectedDate])
+
+  return useQuery({
+    queryKey: tenantKey(
+      'agenda',
+      'calendar-summary',
+      `${startDate}-${endDate}`,
+      residentId || 'all'
+    ),
+    queryFn: async () => {
+      const params: Record<string, string> = {
+        startDate,
+        endDate,
+      }
+
+      if (residentId) {
+        params.residentId = residentId
+      }
+
+      const response = await api.get<CalendarSummaryResponse>('/resident-schedule/agenda/calendar-summary', {
+        params,
+      })
+
+      return response.data
+    },
+    staleTime: 1000 * 60, // 1 minuto
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  })
 }

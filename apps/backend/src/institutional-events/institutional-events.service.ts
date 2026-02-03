@@ -124,20 +124,27 @@ export class InstitutionalEventsService {
       where.status = dto.status;
     }
 
-    // Filtro por data inicial
-    if (dto.startDate) {
-      where.scheduledDate = {
-        ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
-        gte: dto.startDate,
-      };
-    }
+    // Filtro por data (single date ou range)
+    // Se 'date' for fornecido, busca apenas naquele dia específico
+    if (dto.date) {
+      const targetDate = parseISO(`${dto.date}T12:00:00.000`);
+      where.scheduledDate = targetDate;
+    } else {
+      // Filtro por data inicial
+      if (dto.startDate) {
+        where.scheduledDate = {
+          ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
+          gte: parseISO(`${dto.startDate}T00:00:00.000`),
+        };
+      }
 
-    // Filtro por data final
-    if (dto.endDate) {
-      where.scheduledDate = {
-        ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
-        lte: dto.endDate,
-      };
+      // Filtro por data final
+      if (dto.endDate) {
+        where.scheduledDate = {
+          ...(where.scheduledDate as Record<string, unknown> | undefined || {}),
+          lte: parseISO(`${dto.endDate}T23:59:59.999`),
+        };
+      }
     }
 
     const events = await this.tenantContext.client.institutionalEvent.findMany({
