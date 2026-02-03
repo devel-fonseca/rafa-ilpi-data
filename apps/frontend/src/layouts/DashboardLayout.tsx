@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock, CreditCard } from 'lucide-react'
+import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock, CreditCard, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -58,6 +58,7 @@ export function DashboardLayout() {
   const canViewCompliance = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD) ||
                             hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
   const canViewCareShifts = hasPermission(PermissionType.VIEW_CARE_SHIFTS)
+  const canViewReports = hasPermission(PermissionType.VIEW_REPORTS)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -491,6 +492,26 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
+              {/* Relatórios */}
+              {canViewReports && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/relatorios"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <BarChart3 className="h-4 w-4 flex-shrink-0" />
+                      {!preferences.sidebarCollapsed && 'Relatórios'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Relatórios</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {/* Leitos (antiga Gestão de Leitos, agora usando ícone Building2) */}
               {hasFeature('gestao_leitos') && canManageInfrastructure && (
                 <Tooltip>
@@ -777,6 +798,18 @@ export function DashboardLayout() {
                 >
                   <FileSignature className="h-4 w-4" />
                   Contratos
+                </Link>
+              )}
+
+              {/* Relatórios */}
+              {canViewReports && (
+                <Link
+                  to="/dashboard/relatorios"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Relatórios
                 </Link>
               )}
 

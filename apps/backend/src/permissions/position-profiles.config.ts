@@ -301,6 +301,15 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.MANAGE_TEAMS,              // Gerenciar equipes de plantão
       PermissionType.VIEW_RDC_COMPLIANCE,       // Ver conformidade RDC 502/2021
       PermissionType.CONFIGURE_SHIFT_SETTINGS,  // Configurar padrões de plantão
+      // Pertences de Residentes
+      PermissionType.VIEW_BELONGINGS,
+      PermissionType.MANAGE_BELONGINGS,
+      // Contratos de Residentes
+      PermissionType.VIEW_CONTRACTS,
+      PermissionType.CREATE_CONTRACTS,
+      PermissionType.UPDATE_CONTRACTS,
+      PermissionType.DELETE_CONTRACTS,
+      PermissionType.REPLACE_CONTRACTS,
       // Mensagens Internas
       PermissionType.VIEW_MESSAGES,
       PermissionType.SEND_MESSAGES,
@@ -321,6 +330,10 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPLOAD_DOCUMENTS,
       PermissionType.MANAGE_BEDS,
       PermissionType.VIEW_REPORTS,
+      // Contratos de Residentes
+      PermissionType.VIEW_CONTRACTS,
+      PermissionType.CREATE_CONTRACTS,
+      PermissionType.UPDATE_CONTRACTS,
     ],
   },
 
@@ -348,6 +361,15 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.MANAGE_TEAMS,              // Gerenciar equipes de plantão
       PermissionType.VIEW_RDC_COMPLIANCE,       // Ver conformidade RDC 502/2021
       PermissionType.CONFIGURE_SHIFT_SETTINGS,  // Configurar padrões de plantão
+      // Pertences de Residentes
+      PermissionType.VIEW_BELONGINGS,
+      PermissionType.MANAGE_BELONGINGS,
+      // Contratos de Residentes
+      PermissionType.VIEW_CONTRACTS,
+      PermissionType.CREATE_CONTRACTS,
+      PermissionType.UPDATE_CONTRACTS,
+      PermissionType.DELETE_CONTRACTS,
+      PermissionType.REPLACE_CONTRACTS,
     ],
   },
 
@@ -557,8 +579,18 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     permissions: [
       ...BASE_PERMISSIONS.STAFF,
       PermissionType.MANAGE_BEDS,
+      PermissionType.VIEW_REPORTS,
       PermissionType.VIEW_AUDIT_LOGS,
       PermissionType.EXPORT_DATA,
+      // Pertences de Residentes
+      PermissionType.VIEW_BELONGINGS,
+      PermissionType.MANAGE_BELONGINGS,
+      // Contratos de Residentes
+      PermissionType.VIEW_CONTRACTS,
+      PermissionType.CREATE_CONTRACTS,
+      PermissionType.UPDATE_CONTRACTS,
+      PermissionType.DELETE_CONTRACTS,
+      PermissionType.REPLACE_CONTRACTS,
     ],
   },
 

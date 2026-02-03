@@ -64,6 +64,7 @@ import {
   ShieldAlert,
   ArrowLeft,
   History,
+  Package,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
@@ -126,6 +127,7 @@ export default function ResidentsList() {
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
+  const canViewBelongings = hasPermission(PermissionType.VIEW_BELONGINGS)
 
   // Aplicar busca
   const handleSearch = () => {
@@ -489,6 +491,14 @@ export default function ResidentsList() {
                               <FileText className="mr-2 h-4 w-4" />
                               Documentos
                             </DropdownMenuItem>
+                            {canViewBelongings && (
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/dashboard/residentes/${resident.id}/pertences`)}
+                              >
+                                <Package className="mr-2 h-4 w-4" />
+                                Pertences
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}

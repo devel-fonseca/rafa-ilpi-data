@@ -135,7 +135,13 @@ export enum PermissionType {
   VIEW_RESIDENT_SCHEDULE = 'VIEW_RESIDENT_SCHEDULE',
   MANAGE_RESIDENT_SCHEDULE = 'MANAGE_RESIDENT_SCHEDULE',
 
-  // Audit
+  // Belongings (Pertences de Residentes)
+  VIEW_BELONGINGS = 'VIEW_BELONGINGS',
+  MANAGE_BELONGINGS = 'MANAGE_BELONGINGS',
+
+  // Reports and Audit
+  VIEW_REPORTS = 'VIEW_REPORTS',
+  EXPORT_DATA = 'EXPORT_DATA',
   VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
 
   // Conformidade RDC 502/2021 (acesso restrito a gestores)
@@ -292,6 +298,11 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.VIEW_RESIDENT_SCHEDULE]: 'Visualizar agenda do residente',
   [PermissionType.MANAGE_RESIDENT_SCHEDULE]: 'Gerenciar agenda do residente',
 
+  [PermissionType.VIEW_BELONGINGS]: 'Visualizar pertences',
+  [PermissionType.MANAGE_BELONGINGS]: 'Gerenciar pertences',
+
+  [PermissionType.VIEW_REPORTS]: 'Visualizar relatórios',
+  [PermissionType.EXPORT_DATA]: 'Exportar dados',
   [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
 
   [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
@@ -403,6 +414,20 @@ export const PERMISSION_GROUPS = {
     permissions: [
       PermissionType.VIEW_RESIDENT_SCHEDULE,
       PermissionType.MANAGE_RESIDENT_SCHEDULE,
+    ],
+  },
+  belongings: {
+    label: 'Pertences de Residentes',
+    permissions: [
+      PermissionType.VIEW_BELONGINGS,
+      PermissionType.MANAGE_BELONGINGS,
+    ],
+  },
+  reports: {
+    label: 'Relatórios',
+    permissions: [
+      PermissionType.VIEW_REPORTS,
+      PermissionType.EXPORT_DATA,
     ],
   },
   administration: {

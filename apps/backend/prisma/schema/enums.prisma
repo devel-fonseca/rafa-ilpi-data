@@ -206,6 +206,10 @@ enum PermissionType {
   DELETE_CONTRACTS
   REPLACE_CONTRACTS
 
+  // Pertences de Residentes
+  VIEW_BELONGINGS
+  MANAGE_BELONGINGS
+
   // Escalas e Plantões (Gestão de Turnos e Equipes)
   VIEW_CARE_SHIFTS
   CREATE_CARE_SHIFTS

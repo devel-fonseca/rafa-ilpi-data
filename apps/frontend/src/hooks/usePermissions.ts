@@ -77,7 +77,13 @@ export enum PermissionType {
   // Infraestrutura (prédios, andares, quartos, leitos)
   MANAGE_INFRASTRUCTURE = 'MANAGE_INFRASTRUCTURE',
 
-  // Auditoria
+  // Pertences de Residentes
+  VIEW_BELONGINGS = 'VIEW_BELONGINGS',
+  MANAGE_BELONGINGS = 'MANAGE_BELONGINGS',
+
+  // Relatórios e Auditoria
+  VIEW_REPORTS = 'VIEW_REPORTS',
+  EXPORT_DATA = 'EXPORT_DATA',
   VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
 
   // Perfil Institucional
