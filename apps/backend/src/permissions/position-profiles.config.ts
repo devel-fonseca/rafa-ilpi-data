@@ -345,6 +345,10 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_CONTRACTS,
       // Perfil Institucional (somente visualização)
       PermissionType.VIEW_INSTITUTIONAL_PROFILE,
+      // Eventos Institucionais (sem exclusão)
+      PermissionType.VIEW_INSTITUTIONAL_EVENTS,
+      PermissionType.CREATE_INSTITUTIONAL_EVENTS,
+      PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
       // Agenda do Residente (somente visualização)
       PermissionType.VIEW_RESIDENT_SCHEDULE,
       // Escala de Cuidados (somente visualização)
@@ -618,6 +622,10 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.REPLACE_CONTRACTS,
       // Perfil Institucional (somente visualização)
       PermissionType.VIEW_INSTITUTIONAL_PROFILE,
+      // Eventos Institucionais (sem exclusão)
+      PermissionType.VIEW_INSTITUTIONAL_EVENTS,
+      PermissionType.CREATE_INSTITUTIONAL_EVENTS,
+      PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
       // POPs (somente visualização)
       PermissionType.VIEW_POPS,
       // Agenda do Residente (somente visualização)
