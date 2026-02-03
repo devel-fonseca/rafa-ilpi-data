@@ -601,6 +601,8 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     permissions: [
       // Residentes (cadastro/administrativo)
       PermissionType.VIEW_RESIDENTS,
+      PermissionType.CREATE_RESIDENTS,
+      PermissionType.UPDATE_RESIDENTS,
       // Documentos
       PermissionType.VIEW_DOCUMENTS,
       PermissionType.UPLOAD_DOCUMENTS,
