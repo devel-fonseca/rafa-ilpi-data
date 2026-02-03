@@ -47,9 +47,10 @@ export function DashboardLayout() {
   // Verificar permissões
   const canViewInstitutionalProfile = hasPermission(PermissionType.VIEW_INSTITUTIONAL_PROFILE)
   const canManageInfrastructure = hasPermission(PermissionType.MANAGE_INFRASTRUCTURE)
-  const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
-                             hasPermission(PermissionType.UPDATE_RESIDENTS) ||
-                             hasPermission(PermissionType.DELETE_RESIDENTS)
+  const canViewResidents = hasPermission(PermissionType.VIEW_RESIDENTS) ||
+                           hasPermission(PermissionType.CREATE_RESIDENTS) ||
+                           hasPermission(PermissionType.UPDATE_RESIDENTS) ||
+                           hasPermission(PermissionType.DELETE_RESIDENTS)
   const canViewPops = hasPermission(PermissionType.VIEW_POPS)
   const canViewContracts = hasPermission(PermissionType.VIEW_CONTRACTS)
 
@@ -394,7 +395,7 @@ export function DashboardLayout() {
               </Tooltip>
 
               {/* Residentes */}
-              {canManageResidents && (
+              {canViewResidents && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
@@ -743,7 +744,7 @@ export function DashboardLayout() {
               </Link>
 
               {/* Residentes */}
-              {canManageResidents && (
+              {canViewResidents && (
                 <Link
                   to="/dashboard/residentes-hub"
                   onClick={() => setIsSidebarOpen(false)}
