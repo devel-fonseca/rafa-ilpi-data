@@ -1,0 +1,250 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  PERTENCES DE RESIDENTES
+//
+//  Sistema de gestão de pertences com termos de recebimento/devolução
+//  Conformidade: RDC 502/2021 - Controle patrimonial de residentes
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ==========================================
+// ENUMS PARA PERTENCES
+// ==========================================
+
+enum BelongingCategory {
+  DOCUMENTOS
+  VESTUARIO
+  CALCADOS
+  ITENS_HIGIENE
+  ELETRONICOS
+  OBJETOS_VALOR
+  AUXILIARES_MOBILIDADE
+  PROTESES_ORTESES
+  ITENS_AFETIVOS
+  OUTROS
+
+  @@map("BelongingCategory")
+}
+
+enum ConservationState {
+  NOVO
+  BOM
+  REGULAR
+  RUIM
+  AVARIADO
+
+  @@map("ConservationState")
+}
+
+enum BelongingStatus {
+  EM_GUARDA
+  DEVOLVIDO
+  EXTRAVIADO
+  DESCARTADO
+
+  @@map("BelongingStatus")
+}
+
+enum BelongingTermType {
+  RECEBIMENTO
+  ATUALIZACAO
+  DEVOLUCAO_FINAL
+
+  @@map("BelongingTermType")
+}
+
+enum BelongingTermStatus {
+  PENDENTE
+  ASSINADO
+  CANCELADO
+
+  @@map("BelongingTermStatus")
+}
+
+enum BelongingMovementType {
+  ENTRADA
+  SAIDA
+  ALTERACAO_ESTADO
+
+  @@map("BelongingMovementType")
+}
+
+enum BelongingAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  DELETED
+
+  @@map("BelongingAction")
+}
+
+// ==========================================
+// MODELOS
+// ==========================================
+
+model ResidentBelonging {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Categorização
+  category BelongingCategory
+
+  // Descrição do Item
+  description       String            @db.VarChar(255)
+  brandModel        String?           @db.VarChar(100) // Marca/Modelo
+  quantity          Int               @default(1)
+  conservationState ConservationState
+  identification    String?           @db.VarChar(100) // Número série, cor, etc.
+  declaredValue     Decimal?          @db.Decimal(10, 2)
+  storageLocation   String?           @db.VarChar(100) // Onde está guardado na ILPI
+
+  // Entrada
+  entryDate   DateTime @db.Date
+  deliveredBy String   @db.VarChar(150) // Quem entregou (familiar/responsável)
+  receivedBy  String   @db.VarChar(150) // Funcionário que recebeu
+  entryTermId String?  @db.Uuid // Termo de entrada vinculado
+
+  // Saída (quando devolvido/extraviado/descartado)
+  exitDate       DateTime? @db.Date
+  exitReceivedBy String?   @db.VarChar(150) // Quem recebeu na saída
+  exitReason     String?   @db.Text
+  exitTermId     String?   @db.Uuid // Termo de saída vinculado
+
+  // Status
+  status BelongingStatus @default(EM_GUARDA)
+
+  // Observações
+  notes String? @db.Text
+
+  // Foto do item (opcional, máximo 1)
+  photoUrl String?
+  photoKey String?
+
+  // Auditoria
+  createdBy String    @db.Uuid
+  updatedBy String?   @db.Uuid
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident  Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator   User     @relation("BelongingCreator", fields: [createdBy], references: [id])
+  updater   User?    @relation("BelongingUpdater", fields: [updatedBy], references: [id])
+  entryTerm BelongingTerm? @relation("EntryTermBelongings", fields: [entryTermId], references: [id])
+  exitTerm  BelongingTerm? @relation("ExitTermBelongings", fields: [exitTermId], references: [id])
+  termItems BelongingTermItem[]
+  history   BelongingHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, status])
+  @@index([category])
+  @@index([deletedAt])
+  @@map("resident_belongings")
+}
+
+model BelongingTerm {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Tipo e Número (por residente: TERM-[CPF]-001)
+  type           BelongingTermType
+  termNumber     String            @db.VarChar(50) // Ex: "TERM-07666834438-001"
+  sequenceNumber Int // Contador sequencial por residente
+
+  // Data e Responsáveis
+  termDate DateTime @db.Date
+  issuedBy String   @db.VarChar(150) // Funcionário que emitiu
+
+  // Para termos de devolução
+  receivedBy       String? @db.VarChar(150) // Quem recebeu os itens
+  receiverDocument String? @db.VarChar(50) // CPF/RG de quem recebeu
+
+  // Observações gerais
+  notes String? @db.Text
+
+  // Arquivo do termo assinado
+  signedFileUrl  String?
+  signedFileKey  String?
+  signedFileName String?
+  signedFileSize Int?
+  signedFileHash String? @db.VarChar(64)
+
+  // Status
+  status BelongingTermStatus @default(PENDENTE)
+
+  // Auditoria
+  createdBy String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  // Relações
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident        Resident            @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator         User                @relation("BelongingTermCreator", fields: [createdBy], references: [id])
+  items           BelongingTermItem[]
+  entryBelongings ResidentBelonging[] @relation("EntryTermBelongings")
+  exitBelongings  ResidentBelonging[] @relation("ExitTermBelongings")
+
+  // Índices
+  @@unique([tenantId, termNumber])
+  @@index([tenantId, residentId])
+  @@index([type])
+  @@index([status])
+  @@map("belonging_terms")
+}
+
+model BelongingTermItem {
+  id          String @id @default(uuid()) @db.Uuid
+  termId      String @db.Uuid
+  belongingId String @db.Uuid
+
+  // Tipo de movimentação neste termo
+  movementType BelongingMovementType
+
+  // Snapshot do item no momento do termo (imutável)
+  snapshotData Json @db.JsonB // {category, description, quantity, conservationState, ...}
+
+  // Para alterações de estado
+  previousState     ConservationState?
+  newState          ConservationState?
+  stateChangeReason String?            @db.Text
+
+  // Relações
+  term      BelongingTerm     @relation(fields: [termId], references: [id], onDelete: Cascade)
+  belonging ResidentBelonging @relation(fields: [belongingId], references: [id], onDelete: Cascade)
+
+  // Índices
+  @@index([termId])
+  @@index([belongingId])
+  @@map("belonging_term_items")
+}
+
+model BelongingHistory {
+  id          String @id @default(uuid()) @db.Uuid
+  tenantId    String @db.Uuid
+  belongingId String @db.Uuid
+
+  action        BelongingAction
+  reason        String?         @db.Text
+  previousData  Json?           @db.JsonB
+  newData       Json?           @db.JsonB
+  changedFields String[]        @default([])
+
+  changedBy String   @db.Uuid
+  changedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  belonging ResidentBelonging @relation(fields: [belongingId], references: [id], onDelete: Cascade)
+  changer   User              @relation("BelongingHistoryChanger", fields: [changedBy], references: [id])
+
+  // Índices
+  @@index([tenantId, belongingId])
+  @@index([belongingId])
+  @@index([action])
+  @@index([changedAt])
+  @@map("belonging_history")
+}

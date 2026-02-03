@@ -85,9 +85,8 @@ model Resident {
   healthPlans Json @default("[]")
   // [{ "name": "...", "cardNumber": "...", "cardUrl": "..." }]
 
-  // 8 – Pertences
-  belongings Json @default("[]")
-  // ["Óculos", "Aparelho auditivo", ...]
+  // 8 – Pertences (movido para módulo ResidentBelongings)
+  // Agora gerenciado via tabela resident_belongings com termos formais
 
   // 9 – Acomodação
   roomId String? @db.Uuid
@@ -126,6 +125,8 @@ model Resident {
   scheduleConfigs           ResidentScheduleConfig[]
   scheduledEvents           ResidentScheduledEvent[]
   vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
+  residentBelongings        ResidentBelonging[] // Pertences do residente
+  belongingTerms            BelongingTerm[] // Termos de pertences
 
   // Índices
   @@unique([tenantId, cpf])

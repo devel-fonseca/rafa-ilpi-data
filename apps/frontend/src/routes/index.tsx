@@ -42,6 +42,7 @@ import ResidentMedicalRecord from '@/pages/residents/ResidentMedicalRecord'
 import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecordsCalendar'
 import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
+import { BelongingsPage } from '@/pages/residents/belongings'
 
 // Daily Records Pages
 import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
@@ -125,6 +126,10 @@ import ResidentContractView from '@/pages/contracts/ResidentContractView'
 
 // Care Shifts Pages
 import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
+
+// Reports Pages
+import ReportsHub from '@/pages/reports/ReportsHub'
+import DailyReportPage from '@/pages/reports/DailyReportPage'
 
 export const router = createBrowserRouter([
   {
@@ -220,6 +225,10 @@ export const router = createBrowserRouter([
       {
         path: 'residentes/:id/medicacoes-calendario',
         element: <ResidentMedicationsCalendar />,
+      },
+      {
+        path: 'residentes/:residentId/pertences',
+        element: <BelongingsPage />,
       },
       {
         path: 'sinais-vitais/:residentId',
@@ -569,6 +578,20 @@ export const router = createBrowserRouter([
           {
             path: ':residentId/:contractId',
             element: <ResidentContractView />,
+          },
+        ],
+      },
+      {
+        path: 'relatorios',
+        element: <Outlet />,
+        children: [
+          {
+            index: true,
+            element: <ReportsHub />,
+          },
+          {
+            path: 'diario',
+            element: <DailyReportPage />,
           },
         ],
       },

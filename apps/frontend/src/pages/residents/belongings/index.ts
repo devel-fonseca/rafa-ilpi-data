@@ -1,0 +1,1 @@
+export { BelongingsPage } from './BelongingsPage'
