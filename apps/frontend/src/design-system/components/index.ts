@@ -28,6 +28,7 @@ export { EmptyState, type EmptyStateProps } from './data'
 
 // Componentes de feedback
 export { AccessDenied } from './feedback'
+export { LoadingSpinner } from './LoadingSpinner'
 
 // Componentes de ações
 export {

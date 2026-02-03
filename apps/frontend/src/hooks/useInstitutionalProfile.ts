@@ -1,12 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   institutionalProfileAPI,
-  type CreateTenantDocumentDto,
-  type UpdateTenantDocumentDto,
   type LegalNature,
-  type DocumentStatus,
   type UpdateInstitutionalProfileDto,
 } from '@/api/institutional-profile.api'
+import {
+  institutionalDocumentsAPI,
+  type CreateTenantDocumentDto,
+  type UpdateTenantDocumentDto,
+  type DocumentStatus,
+} from '@/api/institutional-documents.api'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // QUERY KEYS
@@ -34,18 +37,7 @@ export const institutionalProfileKeys = {
 export function useProfile() {
   return useQuery({
     queryKey: institutionalProfileKeys.profile(),
-    queryFn: async () => {
-      console.log('🌐 [useProfile] Chamando API getProfile...')
-      const result = await institutionalProfileAPI.getProfile()
-      console.log('✅ [useProfile] API retornou:', {
-        legalNature: result.profile?.legalNature,
-        tenantName: result.tenant.name,
-        logoUrl: result.profile?.logoUrl,
-        hasProfile: !!result.profile,
-        timestamp: new Date().toISOString()
-      })
-      return result
-    },
+    queryFn: () => institutionalProfileAPI.getProfile(),
   })
 }
 
@@ -90,7 +82,7 @@ export function useUploadLogo() {
 export function useDocuments(filters?: { type?: string; status?: DocumentStatus }) {
   return useQuery({
     queryKey: institutionalProfileKeys.documentsList(filters),
-    queryFn: () => institutionalProfileAPI.getDocuments(filters),
+    queryFn: () => institutionalDocumentsAPI.getDocuments(filters),
   })
 }
 
@@ -100,7 +92,7 @@ export function useDocuments(filters?: { type?: string; status?: DocumentStatus 
 export function useDocument(documentId: string) {
   return useQuery({
     queryKey: institutionalProfileKeys.document(documentId),
-    queryFn: () => institutionalProfileAPI.getDocument(documentId),
+    queryFn: () => institutionalDocumentsAPI.getDocument(documentId),
     enabled: !!documentId,
   })
 }
@@ -115,7 +107,7 @@ export function useUploadDocument() {
   return useMutation({
     mutationFn: async ({ file, metadata }: { file: File; metadata: CreateTenantDocumentDto }) => {
       // Usa o método que processa o arquivo com carimbo institucional
-      return institutionalProfileAPI.uploadDocument(file, metadata)
+      return institutionalDocumentsAPI.uploadDocument(file, metadata)
     },
     onSuccess: () => {
       // Invalidar TODAS as queries que começam com documents() - isso pega documentsList com qualquer filtro
@@ -136,7 +128,7 @@ export function useUpdateDocumentMetadata() {
 
   return useMutation({
     mutationFn: ({ documentId, data }: { documentId: string; data: UpdateTenantDocumentDto }) =>
-      institutionalProfileAPI.updateDocumentMetadata(documentId, data),
+      institutionalDocumentsAPI.updateDocumentMetadata(documentId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.document(variables.documentId) })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
@@ -153,7 +145,7 @@ export function useReplaceDocumentFile() {
 
   return useMutation({
     mutationFn: ({ documentId, file }: { documentId: string; file: File }) =>
-      institutionalProfileAPI.replaceDocumentFile(documentId, file),
+      institutionalDocumentsAPI.replaceDocumentFile(documentId, file),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.document(variables.documentId) })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
@@ -168,7 +160,7 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (documentId: string) => institutionalProfileAPI.deleteDocument(documentId),
+    mutationFn: (documentId: string) => institutionalDocumentsAPI.deleteDocument(documentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.compliance() })
@@ -186,7 +178,7 @@ export function useDeleteDocument() {
 export function useComplianceDashboard() {
   return useQuery({
     queryKey: institutionalProfileKeys.compliance(),
-    queryFn: () => institutionalProfileAPI.getComplianceDashboard(),
+    queryFn: () => institutionalDocumentsAPI.getComplianceDashboard(),
   })
 }
 
@@ -196,7 +188,7 @@ export function useComplianceDashboard() {
 export function useDocumentRequirements(legalNature: LegalNature | null | undefined) {
   return useQuery({
     queryKey: institutionalProfileKeys.requirements(legalNature!),
-    queryFn: () => institutionalProfileAPI.getDocumentRequirements(legalNature!),
+    queryFn: () => institutionalDocumentsAPI.getDocumentRequirements(legalNature!),
     enabled: !!legalNature,
   })
 }
@@ -207,7 +199,7 @@ export function useDocumentRequirements(legalNature: LegalNature | null | undefi
 export function useAllDocumentTypes(legalNature: LegalNature | null | undefined) {
   return useQuery({
     queryKey: institutionalProfileKeys.allTypes(legalNature!),
-    queryFn: () => institutionalProfileAPI.getAllDocumentTypes(legalNature!),
+    queryFn: () => institutionalDocumentsAPI.getAllDocumentTypes(legalNature!),
     enabled: !!legalNature,
   })
 }
@@ -219,7 +211,7 @@ export function useUpdateDocumentsStatus() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => institutionalProfileAPI.updateDocumentsStatus(),
+    mutationFn: () => institutionalDocumentsAPI.updateDocumentsStatus(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.documents() })
       queryClient.invalidateQueries({ queryKey: institutionalProfileKeys.compliance() })

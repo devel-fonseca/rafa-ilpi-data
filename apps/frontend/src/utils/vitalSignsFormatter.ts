@@ -1,4 +1,4 @@
-import type { VitalSign } from '@/api/vitalSigns.api'
+import type { VitalSign } from '@/api/vital-signs.api'
 import { formatDateTimeSafe } from './dateHelpers'
 
 /**

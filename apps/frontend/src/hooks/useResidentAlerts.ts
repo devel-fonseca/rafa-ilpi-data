@@ -1,6 +1,9 @@
 import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useResidents } from './useResidents'
 import type { Resident } from '@/api/residents.api'
+import { listResidentContracts } from '@/services/residentContractsApi'
+import { tenantKey } from '@/lib/query-keys'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { subDays } from 'date-fns'
 
@@ -26,15 +29,31 @@ export interface ResidentMetrics {
 
 export function useResidentAlerts() {
   // Buscar todos os residentes (com cache do React Query)
-  const { residents, isLoading, error } = useResidents({
+  const { residents, isLoading: isLoadingResidents, error } = useResidents({
     page: 1,
     limit: 1000,
   })
+
+  // Buscar todos os contratos (com cache do React Query)
+  const { data: contracts = [], isLoading: isLoadingContracts } = useQuery({
+    queryKey: tenantKey('resident-contracts', 'list-all'),
+    queryFn: () => listResidentContracts(),
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  })
+
+  const isLoading = isLoadingResidents || isLoadingContracts
 
   const alerts = useMemo<ResidentAlert[]>(() => {
     if (!residents || residents.length === 0) return []
 
     const activeResidents = residents.filter((r) => r.status === 'Ativo')
+
+    // Criar Set com IDs de residentes que possuem contrato vigente
+    const residentsWithContract = new Set(
+      contracts
+        .filter((c) => c.status === 'VIGENTE')
+        .map((c) => c.residentId)
+    )
 
     // 🔴 ALERTAS CRÍTICOS
     const residentsWithoutBed = activeResidents.filter((r) => !r.bedId)
@@ -48,6 +67,9 @@ export function useResidentAlerts() {
       const requiredFields = ['cpf', 'admissionDate', 'birthDate']
       return requiredFields.some((field) => !r[field as keyof Resident])
     })
+    const residentsWithoutContract = activeResidents.filter(
+      (r) => !residentsWithContract.has(r.id)
+    )
 
     // 🟡 AVISOS
     const residentsWithoutPhoto = activeResidents.filter((r) => !r.fotoUrl)
@@ -143,6 +165,20 @@ export function useResidentAlerts() {
       })
     }
 
+    if (residentsWithoutContract.length > 0) {
+      alertsList.push({
+        type: 'critical',
+        title: 'Sem contrato',
+        count: residentsWithoutContract.length,
+        description: 'Residentes ativos sem contrato vigente',
+        residents: residentsWithoutContract,
+        action: {
+          label: 'Cadastrar contrato',
+          filter: 'without-contract',
+        },
+      })
+    }
+
     // Adicionar avisos
     if (residentsWithoutPhoto.length > 0) {
       alertsList.push({
@@ -202,7 +238,7 @@ export function useResidentAlerts() {
     }
 
     return alertsList
-  }, [residents])
+  }, [residents, contracts])
 
   const metrics = useMemo<ResidentMetrics>(() => {
     if (!residents || residents.length === 0) {

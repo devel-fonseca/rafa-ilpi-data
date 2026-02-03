@@ -138,6 +138,12 @@ model User {
   // Intercorrências e RDC 502/2021
   sentinelEventNotifications SentinelEventNotification[] @relation("SentinelEventResponsible")
 
+  // Pertences de Residentes
+  belongingsCreated     ResidentBelonging[]  @relation("BelongingCreator")
+  belongingsUpdated     ResidentBelonging[]  @relation("BelongingUpdater")
+  belongingTermsCreated BelongingTerm[]      @relation("BelongingTermCreator")
+  belongingHistoryChanges BelongingHistory[] @relation("BelongingHistoryChanger")
+
   // Escala de Cuidados (Gestão de Turnos e Plantões)
   // teamMemberships - NO FK (evita problemas de referência, Prisma gerencia a relação)
   // shiftAssignments - NO relation (userId stored in ShiftAssignment, validated in app layer)

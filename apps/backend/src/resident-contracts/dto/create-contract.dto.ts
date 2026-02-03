@@ -41,11 +41,11 @@ export class SignatoryDto {
  * DTO para criação de contrato de prestação de serviços (digitalização)
  */
 export class CreateContractDto {
-  @ApiProperty({ example: 'CONT-2025-001', description: 'Número único do contrato' })
+  @ApiProperty({ example: 'CONT-2025-001', description: 'Número único do contrato', required: false })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(100)
-  contractNumber: string;
+  contractNumber?: string;
 
   @ApiProperty({ example: '2025-01-01', description: 'Data de início da vigência (YYYY-MM-DD)' })
   @IsDateString()

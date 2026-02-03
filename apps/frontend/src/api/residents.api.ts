@@ -108,7 +108,7 @@ export interface Resident {
     cardNumber: string
     cardUrl?: string
   }>
-  belongings?: string[]
+  // belongings removido - agora gerenciado via /residents/:id/belongings
   documents?: Array<{
     type: string
     url: string
@@ -231,7 +231,7 @@ export interface CreateResidentDto {
     cardNumber: string
     cardUrl?: string
   }>
-  belongings?: string[]
+  // belongings removido - agora gerenciado via /residents/:id/belongings
   documents?: Array<{
     type: string
     url: string
@@ -319,7 +319,7 @@ export interface UpdateResidentDto {
     cardNumber: string
     cardUrl?: string
   }>
-  belongings?: string[]
+  // belongings removido - agora gerenciado via /residents/:id/belongings
   documents?: Array<{
     type: string
     url: string

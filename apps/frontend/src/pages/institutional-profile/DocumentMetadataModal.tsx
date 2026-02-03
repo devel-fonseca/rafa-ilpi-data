@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { useUpdateDocumentMetadata } from '@/hooks/useInstitutionalProfile'
 import { Loader2, AlertCircle } from 'lucide-react'
-import type { TenantDocument } from '@/api/institutional-profile.api'
+import type { TenantDocument } from '@/api/institutional-documents.api'
 
 /**
  * Schema de validação com Zod

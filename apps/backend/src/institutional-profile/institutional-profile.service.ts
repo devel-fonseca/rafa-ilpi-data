@@ -113,80 +113,78 @@ export class InstitutionalProfileService {
     console.log('🔍 updateFullProfile - tenantId:', tenantId)
     console.log('🔍 updateFullProfile - dto:', JSON.stringify(dto, null, 2))
 
-    return this.prisma.$transaction(async (tx) => {
-      let updatedTenant = null
-      let updatedProfile = null
+    let updatedTenant = null
+    let updatedProfile = null
 
-      // 1. Atualizar dados do tenant se fornecidos
-      if (dto.tenant && Object.keys(dto.tenant).length > 0) {
-        const tenantData: Prisma.TenantUpdateInput = { ...dto.tenant }
-        console.log('🔍 Atualizando tenant com:', JSON.stringify(tenantData, null, 2))
+    // 1. Atualizar dados do tenant (public schema) se fornecidos
+    if (dto.tenant && Object.keys(dto.tenant).length > 0) {
+      const tenantData: Prisma.TenantUpdateInput = { ...dto.tenant }
+      console.log('🔍 Atualizando tenant com:', JSON.stringify(tenantData, null, 2))
 
-        updatedTenant = await tx.tenant.update({
-          where: { id: tenantId },
-          data: tenantData,
-        })
-        console.log('✅ Tenant atualizado:', JSON.stringify(updatedTenant, null, 2))
-      }
-
-      // 2. Atualizar perfil institucional se fornecido
-      if (dto.profile && Object.keys(dto.profile).length > 0) {
-        const profileData: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput = { ...dto.profile }
-
-        // Converter foundedAt se fornecido
-        if (profileData.foundedAt) {
-          profileData.foundedAt = new Date(profileData.foundedAt as string)
-        }
-
-        // Sincronizar telefone e email do tenant para o profile
-        if (dto.tenant?.phone) {
-          profileData.contactPhone = dto.tenant.phone
-        }
-        if (dto.tenant?.email) {
-          profileData.contactEmail = dto.tenant.email
-        }
-
-        console.log('🔍 Atualizando profile com:', JSON.stringify(profileData, null, 2))
-
-        updatedProfile = await tx.tenantProfile.upsert({
-          where: { tenantId },
-          create: {
-            tenantId,
-            ...profileData,
-          } as Prisma.TenantProfileUncheckedCreateInput,
-          update: profileData as Prisma.TenantProfileUpdateInput,
-        })
-        console.log('✅ Profile atualizado:', JSON.stringify(updatedProfile, null, 2))
-      }
-
-      // 3. Buscar dados atualizados completos
-      const tenant = await tx.tenant.findUnique({
+      updatedTenant = await this.prisma.tenant.update({
         where: { id: tenantId },
-        select: {
-          id: true,
-          name: true,
-          cnpj: true,
-          email: true,
-          phone: true,
-          addressStreet: true,
-          addressNumber: true,
-          addressComplement: true,
-          addressDistrict: true,
-          addressCity: true,
-          addressState: true,
-          addressZipCode: true,
-        },
+        data: tenantData,
       })
+      console.log('✅ Tenant atualizado:', JSON.stringify(updatedTenant, null, 2))
+    }
 
-      const profile = await tx.tenantProfile.findFirst({
-        where: { tenantId, deletedAt: null },
-      })
+    // 2. Atualizar perfil institucional (tenant schema) se fornecido
+    if (dto.profile && Object.keys(dto.profile).length > 0) {
+      const profileData: Prisma.TenantProfileUncheckedCreateInput | Prisma.TenantProfileUpdateInput = { ...dto.profile }
 
-      return {
-        tenant,
-        profile,
+      // Converter foundedAt se fornecido
+      if (profileData.foundedAt) {
+        profileData.foundedAt = new Date(profileData.foundedAt as string)
       }
+
+      // Sincronizar telefone e email do tenant para o profile
+      if (dto.tenant?.phone) {
+        profileData.contactPhone = dto.tenant.phone
+      }
+      if (dto.tenant?.email) {
+        profileData.contactEmail = dto.tenant.email
+      }
+
+      console.log('🔍 Atualizando profile com:', JSON.stringify(profileData, null, 2))
+
+      updatedProfile = await this.tenantContext.client.tenantProfile.upsert({
+        where: { tenantId },
+        create: {
+          tenantId,
+          ...profileData,
+        } as Prisma.TenantProfileUncheckedCreateInput,
+        update: profileData as Prisma.TenantProfileUpdateInput,
+      })
+      console.log('✅ Profile atualizado:', JSON.stringify(updatedProfile, null, 2))
+    }
+
+    // 3. Buscar dados atualizados completos
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        cnpj: true,
+        email: true,
+        phone: true,
+        addressStreet: true,
+        addressNumber: true,
+        addressComplement: true,
+        addressDistrict: true,
+        addressCity: true,
+        addressState: true,
+        addressZipCode: true,
+      },
     })
+
+    const profile = await this.tenantContext.client.tenantProfile.findFirst({
+      where: { tenantId, deletedAt: null },
+    })
+
+    return {
+      tenant,
+      profile,
+    }
   }
 
   /**

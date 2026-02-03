@@ -223,7 +223,7 @@ export class ResidentContractsService {
           tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
           id: contractId,
           residentId,
-          contractNumber: dto.contractNumber,
+          contractNumber: dto.contractNumber || '',
           startDate: new Date(dto.startDate),
           endDate: new Date(dto.endDate),
           monthlyAmount: dto.monthlyAmount,

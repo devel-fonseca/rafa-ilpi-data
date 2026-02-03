@@ -137,6 +137,9 @@ model Tenant {
   institutionalEvents        InstitutionalEvent[] // Eventos institucionais
   sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
   stats                      TenantStats? // Cache de estatísticas (evita N+1 queries)
+  residentBelongings         ResidentBelonging[] // Pertences dos residentes
+  belongingTerms             BelongingTerm[] // Termos de pertences
+  belongingHistory           BelongingHistory[] // Histórico de pertences
 
   @@index([timezone])
   @@map("tenants")

@@ -60,7 +60,7 @@ import {
   Star,
 } from 'lucide-react'
 import { formatDate } from '@/utils/formatters'
-import type { DocumentStatus, TenantDocument } from '@/api/institutional-profile.api'
+import type { DocumentStatus, TenantDocument } from '@/api/institutional-documents.api'
 import { DocumentUploadModal } from '../institutional-profile/DocumentUploadModal'
 import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 import { DocumentMetadataModal } from '../institutional-profile/DocumentMetadataModal'

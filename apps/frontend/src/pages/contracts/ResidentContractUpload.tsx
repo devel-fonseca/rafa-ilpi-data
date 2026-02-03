@@ -117,7 +117,6 @@ export default function ResidentContractUpload() {
     const newErrors: Record<string, string> = {}
 
     if (!residentId) newErrors.residentId = 'Selecione um residente'
-    if (!contractNumber) newErrors.contractNumber = 'Informe o número do contrato'
     if (!startDate) newErrors.startDate = 'Informe a data de início'
     if (!endDate) newErrors.endDate = 'Informe a data de fim'
     if (!monthlyAmount) newErrors.monthlyAmount = 'Informe o valor mensal'
@@ -196,76 +195,12 @@ export default function ResidentContractUpload() {
   return (
     <Page maxWidth="default">
       <PageHeader
-        title="Novo Contrato de Prestação de Serviços"
-        subtitle="Digitalize e cadastre um novo contrato físico"
+        title="Novo Contrato"
+        subtitle="Cadastre um novo contrato do residente"
         backButton={{ onClick: () => navigate('/dashboard/contratos') }}
       />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Upload do Arquivo */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Documento do Contrato</CardTitle>
-            <CardDescription>
-              Faça upload do contrato físico (foto ou PDF). O backend processará automaticamente adicionando
-              carimbo institucional com hash SHA-256 para validação.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {!file ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
-                >
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm font-medium mb-1">Clique para selecionar o arquivo</p>
-                  <p className="text-xs text-muted-foreground">
-                    JPG, PNG, WEBP ou PDF (máx. 10MB)
-                  </p>
-                </div>
-              ) : (
-                <div className="border border-border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      {filePreview ? (
-                        <img src={filePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
-                      ) : (
-                        <FileText className="h-20 w-20 text-muted-foreground" />
-                      )}
-                      <div>
-                        <p className="font-medium">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          ⚙️ Será processado automaticamente pelo backend
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleRemoveFile}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              {errors.file && <p className="text-sm text-danger">{errors.file}</p>}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Dados Básicos */}
         <Card>
           <CardHeader>
@@ -311,7 +246,7 @@ export default function ResidentContractUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contractNumber">Número do Contrato *</Label>
+                <Label htmlFor="contractNumber">Número do Contrato</Label>
                 <Input
                   id="contractNumber"
                   value={contractNumber}
@@ -385,7 +320,7 @@ export default function ResidentContractUpload() {
         {/* Reajuste (opcional) */}
         <Card>
           <CardHeader>
-            <CardTitle>Reajuste (Opcional)</CardTitle>
+            <CardTitle>Reajuste</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -431,10 +366,73 @@ export default function ResidentContractUpload() {
           errors={errors}
         />
 
+        {/* Upload do Arquivo */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Documento do Contrato</CardTitle>
+            <CardDescription>
+              Faça upload do contrato do residente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {!file ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
+                >
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm font-medium mb-1">Clique para selecionar o arquivo</p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG, WEBP ou PDF (máx. 10MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {filePreview ? (
+                        <img src={filePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                      ) : (
+                        <FileText className="h-20 w-20 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="font-medium">{file.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ⚙️ Será processado automaticamente pelo backend
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveFile}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              {errors.file && <p className="text-sm text-danger">{errors.file}</p>}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Observações */}
         <Card>
           <CardHeader>
-            <CardTitle>Observações (Opcional)</CardTitle>
+            <CardTitle>Observações</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea

@@ -889,7 +889,6 @@ export class TenantsService {
     }
   }
 
-
   /**
    * Busca subscription ativa do tenant com contagens de usuários e residentes
    */

@@ -240,7 +240,7 @@ const residentSchema = z.object({
     .optional(),
 
   // Pertences
-  pertences: z.array(z.object({ nome: z.string().optional() })).optional(),
+  // pertences removido - agora gerenciado via módulo ResidentBelongings
 
   // Acomodação - Apenas o leito (o quarto é obtido através do leito)
   leitoNumero: z.string().optional(),
@@ -351,14 +351,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     name: "medicamentos",
   });
 
-  const {
-    fields: pertencesFields,
-    append: appendPertence,
-    remove: removePertence,
-  } = useFieldArray({
-    control,
-    name: "pertences",
-  });
+  // useFieldArray de pertences removido - agora gerenciado via módulo ResidentBelongings
+  // Acessível em: /dashboard/residentes/:id/pertences
 
   // Hooks de Beds (Acomodação)
   // Removidos - BedSelector busca os dados internamente
@@ -367,7 +361,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
   // Refs para inputs de badges
   const medicamentosInputRef = useRef<HTMLInputElement>(null);
-  const pertencesInputRef = useRef<HTMLInputElement>(null);
 
   const watchCpf = watch("cpf");
   const watchCns = watch("cns");
@@ -610,16 +603,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         }
 
         // ===== PERTENCES =====
-        if (
-          resident.belongings &&
-          Array.isArray(resident.belongings) &&
-          resident.belongings.length > 0
-        ) {
-          setValue(
-            "pertences",
-            resident.belongings.map((item: string) => ({ nome: item }))
-          );
-        }
+        // Campo removido - agora gerenciado via módulo ResidentBelongings
+        // Acessível em: /dashboard/residentes/:id/pertences
 
         // ===== CONVÊNIOS =====
         // Processar convênios
@@ -998,12 +983,8 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               index === 0 && convenioArquivoUrl ? convenioArquivoUrl : null,
           })),
 
-        // 8. Pertences - Array de strings
-        belongings: data.pertences
-          ? data.pertences
-              .map((p) => p.nome)
-              .filter((nome) => nome && nome.trim())
-          : [],
+        // 8. Pertences - Removido (agora gerenciado via módulo ResidentBelongings)
+        // Acessível em: /dashboard/residentes/:id/pertences
 
         // 9. Acomodação - Apenas o bedId é necessário
         // O backend pode obter o roomId através do bedId
@@ -2356,66 +2337,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   </div>
 
                   {/* Seção: Pertences do Residente */}
-                  <h3 className="text-lg font-semibold mb-4 mt-8">
-                    Pertences do Residente
-                  </h3>
-                  <div className="mb-6">
-                    {pertencesFields.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3 p-3 bg-primary/5 border border-primary/20 rounded min-h-[60px]">
-                        {pertencesFields.map((field, index) => {
-                          const nome = watch(`pertences.${index}.nome`);
-                          return nome && nome.trim() ? (
-                            <div
-                              key={field.id}
-                              className="flex items-center gap-1 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm font-medium"
-                            >
-                              <span>{nome}</span>
-                              <button
-                                type="button"
-                                onClick={() => removePertence(index)}
-                                className="hover:opacity-80 ml-1"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Input
-                        ref={pertencesInputRef}
-                        placeholder="Adicionar pertence (ex: Roupas, Documentos, Objetos pessoais...)"
-                        className="flex-1"
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            e.currentTarget.value.trim()
-                          ) {
-                            e.preventDefault();
-                            appendPertence({ nome: e.currentTarget.value });
-                            e.currentTarget.value = "";
-                          }
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        size="default"
-                        onClick={() => {
-                          if (pertencesInputRef.current?.value.trim()) {
-                            appendPertence({
-                              nome: pertencesInputRef.current.value,
-                            });
-                            pertencesInputRef.current.value = "";
-                            pertencesInputRef.current.focus();
-                          }
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar
-                      </Button>
-                    </div>
-                  </div>
+                  {/* Seção: Pertences - Removida */}
+                  {/* Pertences agora são gerenciados no módulo próprio, acessível via menu do residente */}
+                  {/* Acesse: Menu do Residente (⋮) → Pertences */}
 
                   {/* Seção: Acomodação (Busca rápida de leito) */}
                   <h3 className="text-lg font-semibold mb-4">Acomodação</h3>

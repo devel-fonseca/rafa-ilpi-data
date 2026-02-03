@@ -469,8 +469,8 @@ export class ResidentsService {
             // 7. Convênios
             healthPlans: (createResidentDto.healthPlans || []) as unknown as Prisma.InputJsonValue,
 
-            // 8. Pertences
-            belongings: createResidentDto.belongings || [],
+            // 8. Pertences - Movido para módulo ResidentBelongings
+            // Agora gerenciado via /residents/:id/belongings
 
             // 9. Acomodação
             roomId: accommodation.roomId,
@@ -1054,7 +1054,6 @@ export class ResidentsService {
         legalGuardianDocuments,
         medicalReport,
         healthPlans,
-        belongings,
         roomId: _roomId,
         bedId: _bedId,
         tenantId: _tenantId, // Remove tenantId pois não pode ser atualizado
@@ -1080,7 +1079,6 @@ export class ResidentsService {
       if (legalGuardianDocuments !== undefined) dataToUpdate.legalGuardianDocuments = legalGuardianDocuments;
       if (medicalReport !== undefined) dataToUpdate.medicalReport = medicalReport;
       if (healthPlans !== undefined) dataToUpdate.healthPlans = healthPlans;
-      if (belongings !== undefined) dataToUpdate.belongings = belongings;
 
       // Adicionar acomodação validada se foi processada
       // ✅ IMPORTANTE: Sempre atualizar roomId e bedId, mesmo quando são null (remoção de leito)

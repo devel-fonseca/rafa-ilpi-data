@@ -399,12 +399,8 @@ export class CreateResidentDto {
   @IsOptional()
   healthPlans?: HealthPlanDto[] = [];
 
-  // 8. Pertences
-  @ApiProperty({ example: ['Relógio', 'Óculos'], type: [String] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  belongings?: string[] = [];
+  // 8. Pertences - Movido para módulo ResidentBelongings
+  // Agora gerenciado via /residents/:id/belongings com termos formais
 
   // 9. Acomodação
   @ApiProperty({ example: 'uuid-quarto', required: false })

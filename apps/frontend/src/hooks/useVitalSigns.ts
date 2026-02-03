@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import type { VitalSign, VitalSignsStatistics } from '@/api/vitalSigns.api'
-import { getVitalSignsByResident, getVitalSignsStatistics } from '@/api/vitalSigns.api'
+import type { VitalSign, VitalSignsStatistics } from '@/api/vital-signs.api'
+import { getVitalSignsByResident, getVitalSignsStatistics } from '@/api/vital-signs.api'
 import { tenantKey } from '@/lib/query-keys'
 
 // Usar endpoint de Daily Records para obter sinais vitais

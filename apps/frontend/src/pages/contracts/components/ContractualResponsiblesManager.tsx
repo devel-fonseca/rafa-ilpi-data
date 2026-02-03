@@ -38,10 +38,9 @@ export function ContractualResponsiblesManager({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Responsáveis Contratuais (Opcional)</CardTitle>
+        <CardTitle>Responsáveis Contratuais</CardTitle>
         <CardDescription>
-          Informe os responsáveis contratuais caso existam (ex: filhos, irmãos, curadores).
-          O sistema adicionará automaticamente a ILPI e o residente como signatários.
+          Informe os responsáveis contratuais caso existam (ex: filhos, irmãos, curadores)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -121,8 +121,8 @@ export default function ResidentContractsList() {
   return (
     <Page maxWidth="wide">
       <PageHeader
-        title="Contratos de Prestação de Serviços"
-        subtitle="Gerencie os contratos digitalizados dos residentes"
+        title="Contratos dos Residentes"
+        subtitle="Gerencie os contratos dos residentes"
         actions={
           canCreateContracts && (
             <Button onClick={() => navigate('/dashboard/contratos/novo')}>
@@ -132,6 +132,57 @@ export default function ResidentContractsList() {
           )
         }
       />
+
+      {/* Estatísticas */}
+      {contracts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold">{contracts.length}</p>
+              </div>
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Vigentes</p>
+                <p className="text-2xl font-bold text-success">
+                  {contracts.filter((c) => c.status === 'VIGENTE').length}
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-success" />
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Vencendo</p>
+                <p className="text-2xl font-bold text-warning">
+                  {
+                    contracts.filter((c) => c.status === 'VENCENDO_EM_30_DIAS')
+                      .length
+                  }
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-warning" />
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Vencidos</p>
+                <p className="text-2xl font-bold text-danger">
+                  {contracts.filter((c) => c.status === 'VENCIDO').length}
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-danger" />
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Filtros */}
       <Card className="p-4 mb-6">
@@ -296,57 +347,6 @@ export default function ResidentContractsList() {
           </div>
         )}
       </Card>
-
-      {/* Estatísticas (opcional) */}
-      {contracts.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold">{contracts.length}</p>
-              </div>
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Vigentes</p>
-                <p className="text-2xl font-bold text-success">
-                  {contracts.filter((c) => c.status === 'VIGENTE').length}
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-success" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Vencendo</p>
-                <p className="text-2xl font-bold text-warning">
-                  {
-                    contracts.filter((c) => c.status === 'VENCENDO_EM_30_DIAS')
-                      .length
-                  }
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-warning" />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Vencidos</p>
-                <p className="text-2xl font-bold text-danger">
-                  {contracts.filter((c) => c.status === 'VENCIDO').length}
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-danger" />
-            </div>
-          </Card>
-        </div>
-      )}
     </Page>
   )
 }
