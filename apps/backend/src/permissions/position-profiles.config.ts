@@ -336,10 +336,15 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.MANAGE_BEDS,
       // Relatórios
       PermissionType.VIEW_REPORTS,
+      // Pertences de Residentes
+      PermissionType.VIEW_BELONGINGS,
+      PermissionType.MANAGE_BELONGINGS,
       // Contratos de Residentes
       PermissionType.VIEW_CONTRACTS,
       PermissionType.CREATE_CONTRACTS,
       PermissionType.UPDATE_CONTRACTS,
+      // Perfil Institucional (somente visualização)
+      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
       // Agenda do Residente (somente visualização)
       PermissionType.VIEW_RESIDENT_SCHEDULE,
       // Escala de Cuidados (somente visualização)
@@ -611,6 +616,8 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_CONTRACTS,
       PermissionType.DELETE_CONTRACTS,
       PermissionType.REPLACE_CONTRACTS,
+      // Perfil Institucional (somente visualização)
+      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
       // POPs (somente visualização)
       PermissionType.VIEW_POPS,
       // Agenda do Residente (somente visualização)
