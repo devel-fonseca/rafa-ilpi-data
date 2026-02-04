@@ -19,6 +19,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SelectTenantDto } from './dto/select-tenant.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ReauthenticateDto } from './dto/reauthenticate.dto';
 import { Public } from './decorators/public.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -222,5 +223,58 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async me(@CurrentUser() user: JwtPayload) {
     return { user };
+  }
+
+  /**
+   * POST /auth/reauthenticate
+   * Gerar token de reautenticação para operações de alto risco
+   */
+  @ApiOperation({
+    summary: 'Reautenticar para operações de alto risco',
+    description:
+      'Valida a senha do usuário logado e retorna um token de reautenticação válido por 5 minutos. ' +
+      'Este token deve ser enviado no header X-Reauth-Token para executar operações críticas como exclusões, ' +
+      'exportações de dados sensíveis e alterações estruturais.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reautenticação bem-sucedida. Retorna token válido por 5 minutos',
+    schema: {
+      type: 'object',
+      properties: {
+        reauthToken: {
+          type: 'string',
+          description: 'Token de reautenticação (JWT)',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        expiresIn: {
+          type: 'number',
+          description: 'Tempo de validade em segundos',
+          example: 300,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Senha incorreta ou usuário não autenticado',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard)
+  @Post('reauthenticate')
+  @HttpCode(HttpStatus.OK)
+  async reauthenticate(
+    @CurrentUser() user: JwtPayload,
+    @Body() reauthenticateDto: ReauthenticateDto,
+    @Req() req: Request,
+  ) {
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    return this.authService.reauthenticate(
+      user.id,
+      reauthenticateDto.password,
+      ipAddress,
+      userAgent,
+    );
   }
 }

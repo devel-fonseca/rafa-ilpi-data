@@ -40,6 +40,6 @@ import { TenantsModule } from '../tenants/tenants.module';
     JwtRefreshStrategy,
     JwtCacheService,
   ],
-  exports: [AuthService, UsersService, JwtCacheService],
+  exports: [AuthService, UsersService, JwtCacheService, JwtModule],
 })
 export class AuthModule {}
