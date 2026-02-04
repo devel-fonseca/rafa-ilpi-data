@@ -414,7 +414,7 @@ class ResidentsAPI {
 
   async delete(id: string, deleteReason: string): Promise<{ message: string }> {
     const response = await api.delete(`/residents/${id}`, {
-      data: { deleteReason }
+      data: { changeReason: deleteReason }
     })
     return response.data
   }
