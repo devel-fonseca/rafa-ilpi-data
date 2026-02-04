@@ -35,14 +35,12 @@ export enum PermissionType {
   CREATE_RESIDENTS = 'CREATE_RESIDENTS',
   UPDATE_RESIDENTS = 'UPDATE_RESIDENTS',
   DELETE_RESIDENTS = 'DELETE_RESIDENTS',
-  EXPORT_RESIDENTS = 'EXPORT_RESIDENTS',
 
   // Daily Records
   VIEW_DAILY_RECORDS = 'VIEW_DAILY_RECORDS',
   CREATE_DAILY_RECORDS = 'CREATE_DAILY_RECORDS',
   UPDATE_DAILY_RECORDS = 'UPDATE_DAILY_RECORDS',
   DELETE_DAILY_RECORDS = 'DELETE_DAILY_RECORDS',
-  EXPORT_DAILY_RECORDS = 'EXPORT_DAILY_RECORDS',
 
   // Prescriptions
   VIEW_PRESCRIPTIONS = 'VIEW_PRESCRIPTIONS',
@@ -63,7 +61,6 @@ export enum PermissionType {
 
   // Vital Signs
   VIEW_VITAL_SIGNS = 'VIEW_VITAL_SIGNS',
-  CREATE_VITAL_SIGNS = 'CREATE_VITAL_SIGNS',
   RECORD_VITAL_SIGNS = 'RECORD_VITAL_SIGNS',
 
   // Clinical Notes (SOAP)
@@ -97,19 +94,36 @@ export enum PermissionType {
 
   // Documents
   VIEW_DOCUMENTS = 'VIEW_DOCUMENTS',
-  CREATE_DOCUMENTS = 'CREATE_DOCUMENTS',
-  UPDATE_DOCUMENTS = 'UPDATE_DOCUMENTS',
+  UPLOAD_DOCUMENTS = 'UPLOAD_DOCUMENTS',
   DELETE_DOCUMENTS = 'DELETE_DOCUMENTS',
 
-  // Infrastructure
-  MANAGE_BUILDINGS = 'MANAGE_BUILDINGS',
-  MANAGE_FLOORS = 'MANAGE_FLOORS',
-  MANAGE_ROOMS = 'MANAGE_ROOMS',
+  // Beds
+  VIEW_BEDS = 'VIEW_BEDS',
   MANAGE_BEDS = 'MANAGE_BEDS',
 
+  // Infrastructure
+  MANAGE_INFRASTRUCTURE = 'MANAGE_INFRASTRUCTURE',
+
   // Users & Permissions
-  MANAGE_USERS = 'MANAGE_USERS',
+  VIEW_USERS = 'VIEW_USERS',
+  CREATE_USERS = 'CREATE_USERS',
+  UPDATE_USERS = 'UPDATE_USERS',
+  DELETE_USERS = 'DELETE_USERS',
   MANAGE_PERMISSIONS = 'MANAGE_PERMISSIONS',
+
+  // Reports and Audit
+  VIEW_REPORTS = 'VIEW_REPORTS',
+  EXPORT_DATA = 'EXPORT_DATA',
+  VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
+
+  // Conformidade RDC 502/2021
+  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
+  MANAGE_COMPLIANCE_ASSESSMENT = 'MANAGE_COMPLIANCE_ASSESSMENT',
+  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
+
+  // Institutional Settings
+  VIEW_INSTITUTIONAL_SETTINGS = 'VIEW_INSTITUTIONAL_SETTINGS',
+  UPDATE_INSTITUTIONAL_SETTINGS = 'UPDATE_INSTITUTIONAL_SETTINGS',
 
   // Institutional Profile
   VIEW_INSTITUTIONAL_PROFILE = 'VIEW_INSTITUTIONAL_PROFILE',
@@ -123,31 +137,32 @@ export enum PermissionType {
   PUBLISH_POPS = 'PUBLISH_POPS',
   MANAGE_POPS = 'MANAGE_POPS',
 
-  // Contratos de Prestação de Serviços
+  // Contratos de Residentes
   VIEW_CONTRACTS = 'VIEW_CONTRACTS',
   CREATE_CONTRACTS = 'CREATE_CONTRACTS',
   UPDATE_CONTRACTS = 'UPDATE_CONTRACTS',
   REPLACE_CONTRACTS = 'REPLACE_CONTRACTS',
   DELETE_CONTRACTS = 'DELETE_CONTRACTS',
-  VALIDATE_CONTRACTS = 'VALIDATE_CONTRACTS',
 
   // Agenda do Residente
   VIEW_RESIDENT_SCHEDULE = 'VIEW_RESIDENT_SCHEDULE',
   MANAGE_RESIDENT_SCHEDULE = 'MANAGE_RESIDENT_SCHEDULE',
 
-  // Belongings (Pertences de Residentes)
+  // Pertences de Residentes
   VIEW_BELONGINGS = 'VIEW_BELONGINGS',
   MANAGE_BELONGINGS = 'MANAGE_BELONGINGS',
 
-  // Reports and Audit
-  VIEW_REPORTS = 'VIEW_REPORTS',
-  EXPORT_DATA = 'EXPORT_DATA',
-  VIEW_AUDIT_LOGS = 'VIEW_AUDIT_LOGS',
+  // Eventos Institucionais
+  VIEW_INSTITUTIONAL_EVENTS = 'VIEW_INSTITUTIONAL_EVENTS',
+  CREATE_INSTITUTIONAL_EVENTS = 'CREATE_INSTITUTIONAL_EVENTS',
+  UPDATE_INSTITUTIONAL_EVENTS = 'UPDATE_INSTITUTIONAL_EVENTS',
+  DELETE_INSTITUTIONAL_EVENTS = 'DELETE_INSTITUTIONAL_EVENTS',
 
-  // Conformidade RDC 502/2021 (acesso restrito a gestores)
-  VIEW_COMPLIANCE_DASHBOARD = 'VIEW_COMPLIANCE_DASHBOARD',
-  MANAGE_COMPLIANCE_ASSESSMENT = 'MANAGE_COMPLIANCE_ASSESSMENT',
-  VIEW_SENTINEL_EVENTS = 'VIEW_SENTINEL_EVENTS',
+  // Mensagens Internas
+  VIEW_MESSAGES = 'VIEW_MESSAGES',
+  SEND_MESSAGES = 'SEND_MESSAGES',
+  DELETE_MESSAGES = 'DELETE_MESSAGES',
+  BROADCAST_MESSAGES = 'BROADCAST_MESSAGES',
 
   // Escalas e Plantões (Gestão de Turnos e Equipes)
   VIEW_CARE_SHIFTS = 'VIEW_CARE_SHIFTS',
@@ -215,13 +230,11 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.CREATE_RESIDENTS]: 'Cadastrar residentes',
   [PermissionType.UPDATE_RESIDENTS]: 'Editar residentes',
   [PermissionType.DELETE_RESIDENTS]: 'Remover residentes',
-  [PermissionType.EXPORT_RESIDENTS]: 'Exportar dados de residentes',
 
   [PermissionType.VIEW_DAILY_RECORDS]: 'Visualizar registros diários',
   [PermissionType.CREATE_DAILY_RECORDS]: 'Criar registros diários',
   [PermissionType.UPDATE_DAILY_RECORDS]: 'Editar registros diários',
   [PermissionType.DELETE_DAILY_RECORDS]: 'Excluir registros diários',
-  [PermissionType.EXPORT_DAILY_RECORDS]: 'Exportar registros diários',
 
   [PermissionType.VIEW_PRESCRIPTIONS]: 'Visualizar prescrições',
   [PermissionType.CREATE_PRESCRIPTIONS]: 'Criar prescrições',
@@ -238,7 +251,6 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.DELETE_VACCINATIONS]: 'Excluir vacinações',
 
   [PermissionType.VIEW_VITAL_SIGNS]: 'Visualizar sinais vitais',
-  [PermissionType.CREATE_VITAL_SIGNS]: 'Registrar sinais vitais',
   [PermissionType.RECORD_VITAL_SIGNS]: 'Registrar sinais vitais',
 
   [PermissionType.VIEW_CLINICAL_NOTES]: 'Visualizar evoluções clínicas',
@@ -266,17 +278,30 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.DELETE_DIETARY_RESTRICTIONS]: 'Excluir restrições alimentares',
 
   [PermissionType.VIEW_DOCUMENTS]: 'Visualizar documentos',
-  [PermissionType.CREATE_DOCUMENTS]: 'Upload de documentos',
-  [PermissionType.UPDATE_DOCUMENTS]: 'Editar documentos',
+  [PermissionType.UPLOAD_DOCUMENTS]: 'Upload de documentos',
   [PermissionType.DELETE_DOCUMENTS]: 'Excluir documentos',
 
-  [PermissionType.MANAGE_BUILDINGS]: 'Gerenciar prédios',
-  [PermissionType.MANAGE_FLOORS]: 'Gerenciar andares',
-  [PermissionType.MANAGE_ROOMS]: 'Gerenciar quartos',
+  [PermissionType.VIEW_BEDS]: 'Visualizar leitos',
   [PermissionType.MANAGE_BEDS]: 'Gerenciar leitos',
 
-  [PermissionType.MANAGE_USERS]: 'Gerenciar usuários',
+  [PermissionType.MANAGE_INFRASTRUCTURE]: 'Gerenciar infraestrutura',
+
+  [PermissionType.VIEW_USERS]: 'Visualizar usuários',
+  [PermissionType.CREATE_USERS]: 'Criar usuários',
+  [PermissionType.UPDATE_USERS]: 'Editar usuários',
+  [PermissionType.DELETE_USERS]: 'Excluir usuários',
   [PermissionType.MANAGE_PERMISSIONS]: 'Gerenciar permissões',
+
+  [PermissionType.VIEW_REPORTS]: 'Visualizar relatórios',
+  [PermissionType.EXPORT_DATA]: 'Exportar dados',
+  [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
+
+  [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
+  [PermissionType.MANAGE_COMPLIANCE_ASSESSMENT]: 'Gerenciar autodiagnósticos RDC 502/2021',
+  [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
+
+  [PermissionType.VIEW_INSTITUTIONAL_SETTINGS]: 'Visualizar configurações institucionais',
+  [PermissionType.UPDATE_INSTITUTIONAL_SETTINGS]: 'Editar configurações institucionais',
 
   [PermissionType.VIEW_INSTITUTIONAL_PROFILE]: 'Visualizar perfil institucional',
   [PermissionType.UPDATE_INSTITUTIONAL_PROFILE]: 'Editar perfil institucional',
@@ -293,7 +318,6 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.UPDATE_CONTRACTS]: 'Editar contratos',
   [PermissionType.REPLACE_CONTRACTS]: 'Substituir arquivo do contrato',
   [PermissionType.DELETE_CONTRACTS]: 'Excluir contratos',
-  [PermissionType.VALIDATE_CONTRACTS]: 'Validar autenticidade de contratos',
 
   [PermissionType.VIEW_RESIDENT_SCHEDULE]: 'Visualizar agenda do residente',
   [PermissionType.MANAGE_RESIDENT_SCHEDULE]: 'Gerenciar agenda do residente',
@@ -301,13 +325,15 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.VIEW_BELONGINGS]: 'Visualizar pertences',
   [PermissionType.MANAGE_BELONGINGS]: 'Gerenciar pertences',
 
-  [PermissionType.VIEW_REPORTS]: 'Visualizar relatórios',
-  [PermissionType.EXPORT_DATA]: 'Exportar dados',
-  [PermissionType.VIEW_AUDIT_LOGS]: 'Visualizar logs de auditoria',
+  [PermissionType.VIEW_INSTITUTIONAL_EVENTS]: 'Visualizar eventos institucionais',
+  [PermissionType.CREATE_INSTITUTIONAL_EVENTS]: 'Criar eventos institucionais',
+  [PermissionType.UPDATE_INSTITUTIONAL_EVENTS]: 'Editar eventos institucionais',
+  [PermissionType.DELETE_INSTITUTIONAL_EVENTS]: 'Excluir eventos institucionais',
 
-  [PermissionType.VIEW_COMPLIANCE_DASHBOARD]: 'Visualizar dashboard de conformidade RDC',
-  [PermissionType.MANAGE_COMPLIANCE_ASSESSMENT]: 'Gerenciar autodiagnósticos RDC 502/2021',
-  [PermissionType.VIEW_SENTINEL_EVENTS]: 'Visualizar e gerenciar eventos sentinela',
+  [PermissionType.VIEW_MESSAGES]: 'Visualizar mensagens',
+  [PermissionType.SEND_MESSAGES]: 'Enviar mensagens',
+  [PermissionType.DELETE_MESSAGES]: 'Excluir mensagens',
+  [PermissionType.BROADCAST_MESSAGES]: 'Enviar mensagens em massa',
 
   [PermissionType.VIEW_CARE_SHIFTS]: 'Visualizar plantões',
   [PermissionType.CREATE_CARE_SHIFTS]: 'Criar plantões',
@@ -326,7 +352,6 @@ export const PERMISSION_GROUPS = {
       PermissionType.CREATE_RESIDENTS,
       PermissionType.UPDATE_RESIDENTS,
       PermissionType.DELETE_RESIDENTS,
-      PermissionType.EXPORT_RESIDENTS,
     ],
   },
   dailyRecords: {
@@ -336,7 +361,6 @@ export const PERMISSION_GROUPS = {
       PermissionType.CREATE_DAILY_RECORDS,
       PermissionType.UPDATE_DAILY_RECORDS,
       PermissionType.DELETE_DAILY_RECORDS,
-      PermissionType.EXPORT_DAILY_RECORDS,
     ],
   },
   prescriptions: {
@@ -367,24 +391,98 @@ export const PERMISSION_GROUPS = {
   },
   vitalSigns: {
     label: 'Sinais Vitais',
-    permissions: [PermissionType.VIEW_VITAL_SIGNS, PermissionType.CREATE_VITAL_SIGNS],
+    permissions: [PermissionType.VIEW_VITAL_SIGNS, PermissionType.RECORD_VITAL_SIGNS],
+  },
+  clinicalNotes: {
+    label: 'Evoluções Clínicas',
+    permissions: [
+      PermissionType.VIEW_CLINICAL_NOTES,
+      PermissionType.CREATE_CLINICAL_NOTES,
+      PermissionType.UPDATE_CLINICAL_NOTES,
+      PermissionType.DELETE_CLINICAL_NOTES,
+    ],
+  },
+  clinicalProfile: {
+    label: 'Perfil Clínico',
+    permissions: [
+      PermissionType.VIEW_CLINICAL_PROFILE,
+      PermissionType.CREATE_CLINICAL_PROFILE,
+      PermissionType.UPDATE_CLINICAL_PROFILE,
+    ],
+  },
+  allergies: {
+    label: 'Alergias',
+    permissions: [
+      PermissionType.VIEW_ALLERGIES,
+      PermissionType.CREATE_ALLERGIES,
+      PermissionType.UPDATE_ALLERGIES,
+      PermissionType.DELETE_ALLERGIES,
+    ],
+  },
+  conditions: {
+    label: 'Condições Crônicas',
+    permissions: [
+      PermissionType.VIEW_CONDITIONS,
+      PermissionType.CREATE_CONDITIONS,
+      PermissionType.UPDATE_CONDITIONS,
+      PermissionType.DELETE_CONDITIONS,
+    ],
+  },
+  dietaryRestrictions: {
+    label: 'Restrições Alimentares',
+    permissions: [
+      PermissionType.VIEW_DIETARY_RESTRICTIONS,
+      PermissionType.CREATE_DIETARY_RESTRICTIONS,
+      PermissionType.UPDATE_DIETARY_RESTRICTIONS,
+      PermissionType.DELETE_DIETARY_RESTRICTIONS,
+    ],
   },
   documents: {
     label: 'Documentos',
     permissions: [
       PermissionType.VIEW_DOCUMENTS,
-      PermissionType.CREATE_DOCUMENTS,
-      PermissionType.UPDATE_DOCUMENTS,
+      PermissionType.UPLOAD_DOCUMENTS,
       PermissionType.DELETE_DOCUMENTS,
     ],
   },
+  beds: {
+    label: 'Leitos',
+    permissions: [PermissionType.VIEW_BEDS, PermissionType.MANAGE_BEDS],
+  },
   infrastructure: {
     label: 'Infraestrutura',
+    permissions: [PermissionType.MANAGE_INFRASTRUCTURE],
+  },
+  users: {
+    label: 'Usuários',
     permissions: [
-      PermissionType.MANAGE_BUILDINGS,
-      PermissionType.MANAGE_FLOORS,
-      PermissionType.MANAGE_ROOMS,
-      PermissionType.MANAGE_BEDS,
+      PermissionType.VIEW_USERS,
+      PermissionType.CREATE_USERS,
+      PermissionType.UPDATE_USERS,
+      PermissionType.DELETE_USERS,
+      PermissionType.MANAGE_PERMISSIONS,
+    ],
+  },
+  reports: {
+    label: 'Relatórios e Auditoria',
+    permissions: [
+      PermissionType.VIEW_REPORTS,
+      PermissionType.EXPORT_DATA,
+      PermissionType.VIEW_AUDIT_LOGS,
+    ],
+  },
+  institutionalSettings: {
+    label: 'Configurações Institucionais',
+    permissions: [
+      PermissionType.VIEW_INSTITUTIONAL_SETTINGS,
+      PermissionType.UPDATE_INSTITUTIONAL_SETTINGS,
+    ],
+  },
+  institutionalProfile: {
+    label: 'Perfil Institucional',
+    permissions: [
+      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
+      PermissionType.UPDATE_INSTITUTIONAL_PROFILE,
     ],
   },
   pops: {
@@ -399,14 +497,13 @@ export const PERMISSION_GROUPS = {
     ],
   },
   contracts: {
-    label: 'Contratos de Prestação de Serviços',
+    label: 'Contratos de Residentes',
     permissions: [
       PermissionType.VIEW_CONTRACTS,
       PermissionType.CREATE_CONTRACTS,
       PermissionType.UPDATE_CONTRACTS,
       PermissionType.REPLACE_CONTRACTS,
       PermissionType.DELETE_CONTRACTS,
-      PermissionType.VALIDATE_CONTRACTS,
     ],
   },
   residentSchedule: {
@@ -418,26 +515,24 @@ export const PERMISSION_GROUPS = {
   },
   belongings: {
     label: 'Pertences de Residentes',
+    permissions: [PermissionType.VIEW_BELONGINGS, PermissionType.MANAGE_BELONGINGS],
+  },
+  institutionalEvents: {
+    label: 'Eventos Institucionais',
     permissions: [
-      PermissionType.VIEW_BELONGINGS,
-      PermissionType.MANAGE_BELONGINGS,
+      PermissionType.VIEW_INSTITUTIONAL_EVENTS,
+      PermissionType.CREATE_INSTITUTIONAL_EVENTS,
+      PermissionType.UPDATE_INSTITUTIONAL_EVENTS,
+      PermissionType.DELETE_INSTITUTIONAL_EVENTS,
     ],
   },
-  reports: {
-    label: 'Relatórios',
+  messages: {
+    label: 'Mensagens Internas',
     permissions: [
-      PermissionType.VIEW_REPORTS,
-      PermissionType.EXPORT_DATA,
-    ],
-  },
-  administration: {
-    label: 'Administração',
-    permissions: [
-      PermissionType.MANAGE_USERS,
-      PermissionType.MANAGE_PERMISSIONS,
-      PermissionType.VIEW_INSTITUTIONAL_PROFILE,
-      PermissionType.UPDATE_INSTITUTIONAL_PROFILE,
-      PermissionType.VIEW_AUDIT_LOGS,
+      PermissionType.VIEW_MESSAGES,
+      PermissionType.SEND_MESSAGES,
+      PermissionType.DELETE_MESSAGES,
+      PermissionType.BROADCAST_MESSAGES,
     ],
   },
   compliance: {
