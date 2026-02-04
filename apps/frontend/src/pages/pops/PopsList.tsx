@@ -32,17 +32,7 @@ import {
 } from '../../components/ui/select'
 import { Input } from '../../components/ui/input'
 import { Card, CardContent } from '../../components/ui/card'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../components/ui/alert-dialog'
-import { usePops, useDeletePop, usePopCategories } from '../../hooks/usePops'
+import { usePops, usePopCategories } from '../../hooks/usePops'
 import {
   PopStatus,
   PopCategory,
@@ -50,18 +40,20 @@ import {
   PopCategoryLabels,
   PopStatusColors,
   type FilterPopsDto,
+  type Pop,
 } from '../../types/pop.types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { DeletePOPModal } from '../../components/modals/DeletePOPModal'
 
 export default function PopsList() {
   const navigate = useNavigate()
   const [filters, setFilters] = useState<FilterPopsDto>({})
-  const [deletePopId, setDeletePopId] = useState<string | null>(null)
+  const [popToDelete, setPopToDelete] = useState<Pop | undefined>(undefined)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const { data: pops, isLoading } = usePops(filters)
   const { data: categories = [] } = usePopCategories()
-  const deletePop = useDeletePop()
 
   const handleFilterChange = (key: keyof FilterPopsDto, value: unknown) => {
     setFilters((prev) => ({
@@ -70,11 +62,13 @@ export default function PopsList() {
     }))
   }
 
-  const handleDelete = async () => {
-    if (deletePopId) {
-      await deletePop.mutateAsync(deletePopId)
-      setDeletePopId(null)
-    }
+  const handleDeleteClick = (pop: Pop) => {
+    setPopToDelete(pop)
+    setDeleteModalOpen(true)
+  }
+
+  const handleDeleteSuccess = () => {
+    // Queries serão invalidadas automaticamente pelo modal
   }
 
   const getStatusIcon = (status: PopStatus) => {
@@ -307,7 +301,7 @@ export default function PopsList() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setDeletePopId(pop.id)}
+                            onClick={() => handleDeleteClick(pop)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -324,30 +318,13 @@ export default function PopsList() {
         </Section>
       </Page>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deletePopId}
-        onOpenChange={(open) => !open && setDeletePopId(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este POP? Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation Modal */}
+      <DeletePOPModal
+        pop={popToDelete}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
     </>
   )
 }

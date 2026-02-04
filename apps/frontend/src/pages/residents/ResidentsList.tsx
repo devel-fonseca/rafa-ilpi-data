@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { extractDateOnly } from '@/utils/dateHelpers'
-import { useResidents, useDeleteResident, useResidentStats } from '@/hooks/useResidents'
+import { useResidents, useResidentStats } from '@/hooks/useResidents'
 import type { Resident } from '@/api/residents.api'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { ResidentDocumentsModal } from '@/components/residents/ResidentDocumentsModal'
+import { DeleteResidentModal } from '@/components/modals/DeleteResidentModal'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
 import {
   Table,
@@ -35,16 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import {
   Search,
@@ -78,10 +68,8 @@ export default function ResidentsList() {
   const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; resident: Resident | null }>({
-    open: false,
-    resident: null,
-  })
+  const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [historyDrawer, setHistoryDrawer] = useState<{
     open: boolean
     residentId: string | null
@@ -98,8 +86,6 @@ export default function ResidentsList() {
     open: false,
     residentId: null,
   })
-  const [deleteChangeReason, setDeleteChangeReason] = useState('')
-  const [deleteReasonError, setDeleteReasonError] = useState('')
 
   // Detectar state de navegação para abrir modal automaticamente após criação
   useEffect(() => {
@@ -121,7 +107,6 @@ export default function ResidentsList() {
   })
 
   const { data: stats } = useResidentStats()
-  const deleteMutation = useDeleteResident()
 
   // Verificar se o usuário tem permissão para gerenciar residentes
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
@@ -149,36 +134,12 @@ export default function ResidentsList() {
     })
   }
 
-  // Confirmar exclusão
-  const handleDelete = async () => {
-    if (!deleteModal.resident) return
-
-    // Validar changeReason (mínimo 10 caracteres)
-    const trimmedReason = deleteChangeReason.trim()
-    if (trimmedReason.length < 10) {
-      setDeleteReasonError('Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)')
-      return
-    }
-
-    try {
-      await deleteMutation.mutateAsync({
-        id: deleteModal.resident.id,
-        deleteReason: deleteChangeReason,
-      })
-      toast({
-        title: 'Sucesso',
-        description: 'Residente removido com sucesso',
-      })
-      setDeleteModal({ open: false, resident: null })
-      setDeleteChangeReason('')
-      setDeleteReasonError('')
-    } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao remover residente',
-        variant: 'destructive',
-      })
-    }
+  // Handler de sucesso após exclusão
+  const handleDeleteSuccess = () => {
+    toast({
+      title: 'Sucesso',
+      description: 'Residente removido com sucesso',
+    })
   }
 
   // Calcular idade
@@ -515,7 +476,10 @@ export default function ResidentsList() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-danger"
-                              onClick={() => setDeleteModal({ open: true, resident })}
+                              onClick={() => {
+                                setResidentToDelete(resident)
+                                setDeleteModalOpen(true)
+                              }}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Remover
@@ -563,79 +527,12 @@ export default function ResidentsList() {
       </Section>
 
       {/* Delete Confirmation Modal */}
-      <AlertDialog
-        open={deleteModal.open}
-        onOpenChange={(open) => {
-          setDeleteModal({ open, resident: null })
-          if (!open) {
-            setDeleteChangeReason('')
-            setDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover o residente{' '}
-              <strong>{deleteModal.resident?.fullName}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Campo de Motivo da Exclusão - Obrigatório (RDC 502/2021) */}
-          <div className="space-y-3 py-4">
-            <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4">
-              <p className="text-sm text-warning/90 dark:text-warning font-medium mb-2">
-                ⚠️ Atenção: Remoção Permanente
-              </p>
-              <p className="text-sm text-warning/80 dark:text-warning/90">
-                Conforme RDC 502/2021 Art. 39, é obrigatório documentar o motivo da remoção do prontuário.
-                Esta ação ficará registrada permanentemente no histórico de auditoria.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deleteChangeReason" className="text-base font-semibold">
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="deleteChangeReason"
-                placeholder="Ex: Falecimento do residente em 12/12/2025 - Atestado de óbito nº 123456..."
-                value={deleteChangeReason}
-                onChange={(e) => {
-                  setDeleteChangeReason(e.target.value)
-                  setDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${deleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {deleteReasonError && (
-                <p className="text-sm text-danger mt-2">{deleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setDeleteChangeReason('')
-                setDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-danger hover:bg-danger/90"
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Removendo...' : 'Remover Definitivamente'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteResidentModal
+        resident={residentToDelete}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Drawer de Histórico */}
       <ResidentHistoryDrawer

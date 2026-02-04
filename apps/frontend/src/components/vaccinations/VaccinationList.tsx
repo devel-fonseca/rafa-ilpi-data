@@ -1,29 +1,17 @@
 import { useState, useRef } from 'react'
 import { formatDateLongSafe, extractDateOnly } from '@/utils/dateHelpers'
-import { Trash2, Edit2, Plus, Eye, Loader2, Printer, ShieldAlert } from 'lucide-react'
+import { Trash2, Edit2, Plus, Eye, Loader2, Printer } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
 import { useVaccinationsByResident, Vaccination } from '@/hooks/useVaccinations'
-import { useDeleteVaccination } from '@/hooks/useVaccinationVersioning'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { VaccinationForm } from './VaccinationForm'
 import { VaccinationPrintView } from './VaccinationPrintView'
 import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
+import { DeleteVaccinationModal } from '@/components/modals/DeleteVaccinationModal'
 
 interface VaccinationListProps {
   residentId: string
@@ -34,8 +22,7 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
   const [formOpen, setFormOpen] = useState(false)
   const [selectedVaccination, setSelectedVaccination] = useState<Vaccination | undefined>(undefined)
   const [deletingVaccination, setDeletingVaccination] = useState<Vaccination | undefined>(undefined)
-  const [deleteReason, setDeleteReason] = useState('')
-  const [deleteReasonError, setDeleteReasonError] = useState('')
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [documentViewerOpen, setDocumentViewerOpen] = useState(false)
   const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string>('')
   const [selectedDocumentTitle, setSelectedDocumentTitle] = useState<string>('Comprovante de Vacinação')
@@ -48,7 +35,6 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
   const canDelete = hasPermission(PermissionType.DELETE_VACCINATIONS)
 
   const { data: vaccinations = [], isLoading, error } = useVaccinationsByResident(residentId)
-  const deleteMutation = useDeleteVaccination()
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -62,32 +48,11 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
 
   const handleDelete = (vaccination: Vaccination) => {
     setDeletingVaccination(vaccination)
+    setDeleteModalOpen(true)
   }
 
-  const handleConfirmDelete = async () => {
-    if (!deletingVaccination) return
-
-    // Validação do motivo da exclusão
-    const trimmedReason = deleteReason.trim()
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setDeleteReasonError(
-        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
-      )
-      return
-    }
-
-    try {
-      await deleteMutation.mutateAsync({
-        id: deletingVaccination.id,
-        deleteReason: trimmedReason,
-      })
-      setDeletingVaccination(undefined)
-      setDeleteReason('')
-      setDeleteReasonError('')
-      // Sucesso é tratado automaticamente pelo hook (toast)
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-    }
+  const handleDeleteSuccess = () => {
+    // Queries serão invalidadas automaticamente pelo modal
   }
 
   const handleFormClose = () => {
@@ -197,7 +162,6 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(vaccination)}
-                      disabled={deleteMutation.isPending}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -207,7 +171,6 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(vaccination)}
-                      disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -296,87 +259,13 @@ export function VaccinationList({ residentId, residentName }: VaccinationListPro
         <VaccinationPrintView residentId={residentId} vaccinations={sortedVaccinations} />
       </div>
 
-      {/* AlertDialog para Confirmação de Delete */}
-      <AlertDialog
-        open={!!deletingVaccination}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingVaccination(undefined)
-            setDeleteReason('')
-            setDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Vacinação</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o registro de vacinação "{deletingVaccination?.vaccine}"
-              ({deletingVaccination?.dose})?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de
-                  auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="deleteReason"
-                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
-              >
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="deleteReason"
-                placeholder="Ex: Registro duplicado - vacinação já estava cadastrada no sistema..."
-                value={deleteReason}
-                onChange={(e) => {
-                  setDeleteReason(e.target.value)
-                  setDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${deleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {deleteReasonError && (
-                <p className="text-sm text-danger mt-2">{deleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
-                histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setDeleteReason('')
-                setDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Modal de Confirmação de Delete */}
+      <DeleteVaccinationModal
+        vaccination={deletingVaccination}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Modal de Visualização de Comprovante */}
       <DocumentViewerModal

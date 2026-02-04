@@ -2,41 +2,29 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Plus, Edit, Trash2, ShieldAlert, Accessibility } from 'lucide-react'
+import { Loader2, Plus, Edit, Trash2, Accessibility } from 'lucide-react'
 import { useClinicalProfile } from '@/hooks/useClinicalProfiles'
 import { useResident } from '@/hooks/useResidents'
 import {
   useAllergiesByResident,
-  useDeleteAllergy,
 } from '@/hooks/useAllergies'
 import {
   useConditionsByResident,
-  useDeleteCondition,
 } from '@/hooks/useConditions'
 import {
   useDietaryRestrictionsByResident,
-  useDeleteDietaryRestriction,
 } from '@/hooks/useDietaryRestrictions'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { EditClinicalProfileModal } from './EditClinicalProfileModal'
 import { AllergyModal } from './AllergyModal'
 import { ConditionModal } from './ConditionModal'
 import { DietaryRestrictionModal } from './DietaryRestrictionModal'
+import { DeleteAllergyModal } from '@/components/modals/DeleteAllergyModal'
+import { DeleteConditionModal } from '@/components/modals/DeleteConditionModal'
+import { DeleteDietaryRestrictionModal } from '@/components/modals/DeleteDietaryRestrictionModal'
 import type { Allergy } from '@/api/allergies.api'
 import type { Condition } from '@/api/conditions.api'
 import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 interface ClinicalProfileTabProps {
   residentId: string
@@ -74,16 +62,11 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
 
   // Estados para delete
   const [deletingAllergy, setDeletingAllergy] = useState<Allergy | undefined>()
+  const [deleteAllergyModalOpen, setDeleteAllergyModalOpen] = useState(false)
   const [deletingCondition, setDeletingCondition] = useState<Condition | undefined>()
+  const [deleteConditionModalOpen, setDeleteConditionModalOpen] = useState(false)
   const [deletingRestriction, setDeletingRestriction] = useState<DietaryRestriction | undefined>()
-
-  // Estados para deleteReason (versionamento)
-  const [allergyDeleteReason, setAllergyDeleteReason] = useState('')
-  const [allergyDeleteReasonError, setAllergyDeleteReasonError] = useState('')
-  const [conditionDeleteReason, setConditionDeleteReason] = useState('')
-  const [conditionDeleteReasonError, setConditionDeleteReasonError] = useState('')
-  const [restrictionDeleteReason, setRestrictionDeleteReason] = useState('')
-  const [restrictionDeleteReasonError, setRestrictionDeleteReasonError] = useState('')
+  const [deleteRestrictionModalOpen, setDeleteRestrictionModalOpen] = useState(false)
 
   // Verificar permissões do usuário
   const { hasPermission } = usePermissions()
@@ -121,11 +104,6 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   const canUpdateRestrictions = hasPermission(PermissionType.UPDATE_DIETARY_RESTRICTIONS)
   const canDeleteRestrictions = hasPermission(PermissionType.DELETE_DIETARY_RESTRICTIONS)
 
-  // Mutations para delete
-  const deleteAllergyMutation = useDeleteAllergy()
-  const deleteConditionMutation = useDeleteCondition()
-  const deleteRestrictionMutation = useDeleteDietaryRestriction()
-
   const isLoading =
     residentLoading || profileLoading || allergiesLoading || conditionsLoading || restrictionsLoading
 
@@ -162,79 +140,16 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   }
 
   // Handlers para delete
-  const handleConfirmDeleteAllergy = async () => {
-    if (!deletingAllergy) return
-
-    // Validação do motivo da exclusão
-    const trimmedReason = allergyDeleteReason.trim()
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setAllergyDeleteReasonError(
-        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
-      )
-      return
-    }
-
-    try {
-      await deleteAllergyMutation.mutateAsync({
-        id: deletingAllergy.id,
-        deleteReason: trimmedReason,
-      })
-      setDeletingAllergy(undefined)
-      setAllergyDeleteReason('')
-      setAllergyDeleteReasonError('')
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-    }
+  const handleAllergyDeleteSuccess = () => {
+    // Callback vazio - o modal já trata o toast de sucesso
   }
 
-  const handleConfirmDeleteCondition = async () => {
-    if (!deletingCondition) return
-
-    // Validação do motivo da exclusão
-    const trimmedReason = conditionDeleteReason.trim()
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setConditionDeleteReasonError(
-        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
-      )
-      return
-    }
-
-    try {
-      await deleteConditionMutation.mutateAsync({
-        id: deletingCondition.id,
-        deleteReason: trimmedReason,
-      })
-      setDeletingCondition(undefined)
-      setConditionDeleteReason('')
-      setConditionDeleteReasonError('')
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-    }
+  const handleConditionDeleteSuccess = () => {
+    // Callback vazio - o modal já trata o toast de sucesso
   }
 
-  const handleConfirmDeleteRestriction = async () => {
-    if (!deletingRestriction) return
-
-    // Validação do motivo da exclusão
-    const trimmedReason = restrictionDeleteReason.trim()
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setRestrictionDeleteReasonError(
-        'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)'
-      )
-      return
-    }
-
-    try {
-      await deleteRestrictionMutation.mutateAsync({
-        id: deletingRestriction.id,
-        deleteReason: trimmedReason,
-      })
-      setDeletingRestriction(undefined)
-      setRestrictionDeleteReason('')
-      setRestrictionDeleteReasonError('')
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-    }
+  const handleRestrictionDeleteSuccess = () => {
+    // Callback vazio - o modal já trata o toast de sucesso
   }
 
   if (isLoading) {
@@ -393,7 +308,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setDeletingAllergy(allergy)}
+                          onClick={() => {
+                            setDeletingAllergy(allergy)
+                            setDeleteAllergyModalOpen(true)
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -463,7 +381,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setDeletingCondition(condition)}
+                          onClick={() => {
+                            setDeletingCondition(condition)
+                            setDeleteConditionModalOpen(true)
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -531,7 +452,10 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setDeletingRestriction(restriction)}
+                          onClick={() => {
+                            setDeletingRestriction(restriction)
+                            setDeleteRestrictionModalOpen(true)
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -579,246 +503,29 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
         restriction={editingRestriction}
       />
 
-      {/* AlertDialogs para Confirmação de Delete */}
-      <AlertDialog
-        open={!!deletingAllergy}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingAllergy(undefined)
-            setAllergyDeleteReason('')
-            setAllergyDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Alergia</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a alergia a "{deletingAllergy?.substance}"?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+      {/* Modal de Confirmação de Delete - Alergia */}
+      <DeleteAllergyModal
+        allergy={deletingAllergy}
+        open={deleteAllergyModalOpen}
+        onOpenChange={setDeleteAllergyModalOpen}
+        onSuccess={handleAllergyDeleteSuccess}
+      />
 
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de
-                  auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
+      {/* Modal de Confirmação de Delete - Condição Crônica */}
+      <DeleteConditionModal
+        condition={deletingCondition}
+        open={deleteConditionModalOpen}
+        onOpenChange={setDeleteConditionModalOpen}
+        onSuccess={handleConditionDeleteSuccess}
+      />
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="allergyDeleteReason"
-                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
-              >
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="allergyDeleteReason"
-                placeholder="Ex: Informação registrada incorretamente - Residente não possui alergia a esta substância..."
-                value={allergyDeleteReason}
-                onChange={(e) => {
-                  setAllergyDeleteReason(e.target.value)
-                  setAllergyDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${allergyDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {allergyDeleteReasonError && (
-                <p className="text-sm text-danger mt-2">{allergyDeleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
-                histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setAllergyDeleteReason('')
-                setAllergyDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDeleteAllergy}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!deletingCondition}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingCondition(undefined)
-            setConditionDeleteReason('')
-            setConditionDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Condição Crônica</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a condição "{deletingCondition?.condition}"?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de
-                  auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="conditionDeleteReason"
-                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
-              >
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="conditionDeleteReason"
-                placeholder="Ex: Informação registrada incorretamente - Diagnóstico revisado por médico especialista..."
-                value={conditionDeleteReason}
-                onChange={(e) => {
-                  setConditionDeleteReason(e.target.value)
-                  setConditionDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${conditionDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {conditionDeleteReasonError && (
-                <p className="text-sm text-danger mt-2">{conditionDeleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
-                histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setConditionDeleteReason('')
-                setConditionDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDeleteCondition}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!deletingRestriction}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeletingRestriction(undefined)
-            setRestrictionDeleteReason('')
-            setRestrictionDeleteReasonError('')
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Restrição Alimentar</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a restrição "{deletingRestriction?.description}"?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de
-                  auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="restrictionDeleteReason"
-                className="text-sm font-semibold text-warning/95 dark:text-warning/10"
-              >
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="restrictionDeleteReason"
-                placeholder="Ex: Informação registrada incorretamente - Residente não possui mais essa restrição conforme avaliação nutricional..."
-                value={restrictionDeleteReason}
-                onChange={(e) => {
-                  setRestrictionDeleteReason(e.target.value)
-                  setRestrictionDeleteReasonError('')
-                }}
-                className={`min-h-[100px] ${restrictionDeleteReasonError ? 'border-danger focus:border-danger' : ''}`}
-              />
-              {restrictionDeleteReasonError && (
-                <p className="text-sm text-danger mt-2">{restrictionDeleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no
-                histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setRestrictionDeleteReason('')
-                setRestrictionDeleteReasonError('')
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDeleteRestriction}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Excluir Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Modal de Confirmação de Delete - Restrição Alimentar */}
+      <DeleteDietaryRestrictionModal
+        restriction={deletingRestriction}
+        open={deleteRestrictionModalOpen}
+        onOpenChange={setDeleteRestrictionModalOpen}
+        onSuccess={handleRestrictionDeleteSuccess}
+      />
     </>
   )
 }
