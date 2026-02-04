@@ -36,6 +36,8 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -143,11 +145,15 @@ export class PrescriptionsController {
 
   @Delete(':id')
   @Roles('admin')
+  @RequirePermissions(PermissionType.DELETE_PRESCRIPTIONS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @AuditAction('DELETE')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remover prescrição (soft delete) com motivo obrigatório' })
   @ApiResponse({ status: 200, description: 'Prescrição removida com sucesso' })
   @ApiResponse({ status: 400, description: 'deleteReason inválido (mínimo 10 caracteres)' })
+  @ApiResponse({ status: 403, description: 'Sem permissão ou reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Prescrição não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da prescrição (UUID)' })
   remove(

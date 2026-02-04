@@ -26,6 +26,8 @@ import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireAnyPermission } from '../permissions/decorators/require-permissions.decorator';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { RequestWithUser } from '../common/types/request-with-user.type';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 import { CareShiftsService } from './care-shifts.service';
 import { RDCCalculationService } from './services';
 import {
@@ -156,10 +158,12 @@ export class CareShiftsController {
 
   @Delete(':id')
   @RequireAnyPermission(PermissionType.DELETE_CARE_SHIFTS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard, ReauthenticationGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Deletar plantão',
-    description: 'Deleta (soft delete) um plantão',
+    description: 'Deleta (soft delete) um plantão. Requer reautenticação.',
   })
   @ApiParam({
     name: 'id',
@@ -168,6 +172,10 @@ export class CareShiftsController {
   @ApiResponse({
     status: 204,
     description: 'Plantão deletado com sucesso',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Reautenticação necessária',
   })
   @ApiResponse({
     status: 404,

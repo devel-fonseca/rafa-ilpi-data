@@ -36,6 +36,8 @@ import {
 } from '@nestjs/swagger';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { EventsGateway } from '../events/events.gateway';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth()
@@ -329,10 +331,13 @@ export class DailyRecordsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @Roles('admin')
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @AuditAction('DELETE')
-  @ApiOperation({ summary: 'Remover registro (soft delete com motivo obrigatório)' })
+  @ApiOperation({ summary: 'Remover registro (soft delete com motivo obrigatório). Requer reautenticação.' })
   @ApiResponse({ status: 200, description: 'Registro removido com sucesso' })
   @ApiResponse({ status: 400, description: 'Motivo da exclusão ausente' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Registro não encontrado' })
   @ApiParam({ name: 'id', description: 'ID do registro (UUID)' })
   remove(

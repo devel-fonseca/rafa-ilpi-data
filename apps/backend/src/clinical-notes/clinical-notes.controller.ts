@@ -44,6 +44,8 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { getAuthorizedProfessions } from './professional-authorization.config'
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator'
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard'
 
 /**
  * Controller para gerenciamento de Evoluções Clínicas Multiprofissionais (SOAP)
@@ -344,6 +346,8 @@ export class ClinicalNotesController {
    */
   @Delete(':id')
   @RequirePermissions(PermissionType.DELETE_CLINICAL_NOTES)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard, ReauthenticationGuard)
   @AuditAction('DELETE')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
@@ -351,7 +355,8 @@ export class ClinicalNotesController {
     description:
       'Marca evolução como obsoleta (isAmended = true). ' +
       'Apenas ADMINISTRATOR e TECHNICAL_MANAGER podem excluir. ' +
-      'Motivo da exclusão é obrigatório (mínimo 10 caracteres).',
+      'Motivo da exclusão é obrigatório (mínimo 10 caracteres). ' +
+      'Requer reautenticação.',
   })
   @ApiResponse({ status: 204, description: 'Evolução excluída com sucesso' })
   @ApiResponse({

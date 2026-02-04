@@ -17,8 +17,10 @@ import { PublishTermsOfServiceDto } from './dto/publish-terms-of-service.dto';
 import { PrepareTermsAcceptanceDto, RenderTermsOfServiceDto } from './dto/accept-terms-of-service.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SuperAdminGuard } from '../superadmin/guards/superadmin.guard';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
 import { ContractStatus } from '@prisma/client';
 
 @ApiTags('Terms of Service')
@@ -135,11 +137,13 @@ export class TermsOfServiceController {
     return this.termsOfServiceService.publish(id, dto, user.sub);
   }
 
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard, SuperAdminGuard, ReauthenticationGuard)
+  @RequiresReauthentication()
   @ApiBearerAuth()
   @Delete(':id')
-  @ApiOperation({ summary: 'Deletar termo de uso DRAFT (SuperAdmin)' })
+  @ApiOperation({ summary: 'Deletar termo de uso DRAFT (SuperAdmin) - Requer reautenticação' })
   @ApiResponse({ status: 200, description: 'Termo de uso deletado' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   async delete(@Param('id') id: string) {
     return this.termsOfServiceService.delete(id);
   }

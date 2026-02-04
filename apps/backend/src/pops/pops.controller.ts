@@ -20,6 +20,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { PermissionType } from '@prisma/client'
 import { Request } from 'express'
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface'
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator'
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard'
 import { PopsService } from './pops.service'
 import { FilesService } from '../files/files.service'
 import {
@@ -181,10 +183,12 @@ export class PopsController {
 
   /**
    * DELETE /pops/:id
-   * Remover POP (soft delete, apenas DRAFT)
+   * Remover POP (soft delete, apenas DRAFT). Requer reautenticação.
    */
   @Delete(':id')
   @RequirePermissions(PermissionType.DELETE_POPS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   async remove(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
     await this.popsService.remove(id, req.user.id)
     return { message: 'POP removido com sucesso' }

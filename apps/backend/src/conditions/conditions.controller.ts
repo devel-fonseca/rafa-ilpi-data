@@ -28,6 +28,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 
 @ApiTags('conditions')
 @ApiBearerAuth('JWT-auth')
@@ -85,12 +87,15 @@ export class ConditionsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_CONDITIONS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @ApiOperation({
     summary: 'Remover condição',
-    description: 'Remove o registro de condição (soft delete) com motivo obrigatório',
+    description: 'Remove o registro de condição (soft delete) com motivo obrigatório. Requer reautenticação.',
   })
   @ApiResponse({ status: 200, description: 'Condição removida com sucesso' })
   @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Condição não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da condição (UUID)' })
   remove(

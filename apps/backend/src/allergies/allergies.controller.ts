@@ -28,6 +28,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
 
 @ApiTags('allergies')
 @ApiBearerAuth('JWT-auth')
@@ -81,12 +83,15 @@ export class AllergiesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_ALLERGIES)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @ApiOperation({
     summary: 'Remover alergia',
     description: 'Remove o registro de alergia (soft delete) com motivo obrigatório',
   })
   @ApiResponse({ status: 200, description: 'Alergia removida com sucesso' })
   @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
+  @ApiResponse({ status: 403, description: 'Sem permissão ou reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Alergia não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da alergia (UUID)' })
   remove(

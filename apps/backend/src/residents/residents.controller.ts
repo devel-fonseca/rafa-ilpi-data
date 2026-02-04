@@ -27,6 +27,8 @@ import { AuditInterceptor } from '../audit/audit.interceptor';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -118,13 +120,15 @@ export class ResidentsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_RESIDENTS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @AuditAction('DELETE')
   @ApiOperation({ summary: 'Remover residente (soft delete)' })
   @ApiResponse({ status: 200, description: 'Residente removido com sucesso' })
   @ApiResponse({ status: 400, description: 'changeReason obrigatório ou inválido' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  @ApiResponse({ status: 403, description: 'Sem permissão' })
+  @ApiResponse({ status: 403, description: 'Sem permissão ou reautenticação necessária' })
   @ApiParam({ name: 'id', description: 'ID do residente' })
   remove(
     @Param('id', ParseUUIDPipe) id: string,

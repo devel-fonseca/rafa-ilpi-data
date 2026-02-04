@@ -31,6 +31,8 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 
 @ApiTags('Vaccinations')
 @ApiBearerAuth()
@@ -147,13 +149,16 @@ export class VaccinationsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @RequirePermissions(PermissionType.DELETE_VACCINATIONS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, ReauthenticationGuard)
   @AuditAction('DELETE')
   @ApiOperation({
     summary: 'Remover vacinação',
-    description: 'Remove o registro de vacinação (soft delete) com motivo obrigatório',
+    description: 'Remove o registro de vacinação (soft delete) com motivo obrigatório. Requer reautenticação.',
   })
   @ApiResponse({ status: 200, description: 'Vacinação removida com sucesso' })
   @ApiResponse({ status: 400, description: 'deleteReason obrigatório' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Vacinação não encontrada' })
   @ApiParam({ name: 'id', description: 'ID da vacinação (UUID)' })
   remove(
