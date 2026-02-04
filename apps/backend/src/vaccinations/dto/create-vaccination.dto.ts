@@ -51,11 +51,11 @@ export class CreateVaccinationDto {
 
   /**
    * 6) CNES (Código Nacional do Estabelecimento de Saúde)
-   * 8-10 dígitos numéricos
+   * 7 dígitos numéricos
    */
   @IsString({ message: 'CNES deve ser um texto' })
-  @Matches(/^\d{8,10}$/, {
-    message: 'CNES deve conter 8 a 10 dígitos numéricos',
+  @Matches(/^\d{7}$/, {
+    message: 'CNES deve conter 7 dígitos numéricos',
   })
   cnes: string
 

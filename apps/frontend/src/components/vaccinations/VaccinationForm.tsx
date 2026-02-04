@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, Upload } from 'lucide-react'
@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +27,12 @@ import { vaccinationsAPI } from '@/api/vaccinations.api'
 import { useCreateVaccination, useUpdateVaccination, CreateVaccinationInput, UpdateVaccinationInput, Vaccination } from '@/hooks/useVaccinations'
 import { getCurrentDate } from '@/utils/dateHelpers'
 
+const BR_STATES = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+]
+
 // Validação com Zod
 const vaccinationSchema = z.object({
   vaccine: z.string().min(1, 'Vacina é obrigatória').max(255),
@@ -27,10 +40,10 @@ const vaccinationSchema = z.object({
   date: z.string().min(1, 'Data é obrigatória'),
   batch: z.string().min(1, 'Lote é obrigatório').max(50),
   manufacturer: z.string().min(1, 'Fabricante é obrigatório').max(255),
-  cnes: z.string().regex(/^\d{8,10}$/, 'CNES inválido (8-10 dígitos)'),
+  cnes: z.string().regex(/^\d{7}$/, 'CNES inválido (7 dígitos)'),
   healthUnit: z.string().min(1, 'Estabelecimento é obrigatório').max(255),
   municipality: z.string().min(1, 'Município é obrigatório').max(100),
-  state: z.string().regex(/^[A-Z]{2}$/, 'UF deve ter 2 caracteres maiúsculos'),
+  state: z.string().refine((uf) => BR_STATES.includes(uf), 'UF inválida'),
   certificateUrl: z.string().optional(),
   notes: z.string().max(1000).optional(),
 })
@@ -65,6 +78,7 @@ export function VaccinationForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<VaccinationFormData>({
@@ -173,7 +187,7 @@ export function VaccinationForm({
             {vaccination ? 'Editar Vacinação' : 'Registrar Nova Vacinação'}
           </DialogTitle>
           <DialogDescription>
-            Preencha todos os campos de acordo com a RDC 502/2021
+            Preencha todos os campos conforme comprovante/certificado de vacinação
           </DialogDescription>
         </DialogHeader>
 
@@ -253,7 +267,7 @@ export function VaccinationForm({
               <Label htmlFor="cnes">CNES *</Label>
               <Input
                 id="cnes"
-                placeholder="8-10 dígitos"
+                placeholder="7 dígitos"
                 {...register('cnes')}
               />
               {errors.cnes && (
@@ -290,11 +304,23 @@ export function VaccinationForm({
 
             <div>
               <Label htmlFor="state">UF *</Label>
-              <Input
-                id="state"
-                placeholder="ex: SP, RJ"
-                maxLength={2}
-                {...register('state')}
+              <Controller
+                control={control}
+                name="state"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="state">
+                      <SelectValue placeholder="Selecione o estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BR_STATES.map((state) => (
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
               {errors.state && (
                 <p className="text-sm text-danger mt-1">{errors.state.message}</p>

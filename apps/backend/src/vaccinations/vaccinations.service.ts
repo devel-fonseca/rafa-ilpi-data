@@ -63,8 +63,8 @@ export class VaccinationsService {
     }
 
     // Validar CNES
-    if (!/^\d{8,10}$/.test(dto.cnes)) {
-      throw new BadRequestException('CNES deve conter 8 a 10 dígitos');
+    if (!/^\d{7}$/.test(dto.cnes)) {
+      throw new BadRequestException('CNES deve conter 7 dígitos');
     }
 
     // Criar registro com transação para incluir documento se houver comprovante
@@ -290,8 +290,8 @@ export class VaccinationsService {
     }
 
     // Validar CNES se fornecido
-    if (updateData.cnes && !/^\d{8,10}$/.test(updateData.cnes)) {
-      throw new BadRequestException('CNES deve conter 8 a 10 dígitos');
+    if (updateData.cnes && !/^\d{7}$/.test(updateData.cnes)) {
+      throw new BadRequestException('CNES deve conter 7 dígitos');
     }
 
     // Capturar estado anterior
