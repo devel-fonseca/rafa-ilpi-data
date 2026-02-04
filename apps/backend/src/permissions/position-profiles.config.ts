@@ -60,9 +60,8 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_ALLERGIES,
     PermissionType.VIEW_CONDITIONS,
     PermissionType.VIEW_DIETARY_RESTRICTIONS,
-    // POPs
+    // POPs - STAFF apenas visualiza (CREATE_POPS movido para MANAGER)
     PermissionType.VIEW_POPS,
-    PermissionType.CREATE_POPS, // Enfermeiros podem criar sugestões (DRAFT)
     // Agenda do Residente
     PermissionType.VIEW_RESIDENT_SCHEDULE,
     // Escala de Cuidados
