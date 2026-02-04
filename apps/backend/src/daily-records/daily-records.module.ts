@@ -10,6 +10,7 @@ import { VitalSignsModule } from '../vital-signs/vital-signs.module';
 import { EventsModule } from '../events/events.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { NotificationsService } from '../notifications/notifications.service';
     EventEmitterModule,
     forwardRef(() => EventsModule),
     forwardRef(() => NotificationsModule),
+    AuthModule,
   ],
   controllers: [DailyRecordsController],
   providers: [

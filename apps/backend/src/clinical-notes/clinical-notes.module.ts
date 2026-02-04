@@ -4,6 +4,7 @@ import { ClinicalNotesController } from './clinical-notes.controller'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PermissionsModule } from '../permissions/permissions.module'
 import { FilesModule } from '../files/files.module'
+import { AuthModule } from '../auth/auth.module'
 
 /**
  * Módulo de Evoluções Clínicas Multiprofissionais (SOAP)
@@ -23,7 +24,7 @@ import { FilesModule } from '../files/files.module'
  * - DELETE_CLINICAL_NOTES - Excluir evoluções (soft delete)
  */
 @Module({
-  imports: [PrismaModule, PermissionsModule, FilesModule],
+  imports: [PrismaModule, PermissionsModule, FilesModule, AuthModule],
   controllers: [ClinicalNotesController],
   providers: [ClinicalNotesService],
   exports: [ClinicalNotesService],

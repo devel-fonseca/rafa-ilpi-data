@@ -4,9 +4,10 @@ import { CareShiftsService } from './care-shifts.service';
 import { RDCCalculationService } from './services';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, PermissionsModule],
+  imports: [PrismaModule, PermissionsModule, AuthModule],
   controllers: [CareShiftsController],
   providers: [CareShiftsService, RDCCalculationService],
   exports: [CareShiftsService, RDCCalculationService],

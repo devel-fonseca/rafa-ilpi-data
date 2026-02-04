@@ -4,6 +4,7 @@ import { PopsService } from './pops.service'
 import { PrismaModule } from '../prisma/prisma.module'
 import { FilesModule } from '../files/files.module'
 import { PermissionsModule } from '../permissions/permissions.module'
+import { AuthModule } from '../auth/auth.module'
 
 /**
  * Módulo de POPs (Procedimentos Operacionais Padrão)
@@ -16,7 +17,7 @@ import { PermissionsModule } from '../permissions/permissions.module'
  * - 28 templates baseados em RDC 502/2021
  */
 @Module({
-  imports: [PrismaModule, FilesModule, PermissionsModule],
+  imports: [PrismaModule, FilesModule, PermissionsModule, AuthModule],
   controllers: [PopsController],
   providers: [PopsService],
   exports: [PopsService],

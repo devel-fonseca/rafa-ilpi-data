@@ -6,9 +6,10 @@ import { AuditModule } from '../audit/audit.module';
 import { FilesModule } from '../files/files.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule, FilesModule, PermissionsModule, NotificationsModule],
+  imports: [PrismaModule, AuditModule, FilesModule, PermissionsModule, NotificationsModule, AuthModule],
   controllers: [PrescriptionsController],
   providers: [PrescriptionsService],
   exports: [PrescriptionsService],
