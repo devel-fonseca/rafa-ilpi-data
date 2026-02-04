@@ -39,6 +39,11 @@ import {
   ArrowLeft,
   Lock,
   Zap,
+  User,
+  HeartPulse,
+  Syringe,
+  NotebookPen,
+  ClipboardList,
 } from 'lucide-react'
 import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -330,17 +335,41 @@ export default function ResidentProfile() {
       />
 
       {/* Main Tabs */}
-      <Tabs defaultValue="personal" className="space-y-4">
+      <Tabs defaultValue="personal" className="space-y-6">
         <div className="overflow-x-auto">
-          <TabsList className="inline-flex w-full md:grid md:grid-cols-8 min-w-max">
-            <TabsTrigger value="personal" className="whitespace-nowrap">Dados do Residente</TabsTrigger>
-            <TabsTrigger value="clinical-profile" className="whitespace-nowrap">Perfil Clínico</TabsTrigger>
-            <TabsTrigger value="vaccinations" className="whitespace-nowrap">Vacinação</TabsTrigger>
-            <TabsTrigger value="health-documents" className="whitespace-nowrap">Documentos de Saúde</TabsTrigger>
-            <TabsTrigger value="clinical-notes" className="whitespace-nowrap">Evoluções Clínicas</TabsTrigger>
-            <TabsTrigger value="prescriptions" className="whitespace-nowrap">Prescrições</TabsTrigger>
-            <TabsTrigger value="daily-records" className="whitespace-nowrap">Registros Diários</TabsTrigger>
-            <TabsTrigger value="schedule" className="whitespace-nowrap">Agenda do Residente</TabsTrigger>
+          <TabsList className="inline-flex w-full min-w-max">
+            <TabsTrigger value="personal" className="flex items-center gap-2 whitespace-nowrap">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Dados do Residente</span>
+            </TabsTrigger>
+            <TabsTrigger value="clinical-profile" className="flex items-center gap-2 whitespace-nowrap">
+              <HeartPulse className="h-4 w-4" />
+              <span className="hidden sm:inline">Perfil Clínico</span>
+            </TabsTrigger>
+            <TabsTrigger value="vaccinations" className="flex items-center gap-2 whitespace-nowrap">
+              <Syringe className="h-4 w-4" />
+              <span className="hidden sm:inline">Vacinação</span>
+            </TabsTrigger>
+            <TabsTrigger value="health-documents" className="flex items-center gap-2 whitespace-nowrap">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documentos de Saúde</span>
+            </TabsTrigger>
+            <TabsTrigger value="clinical-notes" className="flex items-center gap-2 whitespace-nowrap">
+              <NotebookPen className="h-4 w-4" />
+              <span className="hidden sm:inline">Evoluções Clínicas</span>
+            </TabsTrigger>
+            <TabsTrigger value="prescriptions" className="flex items-center gap-2 whitespace-nowrap">
+              <Pill className="h-4 w-4" />
+              <span className="hidden sm:inline">Prescrições</span>
+            </TabsTrigger>
+            <TabsTrigger value="daily-records" className="flex items-center gap-2 whitespace-nowrap">
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Registros Diários</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2 whitespace-nowrap">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Agenda do Residente</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 

@@ -17,6 +17,10 @@ import {
   FileText,
   Edit,
   History,
+  User,
+  MapPin,
+  HeartPulse,
+  BedDouble,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +63,12 @@ import { PlanLimitWarningDialog } from "@/components/admin/PlanLimitWarningDialo
 import type { Resident } from "@/api/residents.api";
 import { tenantKey } from "@/lib/query-keys";
 import { useMySubscription } from "@/hooks/useTenant";
+
+const BR_STATES = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+  "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+];
 
 // Componente Collapsible customizado (inline)
 interface CollapsibleProps {
@@ -471,7 +481,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         const resident = response.data;
 
-        console.log("🔍 DEBUG - Dados do residente carregados:", resident);
 
         // ===== FOTO =====
         // O PhotoViewer cuida de assinar a URL automaticamente
@@ -646,12 +655,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           bedId: resident.bedId,
         };
 
-        if (isMounted) {
-          console.log(
-            "✅ Residente carregado com sucesso para edição:",
-            resident.fullName
-          );
-        }
       } catch (error: unknown) {
         // Ignora erros de abortamento
         if (error.name === "AbortError") {
@@ -1291,21 +1294,25 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         })}
       >
         {/* ========== FORMULÁRIO TABULAR (4 ABAS) ========== */}
-        <Tabs defaultValue="tab1" className="mb-8">
+        <Tabs defaultValue="tab1" className="mb-8 space-y-6">
           {/* ========== NAVEGAÇÃO DE ABAS ========== */}
-          <div className="overflow-x-auto mb-6">
-            <TabsList className="inline-flex w-full md:grid md:grid-cols-4 min-w-max">
-              <TabsTrigger value="tab1" className="whitespace-nowrap">
-                1. Dados & Contatos
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex w-full min-w-max">
+              <TabsTrigger value="tab1" className="flex items-center gap-2 whitespace-nowrap">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Dados & Contatos</span>
               </TabsTrigger>
-              <TabsTrigger value="tab2" className="whitespace-nowrap">
-                2. Endereços & Responsável
+              <TabsTrigger value="tab2" className="flex items-center gap-2 whitespace-nowrap">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Endereços & Responsável</span>
               </TabsTrigger>
-              <TabsTrigger value="tab3" className="whitespace-nowrap">
-                3. Saúde & Convênios
+              <TabsTrigger value="tab3" className="flex items-center gap-2 whitespace-nowrap">
+                <HeartPulse className="h-4 w-4" />
+                <span className="hidden sm:inline">Saúde & Convênios</span>
               </TabsTrigger>
-              <TabsTrigger value="tab4" className="whitespace-nowrap">
-                4. Admissão & Acomodação
+              <TabsTrigger value="tab4" className="flex items-center gap-2 whitespace-nowrap">
+                <BedDouble className="h-4 w-4" />
+                <span className="hidden sm:inline">Admissão & Acomodação</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1390,7 +1397,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                                 render={({ field }) => (
                                   <MaskedInput
                                     mask="999 9999 9999 9999"
-                                    value={field.value}
+                                    value={field.value ?? ""}
                                     onChange={field.onChange}
                                     validation={cnsValidation}
                                     className="mt-2"
@@ -1413,7 +1420,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="999.999.999-99"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               validation={cpfValidation}
                               className="mt-2"
@@ -1435,7 +1442,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="99.999.999-9"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               className="mt-2"
                             />
@@ -1471,7 +1478,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <Select
                               onValueChange={field.onChange}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
@@ -1503,7 +1510,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <Select
                               onValueChange={field.onChange}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
@@ -1545,7 +1552,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="99/99/9999"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               placeholder="DD/MM/AAAA"
                               className="mt-2"
@@ -1584,14 +1591,26 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                       <div className="col-span-12 md:col-span-3">
                         <Label>UF</Label>
-                        <Input
-                          {...register("ufNascimento")}
-                          maxLength={2}
-                          className="mt-2 uppercase"
-                          onChange={(e) => {
-                            e.target.value = e.target.value.toUpperCase();
-                            register("ufNascimento").onChange(e);
-                          }}
+                        <Controller
+                          name="ufNascimento"
+                          control={control}
+                          render={({ field }) => (
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value ?? ""}
+                            >
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Selecione..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {BR_STATES.map((state) => (
+                                  <SelectItem key={state} value={state}>
+                                    {state}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         />
                       </div>
 
@@ -1632,7 +1651,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                               render={({ field }) => (
                                 <MaskedInput
                                   mask="(99) 99999-9999"
-                                  value={field.value}
+                                  value={field.value ?? ""}
                                   onChange={field.onChange}
                                   placeholder="(99) 99999-9999"
                                   className="mt-1"
@@ -1699,7 +1718,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="99999-999"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={(e) => {
                                 field.onChange(e);
                                 handleBuscarCep(e.target.value, "atual");
@@ -1766,7 +1785,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="(99) 99999-9999"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               className="mt-2"
                             />
@@ -1826,7 +1845,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="999.999.999-99"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               className="mt-2"
                             />
@@ -1842,7 +1861,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="99.999.999-9"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               className="mt-2"
                             />
@@ -1858,7 +1877,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="(99) 99999-9999"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={field.onChange}
                               className="mt-2"
                             />
@@ -1874,7 +1893,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <Select
                               onValueChange={field.onChange}
-                              value={field.value}
+                              value={field.value ?? ""}
                             >
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Selecione..." />
@@ -1907,7 +1926,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                           render={({ field }) => (
                             <MaskedInput
                               mask="99999-999"
-                              value={field.value}
+                              value={field.value ?? ""}
                               onChange={(e) => {
                                 field.onChange(e);
                                 handleBuscarCep(
@@ -2002,7 +2021,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             render={({ field }) => (
                               <Select
                                 onValueChange={field.onChange}
-                                value={field.value}
+                                value={field.value ?? ""}
                               >
                                 <SelectTrigger className="mt-2">
                                   <SelectValue placeholder="..." />
@@ -2058,7 +2077,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                             render={({ field }) => (
                               <Select
                                 onValueChange={field.onChange}
-                                value={field.value}
+                                value={field.value ?? ""}
                               >
                                 <SelectTrigger className="mt-2">
                                   <SelectValue placeholder="..." />
@@ -2255,7 +2274,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         render={({ field }) => (
                           <MaskedInput
                             mask="99/99/9999"
-                            value={field.value}
+                            value={field.value ?? ""}
                             onChange={field.onChange}
                             placeholder="DD/MM/AAAA"
                             className="mt-2"
@@ -2277,7 +2296,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         render={({ field }) => (
                           <Select
                             onValueChange={field.onChange}
-                            value={field.value}
+                            value={field.value ?? ""}
                           >
                             <SelectTrigger className="mt-2">
                               <SelectValue placeholder="Selecione..." />
@@ -2318,7 +2337,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                         render={({ field }) => (
                           <MaskedInput
                             mask="99/99/9999"
-                            value={field.value}
+                            value={field.value ?? ""}
                             onChange={field.onChange}
                             placeholder="DD/MM/AAAA"
                             className="mt-2"
@@ -2348,7 +2367,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                     control={control}
                     render={({ field }) => (
                       <BedSearchCombobox
-                        value={field.value}
+                        value={field.value ?? ""}
                         onValueChange={(bedId) => {
                           field.onChange(bedId);
                         }}
