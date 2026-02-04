@@ -22,9 +22,9 @@ import { InvoiceService } from '../payments/services/invoice.service'
 import { PaymentAnalyticsService } from '../payments/services/payment-analytics.service'
 import { CreateInvoiceDto } from '../payments/dto/create-invoice.dto'
 import { AlertType, AlertSeverity, ContractStatus, TenantStatus, InvoiceStatus } from '@prisma/client'
-import { ContractsService } from '../contracts/contracts.service'
+// import { ContractsService } from '../contracts/contracts.service' // DEPRECATED: Use TermsOfServiceService
 import { CollectionsService } from './services/collections.service'
-import { CreateContractDto } from '../contracts/dto/create-contract.dto'
+import { CreateContractDto } from '../contracts/dto/create-contract.dto' // Legacy DTOs - mantidos para compatibilidade das rotas /superadmin/contracts/*
 import { UpdateContractDto } from '../contracts/dto/update-contract.dto'
 import { PublishContractDto } from '../contracts/dto/publish-contract.dto'
 import { TermsOfServiceService } from '../terms-of-service/terms-of-service.service'
@@ -67,7 +67,7 @@ export class SuperAdminController {
     private readonly invoiceService: InvoiceService,
     private readonly analyticsService: PaymentAnalyticsService,
     private readonly alertsService: AlertsService,
-    private readonly contractsService: ContractsService,
+    // private readonly contractsService: ContractsService, // DEPRECATED: Use termsOfServiceService
     private readonly termsOfServiceService: TermsOfServiceService,
     private readonly collectionsService: CollectionsService,
     private readonly prismaService: PrismaService,
@@ -691,51 +691,56 @@ export class SuperAdminController {
   /**
    * GET /superadmin/contracts
    * Lista contratos com filtros opcionais
+   * @deprecated Use /superadmin/terms-of-service
    */
   @Get('contracts')
   async listContracts(
     @Query('status') status?: ContractStatus,
     @Query('planId') planId?: string,
   ) {
-    return this.contractsService.findAll({ status, planId })
+    return this.termsOfServiceService.findAll({ status, planId })
   }
 
   /**
    * GET /superadmin/contracts/:id
    * Busca detalhes de um contrato específico
+   * @deprecated Use /superadmin/terms-of-service/:id
    */
   @Get('contracts/:id')
   async getContract(@Param('id') id: string) {
-    return this.contractsService.findOne(id)
+    return this.termsOfServiceService.findOne(id)
   }
 
   /**
    * POST /superadmin/contracts
    * Cria novo contrato DRAFT
+   * @deprecated Use /superadmin/terms-of-service
    */
   @Post('contracts')
   async createContract(
     @Body() dto: CreateContractDto,
     @CurrentUser() user: { sub: string },
   ) {
-    return this.contractsService.create(dto, user.sub)
+    return this.termsOfServiceService.create(dto, user.sub)
   }
 
   /**
    * PATCH /superadmin/contracts/:id
    * Atualiza contrato DRAFT
+   * @deprecated Use /superadmin/terms-of-service/:id
    */
   @Patch('contracts/:id')
   async updateContract(
     @Param('id') id: string,
     @Body() dto: UpdateContractDto,
   ) {
-    return this.contractsService.update(id, dto)
+    return this.termsOfServiceService.update(id, dto)
   }
 
   /**
    * POST /superadmin/contracts/:id/publish
    * Publica contrato (DRAFT → ACTIVE)
+   * @deprecated Use /superadmin/terms-of-service/:id/publish
    */
   @Post('contracts/:id/publish')
   async publishContract(
@@ -743,25 +748,27 @@ export class SuperAdminController {
     @Body() dto: PublishContractDto,
     @CurrentUser() user: { sub: string },
   ) {
-    return this.contractsService.publish(id, dto, user.sub)
+    return this.termsOfServiceService.publish(id, dto, user.sub)
   }
 
   /**
    * DELETE /superadmin/contracts/:id
    * Deleta contrato DRAFT sem aceites
+   * @deprecated Use /superadmin/terms-of-service/:id
    */
   @Delete('contracts/:id')
   async deleteContract(@Param('id') id: string) {
-    return this.contractsService.delete(id)
+    return this.termsOfServiceService.delete(id)
   }
 
   /**
    * GET /superadmin/contracts/:id/acceptances
    * Lista aceites de um contrato
+   * @deprecated Use /superadmin/terms-of-service/:id/acceptances
    */
   @Get('contracts/:id/acceptances')
   async getContractAcceptances(@Param('id') id: string) {
-    return this.contractsService.getAcceptances(id)
+    return this.termsOfServiceService.getAcceptances(id)
   }
 
   /**
