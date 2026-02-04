@@ -1317,6 +1317,142 @@ export class AuthService {
   /**
    * Parsear User-Agent para extrair dispositivo e navegador
    */
+  /**
+   * Gera token de reautenticação para operações de alto risco
+   *
+   * **Propósito:**
+   * Validar senha do usuário logado e retornar token temporário (5min)
+   * para executar HIGH_RISK_PERMISSIONS (DELETE_*, EXPORT_DATA, etc.)
+   *
+   * **Fluxo:**
+   * 1. Usuário tenta DELETE_RESIDENTS
+   * 2. ReauthenticationGuard bloqueia com 403 { requiresReauth: true }
+   * 3. Frontend abre modal pedindo senha
+   * 4. POST /auth/reauthenticate { password: "xxx" }
+   * 5. Backend valida senha e retorna { reauthToken, expiresIn: 300 }
+   * 6. Frontend armazena em memória e adiciona header X-Reauth-Token
+   * 7. ReauthenticationGuard valida e permite execução
+   *
+   * **Segurança:**
+   * - Token válido por apenas 5 minutos
+   * - Payload inclui: { sub: userId, type: 'reauthentication', iat, exp }
+   * - Auditoria registra tentativas (sucesso E falha)
+   * - Usa mesma secret do JWT normal (JWT_SECRET)
+   *
+   * @param userId - ID do usuário logado (do JWT)
+   * @param password - Senha fornecida pelo usuário
+   * @param ipAddress - IP da requisição
+   * @param userAgent - User agent da requisição
+   * @returns { reauthToken: string, expiresIn: number }
+   * @throws UnauthorizedException se senha incorreta
+   *
+   * @example
+   * ```typescript
+   * const { reauthToken, expiresIn } = await authService.reauthenticate(
+   *   'user-id',
+   *   'senha_correta',
+   *   '192.168.1.1',
+   *   'Mozilla/5.0...'
+   * );
+   * // reauthToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+   * // expiresIn: 300 (segundos)
+   * ```
+   */
+  async reauthenticate(
+    userId: string,
+    password: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ reauthToken: string; expiresIn: number }> {
+    // 1. Buscar usuário com tenantId (precisa para roteamento)
+    const userInMainDb = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true },
+    });
+
+    if (!userInMainDb || !userInMainDb.tenantId) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    // 2. Buscar usuário no schema do tenant
+    const schemaName = await this.getSchemaName(userInMainDb.tenantId);
+    const tenantClient = this.prisma.getTenantClient(schemaName);
+
+    const user = await tenantClient.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    // 3. Validar senha
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      // Registrar tentativa de reautenticação falhada
+      await tenantClient.auditLog.create({
+        data: {
+          tenantId: userInMainDb.tenantId,
+          entityType: 'User',
+          entityId: user.id,
+          action: AccessAction.REAUTHENTICATION_FAILED,
+          userId: user.id,
+          userName: user.name,
+          details: {
+            description: 'Tentativa de reautenticação com senha incorreta',
+          },
+          ipAddress,
+          userAgent: this.parseUserAgent(userAgent),
+        },
+      });
+
+      throw new UnauthorizedException('Senha incorreta');
+    }
+
+    // 4. Gerar token de reautenticação (validade: 5 minutos)
+    const expiresIn = 300; // 5 minutos em segundos
+    const reauthToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        type: 'reauthentication',
+      },
+      {
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: `${expiresIn}s`,
+      },
+    );
+
+    // 5. Registrar reautenticação bem-sucedida
+    await tenantClient.auditLog.create({
+      data: {
+        tenantId: userInMainDb.tenantId,
+        entityType: 'User',
+        entityId: user.id,
+        action: AccessAction.REAUTHENTICATION_SUCCESS,
+        userId: user.id,
+        userName: user.name,
+        details: {
+          description: `Reautenticação bem-sucedida (token válido por ${expiresIn}s)`,
+        },
+        ipAddress,
+        userAgent: this.parseUserAgent(userAgent),
+      },
+    });
+
+    return {
+      reauthToken,
+      expiresIn,
+    };
+  }
+
   private parseUserAgent(userAgent?: string): string {
     if (!userAgent) return 'Dispositivo Desconhecido';
 
