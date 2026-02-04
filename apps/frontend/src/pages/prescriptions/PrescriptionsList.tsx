@@ -31,16 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -67,6 +57,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { usePermissions } from '@/hooks/usePermissions'
 import { MedicalReviewModal } from './modals/MedicalReviewModal'
+import { DeletePrescriptionModal } from './modals/DeletePrescriptionModal'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 export default function PrescriptionsList() {
@@ -82,10 +73,8 @@ export default function PrescriptionsList() {
   const canDeletePrescriptions = canManagePrescriptions
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ATIVA')
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean; prescription: Prescription | null }>({
-    open: false,
-    prescription: null,
-  })
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState<Prescription | null>(null)
 
   // Estado do modal de revisão médica
   const [reviewModal, setReviewModal] = useState<{ open: boolean; prescription: Prescription | null }>({
@@ -164,24 +153,14 @@ export default function PrescriptionsList() {
     navigate('/dashboard/prescricoes/list')
   }
 
-  // Confirmar exclusão
-  const handleDelete = async () => {
-    if (!deleteModal.prescription) return
-
-    try {
-      // TODO: Implementar deleção de prescrição
-      toast({
-        title: 'Sucesso',
-        description: 'Prescrição removida com sucesso',
-      })
-      setDeleteModal({ open: false, prescription: null })
-    } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Erro ao remover prescrição',
-        variant: 'destructive',
-      })
-    }
+  // Callback após exclusão bem-sucedida
+  const handleDeleteSuccess = () => {
+    // Força re-fetch mantendo a query atual
+    setQuery({ ...query })
+    toast({
+      title: 'Prescrição excluída',
+      description: 'A prescrição foi excluída com sucesso.',
+    })
   }
 
   // Obter cor do badge de status
@@ -571,9 +550,10 @@ export default function PrescriptionsList() {
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
-                                    onClick={() =>
-                                      setDeleteModal({ open: true, prescription })
-                                    }
+                                    onClick={() => {
+                                      setPrescriptionToDelete(prescription)
+                                      setDeleteModalOpen(true)
+                                    }}
                                     className="text-danger"
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -631,25 +611,13 @@ export default function PrescriptionsList() {
           )}
       </Section>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteModal.open} onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deletar Prescrição</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja deletar a prescrição de{' '}
-              <strong>{deleteModal.prescription?.resident?.fullName}</strong>? Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-danger/60 hover:bg-danger/70">
-              Deletar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Prescription Modal (com reautenticação) */}
+      <DeletePrescriptionModal
+        prescription={prescriptionToDelete}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Medical Review Modal */}
       {reviewModal.prescription && (

@@ -7,15 +7,13 @@ import {
   getUserPermissions,
   manageCustomPermissions,
 } from "@/services/api";
-import { useDeleteUser } from "@/hooks/useUserVersioning";
 import { UserHistoryDrawer } from "@/components/users/UserHistoryDrawer";
+import { DeleteUserModal } from "@/components/modals/DeleteUserModal";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -32,16 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { PhotoViewer } from "@/components/form/PhotoViewer";
@@ -56,7 +44,6 @@ import {
   Briefcase,
   Award,
   History,
-  ShieldAlert,
 } from "lucide-react";
 import {
   PositionCode,
@@ -74,7 +61,6 @@ export default function UsersList() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const { toast } = useToast();
-  const deleteUser = useDeleteUser();
 
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [profiles, setProfiles] = useState<UserWithProfile[]>([]);
@@ -89,13 +75,6 @@ export default function UsersList() {
     open: false,
     user: null,
     permissions: null,
-  });
-  const [deleteModal, setDeleteModal] = useState<{
-    open: boolean;
-    user: UserWithProfile | null;
-  }>({
-    open: false,
-    user: null,
   });
   const [historyDrawer, setHistoryDrawer] = useState<{
     open: boolean;
@@ -112,9 +91,9 @@ export default function UsersList() {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  // Estados para versionamento
-  const [deleteReason, setDeleteReason] = useState("");
-  const [deleteReasonError, setDeleteReasonError] = useState("");
+  // Estados para modal de exclusão
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -204,33 +183,8 @@ export default function UsersList() {
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!deleteModal.user) return;
-
-    // Validação do motivo da exclusão
-    const trimmedReason = deleteReason.trim();
-    if (!trimmedReason || trimmedReason.length < 10) {
-      setDeleteReasonError(
-        "Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)"
-      );
-      return;
-    }
-
-    try {
-      await deleteUser.mutateAsync({
-        id: deleteModal.user.id,
-        deleteReason: trimmedReason,
-      });
-
-      // Sucesso é tratado automaticamente pelo hook (toast + invalidateQueries)
-      setDeleteModal({ open: false, user: null });
-      setDeleteReason("");
-      setDeleteReasonError("");
-      await loadData();
-    } catch (error) {
-      // Erro é tratado automaticamente pelo hook (toast)
-      // Mantém o modal aberto para o usuário tentar novamente
-    }
+  const handleDeleteSuccess = async () => {
+    await loadData();
   };
 
   const getUserProfile = (userId: string) => {
@@ -394,7 +348,10 @@ export default function UsersList() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setDeleteModal({ open: true, user })}
+                          onClick={() => {
+                            setUserToDelete(user);
+                            setDeleteModalOpen(true);
+                          }}
                           disabled={user.id === currentUser?.id}
                           title="Remover usuário"
                         >
@@ -477,82 +434,13 @@ export default function UsersList() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Confirmar Exclusão */}
-      <AlertDialog
-        open={deleteModal.open}
-        onOpenChange={(open) => {
-          setDeleteModal({ ...deleteModal, open });
-          if (!open) {
-            setDeleteReason("");
-            setDeleteReasonError("");
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover Usuário</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover{" "}
-              <strong>{deleteModal.user?.name}</strong>? Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {/* Card Destacado - RDC 502/2021 */}
-          <div className="bg-warning/5 dark:bg-warning/90/20 border border-warning/30 dark:border-warning/80 rounded-lg p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <ShieldAlert className="h-5 w-5 text-warning dark:text-warning/40 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-warning/90 dark:text-warning/20">
-                  Rastreabilidade Obrigatória (RDC 502/2021 Art. 39)
-                </p>
-                <p className="text-xs text-warning/80 dark:text-warning/30 mt-1">
-                  Toda exclusão de registro deve ter justificativa documentada para fins de auditoria e conformidade regulatória.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deleteReason" className="text-sm font-semibold text-warning/95 dark:text-warning/10">
-                Motivo da Exclusão <span className="text-danger">*</span>
-              </Label>
-              <Textarea
-                id="deleteReason"
-                placeholder="Ex: Desligamento do funcionário em 13/12/2025 - Pedido de demissão..."
-                value={deleteReason}
-                onChange={(e) => {
-                  setDeleteReason(e.target.value);
-                  setDeleteReasonError("");
-                }}
-                className={`min-h-[100px] ${deleteReasonError ? "border-danger focus:border-danger" : ""}`}
-              />
-              {deleteReasonError && (
-                <p className="text-sm text-danger mt-2">{deleteReasonError}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Mínimo de 10 caracteres. Este motivo ficará registrado permanentemente no histórico de alterações.
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setDeleteReason("");
-                setDeleteReasonError("");
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteUser}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Remover Definitivamente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Modal de Exclusão com Reautenticação */}
+      <DeleteUserModal
+        user={userToDelete}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Drawer de Histórico */}
       <UserHistoryDrawer

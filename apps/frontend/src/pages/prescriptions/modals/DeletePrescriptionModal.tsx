@@ -19,6 +19,8 @@ import { prescriptionsApi, type Prescription } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
+import { useReauthentication } from '@/hooks/useReauthentication'
+import { ReauthenticationModal } from '@/components/ReauthenticationModal'
 
 /**
  * Schema de validação para exclusão de Prescription
@@ -72,6 +74,16 @@ export function DeletePrescriptionModal({
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
+  // Hook de reautenticação
+  const {
+    isModalOpen: isReauthModalOpen,
+    openReauthModal,
+    closeReauthModal,
+    reauthenticate,
+    isReauthenticating,
+    reauthError,
+  } = useReauthentication()
+
   const {
     register,
     handleSubmit,
@@ -108,8 +120,17 @@ export function DeletePrescriptionModal({
 
       handleClose()
       onSuccess?.()
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Erro ao excluir prescrição:', error)
+
+      // Verifica se precisa reautenticação
+      if (error.response?.data?.code === 'REAUTHENTICATION_REQUIRED' ||
+          error.response?.data?.requiresReauth) {
+        // Abre modal de reautenticação e passa callback para retry
+        openReauthModal(() => onSubmit(data))
+        return
+      }
+
       toast({
         variant: 'destructive',
         title: 'Erro ao excluir',
@@ -125,20 +146,21 @@ export function DeletePrescriptionModal({
   if (!prescription) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-danger">
-            <Trash2 className="h-5 w-5" />
-            Excluir Prescrição
-          </DialogTitle>
-          <DialogDescription>
-            Esta ação realizará uma exclusão lógica (soft delete). A prescrição permanecerá no
-            histórico de auditoria conforme RDC 502/2021.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-danger">
+              <Trash2 className="h-5 w-5" />
+              Excluir Prescrição
+            </DialogTitle>
+            <DialogDescription>
+              Esta ação realizará uma exclusão lógica (soft delete). A prescrição permanecerá no
+              histórico de auditoria conforme RDC 502/2021.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Alerta de Confirmação */}
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -178,7 +200,7 @@ export function DeletePrescriptionModal({
               placeholder="Ex: Prescrição duplicada acidentalmente no sistema"
               {...register('deleteReason')}
               className={errors.deleteReason ? 'border-danger' : ''}
-              rows={3}
+              rows={2}
             />
             {errors.deleteReason && (
               <p className="text-sm text-danger">{errors.deleteReason.message}</p>
@@ -186,13 +208,6 @@ export function DeletePrescriptionModal({
             <p className="text-xs text-muted-foreground">
               Caracteres (sem espaços): {cleanedLength}/10
             </p>
-          </div>
-
-          {/* Informação de Conformidade */}
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>✓ Exclusão lógica (soft delete) - prescrição mantida no banco de dados</p>
-            <p>✓ Histórico de auditoria preservado para conformidade regulatória</p>
-            <p>✓ Rastreabilidade completa conforme LGPD Art. 48</p>
           </div>
 
           <DialogFooter>
@@ -213,5 +228,16 @@ export function DeletePrescriptionModal({
         </form>
       </DialogContent>
     </Dialog>
+
+      {/* Modal de Reautenticação */}
+      <ReauthenticationModal
+        open={isReauthModalOpen}
+        onOpenChange={closeReauthModal}
+        onSubmit={reauthenticate}
+        isLoading={isReauthenticating}
+        error={reauthError}
+        actionDescription="Exclusão de prescrição médica"
+      />
+    </>
   )
 }

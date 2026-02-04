@@ -1,211 +1,258 @@
-import { useState } from 'react'
+// ──────────────────────────────────────────────────────────────────────────────
+//  MODAL - DeleteDailyRecordModal (Exclusão de Registro Diário com Reautenticação)
+// ──────────────────────────────────────────────────────────────────────────────
+
+import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { Loader2, ShieldAlert } from 'lucide-react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { dailyRecordsAPI, type DailyRecord } from '@/api/dailyRecords.api'
+import { useReauthentication } from '@/hooks/useReauthentication'
+import { ReauthenticationModal } from '@/components/ReauthenticationModal'
+import { dailyRecordsAPI } from '@/api/dailyRecords.api'
+import type { DailyRecord } from '@/api/dailyRecords.api'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
-import { formatDateTimeSafe } from '@/utils/dateHelpers'
 
-/**
- * Schema de validação para exclusão de Daily Record
- * Sincronizado com backend: DeleteDailyRecordDto
- */
-const deleteSchema = z.object({
+// ========== VALIDATION SCHEMA ==========
+
+const deleteDailyRecordSchema = z.object({
   deleteReason: z
     .string()
     .min(1, 'Motivo da exclusão é obrigatório')
-    .refine(
-      (value) => {
-        // Remove espaços para validar tamanho real
-        const cleaned = value.replace(/\s+/g, '')
-        return cleaned.length >= 10
-      },
-      { message: 'Motivo deve ter pelo menos 10 caracteres (sem contar espaços)' }
-    ),
+    .refine((val) => val.trim().length >= 10, {
+      message: 'Motivo da exclusão deve ter no mínimo 10 caracteres (sem contar espaços)',
+    }),
 })
 
-type DeleteFormData = z.infer<typeof deleteSchema>
+type DeleteDailyRecordFormData = z.infer<typeof deleteDailyRecordSchema>
+
+// ========== INTERFACE ==========
 
 interface DeleteDailyRecordModalProps {
-  record: DailyRecord | null
+  record: DailyRecord | undefined
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
 }
 
-/**
- * Modal de confirmação para exclusão de Daily Records
- * Implementa soft delete com validação obrigatória de deleteReason (min 10 chars) conforme RDC 502/2021
- *
- * @example
- * ```tsx
- * <DeleteDailyRecordModal
- *   record={selectedRecord}
- *   open={isDeleteModalOpen}
- *   onOpenChange={setIsDeleteModalOpen}
- *   onSuccess={() => {
- *     queryClient.invalidateQueries(['daily-records'])
- *   }}
- * />
- * ```
- */
-export function DeleteDailyRecordModal({
-  record,
-  open,
-  onOpenChange,
-  onSuccess,
-}: DeleteDailyRecordModalProps) {
-  const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
+// ========== COMPONENT ==========
 
+export function DeleteDailyRecordModal({ record, open, onOpenChange, onSuccess }: DeleteDailyRecordModalProps) {
+  // Hooks
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [isDeleting, setIsDeleting] = React.useState(false)
+  const {
+    isModalOpen: isReauthModalOpen,
+    openReauthModal,
+    closeReauthModal,
+    reauthenticate,
+    isReauthenticating,
+    reauthError,
+  } = useReauthentication()
+
+  // Form
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
-  } = useForm<DeleteFormData>({
-    resolver: zodResolver(deleteSchema),
-    defaultValues: {
-      deleteReason: '',
-    },
+  } = useForm<DeleteDailyRecordFormData>({
+    resolver: zodResolver(deleteDailyRecordSchema),
   })
 
-  const deleteReason = watch('deleteReason')
-  const cleanedLength = deleteReason?.replace(/\s+/g, '').length || 0
+  // ========== HANDLERS ==========
+
+  const onSubmit = async (data: DeleteDailyRecordFormData) => {
+    if (!record) return
+
+    setIsDeleting(true)
+    try {
+      await dailyRecordsAPI.delete(record.id, data.deleteReason.trim())
+
+      // Sucesso
+      toast({
+        title: 'Registro diário excluído',
+        description: 'O registro diário foi excluído com sucesso.',
+        variant: 'default',
+      })
+
+      // Invalidar queries
+      queryClient.invalidateQueries({ queryKey: ['daily-records'] })
+      queryClient.invalidateQueries({ queryKey: ['daily-record-history'] })
+
+      reset()
+      onOpenChange(false)
+      onSuccess?.()
+    } catch (error: any) {
+      // Interceptar erro de reautenticação
+      if (
+        error.response?.data?.code === 'REAUTHENTICATION_REQUIRED' ||
+        error.response?.data?.requiresReauth
+      ) {
+        openReauthModal(() => onSubmit(data))
+        return
+      }
+
+      // Outros erros
+      toast({
+        title: 'Erro ao excluir registro',
+        description: error.response?.data?.message || 'Ocorreu um erro ao excluir o registro diário.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const handleClose = () => {
     reset()
     onOpenChange(false)
   }
 
-  const onSubmit = async (data: DeleteFormData) => {
-    if (!record) return
-
-    try {
-      setLoading(true)
-
-      await dailyRecordsAPI.delete(record.id, data.deleteReason)
-
-      toast({
-        title: 'Registro excluído',
-        description: 'O registro foi excluído com sucesso.',
-      })
-
-      handleClose()
-      onSuccess?.()
-    } catch (error: unknown) {
-      console.error('Erro ao excluir registro:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao excluir',
-        description:
-          error.response?.data?.message ||
-          'Não foi possível excluir o registro. Tente novamente.',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
+  // ========== RENDER ==========
 
   if (!record) return null
 
+  const recordTypeLabel = {
+    HIGIENE: 'Higiene',
+    ALIMENTACAO: 'Alimentação',
+    HIDRATACAO: 'Hidratação',
+    MONITORAMENTO: 'Monitoramento',
+    ELIMINACAO: 'Eliminação',
+    COMPORTAMENTO: 'Comportamento',
+    INTERCORRENCIA: 'Intercorrência',
+    ATIVIDADES: 'Atividades',
+    VISITA: 'Visita',
+    OUTROS: 'Outros',
+  }[record.type] || record.type
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-danger">
-            <Trash2 className="h-5 w-5" />
-            Excluir Registro Diário
-          </DialogTitle>
-          <DialogDescription>
-            Esta ação realizará uma exclusão lógica (soft delete). O registro permanecerá no
-            histórico de auditoria conforme RDC 502/2021.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <AlertDialog open={open} onOpenChange={onOpenChange}>
+        <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-danger">Confirmar Exclusão de Registro Diário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro diário?
+              Esta ação realizará uma exclusão lógica (soft delete).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Alerta de Confirmação */}
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Atenção:</strong> Esta ação será permanentemente registrada no histórico
-              de auditoria. O motivo da exclusão é obrigatório.
-            </AlertDescription>
-          </Alert>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Informações do registro */}
+            <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+              <p className="text-sm font-medium">Registro a ser excluído:</p>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  <span className="font-semibold">Tipo:</span> {recordTypeLabel}
+                </p>
+                <p className="text-sm">
+                  <span className="font-semibold">Data:</span>{' '}
+                  {new Date(record.date).toLocaleDateString('pt-BR')}
+                </p>
+                {record.time && (
+                  <p className="text-sm">
+                    <span className="font-semibold">Horário:</span> {record.time}
+                  </p>
+                )}
+                {record.recordedBy && (
+                  <p className="text-sm">
+                    <span className="font-semibold">Registrado por:</span> {record.recordedBy}
+                  </p>
+                )}
+              </div>
+            </div>
 
-          {/* Informações do Registro */}
-          <div className="rounded-lg border p-4 space-y-2 bg-muted/50">
-            <h4 className="font-medium text-sm">Registro a ser excluído:</h4>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Tipo:</dt>
-              <dd className="font-medium">{record.type}</dd>
+            {/* Card Destacado - Auditoria */}
+            <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                    Este registro integra trilha de auditoria permanente, com identificação do usuário, data, hora e motivo da alteração.
+                  </p>
+                </div>
+              </div>
 
-              <dt className="text-muted-foreground">Data/Hora:</dt>
-              <dd>{formatDateTimeSafe(record.createdAt)}</dd>
+              <div className="space-y-2">
+                <Label htmlFor="deleteReason" className="text-sm font-semibold">
+                  Motivo da Exclusão <span className="text-danger">*</span>
+                </Label>
+                <Textarea
+                  id="deleteReason"
+                  placeholder="Ex: Registro duplicado - Lançamento feito duas vezes por engano..."
+                  {...register('deleteReason')}
+                  className={errors.deleteReason ? 'border-danger focus:border-danger' : ''}
+                  rows={2}
+                />
+                {errors.deleteReason && (
+                  <p className="text-sm text-danger">{errors.deleteReason.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Campo obrigatório. A justificativa comporá o registro permanente da instituição.
+                </p>
+              </div>
+            </div>
 
-              <dt className="text-muted-foreground">Registrado por:</dt>
-              <dd>{record.recordedBy}</dd>
-            </dl>
-          </div>
+            {/* Informações de segurança */}
+            <div className="rounded-lg bg-warning/5 border border-warning/20 p-4 space-y-2">
+              <p className="text-sm font-semibold text-warning/95 dark:text-warning">
+                ⚠️ Atenção - Operação de Alto Risco
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Esta operação requer confirmação de senha (reautenticação)</li>
+                <li>O registro será marcado como excluído no sistema</li>
+                <li>Todas as informações serão mantidas no histórico de auditoria</li>
+              </ul>
+            </div>
 
-          {/* Campo: Motivo da Exclusão (obrigatório) */}
-          <div className="space-y-2">
-            <Label htmlFor="deleteReason" className="required">
-              Motivo da Exclusão *
-            </Label>
-            <Textarea
-              id="deleteReason"
-              placeholder="Ex: Registro duplicado acidentalmente"
-              {...register('deleteReason')}
-              className={errors.deleteReason ? 'border-danger' : ''}
-              rows={3}
-            />
-            {errors.deleteReason && (
-              <p className="text-sm text-danger">{errors.deleteReason.message}</p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              Caracteres (sem espaços): {cleanedLength}/10
-            </p>
-          </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleClose} disabled={isDeleting}>
+                Cancelar
+              </AlertDialogCancel>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={isDeleting}
+                className="min-w-[120px]"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Confirmar Exclusão'
+                )}
+              </Button>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          {/* Informação de Conformidade */}
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>✓ Exclusão lógica (soft delete) - registro mantido no banco de dados</p>
-            <p>✓ Histórico de auditoria preservado para conformidade regulatória</p>
-            <p>✓ Rastreabilidade completa conforme LGPD Art. 48</p>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="destructive" disabled={loading}>
-              {loading ? (
-                'Excluindo...'
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Confirmar Exclusão
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      {/* Modal de reautenticação */}
+      <ReauthenticationModal
+        open={isReauthModalOpen}
+        onOpenChange={closeReauthModal}
+        onSubmit={reauthenticate}
+        isLoading={isReauthenticating}
+        error={reauthError}
+        actionDescription="Exclusão de registro diário"
+      />
+    </>
   )
 }
