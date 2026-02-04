@@ -20,6 +20,8 @@ import { SuperAdminGuard } from '../superadmin/guards/superadmin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { ContractStatus } from '@prisma/client';
+import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 
 @ApiTags('Contracts')
 @Controller('contracts')
@@ -135,11 +137,13 @@ export class ContractsController {
     return this.contractsService.publish(id, dto, user.sub);
   }
 
-  @UseGuards(JwtAuthGuard, SuperAdminGuard)
+  @UseGuards(JwtAuthGuard, SuperAdminGuard, ReauthenticationGuard)
   @ApiBearerAuth()
+  @RequiresReauthentication()
   @Delete(':id')
-  @ApiOperation({ summary: 'Deletar contrato DRAFT (SuperAdmin)' })
+  @ApiOperation({ summary: 'Deletar contrato DRAFT (SuperAdmin). Requer reautenticação.' })
   @ApiResponse({ status: 200, description: 'Contrato deletado' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   async delete(@Param('id') id: string) {
     return this.contractsService.delete(id);
   }

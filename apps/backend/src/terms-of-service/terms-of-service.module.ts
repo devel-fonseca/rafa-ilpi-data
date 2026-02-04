@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { TermsOfServiceController } from './terms-of-service.controller';
 import { TermsOfServiceService } from './terms-of-service.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     }),
   ],
   controllers: [TermsOfServiceController],
-  providers: [TermsOfServiceService],
+  providers: [TermsOfServiceService, ReauthenticationGuard],
   exports: [TermsOfServiceService],
 })
 export class TermsOfServiceModule {}

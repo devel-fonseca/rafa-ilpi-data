@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common'
 import { PrismaModule } from '../prisma/prisma.module'
 import { PaymentsModule } from '../payments/payments.module'
-import { ContractsModule } from '../contracts/contracts.module'
+// import { ContractsModule } from '../contracts/contracts.module' // DEPRECATED: Use TermsOfServiceModule
 import { TermsOfServiceModule } from '../terms-of-service/terms-of-service.module'
 import { TenantsModule } from '../tenants/tenants.module'
 import { EmailModule } from '../email/email.module'
@@ -44,7 +44,7 @@ import { SuperAdminController } from './superadmin.controller'
     // forwardRef() evita dependência circular com PaymentsModule e TenantsModule
     forwardRef(() => PaymentsModule),
     forwardRef(() => TenantsModule),
-    ContractsModule,
+    // ContractsModule, // DEPRECATED: Removido em favor de TermsOfServiceModule
     TermsOfServiceModule,
     EmailModule,
   ],

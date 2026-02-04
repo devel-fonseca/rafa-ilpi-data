@@ -16,6 +16,8 @@ import { DeleteUserDto } from './dto/delete-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { RequiresReauthentication } from './decorators/requires-reauthentication.decorator';
+import { ReauthenticationGuard } from './guards/reauthentication.guard';
 
 interface RequestWithUser extends Request {
   user: JwtPayload;
@@ -61,13 +63,16 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, ReauthenticationGuard)
   @ApiOperation({
     summary: 'Excluir usuário (soft delete) com versionamento',
-    description: 'Marca usuário como excluído e registra no histórico de auditoria (LGPD)',
+    description: 'Marca usuário como excluído e registra no histórico de auditoria (LGPD). Requer reautenticação.',
   })
   @ApiParam({ name: 'id', description: 'ID do usuário', type: 'string' })
   @ApiResponse({ status: 200, description: 'Usuário excluído com sucesso' })
   @ApiResponse({ status: 400, description: 'Não é possível excluir sua própria conta' })
+  @ApiResponse({ status: 403, description: 'Reautenticação necessária' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async remove(
     @Param('id') id: string,
