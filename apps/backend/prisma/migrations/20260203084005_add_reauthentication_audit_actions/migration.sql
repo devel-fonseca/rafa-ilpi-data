@@ -1,0 +1,3 @@
+-- AlterEnum: Adicionar ações de reautenticação ao AccessAction
+ALTER TYPE "AccessAction" ADD VALUE IF NOT EXISTS 'REAUTHENTICATION_SUCCESS';
+ALTER TYPE "AccessAction" ADD VALUE IF NOT EXISTS 'REAUTHENTICATION_FAILED';

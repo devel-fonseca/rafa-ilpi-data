@@ -266,6 +266,8 @@ enum AccessAction {
   PASSWORD_CHANGED // Senha alterada pelo usuário
   SESSION_REVOKED // Sessão revogada manualmente
   FORCE_PASSWORD_CHANGE // Troca forçada de senha (primeiro login)
+  REAUTHENTICATION_SUCCESS // Reautenticação para high-risk action (sucesso)
+  REAUTHENTICATION_FAILED // Tentativa de reautenticação com senha incorreta
 
   @@map("AccessAction")
 }
