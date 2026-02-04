@@ -53,6 +53,8 @@ export function OnboardingWizard() {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingFormData>({
     legalNature: 'EMPRESA_PRIVADA', // Padrão: maioria das ILPIs
+    capacityDeclared: 20,
+    capacityLicensed: 20,
   })
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

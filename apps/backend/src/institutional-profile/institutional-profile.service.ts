@@ -137,12 +137,18 @@ export class InstitutionalProfileService {
         profileData.foundedAt = new Date(profileData.foundedAt as string)
       }
 
-      // Sincronizar telefone e email do tenant para o profile
-      if (dto.tenant?.phone) {
-        profileData.contactPhone = dto.tenant.phone
+      // Fallback: usar phone/email do tenant apenas se contact* não foi preenchido
+      const existingProfile = await this.tenantContext.client.tenantProfile.findFirst({
+        where: { tenantId, deletedAt: null },
+      })
+      const fallbackPhone = dto.tenant?.phone ?? updatedTenant?.phone
+      const fallbackEmail = dto.tenant?.email ?? updatedTenant?.email
+
+      if (!profileData.contactPhone && !existingProfile?.contactPhone && fallbackPhone) {
+        profileData.contactPhone = fallbackPhone
       }
-      if (dto.tenant?.email) {
-        profileData.contactEmail = dto.tenant.email
+      if (!profileData.contactEmail && !existingProfile?.contactEmail && fallbackEmail) {
+        profileData.contactEmail = fallbackEmail
       }
 
       console.log('🔍 Atualizando profile com:', JSON.stringify(profileData, null, 2))

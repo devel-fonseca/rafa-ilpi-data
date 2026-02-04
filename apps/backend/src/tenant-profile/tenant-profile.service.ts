@@ -40,6 +40,18 @@ export class TenantProfileService {
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };
 
+    // Fallback: usar phone/email do tenant (public) apenas se contact* não foi preenchido
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { phone: true, email: true },
+    });
+    if (!data.contactPhone && tenant?.phone) {
+      data.contactPhone = tenant.phone;
+    }
+    if (!data.contactEmail && tenant?.email) {
+      data.contactEmail = tenant.email;
+    }
+
     return this.tenantContext.client.tenantProfile.upsert({
       where: { tenantId: this.tenantContext.tenantId },
       create: {
@@ -90,6 +102,18 @@ export class TenantProfileService {
       ...dto,
       foundedAt: dto.foundedAt ? new Date(dto.foundedAt) : undefined,
     };
+
+    // Fallback: usar phone/email do tenant (public) apenas se contact* não foi preenchido
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { phone: true, email: true },
+    });
+    if (!data.contactPhone && !existing.contactPhone && tenant?.phone) {
+      data.contactPhone = tenant.phone;
+    }
+    if (!data.contactEmail && !existing.contactEmail && tenant?.email) {
+      data.contactEmail = tenant.email;
+    }
 
     return this.tenantContext.client.tenantProfile.update({
       where: { tenantId: this.tenantContext.tenantId },
