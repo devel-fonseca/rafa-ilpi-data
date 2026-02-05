@@ -15,7 +15,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import type { DailyReport, ShiftReport } from '@/types/reports'
+import type { DailyReport, MultiDayReport, ShiftReport } from '@/types/reports'
 import { formatDateOnlySafe, getCurrentDateTime } from '@/utils/dateHelpers'
 import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
 import {
@@ -34,7 +34,14 @@ import {
 } from 'lucide-react'
 
 interface DailyReportViewProps {
+  multiDayReport: MultiDayReport
+}
+
+interface SingleDayCardProps {
   report: DailyReport
+  isExpanded: boolean
+  onToggle: () => void
+  dayOfWeek: string
 }
 
 // Definição da ordem e agrupamento de categorias
@@ -122,7 +129,8 @@ const CATEGORY_CONFIG = [
   },
 ]
 
-export function DailyReportView({ report }: DailyReportViewProps) {
+// Componente para renderizar um único dia
+function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCardProps) {
   const { summary, dailyRecords, medicationAdministrations, shifts } = report
 
   // Estado de expansão por categoria
@@ -409,13 +417,13 @@ export function DailyReportView({ report }: DailyReportViewProps) {
 
     switch (type) {
       case 'HIGIENE':
-        return `Banho: ${getField('tipoBanho') || 'N/A'}, ${getField('duracao') || 0}min | Pele: ${getField('condicaoPele') || 'N/A'}`
+        return `Banho: ${getField('tipoBanho') || 'N/A'}, ${getField('duracao') || 0}min • Pele: ${getField('condicaoPele') || 'N/A'}`
       case 'ALIMENTACAO':
-        return `${getField('refeicao') || 'Refeição'} | Ingestão: ${getField('ingeriu') || 'N/A'} | ${getField('volumeMl') || 0}ml`
+        return `${getField('refeicao') || 'Refeição'} • Ingestão: ${getField('ingeriu') || 'N/A'} • ${getField('volumeMl') || 0}ml`
       case 'HIDRATACAO':
-        return `${getField('tipo') || 'Líquido'} | ${getField('volumeMl') || 0}ml`
+        return `${getField('tipo') || 'Líquido'} • ${getField('volumeMl') || 0}ml`
       case 'MONITORAMENTO':
-        return `PA: ${getField('pressaoArterial') || 'N/A'} | FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm | Tax: ${getField('temperatura') || 'N/A'}°C | SpO2: ${getField('saturacaoO2') || 'N/A'}% | Gli: ${getField('glicemia') || 'N/A'} mg/dL`
+        return `PA: ${getField('pressaoArterial') || 'N/A'} • FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm • Tax: ${getField('temperatura') || 'N/A'}°C • SpO2: ${getField('saturacaoO2') || 'N/A'}% • Gli: ${getField('glicemia') || 'N/A'} mg/dL`
       case 'INTERCORRENCIA':
         return (
           <div className="space-y-1">
@@ -430,15 +438,15 @@ export function DailyReportView({ report }: DailyReportViewProps) {
       case 'HUMOR':
         return getField('estado') || getField('descricao') || 'Sem detalhes'
       case 'SONO':
-        return `${getField('qualidade') || 'N/A'} | Duração: ${getField('duracao') || 'N/A'}`
+        return `${getField('qualidade') || 'N/A'} • Duração: ${getField('duracao') || 'N/A'}`
       case 'ELIMINACAO':
-        return `${getField('tipo') || 'N/A'} | ${getField('caracteristica')} ${getField('observacao')}`
+        return `${getField('tipo') || 'N/A'} • ${getField('caracteristica')} ${getField('observacao')}`
       case 'PESO':
-        return `${getField('peso') || 'N/A'} kg | IMC: ${getField('imc') || 'N/A'}`
+        return `${getField('peso') || 'N/A'} kg • IMC: ${getField('imc') || 'N/A'}`
       case 'ATIVIDADES':
         return getField('atividade') || getField('descricao') || 'Sem detalhes'
       case 'VISITA':
-        return `Visitante: ${getField('visitante') || 'N/A'} | ${getField('observacao')}`
+        return `Visitante: ${getField('visitante') || 'N/A'} • ${getField('observacao')}`
       case 'OUTROS':
         return getField('descricao') || getField('observacao') || 'Sem detalhes'
       default:
@@ -447,39 +455,50 @@ export function DailyReportView({ report }: DailyReportViewProps) {
   }
 
   return (
-    <div className="space-y-6 print:space-y-4">
-      {/* Cabeçalho do Relatório */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <CalendarIcon className="h-6 w-6" />
-                Relatório Diário - {reportDateLabel}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Gerado em {generatedAtLabel}
-              </p>
+    <Collapsible open={isExpanded} onOpenChange={onToggle}>
+      <Card className="overflow-hidden">
+        {/* Cabeçalho do Relatório - Sempre Visível */}
+        <CardHeader className="bg-muted/30">
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between cursor-pointer">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between w-full md:pr-4">
+                <div>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <CalendarIcon className="h-6 w-6" />
+                    {reportDateLabel} - {dayOfWeek}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Gerado em {generatedAtLabel}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">Registros: {summary.totalDailyRecords}</Badge>
+                  <Badge variant="secondary">
+                    Prescrição medicamentosa: {summary.totalMedicationsScheduled}
+                  </Badge>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="flex-shrink-0">
+                {isExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </Button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">Registros: {summary.totalDailyRecords}</Badge>
-              <Badge variant="secondary">Medicações: {summary.totalMedicationsScheduled}</Badge>
-            </div>
-          </div>
+          </CollapsibleTrigger>
         </CardHeader>
-      </Card>
 
-
-      {/* Resumo Executivo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Resumo Executivo
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* Conteúdo Colapsável */}
+          <CollapsibleContent>
+            <CardContent className="pt-6 space-y-6">
+              {/* Resumo Executivo */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Resumo Executivo
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="rounded-lg border border-border bg-muted/20 p-3 min-h-[92px] flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
@@ -509,97 +528,90 @@ export function DailyReportView({ report }: DailyReportViewProps) {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
             <ComplianceRing
               value={feedingCompliance}
-              label="Cumprimento Alimentação + Hidratação"
+              label="Alimentação + Hidratação"
               icon={Utensils}
               color={RECORD_TYPE_LABELS.ALIMENTACAO.color}
             />
             <ComplianceRing
               value={monitorCompliance}
-              label="Cumprimento Sinais Vitais"
+              label="Sinais Vitais"
               icon={Activity}
               color={RECORD_TYPE_LABELS.MONITORAMENTO.color}
             />
             <ComplianceRing
               value={hygieneCompliance}
-              label="Cumprimento Higiene"
+              label="Higiene"
               icon={Bath}
               color={RECORD_TYPE_LABELS.HIGIENE.color}
             />
-          </div>
-
-          <div className="mt-6" />
-        </CardContent>
-      </Card>
-
-      {/* Turnos do Dia */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Turnos do Dia
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {shifts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum turno encontrado para este dia.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Turno</TableHead>
-                    <TableHead>Horário</TableHead>
-                    <TableHead>Equipe</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>{shifts.map(renderShiftRow)}</TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Registros Diários Agrupados por Categoria */}
-      {categoriesBeforeMedications.map(renderCategory)}
-
-      {/* Administração de Medicamentos */}
-      <Collapsible open={isMedicationsOpen} onOpenChange={setIsMedicationsOpen}>
-        <Card className="border-l-4 border-border overflow-hidden">
-          <CardHeader className="bg-muted/40">
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between cursor-pointer">
-                <CardTitle className="text-lg font-bold">
-                  💊 ADMINISTRAÇÃO DE MEDICAMENTOS
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({medicationAdministrations.length} registros)
-                  </span>
-                </CardTitle>
-                <Button variant="ghost" size="sm">
-                  {isMedicationsOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
+                </div>
               </div>
-            </CollapsibleTrigger>
-          </CardHeader>
-          <CollapsibleContent>
-            <CardContent className="pt-4">
-              {medicationAdministrations.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Nenhuma medicação administrada.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
+
+              {/* Turnos do Dia */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Turnos do Dia
+                </h3>
+                {shifts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum turno encontrado para este dia.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Turno</TableHead>
+                          <TableHead>Horário</TableHead>
+                          <TableHead>Equipe</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>{shifts.map(renderShiftRow)}</TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              {/* Registros Diários Agrupados por Categoria */}
+              {categoriesBeforeMedications.map(renderCategory)}
+
+              {/* Administração de Medicamentos */}
+              <Collapsible open={isMedicationsOpen} onOpenChange={setIsMedicationsOpen}>
+                <Card className="border-l-4 border-border overflow-hidden">
+                  <CardHeader className="bg-muted/40">
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between cursor-pointer">
+                        <CardTitle className="text-lg font-bold">
+                          💊 ADMINISTRAÇÃO DE MEDICAMENTOS
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            ({medicationAdministrations.length} registros)
+                          </span>
+                        </CardTitle>
+                        <Button variant="ghost" size="sm">
+                          {isMedicationsOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </CollapsibleTrigger>
+                  </CardHeader>
+                  <CollapsibleContent>
+                    <CardContent className="pt-4">
+                      {medicationAdministrations.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nenhuma medicação administrada.
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
                       <TableRow>
                         <TableHead>Residente</TableHead>
                         <TableHead>Medicamento</TableHead>
@@ -647,16 +659,47 @@ export function DailyReportView({ report }: DailyReportViewProps) {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </div>
-              )}
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {categoriesAfterMedications.map(renderCategory)}
             </CardContent>
           </CollapsibleContent>
         </Card>
       </Collapsible>
+  )
+}
 
-      {categoriesAfterMedications.map(renderCategory)}
+// Componente principal que gerencia múltiplos dias
+export function DailyReportView({ multiDayReport }: DailyReportViewProps) {
+  const { reports } = multiDayReport
 
+  // Estado para controlar qual dia está expandido (apenas 1 por vez)
+  const [expandedDayIndex, setExpandedDayIndex] = useState<number>(0)
+
+  // Helper para obter o dia da semana em português
+  const getDayOfWeek = (dateString: string) => {
+    const date = new Date(dateString + 'T12:00:00.000Z')
+    const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+    return days[date.getDay()]
+  }
+
+  return (
+    <div className="space-y-4">
+      {reports.map((report, index) => (
+        <SingleDayCard
+          key={report.summary.date}
+          report={report}
+          isExpanded={expandedDayIndex === index}
+          onToggle={() => setExpandedDayIndex(expandedDayIndex === index ? -1 : index)}
+          dayOfWeek={getDayOfWeek(report.summary.date)}
+        />
+      ))}
     </div>
   )
 }
