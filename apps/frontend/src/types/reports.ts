@@ -82,3 +82,9 @@ export interface DailyReport {
   vitalSigns: VitalSignsReport[]
   shifts: ShiftReport[]
 }
+
+export interface MultiDayReport {
+  startDate: string
+  endDate: string
+  reports: DailyReport[]
+}

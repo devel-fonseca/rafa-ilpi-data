@@ -1,133 +1,237 @@
-import { useNavigate } from 'react-router-dom'
-import { Page, PageHeader, Section } from '@/design-system/components'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, Calendar, TrendingUp, Users } from 'lucide-react'
+// ──────────────────────────────────────────────────────────────────────────────
+//  PAGE - ReportsHub (Central de Relatórios e Documentos)
+// ──────────────────────────────────────────────────────────────────────────────
 
-interface ReportCard {
-  id: string
-  title: string
-  description: string
-  icon: React.ElementType
-  route: string
-  badge?: string
-  iconColor: string
-}
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FileText, Clock, ChevronRight } from 'lucide-react'
+import { Page, PageHeader } from '@/design-system/components'
+import { ReportGenerator } from '@/components/reports/ReportGenerator'
+import { REPORT_CATEGORIES, type ReportFilters, type RecentReport } from '@/types/reportsHub'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { getDailyReport } from '@/services/reportsApi'
+import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
+import { useAuthStore } from '@/stores/auth.store'
+
+// ========== COMPONENT ==========
 
 export default function ReportsHub() {
   const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const [isGenerating, setIsGenerating] = React.useState(false)
+  const [recentReports, setRecentReports] = React.useState<RecentReport[]>([])
 
-  const reports: ReportCard[] = [
-    {
-      id: 'daily',
-      title: 'Relatório Diário',
-      description: 'Visualize todos os registros, medicações e sinais vitais de um dia específico',
-      icon: Calendar,
-      route: '/dashboard/relatorios/diario',
-      iconColor: 'text-primary',
-    },
-    {
-      id: 'monthly',
-      title: 'Relatório Mensal',
-      description: 'Resumo consolidado de um mês com estatísticas e indicadores',
-      icon: TrendingUp,
-      route: '/dashboard/relatorios/mensal',
-      badge: 'Em Breve',
-      iconColor: 'text-warning',
-    },
-    {
-      id: 'residents',
-      title: 'Relatório por Residente',
-      description: 'Histórico completo e detalhado de um residente específico',
-      icon: Users,
-      route: '/dashboard/relatorios/residente',
-      badge: 'Em Breve',
-      iconColor: 'text-success',
-    },
-    {
-      id: 'custom',
-      title: 'Relatório Personalizado',
-      description: 'Crie relatórios customizados com filtros e períodos específicos',
-      icon: FileText,
-      route: '/dashboard/relatorios/personalizado',
-      badge: 'Em Breve',
-      iconColor: 'text-info',
-    },
-  ]
+  // ========== HANDLERS ==========
+
+  const handleGenerateReport = async (filters: ReportFilters) => {
+    setIsGenerating(true)
+    try {
+      // Navegar para o relatório diário se o tipo for DAILY e formato for HTML
+      if (filters.reportType === 'DAILY' && filters.format === 'HTML') {
+        // Passar startDate e endDate como query params
+        const params = new URLSearchParams()
+        if (filters.startDate) {
+          params.set('startDate', filters.startDate)
+        }
+        if (filters.endDate && filters.endDate !== filters.startDate) {
+          params.set('endDate', filters.endDate)
+        }
+        navigate(`/dashboard/relatorios/diario?${params.toString()}`)
+        return
+      }
+
+      // Gerar PDF se o tipo for DAILY e formato for PDF
+      if (filters.reportType === 'DAILY' && filters.format === 'PDF') {
+        if (!filters.startDate) {
+          console.error('Data inicial é obrigatória')
+          return
+        }
+
+        // Buscar dados do relatório
+        const multiDayReport = await getDailyReport(filters.startDate, filters.endDate)
+
+        // Gerar e baixar PDF
+        const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI'
+        const cnpj = user?.tenant?.cnpj || 'CNPJ não cadastrado'
+        const userName = user?.name || 'Usuário'
+        const printDate = new Date().toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+
+        downloadDailyReportPDF(multiDayReport, {
+          ilpiName,
+          cnpj,
+          userName,
+          printDate,
+        })
+
+        // Adicionar aos recentes
+        const newReport: RecentReport = {
+          id: `report-${Date.now()}`,
+          label: `Relatório Diário - PDF`,
+          category: filters.reportType,
+          timestamp: new Date(),
+          filters,
+        }
+
+        setRecentReports((prev) => [newReport, ...prev.slice(0, 4)])
+        return
+      }
+
+      // TODO: Implementar chamada à API para outros tipos de relatórios
+      console.log('Generating report with filters:', filters)
+
+      // Simular processamento
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Adicionar aos recentes
+      const newReport: RecentReport = {
+        id: `report-${Date.now()}`,
+        label: `Relatório ${filters.reportType}`,
+        category: filters.reportType,
+        timestamp: new Date(),
+        filters,
+      }
+
+      setRecentReports((prev) => [newReport, ...prev.slice(0, 4)])
+
+      // TODO: Abrir relatório gerado
+    } catch (error) {
+      console.error('Error generating report:', error)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleCategoryItemClick = (itemId: string, reportType: string) => {
+    // Navegar diretamente para o relatório diário
+    if (reportType === 'DAILY' || itemId === 'daily-report') {
+      navigate('/dashboard/relatorios/diario')
+      return
+    }
+
+    // Para outros tipos, pré-preencher o gerador e scroll até ele
+    // TODO: Implementar scroll e pré-preenchimento do gerador
+    console.log('Selected report type:', reportType)
+  }
+
+  // ========== RENDER ==========
 
   return (
     <Page>
       <PageHeader
-        title="Relatórios"
-        subtitle="Gere e visualize relatórios detalhados da instituição"
+        title="Relatórios e Documentos"
+        subtitle="Geração unificada de relatórios operacionais, evidências de conformidade e documentos institucionais"
       />
 
-      <Section title="Tipos de Relatórios">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {reports.map((report) => {
-            const Icon = report.icon
-            const isAvailable = !report.badge
+      {/* Gerador Universal */}
+      <div className="mb-8">
+        <ReportGenerator onGenerate={handleGenerateReport} isLoading={isGenerating} />
+      </div>
 
-            return (
-              <Card
-                key={report.id}
-                className={cn(
-                  'transition-all duration-200 border-2',
-                  isAvailable
-                    ? 'hover:shadow-lg hover:border-primary cursor-pointer'
-                    : 'opacity-60 cursor-not-allowed'
-                )}
-                onClick={() => isAvailable && navigate(report.route)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn('p-3 rounded-lg bg-muted', report.iconColor)}>
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{report.title}</CardTitle>
-                        {report.badge && (
-                          <span className="inline-block px-2 py-0.5 mt-1 text-xs font-medium rounded-full bg-muted text-muted-foreground">
-                            {report.badge}
-                          </span>
-                        )}
-                      </div>
+      {/* Categorias de Evidência */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          <h2 className="text-2xl font-semibold">Categorias de Evidência</h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {REPORT_CATEGORIES.map((category) => (
+            <Card
+              key={category.id}
+              className={`transition-all hover:shadow-md ${category.color} border-l-4`}
+            >
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{category.emoji}</span>
+                    <div>
+                      <CardTitle className="text-lg">{category.title}</CardTitle>
+                      <CardDescription className="mt-1">
+                        {category.description}
+                      </CardDescription>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-sm">
-                    {report.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </Section>
+                </div>
+              </CardHeader>
 
-      <Section title="Informações">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <p>
-                <strong className="text-foreground">💡 Dica:</strong> Todos os relatórios podem ser exportados em PDF para impressão ou arquivamento.
-              </p>
-              <p>
-                <strong className="text-foreground">📊 Dados:</strong> Os relatórios são gerados em tempo real com base nos registros do sistema.
-              </p>
-              <p>
-                <strong className="text-foreground">🔒 Segurança:</strong> Apenas usuários autorizados podem visualizar relatórios.
-              </p>
+              <CardContent>
+                <div className="space-y-2">
+                  {category.items.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() =>
+                        handleCategoryItemClick(item.id, item.reportType)
+                      }
+                      className="w-full flex items-center justify-between rounded-lg border bg-card p-3 text-left transition-all hover:bg-accent hover:shadow-sm"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{item.label}</p>
+                          {item.badge && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Usados Recentemente */}
+      {recentReports.length > 0 && (
+        <>
+          <Separator className="my-8" />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              <h2 className="text-2xl font-semibold">Usados Recentemente</h2>
             </div>
-          </CardContent>
-        </Card>
-      </Section>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {recentReports.map((report) => (
+                <button
+                  key={report.id}
+                  onClick={() => console.log('Reopen report:', report.id)}
+                  className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-all hover:bg-accent hover:shadow-sm"
+                >
+                  <FileText className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="font-medium text-sm truncate">{report.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(report.timestamp).toLocaleString('pt-BR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                    <Badge variant="outline" className="text-xs">
+                      {report.category}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </Page>
   )
-}
-
-// Helper function for className
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ')
 }

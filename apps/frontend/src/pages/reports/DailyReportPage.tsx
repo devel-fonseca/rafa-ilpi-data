@@ -1,29 +1,57 @@
-import { useState } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Calendar, Loader2 } from 'lucide-react'
+import { Loader2, FileDown } from 'lucide-react'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useQuery } from '@tanstack/react-query'
 import { getDailyReport } from '@/services/reportsApi'
 import { DailyReportView } from '@/components/reports/DailyReportView'
+import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
+import { useAuthStore } from '@/stores/auth.store'
+import { useState } from 'react'
 
 export default function DailyReportPage() {
-  const [selectedDate, setSelectedDate] = useState<string>(getCurrentDate())
-  const [dateToFetch, setDateToFetch] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const startDate = searchParams.get('startDate') || searchParams.get('date') || getCurrentDate()
+  const endDate = searchParams.get('endDate') || undefined
+  const { user } = useAuthStore()
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
-  const { data: report, isLoading, error } = useQuery({
-    queryKey: ['daily-report', dateToFetch],
-    queryFn: () => getDailyReport(dateToFetch!),
-    enabled: !!dateToFetch,
+  const { data: multiDayReport, isLoading, error } = useQuery({
+    queryKey: ['daily-report', startDate, endDate],
+    queryFn: () => getDailyReport(startDate, endDate),
+    enabled: !!startDate,
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 
-  const handleGenerateReport = () => {
-    if (selectedDate) {
-      setDateToFetch(selectedDate)
+  const handleGeneratePDF = () => {
+    if (!multiDayReport || !user) return
+
+    setIsGeneratingPdf(true)
+    try {
+      const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
+      const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
+      const userName = user.name
+      const printDate = new Date().toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+
+      downloadDailyReportPDF(multiDayReport, {
+        ilpiName,
+        cnpj,
+        userName,
+        printDate,
+      })
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+    } finally {
+      setIsGeneratingPdf(false)
     }
   }
 
@@ -31,48 +59,51 @@ export default function DailyReportPage() {
     <Page>
       <PageHeader
         title="Relatório Diário"
-        subtitle="Visualize todos os registros, medicações e sinais vitais de um dia específico"
-      />
-
-      {/* Seletor de Data */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Selecione a Data
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1 max-w-xs">
-              <Label htmlFor="report-date">Data do Relatório</Label>
-              <Input
-                id="report-date"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                max={getCurrentDate()}
-              />
-            </div>
+        subtitle="Visualize todos os registros, medicações e sinais vitais de um ou mais dias"
+        breadcrumbs={[
+          { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
+          { label: 'Relatório Diário' },
+        ]}
+        backButton={{
+          onClick: () => navigate('/dashboard/relatorios'),
+        }}
+        actions={
+          multiDayReport && !isLoading && !error ? (
             <Button
-              onClick={handleGenerateReport}
-              disabled={!selectedDate || isLoading}
-              className="w-full sm:w-auto"
+              onClick={handleGeneratePDF}
+              disabled={isGeneratingPdf}
+              variant="default"
+              className="gap-2"
             >
-              {isLoading ? (
+              {isGeneratingPdf ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Gerando PDF...
                 </>
               ) : (
-                'Gerar Relatório'
+                <>
+                  <FileDown className="h-4 w-4" />
+                  Gerar PDF
+                </>
               )}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          ) : undefined
+        }
+      />
 
-      {/* Visualização do Relatório */}
+      {/* Loading State */}
+      {isLoading && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground py-8">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <p>Carregando relatório...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error State */}
       {error && (
         <Card className="border-danger">
           <CardContent className="pt-6">
@@ -83,9 +114,11 @@ export default function DailyReportPage() {
         </Card>
       )}
 
-      {report && <DailyReportView report={report} />}
+      {/* Report View */}
+      {multiDayReport && <DailyReportView multiDayReport={multiDayReport} />}
 
-      {!report && !isLoading && !error && dateToFetch && (
+      {/* Empty State */}
+      {!multiDayReport && !isLoading && !error && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground text-center">

@@ -16,6 +16,7 @@ export interface User {
     name: string
     status: string
     plan?: string
+    cnpj?: string | null
     profile?: {
       tradeName?: string | null
     }
