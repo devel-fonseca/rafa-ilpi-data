@@ -50,7 +50,7 @@ export default function ReportsHub() {
         }
 
         // Buscar dados do relatório
-        const multiDayReport = await getDailyReport(filters.startDate, filters.endDate)
+        const multiDayReport = await getDailyReport(filters.startDate, filters.endDate, filters.shift)
 
         // Gerar e baixar PDF
         const ilpiName = user?.tenant?.profile?.tradeName || user?.tenant?.name || 'ILPI'

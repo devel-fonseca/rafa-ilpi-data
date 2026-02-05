@@ -16,12 +16,13 @@ export default function DailyReportPage() {
   const [searchParams] = useSearchParams()
   const startDate = searchParams.get('startDate') || searchParams.get('date') || getCurrentDate()
   const endDate = searchParams.get('endDate') || undefined
+  const shiftTemplateId = searchParams.get('shiftTemplateId') || undefined
   const { user } = useAuthStore()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   const { data: multiDayReport, isLoading, error } = useQuery({
-    queryKey: ['daily-report', startDate, endDate],
-    queryFn: () => getDailyReport(startDate, endDate),
+    queryKey: ['daily-report', startDate, endDate, shiftTemplateId],
+    queryFn: () => getDailyReport(startDate, endDate, shiftTemplateId),
     enabled: !!startDate,
     staleTime: 1000 * 60 * 5, // 5 minutos
   })

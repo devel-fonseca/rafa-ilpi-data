@@ -41,6 +41,7 @@ import {
   BulkCreateShiftsDto,
   RDCCalculationQueryDto,
   CoverageReportQueryDto,
+  AvailableShiftTemplateDto,
 } from './dto';
 
 @ApiTags('Care Shifts - Plantões de Cuidadores')
@@ -361,6 +362,24 @@ export class CareShiftsController {
   })
   getHistory(@Param('id') id: string) {
     return this.careShiftsService.getHistory(id);
+  }
+
+  // ========== Utilit\u00e1rios para Relat\u00f3rios ==========
+
+  @Get('available-templates')
+  @RequireAnyPermission(PermissionType.VIEW_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Listar templates de turnos dispon\u00edveis',
+    description:
+      'Retorna templates ativos e habilitados para o tenant. \u00datil para filtros de relat\u00f3rios.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de templates dispon\u00edveis',
+    type: [AvailableShiftTemplateDto],
+  })
+  getAvailableShiftTemplates() {
+    return this.careShiftsService.getAvailableShiftTemplates();
   }
 
   // ========== RDC Compliance ==========

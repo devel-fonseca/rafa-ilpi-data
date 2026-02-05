@@ -8,3 +8,4 @@ export { AddMemberDto } from './add-member.dto';
 export { BulkCreateShiftsDto, ShiftAssignmentDto } from './bulk-create-shifts.dto';
 export { RDCCalculationQueryDto } from './rdc-calculation-query.dto';
 export { CoverageReportQueryDto } from './coverage-report-query.dto';
+export { AvailableShiftTemplateDto } from './available-shift-template.dto';

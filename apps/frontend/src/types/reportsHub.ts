@@ -12,7 +12,8 @@ export type ReportType =
 
 export type ReportFormat = 'PDF' | 'HTML' | 'CSV' | 'EXCEL'
 
-export type ShiftType = 'ALL' | 'DAY' | 'NIGHT'
+// ShiftType agora aceita 'ALL' ou UUID de template específico
+export type ShiftType = string // 'ALL' ou UUID do ShiftTemplate
 
 export type RecordTypeFilter =
   | 'ALL'

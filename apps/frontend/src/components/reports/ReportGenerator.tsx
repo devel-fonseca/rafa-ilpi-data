@@ -18,6 +18,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { useQuery } from '@tanstack/react-query'
+import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
 import type { ReportFilters, ReportType, ShiftType, RecordTypeFilter, ReportFormat } from '@/types/reportsHub'
 
 // ========== VALIDATION SCHEMA ==========
@@ -69,6 +71,13 @@ export function ReportGenerator({
   isLoading = false,
   residents = [],
 }: ReportGeneratorProps) {
+  // Buscar templates de turnos disponíveis
+  const { data: availableShifts = [], isLoading: isLoadingShifts } = useQuery({
+    queryKey: ['available-shift-templates'],
+    queryFn: getAvailableShiftTemplates,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  })
+
   // Form
   const {
     register,
@@ -289,14 +298,18 @@ export function ReportGenerator({
               <Select
                 value={watch('shift')}
                 onValueChange={(value) => setValue('shift', value)}
+                disabled={isLoadingShifts}
               >
                 <SelectTrigger id="shift">
-                  <SelectValue placeholder="Todos os turnos" />
+                  <SelectValue placeholder={isLoadingShifts ? 'Carregando turnos...' : 'Todos os turnos'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Todos os turnos</SelectItem>
-                  <SelectItem value="DAY">Dia</SelectItem>
-                  <SelectItem value="NIGHT">Noite</SelectItem>
+                  {availableShifts.map((shift) => (
+                    <SelectItem key={shift.id} value={shift.id}>
+                      {shift.name} ({shift.startTime}-{shift.endTime})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

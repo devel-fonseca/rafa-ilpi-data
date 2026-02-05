@@ -4,10 +4,14 @@ import type { MultiDayReport } from '@/types/reports'
 export async function getDailyReport(
   startDate: string,
   endDate?: string,
+  shiftTemplateId?: string,
 ): Promise<MultiDayReport> {
   const params = new URLSearchParams({ startDate })
   if (endDate) {
     params.set('endDate', endDate)
+  }
+  if (shiftTemplateId && shiftTemplateId !== 'ALL') {
+    params.set('shiftTemplateId', shiftTemplateId)
   }
   const response = await api.get(`/reports/daily?${params.toString()}`)
   return response.data

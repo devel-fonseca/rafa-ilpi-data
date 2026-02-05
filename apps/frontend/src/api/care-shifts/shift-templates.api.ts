@@ -56,3 +56,26 @@ export const updateTenantShiftConfig = async (
   );
   return response.data;
 };
+
+// ────────────────────────────────────────────────────────────────────────────
+// Templates Disponíveis (para filtros de relatórios)
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface AvailableShiftTemplate {
+  id: string;
+  type: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  displayOrder: number;
+}
+
+/**
+ * Listar templates disponíveis para filtros de relatórios
+ * Retorna apenas templates ativos e habilitados para o tenant
+ */
+export const getAvailableShiftTemplates = async (): Promise<AvailableShiftTemplate[]> => {
+  const response = await api.get<AvailableShiftTemplate[]>('/care-shifts/available-templates');
+  return response.data;
+};

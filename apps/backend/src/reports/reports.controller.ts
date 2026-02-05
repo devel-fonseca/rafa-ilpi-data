@@ -17,6 +17,7 @@ export class ReportsController {
   @ApiOperation({ summary: 'Gerar relatório diário ou multi-dia' })
   @ApiQuery({ name: 'startDate', required: true, type: String, description: 'Data inicial (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data final (YYYY-MM-DD). Se não fornecida, retorna apenas startDate' })
+  @ApiQuery({ name: 'shiftTemplateId', required: false, type: String, description: 'Filtrar por template de turno específico (UUID)' })
   @ApiResponse({
     status: 200,
     description: 'Relatório gerado com sucesso',
@@ -26,10 +27,11 @@ export class ReportsController {
     @CurrentUser() user: JwtPayload,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate?: string,
+    @Query('shiftTemplateId') shiftTemplateId?: string,
   ): Promise<MultiDayReportDto> {
     if (!user.tenantId) {
       throw new Error('TenantId não encontrado no token JWT');
     }
-    return this.reportsService.generateMultiDayReport(user.tenantId, startDate, endDate);
+    return this.reportsService.generateMultiDayReport(user.tenantId, startDate, endDate, shiftTemplateId);
   }
 }

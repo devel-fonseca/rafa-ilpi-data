@@ -1121,4 +1121,58 @@ export class CareShiftsService {
 
     return results;
   }
+
+  /**
+   * Listar templates de turnos disponíveis para uso em filtros de relatórios
+   * Retorna apenas templates ativos e habilitados para o tenant
+   */
+  async getAvailableShiftTemplates() {
+    // Buscar todos os templates ativos
+    const templates = await this.tenantContext.publicClient.shiftTemplate.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    });
+
+    // Buscar configurações do tenant
+    const tenantConfigs = await this.tenantContext.client.tenantShiftConfig.findMany({
+      where: { deletedAt: null },
+      select: {
+        shiftTemplateId: true,
+        isEnabled: true,
+        customName: true,
+        customStartTime: true,
+        customEndTime: true,
+        customDuration: true,
+      },
+    });
+
+    // Criar mapa de configurações
+    const configMap = new Map(
+      tenantConfigs.map((c) => [c.shiftTemplateId, c]),
+    );
+
+    // Filtrar e enriquecer templates
+    const availableTemplates = templates
+      .map((template) => {
+        const config = configMap.get(template.id);
+
+        // Se existe config e está desabilitada, não retorna
+        if (config && !config.isEnabled) {
+          return null;
+        }
+
+        return {
+          id: template.id,
+          type: template.type,
+          name: config?.customName || template.name,
+          startTime: config?.customStartTime || template.startTime,
+          endTime: config?.customEndTime || template.endTime,
+          duration: config?.customDuration || template.duration,
+          displayOrder: template.displayOrder,
+        };
+      })
+      .filter(Boolean); // Remove nulls
+
+    return availableTemplates;
+  }
 }

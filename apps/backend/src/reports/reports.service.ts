@@ -23,6 +23,7 @@ export class ReportsService {
   async generateDailyReport(
     tenantId: string,
     date: string,
+    shiftTemplateId?: string,
   ): Promise<DailyReportDto> {
     const dateOnly = parseDateOnly(date);
     // Use noon UTC to avoid any date shift when Prisma casts to DATE
@@ -40,7 +41,7 @@ export class ReportsService {
         this.getDailyRecords(dateOnly, dateUtc),
         this.getMedicationAdministrations(dateOnly, dateUtc),
         this.getActiveResidentsOnDate(dateUtc),
-        this.getShiftsOnDate(dateUtc),
+        this.getShiftsOnDate(dateUtc, shiftTemplateId),
         this.getMedicationScheduleCount(dayStart, dayEnd),
       ]);
 
@@ -76,6 +77,7 @@ export class ReportsService {
     tenantId: string,
     startDate: string,
     endDate?: string,
+    shiftTemplateId?: string,
   ): Promise<MultiDayReportDto> {
     const start = parseDateOnly(startDate);
     const end = endDate ? parseDateOnly(endDate) : start;
@@ -110,7 +112,7 @@ export class ReportsService {
 
     // Gerar relatório para cada dia
     const reports = await Promise.all(
-      dates.map((date) => this.generateDailyReport(tenantId, date)),
+      dates.map((date) => this.generateDailyReport(tenantId, date, shiftTemplateId)),
     );
 
     return {
@@ -552,11 +554,12 @@ export class ReportsService {
     return metrics;
   }
 
-  private async getShiftsOnDate(dateUtc: Date): Promise<ShiftReportDto[]> {
+  private async getShiftsOnDate(dateUtc: Date, shiftTemplateId?: string): Promise<ShiftReportDto[]> {
     const shifts = await this.tenantContext.client.shift.findMany({
       where: {
         date: dateUtc,
         deletedAt: null,
+        ...(shiftTemplateId && shiftTemplateId !== 'ALL' ? { shiftTemplateId } : {}),
       },
       include: {
         team: {
