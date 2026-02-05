@@ -2,6 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class DailyRecordReportDto {
   @ApiProperty()
+  residentId: string;
+
+  @ApiProperty()
   residentName: string;
 
   @ApiProperty()
@@ -33,6 +36,12 @@ export class DailyRecordReportDto {
 
   @ApiProperty()
   createdAt: string;
+
+  @ApiProperty({ enum: ['SCHEDULED', 'AD_HOC'] })
+  origin: 'SCHEDULED' | 'AD_HOC';
+
+  @ApiProperty({ required: false })
+  scheduleConfigId?: string;
 }
 
 export class MedicationAdministrationReportDto {
@@ -105,6 +114,52 @@ export class VitalSignsReportDto {
   glucose?: number;
 }
 
+export class ShiftReportDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  date: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  startTime: string;
+
+  @ApiProperty()
+  endTime: string;
+
+  @ApiProperty({ required: false })
+  teamName?: string;
+
+  @ApiProperty({ required: false })
+  teamColor?: string;
+
+  @ApiProperty()
+  status: string;
+}
+
+export class DailyComplianceMetricDto {
+  @ApiProperty()
+  recordType: string;
+
+  @ApiProperty()
+  due: number;
+
+  @ApiProperty()
+  done: number;
+
+  @ApiProperty()
+  overdue: number;
+
+  @ApiProperty()
+  adHoc: number;
+
+  @ApiProperty({ required: false })
+  compliance?: number | null;
+}
+
 export class DailyReportSummaryDto {
   @ApiProperty()
   date: string;
@@ -129,6 +184,9 @@ export class DailyReportSummaryDto {
 
   @ApiProperty({ description: 'Percentual de cobertura de sinais vitais' })
   vitalSignsCoverage: number;
+
+  @ApiProperty({ type: [DailyComplianceMetricDto] })
+  compliance: DailyComplianceMetricDto[];
 }
 
 export class DailyReportDto {
@@ -143,4 +201,7 @@ export class DailyReportDto {
 
   @ApiProperty({ type: [VitalSignsReportDto] })
   vitalSigns: VitalSignsReportDto[];
+
+  @ApiProperty({ type: [ShiftReportDto] })
+  shifts: ShiftReportDto[];
 }

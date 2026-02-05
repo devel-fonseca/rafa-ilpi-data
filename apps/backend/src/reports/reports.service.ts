@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
+import { parseDateOnly, formatDateOnly } from '../utils/date.helpers';
 import type {
   DailyReportDto,
   DailyRecordReportDto,
   MedicationAdministrationReportDto,
   VitalSignsReportDto,
   DailyReportSummaryDto,
+  ShiftReportDto,
+  DailyComplianceMetricDto,
 } from './dto/daily-report.dto';
 
 @Injectable()
@@ -20,23 +23,34 @@ export class ReportsService {
     tenantId: string,
     date: string,
   ): Promise<DailyReportDto> {
+    const dateOnly = parseDateOnly(date);
+    // Use noon UTC to avoid any date shift when Prisma casts to DATE
+    const dateUtc = new Date(`${dateOnly}T12:00:00.000Z`);
     // Buscar dados em paralelo usando tenantContext.client
-    const [dailyRecords, medicationAdministrations, activeResidents] =
+    const [dailyRecords, medicationAdministrations, activeResidents, shifts] =
       await Promise.all([
-        this.getDailyRecords(date),
-        this.getMedicationAdministrations(date),
-        this.getActiveResidents(),
+        this.getDailyRecords(dateOnly, dateUtc),
+        this.getMedicationAdministrations(dateOnly, dateUtc),
+        this.getActiveResidentsOnDate(dateUtc),
+        this.getShiftsOnDate(dateUtc),
       ]);
+
+    const compliance = await this.calculateScheduleCompliance(
+      dateUtc,
+      dailyRecords,
+      activeResidents,
+    );
 
     // Extrair sinais vitais dos daily records (tipo MONITORAMENTO)
     const vitalSigns = this.extractVitalSigns(dailyRecords);
 
     // Calcular resumo
     const summary = this.calculateSummary(
-      date,
+      dateOnly,
       dailyRecords,
       medicationAdministrations,
       activeResidents.length,
+      compliance,
     );
 
     return {
@@ -44,15 +58,17 @@ export class ReportsService {
       dailyRecords,
       medicationAdministrations,
       vitalSigns,
+      shifts,
     };
   }
 
   private async getDailyRecords(
     date: string,
+    dateUtc: Date,
   ): Promise<DailyRecordReportDto[]> {
     const records = await this.tenantContext.client.dailyRecord.findMany({
       where: {
-        date: new Date(date),
+        date: dateUtc,
         deletedAt: null,
       },
       include: {
@@ -73,27 +89,39 @@ export class ReportsService {
     });
 
     return records.map((record) => ({
+      residentId: record.residentId,
       residentName: record.resident.fullName,
       residentCpf: record.resident.cpf || '',
       residentCns: record.resident.cns || undefined,
       bedCode: record.resident.bed?.code || 'N/A',
-      date: record.date instanceof Date ? record.date.toISOString().split('T')[0] : record.date,
+      date: formatDateOnly(record.date),
       time: record.time,
       type: record.type,
       recordedBy: record.recordedBy || 'N/A',
-      details: (record.data as any) || {},
+      details: {
+        ...(record.data as any),
+        incidentSeverity: record.incidentSeverity,
+        incidentCategory: record.incidentCategory,
+        incidentSubtypeClinical: record.incidentSubtypeClinical,
+        incidentSubtypeAssist: record.incidentSubtypeAssist,
+        incidentSubtypeAdmin: record.incidentSubtypeAdmin,
+        isEventoSentinela: record.isEventoSentinela,
+      },
       notes: record.notes || undefined,
       createdAt: record.createdAt.toISOString(),
+      origin: 'AD_HOC',
+      scheduleConfigId: undefined,
     }));
   }
 
   private async getMedicationAdministrations(
     date: string,
+    dateUtc: Date,
   ): Promise<MedicationAdministrationReportDto[]> {
     const administrations = await this.tenantContext.client.medicationAdministration.findMany(
       {
         where: {
-          date: new Date(date),
+          date: dateUtc,
         },
         include: {
           resident: {
@@ -137,10 +165,13 @@ export class ReportsService {
     }));
   }
 
-  private async getActiveResidents(): Promise<any[]> {
+  private async getActiveResidentsOnDate(dateUtc: Date): Promise<any[]> {
     return this.tenantContext.client.resident.findMany({
       where: {
+        deletedAt: null,
         status: 'Ativo',
+        admissionDate: { lte: dateUtc },
+        OR: [{ dischargeDate: null }, { dischargeDate: { gte: dateUtc } }],
       },
       select: {
         id: true,
@@ -181,6 +212,7 @@ export class ReportsService {
     dailyRecords: DailyRecordReportDto[],
     medicationAdministrations: MedicationAdministrationReportDto[],
     totalResidents: number,
+    compliance: DailyComplianceMetricDto[],
   ): DailyReportSummaryDto {
     // Contar registros por tipo
     const hygieneRecords = dailyRecords.filter((r) => r.type === 'HIGIENE');
@@ -227,6 +259,258 @@ export class ReportsService {
       hygieneCoverage,
       feedingCoverage,
       vitalSignsCoverage,
+      compliance,
     };
+  }
+
+  private async calculateScheduleCompliance(
+    dateUtc: Date,
+    dailyRecords: DailyRecordReportDto[],
+    activeResidents: Array<{ id: string }>,
+  ): Promise<DailyComplianceMetricDto[]> {
+    if (activeResidents.length === 0) {
+      return [];
+    }
+
+    const residentIds = activeResidents.map((resident) => resident.id);
+    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        residentId: { in: residentIds },
+      },
+    });
+
+    const dueItems: Array<{
+      configId: string;
+      residentId: string;
+      recordType: string;
+      scheduledTime?: string | null;
+      metadata?: Record<string, any> | null;
+    }> = [];
+
+    const isExpectedToday = (config: { frequency: string; dayOfWeek?: number | null; dayOfMonth?: number | null }) => {
+      const dayOfWeek = dateUtc.getDay();
+      switch (config.frequency) {
+        case 'DAILY':
+          return true;
+        case 'WEEKLY':
+          return config.dayOfWeek !== null && config.dayOfWeek !== undefined
+            ? config.dayOfWeek === dayOfWeek
+            : false;
+        case 'MONTHLY':
+          return config.dayOfMonth ? dateUtc.getDate() === config.dayOfMonth : false;
+        default:
+          return false;
+      }
+    };
+
+    const normalize = (value?: string | null) =>
+      value ? value.toString().trim().toLowerCase() : '';
+
+    for (const config of configs) {
+      if (!isExpectedToday(config)) {
+        continue;
+      }
+      const times = Array.isArray(config.suggestedTimes) ? config.suggestedTimes : [];
+      if (times.length === 0) {
+        dueItems.push({
+          configId: config.id,
+          residentId: config.residentId,
+          recordType: config.recordType,
+          scheduledTime: null,
+          metadata: (config.metadata as any) || null,
+        });
+        continue;
+      }
+      for (const time of times) {
+        dueItems.push({
+          configId: config.id,
+          residentId: config.residentId,
+          recordType: config.recordType,
+          scheduledTime: time,
+          metadata: (config.metadata as any) || null,
+        });
+      }
+    }
+
+    const recordKey = (record: DailyRecordReportDto) => `${record.residentId}:${record.type}`;
+    const recordsByKey = new Map<string, DailyRecordReportDto[]>();
+    for (const record of dailyRecords) {
+      const key = recordKey(record);
+      const list = recordsByKey.get(key) || [];
+      list.push(record);
+      recordsByKey.set(key, list);
+    }
+
+    for (const list of recordsByKey.values()) {
+      list.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    }
+
+    const assigned = new WeakSet<DailyRecordReportDto>();
+    const graceMinutes = 60;
+
+    const timeToMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const findMatch = (
+      records: DailyRecordReportDto[],
+      due: { scheduledTime?: string | null; metadata?: Record<string, any> | null },
+    ) => {
+      const mealType = normalize(due.metadata?.mealType);
+      let bestIndex = -1;
+      let bestDiff = Infinity;
+
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        if (assigned.has(record)) {
+          continue;
+        }
+        if (mealType) {
+          const recordMeal = normalize((record.details as any)?.refeicao);
+          if (recordMeal && recordMeal !== mealType) {
+            continue;
+          }
+        }
+        if (due.scheduledTime) {
+          const diff = Math.abs(timeToMinutes(record.time) - timeToMinutes(due.scheduledTime));
+          if (diff > graceMinutes) {
+            continue;
+          }
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            bestIndex = i;
+          }
+        } else {
+          return i;
+        }
+      }
+
+      return bestIndex;
+    };
+
+    for (const due of dueItems) {
+      const key = `${due.residentId}:${due.recordType}`;
+      const records = recordsByKey.get(key);
+      if (!records || records.length === 0) {
+        continue;
+      }
+      const matchIndex = findMatch(records, due);
+      if (matchIndex === -1) {
+        continue;
+      }
+      const record = records[matchIndex];
+      assigned.add(record);
+      record.origin = 'SCHEDULED';
+      record.scheduleConfigId = due.configId;
+    }
+
+    const metricsMap = new Map<string, DailyComplianceMetricDto>();
+    for (const due of dueItems) {
+      const metric =
+        metricsMap.get(due.recordType) ||
+        ({
+          recordType: due.recordType,
+          due: 0,
+          done: 0,
+          overdue: 0,
+          adHoc: 0,
+          compliance: null,
+        } as DailyComplianceMetricDto);
+      metric.due += 1;
+      metricsMap.set(due.recordType, metric);
+    }
+
+    for (const record of dailyRecords) {
+      const metric =
+        metricsMap.get(record.type) ||
+        ({
+          recordType: record.type,
+          due: 0,
+          done: 0,
+          overdue: 0,
+          adHoc: 0,
+          compliance: null,
+        } as DailyComplianceMetricDto);
+      if (record.origin === 'SCHEDULED') {
+        metric.done += 1;
+      } else {
+        metric.adHoc += 1;
+      }
+      metricsMap.set(record.type, metric);
+    }
+
+    const metrics = Array.from(metricsMap.values()).map((metric) => {
+      if (metric.due > 0) {
+        metric.overdue = Math.max(metric.due - metric.done, 0);
+        metric.compliance = Math.round((metric.done / metric.due) * 100);
+      } else {
+        metric.overdue = 0;
+        metric.compliance = null;
+      }
+      return metric;
+    });
+
+    return metrics;
+  }
+
+  private async getShiftsOnDate(dateUtc: Date): Promise<ShiftReportDto[]> {
+    const shifts = await this.tenantContext.client.shift.findMany({
+      where: {
+        date: dateUtc,
+        deletedAt: null,
+      },
+      include: {
+        team: {
+          select: {
+            name: true,
+            color: true,
+          },
+        },
+      },
+      orderBy: [{ shiftTemplateId: 'asc' }],
+    });
+
+    if (shifts.length === 0) {
+      return [];
+    }
+
+    const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
+
+    const [shiftTemplates, tenantConfigs] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findMany({
+        where: { id: { in: shiftTemplateIds } },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findMany({
+        where: {
+          shiftTemplateId: { in: shiftTemplateIds },
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+    const templateMap = new Map(shiftTemplates.map((t) => [t.id, t]));
+    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+
+    return shifts.map((shift) => {
+      const template = templateMap.get(shift.shiftTemplateId);
+      const config = configMap.get(shift.shiftTemplateId);
+      const name = config?.customName || template?.name || 'Turno';
+      const startTime = config?.customStartTime || template?.startTime || '00:00';
+      const endTime = config?.customEndTime || template?.endTime || '00:00';
+
+      return {
+        id: shift.id,
+        date: formatDateOnly(shift.date),
+        name,
+        startTime,
+        endTime,
+        teamName: shift.team?.name || undefined,
+        teamColor: shift.team?.color || undefined,
+        status: shift.status,
+      };
+    });
   }
 }

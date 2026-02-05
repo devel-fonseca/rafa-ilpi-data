@@ -1,4 +1,5 @@
 export interface DailyRecordReport {
+  residentId: string
   residentName: string
   residentCpf: string
   residentCns?: string
@@ -10,6 +11,8 @@ export interface DailyRecordReport {
   details: Record<string, any>
   notes?: string
   createdAt: string
+  origin: 'SCHEDULED' | 'AD_HOC'
+  scheduleConfigId?: string
 }
 
 export interface MedicationAdministrationReport {
@@ -40,6 +43,17 @@ export interface VitalSignsReport {
   glucose?: number
 }
 
+export interface ShiftReport {
+  id: string
+  date: string
+  name: string
+  startTime: string
+  endTime: string
+  teamName?: string
+  teamColor?: string
+  status: string
+}
+
 export interface DailyReportSummary {
   date: string
   totalResidents: number
@@ -49,6 +63,16 @@ export interface DailyReportSummary {
   hygieneCoverage: number // percentage
   feedingCoverage: number // percentage
   vitalSignsCoverage: number // percentage
+  compliance: DailyComplianceMetric[]
+}
+
+export interface DailyComplianceMetric {
+  recordType: string
+  due: number
+  done: number
+  overdue: number
+  adHoc: number
+  compliance: number | null
 }
 
 export interface DailyReport {
@@ -56,4 +80,5 @@ export interface DailyReport {
   dailyRecords: DailyRecordReport[]
   medicationAdministrations: MedicationAdministrationReport[]
   vitalSigns: VitalSignsReport[]
+  shifts: ShiftReport[]
 }
