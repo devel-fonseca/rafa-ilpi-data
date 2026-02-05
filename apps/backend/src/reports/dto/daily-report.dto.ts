@@ -205,3 +205,14 @@ export class DailyReportDto {
   @ApiProperty({ type: [ShiftReportDto] })
   shifts: ShiftReportDto[];
 }
+
+export class MultiDayReportDto {
+  @ApiProperty()
+  startDate: string;
+
+  @ApiProperty()
+  endDate: string;
+
+  @ApiProperty({ type: [DailyReportDto] })
+  reports: DailyReportDto[];
+}

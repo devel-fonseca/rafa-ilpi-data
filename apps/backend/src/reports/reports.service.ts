@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
-import { parseDateOnly, formatDateOnly } from '../utils/date.helpers';
+import { parseDateOnly, formatDateOnly, getDayRangeInTz } from '../utils/date.helpers';
 import type {
   DailyReportDto,
   DailyRecordReportDto,
@@ -10,6 +10,7 @@ import type {
   DailyReportSummaryDto,
   ShiftReportDto,
   DailyComplianceMetricDto,
+  MultiDayReportDto,
 } from './dto/daily-report.dto';
 
 @Injectable()
@@ -27,12 +28,20 @@ export class ReportsService {
     // Use noon UTC to avoid any date shift when Prisma casts to DATE
     const dateUtc = new Date(`${dateOnly}T12:00:00.000Z`);
     // Buscar dados em paralelo usando tenantContext.client
-    const [dailyRecords, medicationAdministrations, activeResidents, shifts] =
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timezone: true },
+    })
+    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+    const { start: dayStart, end: dayEnd } = getDayRangeInTz(dateOnly, timezone)
+
+    const [dailyRecords, medicationAdministrations, activeResidents, shifts, medicationScheduled] =
       await Promise.all([
         this.getDailyRecords(dateOnly, dateUtc),
         this.getMedicationAdministrations(dateOnly, dateUtc),
         this.getActiveResidentsOnDate(dateUtc),
         this.getShiftsOnDate(dateUtc),
+        this.getMedicationScheduleCount(dayStart, dayEnd),
       ]);
 
     const compliance = await this.calculateScheduleCompliance(
@@ -50,6 +59,7 @@ export class ReportsService {
       dailyRecords,
       medicationAdministrations,
       activeResidents.length,
+      medicationScheduled,
       compliance,
     );
 
@@ -59,6 +69,54 @@ export class ReportsService {
       medicationAdministrations,
       vitalSigns,
       shifts,
+    };
+  }
+
+  async generateMultiDayReport(
+    tenantId: string,
+    startDate: string,
+    endDate?: string,
+  ): Promise<MultiDayReportDto> {
+    const start = parseDateOnly(startDate);
+    const end = endDate ? parseDateOnly(endDate) : start;
+
+    // Validar intervalo máximo de 7 dias
+    const startDateObj = new Date(start);
+    const endDateObj = new Date(end);
+    const daysDiff = Math.ceil(
+      (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysDiff > 7) {
+      throw new Error(
+        'O intervalo máximo permitido é de 7 dias. Por favor, selecione um período menor.',
+      );
+    }
+
+    if (daysDiff < 0) {
+      throw new Error(
+        'A data final não pode ser anterior à data inicial.',
+      );
+    }
+
+    // Gerar lista de datas entre start e end
+    const dates: string[] = [];
+    const currentDate = new Date(start);
+
+    while (currentDate <= endDateObj) {
+      dates.push(formatDateOnly(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Gerar relatório para cada dia
+    const reports = await Promise.all(
+      dates.map((date) => this.generateDailyReport(tenantId, date)),
+    );
+
+    return {
+      startDate: start,
+      endDate: end,
+      reports,
     };
   }
 
@@ -212,6 +270,7 @@ export class ReportsService {
     dailyRecords: DailyRecordReportDto[],
     medicationAdministrations: MedicationAdministrationReportDto[],
     totalResidents: number,
+    totalMedicationsScheduled: number,
     compliance: DailyComplianceMetricDto[],
   ): DailyReportSummaryDto {
     // Contar registros por tipo
@@ -255,12 +314,49 @@ export class ReportsService {
       totalResidents,
       totalDailyRecords: dailyRecords.length,
       totalMedicationsAdministered,
-      totalMedicationsScheduled: medicationAdministrations.length,
+      totalMedicationsScheduled,
       hygieneCoverage,
       feedingCoverage,
       vitalSignsCoverage,
       compliance,
     };
+  }
+
+  private async getMedicationScheduleCount(dayStart: Date, dayEnd: Date): Promise<number> {
+    const prescriptions = await this.tenantContext.client.prescription.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        medications: {
+          some: {
+            deletedAt: null,
+            startDate: { lte: dayEnd },
+            OR: [{ endDate: null }, { endDate: { gte: dayStart } }],
+          },
+        },
+      },
+      include: {
+        medications: {
+          where: {
+            deletedAt: null,
+            startDate: { lte: dayEnd },
+            OR: [{ endDate: null }, { endDate: { gte: dayStart } }],
+          },
+        },
+      },
+    });
+
+    let scheduled = 0;
+    for (const prescription of prescriptions) {
+      for (const medication of prescription.medications) {
+        const scheduledTimes = medication.scheduledTimes as string[];
+        if (scheduledTimes && Array.isArray(scheduledTimes)) {
+          scheduled += scheduledTimes.length;
+        }
+      }
+    }
+
+    return scheduled;
   }
 
   private async calculateScheduleCompliance(
@@ -328,7 +424,7 @@ export class ReportsService {
           configId: config.id,
           residentId: config.residentId,
           recordType: config.recordType,
-          scheduledTime: time,
+          scheduledTime: String(time),
           metadata: (config.metadata as any) || null,
         });
       }
