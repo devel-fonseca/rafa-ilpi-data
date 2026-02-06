@@ -14,12 +14,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { Users, Clock, UserX, UserCircle } from 'lucide-react'
 import { useResidents, useResident } from '@/hooks/useResidents'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { useClinicalProfile } from '@/hooks/useClinicalProfiles'
+import { useVaccinationsByResident } from '@/hooks/useVaccinations'
+import { useQuery } from '@tanstack/react-query'
+import { prescriptionsApi } from '@/api/prescriptions.api'
+import { tenantKey } from '@/lib/query-keys'
 import { formatDate } from '@/utils/formatters'
 import {
   BasicInfoView,
@@ -27,6 +32,9 @@ import {
   ConditionsView,
   AllergiesView,
   DietaryView,
+  VaccinationsView,
+  MedicationsView,
+  RoutineScheduleView,
 } from '@/components/resident-panel'
 import type { Resident } from '@/api/residents.api'
 
@@ -46,7 +54,7 @@ function calculateAge(birthDate: string): number {
 // ========== TYPES ==========
 
 type StatusFilter = 'active' | 'inactive' | 'recent'
-type ViewType = 'basic' | 'clinical' | 'conditions' | 'allergies' | 'dietary'
+type ViewType = 'basic' | 'clinical' | 'conditions' | 'allergies' | 'dietary' | 'vaccinations' | 'medications' | 'routine'
 
 // ========== CONSTANTS ==========
 
@@ -62,6 +70,9 @@ const VIEW_OPTIONS = [
   { value: 'conditions' as ViewType, label: 'Condições Crônicas' },
   { value: 'allergies' as ViewType, label: 'Alergias' },
   { value: 'dietary' as ViewType, label: 'Restrições Alimentares' },
+  { value: 'vaccinations' as ViewType, label: 'Vacinações' },
+  { value: 'medications' as ViewType, label: 'Medicamentos' },
+  { value: 'routine' as ViewType, label: 'Programação da Rotina' },
 ]
 
 // ========== COMPONENT ==========
@@ -92,8 +103,21 @@ export default function ResidentPanelPage() {
   const { data: dietaryRestrictions = [], isLoading: isLoadingRestrictions } = useDietaryRestrictionsByResident(
     selectedResidentId || undefined
   )
+  const { data: vaccinations = [], isLoading: isLoadingVaccinations } = useVaccinationsByResident(
+    selectedResidentId || undefined
+  )
+  const { data: prescriptionsData, isLoading: isLoadingPrescriptions } = useQuery({
+    queryKey: tenantKey('prescriptions', 'resident-panel', selectedResidentId),
+    queryFn: () => prescriptionsApi.findAll({
+      residentId: selectedResidentId!,
+      isActive: true,
+      limit: 50,
+    }),
+    enabled: !!selectedResidentId,
+  })
+  const prescriptions = prescriptionsData?.data || []
 
-  const isLoadingClinicalData = isLoadingProfile || isLoadingAllergies || isLoadingConditions || isLoadingRestrictions
+  const isLoadingClinicalData = isLoadingProfile || isLoadingAllergies || isLoadingConditions || isLoadingRestrictions || isLoadingVaccinations || isLoadingPrescriptions
 
   // Filtrar residentes por status
   const filteredResidents = useMemo(() => {
@@ -147,6 +171,12 @@ export default function ResidentPanelPage() {
         return <AllergiesView allergies={allergies} />
       case 'dietary':
         return <DietaryView dietaryRestrictions={dietaryRestrictions} />
+      case 'vaccinations':
+        return <VaccinationsView vaccinations={vaccinations} />
+      case 'medications':
+        return <MedicationsView prescriptions={prescriptions} />
+      case 'routine':
+        return <RoutineScheduleView residentId={selectedResidentId!} />
       default:
         return null
     }
@@ -161,10 +191,10 @@ export default function ResidentPanelPage() {
         subtitle="Visualização centralizada de informações do residente"
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6 lg:items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:items-start">
         {/* ===== SIDEBAR - Lista de Residentes ===== */}
-        <Card className="h-[500px]">
-          <CardContent className="p-0 h-full flex flex-col">
+        <Card className="h-[500px] overflow-hidden">
+          <CardContent className="p-0 h-full flex flex-col overflow-hidden">
             {/* Filtros por Status */}
             <div className="flex border-b">
               {STATUS_FILTERS.map((filter, index) => (
@@ -186,7 +216,7 @@ export default function ResidentPanelPage() {
             </div>
 
             {/* Lista de Residentes */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 w-full">
               {isLoadingList ? (
                 <LoadingSpinner size="sm" className="py-8" />
               ) : filteredResidents.length === 0 ? (
@@ -197,7 +227,7 @@ export default function ResidentPanelPage() {
                   className="py-8"
                 />
               ) : (
-                <div className="p-2 space-y-1">
+                <div className="p-3 pr-4 space-y-1">
                   {filteredResidents.map((resident) => (
                     <button
                       key={resident.id}
@@ -213,8 +243,12 @@ export default function ResidentPanelPage() {
                         altText={resident.fullName}
                         size="xs"
                         rounded
+                        className="flex-shrink-0"
                       />
-                      <span className="font-medium text-sm truncate">
+                      <span
+                        className="font-medium text-sm overflow-hidden text-ellipsis whitespace-nowrap"
+                        style={{ display: 'block', maxWidth: 'calc(100% - 48px)' }}
+                      >
                         {resident.fullName}
                       </span>
                     </button>
@@ -233,11 +267,14 @@ export default function ResidentPanelPage() {
                 {/* Header com Nome, Info e Dropdown */}
                 <div className="flex items-start justify-between p-4 border-b">
                   <div>
-                    <h2 className="text-xl font-bold">{selectedResident.fullName}</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-bold">{selectedResident.fullName}</h2>
+                      <Badge variant={selectedResident.status === 'Ativo' ? 'default' : 'secondary'}>
+                        {selectedResident.status}
+                      </Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {selectedResident.birthDate && `${calculateAge(selectedResident.birthDate)} anos`}
-                      {selectedResident.birthDate && ' • '}
-                      {selectedResident.status}
                       {selectedResident.admissionDate && ' • '}
                       {selectedResident.admissionDate && `Admitido em ${formatDate(selectedResident.admissionDate)}`}
                       {selectedResident.dischargeDate && ` • Desligamento em ${formatDate(selectedResident.dischargeDate)}`}

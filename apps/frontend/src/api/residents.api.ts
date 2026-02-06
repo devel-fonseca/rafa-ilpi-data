@@ -56,6 +56,7 @@ export interface Resident {
   legalGuardianCpf?: string
   legalGuardianRg?: string
   legalGuardianPhone?: string
+  legalGuardianEmail?: string
   legalGuardianType?: string
   legalGuardianCep?: string
   legalGuardianState?: string
@@ -192,6 +193,7 @@ export interface CreateResidentDto {
   legalGuardianCpf?: string
   legalGuardianRg?: string
   legalGuardianPhone?: string
+  legalGuardianEmail?: string
   legalGuardianType?: string
   legalGuardianCep?: string
   legalGuardianState?: string
@@ -280,6 +282,7 @@ export interface UpdateResidentDto {
   legalGuardianCpf?: string
   legalGuardianRg?: string
   legalGuardianPhone?: string
+  legalGuardianEmail?: string
   legalGuardianType?: string
   legalGuardianCep?: string
   legalGuardianState?: string
