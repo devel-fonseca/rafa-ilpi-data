@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SOSMedicationModal } from './SOSMedicationModal'
 import type { CreateSOSMedicationDto } from '@/api/prescriptions.api'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 const ROUTE_LABELS: Record<string, string> = {
   VO: 'Via Oral',
@@ -123,7 +124,7 @@ export function Step4SOSMedications() {
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {medication.presentation} - {medication.concentration}
+                          {formatMedicationPresentation(medication.presentation)} - {medication.concentration}
                         </p>
                       </div>
                     </div>

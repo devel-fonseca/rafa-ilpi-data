@@ -47,7 +47,7 @@ export function ViewComportamentoModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
-            Estado Emocional - Detalhes
+            Comportamento - Detalhes
           </DialogTitle>
         </DialogHeader>
 
@@ -71,11 +71,11 @@ export function ViewComportamentoModal({
             </div>
           </div>
 
-          {/* Estado Emocional */}
+          {/* Comportamento */}
           <div>
             <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
               <Heart className="h-4 w-4" />
-              Estado Emocional Relatado
+              Comportamento
             </h3>
             <div className="bg-muted/20 p-4 rounded-lg">
               <Badge variant="secondary" className="text-base px-3 py-1">

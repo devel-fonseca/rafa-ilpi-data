@@ -300,7 +300,8 @@ class DailyReportPDFGenerator {
     this.doc.text(title, PAGE_MARGIN, startY)
 
     const recordRows = records.map((record) => [
-      `${record.residentName} (${record.bedCode})`,
+      record.residentName,
+      record.bedCode,
       record.time,
       this.formatRecordDetails(record),
       record.recordedBy,
@@ -308,7 +309,7 @@ class DailyReportPDFGenerator {
 
     autoTable(this.doc, {
       startY: startY + 4,
-      head: [['Residente', 'Hora', 'Registro', 'Registrado por']],
+      head: [['Residente', 'Leito', 'Hora', 'Registro', 'Registrado por']],
       body: recordRows,
       theme: 'grid',
       styles: {
@@ -326,10 +327,11 @@ class DailyReportPDFGenerator {
         halign: 'left',
       },
       columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 20 },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: 40 },
+        0: { cellWidth: 55 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 35 },
       },
       alternateRowStyles: {
         fillColor: COLORS.zebraEven,
@@ -370,13 +372,45 @@ class DailyReportPDFGenerator {
           formatted += ` • Ação: ${getField('acaoTomada')}`
         }
         break
-      case 'COMPORTAMENTO':
-      case 'HUMOR':
-        formatted = getField('descricao') || getField('observacao') || getField('estado') || 'Sem detalhes'
+      case 'COMPORTAMENTO': {
+        const estado = getField('estadoEmocional')
+        const outroEstado = getField('outroEstado')
+        const obsComp = getField('observacoes')
+        if (!estado) {
+          formatted = 'Sem detalhes'
+        } else {
+          formatted = estado
+          if (estado === 'Outro' && outroEstado) formatted += ` (${outroEstado})`
+          if (obsComp) formatted += ` • ${obsComp}`
+        }
         break
-      case 'SONO':
-        formatted = `${getField('qualidade') || 'N/A'} • Duração: ${getField('duracao') || 'N/A'}`
+      }
+      case 'HUMOR': {
+        const humor = getField('humor')
+        const outroHumor = getField('outroHumor')
+        const obsHumor = getField('observacoes')
+        if (!humor) {
+          formatted = 'Sem detalhes'
+        } else {
+          formatted = humor
+          if (humor === 'Outro' && outroHumor) formatted += ` (${outroHumor})`
+          if (obsHumor) formatted += ` • ${obsHumor}`
+        }
         break
+      }
+      case 'SONO': {
+        const padrao = getField('padraoSono')
+        const outroPadrao = getField('outroPadrao')
+        const obsSono = getField('observacoes')
+        if (!padrao) {
+          formatted = 'Sem detalhes'
+        } else {
+          formatted = padrao
+          if (padrao === 'Outro' && outroPadrao) formatted += ` (${outroPadrao})`
+          if (obsSono) formatted += ` • ${obsSono}`
+        }
+        break
+      }
       case 'ELIMINACAO':
         formatted = `${getField('tipo') || 'N/A'} • ${getField('caracteristica')} ${getField('observacao')}`
         break
@@ -413,15 +447,16 @@ class DailyReportPDFGenerator {
     this.doc.text('ADMINISTRAÇÃO DE MEDICAMENTOS', PAGE_MARGIN, startY)
 
     const medRows = medicationAdministrations.map((med) => [
-      `${med.residentName} (${med.bedCode})`,
+      med.residentName,
+      med.bedCode,
       med.actualTime || med.scheduledTime,
-      `${med.medicationName} ${med.dose || ''} – ${med.wasAdministered ? 'Administrado' : 'Não administrado'}`,
+      `${med.medicationName} ${med.concentration || ''} ${med.dose || ''} – ${med.wasAdministered ? 'Administrado' : 'Não administrado'}`,
       med.administeredBy || '-',
     ])
 
     autoTable(this.doc, {
       startY: startY + 4,
-      head: [['Residente', 'Hora', 'Registro', 'Registrado por']],
+      head: [['Residente', 'Leito', 'Hora', 'Registro', 'Registrado por']],
       body: medRows,
       theme: 'grid',
       styles: {
@@ -438,10 +473,11 @@ class DailyReportPDFGenerator {
         halign: 'left',
       },
       columnStyles: {
-        0: { cellWidth: 50 },
-        1: { cellWidth: 20 },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: 40 },
+        0: { cellWidth: 55 },
+        1: { cellWidth: 18 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 'auto' },
+        4: { cellWidth: 35 },
       },
       alternateRowStyles: {
         fillColor: COLORS.zebraEven,
@@ -464,6 +500,13 @@ class DailyReportPDFGenerator {
     const dayTitle = `${formatDate(report.summary.date)} - ${getDayOfWeek(report.summary.date)}`
     this.doc.text(dayTitle, PAGE_MARGIN, currentY)
     currentY += 7
+
+    // Add RESUMO EXECUTIVO title
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('RESUMO EXECUTIVO', PAGE_MARGIN, currentY)
+    currentY += 5
 
     // Summary Table
     currentY = this.addSummaryTable(report, currentY) + 5

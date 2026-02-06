@@ -442,7 +442,7 @@ export class AgendaService {
         });
 
         const suggestedTimes = config.suggestedTimes as string[] || [];
-        const primaryTime = suggestedTimes.length > 0 ? suggestedTimes[0] : '00:00';
+        const timesToUse = suggestedTimes.length > 0 ? suggestedTimes : ['00:00'];
 
         // Determinar o status do registro
         let status: 'pending' | 'completed' | 'missed';
@@ -455,25 +455,28 @@ export class AgendaService {
           status = 'pending';
         }
 
-        items.push({
-          id: `${config.id}-${format(targetDate, 'yyyy-MM-dd')}`,
-          type: AgendaItemType.RECURRING_RECORD,
-          category: this.mapRecordTypeToCategory(config.recordType),
-          residentId: config.residentId,
-          residentName: config.resident.fullName,
-          title: this.getRecordTypeTitle(config.recordType, mealType as string | null | undefined),
-          description: config.notes || undefined,
-          scheduledDate: targetDate,
-          scheduledTime: primaryTime,
-          status,
-          completedAt: record?.createdAt,
-          completedBy: record?.user?.name || record?.recordedBy,
-          recordType: config.recordType,
-          suggestedTimes: suggestedTimes,
-          configId: config.id,
-          mealType: mealType as string | undefined,
-          metadata: config.metadata as Record<string, unknown>,
-        });
+        // Criar um item de agenda para CADA horário sugerido
+        for (const scheduledTime of timesToUse) {
+          items.push({
+            id: `${config.id}-${format(targetDate, 'yyyy-MM-dd')}-${scheduledTime}`,
+            type: AgendaItemType.RECURRING_RECORD,
+            category: this.mapRecordTypeToCategory(config.recordType),
+            residentId: config.residentId,
+            residentName: config.resident.fullName,
+            title: this.getRecordTypeTitle(config.recordType, mealType as string | null | undefined),
+            description: config.notes || undefined,
+            scheduledDate: targetDate,
+            scheduledTime,
+            status,
+            completedAt: record?.createdAt,
+            completedBy: record?.user?.name || record?.recordedBy,
+            recordType: config.recordType,
+            suggestedTimes: suggestedTimes,
+            configId: config.id,
+            mealType: mealType as string | undefined,
+            metadata: config.metadata as Record<string, unknown>,
+          });
+        }
       }
     }
 

@@ -645,9 +645,9 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                     {todayTasks
                       .filter((task) => task.type === 'RECURRING' && !task.isCompleted)
                       .sort((a, b) => {
-                        // Ordenar por horário (suggestedTimes[0])
-                        const timeA = a.suggestedTimes?.[0] || '23:59'
-                        const timeB = b.suggestedTimes?.[0] || '23:59'
+                        // Ordenar por horário (scheduledTime tem prioridade sobre suggestedTimes)
+                        const timeA = a.scheduledTime || a.suggestedTimes?.[0] || '23:59'
+                        const timeB = b.scheduledTime || b.suggestedTimes?.[0] || '23:59'
                         return timeA.localeCompare(timeB)
                       })
                       .map((task, index) => {
@@ -664,9 +664,9 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50">
                                 <Icon className={`w-4 h-4 ${config.color}`} />
                               </div>
-                              {task.suggestedTimes && task.suggestedTimes.length > 0 && (
+                              {(task.scheduledTime || (task.suggestedTimes && task.suggestedTimes.length > 0)) && (
                                 <span className="text-sm font-medium text-muted-foreground min-w-[3rem]">
-                                  {task.suggestedTimes[0]}
+                                  {task.scheduledTime || task.suggestedTimes?.[0]}
                                 </span>
                               )}
                             </div>

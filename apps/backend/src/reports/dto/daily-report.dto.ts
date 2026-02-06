@@ -61,6 +61,9 @@ export class MedicationAdministrationReportDto {
   medicationName: string;
 
   @ApiProperty()
+  concentration: string;
+
+  @ApiProperty()
   dose: string;
 
   @ApiProperty()

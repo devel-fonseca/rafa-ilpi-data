@@ -213,7 +213,7 @@ export function TodayActions() {
 
           actions[shift].push({
             residentName: prescription.resident?.fullName || 'Residente',
-            medicationName: medication.name,
+            medicationName: `${medication.name} ${medication.concentration || ''}`.trim(),
             scheduledTime: time,
             status,
             prescriptionId: prescription.id,

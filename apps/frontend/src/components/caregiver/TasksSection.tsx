@@ -130,10 +130,10 @@ export function TasksSection({
   // Filtrar apenas tarefas pendentes (mesma lógica do DailyTasksPanel mas filtrando em vez de ordenar)
   const pendingTasks = tasks.filter((task) => !task.isCompleted)
 
-  // Ordenar tarefas pendentes por horário sugerido
+  // Ordenar tarefas pendentes por horário (scheduledTime tem prioridade sobre suggestedTimes)
   const sortedTasks = [...pendingTasks].sort((a, b) => {
-    const timeA = a.suggestedTimes?.[0] || '99:99'
-    const timeB = b.suggestedTimes?.[0] || '99:99'
+    const timeA = a.scheduledTime || a.suggestedTimes?.[0] || '99:99'
+    const timeB = b.scheduledTime || b.suggestedTimes?.[0] || '99:99'
     return timeA.localeCompare(timeB)
   })
 
@@ -215,9 +215,9 @@ export function TasksSection({
                       }`}
                     />
                   </div>
-                  {task.suggestedTimes && task.suggestedTimes.length > 0 && (
+                  {(task.scheduledTime || (task.suggestedTimes && task.suggestedTimes.length > 0)) && (
                     <span className="text-sm font-medium text-muted-foreground min-w-[3rem]">
-                      {task.suggestedTimes[0]}
+                      {task.scheduledTime || task.suggestedTimes?.[0]}
                     </span>
                   )}
                 </div>

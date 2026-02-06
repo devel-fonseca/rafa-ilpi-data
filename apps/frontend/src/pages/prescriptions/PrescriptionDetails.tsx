@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { usePrescription } from '@/hooks/usePrescriptions'
 import { calculateAge } from '@/lib/utils'
-import { formatBedFromResident } from '@/utils/formatters'
+import { formatBedFromResident, formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
 import { getSignedFileUrl } from '@/services/upload'
 import { AdministerMedicationModal } from './components/AdministerMedicationModal'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -169,6 +169,20 @@ export default function PrescriptionDetails() {
     queryClient.invalidateQueries({ queryKey: ['prescription', id] })
   }
 
+  // Verifica se uma data está dentro do período válido de uma medicação
+  const isMedicationActiveOnDate = (medication: Record<string, unknown>, date: string): boolean => {
+    const startDate = extractDateOnly(medication.startDate as string)
+    const endDate = medication.endDate ? extractDateOnly(medication.endDate as string) : null
+
+    // Data visualizada deve ser >= data de início
+    if (date < startDate) return false
+
+    // Se tem data de fim, data visualizada deve ser <= data de fim
+    if (endDate && date > endDate) return false
+
+    return true
+  }
+
   // Processar medicações expandidas por horário com filtros (NOVO)
   const expandedMedicationCards = useMemo(() => {
     if (!prescription?.medications || prescription.medications.length === 0) {
@@ -177,7 +191,12 @@ export default function PrescriptionDetails() {
 
     const prescriptionData = prescription
 
-    const cards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
+    // Filtrar medicações ativas na data visualizada
+    const activeMedications = prescriptionData.medications.filter(
+      (medication: Record<string, unknown>) => isMedicationActiveOnDate(medication, viewDate)
+    )
+
+    const cards = activeMedications.flatMap((medication: Record<string, unknown>) =>
       (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
         // Buscar administração para ESTE horário específico na data visualizada
         const administrationForTime = (medication.administrations as Array<Record<string, unknown>> | undefined)?.find(
@@ -243,7 +262,12 @@ export default function PrescriptionDetails() {
 
     const prescriptionData = prescription
 
-    const allCards = prescriptionData.medications.flatMap((medication: Record<string, unknown>) =>
+    // Filtrar medicações ativas na data visualizada
+    const activeMedications = prescriptionData.medications.filter(
+      (medication: Record<string, unknown>) => isMedicationActiveOnDate(medication, viewDate)
+    )
+
+    const allCards = activeMedications.flatMap((medication: Record<string, unknown>) =>
       (medication.scheduledTimes as string[] | undefined)?.map((scheduledTime: string) => {
         const administrationForTime = (medication.administrations as Array<Record<string, unknown>> | undefined)?.find(
           (admin: Record<string, unknown>) => {
@@ -746,7 +770,7 @@ export default function PrescriptionDetails() {
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {medication.presentation} - {medication.concentration}
+                              {formatMedicationPresentation(medication.presentation as string)} - {medication.concentration}
                             </p>
                             {/* Badges de Características */}
                             <div className="flex gap-2 mt-2">
@@ -783,7 +807,7 @@ export default function PrescriptionDetails() {
                           </div>
                           <div>
                             <span className="text-muted-foreground">Frequência:</span>
-                            <p className="font-medium">{medication.frequency}</p>
+                            <p className="font-medium">{formatMedicationFrequency(medication.frequency as string)}</p>
                           </div>
                         </div>
 
@@ -881,7 +905,7 @@ export default function PrescriptionDetails() {
                         <div>
                           <h3 className="font-semibold text-lg">{sos.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {sos.presentation} - {sos.concentration}
+                            {formatMedicationPresentation(sos.presentation as string)} - {sos.concentration}
                           </p>
                         </div>
                         <Badge variant="outline" className="bg-severity-warning/5 text-severity-warning/80">

@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MedicationModal } from './MedicationModal'
 import type { CreateMedicationDto } from '@/api/prescriptions.api'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
 
 const ROUTE_LABELS: Record<string, string> = {
   VO: 'Via Oral',
@@ -23,14 +24,6 @@ const ROUTE_LABELS: Record<string, string> = {
   OUTRA: 'Outra',
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  UMA_VEZ_DIA: '1x ao dia',
-  DUAS_VEZES_DIA: '2x ao dia',
-  SEIS_SEIS_H: '6/6h',
-  OITO_OITO_H: '8/8h',
-  DOZE_DOZE_H: '12/12h',
-  PERSONALIZADO: 'Personalizado',
-}
 
 export function Step3Medications() {
   const { watch, setValue } = useFormContext()
@@ -109,7 +102,7 @@ export function Step3Medications() {
                           {medication.name}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {medication.presentation} - {medication.concentration}
+                          {formatMedicationPresentation(medication.presentation)} - {medication.concentration}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -145,7 +138,7 @@ export function Step3Medications() {
                       <div>
                         <span className="text-muted-foreground">Frequência:</span>
                         <p className="font-medium text-foreground">
-                          {FREQUENCY_LABELS[medication.frequency] || medication.frequency}
+                          {formatMedicationFrequency(medication.frequency)}
                         </p>
                       </div>
                       <div>

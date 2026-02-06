@@ -301,6 +301,53 @@ export function formatLegalNature(legalNature: string | null | undefined): strin
 }
 
 /**
+ * Formata apresentação de medicamento para exibição amigável
+ * COMPRIMIDO -> Comprimido, SOLUCAO -> Solução, etc.
+ */
+export function formatMedicationPresentation(presentation: string | null | undefined): string {
+  if (!presentation) return '-'
+
+  const labels: Record<string, string> = {
+    COMPRIMIDO: 'Comprimido',
+    CAPSULA: 'Cápsula',
+    AMPOLA: 'Ampola',
+    GOTAS: 'Gotas',
+    SOLUCAO: 'Solução',
+    SUSPENSAO: 'Suspensão',
+    POMADA: 'Pomada',
+    CREME: 'Creme',
+    SPRAY: 'Spray',
+    INALADOR: 'Inalador',
+    ADESIVO: 'Adesivo',
+    SUPOSITORIO: 'Supositório',
+    OUTRO: 'Outro',
+  }
+
+  return labels[presentation] || presentation
+}
+
+/**
+ * Formata frequência de medicamento para exibição amigável
+ * UMA_VEZ_DIA -> 1x ao dia, DUAS_VEZES_DIA -> 2x ao dia, etc.
+ */
+export function formatMedicationFrequency(frequency: string | null | undefined): string {
+  if (!frequency) return '-'
+
+  const labels: Record<string, string> = {
+    UMA_VEZ_DIA: '1x ao dia',
+    DUAS_VEZES_DIA: '2x ao dia',
+    TRES_VEZES_DIA: '3x ao dia',
+    QUATRO_VEZES_DIA: '4x ao dia',
+    SEIS_SEIS_H: '6/6h',
+    OITO_OITO_H: '8/8h',
+    DOZE_DOZE_H: '12/12h',
+    PERSONALIZADO: 'Personalizado',
+  }
+
+  return labels[frequency] || frequency
+}
+
+/**
  * Funções de formatação de leitos
  */
 export * from './bedFormatters'

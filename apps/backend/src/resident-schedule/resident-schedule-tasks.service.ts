@@ -14,7 +14,8 @@ export interface DailyTask {
 
   // Para tarefas recorrentes
   recordType?: string;
-  suggestedTimes?: string[];
+  suggestedTimes?: string[]; // Mantido para compatibilidade
+  scheduledTime?: string; // Horário específico desta tarefa
   configId?: string;
   isCompleted?: boolean;
   completedAt?: Date;
@@ -24,7 +25,6 @@ export interface DailyTask {
   // Para eventos agendados
   eventId?: string;
   eventType?: string;
-  scheduledTime?: string;
   title?: string;
   status?: string;
   description?: string;
@@ -116,64 +116,57 @@ export class ResidentScheduleTasksService {
     }
 
     // ✅ CORREÇÃO: Para ALIMENTACAO, precisamos comparar type + mealType
-    // Mapear tarefas incluindo status de conclusão
-    const recurringTasks: DailyTask[] = filteredConfigs.map((config) => {
-      const metadata = config.metadata as { mealType?: string } | null;
+    // ✅ CORREÇÃO 2: Criar uma tarefa para CADA horário sugerido
+    const recurringTasks: DailyTask[] = [];
 
-      // Buscar registro correspondente
-      let recordData: { createdAt: Date; createdBy: string } | undefined;
+    for (const config of filteredConfigs) {
+      const metadata = config.metadata as { mealType?: string } | null;
+      const suggestedTimes = (config.suggestedTimes as string[]) || [];
+      const timesToUse = suggestedTimes.length > 0 ? suggestedTimes : ['00:00'];
+
+      // Buscar todos os registros correspondentes ao tipo
+      let matchingRecords: typeof existingRecords = [];
 
       if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
-        // Para ALIMENTACAO, verificar se existe registro com mesmo mealType
-        const matchingRecord = existingRecords.find(
+        // Para ALIMENTACAO, filtrar por mealType
+        matchingRecords = existingRecords.filter(
           (record) =>
             record.type === 'ALIMENTACAO' &&
             (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
         );
-
-        // 🔍 DEBUG
-        console.log(
-          `[getDailyTasksByResident] Verificando ALIMENTACAO - mealType=${metadata.mealType}, encontrado=${!!matchingRecord}`,
-        );
-
-        if (matchingRecord) {
-          recordData = {
-            createdAt: matchingRecord.createdAt,
-            createdBy: matchingRecord.user.name,
-          };
-        }
       } else {
-        // Para outros tipos, basta verificar o tipo
-        const matchingRecord = existingRecords.find(
+        // Para outros tipos, filtrar pelo tipo
+        matchingRecords = existingRecords.filter(
           (record) => record.type === config.recordType,
         );
-
-        // 🔍 DEBUG
-        console.log(
-          `[getDailyTasksByResident] Verificando ${config.recordType}, encontrado=${!!matchingRecord}`,
-        );
-
-        if (matchingRecord) {
-          recordData = {
-            createdAt: matchingRecord.createdAt,
-            createdBy: matchingRecord.user.name,
-          };
-        }
       }
 
-      return {
-        type: 'RECURRING' as const,
-        residentId: config.residentId,
-        residentName: config.resident.fullName,
-        recordType: config.recordType,
-        suggestedTimes: config.suggestedTimes as string[],
-        configId: config.id,
-        isCompleted: !!recordData,
-        completedAt: recordData?.createdAt,
-        completedBy: recordData?.createdBy,
-        mealType: metadata?.mealType, // Incluir tipo de refeição se disponível
-      };
-    });
+      // 🔍 DEBUG
+      console.log(
+        `[getDailyTasksByResident] ${config.recordType}${metadata?.mealType ? ` (${metadata.mealType})` : ''}: ${matchingRecords.length} registros, ${timesToUse.length} horários`,
+      );
+
+      // Criar uma tarefa para CADA horário
+      for (let i = 0; i < timesToUse.length; i++) {
+        const scheduledTime = timesToUse[i];
+        // Verificar se existe um registro correspondente a este índice
+        const matchingRecord = matchingRecords[i];
+
+        recurringTasks.push({
+          type: 'RECURRING' as const,
+          residentId: config.residentId,
+          residentName: config.resident.fullName,
+          recordType: config.recordType,
+          suggestedTimes: suggestedTimes, // Mantém array completo para referência
+          scheduledTime, // Horário específico desta tarefa
+          configId: config.id,
+          isCompleted: !!matchingRecord,
+          completedAt: matchingRecord?.createdAt,
+          completedBy: matchingRecord?.user?.name,
+          mealType: metadata?.mealType,
+        });
+      }
+    }
 
     // 4. Buscar eventos agendados para a data
     const events = await this.tenantContext.client.residentScheduledEvent.findMany({
@@ -279,58 +272,56 @@ export class ResidentScheduleTasksService {
     }
 
     // 3. Filtrar configurações que devem gerar tarefa na data
-    const recurringTasks: DailyTask[] = configs
-      .filter((config) => this.shouldGenerateTask(config, targetDate))
-      .map((config) => {
-        const metadata = config.metadata as { mealType?: string } | null;
+    // ✅ CORREÇÃO: Criar uma tarefa para CADA horário sugerido
+    const filteredConfigs = configs.filter((config) => this.shouldGenerateTask(config, targetDate));
+    const recurringTasks: DailyTask[] = [];
 
-        // Verificar se existe registro correspondente para este residente
-        let recordData: { createdAt: Date; createdBy: string } | undefined;
+    for (const config of filteredConfigs) {
+      const metadata = config.metadata as { mealType?: string } | null;
+      const suggestedTimes = (config.suggestedTimes as string[]) || [];
+      const timesToUse = suggestedTimes.length > 0 ? suggestedTimes : ['00:00'];
 
-        if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
-          // Para ALIMENTACAO, verificar residentId + type + mealType
-          const matchingRecord = existingRecords.find(
-            (record) =>
-              record.residentId === config.residentId &&
-              record.type === 'ALIMENTACAO' &&
-              (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
-          );
+      // Buscar todos os registros correspondentes ao tipo para este residente
+      let matchingRecords: typeof existingRecords = [];
 
-          if (matchingRecord) {
-            recordData = {
-              createdAt: matchingRecord.createdAt,
-              createdBy: matchingRecord.user.name,
-            };
-          }
-        } else {
-          // Para outros tipos, verificar residentId + type
-          const matchingRecord = existingRecords.find(
-            (record) =>
-              record.residentId === config.residentId &&
-              record.type === config.recordType,
-          );
+      if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
+        // Para ALIMENTACAO, filtrar por residentId + type + mealType
+        matchingRecords = existingRecords.filter(
+          (record) =>
+            record.residentId === config.residentId &&
+            record.type === 'ALIMENTACAO' &&
+            (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
+        );
+      } else {
+        // Para outros tipos, filtrar por residentId + type
+        matchingRecords = existingRecords.filter(
+          (record) =>
+            record.residentId === config.residentId &&
+            record.type === config.recordType,
+        );
+      }
 
-          if (matchingRecord) {
-            recordData = {
-              createdAt: matchingRecord.createdAt,
-              createdBy: matchingRecord.user.name,
-            };
-          }
-        }
+      // Criar uma tarefa para CADA horário
+      for (let i = 0; i < timesToUse.length; i++) {
+        const scheduledTime = timesToUse[i];
+        // Verificar se existe um registro correspondente a este índice
+        const matchingRecord = matchingRecords[i];
 
-        return {
+        recurringTasks.push({
           type: 'RECURRING' as const,
           residentId: config.residentId,
           residentName: config.resident.fullName,
           recordType: config.recordType,
-          suggestedTimes: config.suggestedTimes as string[],
+          suggestedTimes: suggestedTimes,
+          scheduledTime,
           configId: config.id,
-          isCompleted: !!recordData,
-          completedAt: recordData?.createdAt,
-          completedBy: recordData?.createdBy,
+          isCompleted: !!matchingRecord,
+          completedAt: matchingRecord?.createdAt,
+          completedBy: matchingRecord?.user?.name,
           mealType: metadata?.mealType,
-        };
-      });
+        });
+      }
+    }
 
     // Log das tarefas retornadas
     console.log(

@@ -3,6 +3,7 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePermissions, PermissionType } from '@/hooks/usePermissions';
 import { ScheduleConfigList } from './ScheduleConfigList';
 import { ScheduledEventsList } from './ScheduledEventsList';
@@ -168,15 +169,17 @@ export function ResidentScheduleTab({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                    {ALLOWED_RECORD_TYPES.map((recordType) => (
-                      <DraggableRecordTypeCard
-                        key={recordType}
-                        recordType={recordType}
-                        onQuickAdd={handleQuickAdd}
-                      />
-                    ))}
-                  </div>
+                  <TooltipProvider>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                      {ALLOWED_RECORD_TYPES.map((recordType) => (
+                        <DraggableRecordTypeCard
+                          key={recordType}
+                          recordType={recordType}
+                          onQuickAdd={handleQuickAdd}
+                        />
+                      ))}
+                    </div>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
             )}

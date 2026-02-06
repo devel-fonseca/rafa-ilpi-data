@@ -261,6 +261,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                     <TableHeader>
                       <TableRow>
                         <TableHead>Residente</TableHead>
+                        <TableHead>Leito</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Hora</TableHead>
                         <TableHead>Registrado Por</TableHead>
@@ -270,17 +271,16 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                     <TableBody>
                       {category.records.map((record, index) => (
                         <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {record.residentName} ({record.bedCode})
+                          <TableCell className="text-xs font-medium">
+                            {record.residentName}
                           </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {getRecordTypeLabel(record.type)}
-                            </span>
+                          <TableCell className="text-xs text-muted-foreground">{record.bedCode}</TableCell>
+                          <TableCell className="text-xs">
+                            {getRecordTypeLabel(record.type)}
                           </TableCell>
-                          <TableCell className="text-sm">{record.time}</TableCell>
-                          <TableCell className="text-sm">{record.recordedBy}</TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-xs text-muted-foreground">{record.time}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{record.recordedBy}</TableCell>
+                          <TableCell className="text-xs">
                             <div>
                               {formatRecordDetails(record.type, record.details)}
                               {record.notes && (
@@ -433,12 +433,36 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
             )}
           </div>
         )
-      case 'COMPORTAMENTO':
-        return getField('descricao') || getField('observacao') || 'Sem detalhes'
-      case 'HUMOR':
-        return getField('estado') || getField('descricao') || 'Sem detalhes'
-      case 'SONO':
-        return `${getField('qualidade') || 'N/A'} • Duração: ${getField('duracao') || 'N/A'}`
+      case 'COMPORTAMENTO': {
+        const estado = getField('estadoEmocional')
+        const outroEstado = getField('outroEstado')
+        const obs = getField('observacoes')
+        if (!estado) return 'Sem detalhes'
+        let result = estado
+        if (estado === 'Outro' && outroEstado) result += ` (${outroEstado})`
+        if (obs) result += ` • ${obs}`
+        return result
+      }
+      case 'HUMOR': {
+        const humor = getField('humor')
+        const outroHumor = getField('outroHumor')
+        const obsHumor = getField('observacoes')
+        if (!humor) return 'Sem detalhes'
+        let resultHumor = humor
+        if (humor === 'Outro' && outroHumor) resultHumor += ` (${outroHumor})`
+        if (obsHumor) resultHumor += ` • ${obsHumor}`
+        return resultHumor
+      }
+      case 'SONO': {
+        const padrao = getField('padraoSono')
+        const outroPadrao = getField('outroPadrao')
+        const obsSono = getField('observacoes')
+        if (!padrao) return 'Sem detalhes'
+        let resultSono = padrao
+        if (padrao === 'Outro' && outroPadrao) resultSono += ` (${outroPadrao})`
+        if (obsSono) resultSono += ` • ${obsSono}`
+        return resultSono
+      }
       case 'ELIMINACAO':
         return `${getField('tipo') || 'N/A'} • ${getField('caracteristica')} ${getField('observacao')}`
       case 'PESO':
@@ -614,6 +638,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                             <TableHeader>
                       <TableRow>
                         <TableHead>Residente</TableHead>
+                        <TableHead>Leito</TableHead>
                         <TableHead>Medicamento</TableHead>
                         <TableHead>Dose</TableHead>
                         <TableHead>Via</TableHead>
@@ -626,31 +651,32 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                     <TableBody>
                       {medicationAdministrations.map((med, index) => (
                         <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {med.residentName} ({med.bedCode})
+                          <TableCell className="text-xs font-medium">
+                            {med.residentName}
                           </TableCell>
-                          <TableCell className="font-medium">
-                            {med.medicationName}
+                          <TableCell className="text-xs text-muted-foreground">{med.bedCode}</TableCell>
+                          <TableCell className="text-xs font-medium">
+                            {med.medicationName} {med.concentration}
                           </TableCell>
-                          <TableCell className="text-sm">{med.dose}</TableCell>
-                          <TableCell className="text-sm">{med.route}</TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-xs">{med.dose}</TableCell>
+                          <TableCell className="text-xs">{med.route}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
                             {med.scheduledTime}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-xs text-muted-foreground">
                             {med.actualTime || '-'}
                           </TableCell>
-                          <TableCell className="text-sm">
+                          <TableCell className="text-xs text-muted-foreground">
                             {med.administeredBy || '-'}
                           </TableCell>
                           <TableCell>
                             {med.wasAdministered ? (
-                              <Badge variant="default" className="bg-success">
+                              <Badge variant="default" className="bg-success text-xs">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Administrado
                               </Badge>
                             ) : (
-                              <Badge variant="destructive">
+                              <Badge variant="destructive" className="text-xs">
                                 <AlertCircle className="h-3 w-3 mr-1" />
                                 Não Administrado
                               </Badge>

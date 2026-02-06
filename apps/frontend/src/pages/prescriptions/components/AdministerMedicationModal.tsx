@@ -18,6 +18,7 @@ import type { AdministerMedicationDto } from '@/api/prescriptions.api'
 import type { Medication } from '@/api/medications.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
 import { lockMedication, unlockMedication } from '@/api/medications.api'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 // Tipo estendido para medication com campo opcional preselectedScheduledTime
 type MedicationWithPreselectedTime = Medication & {
@@ -163,9 +164,9 @@ export function AdministerMedicationModal({
 
         <div className="flex-1 overflow-y-auto px-1">
           <div className="mb-4 p-4 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/30 dark:border-primary/40">
-          <h3 className="font-semibold text-primary dark:text-primary mb-1">{medication.name}</h3>
+          <h3 className="font-semibold text-primary dark:text-primary mb-1">{medication.name} {medication.concentration}</h3>
           <p className="text-sm text-primary/80 dark:text-primary/90">
-            {medication.presentation} - {medication.concentration}
+            {formatMedicationPresentation(medication.presentation)}
           </p>
           <p className="text-sm text-primary/80 dark:text-primary/90 mt-1">
             <span className="font-medium">Dose:</span> {medication.dose} -{' '}

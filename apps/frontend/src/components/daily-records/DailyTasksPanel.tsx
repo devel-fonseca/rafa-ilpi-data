@@ -42,10 +42,10 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
       if (a.isCompleted && !b.isCompleted) return 1;
       if (!a.isCompleted && b.isCompleted) return -1;
 
-      // Se ambas pendentes, ordenar pelo primeiro horário sugerido
+      // Se ambas pendentes, ordenar pelo horário individual (ou primeiro sugerido como fallback)
       if (!a.isCompleted && !b.isCompleted) {
-        const timeA = a.suggestedTimes?.[0] || '23:59';
-        const timeB = b.suggestedTimes?.[0] || '23:59';
+        const timeA = a.scheduledTime || a.suggestedTimes?.[0] || '23:59';
+        const timeB = b.scheduledTime || b.suggestedTimes?.[0] || '23:59';
         return timeA.localeCompare(timeB);
       }
 
@@ -148,10 +148,10 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                   )}
                 </div>
 
-                {task.suggestedTimes && task.suggestedTimes.length > 0 && (
+                {(task.scheduledTime || (task.suggestedTimes && task.suggestedTimes.length > 0)) && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    <span>{task.suggestedTimes.join(', ')}</span>
+                    <span>{task.scheduledTime || task.suggestedTimes?.join(', ')}</span>
                   </div>
                 )}
 

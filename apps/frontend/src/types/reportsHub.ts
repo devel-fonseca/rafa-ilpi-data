@@ -83,10 +83,10 @@ export const REPORT_CATEGORIES: ReportCategory[] = [
       },
       {
         id: 'shift-report',
-        label: 'Relatórios por Turno',
-        description: 'Filtrar por turno (Dia/Noite)',
+        label: 'Relatórios por Plantão',
+        description: 'Filtrar por turno',
         reportType: 'BY_SHIFT',
-        badge: 'Dia/Noite',
+        badge: 'Selecionar',
       },
       {
         id: 'resident-report',
@@ -204,7 +204,7 @@ export const REPORT_CATEGORIES: ReportCategory[] = [
       {
         id: 'resident-list',
         label: 'Lista de Residentes',
-        description: 'Listagem geral para impressão',
+        description: 'Listagem geral',
         reportType: 'INSTITUTIONAL_MONTHLY',
         badge: 'PDF/CSV',
       },

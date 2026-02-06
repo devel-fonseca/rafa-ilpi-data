@@ -38,7 +38,7 @@ export const RECORD_TYPE_LABELS: Record<
     chartColor: '#6b7280',
   },
   COMPORTAMENTO: {
-    label: 'Estado Emocional',
+    label: 'Comportamento',
     color: 'text-purple-700 dark:text-purple-300',
     bgColor: 'bg-purple-100 dark:bg-purple-950/30 border-purple-300 dark:border-purple-700/30',
     chartColor: '#a855f7',

@@ -130,6 +130,7 @@ import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
 // Reports Pages
 import ReportsHub from '@/pages/reports/ReportsHub'
 import DailyReportPage from '@/pages/reports/DailyReportPage'
+import ResidentsListReportPage from '@/pages/reports/ResidentsListReportPage'
 
 export const router = createBrowserRouter([
   {
@@ -592,6 +593,10 @@ export const router = createBrowserRouter([
           {
             path: 'diario',
             element: <DailyReportPage />,
+          },
+          {
+            path: 'residentes',
+            element: <ResidentsListReportPage />,
           },
         ],
       },

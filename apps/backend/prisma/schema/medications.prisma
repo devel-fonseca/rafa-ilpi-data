@@ -91,6 +91,7 @@ model Prescription {
   // Índices compostos para queries frequentes
   @@index([tenantId, residentId, isActive]) // Listar prescrições ativas do residente
   @@index([tenantId, isActive, validUntil]) // Prescrições ativas próximas do vencimento
+  @@index([isActive, deletedAt]) // Relatórios e dashboards por status
   @@map("prescriptions")
 }
 
@@ -183,6 +184,7 @@ model Medication {
   // Índices compostos para queries frequentes
   @@index([prescriptionId, deletedAt]) // Medicamentos ativos de uma prescrição
   @@index([prescriptionId, startDate, endDate]) // Medicamentos vigentes de uma prescrição
+  @@index([deletedAt, startDate, endDate]) // Relatórios por período sem filtro tenantId
   @@map("medications")
 }
 
@@ -354,6 +356,7 @@ model MedicationAdministration {
   // Índices compostos para queries frequentes
   @@index([tenantId, date, wasAdministered]) // Administrações pendentes do dia
   @@index([residentId, date, wasAdministered]) // Administrações pendentes do residente
+  @@index([date, scheduledTime]) // Relatórios por dia com ordenação por horário
   @@map("medication_administrations")
 }
 

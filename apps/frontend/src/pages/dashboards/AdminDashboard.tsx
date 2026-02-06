@@ -4,6 +4,7 @@ import { OperationalComplianceSection } from '@/components/admin/OperationalComp
 import { PlanStatusSection } from '@/components/admin/PlanStatusSection'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
+import { TodayShiftsInfo } from '@/components/dashboard/TodayShiftsInfo'
 import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
 import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
 import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
@@ -36,6 +37,9 @@ export function AdminDashboard() {
         stats={complianceStats}
         isLoading={isLoadingCompliance}
       />
+
+      {/* Equipes de Plantão Hoje */}
+      <TodayShiftsInfo />
 
       {/* Gráficos de Análise */}
       <CollapsibleSection

@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import type { CreateSOSMedicationDto, MedicationPresentation, AdministrationRoute, SOSIndicationType } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 interface SOSMedicationModalProps {
   open: boolean
@@ -160,7 +161,7 @@ export function SOSMedicationModal({
                 <SelectContent>
                   {PRESENTATIONS.map((pres) => (
                     <SelectItem key={pres} value={pres}>
-                      {pres}
+                      {formatMedicationPresentation(pres)}
                     </SelectItem>
                   ))}
                 </SelectContent>

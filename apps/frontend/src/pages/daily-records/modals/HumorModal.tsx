@@ -1,7 +1,7 @@
-import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Info } from 'lucide-react'
 import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
@@ -22,6 +22,19 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+// ========== DESCRIÇÕES DOS HUMORES ==========
+
+const HUMOR_DESCRIPTIONS: Record<string, string> = {
+  Eutímico: 'Humor estável e compatível com o contexto, sem alterações aparentes.',
+  Disfórico: 'Relata ou demonstra mal-estar emocional persistente, como irritação ou insatisfação.',
+  Deprimido: 'Apresenta humor rebaixado, com sinais consistentes de tristeza ou perda de interesse.',
+  Elevado: 'Humor acima do habitual, com expansividade ou otimismo excessivo.',
+  Irritável: 'Predomínio de irritabilidade ou reatividade emocional.',
+  Lábil: 'Oscilações rápidas e pouco previsíveis do estado emocional.',
+  Outro: 'Selecionar quando o humor não corresponder às categorias anteriores, descrevendo brevemente.',
+}
 
 const humorSchema = z.object({
   time: z
@@ -106,6 +119,13 @@ export function HumorModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed">
+              Selecione o humor que melhor represente o estado afetivo predominante do residente. Por ser um indicador mais estável, alterações podem sinalizar necessidade de avaliação técnica.
+            </AlertDescription>
+          </Alert>
+
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
@@ -129,17 +149,22 @@ export function HumorModal({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Eutímico">Eutímico</SelectItem>
-                    <SelectItem value="Disfórico">Disfórico</SelectItem>
-                    <SelectItem value="Deprimido">Deprimido</SelectItem>
-                    <SelectItem value="Elevado">Elevado</SelectItem>
-                    <SelectItem value="Irritável">Irritável</SelectItem>
-                    <SelectItem value="Lábil">Lábil</SelectItem>
-                    <SelectItem value="Outro">Outro</SelectItem>
+                    {Object.keys(HUMOR_DESCRIPTIONS).map((humor) => (
+                      <SelectItem key={humor} value={humor}>
+                        {humor}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
             />
+            {/* Descrição do humor selecionado */}
+            {watchHumor && HUMOR_DESCRIPTIONS[watchHumor] && (
+              <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>{HUMOR_DESCRIPTIONS[watchHumor]}</span>
+              </p>
+            )}
             {errors.humor && (
               <p className="text-sm text-danger mt-1">
                 {errors.humor.message}

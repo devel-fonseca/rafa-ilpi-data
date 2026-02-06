@@ -17,18 +17,14 @@ import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
 import { usersApi } from '@/api/users.api'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
+import { TodayShiftsInfo } from '@/components/dashboard/TodayShiftsInfo'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { OperationalComplianceSection } from '@/components/admin/OperationalComplianceSection'
 import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
 import { useTechnicalManagerTasks } from '@/hooks/useTechnicalManagerTasks'
-import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
-import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
-import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
-import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
-import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Page, PageHeader, Section, CollapsibleSection, QuickActionsGrid } from '@/design-system/components'
 import { AdministerMedicationModal } from '@/pages/prescriptions/components/AdministerMedicationModal'
@@ -81,12 +77,6 @@ export function TechnicalManagerDashboard() {
 
   // Buscar registros de hoje (today já foi definido no início do componente)
   const { data: recordsToday = [] } = useDailyRecordsByDate(today)
-
-  // Buscar dados para os gráficos de análise
-  const { data: residentsGrowth, isLoading: isLoadingResidents } = useResidentsGrowth()
-  const { data: medicationsHistory, isLoading: isLoadingMedications } = useMedicationsHistory()
-  const { data: recordsHistory, isLoading: isLoadingRecords } = useMandatoryRecordsHistory()
-  const { data: occupancyRate, isLoading: isLoadingOccupancy } = useOccupancyRate()
 
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
@@ -203,6 +193,9 @@ export function TechnicalManagerDashboard() {
         <QuickActionsGrid actions={quickActions} columns={4} />
       </Section>
 
+      {/* Equipes de Plantão Hoje */}
+      <TodayShiftsInfo />
+
       {/* Agendamentos de Hoje - Exibir apenas se houver eventos ou estiver carregando */}
       {isLoadingTasks || (managerTasks?.scheduledEvents && managerTasks.scheduledEvents.length > 0) ? (
         <CollapsibleSection
@@ -299,35 +292,6 @@ export function TechnicalManagerDashboard() {
 
           {/* Recent Activity */}
           <RecentActivity />
-        </div>
-      </CollapsibleSection>
-
-      {/* Análise de Dados - Secundário para RT */}
-      <CollapsibleSection
-        id="technical-manager-analysis-charts"
-        title="Análise de Dados"
-        defaultCollapsed={true}
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ResidentsGrowthChart
-            data={residentsGrowth?.data || []}
-            isLoading={isLoadingResidents}
-          />
-          <OccupancyRateChart
-            data={occupancyRate?.data || []}
-            hasBedsConfigured={occupancyRate?.hasBedsConfigured}
-            capacityDeclared={occupancyRate?.capacityDeclared}
-            capacityLicensed={occupancyRate?.capacityLicensed}
-            isLoading={isLoadingOccupancy}
-          />
-          <MandatoryRecordsChart
-            data={recordsHistory?.data || []}
-            isLoading={isLoadingRecords}
-          />
-          <MedicationAdministrationChart
-            data={medicationsHistory?.data || []}
-            isLoading={isLoadingMedications}
-          />
         </div>
       </CollapsibleSection>
 

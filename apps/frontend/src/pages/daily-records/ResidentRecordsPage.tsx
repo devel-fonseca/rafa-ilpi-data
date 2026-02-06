@@ -510,60 +510,165 @@ export default function ResidentRecordsPage() {
           <Card className="h-full">
             <CardContent className="p-6">
               <h2 className="font-semibold text-lg mb-4">Adicionar Registro</h2>
-              <div className="flex flex-col gap-2">
-                <Button onClick={() => setActiveModal('HIGIENE')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Higiene
-                </Button>
-                <Button onClick={() => setActiveModal('ALIMENTACAO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Alimentação
-                </Button>
-                <Button onClick={() => setActiveModal('HIDRATACAO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Hidratação
-                </Button>
-                <Button onClick={() => setActiveModal('MONITORAMENTO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Monitoramento
-                </Button>
-                <Button onClick={() => setActiveModal('ELIMINACAO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Eliminação
-                </Button>
-                <Button onClick={() => setActiveModal('COMPORTAMENTO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Estado Emocional
-                </Button>
-                <Button onClick={() => setActiveModal('HUMOR')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Humor
-                </Button>
-                <Button onClick={() => setActiveModal('SONO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Sono
-                </Button>
-                <Button onClick={() => setActiveModal('PESO')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Peso/Altura
-                </Button>
-                <Button onClick={() => setActiveModal('INTERCORRENCIA')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Intercorrência
-                </Button>
-                <Button onClick={() => setActiveModal('ATIVIDADES')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Atividades
-                </Button>
-                <Button onClick={() => setActiveModal('VISITA')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Visita
-                </Button>
-                <Button onClick={() => setActiveModal('OUTROS')} variant="outline" size="sm" className="justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Outros
-                </Button>
-              </div>
+              <TooltipProvider>
+                <div className="flex flex-col gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('HIGIENE')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Higiene
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Indica as condições de higiene e os cuidados realizados, refletindo o nível de autonomia do residente e suas necessidades de apoio.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('ALIMENTACAO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Alimentação
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Refere-se à aceitação alimentar e ao modo como o residente se alimenta, permitindo acompanhar padrões e possíveis alterações.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('HIDRATACAO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Hidratação
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Indica a ingestão de líquidos ao longo do período, contribuindo para o monitoramento do equilíbrio hídrico e prevenção de intercorrências.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('MONITORAMENTO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Monitoramento
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Reúne parâmetros observados durante o cuidado, auxiliando na identificação precoce de alterações do estado de saúde.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('ELIMINACAO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Eliminação
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Refere-se ao padrão urinário e intestinal do residente, permitindo reconhecer mudanças relevantes no funcionamento fisiológico.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('COMPORTAMENTO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Comportamento
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Refere-se à forma como o residente se apresenta no momento da avaliação, podendo variar conforme o contexto e as condições do dia.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('HUMOR')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Humor
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Indica o estado emocional predominante do residente, geralmente mais estável que o comportamento momentâneo.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('SONO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Sono
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Indica a qualidade e o padrão do sono, favorecendo a identificação de alterações que possam impactar o bem-estar e a saúde.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('PESO')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Peso/Altura
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Permite acompanhar medidas corporais relevantes para a avaliação nutricional e o monitoramento das condições gerais de saúde.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('INTERCORRENCIA')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Intercorrência
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Registra ocorrências inesperadas ou alterações do estado habitual, subsidiando a avaliação e a tomada de decisão pela equipe.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('ATIVIDADES')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Atividades
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Refere-se à participação do residente nas atividades propostas, contribuindo para a avaliação do engajamento e da funcionalidade.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('VISITA')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Visita
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Registra a ocorrência de visitas ao residente.</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={() => setActiveModal('OUTROS')} variant="outline" size="sm" className="justify-start">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Outros
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p>Destinado ao registro de informações relevantes para o cuidado que não se enquadrem nas categorias anteriores.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </CardContent>
           </Card>
         </div>

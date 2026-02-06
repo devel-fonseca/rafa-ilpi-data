@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import type { AdministerSOSDto } from '@/api/prescriptions.api'
 import type { SOSMedication } from '@/api/sos-medications.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 interface AdministerSOSModalProps {
   open: boolean
@@ -82,7 +83,7 @@ export function AdministerSOSModal({
           <div className="mb-4 p-4 bg-severity-warning/5 rounded-lg border border-severity-warning/30">
           <h3 className="font-semibold text-severity-warning/90 mb-1">{sosMedication.name}</h3>
           <p className="text-sm text-severity-warning/80">
-            {sosMedication.presentation} - {sosMedication.concentration}
+            {formatMedicationPresentation(sosMedication.presentation)} - {sosMedication.concentration}
           </p>
           <p className="text-sm text-severity-warning/80 mt-1">
             <span className="font-medium">Dose:</span> {sosMedication.dose} -{' '}

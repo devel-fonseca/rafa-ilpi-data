@@ -64,6 +64,7 @@ model DailyRecord {
   @@index([tenantId, type, date(sort: Desc)]) // Registros por tipo (ex: ALIMENTACAO do dia)
   @@index([residentId, type, date(sort: Desc)]) // Registros do residente por tipo
   @@index([tenantId, date, deletedAt]) // Registros ativos do dia
+  @@index([date, deletedAt, time]) // Relatórios por dia com ordenação por horário
   @@map("daily_records")
 }
 

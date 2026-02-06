@@ -14,6 +14,7 @@ import {
 import type { MedicationTask } from '@/hooks/useCaregiverTasks'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { useAuthStore } from '@/stores/auth.store'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 interface Props {
   title: string
@@ -164,7 +165,7 @@ export function MedicationsSection({
                         : 'text-foreground'
                     }`}
                   >
-                    {medication.medicationName} - {medication.presentation}
+                    {medication.medicationName} {medication.concentration} - {formatMedicationPresentation(medication.presentation)}
                   </span>
                   {medication.wasAdministered && (
                     <CheckCircle2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />

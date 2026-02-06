@@ -5,6 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ReportsService } from './reports.service';
 import { MultiDayReportDto } from './dto/daily-report.dto';
+import { ResidentsListReportDto } from './dto/residents-list-report.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -33,5 +34,23 @@ export class ReportsController {
       throw new Error('TenantId não encontrado no token JWT');
     }
     return this.reportsService.generateMultiDayReport(user.tenantId, startDate, endDate, shiftTemplateId);
+  }
+
+  @Get('residents')
+  @ApiOperation({ summary: 'Gerar relatório de lista de residentes' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Filtrar por status (Ativo, Inativo, Falecido). Padrão: Ativo' })
+  @ApiResponse({
+    status: 200,
+    description: 'Relatório de residentes gerado com sucesso',
+    type: ResidentsListReportDto,
+  })
+  async getResidentsListReport(
+    @CurrentUser() user: JwtPayload,
+    @Query('status') status?: string,
+  ): Promise<ResidentsListReportDto> {
+    if (!user.tenantId) {
+      throw new Error('TenantId não encontrado no token JWT');
+    }
+    return this.reportsService.generateResidentsListReport(status || 'Ativo');
   }
 }

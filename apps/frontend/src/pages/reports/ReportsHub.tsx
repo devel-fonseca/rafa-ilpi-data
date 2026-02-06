@@ -11,9 +11,28 @@ import { REPORT_CATEGORIES, type ReportFilters, type RecentReport } from '@/type
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { getDailyReport } from '@/services/reportsApi'
 import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
+import { useQuery } from '@tanstack/react-query'
+import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 // ========== COMPONENT ==========
 
@@ -22,6 +41,15 @@ export default function ReportsHub() {
   const { user } = useAuthStore()
   const [isGenerating, setIsGenerating] = React.useState(false)
   const [recentReports, setRecentReports] = React.useState<RecentReport[]>([])
+  const [isShiftDialogOpen, setIsShiftDialogOpen] = React.useState(false)
+  const [selectedShiftTemplateId, setSelectedShiftTemplateId] = React.useState('')
+
+  const { data: availableShifts = [], isLoading: isLoadingShifts } = useQuery({
+    queryKey: ['available-shift-templates'],
+    queryFn: getAvailableShiftTemplates,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  })
+
 
   // ========== HANDLERS ==========
 
@@ -37,6 +65,9 @@ export default function ReportsHub() {
         }
         if (filters.endDate && filters.endDate !== filters.startDate) {
           params.set('endDate', filters.endDate)
+        }
+        if (filters.shift && filters.shift !== 'ALL') {
+          params.set('shiftTemplateId', filters.shift)
         }
         navigate(`/dashboard/relatorios/diario?${params.toString()}`)
         return
@@ -116,9 +147,29 @@ export default function ReportsHub() {
       return
     }
 
+    if (itemId === 'shift-report') {
+      setIsShiftDialogOpen(true)
+      return
+    }
+
+    // Navegar para a lista de residentes
+    if (itemId === 'resident-list') {
+      navigate('/dashboard/relatorios/residentes')
+      return
+    }
+
     // Para outros tipos, pré-preencher o gerador e scroll até ele
     // TODO: Implementar scroll e pré-preenchimento do gerador
     console.log('Selected report type:', reportType)
+  }
+
+  const handleConfirmShiftReport = () => {
+    if (!selectedShiftTemplateId) return
+    const params = new URLSearchParams()
+    params.set('startDate', getCurrentDate())
+    params.set('shiftTemplateId', selectedShiftTemplateId)
+    setIsShiftDialogOpen(false)
+    navigate(`/dashboard/relatorios/diario?${params.toString()}`)
   }
 
   // ========== RENDER ==========
@@ -232,6 +283,43 @@ export default function ReportsHub() {
           </div>
         </>
       )}
+
+      <Dialog open={isShiftDialogOpen} onOpenChange={setIsShiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Selecionar turno</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="shift-template">Turno</Label>
+            <Select
+              value={selectedShiftTemplateId}
+              onValueChange={setSelectedShiftTemplateId}
+            >
+              <SelectTrigger id="shift-template">
+                <SelectValue placeholder={isLoadingShifts ? 'Carregando...' : 'Selecione o turno'} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableShifts.map((shift) => (
+                  <SelectItem key={shift.id} value={shift.id}>
+                    {shift.name} ({shift.startTime}-{shift.endTime})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsShiftDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmShiftReport}
+              disabled={!selectedShiftTemplateId || isLoadingShifts}
+            >
+              Gerar relatório
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Page>
   )
 }

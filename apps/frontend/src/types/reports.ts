@@ -21,6 +21,7 @@ export interface MedicationAdministrationReport {
   residentCns?: string
   bedCode: string
   medicationName: string
+  concentration: string
   dose: string
   route: string
   scheduledTime: string

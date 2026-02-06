@@ -1,7 +1,7 @@
-import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { Info } from 'lucide-react'
 import { getCurrentTime } from '@/utils/dateHelpers'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import {
@@ -22,6 +22,20 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+// ========== DESCRIÇÕES DOS PADRÕES DE SONO ==========
+
+const SONO_DESCRIPTIONS: Record<string, string> = {
+  Preservado: 'Sono ocorrido de forma contínua ou com despertares breves, mantendo padrão habitual e aspecto reparador.',
+  'Insônia inicial': 'Dificuldade para iniciar o sono, com tempo prolongado até adormecer.',
+  'Insônia intermediária': 'Despertares frequentes durante a noite, com dificuldade para retomar o sono.',
+  'Insônia terminal': 'Despertar precoce, antes do horário habitual, sem conseguir voltar a dormir.',
+  'Sono fragmentado': 'Sono interrompido por múltiplos despertares, resultando em descanso percebido como insuficiente.',
+  Hipersonia: 'Períodos prolongados de sono ou sonolência excessiva ao longo do dia, acima do padrão do residente.',
+  'Inversão do ciclo sono–vigília': 'Predomínio de sono durante o dia e maior estado de vigília no período noturno.',
+  Outro: 'Selecionar quando o padrão observado não corresponder às opções anteriores, descrevendo de forma objetiva.',
+}
 
 const sonoSchema = z.object({
   time: z
@@ -106,6 +120,13 @@ export function SonoModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed">
+              Registre o padrão de sono observado no período avaliado. Alterações persistentes devem ser comunicadas à equipe técnica para investigação de possíveis causas.
+            </AlertDescription>
+          </Alert>
+
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
@@ -129,16 +150,22 @@ export function SonoModal({
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Preservado">Preservado</SelectItem>
-                    <SelectItem value="Insônia inicial">Insônia inicial</SelectItem>
-                    <SelectItem value="Insônia intermediária">Insônia intermediária</SelectItem>
-                    <SelectItem value="Insônia terminal">Insônia terminal</SelectItem>
-                    <SelectItem value="Hipersonia">Hipersonia</SelectItem>
-                    <SelectItem value="Outro">Outro</SelectItem>
+                    {Object.keys(SONO_DESCRIPTIONS).map((padrao) => (
+                      <SelectItem key={padrao} value={padrao}>
+                        {padrao}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
             />
+            {/* Descrição do padrão de sono selecionado */}
+            {watchPadraoSono && SONO_DESCRIPTIONS[watchPadraoSono] && (
+              <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                <span>{SONO_DESCRIPTIONS[watchPadraoSono]}</span>
+              </p>
+            )}
             {errors.padraoSono && (
               <p className="text-sm text-danger mt-1">
                 {errors.padraoSono.message}

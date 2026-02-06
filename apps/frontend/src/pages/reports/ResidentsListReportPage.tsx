@@ -1,58 +1,41 @@
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, FileDown } from 'lucide-react'
-import { getCurrentDate } from '@/utils/dateHelpers'
 import { useQuery } from '@tanstack/react-query'
-import { getDailyReport } from '@/services/reportsApi'
-import { DailyReportView } from '@/components/reports/DailyReportView'
-import { downloadDailyReportPDF } from '@/services/dailyReportPdf'
+import { getResidentsListReport } from '@/services/reportsApi'
+import { ResidentsListReportView } from '@/components/reports/ResidentsListReportView'
+import { downloadResidentsListReportPDF } from '@/services/residentsListReportPdf'
 import { useAuthStore } from '@/stores/auth.store'
-import { useEffect, useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 
-export default function DailyReportPage() {
+export default function ResidentsListReportPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const startDate = searchParams.get('startDate') || searchParams.get('date') || getCurrentDate()
-  const endDate = searchParams.get('endDate') || undefined
-  const shiftTemplateId = searchParams.get('shiftTemplateId') || undefined
   const { user } = useAuthStore()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
-  const [noShiftDialogOpen, setNoShiftDialogOpen] = useState(false)
 
-  const { data: multiDayReport, isLoading, error } = useQuery({
-    queryKey: ['daily-report', startDate, endDate, shiftTemplateId],
-    queryFn: () => getDailyReport(startDate, endDate, shiftTemplateId),
-    enabled: !!startDate,
+  const { data: report, isLoading, error } = useQuery({
+    queryKey: ['residents-list-report'],
+    queryFn: () => getResidentsListReport('Ativo'),
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 
-  useEffect(() => {
-    if (!shiftTemplateId || !multiDayReport || isLoading || error) {
-      return
-    }
-    const hasAnyShift = multiDayReport.reports.some((report) => report.shifts.length > 0)
-    setNoShiftDialogOpen(!hasAnyShift)
-  }, [shiftTemplateId, multiDayReport, isLoading, error])
-
   const handleGeneratePDF = () => {
-    if (!multiDayReport || !user) return
+    if (!report || !user) return
 
     setIsGeneratingPdf(true)
     try {
       const ilpiName = user.tenant?.profile?.tradeName || user.tenant?.name || 'ILPI'
       const cnpj = user.tenant?.cnpj || 'CNPJ não cadastrado'
       const userName = user.name
-      const printDate = new Date().toLocaleString('pt-BR', {
+      const printDate = new Date().toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+
+      const printDateTime = new Date().toLocaleString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -60,11 +43,12 @@ export default function DailyReportPage() {
         minute: '2-digit',
       })
 
-      downloadDailyReportPDF(multiDayReport, {
+      downloadResidentsListReportPDF(report, {
         ilpiName,
         cnpj,
         userName,
         printDate,
+        printDateTime,
       })
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
@@ -76,17 +60,17 @@ export default function DailyReportPage() {
   return (
     <Page>
       <PageHeader
-        title="Relatório Diário"
-        subtitle="Visualize todos os registros, medicações e sinais vitais de um ou mais dias"
+        title="Lista de Residentes"
+        subtitle="Visão geral de todos os residentes ativos com informações demográficas e grau de dependência"
         breadcrumbs={[
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
-          { label: 'Relatório Diário' },
+          { label: 'Lista de Residentes' },
         ]}
         backButton={{
           onClick: () => navigate('/dashboard/relatorios'),
         }}
         actions={
-          multiDayReport && !isLoading && !error && !noShiftDialogOpen ? (
+          report && !isLoading && !error ? (
             <Button
               onClick={handleGeneratePDF}
               disabled={isGeneratingPdf}
@@ -133,36 +117,18 @@ export default function DailyReportPage() {
       )}
 
       {/* Report View */}
-      {multiDayReport && !noShiftDialogOpen && (
-        <DailyReportView multiDayReport={multiDayReport} />
-      )}
+      {report && <ResidentsListReportView report={report} />}
 
       {/* Empty State */}
-      {!multiDayReport && !isLoading && !error && (
+      {!report && !isLoading && !error && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-muted-foreground text-center">
-              Nenhum registro encontrado para esta data.
+              Nenhum residente encontrado.
             </p>
           </CardContent>
         </Card>
       )}
-
-      <Dialog open={noShiftDialogOpen} onOpenChange={setNoShiftDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Plantão não agendado</DialogTitle>
-            <DialogDescription>
-              Não há plantão agendado para o turno selecionado na data escolhida.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => navigate('/dashboard/relatorios')}>
-              Voltar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Page>
   )
 }

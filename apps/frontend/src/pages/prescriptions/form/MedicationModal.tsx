@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import type { CreateMedicationDto, MedicationPresentation, AdministrationRoute, MedicationFrequency } from '@/api/prescriptions.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 
 interface MedicationModalProps {
   open: boolean
@@ -192,7 +193,7 @@ export function MedicationModal({
                 <SelectContent>
                   {PRESENTATIONS.map((pres) => (
                     <SelectItem key={pres} value={pres}>
-                      {pres}
+                      {formatMedicationPresentation(pres)}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
 import { calculateAge } from '@/lib/utils'
+import { formatMedicationPresentation } from '@/utils/formatters'
 import { SingleFileUpload } from '@/components/form/SingleFileUpload'
 import type { CreatePrescriptionDto } from '@/api/prescriptions.api'
 
@@ -265,7 +266,7 @@ export function Step5Review() {
                     <div>
                       <p className="font-semibold">{med.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {med.presentation} - {med.concentration}
+                        {formatMedicationPresentation(med.presentation)} - {med.concentration}
                       </p>
                     </div>
                     <div className="flex gap-1">
@@ -339,7 +340,7 @@ export function Step5Review() {
                     <div>
                       <p className="font-semibold">{sos.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {sos.presentation} - {sos.concentration}
+                        {formatMedicationPresentation(sos.presentation)} - {sos.concentration}
                       </p>
                     </div>
                     <Badge variant="outline" className="bg-severity-warning/10 text-severity-warning/80">

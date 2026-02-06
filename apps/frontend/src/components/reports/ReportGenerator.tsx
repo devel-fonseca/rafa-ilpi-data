@@ -6,7 +6,7 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { FileText, Download, Loader2, X } from 'lucide-react'
+import { FileText, Download, Loader2, X, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { getCurrentDate } from '@/utils/dateHelpers'
@@ -174,12 +174,12 @@ export function ReportGenerator({
     <div className="rounded-lg border bg-card p-6 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <FileText className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Gerar Relatórios</h3>
+        <h3 className="text-lg font-semibold">Relatórios de Atividades Assistenciais</h3>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Grid de filtros principais */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Tipo de Relatório */}
           <div className="space-y-2">
             <Label htmlFor="reportType">
@@ -209,35 +209,39 @@ export function ReportGenerator({
             )}
           </div>
 
-          {/* Data Inicial */}
+          {/* Período (Data Inicial + Botão + Data Final) */}
           <div className="space-y-2">
-            <Label htmlFor="startDate">
-              Data Inicial <span className="text-danger">*</span>
+            <Label>
+              Período <span className="text-danger">*</span>
             </Label>
-            <Input
-              id="startDate"
-              type="date"
-              {...register('startDate')}
-              className={errors.startDate ? 'border-danger' : ''}
-            />
-            {errors.startDate && (
-              <p className="text-sm text-danger">{errors.startDate.message}</p>
-            )}
-          </div>
-
-          {/* Data Final */}
-          <div className="space-y-2">
-            <Label htmlFor="endDate">
-              Data Final <span className="text-danger">*</span>
-            </Label>
-            <Input
-              id="endDate"
-              type="date"
-              {...register('endDate')}
-              className={errors.endDate ? 'border-danger' : ''}
-            />
-            {errors.endDate && (
-              <p className="text-sm text-danger">{errors.endDate.message}</p>
+            <div className="flex items-center gap-2">
+              <Input
+                id="startDate"
+                type="date"
+                {...register('startDate')}
+                className={errors.startDate ? 'border-danger' : ''}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setValue('endDate', startDate)}
+                title="Copiar data inicial para data final"
+                className="h-9 w-9 shrink-0"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Input
+                id="endDate"
+                type="date"
+                {...register('endDate')}
+                className={errors.endDate ? 'border-danger' : ''}
+              />
+            </div>
+            {(errors.startDate || errors.endDate) && (
+              <p className="text-sm text-danger">
+                {errors.startDate?.message || errors.endDate?.message}
+              </p>
             )}
           </div>
         </div>

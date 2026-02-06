@@ -17,6 +17,7 @@ import type { SOSMedication } from '@/api/sos-medications.api'
 import { getSignedFileUrl } from '@/services/upload'
 import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { formatMedicationPresentation, formatMedicationFrequency } from '@/utils/formatters'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 
 const PRESCRIPTION_TYPE_LABELS: Record<string, string> = {
@@ -42,30 +43,6 @@ const ROUTE_LABELS: Record<string, string> = {
   OUTRA: 'Outra',
 }
 
-const PRESENTATION_LABELS: Record<string, string> = {
-  COMPRIMIDO: 'Comprimido',
-  CAPSULA: 'Cápsula',
-  AMPOLA: 'Ampola',
-  GOTAS: 'Gotas',
-  SOLUCAO: 'Solução',
-  SUSPENSAO: 'Suspensão',
-  POMADA: 'Pomada',
-  CREME: 'Creme',
-  SPRAY: 'Spray',
-  INALADOR: 'Inalador',
-  ADESIVO: 'Adesivo',
-  SUPOSITORIO: 'Supositório',
-  OUTRO: 'Outro',
-}
-
-const FREQUENCY_LABELS: Record<string, string> = {
-  UMA_VEZ_DIA: '1x ao dia',
-  DUAS_VEZES_DIA: '2x ao dia',
-  SEIS_SEIS_H: '6/6h',
-  OITO_OITO_H: '8/8h',
-  DOZE_DOZE_H: '12/12h',
-  PERSONALIZADO: 'Personalizado',
-}
 
 export default function PrescriptionEdit() {
   const { id } = useParams<{ id: string }>()
@@ -317,7 +294,7 @@ export default function PrescriptionEdit() {
                       {index + 1}. {medication.name}
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      {PRESENTATION_LABELS[medication.presentation]} -{' '}
+                      {formatMedicationPresentation(medication.presentation)} -{' '}
                       {medication.concentration}
                     </p>
                   </div>
@@ -349,7 +326,7 @@ export default function PrescriptionEdit() {
                   <div>
                     <p className="text-muted-foreground">Frequência</p>
                     <p className="font-medium">
-                      {FREQUENCY_LABELS[medication.frequency] || medication.frequency}
+                      {formatMedicationFrequency(medication.frequency)}
                     </p>
                   </div>
                   <div>
@@ -402,7 +379,7 @@ export default function PrescriptionEdit() {
                     {index + 1}. {sos.name}
                   </h4>
                   <p className="text-sm text-muted-foreground">
-                    {PRESENTATION_LABELS[sos.presentation]} - {sos.concentration}
+                    {formatMedicationPresentation(sos.presentation)} - {sos.concentration}
                   </p>
                 </div>
 

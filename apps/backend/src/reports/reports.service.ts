@@ -20,10 +20,88 @@ export class ReportsService {
     private readonly tenantContext: TenantContextService,
   ) {}
 
+  private normalizeTime(value: string) {
+    const [h, m] = value.split(':');
+    return `${String(h || '0').padStart(2, '0')}:${String(m || '0').padStart(2, '0')}`;
+  }
+
+  private timeToMinutes(value: string) {
+    const normalized = this.normalizeTime(value);
+    const [h, m] = normalized.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  private isTimeInWindow(
+    time: string | null | undefined,
+    window: { startTime: string; endTime: string; crossesMidnight: boolean },
+  ) {
+    if (!time) return false;
+    const minutes = this.timeToMinutes(time);
+    const start = this.timeToMinutes(window.startTime);
+    const end = this.timeToMinutes(window.endTime);
+
+    if (window.crossesMidnight) {
+      return minutes >= start || minutes <= end;
+    }
+
+    return minutes >= start && minutes <= end;
+  }
+
+  private async getShiftTimeWindow(
+    shiftTemplateId?: string,
+  ): Promise<{ startTime: string; endTime: string; crossesMidnight: boolean } | null> {
+    if (!shiftTemplateId || shiftTemplateId === 'ALL') {
+      return null;
+    }
+
+    const [template, config] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shiftTemplateId },
+        select: { startTime: true, endTime: true },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: { shiftTemplateId, deletedAt: null },
+        select: { customStartTime: true, customEndTime: true },
+      }),
+    ]);
+
+    const startRaw = config?.customStartTime || template?.startTime;
+    const endRaw = config?.customEndTime || template?.endTime;
+
+    if (!startRaw || !endRaw) {
+      return null;
+    }
+
+    const startTime = this.normalizeTime(startRaw);
+    const endTime = this.normalizeTime(endRaw);
+
+    const crossesMidnight = endTime <= startTime;
+    return { startTime, endTime, crossesMidnight };
+  }
+
   async generateDailyReport(
     tenantId: string,
     date: string,
     shiftTemplateId?: string,
+  ): Promise<DailyReportDto> {
+    // Buscar shiftWindow (para chamadas diretas ao método público)
+    const shiftWindow = await this.getShiftTimeWindow(shiftTemplateId);
+    return this.generateDailyReportInternal(tenantId, date, shiftTemplateId, shiftWindow);
+  }
+
+  /**
+   * Método interno que recebe shiftWindow e cache compartilhado já resolvidos
+   * Evita queries repetidas quando chamado em loop (multi-day reports)
+   */
+  private async generateDailyReportInternal(
+    tenantId: string,
+    date: string,
+    shiftTemplateId: string | undefined,
+    shiftWindow: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
+    sharedCache?: {
+      templateMap: Map<string, { id: string; name: string; startTime: string; endTime: string }>;
+      configMap: Map<string, { customName: string | null; customStartTime: string | null; customEndTime: string | null }>;
+    },
   ): Promise<DailyReportDto> {
     const dateOnly = parseDateOnly(date);
     // Use noon UTC to avoid any date shift when Prisma casts to DATE
@@ -38,17 +116,18 @@ export class ReportsService {
 
     const [dailyRecords, medicationAdministrations, activeResidents, shifts, medicationScheduled] =
       await Promise.all([
-        this.getDailyRecords(dateOnly, dateUtc),
-        this.getMedicationAdministrations(dateOnly, dateUtc),
+        this.getDailyRecords(dateOnly, dateUtc, shiftWindow),
+        this.getMedicationAdministrations(dateOnly, dateUtc, shiftWindow),
         this.getActiveResidentsOnDate(dateUtc),
-        this.getShiftsOnDate(dateUtc, shiftTemplateId),
-        this.getMedicationScheduleCount(dayStart, dayEnd),
+        this.getShiftsOnDate(dateUtc, shiftTemplateId, sharedCache),
+        this.getMedicationScheduleCount(dayStart, dayEnd, shiftWindow),
       ]);
 
     const compliance = await this.calculateScheduleCompliance(
       dateUtc,
       dailyRecords,
       activeResidents,
+      shiftWindow,
     );
 
     // Extrair sinais vitais dos daily records (tipo MONITORAMENTO)
@@ -110,10 +189,29 @@ export class ReportsService {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Gerar relatório para cada dia
-    const reports = await Promise.all(
-      dates.map((date) => this.generateDailyReport(tenantId, date, shiftTemplateId)),
-    );
+    // Buscar dados compartilhados UMA VEZ (evita N queries repetidas)
+    const [shiftWindow, allTemplates, allTenantConfigs] = await Promise.all([
+      this.getShiftTimeWindow(shiftTemplateId),
+      this.tenantContext.publicClient.shiftTemplate.findMany({
+        where: { isActive: true },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findMany({
+        where: { deletedAt: null },
+      }),
+    ]);
+
+    // Criar mapas para lookup rápido
+    const templateMap = new Map(allTemplates.map((t) => [t.id, t]));
+    const configMap = new Map(allTenantConfigs.map((c) => [c.shiftTemplateId, c]));
+    const sharedCache = { templateMap, configMap };
+
+    // Gerar relatório para cada dia SEQUENCIALMENTE
+    // (evita contenção de conexões do pool ao disparar muitas queries paralelas)
+    const reports: DailyReportDto[] = [];
+    for (const date of dates) {
+      const report = await this.generateDailyReportInternal(tenantId, date, shiftTemplateId, shiftWindow, sharedCache);
+      reports.push(report);
+    }
 
     return {
       startDate: start,
@@ -125,11 +223,30 @@ export class ReportsService {
   private async getDailyRecords(
     date: string,
     dateUtc: Date,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
   ): Promise<DailyRecordReportDto[]> {
+    const nextDateUtc = new Date(dateUtc);
+    nextDateUtc.setDate(nextDateUtc.getDate() + 1);
+
     const records = await this.tenantContext.client.dailyRecord.findMany({
       where: {
-        date: dateUtc,
         deletedAt: null,
+        ...(shiftWindow
+          ? shiftWindow.crossesMidnight
+            ? {
+                OR: [
+                  {
+                    date: dateUtc,
+                  },
+                  {
+                    date: nextDateUtc,
+                  },
+                ],
+              }
+            : {
+                date: dateUtc,
+              }
+          : { date: dateUtc }),
       },
       include: {
         resident: {
@@ -148,7 +265,11 @@ export class ReportsService {
       orderBy: [{ time: 'asc' }],
     });
 
-    return records.map((record) => ({
+    const filtered = shiftWindow
+      ? records.filter((record) => this.isTimeInWindow(record.time, shiftWindow))
+      : records;
+
+    return filtered.map((record) => ({
       residentId: record.residentId,
       residentName: record.resident.fullName,
       residentCpf: record.resident.cpf || '',
@@ -177,11 +298,30 @@ export class ReportsService {
   private async getMedicationAdministrations(
     date: string,
     dateUtc: Date,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
   ): Promise<MedicationAdministrationReportDto[]> {
+    const nextDateUtc = new Date(dateUtc);
+    nextDateUtc.setDate(nextDateUtc.getDate() + 1);
+
     const administrations = await this.tenantContext.client.medicationAdministration.findMany(
       {
         where: {
-          date: dateUtc,
+          ...(shiftWindow
+            ? shiftWindow.crossesMidnight
+              ? {
+                  OR: [
+                    {
+                      date: dateUtc,
+                    },
+                    {
+                      date: nextDateUtc,
+                    },
+                  ],
+                }
+              : {
+                  date: dateUtc,
+                }
+            : { date: dateUtc }),
         },
         include: {
           resident: {
@@ -199,6 +339,7 @@ export class ReportsService {
           medication: {
             select: {
               name: true,
+              concentration: true,
               dose: true,
               route: true,
             },
@@ -208,12 +349,19 @@ export class ReportsService {
       },
     );
 
-    return administrations.map((admin) => ({
+    const filtered = shiftWindow
+      ? administrations.filter((admin) =>
+          this.isTimeInWindow(admin.scheduledTime, shiftWindow),
+        )
+      : administrations;
+
+    return filtered.map((admin) => ({
       residentName: admin.resident.fullName,
       residentCpf: admin.resident.cpf || '',
       residentCns: admin.resident.cns || undefined,
       bedCode: admin.resident.bed?.code || 'N/A',
       medicationName: admin.medication.name,
+      concentration: admin.medication.concentration || '',
       dose: admin.medication.dose || 'N/A',
       route: admin.medication.route || 'N/A',
       scheduledTime: admin.scheduledTime,
@@ -324,7 +472,17 @@ export class ReportsService {
     };
   }
 
-  private async getMedicationScheduleCount(dayStart: Date, dayEnd: Date): Promise<number> {
+  private async getMedicationScheduleCount(
+    dayStart: Date,
+    dayEnd: Date,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
+  ): Promise<number> {
+    // CORREÇÃO: Para campos DATE (data civil), usar noon UTC para evitar timezone shift
+    // Medication.startDate é @db.Date, então Prisma o converte para UTC midnight
+    // Precisamos comparar usando a mesma convenção
+    const dateOnly = formatDateOnly(dayStart);
+    const dateForQuery = new Date(`${dateOnly}T12:00:00.000Z`);
+
     const prescriptions = await this.tenantContext.client.prescription.findMany({
       where: {
         isActive: true,
@@ -332,8 +490,8 @@ export class ReportsService {
         medications: {
           some: {
             deletedAt: null,
-            startDate: { lte: dayEnd },
-            OR: [{ endDate: null }, { endDate: { gte: dayStart } }],
+            startDate: { lte: dateForQuery },
+            OR: [{ endDate: null }, { endDate: { gte: dateForQuery } }],
           },
         },
       },
@@ -341,8 +499,8 @@ export class ReportsService {
         medications: {
           where: {
             deletedAt: null,
-            startDate: { lte: dayEnd },
-            OR: [{ endDate: null }, { endDate: { gte: dayStart } }],
+            startDate: { lte: dateForQuery },
+            OR: [{ endDate: null }, { endDate: { gte: dateForQuery } }],
           },
         },
       },
@@ -353,7 +511,26 @@ export class ReportsService {
       for (const medication of prescription.medications) {
         const scheduledTimes = medication.scheduledTimes as string[];
         if (scheduledTimes && Array.isArray(scheduledTimes)) {
-          scheduled += scheduledTimes.length;
+          if (shiftWindow) {
+            for (const time of scheduledTimes) {
+              const normalized = this.normalizeTime(String(time));
+              if (shiftWindow.crossesMidnight) {
+                if (
+                  normalized >= shiftWindow.startTime ||
+                  normalized <= shiftWindow.endTime
+                ) {
+                  scheduled += 1;
+                }
+              } else if (
+                normalized >= shiftWindow.startTime &&
+                normalized <= shiftWindow.endTime
+              ) {
+                scheduled += 1;
+              }
+            }
+          } else {
+            scheduled += scheduledTimes.length;
+          }
         }
       }
     }
@@ -365,6 +542,7 @@ export class ReportsService {
     dateUtc: Date,
     dailyRecords: DailyRecordReportDto[],
     activeResidents: Array<{ id: string }>,
+    shiftWindow?: { startTime: string; endTime: string; crossesMidnight: boolean } | null,
   ): Promise<DailyComplianceMetricDto[]> {
     if (activeResidents.length === 0) {
       return [];
@@ -422,6 +600,22 @@ export class ReportsService {
         continue;
       }
       for (const time of times) {
+        if (shiftWindow) {
+          const normalized = this.normalizeTime(String(time));
+          if (shiftWindow.crossesMidnight) {
+            if (
+              normalized < shiftWindow.startTime &&
+              normalized > shiftWindow.endTime
+            ) {
+              continue;
+            }
+          } else if (
+            normalized < shiftWindow.startTime ||
+            normalized > shiftWindow.endTime
+          ) {
+            continue;
+          }
+        }
         dueItems.push({
           configId: config.id,
           residentId: config.residentId,
@@ -554,7 +748,14 @@ export class ReportsService {
     return metrics;
   }
 
-  private async getShiftsOnDate(dateUtc: Date, shiftTemplateId?: string): Promise<ShiftReportDto[]> {
+  private async getShiftsOnDate(
+    dateUtc: Date,
+    shiftTemplateId?: string,
+    sharedCache?: {
+      templateMap: Map<string, { id: string; name: string; startTime: string; endTime: string }>;
+      configMap: Map<string, { customName: string | null; customStartTime: string | null; customEndTime: string | null }>;
+    },
+  ): Promise<ShiftReportDto[]> {
     const shifts = await this.tenantContext.client.shift.findMany({
       where: {
         date: dateUtc,
@@ -576,22 +777,33 @@ export class ReportsService {
       return [];
     }
 
-    const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
+    // Usar cache compartilhado se disponível, senão buscar do banco
+    let templateMap: Map<string, { id: string; name: string; startTime: string; endTime: string }>;
+    let configMap: Map<string, { customName: string | null; customStartTime: string | null; customEndTime: string | null }>;
 
-    const [shiftTemplates, tenantConfigs] = await Promise.all([
-      this.tenantContext.publicClient.shiftTemplate.findMany({
-        where: { id: { in: shiftTemplateIds } },
-      }),
-      this.tenantContext.client.tenantShiftConfig.findMany({
-        where: {
-          shiftTemplateId: { in: shiftTemplateIds },
-          deletedAt: null,
-        },
-      }),
-    ]);
+    if (sharedCache) {
+      // Usar cache pré-carregado (evita queries repetidas em multi-day)
+      templateMap = sharedCache.templateMap;
+      configMap = sharedCache.configMap;
+    } else {
+      // Fallback: buscar do banco (para chamadas avulsas)
+      const shiftTemplateIds = [...new Set(shifts.map((s) => s.shiftTemplateId))];
 
-    const templateMap = new Map(shiftTemplates.map((t) => [t.id, t]));
-    const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+      const [shiftTemplates, tenantConfigs] = await Promise.all([
+        this.tenantContext.publicClient.shiftTemplate.findMany({
+          where: { id: { in: shiftTemplateIds } },
+        }),
+        this.tenantContext.client.tenantShiftConfig.findMany({
+          where: {
+            shiftTemplateId: { in: shiftTemplateIds },
+            deletedAt: null,
+          },
+        }),
+      ]);
+
+      templateMap = new Map(shiftTemplates.map((t) => [t.id, t]));
+      configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
+    }
 
     return shifts.map((shift) => {
       const template = templateMap.get(shift.shiftTemplateId);
@@ -611,5 +823,139 @@ export class ReportsService {
         status: shift.status,
       };
     });
+  }
+
+  // ============================================================================
+  // RELATÓRIO DE LISTA DE RESIDENTES
+  // ============================================================================
+
+  async generateResidentsListReport(
+    status: string = 'Ativo',
+  ): Promise<{
+    summary: {
+      generatedAt: string;
+      totalResidents: number;
+      byDependencyLevel: Array<{ level: string; count: number; percentage: number }>;
+      averageAge: number;
+      minAge: number;
+      maxAge: number;
+      averageStayDays: number;
+    };
+    residents: Array<{
+      id: string;
+      fullName: string;
+      age: number;
+      birthDate: string;
+      admissionDate: string;
+      stayDays: number;
+      dependencyLevel: string | null;
+      bedCode: string | null;
+      conditions: string[];
+    }>;
+  }> {
+    const today = new Date();
+
+    // Buscar residentes com condições e leito
+    const residents = await this.tenantContext.client.resident.findMany({
+      where: {
+        status,
+        deletedAt: null,
+      },
+      include: {
+        conditions: {
+          where: { deletedAt: null },
+          select: { condition: true },
+        },
+        bed: {
+          select: { code: true },
+        },
+      },
+      orderBy: { fullName: 'asc' },
+    });
+
+    // Processar cada residente
+    const processedResidents = residents.map((resident) => {
+      // Calcular idade
+      const birthDate = resident.birthDate;
+      const age = this.calculateAge(birthDate, today);
+
+      // Calcular tempo de permanência
+      const admissionDate = resident.admissionDate;
+      const stayDays = this.calculateDaysDifference(admissionDate, today);
+
+      return {
+        id: resident.id,
+        fullName: resident.fullName,
+        age,
+        birthDate: formatDateOnly(birthDate),
+        admissionDate: formatDateOnly(admissionDate),
+        stayDays,
+        dependencyLevel: resident.dependencyLevel || null,
+        bedCode: resident.bed?.code || null,
+        conditions: resident.conditions.map((c) => c.condition),
+      };
+    });
+
+    // Calcular estatísticas
+    const totalResidents = processedResidents.length;
+    const ages = processedResidents.map((r) => r.age);
+    const stayDays = processedResidents.map((r) => r.stayDays);
+
+    const averageAge = totalResidents > 0
+      ? Math.round((ages.reduce((a, b) => a + b, 0) / totalResidents) * 10) / 10
+      : 0;
+    const minAge = totalResidents > 0 ? Math.min(...ages) : 0;
+    const maxAge = totalResidents > 0 ? Math.max(...ages) : 0;
+    const averageStayDays = totalResidents > 0
+      ? Math.round(stayDays.reduce((a, b) => a + b, 0) / totalResidents)
+      : 0;
+
+    // Contar por grau de dependência
+    const dependencyCount = new Map<string, number>();
+    for (const resident of processedResidents) {
+      const level = resident.dependencyLevel || 'Não informado';
+      dependencyCount.set(level, (dependencyCount.get(level) || 0) + 1);
+    }
+
+    const byDependencyLevel = Array.from(dependencyCount.entries())
+      .map(([level, count]) => ({
+        level,
+        count,
+        percentage: totalResidents > 0 ? Math.round((count / totalResidents) * 100) : 0,
+      }))
+      .sort((a, b) => {
+        // Ordenar: Grau I, Grau II, Grau III, Não informado
+        const order = ['Grau I', 'Grau II', 'Grau III', 'Não informado'];
+        const aIndex = order.findIndex((o) => a.level.startsWith(o));
+        const bIndex = order.findIndex((o) => b.level.startsWith(o));
+        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+      });
+
+    return {
+      summary: {
+        generatedAt: new Date().toISOString(),
+        totalResidents,
+        byDependencyLevel,
+        averageAge,
+        minAge,
+        maxAge,
+        averageStayDays,
+      },
+      residents: processedResidents,
+    };
+  }
+
+  private calculateAge(birthDate: Date, referenceDate: Date): number {
+    let age = referenceDate.getFullYear() - birthDate.getFullYear();
+    const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  private calculateDaysDifference(startDate: Date, endDate: Date): number {
+    const diffTime = endDate.getTime() - startDate.getTime();
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   }
 }

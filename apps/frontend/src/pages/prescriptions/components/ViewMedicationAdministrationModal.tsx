@@ -5,6 +5,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -61,10 +62,10 @@ export function ViewMedicationAdministrationModal({
           {/* 1. Info do Medicamento (bg-primary/5) */}
           <div className="bg-primary/5 border border-primary/30 p-4 rounded-lg">
             <h3 className="font-semibold text-primary/95 mb-1">
-              {medication.name}
+              {medication.name} {medication.concentration}
             </h3>
             <p className="text-sm text-primary/80">
-              {medication.presentation} - {medication.concentration}
+              {formatMedicationPresentation(medication.presentation)}
             </p>
             <p className="text-sm text-primary/80 mt-1">
               <span className="font-medium">Dose:</span> {medication.dose} -{' '}

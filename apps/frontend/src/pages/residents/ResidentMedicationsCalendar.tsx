@@ -5,6 +5,7 @@ import { Loader2, Eye, Pill } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
+import { formatMedicationPresentation } from '@/utils/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/services/api'
@@ -152,7 +153,7 @@ export default function ResidentMedicationsCalendar() {
                         {admin.medication.presentation && (
                           <>
                             {' • '}
-                            <span>{admin.medication.presentation}</span>
+                            <span>{formatMedicationPresentation(admin.medication.presentation)}</span>
                           </>
                         )}
                       </div>
