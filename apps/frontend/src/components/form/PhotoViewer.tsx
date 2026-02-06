@@ -80,17 +80,35 @@ export function PhotoViewer({
   }
 
   /**
+   * Deriva URL do thumbnail a partir da URL original
+   * Exemplo: "tenants/x/photos/abc.webp" → "tenants/x/photos/abc_small.webp"
+   */
+  const deriveThumbnailUrl = (url: string | undefined, suffix: '_small' | '_medium'): string | undefined => {
+    if (!url) return undefined
+    // Encontrar a última ocorrência de "." para inserir o sufixo antes da extensão
+    const lastDotIndex = url.lastIndexOf('.')
+    if (lastDotIndex === -1) return url // Sem extensão, retorna original
+    return url.slice(0, lastDotIndex) + suffix + url.slice(lastDotIndex)
+  }
+
+  /**
    * Seleção inteligente de thumbnail baseada no tamanho solicitado
    * Reduz uso de banda em até 92%
+   *
+   * Se photoUrlSmall/photoUrlMedium não forem passados, deriva automaticamente de photoUrl
    */
   const selectBestThumbnail = (): string | undefined => {
+    // Usar URLs explícitas se passadas, senão derivar de photoUrl
+    const smallUrl = photoUrlSmall || deriveThumbnailUrl(photoUrl, '_small')
+    const mediumUrl = photoUrlMedium || deriveThumbnailUrl(photoUrl, '_medium')
+
     // Mapeamento: tamanho → melhor thumbnail
     switch (size) {
       case 'xs': // 32px - usa small (64px) se disponível
       case 'sm': // 64px - usa small (64px)
-        return photoUrlSmall || photoUrlMedium || photoUrl
+        return smallUrl || mediumUrl || photoUrl
       case 'md': // 128px - usa medium (150px)
-        return photoUrlMedium || photoUrl
+        return mediumUrl || photoUrl
       case 'lg': // 192px - usa original (300px)
       case 'xl': // 256px - usa original (300px)
       default:

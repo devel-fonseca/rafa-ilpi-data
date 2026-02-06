@@ -43,6 +43,7 @@ import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecords
 import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 import { BelongingsPage } from '@/pages/residents/belongings'
+import ResidentPanelPage from '@/pages/residents/ResidentPanelPage'
 
 // Daily Records Pages
 import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
@@ -198,6 +199,10 @@ export const router = createBrowserRouter([
       {
         path: 'residentes-hub',
         element: <ResidentsHub />,
+      },
+      {
+        path: 'painel-residente',
+        element: <ResidentPanelPage />,
       },
       {
         path: 'residentes/new',

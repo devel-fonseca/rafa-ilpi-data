@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/stores/auth.store'
-import { Calendar, Activity, UserPlus, Pill, CheckCircle2 } from 'lucide-react'
+import { Calendar, Activity, UserPlus, Pill, CheckCircle2, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -142,6 +142,13 @@ export function TechnicalManagerDashboard() {
 
   // Ações rápidas (ordenadas por frequência de uso para responsável técnico)
   const quickActions = [
+    {
+      title: 'Painel do Residente',
+      description: 'Informações clínicas centralizadas',
+      icon: Users,
+      onClick: () => navigate('/dashboard/painel-residente'),
+      disabled: false,
+    },
     {
       title: 'Agenda de Hoje',
       description: 'Ver medicamentos e agendamentos',

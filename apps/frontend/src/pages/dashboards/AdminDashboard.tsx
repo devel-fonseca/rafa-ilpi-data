@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { OperationalComplianceSection } from '@/components/admin/OperationalComplianceSection'
@@ -11,12 +12,46 @@ import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
 import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
 import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
-import { Page, PageHeader, CollapsibleSection } from '@/design-system/components'
+import { Page, PageHeader, CollapsibleSection, Section, QuickActionsGrid } from '@/design-system/components'
+import { Users, FileText, Activity, Calendar } from 'lucide-react'
 
 export function AdminDashboard() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
 
   const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
+
+  // Ações rápidas
+  const quickActions = [
+    {
+      title: 'Painel do Residente',
+      description: 'Visualização centralizada de informações',
+      icon: Users,
+      onClick: () => navigate('/dashboard/painel-residente'),
+      disabled: false,
+    },
+    {
+      title: 'Relatórios',
+      description: 'Central de relatórios e documentos',
+      icon: FileText,
+      onClick: () => navigate('/dashboard/relatorios'),
+      disabled: false,
+    },
+    {
+      title: 'Registros Diários',
+      description: 'Registrar atividades do dia',
+      icon: Activity,
+      onClick: () => navigate('/dashboard/registros-diarios'),
+      disabled: false,
+    },
+    {
+      title: 'Agenda',
+      description: 'Ver medicamentos e agendamentos',
+      icon: Calendar,
+      onClick: () => navigate('/dashboard/agenda'),
+      disabled: false,
+    },
+  ]
   const { data: residentsGrowth, isLoading: isLoadingResidents } = useResidentsGrowth()
   const { data: medicationsHistory, isLoading: isLoadingMedications } = useMedicationsHistory()
   const { data: recordsHistory, isLoading: isLoadingRecords } = useMandatoryRecordsHistory()
@@ -31,6 +66,11 @@ export function AdminDashboard() {
 
       {/* Busca Universal */}
       <UniversalSearch />
+
+      {/* Ações Rápidas */}
+      <Section title="Ações Rápidas">
+        <QuickActionsGrid actions={quickActions} columns={4} />
+      </Section>
 
       {/* Seção de Compliance Operacional */}
       <OperationalComplianceSection
