@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { ComportamentoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -27,12 +28,6 @@ const editComportamentoSchema = z.object({
 })
 
 type EditComportamentoFormData = z.infer<typeof editComportamentoSchema>
-
-interface ComportamentoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditComportamentoModalProps {
   open: boolean

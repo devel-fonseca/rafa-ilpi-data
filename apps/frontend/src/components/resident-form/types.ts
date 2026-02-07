@@ -118,22 +118,6 @@ export const residentSchema = z.object({
   responsavelLegalBairro: z.string().optional(),
   responsavelLegalDocumentosUrls: z.array(z.any()).optional(),
 
-  // Saúde
-  necessitaAuxilioMobilidade: z
-    .boolean()
-    .nullable()
-    .optional()
-    .transform((val) => val ?? false),
-  tipoSanguineo: z.string().optional(),
-  altura: z.string().optional(),
-  peso: z.string().optional(),
-  grauDependencia: z.string().optional(),
-  medicamentos: z.array(z.object({ nome: z.string().optional() })).optional(),
-  observacoesSaude: z.string().optional(),
-  laudoMedico: z.any().optional(),
-  laudoMedicoUrl: z.string().optional(),
-  dataLaudoMedico: z.string().optional(),
-
   // Convênios
   convenios: z
     .array(

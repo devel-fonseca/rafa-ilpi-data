@@ -3,8 +3,25 @@
  * Usado em DailyRecordsPage e ResidentMedicalRecord para manter consistência visual
  */
 
+import type {
+  RecordType,
+  AlimentacaoData,
+  HigieneData,
+  EliminacaoData,
+  HidratacaoData,
+  SonoData,
+  HumorData,
+  AtividadesData,
+  ComportamentoData,
+  IntercorrenciaData,
+  MonitoramentoData,
+  PesoData,
+  VisitaData,
+  OutrosData,
+} from '@/types/daily-records'
+
 export const RECORD_TYPE_LABELS: Record<
-  string,
+  RecordType,
   { label: string; color: string; bgColor: string; chartColor: string }
 > = {
   HIGIENE: {
@@ -85,126 +102,204 @@ export const RECORD_TYPE_LABELS: Record<
     bgColor: 'bg-slate-100 dark:bg-slate-800/30 border-slate-300 dark:border-slate-600/30',
     chartColor: '#64748b',
   },
+  OBSERVACAO: {
+    label: 'Observação',
+    color: 'text-slate-700 dark:text-slate-300',
+    bgColor: 'bg-slate-100 dark:bg-slate-800/30 border-slate-300 dark:border-slate-600/30',
+    chartColor: '#64748b',
+  },
 }
 
-export function renderRecordSummary(record: { type: string; data: Record<string, unknown> }): string {
+/** Tipo de label para registros diários */
+export type RecordTypeLabelConfig = {
+  label: string
+  color: string
+  bgColor: string
+  chartColor: string
+}
+
+/** Label padrão para tipos não reconhecidos */
+const DEFAULT_LABEL: RecordTypeLabelConfig = {
+  label: 'Outro',
+  color: 'text-slate-700 dark:text-slate-300',
+  bgColor: 'bg-slate-100 dark:bg-slate-800/30 border-slate-300 dark:border-slate-600/30',
+  chartColor: '#64748b',
+}
+
+/**
+ * Verifica se uma string é um RecordType válido
+ */
+export function isRecordType(type: string): type is RecordType {
+  return type in RECORD_TYPE_LABELS
+}
+
+/**
+ * Obtém as configurações de label para um tipo de registro.
+ * Aceita string para compatibilidade com dados dinâmicos.
+ *
+ * @param type - Tipo do registro (pode ser string ou RecordType)
+ * @returns Configuração de label ou default se tipo não reconhecido
+ */
+export function getRecordTypeLabel(type: string): RecordTypeLabelConfig {
+  if (isRecordType(type)) {
+    return RECORD_TYPE_LABELS[type]
+  }
+  return DEFAULT_LABEL
+}
+
+/**
+ * Tipo de entrada para renderRecordSummary.
+ * Usa discriminated union para permitir tipagem forte baseada no tipo do registro.
+ */
+type RecordSummaryInput =
+  | { type: 'HIGIENE'; data: HigieneData }
+  | { type: 'ALIMENTACAO'; data: AlimentacaoData }
+  | { type: 'HIDRATACAO'; data: HidratacaoData }
+  | { type: 'MONITORAMENTO'; data: MonitoramentoData }
+  | { type: 'ELIMINACAO'; data: EliminacaoData }
+  | { type: 'COMPORTAMENTO'; data: ComportamentoData }
+  | { type: 'HUMOR'; data: HumorData }
+  | { type: 'SONO'; data: SonoData }
+  | { type: 'PESO'; data: PesoData }
+  | { type: 'INTERCORRENCIA'; data: IntercorrenciaData }
+  | { type: 'ATIVIDADES'; data: AtividadesData }
+  | { type: 'VISITA'; data: VisitaData }
+  | { type: 'OUTROS'; data: OutrosData }
+  | { type: 'OBSERVACAO'; data: OutrosData }
+
+export function renderRecordSummary(record: RecordSummaryInput): string {
   switch (record.type) {
     case 'HIGIENE': {
-      const parts = []
+      const data = record.data
+      const parts: string[] = []
       // Só exibir banho se não for "Sem banho"
-      if (record.data.tipoBanho && record.data.tipoBanho !== 'Sem banho') {
-        parts.push(`Banho: ${record.data.tipoBanho}`)
+      if (data.tipoBanho && data.tipoBanho !== 'Sem banho') {
+        parts.push(`Banho: ${data.tipoBanho}`)
       }
-      if (record.data.condicaoPele) parts.push(`Pele: ${record.data.condicaoPele}`)
-      if (record.data.higieneBucal) parts.push('Higiene bucal ✓')
-      if (record.data.trocaFralda) parts.push('Troca de fralda/roupa ✓')
+      if (data.condicaoPele) parts.push(`Pele: ${data.condicaoPele}`)
+      if (data.higieneBucal) parts.push('Higiene bucal ✓')
+      if (data.trocaFralda) parts.push('Troca de fralda/roupa ✓')
       return parts.length > 0 ? parts.join(' | ') : 'Higiene realizada'
     }
     case 'ALIMENTACAO': {
-      const parts = [`${record.data.refeicao}`]
-      if (record.data.ingeriu) parts.push(record.data.ingeriu)
-      if (record.data.consistencia && record.data.consistencia !== 'Geral') {
-        parts.push(`(${record.data.consistencia})`)
+      const data = record.data
+      const parts: string[] = [`${data.refeicao ?? ''}`]
+      if (data.ingeriu) parts.push(data.ingeriu)
+      if (data.consistencia && data.consistencia !== 'Geral') {
+        parts.push(`(${data.consistencia})`)
       }
       // Líquidos durante a refeição
-      if (record.data.volumeMl && parseInt(record.data.volumeMl) > 0) {
-        parts.push(`${record.data.volumeMl} ml líquidos`)
+      if (data.volumeMl && parseInt(String(data.volumeMl)) > 0) {
+        parts.push(`${data.volumeMl} ml líquidos`)
       }
-      if (record.data.intercorrencia && record.data.intercorrencia !== 'Nenhuma') {
-        parts.push(`⚠ ${record.data.intercorrencia}`)
+      if (data.intercorrencia && data.intercorrencia !== 'Nenhuma') {
+        parts.push(`⚠ ${data.intercorrencia}`)
       }
       return parts.join(' - ')
     }
-    case 'HIDRATACAO':
-      return `${record.data.volumeMl} ml${record.data.tipo ? ` de ${record.data.tipo}` : ''}`
+    case 'HIDRATACAO': {
+      const data = record.data
+      return `${data.volumeMl ?? 0} ml${data.tipo ? ` de ${data.tipo}` : ''}`
+    }
     case 'MONITORAMENTO': {
-      const vitals = []
-      if (record.data.pressaoArterial) vitals.push(`PA: ${record.data.pressaoArterial}`)
-      if (record.data.temperatura) vitals.push(`Temp: ${record.data.temperatura}°C`)
-      if (record.data.frequenciaCardiaca) vitals.push(`FC: ${record.data.frequenciaCardiaca} bpm`)
-      if (record.data.saturacaoO2) vitals.push(`SpO2: ${record.data.saturacaoO2}%`)
-      if (record.data.glicemia) vitals.push(`Glicemia: ${record.data.glicemia} mg/dL`)
+      const data = record.data
+      const vitals: string[] = []
+      if (data.pressaoArterial) vitals.push(`PA: ${data.pressaoArterial}`)
+      if (data.temperatura) vitals.push(`Temp: ${data.temperatura}°C`)
+      if (data.frequenciaCardiaca) vitals.push(`FC: ${data.frequenciaCardiaca} bpm`)
+      if (data.saturacaoO2) vitals.push(`SpO2: ${data.saturacaoO2}%`)
+      if (data.glicemia) vitals.push(`Glicemia: ${data.glicemia} mg/dL`)
       return vitals.join(' | ') || 'Monitoramento realizado'
     }
     case 'ELIMINACAO': {
-      const parts = [record.data.tipo]
+      const data = record.data
+      const parts: (string | undefined)[] = [data.tipo]
 
-      if (record.data.tipo === 'Fezes') {
-        if (record.data.consistencia) parts.push(record.data.consistencia)
-        if (record.data.cor) parts.push(record.data.cor)
-        if (record.data.volume) parts.push(record.data.volume)
-      } else if (record.data.tipo === 'Urina') {
-        if (record.data.cor) parts.push(record.data.cor)
-        if (record.data.odor && record.data.odor !== 'Normal') parts.push(`Odor: ${record.data.odor}`)
-        if (record.data.volume) parts.push(record.data.volume)
+      if (data.tipo === 'Fezes') {
+        if (data.consistencia) parts.push(data.consistencia)
+        if (data.cor) parts.push(data.cor)
+        if (data.volume) parts.push(data.volume)
+      } else if (data.tipo === 'Urina') {
+        if (data.cor) parts.push(data.cor)
+        if (data.odor && data.odor !== 'Normal') parts.push(`Odor: ${data.odor}`)
+        if (data.volume) parts.push(data.volume)
       }
 
-      if (record.data.trocaFralda) parts.push('Troca de fralda ✓')
+      if (data.trocaFralda) parts.push('Troca de fralda ✓')
 
-      return parts.join(' - ')
+      return parts.filter(Boolean).join(' - ')
     }
     case 'COMPORTAMENTO': {
-      const parts = [record.data.estadoEmocional]
-      if (record.data.estadoEmocional === 'Outro' && record.data.outroEstado) {
-        parts.push(`(${record.data.outroEstado})`)
+      const data = record.data
+      const parts: (string | undefined)[] = [data.descricao]
+      if (data.observacoes) {
+        parts.push(data.observacoes.substring(0, 60))
       }
-      if (record.data.observacoes) {
-        parts.push(record.data.observacoes.substring(0, 60))
-      }
-      return parts.join(' - ')
+      return parts.filter(Boolean).join(' - ') || 'Comportamento registrado'
     }
     case 'HUMOR': {
-      const parts = [record.data.humor]
-      if (record.data.humor === 'Outro' && record.data.outroHumor) {
-        parts.push(`(${record.data.outroHumor})`)
+      const data = record.data
+      const parts: (string | undefined)[] = [data.humor]
+      if (data.humor === 'Outro' && data.outroHumor) {
+        parts.push(`(${data.outroHumor})`)
       }
-      if (record.data.observacoes) {
-        parts.push(record.data.observacoes.substring(0, 60))
+      if (data.observacoes) {
+        parts.push(data.observacoes.substring(0, 60))
       }
-      return parts.join(' - ')
+      return parts.filter(Boolean).join(' - ') || 'Humor registrado'
     }
     case 'SONO': {
-      const parts = [record.data.padraoSono]
-      if (record.data.padraoSono === 'Outro' && record.data.outroPadrao) {
-        parts.push(`(${record.data.outroPadrao})`)
+      const data = record.data
+      const parts: (string | undefined)[] = [data.padraoSono]
+      if (data.padraoSono === 'Outro' && data.outroPadrao) {
+        parts.push(`(${data.outroPadrao})`)
       }
-      if (record.data.observacoes) {
-        parts.push(record.data.observacoes.substring(0, 60))
+      if (data.observacoes) {
+        parts.push(data.observacoes.substring(0, 60))
       }
-      return parts.join(' - ')
+      return parts.filter(Boolean).join(' - ') || 'Sono registrado'
     }
     case 'PESO': {
-      const parts = [`${record.data.peso} kg`]
-      if (record.data.altura) {
-        parts.push(`${record.data.altura} cm`)
+      const data = record.data
+      const parts: string[] = [`${data.peso ?? 0} kg`]
+      if (data.altura) {
+        parts.push(`${data.altura} cm`)
       }
-      if (record.data.imc) {
-        parts.push(`IMC: ${record.data.imc.toFixed(1)} kg/m²`)
+      if (data.imc) {
+        parts.push(`IMC: ${data.imc.toFixed(1)} kg/m²`)
       }
       return parts.join(' | ')
     }
     case 'INTERCORRENCIA': {
-      const descricao = record.data.descricao.substring(0, 60)
-      const acao = record.data.acaoTomada ? ` → ${record.data.acaoTomada.substring(0, 60)}` : ''
-      return `${descricao}${acao}`.substring(0, 120) + '...'
+      const data = record.data
+      const descricao = (data.descricao ?? '').substring(0, 60)
+      const acao = data.acaoTomada ? ` → ${data.acaoTomada.substring(0, 60)}` : ''
+      const result = `${descricao}${acao}`.substring(0, 120)
+      return result.length > 0 ? result + '...' : 'Intercorrência registrada'
     }
     case 'ATIVIDADES': {
-      const parts = [record.data.atividade]
-      if (record.data.participacao) {
-        const participacao = record.data.participacao.substring(0, 50)
+      const data = record.data
+      const parts: (string | undefined)[] = [data.atividade]
+      if (data.participacao) {
+        const participacao = data.participacao.substring(0, 50)
         parts.push(participacao)
       }
-      return parts.join(' - ')
+      return parts.filter(Boolean).join(' - ') || 'Atividade registrada'
     }
     case 'VISITA': {
-      const parts = [`Visitante: ${record.data.visitante}`]
-      if (record.data.observacoes && record.data.observacoes !== 'Sem observações') {
-        parts.push(record.data.observacoes.substring(0, 50))
+      const data = record.data
+      const parts: string[] = [`Visitante: ${data.visitante ?? 'Não informado'}`]
+      if (data.observacoes && data.observacoes !== 'Sem observações') {
+        parts.push(data.observacoes.substring(0, 50))
       }
       return parts.join(' - ')
     }
     case 'OUTROS':
-      return record.data.descricao.substring(0, 100) + (record.data.descricao.length > 100 ? '...' : '')
+    case 'OBSERVACAO': {
+      const data = record.data
+      const descricao = data.descricao ?? ''
+      return descricao.substring(0, 100) + (descricao.length > 100 ? '...' : '') || 'Registro'
+    }
     default:
       return 'Registro'
   }

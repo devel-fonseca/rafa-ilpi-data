@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, Edit, Trash2, Accessibility } from 'lucide-react'
+import { Loader2, Plus, Edit, Trash2 } from 'lucide-react'
 import { useClinicalProfile } from '@/hooks/useClinicalProfiles'
 import { useResident } from '@/hooks/useResidents'
 import {
@@ -22,6 +22,7 @@ import { DietaryRestrictionModal } from './DietaryRestrictionModal'
 import { DeleteAllergyModal } from '@/components/modals/DeleteAllergyModal'
 import { DeleteConditionModal } from '@/components/modals/DeleteConditionModal'
 import { DeleteDietaryRestrictionModal } from '@/components/modals/DeleteDietaryRestrictionModal'
+import { HealthDataSection } from './HealthDataSection'
 import type { Allergy } from '@/api/allergies.api'
 import type { Condition } from '@/api/conditions.api'
 import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
@@ -72,7 +73,7 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
   const { hasPermission } = usePermissions()
 
   // Buscar dados clínicos e do residente
-  const { data: resident, isLoading: residentLoading } = useResident(residentId)
+  const { isLoading: residentLoading } = useResident(residentId)
   const { data: clinicalProfile, isLoading: profileLoading } = useClinicalProfile(residentId)
   const { data: allergies = [], isLoading: allergiesLoading } = useAllergiesByResident(residentId)
   const { data: conditions = [], isLoading: conditionsLoading } = useConditionsByResident(residentId)
@@ -222,21 +223,6 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
                   <div className="text-sm font-semibold text-foreground">
                     Aspectos Funcionais
                   </div>
-                  {resident?.mobilityAid !== null && resident?.mobilityAid !== undefined && (
-                    <Badge
-                      variant={resident.mobilityAid ? 'default' : 'secondary'}
-                      className={resident.mobilityAid ? 'bg-primary/60 text-white' : 'text-xs'}
-                    >
-                      {resident.mobilityAid ? (
-                        <>
-                          <Accessibility className="h-3 w-3 mr-1" />
-                          Auxílio Mobilidade
-                        </>
-                      ) : (
-                        '✓ Independente'
-                      )}
-                    </Badge>
-                  )}
                 </div>
                 <div className="mt-1 text-sm">
                   {clinicalProfile?.functionalAspects || (
@@ -251,6 +237,9 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dados de Saúde (Tipo Sanguíneo, Antropometria, Avaliação de Dependência) */}
+        <HealthDataSection residentId={residentId} />
 
         {/* Alergias */}
         <Card>
@@ -479,7 +468,6 @@ export function ClinicalProfileTab({ residentId }: ClinicalProfileTabProps) {
         onOpenChange={setClinicalProfileModalOpen}
         residentId={residentId}
         profile={clinicalProfile}
-        currentMobilityAid={resident?.mobilityAid}
       />
 
       <AllergyModal

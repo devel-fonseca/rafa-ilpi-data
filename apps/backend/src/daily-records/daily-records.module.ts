@@ -7,6 +7,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { VitalSignsModule } from '../vital-signs/vital-signs.module';
+import { ResidentHealthModule } from '../resident-health/resident-health.module';
 import { EventsModule } from '../events/events.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -17,6 +18,7 @@ import { AuthModule } from '../auth/auth.module';
     PrismaModule,
     PermissionsModule,
     VitalSignsModule,
+    ResidentHealthModule,
     EventEmitterModule,
     forwardRef(() => EventsModule),
     forwardRef(() => NotificationsModule),

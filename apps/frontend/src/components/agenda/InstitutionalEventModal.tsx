@@ -80,7 +80,6 @@ export function InstitutionalEventModal({ open, onClose, onSubmit, initialDate, 
       instructor: editData?.instructor,
       targetAudience: editData?.targetAudience,
       location: editData?.location,
-      metadata: editData?.metadata,
     },
   })
 

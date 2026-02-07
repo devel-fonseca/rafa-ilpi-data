@@ -22,7 +22,7 @@ import {
   ResidentScheduleConfig,
   ScheduleFrequency,
 } from '@/hooks/useResidentSchedule';
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels';
 import { EditAlimentacaoConfigModal } from './EditAlimentacaoConfigModal';
 import { AlimentacaoGroupedCard } from './AlimentacaoGroupedCard';
 
@@ -165,8 +165,7 @@ function FrequencyDropZone({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Badge variant="secondary" className="font-medium text-xs">
-                      {RECORD_TYPE_LABELS[config.recordType as keyof typeof RECORD_TYPE_LABELS]
-                        ?.label || config.recordType}
+                      {getRecordTypeLabel(config.recordType).label}
                     </Badge>
                     {!config.isActive && (
                       <Badge variant="outline" className="text-muted-foreground text-xs">
@@ -373,10 +372,7 @@ export function ScheduleConfigList({
               <br />
               <br />
               <strong>
-                {deletingConfig &&
-                  RECORD_TYPE_LABELS[
-                    deletingConfig.recordType as keyof typeof RECORD_TYPE_LABELS
-                  ]?.label}{' '}
+                {deletingConfig && getRecordTypeLabel(deletingConfig.recordType).label}{' '}
                 - {deletingConfig && getFrequencyLabel(deletingConfig)}
               </strong>
             </AlertDialogDescription>

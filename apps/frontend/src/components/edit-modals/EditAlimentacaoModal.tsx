@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check, Edit } from 'lucide-react'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
+import type { AlimentacaoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -55,12 +56,6 @@ const editAlimentacaoSchema = z.object({
 })
 
 type EditAlimentacaoFormData = z.infer<typeof editAlimentacaoSchema>
-
-interface AlimentacaoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditAlimentacaoModalProps {
   open: boolean

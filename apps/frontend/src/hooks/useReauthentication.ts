@@ -10,6 +10,15 @@
 import { useState, useCallback, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '@/services/api';
+import {
+  setReauthToken,
+  getReauthToken,
+  hasValidReauthToken,
+  clearReauthToken,
+} from '@/lib/reauth-token';
+
+// Re-exportar para compatibilidade com código existente
+export { getReauthToken } from '@/lib/reauth-token';
 
 /**
  * Response do endpoint POST /auth/reauthenticate
@@ -18,13 +27,6 @@ interface ReauthenticationResponse {
   reauthToken: string;
   expiresIn: number; // segundos
 }
-
-/**
- * Armazenamento in-memory do token de reautenticação
- * Não persiste em localStorage por segurança
- */
-let reauthTokenCache: string | null = null;
-let reauthTokenExpiry: number | null = null;
 
 /**
  * Hook para gerenciar reautenticação de alto risco
@@ -68,40 +70,21 @@ export function useReauthentication() {
    * Verifica se existe token de reautenticação válido
    */
   const hasValidToken = useCallback((): boolean => {
-    if (!reauthTokenCache || !reauthTokenExpiry) {
-      return false;
-    }
-
-    // Verifica se token ainda não expirou (com margem de 10s)
-    const now = Date.now();
-    const expiryTime = reauthTokenExpiry - 10000; // 10s de margem
-
-    if (now >= expiryTime) {
-      // Token expirado - limpar cache
-      reauthTokenCache = null;
-      reauthTokenExpiry = null;
-      return false;
-    }
-
-    return true;
+    return hasValidReauthToken();
   }, []);
 
   /**
    * Obtém token de reautenticação válido (se existir)
    */
   const getToken = useCallback((): string | null => {
-    if (!hasValidToken()) {
-      return null;
-    }
-    return reauthTokenCache;
-  }, [hasValidToken]);
+    return getReauthToken();
+  }, []);
 
   /**
    * Limpa token de reautenticação da memória
    */
   const clearToken = useCallback(() => {
-    reauthTokenCache = null;
-    reauthTokenExpiry = null;
+    clearReauthToken();
   }, []);
 
   /**
@@ -116,9 +99,8 @@ export function useReauthentication() {
       return response.data;
     },
     onSuccess: (data) => {
-      // Armazenar token em memória
-      reauthTokenCache = data.reauthToken;
-      reauthTokenExpiry = Date.now() + data.expiresIn * 1000;
+      // Armazenar token em memória usando o módulo centralizado
+      setReauthToken(data.reauthToken, data.expiresIn);
 
       // Fechar modal
       setIsModalOpen(false);
@@ -191,23 +173,4 @@ export function useReauthentication() {
     getToken,
     clearToken,
   };
-}
-
-/**
- * Helper function para usar em qualquer lugar da aplicação
- * Retorna token válido ou null
- */
-export function getReauthToken(): string | null {
-  if (!reauthTokenCache || !reauthTokenExpiry) {
-    return null;
-  }
-
-  const now = Date.now();
-  if (now >= reauthTokenExpiry - 10000) {
-    reauthTokenCache = null;
-    reauthTokenExpiry = null;
-    return null;
-  }
-
-  return reauthTokenCache;
 }

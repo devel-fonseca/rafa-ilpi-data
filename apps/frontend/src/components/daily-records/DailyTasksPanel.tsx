@@ -2,7 +2,7 @@ import { Loader2, Calendar, Clock, Repeat, CheckCircle2, Plus, RefreshCw } from 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule';
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels';
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels';
 
 interface DailyTasksPanelProps {
   residentId: string | null;
@@ -129,9 +129,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
                       variant="outline"
                       className={task.isCompleted ? 'opacity-70' : 'font-medium'}
                     >
-                      {task.recordType &&
-                        RECORD_TYPE_LABELS[task.recordType as keyof typeof RECORD_TYPE_LABELS]
-                          ?.label}
+                      {task.recordType && getRecordTypeLabel(task.recordType).label}
                     </Badge>
                   </div>
 

@@ -8,6 +8,7 @@ import { ClipboardList } from 'lucide-react'
 import { InfoCard } from './InfoCard'
 import type { ClinicalProfile } from '@/api/clinical-profiles.api'
 import type { Resident } from '@/api/residents.api'
+import { useCurrentDependencyAssessment } from '@/hooks/useResidentHealth'
 
 interface ClinicalProfileViewProps {
   clinicalProfile: ClinicalProfile | null | undefined
@@ -15,6 +16,8 @@ interface ClinicalProfileViewProps {
 }
 
 export function ClinicalProfileView({ clinicalProfile, resident }: ClinicalProfileViewProps) {
+  // Buscar avaliação de dependência atual (inclui mobilityAid)
+  const { data: dependencyAssessment } = useCurrentDependencyAssessment(resident.id)
   const hasAnyData =
     clinicalProfile?.healthStatus || clinicalProfile?.specialNeeds || clinicalProfile?.functionalAspects
 
@@ -55,12 +58,14 @@ export function ClinicalProfileView({ clinicalProfile, resident }: ClinicalProfi
         label="Aspectos Funcionais"
         value={
           <div className="space-y-2">
-            {resident.mobilityAid !== null && resident.mobilityAid !== undefined && (
+            {dependencyAssessment && (
               <Badge
-                variant={resident.mobilityAid ? 'default' : 'secondary'}
-                className={resident.mobilityAid ? 'bg-primary/60 text-white' : 'text-xs'}
+                variant={dependencyAssessment.mobilityAid ? 'default' : 'secondary'}
+                className={dependencyAssessment.mobilityAid ? 'bg-primary/60 text-white' : 'text-xs'}
               >
-                {resident.mobilityAid ? '♿ Auxílio Mobilidade' : '✓ Independente'}
+                {dependencyAssessment.mobilityAid
+                  ? `♿ ${dependencyAssessment.mobilityAidDescription || 'Auxílio Mobilidade'}`
+                  : '✓ Independente'}
               </Badge>
             )}
             <div>

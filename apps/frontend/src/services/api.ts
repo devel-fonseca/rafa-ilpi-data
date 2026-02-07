@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth.store'
+import { getReauthToken } from '@/lib/reauth-token'
 
 // Em desenvolvimento: usa localhost:3000
 // Em produção (Docker): usa URL relativa /api (resolvida pelo nginx proxy)
@@ -21,6 +22,12 @@ api.interceptors.request.use(
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
+    }
+
+    // Adicionar token de reautenticação se disponível (para operações de alto risco)
+    const reauthToken = getReauthToken()
+    if (reauthToken) {
+      config.headers['X-Reauth-Token'] = reauthToken
     }
 
     // Headers anti-cache para evitar HTTP 304

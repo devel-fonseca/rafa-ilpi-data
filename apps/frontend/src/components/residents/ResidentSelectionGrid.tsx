@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Accessibility, Grid3x3, List } from 'lucide-react'
+import { Search, Filter, Bed, Clock, FileText, Check, ChevronLeft, ChevronRight, Grid3x3, List, Accessibility } from 'lucide-react'
 import { useUserPreference } from '@/hooks/useUserPreference'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -255,9 +255,9 @@ export function ResidentSelectionGrid({
                 key={resident.id}
                 className="relative overflow-hidden hover:shadow-lg transition-all duration-200 group"
               >
-                {/* Badges de Alerta no Topo */}
+                {/* Badges no Topo */}
                 <div className="absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-2">
-                  {/* Badge de Auxílio (esquerda) - Prioridade máxima */}
+                  {/* Badge de Auxílio (esquerda) */}
                   {resident.mobilityAid && (
                     <Badge
                       variant="default"

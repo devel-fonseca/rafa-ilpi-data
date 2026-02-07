@@ -89,24 +89,17 @@ export function CompactResidentsList({ residents, title = 'Residentes Recentes',
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
                     {resident.bedId ? (
                       <span className="text-xs text-muted-foreground font-mono">
-                        {formatBedFromResident(resident as Record<string, unknown>)}
+                        {formatBedFromResident(resident)}
                       </span>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Sem leito</span>
                     )}
                     {resident.mobilityAid && (
-                      <>
-                        <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
-                        <Badge
-                          variant="default"
-                          className="bg-primary/10 text-primary border-primary/30 text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0"
-                        >
-                          <Accessibility className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5" />
-                          Auxílio
-                        </Badge>
-                      </>
+                      <Badge className="bg-primary/60 text-white text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 whitespace-nowrap">
+                        <Accessibility className="h-2.5 w-2.5 mr-0.5" />
+                        Auxílio
+                      </Badge>
                     )}
-                    <span className="text-xs text-muted-foreground hidden sm:inline">•</span>
                     <Badge className={`${getStatusBadgeColor(resident.status)} text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0 whitespace-nowrap`}>
                       {resident.status}
                     </Badge>

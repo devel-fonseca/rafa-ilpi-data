@@ -12,8 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { usePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions'
-import type { Medication } from '@/api/medications.api'
-import type { SOSMedication } from '@/api/sos-medications.api'
 import { getSignedFileUrl } from '@/services/upload'
 import { toast } from 'sonner'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
@@ -66,7 +64,12 @@ export default function PrescriptionEdit() {
     try {
       await updateMutation.mutateAsync({
         id,
-        data: { isActive },
+        data: {
+          isActive,
+          changeReason: isActive
+            ? 'Prescrição reativada pelo responsável técnico'
+            : 'Prescrição desativada pelo responsável técnico'
+        },
       })
       toast.success('Status da prescrição atualizado com sucesso!')
       // Pequeno delay para garantir que o cache seja invalidado
@@ -74,7 +77,8 @@ export default function PrescriptionEdit() {
         navigate(`/dashboard/prescricoes/${id}`)
       }, 100)
     } catch (error: unknown) {
-      toast.error(error?.response?.data?.message || 'Erro ao atualizar prescrição')
+      const errorResponse = error as { response?: { data?: { message?: string } } }
+      toast.error(errorResponse?.response?.data?.message || 'Erro ao atualizar prescrição')
     }
   }
 
@@ -84,13 +88,13 @@ export default function PrescriptionEdit() {
         <PageHeader
           title="Editar Prescrição"
           subtitle="Carregando informações..."
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <EmptyState
           icon={FileText}
           title="Carregando prescrição..."
           description="Aguarde enquanto buscamos os detalhes"
-          variant="loading"
+          variant="info"
         />
       </Page>
     )
@@ -102,7 +106,7 @@ export default function PrescriptionEdit() {
         <PageHeader
           title="Editar Prescrição"
           subtitle="Prescrição não encontrada"
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
         <EmptyState
           icon={AlertCircle}
@@ -118,22 +122,20 @@ export default function PrescriptionEdit() {
     )
   }
 
-  const prescriptionData = prescription.data
+  const prescriptionData = prescription
 
   return (
     <Page>
       <PageHeader
         title="Editar Prescrição"
-        subtitle={
-          <div className="flex items-center gap-3">
-            <span>Altere o status da prescrição de {prescriptionData.resident?.fullName}</span>
-            <Badge variant="outline">
-              {PRESCRIPTION_TYPE_LABELS[prescriptionData.prescriptionType] ||
-                prescriptionData.prescriptionType}
-            </Badge>
-          </div>
+        subtitle={`Altere o status da prescrição de ${prescriptionData.resident?.fullName}`}
+        badge={
+          <Badge variant="outline">
+            {PRESCRIPTION_TYPE_LABELS[prescriptionData.prescriptionType] ||
+              prescriptionData.prescriptionType}
+          </Badge>
         }
-        onBack={() => navigate(`/dashboard/prescricoes/${id}`)}
+        backButton={{ onClick: () => navigate(`/dashboard/prescricoes/${id}`) }}
         actions={
           <Button
             onClick={handleSave}
@@ -283,7 +285,7 @@ export default function PrescriptionEdit() {
         <Section title={`Medicamentos Contínuos (${prescriptionData.medications.length})`}>
           <Card>
             <CardContent className="pt-6 space-y-4">
-            {prescriptionData.medications.map((medication: Medication, index: number) => (
+            {prescriptionData.medications.map((medication, index) => (
               <div
                 key={medication.id}
                 className="p-4 border rounded-lg bg-muted/50 space-y-3"
@@ -369,7 +371,7 @@ export default function PrescriptionEdit() {
         <Section title={`Medicamentos SOS (${prescriptionData.sosMedications.length})`}>
           <Card>
             <CardContent className="pt-6 space-y-4">
-            {prescriptionData.sosMedications.map((sos: SOSMedication, index: number) => (
+            {prescriptionData.sosMedications.map((sos, index) => (
               <div
                 key={sos.id}
                 className="p-4 border border-severity-warning/30 rounded-lg bg-severity-warning/5 space-y-3"

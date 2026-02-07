@@ -18,7 +18,7 @@ import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
 import { SignatureFooter } from '@/components/print/SignatureFooter'
 
-interface ResidentData extends Resident {
+interface ResidentData extends Omit<Resident, 'allergies'> {
   photo?: { url: string; uploadedAt: string } | null
   documents?: string[] | null
   addressDocuments?: string[] | null
@@ -35,6 +35,19 @@ interface ResidentData extends Resident {
   }> | null
   medicalReport?: Array<{ url: string; date: string }> | null
   belongings?: string[] | null
+  // Campos de saúde - agora vêm das novas tabelas via ResidentPrintView
+  bloodType?: string
+  height?: number | string
+  weight?: number | string
+  dependencyLevel?: string
+  mobilityAid?: boolean
+  // Alergias (estrutura diferente do Resident base)
+  allergies?: Array<{ substance: string; [key: string]: unknown }> | null
+  // Acomodação - objetos expandidos vindos do backend
+  bed?: { id: string; code: string; status?: string } | null
+  room?: { id: string; name: string; code?: string } | null
+  floor?: { id: string; name: string; code?: string } | null
+  building?: { id: string; name: string; code?: string } | null
 }
 
 interface ResidentDocumentProps {
@@ -259,7 +272,6 @@ export default function ResidentDocument({ resident, isPrinting = false }: Resid
         </p>
 
         <p>{resident.healthStatus ? `Situação de Saúde: ${resident.healthStatus}` : ''}</p>
-        <p>{resident.medicationsOnAdmission ? `Medicamentos em uso: ${resident.medicationsOnAdmission}` : ''}</p>
         {resident.allergies && Array.isArray(resident.allergies) && resident.allergies.length > 0 && (
           <p>
             Alergias: {resident.allergies.map((a: { substance: string; [key: string]: unknown }) => a.substance).join(', ')}

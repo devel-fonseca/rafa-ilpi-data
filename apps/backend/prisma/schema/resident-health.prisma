@@ -1,0 +1,253 @@
+// ──────────────────────────────────────────────────────────────────────────────
+//  DADOS DE SAÚDE DO RESIDENTE
+//
+//  Tabelas separadas para dados de saúde evolutivos:
+//  - ResidentBloodType: Tipo sanguíneo (1:1 com Resident)
+//  - ResidentAnthropometry: Peso/Altura evolutivos (1:N com Resident)
+//  - ResidentDependencyAssessment: Avaliações de dependência (1:N com Resident)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  TIPO SANGUÍNEO DO RESIDENTE (1:1)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ResidentBloodType {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @unique @db.Uuid
+
+  // Tipo sanguíneo (usando enum existente BloodType)
+  bloodType BloodType @default(NAO_INFORMADO)
+
+  // Fonte da informação (para auditoria)
+  source String? @db.VarChar(255) // Ex: "Exame laboratorial", "Auto-declarado", "Prontuário anterior"
+
+  // Data em que foi confirmado/informado
+  confirmedAt DateTime? @db.Date
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                   @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User                       @relation("ResidentBloodTypeCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                      @relation("ResidentBloodTypeUpdatedBy", fields: [updatedBy], references: [id])
+  history       ResidentBloodTypeHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resident_blood_types")
+}
+
+model ResidentBloodTypeHistory {
+  id                  String     @id @default(uuid()) @db.Uuid
+  tenantId            String     @db.Uuid
+  residentBloodTypeId String     @db.Uuid
+  versionNumber       Int
+  changeType          ChangeType
+  changeReason        String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residentBloodType ResidentBloodType @relation(fields: [residentBloodTypeId], references: [id], onDelete: Cascade)
+  user              User              @relation("ResidentBloodTypeHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, residentBloodTypeId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("resident_blood_type_history")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  DADOS ANTROPOMÉTRICOS DO RESIDENTE (1:N - Evolutivo)
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ResidentAnthropometry {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Dados antropométricos
+  height Decimal? @db.Decimal(5, 2) // metros (ex: 1.75)
+  weight Decimal? @db.Decimal(5, 1) // kg (ex: 70.5)
+
+  // Data da medição (obrigatória para registros evolutivos)
+  measurementDate DateTime @db.Date
+
+  // IMC calculado (armazenado para performance em relatórios)
+  bmi Decimal? @db.Decimal(4, 1)
+
+  // Observações da medição
+  notes String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                      @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User                          @relation("ResidentAnthropometryCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                         @relation("ResidentAnthropometryUpdatedBy", fields: [updatedBy], references: [id])
+  history       ResidentAnthropometryHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, measurementDate(sort: Desc)])
+  @@index([tenantId, measurementDate(sort: Desc)])
+  @@index([deletedAt])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@map("resident_anthropometry")
+}
+
+model ResidentAnthropometryHistory {
+  id                      String     @id @default(uuid()) @db.Uuid
+  tenantId                String     @db.Uuid
+  residentAnthropometryId String     @db.Uuid
+  versionNumber           Int
+  changeType              ChangeType
+  changeReason            String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residentAnthropometry ResidentAnthropometry @relation(fields: [residentAnthropometryId], references: [id], onDelete: Cascade)
+  user                  User                  @relation("ResidentAnthropometryHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, residentAnthropometryId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("resident_anthropometry_history")
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  AVALIAÇÕES DE DEPENDÊNCIA DO RESIDENTE (1:N)
+//
+//  Conforme RDC 502/2021, a ILPI deve avaliar o grau de dependência
+//  dos residentes periodicamente usando instrumentos validados.
+// ══════════════════════════════════════════════════════════════════════════════
+
+model ResidentDependencyAssessment {
+  id         String @id @default(uuid()) @db.Uuid
+  tenantId   String @db.Uuid
+  residentId String @db.Uuid
+
+  // Grau de dependência (enum para padronização e cálculo RDC)
+  dependencyLevel DependencyLevel
+
+  // Data de início da vigência desta avaliação
+  effectiveDate DateTime @db.Date
+
+  // Data de fim da vigência (null = avaliação atual/vigente)
+  endDate DateTime? @db.Date
+
+  // Instrumento ou método de avaliação utilizado
+  assessmentInstrument String @db.VarChar(255) // Ex: "Escala de Katz", "Índice de Barthel", "Avaliação Clínica"
+
+  // Score/Pontuação do instrumento (opcional, para instrumentos com pontuação)
+  assessmentScore Decimal? @db.Decimal(5, 2)
+
+  // Usuário que realizou a avaliação (pode ser diferente de createdBy)
+  assessedBy String @db.Uuid
+
+  // Necessita auxílio para mobilidade
+  mobilityAid Boolean @default(false)
+
+  // Descrição do auxílio de mobilidade (se mobilityAid = true)
+  mobilityAidDescription String? @db.VarChar(255) // Ex: "Cadeira de rodas", "Andador", "Bengala"
+
+  // Observações da avaliação
+  notes String? @db.Text
+
+  // Auditoria e Versionamento
+  versionNumber Int       @default(1)
+  createdBy     String    @db.Uuid
+  updatedBy     String?   @db.Uuid
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime? @db.Timestamptz(3)
+
+  // Relações
+  tenant        Tenant                               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                             @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  assessor      User                                 @relation("ResidentDependencyAssessmentAssessor", fields: [assessedBy], references: [id])
+  createdByUser User                                 @relation("ResidentDependencyAssessmentCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                                @relation("ResidentDependencyAssessmentUpdatedBy", fields: [updatedBy], references: [id])
+  history       ResidentDependencyAssessmentHistory[]
+
+  // Índices
+  @@index([tenantId, residentId])
+  @@index([residentId, effectiveDate(sort: Desc)])
+  @@index([tenantId, effectiveDate(sort: Desc)])
+  @@index([deletedAt])
+  @@index([assessedBy])
+  @@index([createdBy])
+  @@index([updatedBy])
+  @@index([dependencyLevel]) // Para cálculos RDC 502/2021
+  @@map("resident_dependency_assessments")
+}
+
+model ResidentDependencyAssessmentHistory {
+  id                             String     @id @default(uuid()) @db.Uuid
+  tenantId                       String     @db.Uuid
+  residentDependencyAssessmentId String     @db.Uuid
+  versionNumber                  Int
+  changeType                     ChangeType
+  changeReason                   String     @db.Text
+
+  previousData  Json?
+  newData       Json
+  changedFields String[] @default([])
+
+  changedAt     DateTime @db.Timestamptz(3)
+  changedBy     String   @db.Uuid
+  changedByName String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?    @db.JsonB
+
+  tenant                       Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residentDependencyAssessment ResidentDependencyAssessment @relation(fields: [residentDependencyAssessmentId], references: [id], onDelete: Cascade)
+  user                         User                         @relation("ResidentDependencyAssessmentHistoryUser", fields: [changedBy], references: [id])
+
+  @@index([tenantId, residentDependencyAssessmentId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("resident_dependency_assessment_history")
+}

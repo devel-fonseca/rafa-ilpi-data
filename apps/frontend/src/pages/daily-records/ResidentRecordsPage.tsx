@@ -5,8 +5,13 @@ import { formatDateLongSafe, getCurrentDate } from '@/utils/dateHelpers'
 import { Download, Plus, Loader2, Eye, AlertCircle, Activity, UtensilsCrossed, Heart, Droplets, Utensils } from 'lucide-react'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
+import type { Allergy } from '@/api/allergies.api'
+import type { Condition } from '@/api/conditions.api'
+import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
+import type { DailyRecord, AlimentacaoData, HidratacaoData, MonitoramentoData } from '@/types/daily-records'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { useDailyRecordsRealtime } from '@/hooks/useDailyRecordsRealtime'
+import { useLatestAnthropometry } from '@/hooks/useResidentHealth'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,7 +40,7 @@ import { IntercorrenciaModal } from './modals/IntercorrenciaModal'
 import { AtividadesModal } from './modals/AtividadesModal'
 import { VisitaModal } from './modals/VisitaModal'
 import { OutrosModal } from './modals/OutrosModal'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 import { DailyTasksPanel } from '@/components/daily-records/DailyTasksPanel'
 import { Page, PageHeader, Section } from '@/design-system/components'
 import {
@@ -89,7 +94,7 @@ export default function ResidentRecordsPage() {
 
   const [activeModal, setActiveModal] = useState<string | null>(null)
   const [selectedMealType, setSelectedMealType] = useState<string | undefined>(undefined)
-  const [viewingRecord, setViewingRecord] = useState<Record<string, unknown> | null>(null)
+  const [viewingRecord, setViewingRecord] = useState<DailyRecord | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
   // Hook de atualização em tempo real via WebSocket (Sprint 3)
@@ -126,9 +131,12 @@ export default function ResidentRecordsPage() {
   // Hook para buscar restrições alimentares do residente
   const { data: dietaryRestrictions = [] } = useDietaryRestrictionsByResident(residentId || '')
 
+  // Hook para buscar última medição antropométrica da nova tabela
+  const { data: latestAnthropometry } = useLatestAnthropometry(residentId || '')
+
   // Mutation para criar registro
   const createMutation = useMutation({
-    mutationFn: async (data: Record<string, unknown>) => {
+    mutationFn: async (data: Partial<DailyRecord>) => {
       return await api.post('/daily-records', data)
     },
     onSuccess: (response) => {
@@ -147,11 +155,11 @@ export default function ResidentRecordsPage() {
     },
   })
 
-  const handleCreateRecord = (data: Record<string, unknown>) => {
+  const handleCreateRecord = (data: Partial<DailyRecord>) => {
     createMutation.mutate(data)
   }
 
-  const handleViewRecord = (record: Record<string, unknown>) => {
+  const handleViewRecord = (record: DailyRecord) => {
     setViewingRecord(record)
     setViewModalOpen(true)
   }
@@ -263,34 +271,34 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {allergies && allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {allergies.slice(0, 3).map((allergy: Record<string, unknown>) => (
-                      <Tooltip key={allergy.id as string}>
+                    {allergies.slice(0, 3).map((allergy: Allergy) => (
+                      <Tooltip key={allergy.id}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-danger text-danger cursor-help"
                             >
-                              {allergy.substance as string}
+                              {allergy.substance}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{allergy.substance as string}</p>
+                            <p className="font-semibold">{allergy.substance}</p>
                             {allergy.severity && (
                               <p className="text-xs">
-                                <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity as string | null)}
+                                <span className="font-medium">Gravidade:</span> {formatSeverity(allergy.severity)}
                               </p>
                             )}
                             {allergy.reaction && (
                               <p className="text-xs">
-                                <span className="font-medium">Reação:</span> {allergy.reaction as string}
+                                <span className="font-medium">Reação:</span> {allergy.reaction}
                               </p>
                             )}
                             {allergy.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações:</span> {allergy.notes as string}
+                                <span className="font-medium">Observações:</span> {allergy.notes}
                               </p>
                             )}
                           </div>
@@ -326,29 +334,29 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {conditions && conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {conditions.slice(0, 3).map((condition: Record<string, unknown>) => (
-                      <Tooltip key={condition.id as string}>
+                    {conditions.slice(0, 3).map((condition: Condition) => (
+                      <Tooltip key={condition.id}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-warning text-warning cursor-help"
                             >
-                              {condition.condition as string}
+                              {condition.condition}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{condition.condition as string}</p>
+                            <p className="font-semibold">{condition.condition}</p>
                             {condition.icdCode && (
                               <p className="text-xs">
-                                <span className="font-medium">CID:</span> {condition.icdCode as string}
+                                <span className="font-medium">CID:</span> {condition.icdCode}
                               </p>
                             )}
                             {condition.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações Clínicas:</span> {condition.notes as string}
+                                <span className="font-medium">Observações Clínicas:</span> {condition.notes}
                               </p>
                             )}
                           </div>
@@ -384,29 +392,29 @@ export default function ResidentRecordsPage() {
                 </h3>
                 {dietaryRestrictions && dietaryRestrictions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {dietaryRestrictions.slice(0, 3).map((restriction: Record<string, unknown>) => (
-                      <Tooltip key={restriction.id as string}>
+                    {dietaryRestrictions.slice(0, 3).map((restriction: DietaryRestriction) => (
+                      <Tooltip key={restriction.id}>
                         <TooltipTrigger asChild>
                           <span className="inline-block">
                             <Badge
                               variant="outline"
                               className="border-primary text-primary cursor-help"
                             >
-                              {restriction.description as string}
+                              {restriction.description}
                             </Badge>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <div className="space-y-1.5">
-                            <p className="font-semibold">{restriction.description as string}</p>
+                            <p className="font-semibold">{restriction.description}</p>
                             {restriction.restrictionType && (
                               <p className="text-xs">
-                                <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType as string)}
+                                <span className="font-medium">Tipo:</span> {formatRestrictionType(restriction.restrictionType)}
                               </p>
                             )}
                             {restriction.notes && (
                               <p className="text-xs">
-                                <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes as string}
+                                <span className="font-medium">Observações do Nutricionista:</span> {restriction.notes}
                               </p>
                             )}
                           </div>
@@ -465,28 +473,28 @@ export default function ResidentRecordsPage() {
                 </div>
               ) : records && records.length > 0 ? (
                 <div className="space-y-2">
-                  {records.map((record: Record<string, unknown>) => (
+                  {records.map((record: DailyRecord) => (
                     <div
-                      key={record.id as string}
+                      key={record.id}
                       onClick={() => handleViewRecord(record)}
-                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type as string]?.bgColor || 'bg-muted'}`}
+                      className={`border-l-4 pl-3 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${getRecordTypeLabel(record.type || '').bgColor}`}
                     >
                       <div className="flex items-start gap-2">
                         {/* Horário */}
-                        <span className="font-semibold text-sm min-w-[40px]">{record.time as string}</span>
+                        <span className="font-semibold text-sm min-w-[40px]">{record.time}</span>
 
                         <div className="flex-1 min-w-0">
                           {/* Badge do Tipo */}
                           <Badge
                             variant="outline"
-                            className={`${RECORD_TYPE_LABELS[record.type as string]?.color} text-xs mb-1`}
+                            className={`${getRecordTypeLabel(record.type || '').color} text-xs mb-1`}
                           >
-                            {RECORD_TYPE_LABELS[record.type as string]?.label}
+                            {getRecordTypeLabel(record.type || '').label}
                           </Badge>
 
                           {/* Responsável */}
                           <p className="text-xs text-muted-foreground truncate">
-                            {record.recordedBy as string}
+                            {record.recordedBy}
                           </p>
                         </div>
 
@@ -690,40 +698,20 @@ export default function ResidentRecordsPage() {
                   Sinais Vitais e Antropometria
                 </h3>
                 {(() => {
-                  // Buscar último registro de PESO
-                  const ultimoPesoRecord = records
-                    ?.filter((r: Record<string, unknown>) => r.type === 'PESO')
-                    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.time as string).localeCompare(a.time as string))[0]
-
-                  // Buscar último registro de MONITORAMENTO
+                  // Buscar último registro de MONITORAMENTO do dia (sinais vitais)
                   const ultimoMonitoramento = records
-                    ?.filter((r: Record<string, unknown>) => r.type === 'MONITORAMENTO')
-                    .sort((a: Record<string, unknown>, b: Record<string, unknown>) => (b.time as string).localeCompare(a.time as string))[0]
+                    ?.filter((r: DailyRecord) => r.type === 'MONITORAMENTO')
+                    .sort((a: DailyRecord, b: DailyRecord) => b.time.localeCompare(a.time))[0] as { data: MonitoramentoData } | undefined
 
-                  // Processar peso (pode vir como string "66" ou número)
-                  let pesoNum: number | null = null
-                  const pesoRaw = ultimoPesoRecord?.data?.peso || resident?.weight
-                  if (pesoRaw) {
-                    pesoNum = typeof pesoRaw === 'string' ? parseFloat(pesoRaw.replace(',', '.')) : pesoRaw
-                  }
+                  // Dados antropométricos vêm da nova tabela (latestAnthropometry)
+                  // Essa tabela é atualizada automaticamente quando um registro PESO é criado
+                  const pesoNum = latestAnthropometry?.weight ? Number(latestAnthropometry.weight) : null
+                  const alturaMetros = latestAnthropometry?.height ? Number(latestAnthropometry.height) : null
+                  const imc = latestAnthropometry?.bmi ? Number(latestAnthropometry.bmi) : null
 
-                  // Processar altura (pode vir em cm como 160 ou em metros como 1.60)
-                  let alturaCm: number | null = null
-                  const alturaRaw = ultimoPesoRecord?.data?.altura || resident?.height
-                  if (alturaRaw) {
-                    const alturaNum = typeof alturaRaw === 'string' ? parseFloat(alturaRaw.replace(',', '.')) : alturaRaw
-                    // Se o valor for menor que 10, provavelmente está em metros (ex: 1.60), converter para cm
-                    alturaCm = alturaNum < 10 ? alturaNum * 100 : alturaNum
-                  }
-
-                  // Calcular IMC se tiver peso e altura
-                  let imc: number | null = null
+                  // Classificação do IMC
                   let imcClassificacao: { texto: string; cor: string } | null = null
-
-                  if (pesoNum && alturaCm) {
-                    const alturaMetros = alturaCm / 100
-                    imc = pesoNum / (alturaMetros * alturaMetros)
-
+                  if (imc) {
                     if (imc < 18.5) {
                       imcClassificacao = { texto: 'Baixo peso', cor: 'text-warning dark:text-warning/40' }
                     } else if (imc < 25) {
@@ -735,14 +723,14 @@ export default function ResidentRecordsPage() {
                     }
                   }
 
-                  // Dados de sinais vitais
+                  // Dados de sinais vitais do registro diário
                   const pressaoArterial = ultimoMonitoramento?.data?.pressaoArterial
                   const temperatura = ultimoMonitoramento?.data?.temperatura
                   const frequenciaCardiaca = ultimoMonitoramento?.data?.frequenciaCardiaca
                   const saturacaoO2 = ultimoMonitoramento?.data?.saturacaoO2
                   const glicemia = ultimoMonitoramento?.data?.glicemia
 
-                  const temAntropometria = pesoNum || alturaCm
+                  const temAntropometria = pesoNum || alturaMetros
                   const temSinaisVitais = pressaoArterial || temperatura || frequenciaCardiaca || saturacaoO2 || glicemia
 
                   if (!temAntropometria && !temSinaisVitais) {
@@ -759,8 +747,8 @@ export default function ResidentRecordsPage() {
                       {temAntropometria && (
                         <div className="text-base">
                           {pesoNum && <span className="font-medium">{pesoNum} kg</span>}
-                          {pesoNum && alturaCm && <span className="mx-2">•</span>}
-                          {alturaCm && <span className="font-medium">{(alturaCm / 100).toFixed(2)} m</span>}
+                          {pesoNum && alturaMetros && <span className="mx-2">•</span>}
+                          {alturaMetros && <span className="font-medium">{alturaMetros.toFixed(2)} m</span>}
                           {imc && (
                             <>
                               <span className="mx-2">•</span>
@@ -838,7 +826,7 @@ export default function ResidentRecordsPage() {
 
         {/* Card de Aceitação Alimentar */}
         {records && records.length > 0 && (() => {
-          const registrosAlimentacao = records.filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO')
+          const registrosAlimentacao = (records as DailyRecord[]).filter((r) => r.type === 'ALIMENTACAO')
 
           if (registrosAlimentacao.length === 0) return null
 
@@ -856,7 +844,7 @@ export default function ResidentRecordsPage() {
 
           // Calcula percentual total baseado em 600 pontos (6 refeições × 100%)
           const totalIngestao = registrosAlimentacao.reduce(
-            (sum: number, r: Record<string, unknown>) => sum + converteIngestao((r.data as Record<string, unknown>)?.ingeriu as string || 'Recusou'),
+            (sum: number, r) => sum + converteIngestao((r.data as AlimentacaoData)?.ingeriu || 'Recusou'),
             0
           )
           const percentualTotal = Math.round((totalIngestao / 600) * 100)
@@ -888,13 +876,14 @@ export default function ResidentRecordsPage() {
         {/* Card de Líquidos Ingeridos */}
         {records && records.length > 0 && (() => {
           // Calcula total de hidratação de registros de HIDRATACAO e ALIMENTACAO
-          const totalHidratacao = records
-            .filter((r: Record<string, unknown>) => r.type === 'HIDRATACAO')
-            .reduce((sum: number, r: Record<string, unknown>) => sum + ((r.data as Record<string, unknown>)?.volumeMl as number || 0), 0)
+          const typedRecords = records as DailyRecord[]
+          const totalHidratacao = typedRecords
+            .filter((r) => r.type === 'HIDRATACAO')
+            .reduce((sum: number, r) => sum + (Number((r.data as HidratacaoData)?.volumeMl) || 0), 0)
 
-          const totalAlimentacao = records
-            .filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO' && (r.data as Record<string, unknown>)?.volumeMl)
-            .reduce((sum: number, r: Record<string, unknown>) => sum + ((r.data as Record<string, unknown>)?.volumeMl as number || 0), 0)
+          const totalAlimentacao = typedRecords
+            .filter((r) => r.type === 'ALIMENTACAO' && (r.data as AlimentacaoData)?.volumeMl)
+            .reduce((sum: number, r) => sum + (Number((r.data as AlimentacaoData)?.volumeMl) || 0), 0)
 
           const totalGeral = totalHidratacao + totalAlimentacao
 
@@ -955,7 +944,7 @@ export default function ResidentRecordsPage() {
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
-          existingRecords={records?.filter((r: Record<string, unknown>) => r.type === 'ALIMENTACAO') || []}
+          existingRecords={(records as DailyRecord[] | undefined)?.filter((r) => r.type === 'ALIMENTACAO') || []}
           defaultMealType={selectedMealType}
         />
       )}

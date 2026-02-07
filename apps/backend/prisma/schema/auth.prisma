@@ -144,6 +144,18 @@ model User {
   belongingTermsCreated BelongingTerm[]      @relation("BelongingTermCreator")
   belongingHistoryChanges BelongingHistory[] @relation("BelongingHistoryChanger")
 
+  // Dados de Saúde do Residente
+  residentBloodTypesCreated              ResidentBloodType[]        @relation("ResidentBloodTypeCreatedBy")
+  residentBloodTypesUpdated              ResidentBloodType[]        @relation("ResidentBloodTypeUpdatedBy")
+  residentBloodTypeHistory               ResidentBloodTypeHistory[] @relation("ResidentBloodTypeHistoryUser")
+  residentAnthropometryCreated           ResidentAnthropometry[]        @relation("ResidentAnthropometryCreatedBy")
+  residentAnthropometryUpdated           ResidentAnthropometry[]        @relation("ResidentAnthropometryUpdatedBy")
+  residentAnthropometryHistory           ResidentAnthropometryHistory[] @relation("ResidentAnthropometryHistoryUser")
+  residentDependencyAssessmentsAssessed  ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentAssessor")
+  residentDependencyAssessmentsCreated   ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentCreatedBy")
+  residentDependencyAssessmentsUpdated   ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentUpdatedBy")
+  residentDependencyAssessmentHistory    ResidentDependencyAssessmentHistory[] @relation("ResidentDependencyAssessmentHistoryUser")
+
   // Escala de Cuidados (Gestão de Turnos e Plantões)
   // teamMemberships - NO FK (evita problemas de referência, Prisma gerencia a relação)
   // shiftAssignments - NO relation (userId stored in ShiftAssignment, validated in app layer)

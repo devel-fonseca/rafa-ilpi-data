@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { ObservacaoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -28,17 +29,11 @@ const editOutrosSchema = z.object({
 
 type EditOutrosFormData = z.infer<typeof editOutrosSchema>
 
-interface OutrosRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
-
 interface EditOutrosModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: Record<string, unknown>) => void
-  record: OutrosRecord
+  record: ObservacaoRecord
   isUpdating?: boolean
 }
 

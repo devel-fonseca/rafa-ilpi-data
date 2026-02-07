@@ -24,6 +24,23 @@ interface Allergy {
   notes?: string
 }
 
+interface ResidentBed {
+  id: string
+  code: string
+  room?: {
+    id: string
+    code: string
+    floor?: {
+      id: string
+      code: string
+      building?: {
+        id: string
+        name: string
+      }
+    }
+  }
+}
+
 interface Resident {
   id: string
   fullName: string
@@ -31,6 +48,7 @@ interface Resident {
   fotoUrl?: string
   roomId?: string
   bedId?: string
+  bed?: ResidentBed
   allergies?: Allergy[]
   chronicConditions?: string
   cns?: string
@@ -150,7 +168,7 @@ export function Step1ResidentInfo() {
                         <PhotoViewer
                           photoUrl={r.fotoUrl}
                           altText={r.fullName}
-                          size="small"
+                          size="sm"
                           className="!w-12 !h-12 rounded-full"
                         />
                       </div>
@@ -176,7 +194,7 @@ export function Step1ResidentInfo() {
                     </div>
                     {r.bed && (
                       <Badge variant="outline" className="font-mono">
-                        {formatBedFromResident(r)}
+                        {formatBedFromResident(r as unknown as Record<string, unknown>)}
                       </Badge>
                     )}
                   </div>
@@ -239,7 +257,7 @@ export function Step1ResidentInfo() {
               <PhotoViewer
                 photoUrl={resident.fotoUrl}
                 altText={resident.fullName}
-                size="large"
+                size="lg"
                 className="!w-24 !h-24"
               />
             </div>
@@ -294,7 +312,7 @@ export function Step1ResidentInfo() {
                       </span>
                     </div>
                     <p className="text-sm text-foreground font-mono">
-                      {formatBedFromResident(resident)}
+                      {formatBedFromResident(resident as unknown as Record<string, unknown>)}
                     </p>
                   </div>
                 )}

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { PesoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -48,12 +49,6 @@ const editPesoSchema = z.object({
 })
 
 type EditPesoFormData = z.infer<typeof editPesoSchema>
-
-interface PesoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditPesoModalProps {
   open: boolean

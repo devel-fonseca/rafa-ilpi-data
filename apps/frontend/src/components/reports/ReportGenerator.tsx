@@ -6,10 +6,12 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { parseISO } from 'date-fns'
 import { FileText, Download, Loader2, X, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { Section, StatusBadge, EmptyState } from '@/design-system/components'
 import {
   Select,
   SelectContent,
@@ -36,8 +38,8 @@ const reportGeneratorSchema = z.object({
   // Validar apenas se ambas as datas estiverem preenchidas
   if (!data.startDate || !data.endDate) return true
 
-  const start = new Date(data.startDate)
-  const end = new Date(data.endDate)
+  const start = parseISO(`${data.startDate}T12:00:00`)
+  const end = parseISO(`${data.endDate}T12:00:00`)
 
   // Validar que end >= start
   if (end < start) return false
@@ -109,8 +111,8 @@ export function ReportGenerator({
   const calculateDateRange = () => {
     if (!startDate || !endDate) return null
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseISO(`${startDate}T12:00:00`)
+    const end = parseISO(`${endDate}T12:00:00`)
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return null
 
@@ -138,6 +140,38 @@ export function ReportGenerator({
   const needsRecordTypeFilter = () => {
     return selectedReportType === 'BY_RECORD_TYPE'
   }
+
+  const getDateRangeStatus = () => {
+    if (!dateRange) return null
+
+    if (dateRange.isReversed) {
+      return {
+        variant: 'danger' as const,
+        label: 'Data final anterior à data inicial',
+      }
+    }
+
+    if (dateRange.isOverLimit) {
+      return {
+        variant: 'danger' as const,
+        label: `Intervalo de ${dateRange.days} dias excede o limite de 7 dias`,
+      }
+    }
+
+    if (dateRange.days >= 5) {
+      return {
+        variant: 'warning' as const,
+        label: `${dateRange.days} dias selecionados (máx. 7 dias)`,
+      }
+    }
+
+    return {
+      variant: 'success' as const,
+      label: `${dateRange.days} ${dateRange.days === 1 ? 'dia selecionado' : 'dias selecionados'} (máx. 7 dias)`,
+    }
+  }
+
+  const dateRangeStatus = getDateRangeStatus()
 
   // ========== HANDLERS ==========
 
@@ -171,12 +205,16 @@ export function ReportGenerator({
   // ========== RENDER ==========
 
   return (
-    <div className="rounded-lg border bg-card p-6 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Relatórios de Atividades Assistenciais</h3>
-      </div>
-
+    <Section
+      title="Relatórios de Atividades Assistenciais"
+      description="Defina tipo, período e filtros para gerar o relatório desejado."
+      spacing="compact"
+      headerAction={
+        <StatusBadge variant="info">
+          {selectedReportType ? selectedReportType : 'Selecione um tipo'}
+        </StatusBadge>
+      }
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Grid de filtros principais */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -247,25 +285,11 @@ export function ReportGenerator({
         </div>
 
         {/* Indicador de Range */}
-        {dateRange && (
-          <div className="flex items-center justify-center gap-2 text-sm">
-            {dateRange.isReversed ? (
-              <div className="flex items-center gap-2 text-danger">
-                <span>⚠️ A data final não pode ser anterior à data inicial</span>
-              </div>
-            ) : dateRange.isOverLimit ? (
-              <div className="flex items-center gap-2 text-danger">
-                <span>⚠️ Intervalo de {dateRange.days} dias excede o limite máximo de 7 dias</span>
-              </div>
-            ) : (
-              <div className={`flex items-center gap-2 ${
-                dateRange.days >= 5 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
-              }`}>
-                <span>
-                  ✓ {dateRange.days} {dateRange.days === 1 ? 'dia selecionado' : 'dias selecionados'} (máx. 7 dias)
-                </span>
-              </div>
-            )}
+        {dateRangeStatus && (
+          <div className="flex items-center justify-center">
+            <StatusBadge variant={dateRangeStatus.variant}>
+              {dateRangeStatus.label}
+            </StatusBadge>
           </div>
         )}
 
@@ -277,21 +301,31 @@ export function ReportGenerator({
               <Label htmlFor="residentId">
                 Residente <span className="text-danger">*</span>
               </Label>
-              <Select
-                value={selectedResidentId}
-                onValueChange={(value) => setValue('residentId', value)}
-              >
-                <SelectTrigger id="residentId">
-                  <SelectValue placeholder="Selecione o residente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {residents.map((resident) => (
-                    <SelectItem key={resident.id} value={resident.id}>
-                      {resident.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {residents.length > 0 ? (
+                <Select
+                  value={selectedResidentId}
+                  onValueChange={(value) => setValue('residentId', value)}
+                >
+                  <SelectTrigger id="residentId">
+                    <SelectValue placeholder="Selecione o residente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {residents.map((resident) => (
+                      <SelectItem key={resident.id} value={resident.id}>
+                        {resident.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <EmptyState
+                  icon={FileText}
+                  title="Nenhum residente disponível"
+                  description="Cadastre ou carregue residentes para gerar relatórios por residente."
+                  variant="info"
+                  className="py-6"
+                />
+              )}
             </div>
           )}
 
@@ -397,6 +431,6 @@ export function ReportGenerator({
           </Button>
         </div>
       </form>
-    </div>
+    </Section>
   )
 }

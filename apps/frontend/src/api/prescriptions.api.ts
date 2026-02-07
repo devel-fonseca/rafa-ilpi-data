@@ -1,3 +1,27 @@
+/**
+ * @fileoverview API de Prescrições Médicas
+ *
+ * Este é o arquivo PRINCIPAL para tipos relacionados a prescrições.
+ * Contém tipos para Prescription, Medication (aninhado), SOSMedication (aninhado),
+ * e todos os DTOs necessários para operações CRUD.
+ *
+ * IMPORTANTE - Duplicação de Tipos:
+ * Os tipos `Medication` e `SOSMedication` aqui representam as entidades ANINHADAS
+ * dentro de uma Prescription (como retornado pelo endpoint GET /prescriptions/:id).
+ *
+ * Existem versões diferentes destes tipos em:
+ * - medications.api.ts: `Medication` como entidade independente com campos de versionamento
+ * - sos-medications.api.ts: `SOSMedication` como entidade independente com campos de versionamento
+ *
+ * QUANDO USAR CADA UM:
+ * - Use tipos DESTE arquivo quando trabalhar com prescrições e seus medicamentos aninhados
+ * - Use tipos de medications.api.ts para operações CRUD diretas em medicamentos individuais
+ *
+ * TODO (Refatoração Futura):
+ * Considerar renomear para maior clareza:
+ * - Medication → PrescriptionMedication (este arquivo)
+ * - Medication → MedicationEntity (medications.api.ts)
+ */
 import { api } from '../services/api'
 import type { Allergy } from './residents.api'
 
@@ -19,6 +43,8 @@ export interface MedicationAdministration {
   wasAdministered: boolean
   reason?: string
   administeredBy: string
+  checkedBy?: string
+  notes?: string
   createdAt: string
 }
 
@@ -107,8 +133,25 @@ export interface Prescription {
     fotoUrl?: string
     roomId?: string
     bedId?: string
+    birthDate?: string
     allergies?: Allergy[]
     chronicConditions?: string
+    bed?: {
+      id: string
+      code: string
+      room?: {
+        id: string
+        code: string
+        floor?: {
+          id: string
+          code: string
+          building?: {
+            id: string
+            name: string
+          }
+        }
+      }
+    }
   }
   medications: Medication[]
   sosMedications: SOSMedication[]
@@ -253,6 +296,32 @@ export interface AdministerSOSDto {
   indication: string
   administeredBy: string
   notes?: string
+}
+
+// ========== RESPONSES DE ADMINISTRAÇÃO ==========
+
+export interface MedicationAdministrationResponse {
+  id: string
+  medicationId: string
+  date: string
+  scheduledTime: string
+  actualTime?: string
+  wasAdministered: boolean
+  reason?: string
+  administeredBy: string
+  notes?: string
+  createdAt: string
+}
+
+export interface SOSAdministrationResponse {
+  id: string
+  sosMedicationId: string
+  date: string
+  time: string
+  indication: string
+  administeredBy: string
+  notes?: string
+  createdAt: string
 }
 
 // ========== VERSIONAMENTO ==========

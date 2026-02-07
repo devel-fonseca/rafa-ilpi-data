@@ -302,22 +302,12 @@ export const ResidentCreateSchema = z.object({
   dischargeDate: z.coerce.date().optional().nullable(),
   dischargeReason: z.string().optional(),
 
-  // 6. Saúde
+  // 6. Saúde (campos clínicos para ClinicalProfile)
+  // NOTA: bloodType, height, weight, dependencyLevel, mobilityAid, medicationsOnAdmission
+  // foram migrados para tabelas separadas (resident_blood_types, resident_anthropometry, resident_dependency_assessments)
   healthStatus: z.string().optional(),
-  bloodType: BloodTypeSchema.default('NAO_INFORMADO'),
-  height: z.coerce.number().min(0.5).max(2.5).optional(), // metros
-  weight: z.coerce.number().min(20).max(300).optional(), // kg
-  dependencyLevel: z
-    .enum([
-      'Grau I - Independente',
-      'Grau II - Parcialmente Dependente',
-      'Grau III - Totalmente Dependente',
-    ])
-    .optional(),
-  mobilityAid: z.boolean().optional(),
   specialNeeds: z.string().optional(),
   functionalAspects: z.string().optional(),
-  medicationsOnAdmission: z.string().optional(),
   allergies: z.string().optional(),
   chronicConditions: z.string().optional(),
   dietaryRestrictions: z.string().optional(),

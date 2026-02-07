@@ -14,6 +14,7 @@ import { QueryDailyRecordDto } from './dto/query-daily-record.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { VitalSignsService } from '../vital-signs/vital-signs.service';
+import { ResidentHealthService } from '../resident-health/resident-health.service';
 import { IncidentInterceptorService } from './incident-interceptor.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { DailyRecordCreatedEvent } from '../sentinel-events/events/daily-record-created.event';
@@ -39,6 +40,7 @@ export class DailyRecordsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly vitalSignsService: VitalSignsService,
+    private readonly residentHealthService: ResidentHealthService,
     private readonly incidentInterceptorService: IncidentInterceptorService,
     private readonly eventEmitter: EventEmitter2,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
@@ -244,6 +246,37 @@ export class DailyRecordsService {
       }
     }
 
+    // Se for um registro de PESO, criar registro de antropometria na nova tabela
+    if (dto.type === 'PESO' && dto.data) {
+      try {
+        const anthropometryData = this.extractAnthropometryFromData(dto.data);
+
+        // Apenas criar se tiver pelo menos peso informado
+        if (anthropometryData.weight) {
+          await this.residentHealthService.createAnthropometry(userId, {
+            residentId: dto.residentId,
+            weight: anthropometryData.weight,
+            height: anthropometryData.height,
+            measurementDate: dto.date,
+            notes: dto.notes || (dto.data.observacoes as string) || undefined,
+          });
+
+          this.logger.info('Medição antropométrica criada automaticamente', {
+            recordId: record.id,
+            residentId: dto.residentId,
+            weight: anthropometryData.weight,
+            height: anthropometryData.height,
+          });
+        }
+      } catch (error) {
+        this.logger.error('Erro ao criar medição antropométrica', {
+          recordId: record.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        // Não falhar a criação do registro se houver erro na antropometria
+      }
+    }
+
     return record;
   }
 
@@ -287,6 +320,36 @@ export class DailyRecordsService {
     // Glicemia
     if (data.glicemia) {
       extracted.bloodGlucose = parseFloat(String(data.glicemia));
+    }
+
+    return extracted;
+  }
+
+  /**
+   * Extrai dados de antropometria do objeto data do registro PESO
+   * Os dados vêm do PesoModal.tsx: { peso: number, altura?: number, imc?: number, observacoes?: string }
+   */
+  private extractAnthropometryFromData(data: Record<string, unknown>): {
+    weight?: number;
+    height?: number;
+  } {
+    const extracted: { weight?: number; height?: number } = {};
+
+    // Peso (em kg, já como número)
+    if (data.peso !== undefined && data.peso !== null) {
+      const peso = parseFloat(String(data.peso));
+      if (!isNaN(peso) && peso > 0) {
+        extracted.weight = peso;
+      }
+    }
+
+    // Altura (em metros, já convertido pelo frontend)
+    // PesoModal.tsx converte cm para metros antes de enviar
+    if (data.altura !== undefined && data.altura !== null) {
+      const altura = parseFloat(String(data.altura));
+      if (!isNaN(altura) && altura > 0) {
+        extracted.height = altura;
+      }
     }
 
     return extracted;

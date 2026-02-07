@@ -7,10 +7,10 @@ import {
   QueryPrescriptionParams,
   AdministerMedicationDto,
   AdministerSOSDto,
+  Prescription,
 } from '../api/prescriptions.api'
 import { useState } from 'react'
 import { tenantKey } from '@/lib/query-keys'
-import { QUERY_KEYS } from '@/constants/queryKeys'
 
 // ========== CRUD HOOKS ==========
 
@@ -171,7 +171,7 @@ export function useAdministerMedication() {
       // Invalidar dashboard do cuidador (lista de tarefas diárias)
       queryClient.invalidateQueries({ queryKey: tenantKey('caregiver-tasks') })
       // Invalidar atividades recentes para mostrar a administração
-      queryClient.invalidateQueries({ queryKey: tenantKey(QUERY_KEYS.audit.recent(10)) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('audit', 'recent') })
     },
   })
 }
@@ -190,7 +190,7 @@ export function useAdministerSOS() {
       queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })
       queryClient.invalidateQueries({ queryKey: tenantKey('dashboard', 'stats') })
       // Invalidar atividades recentes para mostrar a administração SOS
-      queryClient.invalidateQueries({ queryKey: tenantKey(QUERY_KEYS.audit.recent(10)) })
+      queryClient.invalidateQueries({ queryKey: tenantKey('audit', 'recent') })
     },
   })
 }
@@ -263,39 +263,39 @@ function calculatePrescriptionStatus(
 }
 
 // Função auxiliar: Transformar prescrição do backend para calendário
-function transformPrescriptionForCalendar(prescription: Record<string, unknown>): PrescriptionCalendarItem {
+function transformPrescriptionForCalendar(prescription: Prescription): PrescriptionCalendarItem {
   const now = new Date()
-  const validUntil = prescription.validUntil ? new Date(extractDateOnly(prescription.validUntil as string) + 'T12:00:00') : undefined
-  const reviewDate = prescription.reviewDate ? new Date(extractDateOnly(prescription.reviewDate as string) + 'T12:00:00') : undefined
+  const validUntil = prescription.validUntil ? new Date(extractDateOnly(prescription.validUntil) + 'T12:00:00') : undefined
+  const reviewDate = prescription.reviewDate ? new Date(extractDateOnly(prescription.reviewDate) + 'T12:00:00') : undefined
 
   const daysUntilExpiry = validUntil ? differenceInDays(validUntil, now) : undefined
   const daysUntilReview = reviewDate ? differenceInDays(reviewDate, now) : undefined
 
-  const medications = prescription.medications as Array<{ isControlled?: boolean; name?: string }> | undefined
+  const medications = prescription.medications
   const hasControlledMedication = medications?.some((m) => m.isControlled) || false
 
   return {
-    id: prescription.id as string,
-    residentId: prescription.residentId as string,
-    residentName: (prescription.resident as { fullName?: string })?.fullName || 'Nome não disponível',
-    prescriptionType: prescription.prescriptionType as PrescriptionType,
+    id: prescription.id,
+    residentId: prescription.residentId,
+    residentName: prescription.resident?.fullName || 'Nome não disponível',
+    prescriptionType: prescription.prescriptionType,
     status: calculatePrescriptionStatus(
-      prescription.validUntil as string | undefined,
-      prescription.reviewDate as string | undefined,
-      prescription.isActive as boolean
+      prescription.validUntil,
+      prescription.reviewDate,
+      prescription.isActive
     ),
-    doctorName: prescription.doctorName as string,
-    doctorCrm: prescription.doctorCrm as string,
-    prescriptionDate: prescription.prescriptionDate as string,
-    validUntil: prescription.validUntil as string | undefined,
-    reviewDate: prescription.reviewDate as string | undefined,
+    doctorName: prescription.doctorName,
+    doctorCrm: prescription.doctorCrm,
+    prescriptionDate: prescription.prescriptionDate,
+    validUntil: prescription.validUntil,
+    reviewDate: prescription.reviewDate,
     daysUntilExpiry,
     daysUntilReview,
     medicationCount: medications?.length || 0,
-    medicationNames: medications?.map((m) => m.name as string) || [],
+    medicationNames: medications?.map((m) => m.name) || [],
     isControlled: hasControlledMedication || prescription.prescriptionType === 'CONTROLADO',
-    controlledClass: prescription.controlledClass as string | undefined,
-    notes: prescription.notes as string | undefined,
+    controlledClass: prescription.controlledClass,
+    notes: prescription.notes,
   }
 }
 

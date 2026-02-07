@@ -1,37 +1,13 @@
-import { useNavigate } from 'react-router-dom'
-import { Shield, ExternalLink } from 'lucide-react'
+import { Shield, Clock } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import type { ResidentWithControlled } from '@/api/prescriptions.api'
 
 interface ControlledResidentsProps {
   residents: ResidentWithControlled[]
 }
 
-const CONTROLLED_CLASS_LABELS: Record<string, string> = {
-  BZD: 'Benzodiazepínicos',
-  PSICOFARMACO: 'Psicofármaco',
-  OPIOIDE: 'Opioide',
-  ANTICONVULSIVANTE: 'Anticonvulsivante',
-  OUTRO: 'Outro',
-}
-
-const CONTROLLED_CLASS_COLORS: Record<string, string> = {
-  BZD: 'bg-warning/10 text-warning/80 border-warning/30',
-  PSICOFARMACO: 'bg-medication-controlled/10 text-medication-controlled/80 border-medication-controlled/30',
-  OPIOIDE: 'bg-danger/10 text-danger/80 border-danger/30',
-  ANTICONVULSIVANTE: 'bg-primary/10 text-primary/80 border-primary/30',
-  OUTRO: 'bg-muted text-foreground/80 border-border',
-}
-
 export function ControlledResidents({ residents }: ControlledResidentsProps) {
-  const navigate = useNavigate()
-
-  const handleViewPrescription = (prescriptionId: string) => {
-    navigate(`/dashboard/prescricoes/${prescriptionId}`)
-  }
-
   if (!residents || residents.length === 0) {
     return (
       <Card>
@@ -48,9 +24,9 @@ export function ControlledResidents({ residents }: ControlledResidentsProps) {
     <Card>
       <CardContent className="p-6">
         <div className="space-y-3">
-          {residents.map((resident) => (
+          {residents.map((resident, index) => (
             <div
-              key={resident.residentId}
+              key={`${resident.residentName}-${index}`}
               className="border border-medication-controlled/30 rounded-lg p-4 bg-medication-controlled/5"
             >
               <div className="flex items-start justify-between gap-4">
@@ -63,41 +39,25 @@ export function ControlledResidents({ residents }: ControlledResidentsProps) {
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm text-foreground/80">
-                      <span className="font-medium">Prescritor:</span>{' '}
-                      {resident.doctorName}
+                      <span className="font-medium">Medicamento:</span>{' '}
+                      {resident.medication}
                     </p>
-                    <div className="flex flex-wrap gap-1">
-                      {resident.controlledClasses?.map((controlledClass) => (
-                        <Badge
-                          key={controlledClass}
-                          variant="outline"
-                          className={
-                            CONTROLLED_CLASS_COLORS[controlledClass] ||
-                            'bg-muted text-foreground/80 border-border'
-                          }
-                        >
-                          {CONTROLLED_CLASS_LABELS[controlledClass] ||
-                            controlledClass}
-                        </Badge>
-                      ))}
-                    </div>
-                    {resident.notificationNumber && (
-                      <p className="text-xs text-muted-foreground">
-                        Notificação: {resident.notificationNumber}
-                      </p>
+                    {resident.scheduledTimes && resident.scheduledTimes.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        {resident.scheduledTimes.map((time) => (
+                          <Badge
+                            key={time}
+                            variant="outline"
+                            className="bg-medication-controlled/10 text-medication-controlled/80 border-medication-controlled/30"
+                          >
+                            {time}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    handleViewPrescription(resident.prescriptionId)
-                  }
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Ver
-                </Button>
               </div>
             </div>
           ))}

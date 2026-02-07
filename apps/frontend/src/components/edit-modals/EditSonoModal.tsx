@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { SonoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -36,12 +37,6 @@ const editSonoSchema = z.object({
 })
 
 type EditSonoFormData = z.infer<typeof editSonoSchema>
-
-interface SonoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditSonoModalProps {
   open: boolean

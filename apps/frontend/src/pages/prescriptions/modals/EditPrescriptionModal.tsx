@@ -125,11 +125,12 @@ export function EditPrescriptionModal({
       onSuccess?.()
     } catch (error: unknown) {
       console.error('Erro ao atualizar prescrição:', error)
+      const errorResponse = error as { response?: { data?: { message?: string } } }
       toast({
         variant: 'destructive',
         title: 'Erro ao atualizar',
         description:
-          error.response?.data?.message ||
+          errorResponse?.response?.data?.message ||
           'Não foi possível atualizar a prescrição. Tente novamente.',
       })
     } finally {

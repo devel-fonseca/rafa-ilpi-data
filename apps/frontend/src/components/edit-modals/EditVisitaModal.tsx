@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { VisitaRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -28,12 +29,6 @@ const editVisitaSchema = z.object({
 })
 
 type EditVisitaFormData = z.infer<typeof editVisitaSchema>
-
-interface VisitaRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditVisitaModalProps {
   open: boolean

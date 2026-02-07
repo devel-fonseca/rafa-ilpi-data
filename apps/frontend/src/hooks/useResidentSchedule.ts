@@ -4,154 +4,41 @@ import { invalidateAfterScheduleMutation } from '@/utils/queryInvalidation';
 import { tenantKey } from '@/lib/query-keys';
 
 // ──────────────────────────────────────────────────────────────────────────
-// TYPES
+// TYPES - Re-exportados de @/types/resident-schedule
 // ──────────────────────────────────────────────────────────────────────────
 
-export type ScheduleFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
-export type ScheduledEventType = 'VACCINATION' | 'CONSULTATION' | 'EXAM' | 'PROCEDURE' | 'OTHER';
-export type ScheduledEventStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'MISSED';
-export type RecordType =
-  | 'HIGIENE'
-  | 'ALIMENTACAO'
-  | 'HIDRATACAO'
-  | 'MONITORAMENTO'
-  | 'ELIMINACAO'
-  | 'COMPORTAMENTO'
-  | 'HUMOR'
-  | 'SONO'
-  | 'PESO'
-  | 'ATIVIDADES';
+export type {
+  ScheduleFrequency,
+  ScheduledEventType,
+  ScheduledEventStatus,
+  SchedulableRecordType,
+  ResidentScheduleConfig,
+  ResidentScheduledEvent,
+  DailyTask,
+  CreateScheduleConfigInput,
+  UpdateScheduleConfigInput,
+  CreateScheduledEventInput,
+  UpdateScheduledEventInput,
+  VaccineData,
+  MealTimesInput,
+  CreateAlimentacaoConfigInput,
+  UpdateAlimentacaoConfigInput,
+} from '@/types/resident-schedule';
 
-export interface ResidentScheduleConfig {
-  id: string;
-  residentId: string;
-  recordType: RecordType;
-  frequency: ScheduleFrequency;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  suggestedTimes: string[];
-  isActive: boolean;
-  notes?: string;
-  metadata?: {
-    mealType?: string; // Tipo de refeição (para ALIMENTACAO)
-  };
-  createdAt: string;
-  updatedAt: string;
-  resident?: {
-    id: string;
-    fullName: string;
-  };
-  createdByUser?: {
-    id: string;
-    name: string;
-  };
-}
+import type {
+  ResidentScheduleConfig,
+  ResidentScheduledEvent,
+  DailyTask,
+  CreateScheduleConfigInput,
+  UpdateScheduleConfigInput,
+  CreateScheduledEventInput,
+  UpdateScheduledEventInput,
+  CreateAlimentacaoConfigInput,
+  UpdateAlimentacaoConfigInput,
+} from '@/types/resident-schedule';
 
-export interface ResidentScheduledEvent {
-  id: string;
-  residentId: string;
-  eventType: ScheduledEventType;
-  scheduledDate: string;
-  scheduledTime: string;
-  title: string;
-  description?: string;
-  vaccineData?: {
-    name: string;
-    dose: string;
-    manufacturer?: string;
-    batchNumber?: string;
-  };
-  status: ScheduledEventStatus;
-  completedRecordId?: string;
-  completedAt?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  resident?: {
-    id: string;
-    fullName: string;
-  };
-  createdByUser?: {
-    id: string;
-    name: string;
-  };
-}
-
-export interface DailyTask {
-  type: 'RECURRING' | 'EVENT';
-  residentId: string;
-  residentName: string;
-  // Recurring task fields
-  recordType?: string;
-  suggestedTimes?: string[];
-  configId?: string;
-  isCompleted?: boolean;
-  completedAt?: string;
-  completedBy?: string;
-  mealType?: string; // Tipo de refeição (apenas para ALIMENTACAO)
-  // Event fields
-  eventId?: string;
-  eventType?: string;
-  scheduledTime?: string;
-  title?: string;
-  status?: string;
-  description?: string;
-}
-
-export interface CreateScheduleConfigInput {
-  residentId: string;
-  recordType: RecordType;
-  frequency: ScheduleFrequency;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  suggestedTimes: string[];
-  isActive?: boolean;
-  notes?: string;
-}
-
-export interface UpdateScheduleConfigInput {
-  recordType?: RecordType;
-  frequency?: ScheduleFrequency;
-  dayOfWeek?: number;
-  dayOfMonth?: number;
-  suggestedTimes?: string[];
-  isActive?: boolean;
-  notes?: string;
-}
-
-export interface CreateScheduledEventInput {
-  residentId: string;
-  eventType: ScheduledEventType;
-  scheduledDate: string;
-  scheduledTime: string;
-  title: string;
-  description?: string;
-  vaccineData?: {
-    name: string;
-    dose: string;
-    manufacturer?: string;
-    batchNumber?: string;
-  };
-  notes?: string;
-}
-
-export interface UpdateScheduledEventInput {
-  eventType?: ScheduledEventType;
-  scheduledDate?: string;
-  scheduledTime?: string;
-  title?: string;
-  description?: string;
-  vaccineData?: {
-    name: string;
-    dose: string;
-    manufacturer?: string;
-    batchNumber?: string;
-  };
-  status?: ScheduledEventStatus;
-  completedRecordId?: string;
-  completedAt?: string;
-  notes?: string;
-}
+// Alias para compatibilidade com código existente que usa RecordType
+export type { SchedulableRecordType as RecordType } from '@/types/resident-schedule';
 
 // ──────────────────────────────────────────────────────────────────────────
 // QUERIES - CONFIGURAÇÕES
@@ -391,28 +278,6 @@ export function useDeleteScheduledEvent() {
 // ──────────────────────────────────────────────────────────────────────────
 // ALIMENTACAO (Batch operations for 6 meal configs)
 // ──────────────────────────────────────────────────────────────────────────
-
-export interface MealTimesInput {
-  cafeDaManha: string;
-  colacao: string;
-  almoco: string;
-  lanche: string;
-  jantar: string;
-  ceia: string;
-}
-
-export interface CreateAlimentacaoConfigInput {
-  residentId: string;
-  mealTimes: MealTimesInput;
-  isActive?: boolean;
-  notes?: string;
-}
-
-export interface UpdateAlimentacaoConfigInput {
-  mealTimes: MealTimesInput;
-  isActive?: boolean;
-  notes?: string;
-}
 
 /**
  * Hook para criar 6 configurações de alimentação em batch

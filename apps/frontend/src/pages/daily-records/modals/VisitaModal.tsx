@@ -2,8 +2,8 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, VisitaData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ type VisitaFormData = z.infer<typeof visitaSchema>
 interface VisitaModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: VisitaFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<VisitaData>) => void
   residentId: string
   residentName: string
   date: string
@@ -59,7 +59,7 @@ export function VisitaModal({
   })
 
   const handleFormSubmit = (data: VisitaFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<VisitaData> = {
       residentId,
       type: 'VISITA',
       date,

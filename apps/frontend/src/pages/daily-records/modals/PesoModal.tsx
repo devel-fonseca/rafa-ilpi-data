@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react'
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, PesoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -50,7 +50,7 @@ type PesoFormData = z.infer<typeof pesoSchema>
 interface PesoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: PesoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<PesoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -119,7 +119,7 @@ export function PesoModal({
     // Ex: 170cm → 1.70m
     const alturaMetros = data.altura ? parseFloat(data.altura) / 100 : undefined
 
-    const payload = {
+    const payload: CreateDailyRecordInput<PesoData> = {
       residentId,
       type: 'PESO',
       date,

@@ -13,8 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAdministerSOS } from '@/hooks/usePrescriptions'
 import { useAuthStore } from '@/stores/auth.store'
 import { toast } from 'sonner'
-import type { AdministerSOSDto } from '@/api/prescriptions.api'
-import type { SOSMedication } from '@/api/sos-medications.api'
+import type { AdministerSOSDto, SOSMedication } from '@/api/prescriptions.api'
 import { getCurrentDate, getCurrentTime } from '@/utils/dateHelpers'
 import { formatMedicationPresentation } from '@/utils/formatters'
 
@@ -39,7 +38,7 @@ export function AdministerSOSModal({
     formState: { errors },
   } = useForm<AdministerSOSDto>({
     defaultValues: {
-      sosMedicationId: sosMedication.id,
+      sosMedicationId: sosMedication?.id || '',
       date: getCurrentDate(),
       time: getCurrentTime(),
       indication: '',
@@ -55,12 +54,13 @@ export function AdministerSOSModal({
       reset()
       onClose()
     } catch (error: unknown) {
-      toast.error(error?.response?.data?.message || 'Erro ao registrar administração SOS')
+      const errorResponse = error as { response?: { data?: { message?: string } } }
+      toast.error(errorResponse?.response?.data?.message || 'Erro ao registrar administração SOS')
     }
   }
 
   React.useEffect(() => {
-    if (open) {
+    if (open && sosMedication) {
       reset({
         sosMedicationId: sosMedication.id,
         date: getCurrentDate(),
@@ -71,6 +71,11 @@ export function AdministerSOSModal({
       })
     }
   }, [open, sosMedication, user, reset])
+
+  // Early return se não há medicação SOS
+  if (!sosMedication) {
+    return null
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

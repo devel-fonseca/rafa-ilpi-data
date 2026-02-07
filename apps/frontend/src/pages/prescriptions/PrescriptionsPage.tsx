@@ -34,7 +34,7 @@ export function PrescriptionsPage() {
           icon={Loader2}
           title="Carregando dashboard..."
           description="Aguarde enquanto buscamos os dados"
-          variant="loading"
+          variant="info"
         />
       </Page>
     )

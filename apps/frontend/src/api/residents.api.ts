@@ -74,16 +74,10 @@ export interface Resident {
   dischargeDate?: string
   dischargeReason?: string
 
-  // Saúde
+  // Saúde (campos evolutivos agora em tabelas separadas)
   healthStatus?: string
-  bloodType?: string
-  height?: number
-  weight?: number
-  dependencyLevel?: string
-  mobilityAid?: boolean
   specialNeeds?: string
   functionalAspects?: string
-  medicationsOnAdmission?: string
   allergies?: Allergy[]
   chronicConditions?: string
   dietaryRestrictions?: string
@@ -114,6 +108,9 @@ export interface Resident {
     type: string
     url: string
   }>
+
+  // Dados calculados vindos da nova tabela resident_dependency_assessments
+  mobilityAid?: boolean
 }
 
 export interface ResidentsResponse {
@@ -209,14 +206,8 @@ export interface CreateResidentDto {
   dischargeDate?: string
   dischargeReason?: string
   healthStatus?: string
-  bloodType?: string
-  height?: number
-  weight?: number
-  dependencyLevel?: string
-  mobilityAid?: boolean
   specialNeeds?: string
   functionalAspects?: string
-  medicationsOnAdmission?: string
   allergies?: Allergy[]
   chronicConditions?: string
   dietaryRestrictions?: string
@@ -298,14 +289,8 @@ export interface UpdateResidentDto {
   dischargeDate?: string
   dischargeReason?: string
   healthStatus?: string
-  bloodType?: string
-  height?: number
-  weight?: number
-  dependencyLevel?: string
-  mobilityAid?: boolean
   specialNeeds?: string
   functionalAspects?: string
-  medicationsOnAdmission?: string
   allergies?: Allergy[]
   chronicConditions?: string
   dietaryRestrictions?: string

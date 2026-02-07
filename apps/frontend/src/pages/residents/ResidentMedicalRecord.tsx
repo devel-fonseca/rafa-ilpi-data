@@ -47,7 +47,7 @@ import {
 } from 'lucide-react'
 import { addDays, subDays, parseISO, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 import { ResidentScheduleTab } from '@/components/resident-schedule/ResidentScheduleTab'
 import { formatBedFromResident, formatCNS } from '@/utils/formatters'
 import { getCurrentDate, formatDateLongSafe, formatDateOnlySafe, extractDateOnly } from '@/utils/dateHelpers'
@@ -72,6 +72,8 @@ import {
   ViewOutrosModal,
 } from '@/components/view-modals'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useBloodType, useCurrentDependencyAssessment } from '@/hooks/useResidentHealth'
+import { BLOOD_TYPE_LABELS, DEPENDENCY_LEVEL_LABELS } from '@/api/resident-health.api'
 import { DailyRecordsTimeline } from '@/components/daily-records/DailyRecordsTimeline'
 import type { DailyRecord } from '@/api/dailyRecords.api'
 import type { Allergy } from '@/api/allergies.api'
@@ -92,6 +94,18 @@ export default function ResidentProfile() {
   const { data: resident, isLoading, error } = useResident(id || '')
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
+
+  // Buscar tipo sanguíneo da nova tabela
+  const { data: bloodTypeData } = useBloodType(id || '')
+  const bloodTypeLabel = bloodTypeData?.bloodType
+    ? BLOOD_TYPE_LABELS[bloodTypeData.bloodType as keyof typeof BLOOD_TYPE_LABELS]
+    : 'Não informado'
+
+  // Buscar avaliação de dependência atual da nova tabela
+  const { data: dependencyAssessment } = useCurrentDependencyAssessment(id || '')
+  const dependencyLevelLabel = dependencyAssessment?.dependencyLevel
+    ? DEPENDENCY_LEVEL_LABELS[dependencyAssessment.dependencyLevel as keyof typeof DEPENDENCY_LEVEL_LABELS]
+    : '-'
 
   // Verificar se o usuário tem permissão para visualizar prontuário
   const canViewMedicalRecord = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
@@ -229,22 +243,6 @@ export default function ResidentProfile() {
       default:
         return 'bg-muted text-muted-foreground border-border'
     }
-  }
-
-  // Traduzir tipo sanguíneo
-  const translateBloodType = (bloodType?: string) => {
-    if (!bloodType || bloodType === 'NAO_INFORMADO') return 'Não informado'
-    const map: Record<string, string> = {
-      A_POSITIVO: 'A+',
-      A_NEGATIVO: 'A-',
-      B_POSITIVO: 'B+',
-      B_NEGATIVO: 'B-',
-      AB_POSITIVO: 'AB+',
-      AB_NEGATIVO: 'AB-',
-      O_POSITIVO: 'O+',
-      O_NEGATIVO: 'O-',
-    }
-    return map[bloodType] || bloodType
   }
 
   // Traduzir gênero
@@ -419,7 +417,7 @@ export default function ResidentProfile() {
                       </div>
                       <div>
                         <div className="text-sm text-muted-foreground">Grau de Dependência</div>
-                        <div className="font-medium text-foreground">{resident.dependencyLevel || '-'}</div>
+                        <div className="font-medium text-foreground">{dependencyLevelLabel}</div>
                       </div>
                     </div>
 
@@ -487,7 +485,7 @@ export default function ResidentProfile() {
                 <CardContent className="space-y-4">
                   <div>
                     <div className="text-sm text-muted-foreground">Tipo Sanguíneo</div>
-                    <div className="font-semibold text-lg text-danger">{translateBloodType(resident.bloodType)}</div>
+                    <div className="font-semibold text-lg text-danger">{bloodTypeLabel}</div>
                   </div>
 
                   {/* Sinais Vitais */}
@@ -983,7 +981,7 @@ export default function ResidentProfile() {
                       <div
                         key={record.id}
                         onClick={() => handleViewRecord(record)}
-                        className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
+                        className={`border-l-4 pl-4 py-2 cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] rounded-r-md ${getRecordTypeLabel(record.type).bgColor}`}
                       >
                         <div className="flex items-center gap-3">
                           {/* Horário */}
@@ -992,9 +990,9 @@ export default function ResidentProfile() {
                           {/* Badge do Tipo */}
                           <Badge
                             variant="outline"
-                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
+                            className={`${getRecordTypeLabel(record.type).color} text-xs`}
                           >
-                            {RECORD_TYPE_LABELS[record.type]?.label}
+                            {getRecordTypeLabel(record.type).label}
                           </Badge>
 
                           {/* Responsável */}

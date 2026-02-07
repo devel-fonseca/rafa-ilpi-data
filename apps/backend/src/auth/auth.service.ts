@@ -1364,18 +1364,82 @@ export class AuthService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<{ reauthToken: string; expiresIn: number }> {
-    // 1. Buscar usuário com tenantId (precisa para roteamento)
-    const userInMainDb = await this.prisma.user.findUnique({
+    // 1. Buscar usuário - tentar primeiro em public (SUPERADMIN)
+    // eslint-disable-next-line no-restricted-syntax
+    let userWithTenant = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { tenantId: true },
+      select: { id: true, tenantId: true },
     });
 
-    if (!userInMainDb || !userInMainDb.tenantId) {
+    // Se não encontrou em public, buscar em tenant schemas
+    if (!userWithTenant) {
+      const tenants = await this.prisma.tenant.findMany({
+        where: { deletedAt: null },
+        select: { schemaName: true },
+      });
+
+      for (const tenant of tenants) {
+        try {
+          const tc = this.prisma.getTenantClient(tenant.schemaName);
+          const tenantUser = await tc.user.findUnique({
+            where: { id: userId },
+            select: { id: true, tenantId: true },
+          });
+
+          if (tenantUser) {
+            userWithTenant = tenantUser;
+            break;
+          }
+        } catch (_error) {
+          // Schema pode não existir, continuar
+          continue;
+        }
+      }
+    }
+
+    if (!userWithTenant) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
-    // 2. Buscar usuário no schema do tenant
-    const schemaName = await this.getSchemaName(userInMainDb.tenantId);
+    // 2. Buscar usuário completo no schema correto
+    const tenantId = userWithTenant.tenantId;
+
+    // SUPERADMIN (tenantId = null) - buscar em public schema
+    if (!tenantId) {
+      // eslint-disable-next-line no-restricted-syntax
+      const superAdminUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          password: true,
+          name: true,
+          deletedAt: true,
+        },
+      });
+
+      if (!superAdminUser || superAdminUser.deletedAt) {
+        throw new UnauthorizedException('Usuário não encontrado');
+      }
+
+      // Validar senha
+      const isPasswordValid = await bcrypt.compare(password, superAdminUser.password);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Senha incorreta');
+      }
+
+      // Gerar token (SUPERADMIN)
+      const expiresIn = 300;
+      const reauthToken = this.jwtService.sign(
+        { sub: superAdminUser.id, type: 'reauthentication' },
+        { secret: this.configService.get('JWT_SECRET'), expiresIn: `${expiresIn}s` },
+      );
+
+      return { reauthToken, expiresIn };
+    }
+
+    // 3. Buscar usuário de tenant no schema correto
+    const schemaName = await this.getSchemaName(tenantId);
     const tenantClient = this.prisma.getTenantClient(schemaName);
 
     const user = await tenantClient.user.findUnique({
@@ -1393,14 +1457,14 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
-    // 3. Validar senha
+    // 4. Validar senha
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       // Registrar tentativa de reautenticação falhada
       await tenantClient.auditLog.create({
         data: {
-          tenantId: userInMainDb.tenantId,
+          tenantId,
           entityType: 'User',
           entityId: user.id,
           action: AccessAction.REAUTHENTICATION_FAILED,
@@ -1417,7 +1481,7 @@ export class AuthService {
       throw new UnauthorizedException('Senha incorreta');
     }
 
-    // 4. Gerar token de reautenticação (validade: 5 minutos)
+    // 5. Gerar token de reautenticação (validade: 5 minutos)
     const expiresIn = 300; // 5 minutos em segundos
     const reauthToken = this.jwtService.sign(
       {
@@ -1430,10 +1494,10 @@ export class AuthService {
       },
     );
 
-    // 5. Registrar reautenticação bem-sucedida
+    // 6. Registrar reautenticação bem-sucedida
     await tenantClient.auditLog.create({
       data: {
-        tenantId: userInMainDb.tenantId,
+        tenantId,
         entityType: 'User',
         entityId: user.id,
         action: AccessAction.REAUTHENTICATION_SUCCESS,

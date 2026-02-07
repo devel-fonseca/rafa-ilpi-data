@@ -2,8 +2,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Info } from 'lucide-react'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, SonoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,7 @@ type SonoFormData = z.infer<typeof sonoSchema>
 interface SonoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: SonoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<SonoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -88,7 +88,7 @@ export function SonoModal({
   const watchPadraoSono = watch('padraoSono')
 
   const handleFormSubmit = (data: SonoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<SonoData> = {
       residentId,
       type: 'SONO',
       date,

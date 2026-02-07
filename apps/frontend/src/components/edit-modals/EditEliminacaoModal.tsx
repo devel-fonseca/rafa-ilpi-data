@@ -6,6 +6,7 @@ import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import type { EliminacaoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -45,12 +46,6 @@ const editEliminacaoSchema = z.object({
 })
 
 type EditEliminacaoFormData = z.infer<typeof editEliminacaoSchema>
-
-interface EliminacaoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditEliminacaoModalProps {
   open: boolean

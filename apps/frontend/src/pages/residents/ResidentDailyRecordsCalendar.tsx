@@ -4,26 +4,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Calendar, Loader2, History, Edit, Trash2, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { formatDateTimeSafe, formatDateLongSafe } from '@/utils/dateHelpers'
+import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Page, PageHeader } from '@/design-system/components'
 import { tenantKey } from '@/lib/query-keys'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/services/api'
+import { DeleteDailyRecordModal } from '@/components/modals/DeleteDailyRecordModal'
 import { RecordCalendar } from '@/components/calendar/RecordCalendar'
 import { useResidentRecordDates } from '@/hooks/useResidentRecordDates'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 import { DailyRecordHistoryModal } from '@/components/DailyRecordHistoryModal'
 import { dailyRecordsAPI, type DailyRecord, type RecordType } from '@/api/dailyRecords.api'
 import { toast } from 'sonner'
@@ -76,8 +67,6 @@ export default function ResidentDailyRecordsCalendar() {
   // Delete states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [deletingRecord, setDeletingRecord] = useState<DailyRecord | null>(null)
-  const [deleteReason, setDeleteReason] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // View states
   const [viewModalOpen, setViewModalOpen] = useState(false)
@@ -95,7 +84,6 @@ export default function ResidentDailyRecordsCalendar() {
 
   const handleOpenDelete = (record: DailyRecord) => {
     setDeletingRecord(record)
-    setDeleteReason('')
     setDeleteModalOpen(true)
   }
 
@@ -134,27 +122,10 @@ export default function ResidentDailyRecordsCalendar() {
     }
   }
 
-  const handleConfirmDelete = async () => {
-    if (!deletingRecord || deleteReason.length < 10) {
-      toast.error('O motivo da exclusão deve ter pelo menos 10 caracteres')
-      return
-    }
-
-    try {
-      setIsDeleting(true)
-      await dailyRecordsAPI.delete(deletingRecord.id, deleteReason)
-
-      toast.success('Registro excluído com sucesso')
-      setDeleteModalOpen(false)
-      setDeletingRecord(null)
-      setDeleteReason('')
-      refetchRecords()
-    } catch (err: unknown) {
-      console.error('Erro ao excluir registro:', err)
-      toast.error(getErrorMessage(err, 'Erro ao excluir registro'))
-    } finally {
-      setIsDeleting(false)
-    }
+  const handleDeleteSuccess = () => {
+    setDeleteModalOpen(false)
+    setDeletingRecord(null)
+    refetchRecords()
   }
 
   // Buscar dados do residente
@@ -244,7 +215,7 @@ export default function ResidentDailyRecordsCalendar() {
                 {records.map((record: DailyRecord) => (
                   <div
                     key={record.id}
-                    className={`border-l-4 pl-4 py-2 rounded-r-md ${RECORD_TYPE_LABELS[record.type]?.bgColor || 'bg-muted'}`}
+                    className={`border-l-4 pl-4 py-2 rounded-r-md ${getRecordTypeLabel(record.type).bgColor}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       {/* Conteúdo principal - clicável para visualizar */}
@@ -257,9 +228,9 @@ export default function ResidentDailyRecordsCalendar() {
                           <span className="font-semibold text-base min-w-[50px]">{record.time}</span>
                           <Badge
                             variant="outline"
-                            className={`${RECORD_TYPE_LABELS[record.type]?.color} text-xs`}
+                            className={`${getRecordTypeLabel(record.type).color} text-xs`}
                           >
-                            {RECORD_TYPE_LABELS[record.type]?.label}
+                            {getRecordTypeLabel(record.type).label}
                           </Badge>
                           <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                         </div>
@@ -469,94 +440,13 @@ export default function ResidentDailyRecordsCalendar() {
         />
       )}
 
-      {/* Modal de Exclusão */}
-      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Excluir Registro
-            </DialogTitle>
-            <DialogDescription>
-              Esta ação não pode ser desfeita. O registro será marcado como excluído e salvo no histórico para fins de auditoria.
-            </DialogDescription>
-          </DialogHeader>
-
-          {deletingRecord && (
-            <div className="space-y-4 py-4">
-              {/* Informações do registro */}
-              <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-lg space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={RECORD_TYPE_LABELS[deletingRecord.type]?.color}
-                  >
-                    {RECORD_TYPE_LABELS[deletingRecord.type]?.label}
-                  </Badge>
-                  <span className="text-sm font-semibold">{deletingRecord.time}</span>
-                </div>
-                <p className="text-sm">
-                  {formatDateLongSafe(deletingRecord.date)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Registrado por: {deletingRecord.recordedBy}
-                </p>
-              </div>
-
-              {/* Campo Motivo da Exclusão */}
-              <div className="space-y-2">
-                <Label htmlFor="deleteReason" className="text-sm font-medium">
-                  Motivo da exclusão <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="deleteReason"
-                  placeholder="Descreva o motivo da exclusão (mínimo 10 caracteres)..."
-                  value={deleteReason}
-                  onChange={(e) => setDeleteReason(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {deleteReason.length}/10 caracteres mínimos
-                </p>
-              </div>
-
-              {deleteReason.length > 0 && deleteReason.length < 10 && (
-                <p className="text-xs text-destructive">
-                  O motivo deve ter pelo menos 10 caracteres
-                </p>
-              )}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteModalOpen(false)}
-              disabled={isDeleting}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmDelete}
-              disabled={isDeleting || deleteReason.length < 10}
-              variant="destructive"
-            >
-              {isDeleting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Excluindo...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Confirmar Exclusão
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de Exclusão com Reautenticação */}
+      <DeleteDailyRecordModal
+        record={deletingRecord ?? undefined}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Modais de Visualização */}
       {viewingRecord?.type === 'HIGIENE' && (

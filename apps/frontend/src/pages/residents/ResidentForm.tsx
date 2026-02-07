@@ -23,8 +23,6 @@ import {
   displayToDate,
   mapEstadoCivilFromBackend,
   mapEstadoCivilToBackend,
-  mapTipoSanguineoFromBackend,
-  mapTipoSanguineoToBackend,
 } from '@/utils/formMappers'
 import { cn } from '@/lib/utils'
 import { api } from '@/services/api'
@@ -41,7 +39,6 @@ import {
   ContatosSection,
   EnderecoSection,
   ResponsavelSection,
-  SaudeSection,
   ConveniosSection,
   AdmissaoSection,
   DocumentosSection,
@@ -59,7 +56,6 @@ const SECTION_CONFIG: Record<FormSection, { title: string; subtitle: string }> =
   contatos: { title: 'Contatos de Emergência', subtitle: 'Pessoas para contato em caso de emergência' },
   endereco: { title: 'Endereço', subtitle: 'Endereço atual e procedência' },
   responsavel: { title: 'Responsável Legal', subtitle: 'Dados do responsável pelo residente' },
-  saude: { title: 'Saúde', subtitle: 'Dados antropométricos e mobilidade' },
   convenios: { title: 'Convênios', subtitle: 'Planos de saúde vinculados' },
   admissao: { title: 'Admissão e Acomodação', subtitle: 'Dados de admissão e leito' },
   documentos: { title: 'Documentos', subtitle: 'Documentos anexados ao prontuário' },
@@ -116,7 +112,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       leitoNumero: '',
       contatosEmergencia: [],
       convenios: [],
-      necessitaAuxilioMobilidade: false,
     },
   })
 
@@ -283,16 +278,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         if (resident.legalGuardianNumber) setValue('responsavelLegalNumero', resident.legalGuardianNumber)
         if (resident.legalGuardianComplement) setValue('responsavelLegalComplemento', resident.legalGuardianComplement)
         if (resident.legalGuardianDistrict) setValue('responsavelLegalBairro', resident.legalGuardianDistrict)
-
-        // Saúde
-        if (resident.bloodType) setValue('tipoSanguineo', mapTipoSanguineoFromBackend(resident.bloodType))
-        if (resident.height) setValue('altura', Math.round(resident.height * 100).toString())
-        if (resident.weight) setValue('peso', resident.weight.toString())
-        if (resident.medicationsOnAdmission) {
-          setValue('medicamentos', resident.medicationsOnAdmission.split(',').map((nome: string) => ({ nome: nome.trim() })))
-        }
-        if (resident.dependencyLevel) setValue('grauDependencia', resident.dependencyLevel)
-        if (resident.mobilityAid !== undefined) setValue('necessitaAuxilioMobilidade', resident.mobilityAid)
 
         // Convênios
         if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
@@ -466,14 +451,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         legalGuardianComplement: data.responsavelLegalComplemento || null,
         legalGuardianDistrict: data.responsavelLegalBairro || null,
 
-        // Saúde
-        bloodType: data.tipoSanguineo ? mapTipoSanguineoToBackend(data.tipoSanguineo) : null,
-        height: data.altura ? parseFloat(data.altura) / 100 : null,
-        weight: data.peso ? parseFloat(data.peso.replace(',', '.')) : null,
-        dependencyLevel: data.grauDependencia || null,
-        mobilityAid: data.necessitaAuxilioMobilidade ?? false,
-        medicationsOnAdmission: data.medicamentos?.map((m) => m.nome).filter(Boolean).join(', ') || null,
-
         // Convênios
         healthPlans: data.convenios
           ?.filter((c) => c.nome)
@@ -577,8 +554,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         return <EnderecoSection onBuscarCep={handleBuscarCep} />
       case 'responsavel':
         return <ResponsavelSection onBuscarCep={handleBuscarCep} />
-      case 'saude':
-        return <SaudeSection />
       case 'convenios':
         return <ConveniosSection />
       case 'admissao':

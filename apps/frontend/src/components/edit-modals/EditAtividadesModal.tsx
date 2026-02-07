@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { AtividadesRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -28,12 +29,6 @@ const editAtividadesSchema = z.object({
 })
 
 type EditAtividadesFormData = z.infer<typeof editAtividadesSchema>
-
-interface AtividadesRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditAtividadesModalProps {
   open: boolean

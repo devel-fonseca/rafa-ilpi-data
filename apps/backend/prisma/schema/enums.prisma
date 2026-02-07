@@ -887,3 +887,17 @@ enum SubstitutionType {
 
   @@map("SubstitutionType")
 }
+
+// ==========================================
+// GRAU DE DEPENDÊNCIA (RDC 502/2021)
+// ==========================================
+
+// Enum: Grau de Dependência conforme RDC 502/2021
+// Usado para dimensionamento de cuidadores e classificação funcional
+enum DependencyLevel {
+  GRAU_I // Grau I - Independente (idosos independentes, mesmo que requeiram uso de equipamentos de autoajuda)
+  GRAU_II // Grau II - Parcialmente Dependente (idosos com dependência em até três atividades de autocuidado)
+  GRAU_III // Grau III - Totalmente Dependente (idosos com dependência que requeiram assistência em todas as atividades)
+
+  @@map("DependencyLevel")
+}

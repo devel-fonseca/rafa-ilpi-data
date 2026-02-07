@@ -37,6 +37,8 @@ import { ptBR } from 'date-fns/locale'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useBloodType } from '@/hooks/useResidentHealth'
+import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
 import { Check } from 'lucide-react'
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -106,7 +108,6 @@ interface Resident {
   socialName?: string | null
   birthDate: string
   gender: string
-  bloodType?: string
   fotoUrl?: string | null
   fotoUrlSmall?: string | null
   fotoUrlMedium?: string | null
@@ -247,6 +248,9 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
     (prescription) => prescription.medications || [],
   ) || []
 
+  // Buscar tipo sanguíneo da nova tabela
+  const { data: bloodTypeData } = useBloodType(residentId)
+
   // Buscar sinais vitais consolidados
   const { data: consolidatedVitalSigns } = useQuery<ConsolidatedVitalSigns | null>({
     queryKey: tenantKey('daily-records', 'resident', residentId, 'consolidated-vital-signs'),
@@ -263,21 +267,10 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
     staleTime: 5 * 60 * 1000, // 5 minutos
   })
 
-  // Função para traduzir tipo sanguíneo
-  const translateBloodType = (bloodType?: string) => {
-    if (!bloodType || bloodType === 'NAO_INFORMADO') return 'Não informado'
-    const map: Record<string, string> = {
-      A_POSITIVO: 'A+',
-      A_NEGATIVO: 'A-',
-      B_POSITIVO: 'B+',
-      B_NEGATIVO: 'B-',
-      AB_POSITIVO: 'AB+',
-      AB_NEGATIVO: 'AB-',
-      O_POSITIVO: 'O+',
-      O_NEGATIVO: 'O-',
-    }
-    return map[bloodType] || bloodType
-  }
+  // Obter label do tipo sanguíneo da nova tabela
+  const bloodTypeLabel = bloodTypeData?.bloodType
+    ? BLOOD_TYPE_LABELS[bloodTypeData.bloodType as keyof typeof BLOOD_TYPE_LABELS]
+    : 'Não informado'
 
   // Carregar foto se existir
   useEffect(() => {
@@ -374,7 +367,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                         <div className="text-center bg-primary/5 rounded-lg p-2">
                           <p className="text-[10px] text-muted-foreground mb-0.5">Tipo</p>
                           <p className="text-sm font-bold text-primary">
-                            {translateBloodType(resident?.bloodType)}
+                            {bloodTypeLabel}
                           </p>
                         </div>
 

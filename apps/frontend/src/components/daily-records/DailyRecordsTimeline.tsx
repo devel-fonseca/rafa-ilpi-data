@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import type { DailyRecord } from '@/api/dailyRecords.api'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 
 interface DailyRecordsTimelineProps {
   records: DailyRecord[]
@@ -26,8 +26,8 @@ export function DailyRecordsTimeline({ records, onRecordClick }: DailyRecordsTim
       id: record.id,
       percentage: timeToPercentage(record.time),
       time: record.time,
-      label: RECORD_TYPE_LABELS[record.type]?.label || record.type,
-      color: RECORD_TYPE_LABELS[record.type]?.chartColor || '#94a3b8',
+      label: getRecordTypeLabel(record.type).label,
+      color: getRecordTypeLabel(record.type).chartColor,
       record,
     }))
   }, [records])

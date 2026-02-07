@@ -40,6 +40,31 @@ export interface VaccineData {
   batchNumber?: string
 }
 
+/**
+ * Metadados estruturados para eventos institucionais dentro de AgendaItem
+ * Substituindo Record<string, unknown> para tipagem forte
+ */
+export interface InstitutionalEventMetadata {
+  eventType?: InstitutionalEventType
+  visibility?: InstitutionalEventVisibility
+  documentType?: string
+  documentNumber?: string
+  expiryDate?: string | Date
+  responsible?: string
+  trainingTopic?: string
+  instructor?: string
+  targetAudience?: string
+  location?: string
+}
+
+/**
+ * Metadados genéricos para AgendaItem (union de todos os tipos possíveis)
+ */
+export type AgendaItemMetadata = InstitutionalEventMetadata | {
+  // Extensível para outros tipos de metadados no futuro
+  [key: string]: string | number | boolean | Date | undefined
+}
+
 export interface AgendaItem {
   id: string
   type: AgendaItemType
@@ -53,7 +78,7 @@ export interface AgendaItem {
   status: 'pending' | 'completed' | 'missed' | 'cancelled'
   completedAt?: string | Date
   completedBy?: string
-  metadata?: Record<string, unknown>
+  metadata?: AgendaItemMetadata
 
   // Específico para medicamentos
   medicationName?: string

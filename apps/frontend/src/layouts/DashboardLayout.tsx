@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, Home, Users, ClipboardList, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, Calendar, Bell, Activity, FileSignature, CalendarClock, CreditCard, BarChart3 } from 'lucide-react'
+import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, BarChart3, Map, NotebookPen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -132,6 +132,10 @@ export function DashboardLayout() {
     if (!userPosition) return 'Usuário'
     return POSITION_CODE_LABELS[userPosition] || 'Usuário'
   }
+
+  const desktopSidebarIconClass = preferences.sidebarCollapsed
+    ? 'h-5 w-5 flex-shrink-0'
+    : 'h-4 w-4 flex-shrink-0'
 
   return (
     <div className="min-h-screen bg-background">
@@ -363,7 +367,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <Home className="h-4 w-4 flex-shrink-0" />
+                    <LayoutDashboard className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Dashboard'}
                   </Link>
                 </TooltipTrigger>
@@ -384,7 +388,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                    <CalendarDays className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Agenda'}
                   </Link>
                 </TooltipTrigger>
@@ -403,7 +407,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Users className="h-4 w-4 flex-shrink-0" />
+                      <Users className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Residentes'}
                     </Link>
                   </TooltipTrigger>
@@ -423,7 +427,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Bed className="h-4 w-4 flex-shrink-0" />
+                      <Map className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Mapa de Ocupação'}
                     </Link>
                   </TooltipTrigger>
@@ -442,7 +446,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <Pill className="h-4 w-4 flex-shrink-0" />
+                    <Pill className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Prescrições'}
                   </Link>
                 </TooltipTrigger>
@@ -460,7 +464,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <ClipboardList className="h-4 w-4 flex-shrink-0" />
+                    <NotebookPen className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Registros Diários'}
                   </Link>
                 </TooltipTrigger>
@@ -482,7 +486,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <FileSignature className="h-4 w-4 flex-shrink-0" />
+                      <FileSignature className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Contratos'}
                     </Link>
                   </TooltipTrigger>
@@ -502,7 +506,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <BarChart3 className="h-4 w-4 flex-shrink-0" />
+                      <BarChart3 className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Relatórios'}
                     </Link>
                   </TooltipTrigger>
@@ -522,7 +526,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Building2 className="h-4 w-4 flex-shrink-0" />
+                      <Bed className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Leitos'}
                     </Link>
                   </TooltipTrigger>
@@ -542,7 +546,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Activity className="h-4 w-4 flex-shrink-0" />
+                      <ShieldCheck className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Hub de Conformidade'}
                     </Link>
                   </TooltipTrigger>
@@ -562,7 +566,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      <Building2 className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Perfil Institucional'}
                     </Link>
                   </TooltipTrigger>
@@ -582,7 +586,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      <FileText className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'POPs'}
                     </Link>
                   </TooltipTrigger>
@@ -602,7 +606,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <CalendarClock className="h-4 w-4 flex-shrink-0" />
+                      <CalendarClock className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Escalas e Plantões'}
                     </Link>
                   </TooltipTrigger>
@@ -622,7 +626,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Shield className="h-4 w-4 flex-shrink-0" />
+                      <Shield className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Usuários'}
                     </Link>
                   </TooltipTrigger>
@@ -645,7 +649,7 @@ export function DashboardLayout() {
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
                     >
-                      <Mail className="h-4 w-4 flex-shrink-0" />
+                      <Mail className={desktopSidebarIconClass} />
                       {!preferences.sidebarCollapsed && 'Mensagens'}
                     </Link>
                   </TooltipTrigger>
@@ -664,7 +668,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <Bell className="h-4 w-4 flex-shrink-0" />
+                    <Bell className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Notificações'}
                   </Link>
                 </TooltipTrigger>
@@ -685,7 +689,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <User2 className="h-4 w-4 flex-shrink-0" />
+                    <User2 className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Meu Perfil'}
                   </Link>
                 </TooltipTrigger>
@@ -703,7 +707,7 @@ export function DashboardLayout() {
                       preferences.sidebarCollapsed ? 'justify-center' : ''
                     }`}
                   >
-                    <LogOut className="h-4 w-4 flex-shrink-0" />
+                    <LogOut className={desktopSidebarIconClass} />
                     {!preferences.sidebarCollapsed && 'Sair'}
                   </button>
                 </TooltipTrigger>
@@ -725,7 +729,7 @@ export function DashboardLayout() {
                 onClick={() => setIsSidebarOpen(false)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
-                <Home className="h-4 w-4" />
+                <LayoutDashboard className="h-4 w-4" />
                 Dashboard
               </Link>
 
@@ -738,7 +742,7 @@ export function DashboardLayout() {
                 onClick={() => setIsSidebarOpen(false)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
-                <Calendar className="h-4 w-4" />
+                <CalendarDays className="h-4 w-4" />
                 Agenda
               </Link>
 
@@ -761,7 +765,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <Bed className="h-4 w-4" />
+                  <Map className="h-4 w-4" />
                   Mapa de Ocupação
                 </Link>
               )}
@@ -782,7 +786,7 @@ export function DashboardLayout() {
                 onClick={() => setIsSidebarOpen(false)}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
               >
-                <ClipboardList className="h-4 w-4" />
+                <NotebookPen className="h-4 w-4" />
                 Registros Diários
               </Link>
 
@@ -820,7 +824,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <Building2 className="h-4 w-4" />
+                  <Bed className="h-4 w-4" />
                   Leitos
                 </Link>
               )}
@@ -832,7 +836,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <Activity className="h-4 w-4" />
+                  <ShieldCheck className="h-4 w-4" />
                   Hub de Conformidade
                 </Link>
               )}
@@ -844,7 +848,7 @@ export function DashboardLayout() {
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
-                  <FileText className="h-4 w-4" />
+                  <Building2 className="h-4 w-4" />
                   Perfil Institucional
                 </Link>
               )}

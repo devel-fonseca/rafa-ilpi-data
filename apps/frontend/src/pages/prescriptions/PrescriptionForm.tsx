@@ -75,7 +75,13 @@ export default function PrescriptionForm() {
       }
 
       if (isEditing && id) {
-        await updateMutation.mutateAsync({ id, data: sanitizedData })
+        await updateMutation.mutateAsync({
+          id,
+          data: {
+            ...sanitizedData,
+            changeReason: 'Atualização de prescrição médica',
+          },
+        })
 
         // Se há arquivo, processar com carimbo institucional
         if (prescriptionFile) {
@@ -111,14 +117,15 @@ export default function PrescriptionForm() {
 
       navigate('/dashboard/prescricoes')
     } catch (error: unknown) {
-      toast.error(error?.response?.data?.message || 'Erro ao salvar prescrição')
+      const errorResponse = error as { response?: { data?: { message?: string } } }
+      toast.error(errorResponse?.response?.data?.message || 'Erro ao salvar prescrição')
     }
   }
 
   const handleNext = async () => {
     // Validar step atual antes de avançar
     const fieldsToValidate = getFieldsForStep(currentStep)
-    const isValid = await methods.trigger(fieldsToValidate as string[])
+    const isValid = await methods.trigger(fieldsToValidate)
 
     if (isValid) {
       if (currentStep < STEPS.length - 1) {
@@ -161,7 +168,7 @@ export default function PrescriptionForm() {
         <PageHeader
           title={isEditing ? 'Editar Prescrição' : 'Nova Prescrição'}
           subtitle="Preencha os dados da prescrição médica"
-          onBack={() => navigate('/dashboard/prescricoes')}
+          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         />
 
         {/* Stepper */}
@@ -209,7 +216,7 @@ export default function PrescriptionForm() {
 }
 
 // Helper para validação por step
-function getFieldsForStep(step: number): string[] {
+function getFieldsForStep(step: number): (keyof CreatePrescriptionDto)[] {
   switch (step) {
     case 0:
       return ['residentId']

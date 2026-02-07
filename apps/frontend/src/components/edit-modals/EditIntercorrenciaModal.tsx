@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { IntercorrenciaRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -28,12 +29,6 @@ const editIntercorrenciaSchema = z.object({
 })
 
 type EditIntercorrenciaFormData = z.infer<typeof editIntercorrenciaSchema>
-
-interface IntercorrenciaRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditIntercorrenciaModalProps {
   open: boolean

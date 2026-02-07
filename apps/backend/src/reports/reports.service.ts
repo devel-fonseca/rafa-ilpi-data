@@ -855,7 +855,7 @@ export class ReportsService {
   }> {
     const today = new Date();
 
-    // Buscar residentes com condições e leito
+    // Buscar residentes com condições, leito e avaliação de dependência vigente
     const residents = await this.tenantContext.client.resident.findMany({
       where: {
         status,
@@ -869,9 +869,25 @@ export class ReportsService {
         bed: {
           select: { code: true },
         },
+        dependencyAssessments: {
+          where: {
+            deletedAt: null,
+            endDate: null, // Avaliação vigente
+          },
+          select: { dependencyLevel: true },
+          take: 1,
+          orderBy: { effectiveDate: 'desc' },
+        },
       },
       orderBy: { fullName: 'asc' },
     });
+
+    // Mapa para converter enum para texto legível
+    const dependencyLevelMap: Record<string, string> = {
+      GRAU_I: 'Grau I',
+      GRAU_II: 'Grau II',
+      GRAU_III: 'Grau III',
+    };
 
     // Processar cada residente
     const processedResidents = residents.map((resident) => {
@@ -883,6 +899,12 @@ export class ReportsService {
       const admissionDate = resident.admissionDate;
       const stayDays = this.calculateDaysDifference(admissionDate, today);
 
+      // Obter grau de dependência da avaliação vigente
+      const assessment = resident.dependencyAssessments[0];
+      const dependencyLevel = assessment
+        ? dependencyLevelMap[assessment.dependencyLevel] || null
+        : null;
+
       return {
         id: resident.id,
         fullName: resident.fullName,
@@ -890,7 +912,7 @@ export class ReportsService {
         birthDate: formatDateOnly(birthDate),
         admissionDate: formatDateOnly(admissionDate),
         stayDays,
-        dependencyLevel: resident.dependencyLevel || null,
+        dependencyLevel,
         bedCode: resident.bed?.code || null,
         conditions: resident.conditions.map((c) => c.condition),
       };

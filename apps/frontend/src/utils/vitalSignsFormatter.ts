@@ -63,8 +63,8 @@ export function formatVitalSignsToText(vitalSign: VitalSign | null): string {
   }
 
   // Registrador (se disponível)
-  if (vitalSign.recordedBy) {
-    lines.push(`(Registrado por: ${vitalSign.recordedBy})`)
+  if (vitalSign.user?.name) {
+    lines.push(`(Registrado por: ${vitalSign.user.name})`)
   }
 
   // Se nenhum dado foi encontrado, retornar mensagem padrão

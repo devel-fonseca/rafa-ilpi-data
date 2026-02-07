@@ -1,3 +1,21 @@
+/**
+ * @fileoverview API de Medicamentos SOS (Entidade Independente com Versionamento)
+ *
+ * Este arquivo contém tipos e funções para operações CRUD diretas em medicamentos SOS,
+ * incluindo campos de versionamento e auditoria.
+ *
+ * IMPORTANTE - Duplicação de Tipos:
+ * O tipo `SOSMedication` aqui é DIFERENTE do tipo em prescriptions.api.ts:
+ * - ESTE arquivo: Medicamento SOS como entidade independente (para edição/versionamento)
+ * - prescriptions.api.ts: Medicamento SOS aninhado em Prescription (para leitura)
+ *
+ * QUANDO USAR:
+ * - Use tipos DESTE arquivo para operações de edição/exclusão de medicamentos SOS individuais
+ * - Use tipos de prescriptions.api.ts quando listar prescrições com medicamentos SOS aninhados
+ *
+ * TODO (Refatoração Futura):
+ * Considerar renomear `SOSMedication` → `SOSMedicationEntity` para maior clareza
+ */
 import { api } from '@/services/api'
 
 // ==================== TYPES ====================

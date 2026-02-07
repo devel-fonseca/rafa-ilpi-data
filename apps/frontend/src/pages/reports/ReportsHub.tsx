@@ -5,12 +5,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileText, Clock, ChevronRight } from 'lucide-react'
-import { Page, PageHeader } from '@/design-system/components'
+import { Page, PageHeader, Section, StatusBadge, EmptyState } from '@/design-system/components'
 import { ReportGenerator } from '@/components/reports/ReportGenerator'
 import { REPORT_CATEGORIES, type ReportFilters, type RecentReport } from '@/types/reportsHub'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -172,6 +170,41 @@ export default function ReportsHub() {
     navigate(`/dashboard/relatorios/diario?${params.toString()}`)
   }
 
+  const totalCategoryItems = React.useMemo(
+    () => REPORT_CATEGORIES.reduce((total, category) => total + category.items.length, 0),
+    []
+  )
+
+  const getCategoryBadgeVariant = (categoryId: string) => {
+    switch (categoryId) {
+      case 'COMPLIANCE':
+        return 'warning'
+      case 'DOCUMENTS':
+        return 'success'
+      case 'MANAGEMENT':
+        return 'info'
+      case 'OPERATIONAL':
+      default:
+        return 'secondary'
+    }
+  }
+
+  const getReportTypeBadgeVariant = (reportType: string) => {
+    switch (reportType) {
+      case 'SENTINEL_EVENTS':
+        return 'warning'
+      case 'INSTITUTIONAL_MONTHLY':
+        return 'info'
+      case 'BY_RESIDENT':
+      case 'BY_SHIFT':
+      case 'BY_RECORD_TYPE':
+        return 'secondary'
+      case 'DAILY':
+      default:
+        return 'default'
+    }
+  }
+
   // ========== RENDER ==========
 
   return (
@@ -179,25 +212,27 @@ export default function ReportsHub() {
       <PageHeader
         title="Relatórios e Documentos"
         subtitle="Geração unificada de relatórios operacionais, evidências de conformidade e documentos institucionais"
+        badge={<StatusBadge variant="info">{REPORT_CATEGORIES.length} categorias</StatusBadge>}
       />
 
-      {/* Gerador Universal */}
-      <div className="mb-8">
+      <Section
+        title="Gerador de Relatórios"
+        description="Selecione o tipo, filtros e formato para gerar documentos operacionais e clínicos."
+        spacing="compact"
+      >
         <ReportGenerator onGenerate={handleGenerateReport} isLoading={isGenerating} />
-      </div>
+      </Section>
 
-      {/* Categorias de Evidência */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          <h2 className="text-2xl font-semibold">Categorias de Evidência</h2>
-        </div>
-
+      <Section
+        title="Categorias de Evidência"
+        description="Acesse rapidamente os principais modelos de relatórios por finalidade."
+        headerAction={<StatusBadge variant="outline">{totalCategoryItems} modelos</StatusBadge>}
+      >
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {REPORT_CATEGORIES.map((category) => (
             <Card
               key={category.id}
-              className={`transition-all hover:shadow-md ${category.color} border-l-4`}
+              className="transition-all hover:shadow-md"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -210,6 +245,9 @@ export default function ReportsHub() {
                       </CardDescription>
                     </div>
                   </div>
+                  <StatusBadge variant={getCategoryBadgeVariant(category.id)}>
+                    {category.items.length} itens
+                  </StatusBadge>
                 </div>
               </CardHeader>
 
@@ -227,9 +265,9 @@ export default function ReportsHub() {
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-sm">{item.label}</p>
                           {item.badge && (
-                            <Badge variant="secondary" className="text-xs">
+                            <StatusBadge variant="secondary" className="text-xs">
                               {item.badge}
-                            </Badge>
+                            </StatusBadge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -242,18 +280,15 @@ export default function ReportsHub() {
             </Card>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* Usados Recentemente */}
-      {recentReports.length > 0 && (
-        <>
-          <Separator className="my-8" />
+      <Section
+        title="Usados Recentemente"
+        description="Relatórios gerados nesta sessão para reabertura rápida."
+        headerAction={<StatusBadge variant="outline">{recentReports.length} recentes</StatusBadge>}
+      >
+        {recentReports.length > 0 ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              <h2 className="text-2xl font-semibold">Usados Recentemente</h2>
-            </div>
-
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {recentReports.map((report) => (
                 <button
@@ -273,16 +308,26 @@ export default function ReportsHub() {
                         minute: '2-digit',
                       })}
                     </p>
-                    <Badge variant="outline" className="text-xs">
+                    <StatusBadge
+                      variant={getReportTypeBadgeVariant(report.category)}
+                      className="text-xs"
+                    >
                       {report.category}
-                    </Badge>
+                    </StatusBadge>
                   </div>
                 </button>
               ))}
             </div>
           </div>
-        </>
-      )}
+        ) : (
+          <EmptyState
+            icon={Clock}
+            title="Nenhum relatório recente"
+            description="Após gerar relatórios, eles aparecerão aqui para acesso rápido."
+            variant="info"
+          />
+        )}
+      </Section>
 
       <Dialog open={isShiftDialogOpen} onOpenChange={setIsShiftDialogOpen}>
         <DialogContent>

@@ -6,6 +6,19 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-02-07] - Correção de Comparação de Datas em Tarefas Diárias 🔧
+
+### 🔧 Corrigido
+
+- **Bug crítico em tarefas diárias:** Registros feitos não marcavam tarefas como concluídas na lista de "Registros Obrigatórios"
+- **Causa raiz 1:** Comparação direta de `Date JS` com campo `DateTime @db.Date` no Prisma não funciona - PostgreSQL compara `TIMESTAMP` vs `DATE` e não encontra match
+- **Causa raiz 2:** Matching de ALIMENTACAO exigia `mealType` exato, mas registros criados sem especificar refeição não tinham esse campo
+- **Correções aplicadas:**
+  - Alterado queries de `date: targetDate` para `date: { gte: startOfDay(targetDate), lte: endOfDay(targetDate) }`
+  - Lógica de matching para ALIMENTACAO agora usa fallback: se não encontrar match exato por mealType, aceita registros sem mealType definido
+
+---
+
 ## [2026-01-31] - Otimizações de Performance (Cache Redis + Polling Frontend) ⚡
 
 ### ✨ Adicionado

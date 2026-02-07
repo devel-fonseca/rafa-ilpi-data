@@ -32,13 +32,13 @@ interface ViewMedicationAdministrationModalProps {
     notes?: string
     createdAt: string
   }
-  medication: {
-    name: string
-    presentation: string
-    concentration: string
-    dose: string
-    route: string
-    requiresDoubleCheck: boolean
+  medication?: {
+    name?: string
+    presentation?: string
+    concentration?: string
+    dose?: string
+    route?: string
+    requiresDoubleCheck?: boolean
   }
 }
 
@@ -60,18 +60,26 @@ export function ViewMedicationAdministrationModal({
 
         <div className="space-y-6">
           {/* 1. Info do Medicamento (bg-primary/5) */}
-          <div className="bg-primary/5 border border-primary/30 p-4 rounded-lg">
-            <h3 className="font-semibold text-primary/95 mb-1">
-              {medication.name} {medication.concentration}
-            </h3>
-            <p className="text-sm text-primary/80">
-              {formatMedicationPresentation(medication.presentation)}
-            </p>
-            <p className="text-sm text-primary/80 mt-1">
-              <span className="font-medium">Dose:</span> {medication.dose} -{' '}
-              <span className="font-medium">Via:</span> {medication.route}
-            </p>
-          </div>
+          {medication && (
+            <div className="bg-primary/5 border border-primary/30 p-4 rounded-lg">
+              <h3 className="font-semibold text-primary/95 mb-1">
+                {medication.name || 'Medicamento'} {medication.concentration || ''}
+              </h3>
+              {medication.presentation && (
+                <p className="text-sm text-primary/80">
+                  {formatMedicationPresentation(medication.presentation)}
+                </p>
+              )}
+              <p className="text-sm text-primary/80 mt-1">
+                {medication.dose && (
+                  <><span className="font-medium">Dose:</span> {medication.dose} - </>
+                )}
+                {medication.route && (
+                  <><span className="font-medium">Via:</span> {medication.route}</>
+                )}
+              </p>
+            </div>
+          )}
 
           {/* 2. Informações da Administração (bg-muted/30) */}
           <div className="bg-muted/30 p-4 rounded-lg space-y-2">
@@ -152,7 +160,7 @@ export function ViewMedicationAdministrationModal({
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
                     Dupla Checagem
-                    {medication.requiresDoubleCheck && (
+                    {medication?.requiresDoubleCheck && (
                       <Badge
                         variant="outline"
                         className="ml-2 text-xs bg-warning/10 text-warning border-warning/30"

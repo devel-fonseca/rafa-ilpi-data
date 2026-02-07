@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
-import { AgendaItem, ContentFilterType, InstitutionalEvent, ViewType, StatusFilterType } from '@/types/agenda'
+import { AgendaItem, AgendaItemType, ContentFilterType, InstitutionalEvent, ViewType, StatusFilterType } from '@/types/agenda'
 import { CalendarSummaryResponse } from '@/types/calendar-summary'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { toast } from 'sonner'
@@ -161,32 +161,49 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
       const response = await api.get<InstitutionalEvent[]>('/institutional-events', { params })
 
       // Transformar InstitutionalEvent[] em AgendaItem[]
-      return response.data.map((event) => ({
-        id: event.id,
-        type: 'SCHEDULED_EVENT' as const,
-        category: 'institutional' as const,
-        residentId: '',
-        residentName: 'Institucional',
-        title: event.title,
-        description: event.description,
-        scheduledDate: event.scheduledDate,
-        scheduledTime: event.scheduledTime || '00:00',
-        status: event.status === 'COMPLETED' ? 'completed' : event.status === 'CANCELLED' ? 'cancelled' : event.status === 'MISSED' ? 'missed' : 'pending',
-        completedAt: event.completedAt,
-        metadata: {
-          eventType: event.eventType,
-          visibility: event.visibility,
-          documentType: event.documentType,
-          documentNumber: event.documentNumber,
-          expiryDate: event.expiryDate,
-          responsible: event.responsible,
-          trainingTopic: event.trainingTopic,
-          instructor: event.instructor,
-          targetAudience: event.targetAudience,
-          location: event.location,
-        },
-      })).sort((a, b) => {
-        const dateCompare = a.scheduledDate.localeCompare(b.scheduledDate)
+      const items: AgendaItem[] = response.data.map((event) => {
+        // Mapear status do backend para o formato esperado
+        const statusMap: Record<string, AgendaItem['status']> = {
+          'COMPLETED': 'completed',
+          'CANCELLED': 'cancelled',
+          'MISSED': 'missed',
+          'completed': 'completed',
+          'cancelled': 'cancelled',
+          'missed': 'missed',
+          'pending': 'pending',
+        }
+
+        return {
+          id: event.id,
+          type: AgendaItemType.SCHEDULED_EVENT,
+          category: 'institutional',
+          residentId: '',
+          residentName: 'Institucional',
+          title: event.title,
+          description: event.description,
+          scheduledDate: event.scheduledDate,
+          scheduledTime: event.scheduledTime || '00:00',
+          status: statusMap[event.status] || 'pending',
+          completedAt: event.completedAt,
+          metadata: {
+            eventType: event.eventType,
+            visibility: event.visibility,
+            documentType: event.documentType,
+            documentNumber: event.documentNumber,
+            expiryDate: event.expiryDate,
+            responsible: event.responsible,
+            trainingTopic: event.trainingTopic,
+            instructor: event.instructor,
+            targetAudience: event.targetAudience,
+            location: event.location,
+          },
+        }
+      })
+
+      return items.sort((a, b) => {
+        const dateA = typeof a.scheduledDate === 'string' ? a.scheduledDate : a.scheduledDate.toISOString()
+        const dateB = typeof b.scheduledDate === 'string' ? b.scheduledDate : b.scheduledDate.toISOString()
+        const dateCompare = dateA.localeCompare(dateB)
         if (dateCompare !== 0) return dateCompare
         return (a.scheduledTime || '00:00').localeCompare(b.scheduledTime || '00:00')
       })

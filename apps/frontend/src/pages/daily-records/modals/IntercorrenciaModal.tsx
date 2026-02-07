@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getCurrentTime } from '@/utils/dateHelpers';
-import { formatDateOnlySafe } from '@/utils/dateHelpers';
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers';
+import type { CreateDailyRecordInput, IntercorrenciaData } from '@/types/daily-records';
 import {
   Dialog,
   DialogContent,
@@ -57,7 +57,7 @@ type IntercorrenciaFormData = z.infer<typeof intercorrenciaSchema>;
 interface IntercorrenciaModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: IntercorrenciaFormData) => void;
+  onSubmit: (data: CreateDailyRecordInput<IntercorrenciaData>) => void;
   residentId: string;
   residentName: string;
   date: string;
@@ -115,7 +115,7 @@ export function IntercorrenciaModal({
     isSentinelEvent(selectedSubtype as IncidentSubtypeClinical);
 
   const handleFormSubmit = (data: IntercorrenciaFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<IntercorrenciaData> = {
       residentId,
       type: 'INTERCORRENCIA',
       date,

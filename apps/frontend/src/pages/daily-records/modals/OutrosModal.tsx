@@ -2,8 +2,8 @@ import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, OutrosData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ type OutrosFormData = z.infer<typeof outrosSchema>
 interface OutrosModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: OutrosFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<OutrosData>) => void
   residentId: string
   residentName: string
   date: string
@@ -58,7 +58,7 @@ export function OutrosModal({
   })
 
   const handleFormSubmit = (data: OutrosFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<OutrosData> = {
       residentId,
       type: 'OUTROS',
       date,

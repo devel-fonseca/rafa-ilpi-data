@@ -10,7 +10,6 @@ import {
   Phone,
   MapPin,
   UserCheck,
-  HeartPulse,
   CreditCard,
   ClipboardCheck,
   FileText,
@@ -24,7 +23,6 @@ export type FormSection =
   | 'contatos'
   | 'endereco'
   | 'responsavel'
-  | 'saude'
   | 'convenios'
   | 'admissao'
   | 'documentos'
@@ -49,7 +47,6 @@ const SECTIONS: Array<{
   { id: 'contatos', label: 'Contatos de Emergência', description: 'Pessoas para contato em emergências', icon: Phone },
   { id: 'endereco', label: 'Endereço', description: 'Endereço atual e procedência', icon: MapPin },
   { id: 'responsavel', label: 'Responsável', description: 'Dados do responsável legal', icon: UserCheck },
-  { id: 'saude', label: 'Saúde', description: 'Dados antropométricos e mobilidade', icon: HeartPulse },
   { id: 'convenios', label: 'Convênios', description: 'Planos de saúde vinculados', icon: CreditCard },
   { id: 'admissao', label: 'Admissão', description: 'Admissão, desligamento e acomodação', icon: ClipboardCheck },
   { id: 'documentos', label: 'Documentos', description: 'Documentos anexados', icon: FileText, requiresId: true },

@@ -44,9 +44,10 @@ function getDependencyLabel(level: string | null): string {
   if (!level) return 'Não informado'
 
   // Simplificar labels longos
-  if (level.includes('Grau I')) return 'Grau I'
-  if (level.includes('Grau II')) return 'Grau II'
+  // IMPORTANTE: Verificar Grau III e II antes de I, pois "Grau II" inclui "Grau I"
   if (level.includes('Grau III')) return 'Grau III'
+  if (level.includes('Grau II')) return 'Grau II'
+  if (level.includes('Grau I')) return 'Grau I'
 
   return level
 }

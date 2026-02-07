@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { HidratacaoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -33,12 +34,6 @@ const editHidratacaoSchema = z.object({
 
 type EditHidratacaoFormData = z.infer<typeof editHidratacaoSchema>
 
-interface HidratacaoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
-
 interface EditHidratacaoModalProps {
   open: boolean
   onClose: () => void
@@ -66,9 +61,15 @@ export function EditHidratacaoModal({
   // Preencher form com dados do registro ao abrir
   useEffect(() => {
     if (record && open) {
+      const volumeMlValue = record.data.volumeMl
+        ? typeof record.data.volumeMl === 'string'
+          ? parseInt(record.data.volumeMl, 10)
+          : record.data.volumeMl
+        : 200
+
       reset({
         time: record.time,
-        volumeMl: record.data.volumeMl || 200,
+        volumeMl: volumeMlValue,
         tipo: record.data.tipo || '',
         observacoes: record.notes || '',
         editReason: '',

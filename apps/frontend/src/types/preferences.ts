@@ -49,7 +49,7 @@ export interface UserPreferences {
  */
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   theme: 'light',
-  sidebarCollapsed: false,
+  sidebarCollapsed: true,
   locale: 'pt-BR',
   notifications: {
     email: true,

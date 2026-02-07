@@ -6,6 +6,7 @@ import { Edit } from 'lucide-react'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import { MaskedInput } from '@/components/form/MaskedInput'
+import type { MonitoramentoRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -36,12 +37,6 @@ const editMonitoramentoSchema = z.object({
 })
 
 type EditMonitoramentoFormData = z.infer<typeof editMonitoramentoSchema>
-
-interface MonitoramentoRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditMonitoramentoModalProps {
   open: boolean

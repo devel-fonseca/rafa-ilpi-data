@@ -1,5 +1,28 @@
 import type { Bed } from '@/api/beds.api'
 
+/**
+ * Interface para residente com hierarquia de leito aninhada.
+ * Usada por formatBedFromResident para acessar dados de localização.
+ */
+export interface ResidentWithBed {
+  bed?: {
+    code?: string
+    room?: {
+      code?: string
+      floor?: {
+        code?: string
+        building?: {
+          code?: string
+        }
+      }
+    }
+  }
+  // Fallback para dados legados
+  building?: { code?: string }
+  floor?: { code?: string }
+  room?: { code?: string }
+}
+
 export interface BedIdentificationParts {
   full: string            // CLI6-823-B
   building: string        // CLI6
@@ -75,7 +98,7 @@ export function formatBedFromObject(bed: Bed): string {
  * @example
  * formatBedFromResident(resident) // "CLI6-823-B"
  */
-export function formatBedFromResident(resident: Record<string, unknown>): string {
+export function formatBedFromResident(resident: ResidentWithBed): string {
   // Se bed.code já contém o código completo (formato: XXX-XXX-X), retornar direto
   if (resident?.bed?.code && resident.bed.code.includes('-')) {
     return resident.bed.code

@@ -3,8 +3,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { cn } from '@/lib/utils'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, EliminacaoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ type EliminacaoFormData = z.infer<typeof eliminacaoSchema>
 interface EliminacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: EliminacaoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<EliminacaoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -119,7 +119,7 @@ export function EliminacaoModal({
   }
 
   const handleFormSubmit = (data: EliminacaoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<EliminacaoData> = {
       residentId,
       type: 'ELIMINACAO',
       date,
@@ -127,7 +127,6 @@ export function EliminacaoModal({
       recordedBy: currentUserName,
       data: {
         tipo: data.tipo,
-        frequencia: 1, // Sempre 1, não visível ao usuário
         consistencia: data.consistencia,
         cor: data.cor,
         volume: data.volume,

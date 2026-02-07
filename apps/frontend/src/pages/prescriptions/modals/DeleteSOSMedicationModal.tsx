@@ -13,7 +13,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useDeleteSOSMedication } from '@/hooks/useSOSMedicationVersioning'
-import type { SOSMedication } from '@/api/sos-medications.api'
+import type { SOSMedication } from '@/api/prescriptions.api'
 
 interface DeleteSOSMedicationModalProps {
   sosMedication: SOSMedication | null

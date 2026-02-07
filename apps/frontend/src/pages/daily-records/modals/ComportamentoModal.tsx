@@ -2,8 +2,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Info } from 'lucide-react'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, ComportamentoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ type ComportamentoFormData = z.infer<typeof comportamentoSchema>
 interface ComportamentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: ComportamentoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<ComportamentoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -84,7 +84,7 @@ export function ComportamentoModal({
   const watchEstadoEmocional = watch('estadoEmocional')
 
   const handleFormSubmit = (data: ComportamentoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<ComportamentoData> = {
       residentId,
       type: 'COMPORTAMENTO',
       date,

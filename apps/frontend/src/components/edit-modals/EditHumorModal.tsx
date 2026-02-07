@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Edit } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { HumorRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -36,12 +37,6 @@ const editHumorSchema = z.object({
 })
 
 type EditHumorFormData = z.infer<typeof editHumorSchema>
-
-interface HumorRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
 
 interface EditHumorModalProps {
   open: boolean

@@ -180,10 +180,8 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
   const renderCategory = (category: typeof groupedRecords[number]) => {
     const uniqueResidents = new Set(category.records.map(getResidentKey)).size
     const complianceStats = getComplianceForTypes(category.types)
-    const labelConfig = RECORD_TYPE_LABELS[category.styleType] ?? {
-      bgColor: 'bg-muted border-border',
-    }
-    const labelClasses = labelConfig.bgColor.split(' ').filter(Boolean)
+    const labelConfig = getRecordTypeLabel(category.styleType)
+    const labelClasses = (labelConfig?.bgColor ?? 'bg-muted border-border').split(' ').filter(Boolean)
     const headerBgClasses = labelClasses
       .filter((cls) => cls.startsWith('bg-') || cls.startsWith('dark:bg-'))
       .join(' ')

@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { BedsHierarchy } from '@/api/beds.api'
+import { BedsHierarchy, Building, Floor, Room, Bed } from '@/api/beds.api'
+
+/** Tipo do residente quando aninhado em um Bed */
+type BedResident = NonNullable<Bed['resident']>
 import {
   Accordion,
   AccordionContent,
@@ -80,18 +83,18 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
 
   const handleDragStart = (
     e: React.DragEvent,
-    resident: Record<string, unknown>,
-    bed: Record<string, unknown>,
-    room: Record<string, unknown>,
-    floor: Record<string, unknown>,
-    building: Record<string, unknown>
+    resident: BedResident,
+    bed: Bed,
+    room: Room,
+    floor: Floor,
+    building: Building
   ) => {
-    const fromLocation = `${building.name as string} - ${floor.name as string} - ${room.name as string}`
+    const fromLocation = `${building.name} - ${floor.name} - ${room.name}`
     const dragData = {
-      id: resident.id as string,
-      name: resident.fullName as string,
-      fromBedId: bed.id as string,
-      fromBedCode: bed.code as string,
+      id: resident.id,
+      name: resident.fullName,
+      fromBedId: bed.id,
+      fromBedCode: bed.code,
       fromLocation,
     }
 
@@ -159,10 +162,10 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
 
   const handleDrop = (
     e: React.DragEvent,
-    toBed: Record<string, unknown>,
-    toRoom: Record<string, unknown>,
-    toFloor: Record<string, unknown>,
-    toBuilding: Record<string, unknown>
+    toBed: Bed,
+    toRoom: Room,
+    toFloor: Floor,
+    toBuilding: Building
   ) => {
     console.log('🎯 [DROP] Evento drop acionado!', {
       toBedId: toBed.id,
@@ -178,7 +181,7 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       return
     }
 
-    const toLocation = `${toBuilding.name as string} - ${toFloor.name as string} - ${toRoom.name as string}`
+    const toLocation = `${toBuilding.name} - ${toFloor.name} - ${toRoom.name}`
 
     console.log('📋 [DROP] Preparando transferência:', {
       from: draggedResident.fromBedCode,
@@ -191,8 +194,8 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
       residentId: draggedResident.id,
       residentName: draggedResident.name,
       fromBedCode: draggedResident.fromBedCode,
-      toBedId: toBed.id as string,
-      toBedCode: toBed.code as string,
+      toBedId: toBed.id,
+      toBedCode: toBed.code,
       fromLocation: draggedResident.fromLocation,
       toLocation,
     })
@@ -203,39 +206,39 @@ export function BedsMapVisualization({ data }: BedsMapVisualizationProps) {
   }
 
   const handleOpenTransferModal = (
-    resident: Record<string, unknown>,
-    bed: Record<string, unknown>,
-    room: Record<string, unknown>,
-    floor: Record<string, unknown>,
-    building: Record<string, unknown>
+    resident: BedResident,
+    bed: Bed,
+    room: Room,
+    floor: Floor,
+    building: Building
   ) => {
-    const fromLocation = `${building.name as string} - ${floor.name as string} - ${room.name as string}`
+    const fromLocation = `${building.name} - ${floor.name} - ${room.name}`
     setResidentToTransfer({
-      id: resident.id as string,
-      name: resident.fullName as string,
-      fromBedId: bed.id as string,
-      fromBedCode: bed.code as string,
+      id: resident.id,
+      name: resident.fullName,
+      fromBedId: bed.id,
+      fromBedCode: bed.code,
       fromLocation,
     })
     setSelectBedModalOpen(true)
   }
 
   const handleSelectBed = (
-    toBed: Record<string, unknown>,
-    toRoom: Record<string, unknown>,
-    toFloor: Record<string, unknown>,
-    toBuilding: Record<string, unknown>
+    toBed: Bed,
+    toRoom: Room,
+    toFloor: Floor,
+    toBuilding: Building
   ) => {
     if (!residentToTransfer) return
 
-    const toLocation = `${toBuilding.name as string} - ${toFloor.name as string} - ${toRoom.name as string}`
+    const toLocation = `${toBuilding.name} - ${toFloor.name} - ${toRoom.name}`
 
     setTransferData({
       residentId: residentToTransfer.id,
       residentName: residentToTransfer.name,
       fromBedCode: residentToTransfer.fromBedCode,
-      toBedId: toBed.id as string,
-      toBedCode: toBed.code as string,
+      toBedId: toBed.id,
+      toBedCode: toBed.code,
       fromLocation: residentToTransfer.fromLocation,
       toLocation,
     })

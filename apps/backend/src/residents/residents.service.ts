@@ -458,13 +458,8 @@ export class ResidentsService {
             dischargeDate: createResidentDto.dischargeDate ? new Date(createResidentDto.dischargeDate) : null,
             dischargeReason: createResidentDto.dischargeReason,
 
-            // 6. Saúde
-            bloodType: createResidentDto.bloodType || 'NAO_INFORMADO',
-            height: createResidentDto.height,
-            weight: createResidentDto.weight,
-            dependencyLevel: createResidentDto.dependencyLevel,
-            mobilityAid: createResidentDto.mobilityAid,
-            medicationsOnAdmission: createResidentDto.medicationsOnAdmission,
+            // 6. Saúde (migrado para tabelas separadas: resident_blood_types, resident_anthropometry, resident_dependency_assessments)
+            // Campos removidos: bloodType, height, weight, dependencyLevel, mobilityAid, medicationsOnAdmission
 
             // 7. Convênios
             healthPlans: (createResidentDto.healthPlans || []) as unknown as Prisma.InputJsonValue,
@@ -613,12 +608,10 @@ export class ResidentsService {
             roomId: true,
             bedId: true,
             cns: true,
-            mobilityAid: true,
-            // Dados antropométricos (necessários para alertas do dashboard)
-            height: true,
-            weight: true,
-            bloodType: true,
-            dependencyLevel: true,
+            // Dados de saúde migrados para tabelas separadas:
+            // - bloodType → resident_blood_types
+            // - height, weight → resident_anthropometry
+            // - dependencyLevel, mobilityAid → resident_dependency_assessments
             createdAt: true,
             updatedAt: true,
           },
@@ -722,7 +715,31 @@ export class ResidentsService {
         });
       }
 
-      // Adicionar dados de acomodação aos residentes e formatar datas
+      // Buscar mobilityAid da última avaliação de dependência de cada residente
+      const residentIds = residents.map(r => r.id);
+      const mobilityAidMap = new Map<string, boolean>();
+
+      if (residentIds.length > 0) {
+        // Buscar a última avaliação de dependência de cada residente
+        const latestAssessments = await this.tenantContext.client.residentDependencyAssessment.findMany({
+          where: {
+            residentId: { in: residentIds },
+            deletedAt: null,
+          },
+          orderBy: { effectiveDate: 'desc' },
+          distinct: ['residentId'],
+          select: {
+            residentId: true,
+            mobilityAid: true,
+          },
+        });
+
+        latestAssessments.forEach(assessment => {
+          mobilityAidMap.set(assessment.residentId, assessment.mobilityAid);
+        });
+      }
+
+      // Adicionar dados de acomodação e mobilityAid aos residentes e formatar datas
       const processedResidents = residents.map(resident => {
         const residentWithAccommodation = resident.bedId && bedsMap.has(resident.bedId)
           ? {
@@ -731,7 +748,13 @@ export class ResidentsService {
             }
           : resident;
 
-        return this.formatDateOnlyFields(residentWithAccommodation);
+        // Adicionar mobilityAid da última avaliação de dependência
+        const residentWithMobilityAid = {
+          ...residentWithAccommodation,
+          mobilityAid: mobilityAidMap.get(resident.id) ?? false,
+        };
+
+        return this.formatDateOnlyFields(residentWithMobilityAid);
       });
 
       return {
@@ -1315,28 +1338,41 @@ export class ResidentsService {
       where: { ...where, status: 'Inativo' },
     });
 
-    // Por grau de dependência (somente ativos)
-    const grauI = await this.tenantContext.client.resident.count({
+    // Por grau de dependência (somente ativos) - agora busca da tabela resident_dependency_assessments
+    // Busca residentes ativos que têm avaliação vigente (endDate IS NULL)
+    const grauI = await this.tenantContext.client.residentDependencyAssessment.count({
       where: {
-        ...where,
-        status: 'Ativo',
-        dependencyLevel: 'Grau I - Independente',
+        deletedAt: null,
+        endDate: null, // Avaliação vigente
+        dependencyLevel: 'GRAU_I',
+        resident: {
+          status: 'Ativo',
+          deletedAt: null,
+        },
       },
     });
 
-    const grauII = await this.tenantContext.client.resident.count({
+    const grauII = await this.tenantContext.client.residentDependencyAssessment.count({
       where: {
-        ...where,
-        status: 'Ativo',
-        dependencyLevel: 'Grau II - Parcialmente Dependente',
+        deletedAt: null,
+        endDate: null, // Avaliação vigente
+        dependencyLevel: 'GRAU_II',
+        resident: {
+          status: 'Ativo',
+          deletedAt: null,
+        },
       },
     });
 
-    const grauIII = await this.tenantContext.client.resident.count({
+    const grauIII = await this.tenantContext.client.residentDependencyAssessment.count({
       where: {
-        ...where,
-        status: 'Ativo',
-        dependencyLevel: 'Grau III - Totalmente Dependente',
+        deletedAt: null,
+        endDate: null, // Avaliação vigente
+        dependencyLevel: 'GRAU_III',
+        resident: {
+          status: 'Ativo',
+          deletedAt: null,
+        },
       },
     });
 

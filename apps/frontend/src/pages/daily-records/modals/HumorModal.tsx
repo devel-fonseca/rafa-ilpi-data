@@ -2,8 +2,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Info } from 'lucide-react'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, HumorData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ type HumorFormData = z.infer<typeof humorSchema>
 interface HumorModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: HumorFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<HumorData>) => void
   residentId: string
   residentName: string
   date: string
@@ -87,7 +87,7 @@ export function HumorModal({
   const watchHumor = watch('humor')
 
   const handleFormSubmit = (data: HumorFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<HumorData> = {
       residentId,
       type: 'HUMOR',
       date,

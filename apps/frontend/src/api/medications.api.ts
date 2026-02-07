@@ -1,3 +1,22 @@
+/**
+ * @fileoverview API de Medicamentos (Entidade Independente com Versionamento)
+ *
+ * Este arquivo contém tipos e funções para operações CRUD diretas em medicamentos,
+ * incluindo campos de versionamento e auditoria (prescriptionId, versionNumber,
+ * createdBy, updatedBy, deletedAt).
+ *
+ * IMPORTANTE - Duplicação de Tipos:
+ * O tipo `Medication` aqui é DIFERENTE do tipo em prescriptions.api.ts:
+ * - ESTE arquivo: Medicamento como entidade independente (para edição/versionamento)
+ * - prescriptions.api.ts: Medicamento aninhado em Prescription (para leitura)
+ *
+ * QUANDO USAR:
+ * - Use tipos DESTE arquivo para operações de edição/exclusão de medicamentos individuais
+ * - Use tipos de prescriptions.api.ts quando listar prescrições com medicamentos aninhados
+ *
+ * TODO (Refatoração Futura):
+ * Considerar renomear `Medication` → `MedicationEntity` para maior clareza
+ */
 import { api } from '@/services/api'
 
 // ==================== TYPES ====================

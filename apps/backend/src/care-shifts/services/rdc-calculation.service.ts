@@ -45,7 +45,7 @@ export class RDCCalculationService {
     const cleanDate = date.split('T')[0]; // Remove qualquer parte de tempo se existir
     const dateObj = parseISO(`${cleanDate}T12:00:00.000`);
 
-    // 1. Buscar residentes ativos na data
+    // 1. Buscar residentes ativos na data COM sua avaliação de dependência vigente
     const residents = await this.tenantContext.client.resident.findMany({
       where: {
         status: 'Ativo',
@@ -60,7 +60,18 @@ export class RDCCalculationService {
       },
       select: {
         id: true,
-        dependencyLevel: true,
+        // Buscar avaliação de dependência vigente (endDate IS NULL)
+        dependencyAssessments: {
+          where: {
+            deletedAt: null,
+            endDate: null, // Avaliação vigente
+          },
+          select: {
+            dependencyLevel: true,
+          },
+          take: 1, // Apenas a avaliação vigente
+          orderBy: { effectiveDate: 'desc' },
+        },
       },
     });
 
@@ -306,9 +317,10 @@ export class RDCCalculationService {
 
   /**
    * Classificar residentes por grau de dependência
+   * Agora usa a tabela ResidentDependencyAssessment (avaliação vigente = endDate IS NULL)
    */
   private classifyResidentsByDependency(
-    residents: { id: string; dependencyLevel: string | null }[],
+    residents: { id: string; dependencyAssessments: { dependencyLevel: string }[] }[],
   ): ResidentsByDependencyLevel {
     const result: ResidentsByDependencyLevel = {
       grauI: 0,
@@ -318,22 +330,29 @@ export class RDCCalculationService {
     };
 
     for (const resident of residents) {
-      if (!resident.dependencyLevel) {
+      // Pegar a avaliação vigente (primeira do array, já filtrada na query)
+      const assessment = resident.dependencyAssessments[0];
+
+      if (!assessment) {
         result.withoutLevel++;
         continue;
       }
 
-      const level = resident.dependencyLevel.toLowerCase();
+      // DependencyLevel enum: GRAU_I, GRAU_II, GRAU_III
+      const level = assessment.dependencyLevel;
 
-      if (level.includes('grau i') && !level.includes('grau ii') && !level.includes('grau iii')) {
-        result.grauI++;
-      } else if (level.includes('grau ii')) {
-        result.grauII++;
-      } else if (level.includes('grau iii')) {
-        result.grauIII++;
-      } else {
-        // Formato não reconhecido, considerar sem grau
-        result.withoutLevel++;
+      switch (level) {
+        case 'GRAU_I':
+          result.grauI++;
+          break;
+        case 'GRAU_II':
+          result.grauII++;
+          break;
+        case 'GRAU_III':
+          result.grauIII++;
+          break;
+        default:
+          result.withoutLevel++;
       }
     }
 

@@ -152,7 +152,7 @@ export class CreateUserProfileDto {
     description: 'Preferências do usuário (tema, sidebar, notificações, etc)',
     example: {
       theme: 'light',
-      sidebarCollapsed: false,
+      sidebarCollapsed: true,
       locale: 'pt-BR',
     },
     required: false,

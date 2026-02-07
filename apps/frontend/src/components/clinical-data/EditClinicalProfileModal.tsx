@@ -6,7 +6,6 @@ import { Loader2, ShieldAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,6 @@ const clinicalProfileSchema = z.object({
   healthStatus: z.string().optional(),
   specialNeeds: z.string().optional(),
   functionalAspects: z.string().optional(),
-  mobilityAid: z.boolean().optional(),
   changeReason: z.string().optional(),
 })
 
@@ -35,7 +33,6 @@ interface EditClinicalProfileModalProps {
   onOpenChange: (open: boolean) => void
   residentId: string
   profile?: ClinicalProfile | null
-  currentMobilityAid?: boolean | null
 }
 
 export function EditClinicalProfileModal({
@@ -43,7 +40,6 @@ export function EditClinicalProfileModal({
   onOpenChange,
   residentId,
   profile,
-  currentMobilityAid,
 }: EditClinicalProfileModalProps) {
   // Considera "edição" se o perfil clínico já existe
   const isEditing = !!profile
@@ -60,20 +56,15 @@ export function EditClinicalProfileModal({
     reset,
     setError,
     clearErrors,
-    watch,
-    setValue,
   } = useForm<ClinicalProfileFormData>({
     resolver: zodResolver(clinicalProfileSchema),
     defaultValues: {
       healthStatus: profile?.healthStatus || '',
       specialNeeds: profile?.specialNeeds || '',
       functionalAspects: profile?.functionalAspects || '',
-      mobilityAid: currentMobilityAid ?? false,
       changeReason: '',
     },
   })
-
-  const mobilityAidValue = watch('mobilityAid')
 
   useEffect(() => {
     if (open) {
@@ -81,11 +72,10 @@ export function EditClinicalProfileModal({
         healthStatus: profile?.healthStatus || '',
         specialNeeds: profile?.specialNeeds || '',
         functionalAspects: profile?.functionalAspects || '',
-        mobilityAid: currentMobilityAid ?? false,
         changeReason: '',
       })
     }
-  }, [open, profile, currentMobilityAid, reset])
+  }, [open, profile, reset])
 
   const onSubmit = async (data: ClinicalProfileFormData) => {
     try {
@@ -106,12 +96,10 @@ export function EditClinicalProfileModal({
             healthStatus: data.healthStatus || undefined,
             specialNeeds: data.specialNeeds || undefined,
             functionalAspects: data.functionalAspects || undefined,
-            mobilityAid: data.mobilityAid,
             changeReason: trimmedReason,
           },
         })
       } else {
-        // Criação sem changeReason (mobilityAid não faz parte do ClinicalProfile, está no Resident)
         await createMutation.mutateAsync({
           residentId,
           healthStatus: data.healthStatus || undefined,
@@ -184,22 +172,6 @@ export function EditClinicalProfileModal({
                 {errors.functionalAspects.message}
               </p>
             )}
-          </div>
-
-          {/* Checkbox - Necessita Auxílio para Mobilidade */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="mobilityAid"
-              checked={mobilityAidValue}
-              onCheckedChange={(checked) => setValue('mobilityAid', checked as boolean)}
-              disabled={isLoading}
-            />
-            <Label
-              htmlFor="mobilityAid"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-            >
-              Necessita auxílio para mobilidade
-            </Label>
           </div>
 
           {/* Card Destacado - RDC 502/2021 (apenas para edição) */}

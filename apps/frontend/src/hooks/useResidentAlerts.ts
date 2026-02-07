@@ -74,9 +74,10 @@ export function useResidentAlerts() {
     // 🟡 AVISOS
     const residentsWithoutPhoto = activeResidents.filter((r) => !r.fotoUrl)
 
-    const residentsWithIncompleteAnthropometricData = activeResidents.filter(
-      (r) => r.height == null || r.weight == null || !r.bloodType || !r.dependencyLevel
-    )
+    // NOTA: Alerta de dados antropométricos incompletos foi removido pois
+    // bloodType, height, weight e dependencyLevel agora estão em tabelas separadas
+    // (resident_blood_types, resident_anthropometry, resident_dependency_assessments)
+    // e são gerenciados no prontuário individual do residente via HealthDataSection.
 
     // 🔵 INFORMATIVOS
     const currentMonth = new Date().getMonth()
@@ -194,19 +195,6 @@ export function useResidentAlerts() {
       })
     }
 
-    if (residentsWithIncompleteAnthropometricData.length > 0) {
-      alertsList.push({
-        type: 'warning',
-        title: 'Dados antropométricos incompletos',
-        count: residentsWithIncompleteAnthropometricData.length,
-        description: 'Faltam: altura, peso, tipo sanguíneo ou grau de dependência',
-        residents: residentsWithIncompleteAnthropometricData,
-        action: {
-          label: 'Completar dados',
-          filter: 'incomplete-anthropometric-data',
-        },
-      })
-    }
 
     // Adicionar informativos
     if (birthdaysThisMonth.length > 0) {

@@ -2,8 +2,8 @@ import React from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, MonitoramentoData } from '@/types/daily-records'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import {
   Dialog,
@@ -33,7 +33,7 @@ type MonitoramentoFormData = z.infer<typeof monitoramentoSchema>
 interface MonitoramentoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: MonitoramentoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<MonitoramentoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -63,7 +63,7 @@ export function MonitoramentoModal({
   })
 
   const handleFormSubmit = (data: MonitoramentoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<MonitoramentoData> = {
       residentId,
       type: 'MONITORAMENTO',
       date,

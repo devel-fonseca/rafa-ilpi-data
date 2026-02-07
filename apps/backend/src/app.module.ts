@@ -66,6 +66,7 @@ import { ContractsModule } from './contracts/contracts.module';
 import { TermsOfServiceModule } from './terms-of-service/terms-of-service.module';
 import { ReportsModule } from './reports/reports.module';
 import { ResidentBelongingsModule } from './resident-belongings/resident-belongings.module';
+import { ResidentHealthModule } from './resident-health/resident-health.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interceptor';
 
@@ -163,6 +164,9 @@ import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interce
 
     // Pertences de Residentes
     ResidentBelongingsModule,
+
+    // Dados de Saúde do Residente (Tipo Sanguíneo, Antropometria, Avaliação de Dependência)
+    ResidentHealthModule,
 
     // Real-time events (WebSocket)
     EventsModule,

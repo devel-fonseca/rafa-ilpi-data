@@ -1,9 +1,8 @@
-import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, AtividadesData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -30,7 +29,7 @@ type AtividadesFormData = z.infer<typeof atividadesSchema>
 interface AtividadesModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: AtividadesFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<AtividadesData>) => void
   residentId: string
   residentName: string
   date: string
@@ -59,7 +58,7 @@ export function AtividadesModal({
   })
 
   const handleFormSubmit = (data: AtividadesFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<AtividadesData> = {
       residentId,
       type: 'ATIVIDADES',
       date,

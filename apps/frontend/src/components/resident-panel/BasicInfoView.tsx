@@ -5,12 +5,20 @@
 import { formatBedFromResident, formatDate } from '@/utils/formatters'
 import { InfoCard } from './InfoCard'
 import type { Resident } from '@/api/residents.api'
+import { useCurrentDependencyAssessment } from '@/hooks/useResidentHealth'
+import { DEPENDENCY_LEVEL_LABELS } from '@/api/resident-health.api'
 
 interface BasicInfoViewProps {
   resident: Resident
 }
 
 export function BasicInfoView({ resident }: BasicInfoViewProps) {
+  // Buscar avaliação de dependência atual da nova tabela
+  const { data: dependencyAssessment } = useCurrentDependencyAssessment(resident.id)
+  const dependencyLevelLabel = dependencyAssessment?.dependencyLevel
+    ? DEPENDENCY_LEVEL_LABELS[dependencyAssessment.dependencyLevel as keyof typeof DEPENDENCY_LEVEL_LABELS]
+    : 'Não informado'
+
   const hasHealthPlans = resident.healthPlans && resident.healthPlans.length > 0
   const hasEmergencyContacts = resident.emergencyContacts && resident.emergencyContacts.length > 0
   const hasLegalGuardian = resident.legalGuardianName
@@ -26,7 +34,7 @@ export function BasicInfoView({ resident }: BasicInfoViewProps) {
       {/* Grau de Dependência */}
       <InfoCard
         label="Grau de dependência"
-        value={resident.dependencyLevel || 'Não informado'}
+        value={dependencyLevelLabel}
       />
 
       {/* Leito */}

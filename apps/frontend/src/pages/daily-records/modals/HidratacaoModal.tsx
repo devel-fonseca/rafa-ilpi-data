@@ -1,9 +1,8 @@
-import React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, HidratacaoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +31,7 @@ type HidratacaoFormData = z.infer<typeof hidratacaoSchema>
 interface HidratacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: HidratacaoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<HidratacaoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -63,14 +62,14 @@ export function HidratacaoModal({
   })
 
   const handleFormSubmit = (data: HidratacaoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<HidratacaoData> = {
       residentId,
       type: 'HIDRATACAO',
       date,
       time: data.time,
       recordedBy: currentUserName,
       data: {
-        volumeMl: data.volumeMl, // Já vem como número do Zod
+        volumeMl: data.volumeMl,
         tipo: data.tipo,
       },
     }

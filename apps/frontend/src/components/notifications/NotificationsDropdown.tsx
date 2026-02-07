@@ -266,10 +266,10 @@ export function NotificationsDropdown() {
           open={missedEventModalOpen}
           onOpenChange={setMissedEventModalOpen}
           eventId={selectedNotification.entityId || ''}
-          eventTitle={selectedNotification.metadata?.eventTitle || selectedNotification.title}
-          scheduledDate={selectedNotification.metadata?.scheduledDate || ''}
-          scheduledTime={selectedNotification.metadata?.scheduledTime || ''}
-          residentName={selectedNotification.metadata?.residentName || 'Residente'}
+          eventTitle={(selectedNotification.metadata?.eventTitle as string) || selectedNotification.title}
+          scheduledDate={(selectedNotification.metadata?.scheduledDate as string) || ''}
+          scheduledTime={(selectedNotification.metadata?.scheduledTime as string) || ''}
+          residentName={(selectedNotification.metadata?.residentName as string) || 'Residente'}
           notificationId={selectedNotification.id}
         />
       )}

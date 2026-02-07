@@ -3,8 +3,8 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { getCurrentTime } from '@/utils/dateHelpers'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, HigieneData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,7 @@ type HigieneFormData = z.infer<typeof higieneSchema>
 interface HigieneModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: HigieneFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<HigieneData>) => void
   residentId: string
   residentName: string
   date: string
@@ -91,7 +91,7 @@ export function HigieneModal({
   const tipoBanho = watch('tipoBanho')
 
   const handleFormSubmit = (data: HigieneFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<HigieneData> = {
       residentId,
       type: 'HIGIENE',
       date,
@@ -99,15 +99,13 @@ export function HigieneModal({
       recordedBy: currentUserName,
       data: {
         tipoBanho: data.tipoBanho,
-        duracao: data.duracao ? parseInt(data.duracao) : undefined,
+        duracao: data.duracao,
         condicaoPele: data.condicaoPele,
         localAlteracao: data.localAlteracao,
         hidratanteAplicado: data.hidratanteAplicado,
         higieneBucal: data.higieneBucal,
         trocaFralda: data.trocaFralda,
-        quantidadeFraldas: data.quantidadeFraldas
-          ? parseInt(data.quantidadeFraldas)
-          : undefined,
+        quantidadeFraldas: data.quantidadeFraldas,
       },
       notes: data.observacoes,
     }

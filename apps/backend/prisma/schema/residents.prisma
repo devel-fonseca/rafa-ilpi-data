@@ -73,13 +73,11 @@ model Resident {
   dischargeDate       DateTime? @db.Date
   dischargeReason     String?
 
-  // 6 – Saúde (Dados Estáveis - dados clínicos evolutivos migraram para clinical_profiles)
-  bloodType              BloodType @default(NAO_INFORMADO)
-  height                 Decimal?  @db.Decimal(5, 2) // metros
-  weight                 Decimal?  @db.Decimal(5, 1) // kg
-  dependencyLevel        String? // Grau I - Independente | Grau II - Semidependente | Grau III - Dependente
-  mobilityAid            Boolean?
-  medicationsOnAdmission String?
+  // 6 – Saúde (Migrado para tabelas separadas em resident-health.prisma)
+  // - bloodType → ResidentBloodType (1:1)
+  // - height, weight → ResidentAnthropometry (1:N evolutivo)
+  // - dependencyLevel, mobilityAid → ResidentDependencyAssessment (1:N com avaliações)
+  // - medicationsOnAdmission → REMOVIDO (medicamentos devem ser cadastrados via Prescrições)
 
   // 7 – Convênios / Planos de Saúde
   healthPlans Json @default("[]")
@@ -127,6 +125,11 @@ model Resident {
   vitalSignAlerts           VitalSignAlert[] // Alertas médicos de sinais vitais
   residentBelongings        ResidentBelonging[] // Pertences do residente
   belongingTerms            BelongingTerm[] // Termos de pertences
+
+  // Dados de Saúde (tabelas separadas)
+  bloodTypeRecord         ResidentBloodType? // Tipo sanguíneo (1:1)
+  anthropometryRecords    ResidentAnthropometry[] // Medições de peso/altura (1:N evolutivo)
+  dependencyAssessments   ResidentDependencyAssessment[] // Avaliações de dependência (1:N)
 
   // Índices
   @@unique([tenantId, cpf])

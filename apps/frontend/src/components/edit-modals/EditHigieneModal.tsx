@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
+import type { HigieneRecord } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -46,12 +47,6 @@ const editHigieneSchema = z.object({
 
 type EditHigieneFormData = z.infer<typeof editHigieneSchema>
 
-interface HigieneRecord {
-  time: string
-  data: Record<string, unknown>
-  [key: string]: unknown
-}
-
 interface EditHigieneModalProps {
   open: boolean
   onClose: () => void
@@ -86,11 +81,16 @@ export function EditHigieneModal({
   // Preencher form com dados do registro ao abrir
   useEffect(() => {
     if (record && open) {
+      const validCondicaoPele = ['Normal', 'Ressecada', 'Lesão', 'Edema'] as const
+      const condicaoPeleValue = validCondicaoPele.includes(record.data.condicaoPele as typeof validCondicaoPele[number])
+        ? (record.data.condicaoPele as typeof validCondicaoPele[number])
+        : 'Normal'
+
       reset({
         time: record.time,
         tipoBanho: record.data.tipoBanho || 'Chuveiro',
         duracao: record.data.duracao ? String(record.data.duracao) : '',
-        condicaoPele: record.data.condicaoPele || 'Normal',
+        condicaoPele: condicaoPeleValue,
         localAlteracao: record.data.localAlteracao || '',
         hidratanteAplicado: record.data.hidratanteAplicado || false,
         higieneBucal: record.data.higieneBucal || false,

@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
-import { parseISO } from 'date-fns';
+import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ScheduleFrequency } from '@prisma/client';
 import { getCurrentDateInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
 
@@ -58,6 +58,8 @@ export class ResidentScheduleTasksService {
       targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
     }
 
+    // ✅ Normalizar data para meio-dia UTC (mesmo padrão usado ao criar registros)
+    // Isso garante comparação correta com registros existentes
     const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
     const _dayOfWeek = targetDate.getDay(); // 0 = Domingo, 6 = Sábado
     const _dayOfMonth = targetDate.getDate(); // 1-31
@@ -84,10 +86,14 @@ export class ResidentScheduleTasksService {
     );
 
     // 3. Buscar registros já feitos no dia
+    // Usar range query gte/lte pois campo DateTime @db.Date precisa de range para comparação correta
     const existingRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
         residentId,
-        date: targetDate,
+        date: {
+          gte: startOfDay(targetDate),
+          lte: endOfDay(targetDate),
+        },
         deletedAt: null,
       },
       select: {
@@ -104,7 +110,7 @@ export class ResidentScheduleTasksService {
 
     // 🔍 DEBUG: Log para verificar se registros estão sendo encontrados
     console.log(
-      `[getDailyTasksByResident] Buscando existingRecords para residentId=${residentId}, date=${targetDate}`,
+      `[getDailyTasksByResident] Buscando existingRecords para residentId=${residentId}, date=${targetDateStr}, targetDate=${targetDate.toISOString()}`,
     );
     console.log(
       `[getDailyTasksByResident] Encontrados ${existingRecords.length} registros existentes`,
@@ -128,12 +134,26 @@ export class ResidentScheduleTasksService {
       let matchingRecords: typeof existingRecords = [];
 
       if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
-        // Para ALIMENTACAO, filtrar por mealType
-        matchingRecords = existingRecords.filter(
+        // Para ALIMENTACAO com mealType configurado:
+        // 1. Primeiro tentar match exato por mealType
+        // 2. Se não encontrar, aceitar registros sem mealType definido (fallback)
+        const exactMatches = existingRecords.filter(
           (record) =>
             record.type === 'ALIMENTACAO' &&
             (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
         );
+
+        if (exactMatches.length > 0) {
+          matchingRecords = exactMatches;
+        } else {
+          // Fallback: aceitar ALIMENTACAO sem mealType específico
+          // Isso permite que registros feitos sem especificar a refeição contem como concluídos
+          matchingRecords = existingRecords.filter(
+            (record) =>
+              record.type === 'ALIMENTACAO' &&
+              !(record.data as Record<string, unknown>)?.mealType,
+          );
+        }
       } else {
         // Para outros tipos, filtrar pelo tipo
         matchingRecords = existingRecords.filter(
@@ -172,7 +192,10 @@ export class ResidentScheduleTasksService {
     const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
         residentId,
-        scheduledDate: targetDate,
+        scheduledDate: {
+          gte: startOfDay(targetDate),
+          lte: endOfDay(targetDate),
+        },
         deletedAt: null,
       },
       include: {
@@ -219,6 +242,7 @@ export class ResidentScheduleTasksService {
       targetDateStr = getCurrentDateInTz(tenant?.timezone || DEFAULT_TIMEZONE);
     }
 
+    // ✅ Normalizar data para meio-dia UTC (mesmo padrão usado ao criar registros)
     const targetDate = parseISO(`${targetDateStr}T12:00:00.000`);
     const _dayOfWeek = targetDate.getDay();
     const _dayOfMonth = targetDate.getDate();
@@ -239,9 +263,13 @@ export class ResidentScheduleTasksService {
     });
 
     // 2. Buscar TODOS os registros existentes na data para verificar conclusão
+    // Usar range query gte/lte pois campo DateTime @db.Date precisa de range para comparação correta
     const existingRecords = await this.tenantContext.client.dailyRecord.findMany({
       where: {
-        date: targetDate,
+        date: {
+          gte: startOfDay(targetDate),
+          lte: endOfDay(targetDate),
+        },
         deletedAt: null,
       },
       select: {
@@ -272,7 +300,7 @@ export class ResidentScheduleTasksService {
     }
 
     // 3. Filtrar configurações que devem gerar tarefa na data
-    // ✅ CORREÇÃO: Criar uma tarefa para CADA horário sugerido
+    // Criar uma tarefa para CADA horário sugerido
     const filteredConfigs = configs.filter((config) => this.shouldGenerateTask(config, targetDate));
     const recurringTasks: DailyTask[] = [];
 
@@ -285,13 +313,27 @@ export class ResidentScheduleTasksService {
       let matchingRecords: typeof existingRecords = [];
 
       if (config.recordType === 'ALIMENTACAO' && metadata?.mealType) {
-        // Para ALIMENTACAO, filtrar por residentId + type + mealType
-        matchingRecords = existingRecords.filter(
+        // Para ALIMENTACAO com mealType configurado:
+        // 1. Primeiro tentar match exato por mealType
+        // 2. Se não encontrar, aceitar registros sem mealType definido (fallback)
+        const exactMatches = existingRecords.filter(
           (record) =>
             record.residentId === config.residentId &&
             record.type === 'ALIMENTACAO' &&
             (record.data as Record<string, unknown>)?.mealType === metadata.mealType,
         );
+
+        if (exactMatches.length > 0) {
+          matchingRecords = exactMatches;
+        } else {
+          // Fallback: aceitar ALIMENTACAO sem mealType específico
+          matchingRecords = existingRecords.filter(
+            (record) =>
+              record.residentId === config.residentId &&
+              record.type === 'ALIMENTACAO' &&
+              !(record.data as Record<string, unknown>)?.mealType,
+          );
+        }
       } else {
         // Para outros tipos, filtrar por residentId + type
         matchingRecords = existingRecords.filter(
@@ -328,10 +370,13 @@ export class ResidentScheduleTasksService {
       `[getDailyTasks] Retornando ${recurringTasks.length} tarefas. Completas: ${recurringTasks.filter((t) => t.isCompleted).length}, Pendentes: ${recurringTasks.filter((t) => !t.isCompleted).length}`,
     );
 
-    // 3. Buscar todos eventos agendados para a data
+    // 5. Buscar todos eventos agendados para a data
     const events = await this.tenantContext.client.residentScheduledEvent.findMany({
       where: {
-        scheduledDate: targetDate,
+        scheduledDate: {
+          gte: startOfDay(targetDate),
+          lte: endOfDay(targetDate),
+        },
         deletedAt: null,
       },
       include: {

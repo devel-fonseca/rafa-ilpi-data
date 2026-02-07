@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { prescriptionsApi } from '@/api/prescriptions.api'
+import { prescriptionsApi, type UpdatePrescriptionDto } from '@/api/prescriptions.api'
 import { useToast } from '@/components/ui/use-toast'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -22,27 +22,8 @@ export function useUpdatePrescription() {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string
-      data: {
-        changeReason: string
-        doctorName?: string
-        doctorCrm?: string
-        doctorCrmState?: string
-        prescriptionDate?: string
-        prescriptionType?: string
-        validUntil?: string
-        reviewDate?: string
-        controlledClass?: string
-        notificationNumber?: string
-        notificationType?: string
-        notes?: string
-        isActive?: boolean
-      }
-    }) => prescriptionsApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdatePrescriptionDto }) =>
+      prescriptionsApi.update(id, data),
     onSuccess: (_, variables) => {
       // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: tenantKey('prescriptions') })

@@ -141,6 +141,14 @@ model Tenant {
   belongingTerms             BelongingTerm[] // Termos de pertences
   belongingHistory           BelongingHistory[] // Histórico de pertences
 
+  // Dados de Saúde do Residente (tabelas separadas)
+  residentBloodTypes                    ResidentBloodType[]
+  residentBloodTypeHistory              ResidentBloodTypeHistory[]
+  residentAnthropometry                 ResidentAnthropometry[]
+  residentAnthropometryHistory          ResidentAnthropometryHistory[]
+  residentDependencyAssessments         ResidentDependencyAssessment[]
+  residentDependencyAssessmentHistory   ResidentDependencyAssessmentHistory[]
+
   @@index([timezone])
   @@map("tenants")
 }

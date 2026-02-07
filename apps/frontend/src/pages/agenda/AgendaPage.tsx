@@ -12,7 +12,7 @@ import { MonthlyViewOptimized } from '@/components/agenda/MonthlyViewOptimized'
 import { MonthlyViewInstitutional } from '@/components/agenda/MonthlyViewInstitutional'
 import { InstitutionalEventModal } from '@/components/agenda/InstitutionalEventModal'
 import { useAgendaItems, useInstitutionalEvents, useInstitutionalEventMutations } from '@/hooks/useAgenda'
-import { ViewType, ScopeType, ContentFilterType, StatusFilterType } from '@/types/agenda'
+import { ViewType, ScopeType, ContentFilterType, StatusFilterType, InstitutionalEvent } from '@/types/agenda'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Page, PageHeader, Section } from '@/design-system/components'
 
@@ -101,7 +101,7 @@ export default function AgendaPage() {
     }
   }
 
-  const handleCreateEvent = async (data: unknown) => {
+  const handleCreateEvent = async (data: Partial<InstitutionalEvent>) => {
     await createEvent.mutateAsync(data)
   }
 

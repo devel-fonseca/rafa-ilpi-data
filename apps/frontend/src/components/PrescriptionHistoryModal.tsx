@@ -42,10 +42,7 @@ export function PrescriptionHistoryModal({
 }: PrescriptionHistoryModalProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['prescription-history', prescriptionId],
-    queryFn: async () => {
-      const response = await prescriptionsApi.getHistory(prescriptionId)
-      return response.data
-    },
+    queryFn: () => prescriptionsApi.getHistory(prescriptionId),
     enabled: open && !!prescriptionId,
   })
 

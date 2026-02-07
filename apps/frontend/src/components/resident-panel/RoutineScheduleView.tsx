@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { EmptyState, LoadingSpinner } from '@/design-system/components'
 import { CalendarDays } from 'lucide-react'
 import { useScheduleConfigsByResident, ResidentScheduleConfig, ScheduleFrequency } from '@/hooks/useResidentSchedule'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 import { MEAL_TYPES } from '@/constants/meal-types'
 
 // ========== CONSTANTS ==========
@@ -109,7 +109,7 @@ interface GroupItemProps {
 }
 
 function GroupItem({ group }: GroupItemProps) {
-  const recordLabel = RECORD_TYPE_LABELS[group.recordType]?.label || group.recordType
+  const recordLabel = getRecordTypeLabel(group.recordType).label
 
   // Construir descrição de horários
   let timesDescription: string

@@ -233,8 +233,7 @@ export function Step5Review() {
             }
             accept="image/*,application/pdf"
             required={formData.prescriptionType === 'CONTROLADO'}
-            onFileSelect={(file) => setValue('prescriptionImage', file)}
-            showPreview={true}
+            onFileSelect={(file) => setValue('prescriptionImage', file ?? undefined)}
           />
         </CardContent>
       </Card>

@@ -54,7 +54,7 @@ export type NotificationSeverity = 'CRITICAL' | 'WARNING' | 'INFO' | 'SUCCESS'
 /**
  * Categorias de notificações
  */
-export type NotificationCategory = 'PRESCRIPTION' | 'VITAL_SIGN' | 'DOCUMENT' | 'MEDICATION' | 'DAILY_RECORD' | 'SCHEDULED_EVENT' | 'INSTITUTIONAL_EVENT' | 'SYSTEM'
+export type NotificationCategory = 'PRESCRIPTION' | 'VITAL_SIGN' | 'DOCUMENT' | 'MEDICATION' | 'DAILY_RECORD' | 'SCHEDULED_EVENT' | 'INSTITUTIONAL_EVENT' | 'SYSTEM' | 'POP' | 'INCIDENT'
 
 /**
  * Categorias de medicamentos
@@ -279,6 +279,14 @@ export const NOTIFICATION_CATEGORY_COLORS: Record<
   SYSTEM: {
     icon: 'text-gray-600',
     color: 'text-gray-600',
+  },
+  POP: {
+    icon: 'text-teal-600',
+    color: 'text-teal-600',
+  },
+  INCIDENT: {
+    icon: 'text-red-600',
+    color: 'text-red-600',
   },
 }
 

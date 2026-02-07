@@ -322,41 +322,15 @@ export class CreateResidentDto {
   @IsString()
   dischargeReason?: string;
 
-  // 6. Saúde
+  // 6. Saúde (dados clínicos para ClinicalProfile)
+  // NOTA: Campos bloodType, height, weight, dependencyLevel, mobilityAid, medicationsOnAdmission
+  // foram migrados para tabelas separadas (resident_blood_types, resident_anthropometry, resident_dependency_assessments)
+  // e serão gerenciados via APIs específicas após o cadastro inicial
+
   @ApiProperty({ example: 'Estável', required: false })
   @IsOptional()
   @IsString()
   healthStatus?: string;
-
-  @ApiProperty({ example: 'A_POSITIVO', enum: ['A_POSITIVO', 'A_NEGATIVO', 'B_POSITIVO', 'B_NEGATIVO', 'AB_POSITIVO', 'AB_NEGATIVO', 'O_POSITIVO', 'O_NEGATIVO', 'NAO_INFORMADO'] })
-  @IsEnum(['A_POSITIVO', 'A_NEGATIVO', 'B_POSITIVO', 'B_NEGATIVO', 'AB_POSITIVO', 'AB_NEGATIVO', 'O_POSITIVO', 'O_NEGATIVO', 'NAO_INFORMADO'])
-  @IsOptional()
-  bloodType?: 'A_POSITIVO' | 'A_NEGATIVO' | 'B_POSITIVO' | 'B_NEGATIVO' | 'AB_POSITIVO' | 'AB_NEGATIVO' | 'O_POSITIVO' | 'O_NEGATIVO' | 'NAO_INFORMADO' = 'NAO_INFORMADO';
-
-  @ApiProperty({ example: 1.75, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(3)
-  height?: number;
-
-  @ApiProperty({ example: 70.5, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(300)
-  weight?: number;
-
-  @ApiProperty({ example: 'Grau II - Parcialmente Dependente', enum: ['Grau I - Independente', 'Grau II - Parcialmente Dependente', 'Grau III - Totalmente Dependente'], required: false })
-  @EmptyToUndefined()
-  @IsOptional()
-  @IsEnum(['Grau I - Independente', 'Grau II - Parcialmente Dependente', 'Grau III - Totalmente Dependente'])
-  dependencyLevel?: 'Grau I - Independente' | 'Grau II - Parcialmente Dependente' | 'Grau III - Totalmente Dependente';
-
-  @ApiProperty({ example: true, required: false })
-  @IsOptional()
-  @IsBoolean()
-  mobilityAid?: boolean;
 
   @ApiProperty({ example: 'Cadeira de rodas', required: false })
   @IsOptional()
@@ -367,12 +341,6 @@ export class CreateResidentDto {
   @IsOptional()
   @IsString()
   functionalAspects?: string;
-
-  @ApiProperty({ example: 'Losartana 50mg', required: false })
-  @EmptyToUndefined()
-  @IsOptional()
-  @IsString()
-  medicationsOnAdmission?: string;
 
   @ApiProperty({ example: 'Lactose', required: false })
   @EmptyToUndefined()

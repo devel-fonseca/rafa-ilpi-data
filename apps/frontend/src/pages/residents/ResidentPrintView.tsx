@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Printer, FileDown, Loader2 } from 'lucide-react'
 import { useReactToPrint } from 'react-to-print'
 import { Button } from '@/components/ui/button'
 import ResidentDocument from '@/components/residents/ResidentDocument'
 import { useResident } from '@/hooks/useResidents'
+import { useResidentHealthSummary } from '@/hooks/useResidentHealth'
 // TODO: Migrar para @react-pdf/renderer
 // import html2pdf from 'html2pdf.js'
 import { getCurrentDate } from '@/utils/dateHelpers'
@@ -20,18 +21,35 @@ export function ResidentPrintView() {
   // Buscar dados do residente usando React Query
   const { data: residentData, isLoading: isLoadingResident, error: residentError } = useResident(id || '')
 
-  const isLoading = isLoadingResident
+  // Buscar dados de saúde (nova tabela)
+  const { data: healthSummary, isLoading: isLoadingHealth } = useResidentHealthSummary(id || '')
+
+  const isLoading = isLoadingResident || isLoadingHealth
+
+  // Mesclar dados do residente com dados de saúde para o documento
+  const residentWithHealth = useMemo(() => {
+    if (!residentData) return null
+    return {
+      ...residentData,
+      // Adicionar dados de saúde das novas tabelas
+      bloodType: healthSummary?.bloodType?.bloodType,
+      height: healthSummary?.latestAnthropometry?.height,
+      weight: healthSummary?.latestAnthropometry?.weight,
+      dependencyLevel: healthSummary?.currentAssessment?.dependencyLevel,
+      mobilityAid: healthSummary?.currentAssessment?.mobilityAid,
+    }
+  }, [residentData, healthSummary])
 
   // Função de impressão usando react-to-print
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: `Registro_Residente_${residentData?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
+    documentTitle: `Registro_Residente_${residentWithHealth?.fullName.replace(/\s/g, '_')}_${getCurrentDate()}`,
   })
 
   // Função de exportação para PDF
   // TODO: Migrar para @react-pdf/renderer
   const handleExportPDF = async () => {
-    if (!printRef.current || !residentData) return
+    if (!printRef.current || !residentWithHealth) return
 
     setIsExporting(true)
 
@@ -74,7 +92,7 @@ export function ResidentPrintView() {
     )
   }
 
-  if (residentError || !residentData) {
+  if (residentError || !residentWithHealth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -93,7 +111,7 @@ export function ResidentPrintView() {
     <Page className="min-h-screen bg-muted print:bg-white">
       <div className="print:hidden">
         <PageHeader
-          title={residentData.fullName}
+          title={residentWithHealth.fullName}
           subtitle="Visualizando as informações do residente"
           onBack={() => navigate('/dashboard/residentes')}
           actions={
@@ -133,7 +151,7 @@ export function ResidentPrintView() {
       <div className="py-8 print:py-0">
         <div ref={printRef}>
           <ResidentDocument
-            resident={residentData as Record<string, unknown>}
+            resident={residentWithHealth as Record<string, unknown>}
             isPrinting={false}
           />
         </div>

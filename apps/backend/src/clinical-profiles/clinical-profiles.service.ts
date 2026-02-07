@@ -173,7 +173,7 @@ export class ClinicalProfilesService {
     id: string,
     updateDto: UpdateClinicalProfileDto,
   ) {
-    const { changeReason, mobilityAid, ...updateData } = updateDto;
+    const { changeReason, ...updateData } = updateDto;
 
     const profile = await this.tenantContext.client.clinicalProfile.findFirst({
       where: { id, deletedAt: null },
@@ -250,53 +250,6 @@ export class ClinicalProfilesService {
         },
       });
 
-      // 3. Se mobilityAid foi fornecido, atualizar também o residente
-      if (mobilityAid !== undefined && profile.resident.mobilityAid !== mobilityAid) {
-        const residentPreviousMobilityAid = profile.resident.mobilityAid;
-        const residentVersionNumber = profile.resident.versionNumber + 1;
-
-        await tx.resident.update({
-          where: { id: profile.residentId },
-          data: {
-            mobilityAid,
-            versionNumber: residentVersionNumber,
-            updatedBy: userId,
-          },
-        });
-
-        // 4. Criar histórico no residente
-        await tx.residentHistory.create({
-          data: {
-            tenantId: this.tenantContext.tenantId,
-            residentId: profile.residentId,
-            versionNumber: residentVersionNumber,
-            changeType: ChangeType.UPDATE,
-            changeReason: `Atualizado via edição de Aspectos Funcionais: ${changeReason}`,
-            changedFields: ['mobilityAid'],
-            previousData: {
-              ...profile.resident,
-              mobilityAid: residentPreviousMobilityAid,
-            } as Prisma.InputJsonValue,
-            newData: {
-              ...profile.resident,
-              mobilityAid,
-              versionNumber: residentVersionNumber,
-            } as Prisma.InputJsonValue,
-            changedAt: new Date(),
-            changedBy: userId,
-          },
-        });
-
-        this.logger.info('Campo mobilityAid sincronizado com residente', {
-          residentId: profile.residentId,
-          previousValue: residentPreviousMobilityAid,
-          newValue: mobilityAid,
-          versionNumber: residentVersionNumber,
-          tenantId: this.tenantContext.tenantId,
-          userId,
-        });
-      }
-
       return updatedProfile;
     });
 
@@ -304,7 +257,6 @@ export class ClinicalProfilesService {
       profileId: id,
       versionNumber: newVersionNumber,
       changedFields,
-      mobilityAidUpdated: mobilityAid !== undefined,
       tenantId: this.tenantContext.tenantId,
       userId,
     });

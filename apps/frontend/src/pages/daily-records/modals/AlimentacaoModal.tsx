@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import type { CreateDailyRecordInput, AlimentacaoData } from '@/types/daily-records'
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,7 @@ type AlimentacaoFormData = z.infer<typeof alimentacaoSchema>
 interface AlimentacaoModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: AlimentacaoFormData) => void
+  onSubmit: (data: CreateDailyRecordInput<AlimentacaoData>) => void
   residentId: string
   residentName: string
   date: string
@@ -118,7 +119,7 @@ export function AlimentacaoModal({
   })
 
   const handleFormSubmit = (data: AlimentacaoFormData) => {
-    const payload = {
+    const payload: CreateDailyRecordInput<AlimentacaoData> = {
       residentId,
       type: 'ALIMENTACAO',
       date,
@@ -126,7 +127,6 @@ export function AlimentacaoModal({
       recordedBy: currentUserName,
       data: {
         refeicao: data.refeicao,
-        mealType: data.refeicao, // ✅ Incluir mealType para verificação de tarefas
         cardapio: data.cardapio,
         consistencia: data.consistencia,
         ingeriu: data.ingeriu,
