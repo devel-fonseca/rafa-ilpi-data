@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
-import { ResidentFormData } from '@/pages/residents/ResidentForm'
+import { ResidentFormData } from '@/components/resident-form'
 import { buscarCEP } from '@/services/cepService'
 
 interface AddressFieldsProps {

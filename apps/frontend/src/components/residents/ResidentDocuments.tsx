@@ -49,9 +49,11 @@ import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
 
 interface ResidentDocumentsProps {
   residentId: string
+  /** Quando true, remove o Card wrapper e header (para uso inline em formulários) */
+  embedded?: boolean
 }
 
-export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
+export function ResidentDocuments({ residentId, embedded = false }: ResidentDocumentsProps) {
   // Estados
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('ALL')
@@ -185,154 +187,163 @@ export function ResidentDocuments({ residentId }: ResidentDocumentsProps) {
     return RESIDENT_DOCUMENT_TYPES.find((t) => t.value === type)?.label || type
   }
 
+  // Conteúdo interno (filtros + tabela)
+  const content = (
+    <>
+      {/* Botão Novo Documento + Filtros */}
+      <div className="space-y-4 mb-6">
+        <Button type="button" variant="outline" size="sm" onClick={() => setIsUploadDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Documento
+        </Button>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Busca */}
+          <div>
+            <Label htmlFor="search">Busca</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
+              <Input
+                id="search"
+                placeholder="Buscar documentos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Tipo de Documento */}
+          <div>
+            <Label htmlFor="document-filter-type">Tipo de Documento</Label>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger id="document-filter-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os tipos</SelectItem>
+                {RESIDENT_DOCUMENT_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela de Documentos */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 text-danger">
+          Erro ao carregar documentos. Tente novamente.
+        </div>
+      ) : filteredDocuments.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="text-lg font-medium">Nenhum documento encontrado</p>
+          <p className="text-sm mt-2">
+            {documents.length === 0
+              ? 'Clique em "Novo Documento" para adicionar o primeiro documento'
+              : 'Tente ajustar os filtros de busca'}
+          </p>
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Documento</TableHead>
+                <TableHead>Detalhes</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredDocuments.map((doc) => (
+                <TableRow key={doc.id}>
+                  <TableCell className="font-medium">
+                    {formatDate(doc.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileIcon className="h-4 w-4 text-muted-foreground/70" />
+                      <div>
+                        <div className="font-medium">{getTypeLabel(doc.type)}</div>
+                        <div className="text-xs text-muted-foreground">{doc.fileName}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {doc.details ? (
+                      <span className="text-sm">{doc.details}</span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground/70">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleView(doc.fileUrl, doc.fileName, doc.type)}
+                        title="Visualizar"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      {doc.type !== 'PRESCRICAO_MEDICA' && doc.type !== 'COMPROVANTE_VACINACAO' && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(doc.id, doc.fileName)}
+                          disabled={deleteMutation.isPending}
+                          title="Excluir"
+                          className="text-danger hover:text-danger/80 hover:bg-danger/5"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
+  )
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Documentos</CardTitle>
-              <CardDescription>
-                Gerencie todos os documentos do cadastro do residente
-              </CardDescription>
-            </div>
-            <Button type="button" onClick={() => setIsUploadDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Documento
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {/* Filtros */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Busca */}
-            <div className="md:col-span-1">
-              <Label htmlFor="search">Busca</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/70" />
-                <Input
-                  id="search"
-                  placeholder="Buscar documentos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      {/* Modo embedded: sem Card wrapper */}
+      {embedded ? (
+        content
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Documentos</CardTitle>
+                <CardDescription>
+                  Gerencie todos os documentos do cadastro do residente
+                </CardDescription>
               </div>
+              <Button type="button" onClick={() => setIsUploadDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Documento
+              </Button>
             </div>
-
-            {/* Tipo de Documento */}
-            <div className="md:col-span-1">
-              <Label htmlFor="document-filter-type">Tipo de Documento</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger id="document-filter-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos os tipos</SelectItem>
-                  {RESIDENT_DOCUMENT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Detalhes (vazio, apenas para layout) */}
-            <div className="md:col-span-1">
-              <Label>Detalhes</Label>
-              <div className="h-10" /> {/* Espaçamento */}
-            </div>
-          </div>
-
-          {/* Tabela de Documentos */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-danger">
-              Erro ao carregar documentos. Tente novamente.
-            </div>
-          ) : filteredDocuments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-              <p className="text-lg font-medium">Nenhum documento encontrado</p>
-              <p className="text-sm mt-2">
-                {documents.length === 0
-                  ? 'Clique em "Novo Documento" para adicionar o primeiro documento'
-                  : 'Tente ajustar os filtros de busca'}
-              </p>
-            </div>
-          ) : (
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Documento</TableHead>
-                    <TableHead>Detalhes</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDocuments.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell className="font-medium">
-                        {formatDate(doc.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <FileIcon className="h-4 w-4 text-muted-foreground/70" />
-                          <div>
-                            <div className="font-medium">{getTypeLabel(doc.type)}</div>
-                            <div className="text-xs text-muted-foreground">{doc.fileName}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {doc.details ? (
-                          <span className="text-sm">{doc.details}</span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground/70">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleView(doc.fileUrl, doc.fileName, doc.type)}
-                            title="Visualizar"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {doc.type !== 'PRESCRICAO_MEDICA' && doc.type !== 'COMPROVANTE_VACINACAO' && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(doc.id, doc.fileName)}
-                              disabled={deleteMutation.isPending}
-                              title="Excluir"
-                              className="text-danger hover:text-danger/80 hover:bg-danger/5"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>{content}</CardContent>
+        </Card>
+      )}
 
       {/* Dialog de Upload */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
