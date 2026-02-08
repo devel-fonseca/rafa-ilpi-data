@@ -17,8 +17,11 @@ import { tenantKey } from '@/lib/query-keys'
 /**
  * Hook para listar condições crônicas de um residente específico
  */
-export function useConditionsByResident(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useConditionsByResident(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<Condition[]>({
     queryKey: tenantKey('conditions', 'resident', residentId),
@@ -28,7 +31,7 @@ export function useConditionsByResident(residentId: string | undefined) {
       }
       return getConditionsByResident(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     placeholderData: [],
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,

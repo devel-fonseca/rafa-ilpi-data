@@ -25,6 +25,10 @@ import { QueryPrescriptionDto } from './dto/query-prescription.dto';
 import { AdministerMedicationDto } from './dto/administer-medication.dto';
 import { AdministerSOSDto } from './dto/administer-sos.dto';
 import { MedicalReviewPrescriptionDto } from './dto/medical-review-prescription.dto';
+import {
+  UpdateMedicationAdministrationDto,
+  DeleteMedicationAdministrationDto,
+} from './dto/update-medication-administration.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { FeatureGuard } from '../common/guards/feature.guard';
@@ -357,6 +361,82 @@ export class PrescriptionsController {
       residentId,
       date,
     );
+  }
+
+  // ========== EDIÇÃO/EXCLUSÃO DE ADMINISTRAÇÕES ==========
+
+  @Patch('medication-administrations/:id')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS)
+  @UseInterceptors(AuditInterceptor)
+  @AuditEntity('MedicationAdministration')
+  @AuditAction('UPDATE')
+  @ApiOperation({ summary: 'Atualizar administração de medicamento' })
+  @ApiResponse({
+    status: 200,
+    description: 'Administração atualizada com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Administração não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da administração (UUID)' })
+  updateMedicationAdministration(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMedicationAdministrationDto,
+    @CurrentUser() user: JwtPayload,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.prescriptionsService.updateMedicationAdministration(
+      id,
+      dto,
+      user,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Delete('medication-administrations/:id')
+  @UseGuards(PermissionsGuard, ReauthenticationGuard)
+  @RequirePermissions(PermissionType.DELETE_MEDICATION_ADMINISTRATIONS)
+  @RequiresReauthentication()
+  @UseInterceptors(AuditInterceptor)
+  @AuditEntity('MedicationAdministration')
+  @AuditAction('DELETE')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Excluir administração de medicamento (soft delete)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Administração excluída com sucesso',
+  })
+  @ApiResponse({ status: 404, description: 'Administração não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da administração (UUID)' })
+  deleteMedicationAdministration(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeleteMedicationAdministrationDto,
+    @CurrentUser() user: JwtPayload,
+    @Request() req: ExpressRequest,
+  ) {
+    return this.prescriptionsService.deleteMedicationAdministration(
+      id,
+      dto.deleteReason,
+      user,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Get('medication-administrations/:id/history')
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions(PermissionType.VIEW_AUDIT_LOGS)
+  @ApiOperation({ summary: 'Buscar histórico de alterações de uma administração' })
+  @ApiResponse({
+    status: 200,
+    description: 'Histórico de versões da administração',
+  })
+  @ApiResponse({ status: 404, description: 'Administração não encontrada' })
+  @ApiParam({ name: 'id', description: 'ID da administração (UUID)' })
+  getMedicationAdministrationHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.prescriptionsService.getMedicationAdministrationHistory(id);
   }
 
   // ========== UPLOAD DE PRESCRIÇÃO COM PROCESSAMENTO INSTITUCIONAL ==========

@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { extractDateOnly } from '@/utils/dateHelpers'
-import { useResidents, useResidentStats } from '@/hooks/useResidents'
+import { useResidents } from '@/hooks/useResidents'
 import type { Resident } from '@/api/residents.api'
 import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDrawer'
 import { ResidentDocumentsModal } from '@/components/residents/ResidentDocumentsModal'
 import { DeleteResidentModal } from '@/components/modals/DeleteResidentModal'
-import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  Page,
+  PageHeader,
+  Section,
+  EmptyState,
+  StatusBadge,
+  AccessDenied,
+  LoadingSpinner,
+} from '@/design-system/components'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import {
   Search,
   Plus,
@@ -45,21 +51,18 @@ import {
   MoreHorizontal,
   FileText,
   Users,
-  UserCheck,
-  UserX,
   ChevronLeft,
   ChevronRight,
   Printer,
-  Accessibility,
-  ShieldAlert,
-  ArrowLeft,
   History,
   Package,
+  Accessibility,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { formatBedFromResident } from '@/utils/formatters'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { DEPENDENCY_LEVEL_SHORT_LABELS, type DependencyLevel } from '@/api/resident-health.api'
 
 export default function ResidentsList() {
   const navigate = useNavigate()
@@ -105,8 +108,6 @@ export default function ResidentsList() {
     page: 1,
     limit: 10,
   })
-
-  const { data: stats } = useResidentStats()
 
   // Verificar se o usuário tem permissão para gerenciar residentes
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
@@ -158,47 +159,49 @@ export default function ResidentsList() {
   }
 
   // Obter cor do badge de status
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' | 'secondary' => {
     switch (status) {
       case 'ATIVO':
-        return 'bg-success/10 text-success border-success/30'
+        return 'success'
       case 'INATIVO':
-        return 'bg-warning/10 text-warning border-warning/30'
+        return 'warning'
       case 'ALTA':
-        return 'bg-info/10 text-info border-info/30'
+        return 'info'
       case 'OBITO':
-        return 'bg-muted text-muted-foreground border-border'
+        return 'secondary'
       case 'TRANSFERIDO':
-        return 'bg-accent/10 text-accent border-accent/30'
+        return 'info'
       default:
-        return 'bg-muted text-muted-foreground border-border'
+        return 'secondary'
+    }
+  }
+
+  // Obter cor do badge de grau de dependência
+  const getDependencyBadgeVariant = (level: DependencyLevel): 'success' | 'warning' | 'danger' => {
+    switch (level) {
+      case 'GRAU_I':
+        return 'success'
+      case 'GRAU_II':
+        return 'warning'
+      case 'GRAU_III':
+        return 'danger'
+      default:
+        return 'warning'
     }
   }
 
   // Verificar se o usuário tem permissão para acessar a página
   if (!canManageResidents) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-        <ShieldAlert className="h-16 w-16 text-destructive" />
-        <div className="text-2xl font-semibold">Acesso Negado</div>
-        <div className="text-muted-foreground text-center max-w-md">
-          Você não tem permissão para acessar a gestão de residentes.
-          <br />
-          Entre em contato com o administrador caso precise de acesso.
-        </div>
-        <Button variant="outline" onClick={() => navigate('/dashboard')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar ao Dashboard
-        </Button>
-      </div>
+      <AccessDenied message="Você não tem permissão para acessar a gestão de residentes." />
     )
   }
 
   return (
     <Page>
       <PageHeader
-        title="Residentes"
-        subtitle="Gerencie os residentes da ILPI"
+        title="Lista de Residentes"
+        subtitle="Consulte e gerencie os residentes cadastrados"
         actions={
           <Button onClick={() => navigate('/dashboard/residentes/new')}>
             <Plus className="h-4 w-4" />
@@ -206,81 +209,6 @@ export default function ResidentsList() {
           </Button>
         }
       />
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Total</h3>
-                  <p className="text-2xl font-bold text-primary mt-1">{stats.total}</p>
-                </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-primary/10 rounded-lg">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Ativos</h3>
-                  <p className="text-2xl font-bold text-success mt-1">
-                    {stats.ativos}
-                  </p>
-                </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-success/10 rounded-lg">
-                  <UserCheck className="h-6 w-6 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Inativos</h3>
-                  <p className="text-2xl font-bold text-severity-warning mt-1">
-                    {stats.inativos}
-                  </p>
-                </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-severity-warning/10 rounded-lg">
-                  <UserX className="h-6 w-6 text-severity-warning" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Grau de Dependência</h3>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    <Badge className="bg-primary/10 text-primary/80 dark:text-primary border-primary/30 hover:bg-primary/10 text-xs px-2 py-0.5">
-                      I - {stats.grauI}
-                    </Badge>
-                    <Badge className="bg-severity-warning/10 text-severity-warning/80 dark:text-severity-warning border-severity-warning/30 hover:bg-severity-warning/10 text-xs px-2 py-0.5">
-                      II - {stats.grauII}
-                    </Badge>
-                    <Badge className="bg-danger/10 text-danger/80 dark:text-danger border-danger/30 hover:bg-danger/10 text-xs px-2 py-0.5">
-                      III - {stats.grauIII}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center w-12 h-12 bg-medication-controlled/10 rounded-lg">
-                  <Accessibility className="h-6 w-6 text-medication-controlled" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* Filters */}
       <Section title="Filtros">
@@ -329,11 +257,12 @@ export default function ResidentsList() {
       </Section>
 
       {/* Table */}
-      <Section title="Lista de Residentes">
+      <Section
+        title="Lista de Residentes"
+        description={meta ? `${meta.total} residente${meta.total !== 1 ? 's' : ''} no total` : undefined}
+      >
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-muted-foreground">Carregando...</div>
-          </div>
+          <LoadingSpinner message="Carregando residentes..." />
         ) : error ? (
           <EmptyState
             icon={Users}
@@ -365,11 +294,6 @@ export default function ResidentsList() {
                   <TableRow>
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Nome</TableHead>
-                    <TableHead>CPF</TableHead>
-                    <TableHead>Idade</TableHead>
-                    <TableHead>Acomodação</TableHead>
-                    <TableHead>Admissão</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -384,108 +308,121 @@ export default function ResidentsList() {
                           rounded={true}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{resident.fullName}</TableCell>
-                      <TableCell>{resident.cpf || '-'}</TableCell>
-                      <TableCell>{calculateAge(resident.birthDate)} anos</TableCell>
                       <TableCell>
-                        {resident.bed ? (
-                          <span className="text-sm font-mono">
-                            {formatBedFromResident(resident)}
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{resident.fullName}</span>
+                            <StatusBadge variant={getStatusBadgeVariant(resident.status)}>
+                              {resident.status}
+                            </StatusBadge>
+                            {resident.dependencyLevel && (
+                              <StatusBadge variant={getDependencyBadgeVariant(resident.dependencyLevel)}>
+                                {DEPENDENCY_LEVEL_SHORT_LABELS[resident.dependencyLevel]}
+                              </StatusBadge>
+                            )}
+                            {resident.mobilityAid && (
+                              <StatusBadge
+                                variant="info"
+                                title="Auxílio de mobilidade"
+                                className="h-5 min-w-5 px-1.5 justify-center"
+                              >
+                                <Accessibility className="h-3 w-3" />
+                              </StatusBadge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {calculateAge(resident.birthDate)} anos
+                            {resident.admissionDate && ` • Admitido em ${formatDateOnlySafe(resident.admissionDate)}`}
+                            {resident.bed && ` • ${formatBedFromResident(resident)}`}
                           </span>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {resident.admissionDate
-                          ? formatDateOnlySafe(resident.admissionDate)
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadgeColor(resident.status)}>
-                          {resident.status}
-                        </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Abrir menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/dashboard/residentes/${resident.id}/view`)}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Visualizar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/dashboard/residentes/${resident.id}`)}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Prontuário
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setHistoryDrawer({
-                                  open: true,
-                                  residentId: resident.id,
-                                  residentName: resident.fullName,
-                                })
-                              }
-                            >
-                              <History className="mr-2 h-4 w-4" />
-                              Ver Histórico
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                setDocumentsModal({
-                                  open: true,
-                                  residentId: resident.id,
-                                  residentName: resident.fullName,
-                                })
-                              }
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Documentos
-                            </DropdownMenuItem>
-                            {canViewBelongings && (
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/dashboard/residentes/${resident.id}/view`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Visualizar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/dashboard/residentes/${resident.id}`)}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Prontuário
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Mais ações</DropdownMenuLabel>
                               <DropdownMenuItem
-                                onClick={() => navigate(`/dashboard/residentes/${resident.id}/pertences`)}
+                                onClick={() =>
+                                  setHistoryDrawer({
+                                    open: true,
+                                    residentId: resident.id,
+                                    residentName: resident.fullName,
+                                  })
+                                }
                               >
-                                <Package className="mr-2 h-4 w-4" />
-                                Pertences
+                                <History className="mr-2 h-4 w-4" />
+                                Ver Histórico
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => navigate(`/dashboard/residentes/${resident.id}/print`)}
-                            >
-                              <Printer className="mr-2 h-4 w-4" />
-                              Imprimir/Exportar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-danger"
-                              onClick={() => {
-                                setResidentToDelete(resident)
-                                setDeleteModalOpen(true)
-                              }}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Remover
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setDocumentsModal({
+                                    open: true,
+                                    residentId: resident.id,
+                                    residentName: resident.fullName,
+                                  })
+                                }
+                              >
+                                <FileText className="mr-2 h-4 w-4" />
+                                Documentos
+                              </DropdownMenuItem>
+                              {canViewBelongings && (
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/dashboard/residentes/${resident.id}/pertences`)}
+                                >
+                                  <Package className="mr-2 h-4 w-4" />
+                                  Pertences
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/dashboard/residentes/${resident.id}/edit`)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/dashboard/residentes/${resident.id}/print`)}
+                              >
+                                <Printer className="mr-2 h-4 w-4" />
+                                Imprimir/Exportar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-danger"
+                                onClick={() => {
+                                  setResidentToDelete(resident)
+                                  setDeleteModalOpen(true)
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

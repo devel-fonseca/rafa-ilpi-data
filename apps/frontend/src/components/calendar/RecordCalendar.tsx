@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,9 @@ import { ptBR } from 'date-fns/locale'
 interface RecordCalendarProps {
   datesWithRecords: string[] // Array de datas em formato YYYY-MM-DD
   selectedDate: Date
+  initialMonth?: Date
   onDateSelect: (date: Date) => void
+  onDateDoubleClick?: (date: Date) => void // Duplo clique para confirmar navegação
   onMonthChange?: (year: number, month: number) => void // Notificar mudança de mês
   isLoading?: boolean
 }
@@ -16,11 +18,27 @@ interface RecordCalendarProps {
 export function RecordCalendar({
   datesWithRecords,
   selectedDate,
+  initialMonth,
   onDateSelect,
+  onDateDoubleClick,
   onMonthChange,
   isLoading = false,
 }: RecordCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(
+    initialMonth
+      ? new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1)
+      : new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+  )
+
+  useEffect(() => {
+    if (initialMonth) {
+      setCurrentMonth(new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1))
+    }
+  }, [initialMonth])
+
+  useEffect(() => {
+    setCurrentMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1))
+  }, [selectedDate])
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
@@ -133,6 +151,7 @@ export function RecordCalendar({
                       <button
                         key={day.toString()}
                         onClick={() => onDateSelect(day)}
+                        onDoubleClick={() => onDateDoubleClick?.(day)}
                         className={`
                           relative p-2 text-sm rounded-lg transition-all
                           ${isCurrentMonth ? 'opacity-100' : 'opacity-40'}

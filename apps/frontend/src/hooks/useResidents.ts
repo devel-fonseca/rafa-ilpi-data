@@ -43,7 +43,6 @@ export function useResidents(initialQuery?: ResidentQuery) {
  */
 export function useResident(id: string | undefined) {
   const shouldFetch = !!id && id !== 'new'
-  console.log('[useResident] id:', id, 'shouldFetch:', shouldFetch)
   return useQuery({
     queryKey: tenantKey('residents', id),
     queryFn: () => {

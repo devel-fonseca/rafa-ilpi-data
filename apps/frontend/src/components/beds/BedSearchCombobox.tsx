@@ -8,6 +8,7 @@ import { formatBedFromObject } from '@/utils/formatters'
 import { Badge } from '@/components/ui/badge'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from '@/components/ui/card'
+import { tenantKey } from '@/lib/query-keys'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,8 +68,12 @@ export function BedSearchCombobox({
 
   // Buscar todos os leitos
   const { data: bedsData } = useQuery({
-    queryKey: ['beds', 'all'],
+    queryKey: tenantKey('beds', 'all'),
     queryFn: () => bedsAPI.findAll({ skip: 0, take: 1000 }),
+    staleTime: 30_000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   })
 
   const beds = bedsData?.data || []

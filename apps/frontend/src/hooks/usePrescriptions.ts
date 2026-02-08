@@ -222,7 +222,7 @@ export function usePrescriptionsDashboard() {
 
 // ========== HOOKS PARA VISUALIZAÇÃO DE AGENDA ==========
 
-import { PrescriptionCalendarItem, PrescriptionFilterType, PrescriptionType, PrescriptionStatus } from '@/types/agenda'
+import { PrescriptionCalendarItem, PrescriptionFilterType, PrescriptionStatus } from '@/types/agenda'
 import { differenceInDays } from 'date-fns'
 import { extractDateOnly } from '@/utils/dateHelpers'
 

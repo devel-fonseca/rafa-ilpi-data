@@ -86,13 +86,15 @@ model Tenant {
   dailyRecords               DailyRecord[]
   dailyRecordHistory         DailyRecordHistory[]
   vitalSigns                 VitalSign[]
-  prescriptions              Prescription[]
-  prescriptionHistory        PrescriptionHistory[] // Histórico de prescrições
-  medicationHistory          MedicationHistory[] // Histórico de medicamentos
-  sosMedicationHistory       SOSMedicationHistory[] // Histórico de medicamentos SOS
-  medicationAdministrations  MedicationAdministration[]
-  sosAdministrations         SOSAdministration[]
-  vaccinations               Vaccination[]
+  prescriptions                       Prescription[]
+  prescriptionHistory                 PrescriptionHistory[] // Histórico de prescrições
+  medicationHistory                   MedicationHistory[] // Histórico de medicamentos
+  sosMedicationHistory                SOSMedicationHistory[] // Histórico de medicamentos SOS
+  medicationAdministrations           MedicationAdministration[]
+  sosAdministrations                  SOSAdministration[]
+  medicationAdministrationHistory     MedicationAdministrationHistory[] // Histórico de administrações
+  sosAdministrationHistory            SOSAdministrationHistory[] // Histórico de administrações SOS
+  vaccinations                        Vaccination[]
   vaccinationHistory         VaccinationHistory[] // Histórico de vacinações
   allergies                  Allergy[]
   allergyHistory             AllergyHistory[] // Histórico de alergias

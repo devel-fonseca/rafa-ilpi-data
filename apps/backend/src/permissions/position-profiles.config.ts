@@ -159,6 +159,8 @@ const BASE_PERMISSIONS = {
     PermissionType.VIEW_MEDICATIONS,
     PermissionType.ADMINISTER_MEDICATIONS,
     PermissionType.ADMINISTER_CONTROLLED_MEDICATIONS,
+    PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS,
+    PermissionType.DELETE_MEDICATION_ADMINISTRATIONS,
     // Sinais Vitais
     PermissionType.VIEW_VITAL_SIGNS,
     PermissionType.RECORD_VITAL_SIGNS,
@@ -402,6 +404,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
     defaultRole: 'manager',
     permissions: [
       ...BASE_PERMISSIONS.MANAGER,
+      // Administração de Medicamentos - Gestão
+      PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS,
+      PermissionType.DELETE_MEDICATION_ADMINISTRATIONS,
       // Escala de Cuidados - Gestão Completa
       PermissionType.CREATE_CARE_SHIFTS,        // Criar plantões
       PermissionType.UPDATE_CARE_SHIFTS,        // Atualizar plantões
@@ -425,6 +430,8 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       ...BASE_PERMISSIONS.MANAGER,
       // Enfermeiros podem criar prescrições de enfermagem
       PermissionType.CREATE_PRESCRIPTIONS,
+      // Administração de Medicamentos - Correções
+      PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS,
     ],
   },
 

@@ -52,6 +52,8 @@ export enum PermissionType {
   VIEW_MEDICATIONS = 'VIEW_MEDICATIONS',
   ADMINISTER_MEDICATIONS = 'ADMINISTER_MEDICATIONS',
   ADMINISTER_CONTROLLED_MEDICATIONS = 'ADMINISTER_CONTROLLED_MEDICATIONS',
+  UPDATE_MEDICATION_ADMINISTRATIONS = 'UPDATE_MEDICATION_ADMINISTRATIONS',
+  DELETE_MEDICATION_ADMINISTRATIONS = 'DELETE_MEDICATION_ADMINISTRATIONS',
 
   // Vaccinations
   VIEW_VACCINATIONS = 'VIEW_VACCINATIONS',
@@ -244,6 +246,8 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   [PermissionType.VIEW_MEDICATIONS]: 'Visualizar medicações',
   [PermissionType.ADMINISTER_MEDICATIONS]: 'Administrar medicações',
   [PermissionType.ADMINISTER_CONTROLLED_MEDICATIONS]: 'Administrar medicações controladas',
+  [PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS]: 'Editar administrações de medicamentos',
+  [PermissionType.DELETE_MEDICATION_ADMINISTRATIONS]: 'Excluir administrações de medicamentos',
 
   [PermissionType.VIEW_VACCINATIONS]: 'Visualizar vacinações',
   [PermissionType.CREATE_VACCINATIONS]: 'Registrar vacinações',
@@ -378,6 +382,8 @@ export const PERMISSION_GROUPS = {
       PermissionType.VIEW_MEDICATIONS,
       PermissionType.ADMINISTER_MEDICATIONS,
       PermissionType.ADMINISTER_CONTROLLED_MEDICATIONS,
+      PermissionType.UPDATE_MEDICATION_ADMINISTRATIONS,
+      PermissionType.DELETE_MEDICATION_ADMINISTRATIONS,
     ],
   },
   vaccinations: {

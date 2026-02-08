@@ -7,12 +7,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FileText, Edit, History } from 'lucide-react'
+import { AlertCircle, FileText, Edit, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Page, PageHeader } from '@/design-system/components'
+import { Page, PageHeader, StatusBadge, LoadingSpinner, EmptyState } from '@/design-system/components'
 import {
   getMensagemValidacaoCPF,
   getMensagemValidacaoCNS,
@@ -33,6 +33,7 @@ import { PlanLimitWarningDialog } from '@/components/admin/PlanLimitWarningDialo
 import type { Resident } from '@/api/residents.api'
 import { tenantKey } from '@/lib/query-keys'
 import { useMySubscription } from '@/hooks/useTenant'
+import { useResident } from '@/hooks/useResidents'
 import {
   FormSidebar,
   IdentificacaoSection,
@@ -61,6 +62,23 @@ const SECTION_CONFIG: Record<FormSection, { title: string; subtitle: string }> =
   documentos: { title: 'Documentos', subtitle: 'Documentos anexados ao prontuário' },
 }
 
+const getResidentStatusBadgeVariant = (
+  status?: string
+): 'success' | 'warning' | 'secondary' => {
+  switch (status?.toUpperCase()) {
+    case 'ATIVO':
+      return 'success'
+    case 'INATIVO':
+      return 'warning'
+    case 'FALECIDO':
+    case 'OBITO':
+    case 'ÓBITO':
+      return 'secondary'
+    default:
+      return 'secondary'
+  }
+}
+
 // ========== COMPONENT ==========
 
 interface ResidentFormProps {
@@ -77,8 +95,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   const [activeSection, setActiveSection] = useState<FormSection>('identificacao')
 
   // Estados para modo edição
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const isEditMode = !!id
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | undefined>(undefined)
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false)
   const [residentFullName, setResidentFullName] = useState<string | undefined>(undefined)
@@ -99,9 +116,17 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
   // Ref para dados do residente
   const residentDataRef = useRef<Resident | null>(null)
+  const residentLoadErrorShownRef = useRef(false)
 
   // Subscription data
   const { data: subscriptionData } = useMySubscription()
+  const {
+    data: loadedResident,
+    isLoading: isResidentLoading,
+    error: residentLoadError,
+  } = useResident(id)
+  const isLoading = !!id && isResidentLoading
+  const hasResidentLoadError = !!id && !!residentLoadError && !loadedResident
 
   // Form setup
   const methods = useForm<ResidentFormData>({
@@ -186,145 +211,120 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     }
   }, [subscriptionData, hasSeenWarning, isEditMode])
 
+  useEffect(() => {
+    residentLoadErrorShownRef.current = false
+  }, [id])
+
   // ========== CARREGAR DADOS DO RESIDENTE (MODO EDIÇÃO) ==========
   useEffect(() => {
-    let isMounted = true
-    const controller = new AbortController()
+    if (!id || !loadedResident) return
 
-    const loadResident = async () => {
-      if (!id) {
-        setIsEditMode(false)
-        return
-      }
+    const resident = loadedResident as Resident & {
+      email?: string
+      origin?: string
+    }
+    setCurrentPhotoUrl(resident.fotoUrl || undefined)
 
-      if (!isMounted) return
+    // Dados Pessoais
+    if (resident.fullName) {
+      setValue('nome', resident.fullName)
+      setResidentFullName(resident.fullName)
+    }
+    if (resident.socialName) setValue('nomeSocial', resident.socialName)
+    if (resident.email) setValue('email', resident.email)
+    if (resident.cns) setValue('cns', resident.cns)
+    if (resident.cpf) setValue('cpf', resident.cpf)
+    if (resident.rg) setValue('rg', resident.rg)
+    if (resident.rgIssuer) setValue('orgaoExpedidor', resident.rgIssuer)
+    if (resident.education) setValue('escolaridade', resident.education)
+    if (resident.profession) setValue('profissao', resident.profession)
+    if (resident.gender) setValue('genero', resident.gender)
+    if (resident.civilStatus) setValue('estadoCivil', mapEstadoCivilFromBackend(resident.civilStatus))
+    if (resident.religion) setValue('religiao', resident.religion)
+    if (resident.birthDate) setValue('dataNascimento', timestamptzToDisplay(resident.birthDate))
+    if (resident.nationality) setValue('nacionalidade', resident.nationality)
+    if (resident.birthCity) setValue('naturalidade', resident.birthCity)
+    if (resident.birthState) setValue('ufNascimento', resident.birthState)
+    if (resident.motherName) setValue('nomeMae', resident.motherName)
+    if (resident.fatherName) setValue('nomePai', resident.fatherName)
+    if (resident.status) setValue('status', resident.status)
 
-      setIsEditMode(true)
-      setIsLoading(true)
+    // Endereço Atual
+    if (resident.currentCep) setValue('cepAtual', resident.currentCep)
+    if (resident.currentState) setValue('estadoAtual', resident.currentState)
+    if (resident.currentCity) setValue('cidadeAtual', resident.currentCity)
+    if (resident.currentStreet) setValue('logradouroAtual', resident.currentStreet)
+    if (resident.currentNumber) setValue('numeroAtual', resident.currentNumber)
+    if (resident.currentComplement) setValue('complementoAtual', resident.currentComplement)
+    if (resident.currentDistrict) setValue('bairroAtual', resident.currentDistrict)
+    if (resident.currentPhone) setValue('telefoneAtual', resident.currentPhone)
 
-      try {
-        const response = await api.get(`/residents/${id}`, {
-          signal: controller.signal,
-        })
+    // Procedência
+    if (resident.origin) setValue('procedencia', resident.origin)
 
-        if (!isMounted) return
-
-        const resident = response.data
-
-        if (isMounted) {
-          setCurrentPhotoUrl(resident.fotoUrl || undefined)
-        }
-
-        if (!isMounted) return
-
-        // Dados Pessoais
-        if (resident.fullName) {
-          setValue('nome', resident.fullName)
-          setResidentFullName(resident.fullName)
-        }
-        if (resident.socialName) setValue('nomeSocial', resident.socialName)
-        if (resident.email) setValue('email', resident.email)
-        if (resident.cns) setValue('cns', resident.cns)
-        if (resident.cpf) setValue('cpf', resident.cpf)
-        if (resident.rg) setValue('rg', resident.rg)
-        if (resident.rgIssuer) setValue('orgaoExpedidor', resident.rgIssuer)
-        if (resident.education) setValue('escolaridade', resident.education)
-        if (resident.profession) setValue('profissao', resident.profession)
-        if (resident.gender) setValue('genero', resident.gender)
-        if (resident.civilStatus) setValue('estadoCivil', mapEstadoCivilFromBackend(resident.civilStatus))
-        if (resident.religion) setValue('religiao', resident.religion)
-        if (resident.birthDate) setValue('dataNascimento', timestamptzToDisplay(resident.birthDate))
-        if (resident.nationality) setValue('nacionalidade', resident.nationality)
-        if (resident.birthCity) setValue('naturalidade', resident.birthCity)
-        if (resident.birthState) setValue('ufNascimento', resident.birthState)
-        if (resident.motherName) setValue('nomeMae', resident.motherName)
-        if (resident.fatherName) setValue('nomePai', resident.fatherName)
-        if (resident.status) setValue('status', resident.status)
-
-        // Endereço Atual
-        if (resident.currentCep) setValue('cepAtual', resident.currentCep)
-        if (resident.currentState) setValue('estadoAtual', resident.currentState)
-        if (resident.currentCity) setValue('cidadeAtual', resident.currentCity)
-        if (resident.currentStreet) setValue('logradouroAtual', resident.currentStreet)
-        if (resident.currentNumber) setValue('numeroAtual', resident.currentNumber)
-        if (resident.currentComplement) setValue('complementoAtual', resident.currentComplement)
-        if (resident.currentDistrict) setValue('bairroAtual', resident.currentDistrict)
-        if (resident.currentPhone) setValue('telefoneAtual', resident.currentPhone)
-
-        // Procedência
-        if (resident.origin) setValue('procedencia', resident.origin)
-
-        // Contatos
-        if (resident.emergencyContacts && Array.isArray(resident.emergencyContacts) && resident.emergencyContacts.length > 0) {
-          const contatos = resident.emergencyContacts.map((contact: { name: string; phone: string; relationship: string }) => ({
-            nome: contact.name,
-            telefone: contact.phone,
-            parentesco: contact.relationship,
-          }))
-          setValue('contatosEmergencia', contatos)
-        }
-
-        // Responsável Legal
-        if (resident.legalGuardianName) setValue('responsavelLegalNome', resident.legalGuardianName)
-        if (resident.legalGuardianEmail) setValue('responsavelLegalEmail', resident.legalGuardianEmail)
-        if (resident.legalGuardianCpf) setValue('responsavelLegalCpf', resident.legalGuardianCpf)
-        if (resident.legalGuardianRg) setValue('responsavelLegalRg', resident.legalGuardianRg)
-        if (resident.legalGuardianPhone) setValue('responsavelLegalTelefone', resident.legalGuardianPhone)
-        if (resident.legalGuardianType) setValue('responsavelLegalTipo', resident.legalGuardianType)
-        if (resident.legalGuardianCep) setValue('responsavelLegalCep', resident.legalGuardianCep)
-        if (resident.legalGuardianState) setValue('responsavelLegalUf', resident.legalGuardianState)
-        if (resident.legalGuardianCity) setValue('responsavelLegalCidade', resident.legalGuardianCity)
-        if (resident.legalGuardianStreet) setValue('responsavelLegalLogradouro', resident.legalGuardianStreet)
-        if (resident.legalGuardianNumber) setValue('responsavelLegalNumero', resident.legalGuardianNumber)
-        if (resident.legalGuardianComplement) setValue('responsavelLegalComplemento', resident.legalGuardianComplement)
-        if (resident.legalGuardianDistrict) setValue('responsavelLegalBairro', resident.legalGuardianDistrict)
-
-        // Convênios
-        if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
-          const convenios = resident.healthPlans.map((plan: { name: string; cardNumber: string }) => ({
-            nome: plan.name,
-            numero: plan.cardNumber,
-          }))
-          setValue('convenios', convenios)
-        }
-
-        // Admissão
-        if (resident.admissionDate) setValue('dataAdmissao', timestamptzToDisplay(resident.admissionDate))
-        if (resident.admissionType) setValue('tipoAdmissao', resident.admissionType)
-        if (resident.admissionReason) setValue('motivoAdmissao', resident.admissionReason)
-        if (resident.admissionConditions) setValue('condicoesAdmissao', resident.admissionConditions)
-        if (resident.dischargeDate) setValue('dataDesligamento', timestamptzToDisplay(resident.dischargeDate))
-        if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
-
-        // Acomodação
-        if (resident.bedId) setValue('leitoNumero', resident.bedId)
-
-        residentDataRef.current = {
-          roomId: resident.roomId,
-          bedId: resident.bedId,
-        } as Resident
-      } catch (error: unknown) {
-        if ((error as { name?: string }).name === 'AbortError') {
-          return
-        }
-
-        if (isMounted) {
-          toast.error(`Erro ao carregar dados do residente: ${(error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message}`)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
+    // Contatos
+    if (resident.emergencyContacts && Array.isArray(resident.emergencyContacts) && resident.emergencyContacts.length > 0) {
+      const contatos = resident.emergencyContacts.map((contact: { name: string; phone: string; relationship: string }) => ({
+        nome: contact.name,
+        telefone: contact.phone,
+        parentesco: contact.relationship,
+      }))
+      setValue('contatosEmergencia', contatos)
     }
 
-    loadResident()
+    // Responsável Legal
+    if (resident.legalGuardianName) setValue('responsavelLegalNome', resident.legalGuardianName)
+    if (resident.legalGuardianEmail) setValue('responsavelLegalEmail', resident.legalGuardianEmail)
+    if (resident.legalGuardianCpf) setValue('responsavelLegalCpf', resident.legalGuardianCpf)
+    if (resident.legalGuardianRg) setValue('responsavelLegalRg', resident.legalGuardianRg)
+    if (resident.legalGuardianPhone) setValue('responsavelLegalTelefone', resident.legalGuardianPhone)
+    if (resident.legalGuardianType) setValue('responsavelLegalTipo', resident.legalGuardianType)
+    if (resident.legalGuardianCep) setValue('responsavelLegalCep', resident.legalGuardianCep)
+    if (resident.legalGuardianState) setValue('responsavelLegalUf', resident.legalGuardianState)
+    if (resident.legalGuardianCity) setValue('responsavelLegalCidade', resident.legalGuardianCity)
+    if (resident.legalGuardianStreet) setValue('responsavelLegalLogradouro', resident.legalGuardianStreet)
+    if (resident.legalGuardianNumber) setValue('responsavelLegalNumero', resident.legalGuardianNumber)
+    if (resident.legalGuardianComplement) setValue('responsavelLegalComplemento', resident.legalGuardianComplement)
+    if (resident.legalGuardianDistrict) setValue('responsavelLegalBairro', resident.legalGuardianDistrict)
 
-    return () => {
-      isMounted = false
-      controller.abort()
+    // Convênios
+    if (resident.healthPlans && Array.isArray(resident.healthPlans)) {
+      const convenios = resident.healthPlans.map((plan: { name: string; cardNumber: string }) => ({
+        nome: plan.name,
+        numero: plan.cardNumber,
+      }))
+      setValue('convenios', convenios)
     }
-  }, [id, setValue])
+
+    // Admissão
+    if (resident.admissionDate) setValue('dataAdmissao', timestamptzToDisplay(resident.admissionDate))
+    if (resident.admissionType) setValue('tipoAdmissao', resident.admissionType)
+    if (resident.admissionReason) setValue('motivoAdmissao', resident.admissionReason)
+    if (resident.admissionConditions) setValue('condicoesAdmissao', resident.admissionConditions)
+    if (resident.dischargeDate) setValue('dataDesligamento', timestamptzToDisplay(resident.dischargeDate))
+    if (resident.dischargeReason) setValue('motivoDesligamento', resident.dischargeReason)
+
+    // Acomodação
+    if (resident.bedId) setValue('leitoNumero', resident.bedId)
+
+    residentDataRef.current = {
+      roomId: resident.roomId,
+      bedId: resident.bedId,
+    } as Resident
+  }, [id, loadedResident, setValue])
+
+  useEffect(() => {
+    if (!id || !residentLoadError || residentLoadErrorShownRef.current) return
+
+    residentLoadErrorShownRef.current = true
+
+    const error = residentLoadError as {
+      response?: { data?: { message?: string } }
+      message?: string
+    }
+    const message = error.response?.data?.message || error.message || 'Erro desconhecido'
+    toast.error(`Erro ao carregar dados do residente: ${message}`)
+  }, [id, residentLoadError])
 
   // Função para buscar CEP
   const handleBuscarCep = useCallback(
@@ -532,7 +532,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   }
 
   const handleVoltar = () => {
-    window.location.href = '/dashboard/residentes'
+    navigate('/dashboard/residentes')
   }
 
   // ========== RENDER SECTION CONTENT ==========
@@ -567,7 +567,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
   // ========== RENDER ==========
   return (
-    <Page maxWidth="wide">
+    <Page maxWidth="full">
       {/* Plan Limit Warning Dialog */}
       {subscriptionData && !isEditMode && (
         <PlanLimitWarningDialog
@@ -620,26 +620,34 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         }
       />
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="text-center p-8 bg-info/10 rounded-lg border border-info/30">
-          <p className="text-info font-semibold">Carregando dados do residente...</p>
-        </div>
-      )}
-
-      <FormProvider {...methods}>
-        <form
-          onSubmit={handleSubmit(onSubmit, (errors) => {
-            const firstError = Object.entries(errors)[0]
-            if (firstError) {
-              const [field, error] = firstError
-              toast.error(`Erro no campo "${field}": ${(error as { message?: string }).message}`)
-            }
-          })}
-        >
+      {hasResidentLoadError ? (
+        <EmptyState
+          icon={AlertCircle}
+          title="Erro ao carregar residente"
+          description="Não foi possível carregar os dados do residente para edição."
+          variant="error"
+          action={
+            <Button variant="outline" onClick={() => navigate('/dashboard/residentes')}>
+              Voltar para residentes
+            </Button>
+          }
+        />
+      ) : isLoading ? (
+        <LoadingSpinner message="Carregando dados do residente..." />
+      ) : (
+        <FormProvider {...methods}>
+          <form
+            onSubmit={handleSubmit(onSubmit, (errors) => {
+              const firstError = Object.entries(errors)[0]
+              if (firstError) {
+                const [field, error] = firstError
+                toast.error(`Erro no campo "${field}": ${(error as { message?: string }).message}`)
+              }
+            })}
+          >
           {/* Status (modo edição) */}
           {isEditMode && !readOnly && (
-            <Card className="mb-6 shadow-lg">
+            <Card className="mb-6">
               <CardContent className="p-6">
                 <div>
                   <Label className="after:content-['*'] after:ml-0.5 after:text-danger block mb-3">
@@ -664,7 +672,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
           {/* Motivo da Alteração (modo edição) */}
           {isEditMode && !readOnly && (
-            <Card className="shadow-lg mb-6 border-warning">
+            <Card className="mb-6 border-warning">
               <CardContent className="p-6">
                 <div className="space-y-2">
                   <Label htmlFor="changeReason" className="text-base font-semibold">
@@ -688,7 +696,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           )}
 
           {/* Split-View Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 lg:items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:items-start min-w-0">
             {/* Sidebar */}
             <FormSidebar
               activeSection={activeSection}
@@ -697,25 +705,16 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             />
 
             {/* Content */}
-            <Card className="shadow-lg">
-              <CardContent className="p-6">
+            <Card className="min-w-0 overflow-hidden">
+              <CardContent className="p-6 min-w-0">
                 {/* Resident Header (edit/view mode) */}
                 {isEditMode && residentFullName && (
                   <div className="mb-6 pb-4 border-b">
                     <div className="flex items-center gap-3">
                       <h2 className="text-xl font-semibold">{residentFullName}</h2>
-                      <span
-                        className={cn(
-                          'px-2.5 py-0.5 rounded-full text-xs font-medium',
-                          watch('status') === 'Ativo'
-                            ? 'bg-success/20 text-success'
-                            : watch('status') === 'Inativo'
-                            ? 'bg-warning/20 text-warning'
-                            : 'bg-muted text-muted-foreground'
-                        )}
-                      >
+                      <StatusBadge variant={getResidentStatusBadgeVariant(watch('status'))}>
                         {watch('status') || 'Ativo'}
-                      </span>
+                      </StatusBadge>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {SECTION_CONFIG[activeSection].title} • {SECTION_CONFIG[activeSection].subtitle}
@@ -732,13 +731,15 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 )}
 
                 {/* Documentos sempre editável, outras seções respeitam readOnly */}
-                {activeSection === 'documentos' ? (
-                  renderSectionContent()
-                ) : (
-                  <fieldset disabled={readOnly}>
-                    {renderSectionContent()}
-                  </fieldset>
-                )}
+                <div className="min-w-0 overflow-x-auto">
+                  {activeSection === 'documentos' ? (
+                    renderSectionContent()
+                  ) : (
+                    <fieldset disabled={readOnly} className="min-w-0">
+                      {renderSectionContent()}
+                    </fieldset>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -767,7 +768,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
             <div className="text-center space-x-4 mt-6">
               <Button
                 type="submit"
-                disabled={isUploading || isLoading}
+                disabled={isUploading || isLoading || hasResidentLoadError}
                 variant="default"
                 className="px-8 py-6 text-lg font-semibold"
               >
@@ -791,8 +792,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
               </Button>
             </div>
           )}
-        </form>
-      </FormProvider>
+          </form>
+        </FormProvider>
+      )}
 
       {/* Drawer de Histórico */}
       <ResidentHistoryDrawer

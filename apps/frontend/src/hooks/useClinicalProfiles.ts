@@ -16,8 +16,11 @@ import { tenantKey } from '@/lib/query-keys'
 /**
  * Hook para buscar o perfil clínico de um residente
  */
-export function useClinicalProfile(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useClinicalProfile(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ClinicalProfile | null>({
     queryKey: tenantKey('clinical-profiles', 'resident', residentId),
@@ -27,7 +30,7 @@ export function useClinicalProfile(residentId: string | undefined) {
       }
       return getClinicalProfileByResident(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
   })

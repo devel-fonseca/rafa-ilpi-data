@@ -67,6 +67,10 @@ model User {
   sosMedicationsUpdated SOSMedication[]        @relation("SOSMedicationUpdatedBy")
   sosMedicationHistory  SOSMedicationHistory[] @relation("SOSMedicationHistoryUser")
 
+  // Relações de histórico de administrações
+  medicationAdministrationHistory MedicationAdministrationHistory[] @relation("MedicationAdministrationHistoryUser")
+  sosAdministrationHistory        SOSAdministrationHistory[]        @relation("SOSAdministrationHistoryUser")
+
   // Relações de versionamento (Vaccination)
   vaccinationsCreated Vaccination[]        @relation("VaccinationCreatedBy")
   vaccinationsUpdated Vaccination[]        @relation("VaccinationUpdatedBy")

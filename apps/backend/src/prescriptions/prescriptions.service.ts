@@ -1607,10 +1607,11 @@ export class PrescriptionsService {
     const firstDay = startOfMonth(referenceDate);
     const lastDay = endOfMonth(referenceDate);
 
-    // Buscar administrações contínuas do residente no período
+    // Buscar administrações contínuas do residente no período (excluindo soft deleted)
     const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
       where: {
         residentId,
+        deletedAt: null,
         date: {
           gte: firstDay,
           lte: lastDay,
@@ -1625,10 +1626,11 @@ export class PrescriptionsService {
       },
     });
 
-    // Buscar administrações SOS do residente no período
+    // Buscar administrações SOS do residente no período (excluindo soft deleted)
     const sosAdministrations = await this.tenantContext.client.sOSAdministration.findMany({
       where: {
         residentId,
+        deletedAt: null,
         date: {
           gte: firstDay,
           lte: lastDay,
@@ -1690,10 +1692,11 @@ export class PrescriptionsService {
     const dayStart = startOfDay(dateObj);
     const dayEnd = endOfDay(dateObj);
 
-    // Buscar administrações contínuas da data (usando range para compatibilidade com TIMESTAMPTZ)
+    // Buscar administrações contínuas da data (excluindo soft deleted)
     const continuousAdministrations = await this.tenantContext.client.medicationAdministration.findMany({
       where: {
         residentId,
+        deletedAt: null,
         date: {
           gte: dayStart,
           lte: dayEnd,
@@ -1719,10 +1722,11 @@ export class PrescriptionsService {
       ],
     });
 
-    // Buscar administrações SOS da data (usando range para compatibilidade com TIMESTAMPTZ)
+    // Buscar administrações SOS da data (excluindo soft deleted)
     const sosAdministrations = await this.tenantContext.client.sOSAdministration.findMany({
       where: {
         residentId,
+        deletedAt: null,
         date: {
           gte: dayStart,
           lte: dayEnd,
@@ -2063,5 +2067,257 @@ export class PrescriptionsService {
       });
       throw error;
     }
+  }
+
+  // ============================================================================
+  // MEDICATION ADMINISTRATION HISTORY - UPDATE, DELETE, HISTORY
+  // ============================================================================
+
+  /**
+   * Cria registro de histórico para administração de medicamento
+   */
+  private async createAdministrationHistoryRecord(
+    administrationId: string,
+    changeType: 'UPDATE' | 'DELETE',
+    changeReason: string,
+    changedBy: string,
+    changedByName: string,
+    previousData: Record<string, unknown>,
+    newData: Record<string, unknown>,
+    changedFields: string[],
+    tx: Prisma.TransactionClient,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<void> {
+    // Buscar versão atual
+    const lastVersion = await tx.medicationAdministrationHistory.findFirst({
+      where: { administrationId },
+      orderBy: { versionNumber: 'desc' },
+      select: { versionNumber: true },
+    });
+
+    const versionNumber = (lastVersion?.versionNumber || 0) + 1;
+
+    await tx.medicationAdministrationHistory.create({
+      data: {
+        tenantId: this.tenantContext.tenantId,
+        administrationId,
+        versionNumber,
+        changeType,
+        changeReason,
+        previousData: JSON.parse(JSON.stringify(previousData)),
+        newData: JSON.parse(JSON.stringify(newData)),
+        changedFields,
+        changedAt: new Date(),
+        changedBy,
+        changedByName,
+        ipAddress: ipAddress || null,
+        userAgent: userAgent || null,
+      },
+    });
+  }
+
+  /**
+   * Calcula campos alterados para administração
+   */
+  private calculateAdministrationChangedFields(
+    previousData: Record<string, unknown>,
+    newData: Record<string, unknown>,
+  ): string[] {
+    const changedFields: string[] = [];
+    const fieldsToCheck = ['actualTime', 'wasAdministered', 'reason', 'notes', 'checkedBy', 'deletedAt'];
+
+    for (const field of fieldsToCheck) {
+      const prev = previousData?.[field];
+      const next = newData?.[field];
+
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        changedFields.push(field);
+      }
+    }
+
+    return changedFields;
+  }
+
+  /**
+   * Atualiza uma administração de medicamento
+   */
+  async updateMedicationAdministration(
+    administrationId: string,
+    dto: {
+      actualTime?: string;
+      wasAdministered?: boolean;
+      reason?: string;
+      notes?: string;
+      editReason: string;
+    },
+    user: JwtPayload,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    const tenantId = this.tenantContext.tenantId;
+
+    // Buscar administração existente
+    const administration = await this.tenantContext.client.medicationAdministration.findFirst({
+      where: {
+        id: administrationId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!administration) {
+      throw new NotFoundException('Administração não encontrada');
+    }
+
+    return this.tenantContext.client.$transaction(async (tx) => {
+      const previousData = { ...administration } as unknown as Record<string, unknown>;
+
+      // Atualizar
+      const updated = await tx.medicationAdministration.update({
+        where: { id: administrationId },
+        data: {
+          actualTime: dto.actualTime !== undefined ? dto.actualTime : administration.actualTime,
+          wasAdministered: dto.wasAdministered !== undefined ? dto.wasAdministered : administration.wasAdministered,
+          reason: dto.reason !== undefined ? dto.reason : administration.reason,
+          notes: dto.notes !== undefined ? dto.notes : administration.notes,
+          updatedAt: new Date(),
+        },
+      });
+
+      const newData = { ...updated } as unknown as Record<string, unknown>;
+      const changedFields = this.calculateAdministrationChangedFields(previousData, newData);
+
+      // Criar histórico
+      await this.createAdministrationHistoryRecord(
+        administrationId,
+        'UPDATE',
+        dto.editReason,
+        user.sub,
+        user.name || user.email,
+        previousData,
+        newData,
+        changedFields,
+        tx,
+        ipAddress,
+        userAgent,
+      );
+
+      this.logger.info('Administração de medicamento atualizada', {
+        administrationId,
+        changedFields,
+        userId: user.sub,
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Exclui (soft delete) uma administração de medicamento
+   */
+  async deleteMedicationAdministration(
+    administrationId: string,
+    deleteReason: string,
+    user: JwtPayload,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
+    const tenantId = this.tenantContext.tenantId;
+
+    // Buscar administração existente
+    const administration = await this.tenantContext.client.medicationAdministration.findFirst({
+      where: {
+        id: administrationId,
+        tenantId,
+        deletedAt: null,
+      },
+    });
+
+    if (!administration) {
+      throw new NotFoundException('Administração não encontrada');
+    }
+
+    return this.tenantContext.client.$transaction(async (tx) => {
+      const previousData = { ...administration } as unknown as Record<string, unknown>;
+
+      // Soft delete
+      const deleted = await tx.medicationAdministration.update({
+        where: { id: administrationId },
+        data: {
+          deletedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      const newData = { ...deleted, deletedAt: deleted.deletedAt } as unknown as Record<string, unknown>;
+
+      // Criar histórico
+      await this.createAdministrationHistoryRecord(
+        administrationId,
+        'DELETE',
+        deleteReason,
+        user.sub,
+        user.name || user.email,
+        previousData,
+        newData,
+        ['deletedAt'],
+        tx,
+        ipAddress,
+        userAgent,
+      );
+
+      this.logger.info('Administração de medicamento excluída', {
+        administrationId,
+        userId: user.sub,
+        deleteReason,
+      });
+
+      return { message: 'Administração excluída com sucesso' };
+    });
+  }
+
+  /**
+   * Retorna histórico de alterações de uma administração
+   */
+  async getMedicationAdministrationHistory(administrationId: string) {
+    const tenantId = this.tenantContext.tenantId;
+
+    // Verificar se administração existe
+    const administration = await this.tenantContext.client.medicationAdministration.findFirst({
+      where: {
+        id: administrationId,
+        tenantId,
+      },
+    });
+
+    if (!administration) {
+      throw new NotFoundException('Administração não encontrada');
+    }
+
+    const history = await this.tenantContext.client.medicationAdministrationHistory.findMany({
+      where: {
+        administrationId,
+        tenantId,
+      },
+      orderBy: { versionNumber: 'desc' },
+      select: {
+        id: true,
+        versionNumber: true,
+        changeType: true,
+        changedFields: true,
+        previousData: true,
+        newData: true,
+        changeReason: true,
+        changedByName: true,
+        changedAt: true,
+      },
+    });
+
+    return {
+      administrationId,
+      totalVersions: history.length,
+      history,
+    };
   }
 }

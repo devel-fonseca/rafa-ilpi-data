@@ -5,13 +5,9 @@ import {
   IsNotEmpty,
   IsOptional,
   IsEnum,
-  IsBoolean,
-  IsNumber,
   IsArray,
   ValidateNested,
   IsUUID,
-  Min,
-  Max,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { IsDateOnly, IsMinimumAge } from '../../common/validators/date.validators';

@@ -217,10 +217,10 @@ export function EditXxxModal({ open, onClose, onSubmit, record, isUpdating }: Ed
 8. [ ] Adicionar o campo de motivo da edição (sempre no final)
 9. [ ] Ajustar o payload no handleFormSubmit mantendo a estrutura `{ time, data: {...}, notes, editReason }`
 10. [ ] Exportar no `index.ts`
-11. [ ] Adicionar ao switch/case no `ResidentDailyRecordsCalendar.tsx`
+11. [ ] Adicionar ao switch/case no `ResidentMedicalRecord.tsx`
 12. [ ] Testar o modal com um registro real
 
-## Integração no ResidentDailyRecordsCalendar
+## Integração no ResidentMedicalRecord
 
 Após criar todos os modais, adicionar ao componente principal:
 

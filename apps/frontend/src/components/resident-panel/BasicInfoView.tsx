@@ -38,10 +38,20 @@ export function BasicInfoView({ resident }: BasicInfoViewProps) {
       />
 
       {/* Leito */}
-      <InfoCard
-        label="Leito"
-        value={resident.bedId ? formatBedFromResident(resident as unknown as Record<string, unknown>) : 'Sem leito atribuído'}
-      />
+      {resident.bedId ? (
+        <InfoCard
+          label="Leito"
+          value={formatBedFromResident(resident as unknown as Record<string, unknown>)}
+        />
+      ) : (
+        <div className="rounded-lg border bg-muted/20 p-4">
+          <p className="text-sm text-muted-foreground mb-1">Leito</p>
+          <p className="text-base font-medium">Leito não informado</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            A vinculação de um leito ao residente é um requisito operacional e uma boa prática essencial para a organização da assistência, a rastreabilidade do cuidado e o manejo adequado de rotinas e intercorrências. Informe o leito no cadastro do residente.
+          </p>
+        </div>
+      )}
 
       {/* Convênios */}
       <div className="rounded-lg border bg-muted/20 p-4">
@@ -75,7 +85,12 @@ export function BasicInfoView({ resident }: BasicInfoViewProps) {
             ))}
           </div>
         ) : (
-          <p className="text-base font-medium">Nenhum contato cadastrado</p>
+          <div>
+            <p className="text-base font-medium">Nenhum contato de emergência cadastrado</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              A indicação de pelo menos um contato é um requisito operacional e uma boa prática essencial para o manejo adequado de urgências e emergências. Cadastre um contato para garantir segurança e continuidade do cuidado.
+            </p>
+          </div>
         )}
       </div>
 

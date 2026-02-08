@@ -3,7 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState, useMemo, useEffect } from 'react'
-import { Page, PageHeader, LoadingSpinner, EmptyState } from '@/design-system/components'
+import { Page, PageHeader, LoadingSpinner, EmptyState, StatusBadge } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { PhotoViewer } from '@/components/form/PhotoViewer'
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Users, Clock, UserX, UserCircle } from 'lucide-react'
 import { useResidents, useResident } from '@/hooks/useResidents'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
@@ -26,6 +25,7 @@ import { useQuery } from '@tanstack/react-query'
 import { prescriptionsApi } from '@/api/prescriptions.api'
 import { tenantKey } from '@/lib/query-keys'
 import { formatDate } from '@/utils/formatters'
+import { extractDateOnly } from '@/utils/dateHelpers'
 import {
   BasicInfoView,
   ClinicalProfileView,
@@ -41,7 +41,8 @@ import type { Resident } from '@/api/residents.api'
 // ========== HELPERS ==========
 
 function calculateAge(birthDate: string): number {
-  const birth = new Date(birthDate)
+  const birthDateOnly = extractDateOnly(birthDate)
+  const birth = new Date(`${birthDateOnly}T12:00:00`)
   const today = new Date()
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
@@ -49,6 +50,17 @@ function calculateAge(birthDate: string): number {
     age--
   }
   return age
+}
+
+function getStatusBadgeVariant(status: string): 'success' | 'warning' | 'secondary' {
+  switch (status?.toUpperCase()) {
+    case 'ATIVO':
+      return 'success'
+    case 'INATIVO':
+      return 'warning'
+    default:
+      return 'secondary'
+  }
 }
 
 // ========== TYPES ==========
@@ -90,21 +102,33 @@ export default function ResidentPanelPage() {
     selectedResidentId || undefined
   )
 
+  const isClinicalView = activeView === 'clinical'
+  const isAllergiesView = activeView === 'allergies'
+  const isConditionsView = activeView === 'conditions'
+  const isDietaryView = activeView === 'dietary'
+  const isVaccinationsView = activeView === 'vaccinations'
+  const isMedicationsView = activeView === 'medications'
+
   // Buscar dados clínicos do residente selecionado
   const { data: clinicalProfile, isLoading: isLoadingProfile } = useClinicalProfile(
-    selectedResidentId || undefined
+    selectedResidentId || undefined,
+    isClinicalView
   )
   const { data: allergies = [], isLoading: isLoadingAllergies } = useAllergiesByResident(
-    selectedResidentId || undefined
+    selectedResidentId || undefined,
+    isAllergiesView
   )
   const { data: conditions = [], isLoading: isLoadingConditions } = useConditionsByResident(
-    selectedResidentId || undefined
+    selectedResidentId || undefined,
+    isConditionsView
   )
   const { data: dietaryRestrictions = [], isLoading: isLoadingRestrictions } = useDietaryRestrictionsByResident(
-    selectedResidentId || undefined
+    selectedResidentId || undefined,
+    isDietaryView
   )
   const { data: vaccinations = [], isLoading: isLoadingVaccinations } = useVaccinationsByResident(
-    selectedResidentId || undefined
+    selectedResidentId || undefined,
+    isVaccinationsView
   )
   const { data: prescriptionsData, isLoading: isLoadingPrescriptions } = useQuery({
     queryKey: tenantKey('prescriptions', 'resident-panel', selectedResidentId),
@@ -113,11 +137,18 @@ export default function ResidentPanelPage() {
       isActive: true,
       limit: 50,
     }),
-    enabled: !!selectedResidentId,
+    enabled: !!selectedResidentId && isMedicationsView,
   })
   const prescriptions = prescriptionsData?.data || []
 
-  const isLoadingClinicalData = isLoadingProfile || isLoadingAllergies || isLoadingConditions || isLoadingRestrictions || isLoadingVaccinations || isLoadingPrescriptions
+  const isLoadingActiveViewData = (
+    (isClinicalView && isLoadingProfile) ||
+    (isAllergiesView && isLoadingAllergies) ||
+    (isConditionsView && isLoadingConditions) ||
+    (isDietaryView && isLoadingRestrictions) ||
+    (isVaccinationsView && isLoadingVaccinations) ||
+    (isMedicationsView && isLoadingPrescriptions)
+  )
 
   // Filtrar residentes por status
   const filteredResidents = useMemo(() => {
@@ -143,18 +174,15 @@ export default function ResidentPanelPage() {
     return filtered
   }, [residents, statusFilter])
 
-  // Selecionar primeiro residente automaticamente quando a lista muda
-  // ou quando o residente selecionado não está mais na lista filtrada
+  // Limpar seleção quando o residente selecionado não está mais na lista filtrada
   useEffect(() => {
-    if (filteredResidents.length > 0) {
-      const isSelectedInList = filteredResidents.some((r) => r.id === selectedResidentId)
-      if (!selectedResidentId || !isSelectedInList) {
-        setSelectedResidentId(filteredResidents[0].id)
-      }
-    } else if (selectedResidentId) {
+    if (!selectedResidentId) return
+
+    const isSelectedInList = filteredResidents.some((r) => r.id === selectedResidentId)
+    if (!isSelectedInList) {
       setSelectedResidentId(null)
     }
-  }, [filteredResidents]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filteredResidents, selectedResidentId])
 
   // Renderizar view baseado na seleção
   const renderContentView = () => {
@@ -262,16 +290,20 @@ export default function ResidentPanelPage() {
         {/* ===== CONTEÚDO PRINCIPAL ===== */}
         <Card>
           <CardContent className="p-0">
-            {selectedResident ? (
+            {selectedResidentId && (isLoadingResident || !selectedResident) ? (
+              <div className="p-8">
+                <LoadingSpinner size="md" message="Carregando residente..." />
+              </div>
+            ) : selectedResident ? (
               <>
                 {/* Header com Nome, Info e Dropdown */}
                 <div className="flex items-start justify-between p-4 border-b">
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold">{selectedResident.fullName}</h2>
-                      <Badge variant={selectedResident.status === 'Ativo' ? 'default' : 'secondary'}>
+                      <StatusBadge variant={getStatusBadgeVariant(selectedResident.status)}>
                         {selectedResident.status}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       {selectedResident.birthDate && `${calculateAge(selectedResident.birthDate)} anos`}
@@ -296,7 +328,7 @@ export default function ResidentPanelPage() {
 
                 {/* Conteúdo Dinâmico */}
                 <div className="p-4">
-                  {isLoadingResident || isLoadingClinicalData ? (
+                  {isLoadingResident || isLoadingActiveViewData ? (
                     <LoadingSpinner size="md" message="Carregando dados..." />
                   ) : (
                     renderContentView()

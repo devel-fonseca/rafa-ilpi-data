@@ -715,9 +715,9 @@ export class ResidentsService {
         });
       }
 
-      // Buscar mobilityAid da última avaliação de dependência de cada residente
+      // Buscar dados da última avaliação de dependência de cada residente
       const residentIds = residents.map(r => r.id);
-      const mobilityAidMap = new Map<string, boolean>();
+      const dependencyDataMap = new Map<string, { mobilityAid: boolean; dependencyLevel: string | null }>();
 
       if (residentIds.length > 0) {
         // Buscar a última avaliação de dependência de cada residente
@@ -731,15 +731,19 @@ export class ResidentsService {
           select: {
             residentId: true,
             mobilityAid: true,
+            dependencyLevel: true,
           },
         });
 
         latestAssessments.forEach(assessment => {
-          mobilityAidMap.set(assessment.residentId, assessment.mobilityAid);
+          dependencyDataMap.set(assessment.residentId, {
+            mobilityAid: assessment.mobilityAid,
+            dependencyLevel: assessment.dependencyLevel,
+          });
         });
       }
 
-      // Adicionar dados de acomodação e mobilityAid aos residentes e formatar datas
+      // Adicionar dados de acomodação e dependência aos residentes e formatar datas
       const processedResidents = residents.map(resident => {
         const residentWithAccommodation = resident.bedId && bedsMap.has(resident.bedId)
           ? {
@@ -748,13 +752,15 @@ export class ResidentsService {
             }
           : resident;
 
-        // Adicionar mobilityAid da última avaliação de dependência
-        const residentWithMobilityAid = {
+        // Adicionar dados da última avaliação de dependência
+        const dependencyData = dependencyDataMap.get(resident.id);
+        const residentWithDependency = {
           ...residentWithAccommodation,
-          mobilityAid: mobilityAidMap.get(resident.id) ?? false,
+          mobilityAid: dependencyData?.mobilityAid ?? false,
+          dependencyLevel: dependencyData?.dependencyLevel ?? null,
         };
 
-        return this.formatDateOnlyFields(residentWithMobilityAid);
+        return this.formatDateOnlyFields(residentWithDependency);
       });
 
       return {

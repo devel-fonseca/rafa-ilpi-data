@@ -17,8 +17,11 @@ import { tenantKey } from '@/lib/query-keys'
 /**
  * Hook para listar alergias de um residente específico
  */
-export function useAllergiesByResident(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useAllergiesByResident(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<Allergy[]>({
     queryKey: tenantKey('allergies', 'resident', residentId),
@@ -28,7 +31,7 @@ export function useAllergiesByResident(residentId: string | undefined) {
       }
       return getAllergiesByResident(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     placeholderData: [],
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,

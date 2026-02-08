@@ -341,12 +341,18 @@ model MedicationAdministration {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
+  // Soft delete
+  deletedAt DateTime? @db.Timestamptz(3)
+
   // Relações
   tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
   medication   Medication   @relation(fields: [medicationId], references: [id], onDelete: Cascade)
   resident     Resident     @relation(fields: [residentId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Histórico de alterações
+  history MedicationAdministrationHistory[]
 
   // Índices
   @@index([tenantId, date(sort: Desc)])
@@ -357,6 +363,7 @@ model MedicationAdministration {
   @@index([tenantId, date, wasAdministered]) // Administrações pendentes do dia
   @@index([residentId, date, wasAdministered]) // Administrações pendentes do residente
   @@index([date, scheduledTime]) // Relatórios por dia com ordenação por horário
+  @@index([deletedAt]) // Filtrar registros excluídos
   @@map("medication_administrations")
 }
 
@@ -385,6 +392,9 @@ model SOSAdministration {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
+  // Soft delete
+  deletedAt DateTime? @db.Timestamptz(3)
+
   // Relações
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   prescription  Prescription  @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
@@ -392,11 +402,100 @@ model SOSAdministration {
   resident      Resident      @relation(fields: [residentId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id], onDelete: Restrict)
 
+  // Histórico de alterações
+  history SOSAdministrationHistory[]
+
   // Índices
   @@index([tenantId, date(sort: Desc)])
   @@index([residentId, date(sort: Desc)])
   @@index([sosMedicationId, date])
+  @@index([deletedAt])
   @@map("sos_administrations")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+//  HISTÓRICO DE ADMINISTRAÇÕES (Auditoria/Versionamento)
+//
+//  Rastreia todas as alterações feitas em registros de administração de
+//  medicamentos, permitindo auditoria completa e restauração de versões
+// ──────────────────────────────────────────────────────────────────────────────
+
+model MedicationAdministrationHistory {
+  id               String @id @default(uuid()) @db.Uuid
+  tenantId         String @db.Uuid
+  administrationId String @db.Uuid
+
+  // Controle de versão
+  versionNumber Int // Incrementado a cada alteração
+  changeType    ChangeType // UPDATE ou DELETE
+
+  // Snapshot dos dados
+  previousData  Json // Estado anterior
+  newData       Json // Novo estado (null para DELETE)
+  changedFields String[] // Lista dos campos que mudaram
+
+  // Motivo da alteração
+  changeReason String @db.Text
+
+  // Auditoria
+  changedBy     String   @db.Uuid
+  changedByName String // Nome do usuário (para exibição rápida)
+  changedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Contexto da requisição
+  ipAddress String?
+  userAgent String?
+
+  // Relações
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  administration MedicationAdministration @relation(fields: [administrationId], references: [id], onDelete: Cascade)
+  user           User                     @relation("MedicationAdministrationHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([administrationId, versionNumber(sort: Desc)]) // Histórico de uma administração
+  @@index([tenantId, changedAt(sort: Desc)]) // Histórico geral por tenant
+  @@index([changedBy]) // Buscar alterações por usuário
+  @@index([changeType]) // Filtrar por tipo de alteração
+  @@map("medication_administration_history")
+}
+
+model SOSAdministrationHistory {
+  id               String @id @default(uuid()) @db.Uuid
+  tenantId         String @db.Uuid
+  administrationId String @db.Uuid
+
+  // Controle de versão
+  versionNumber Int
+  changeType    ChangeType
+
+  // Snapshot dos dados
+  previousData  Json
+  newData       Json
+  changedFields String[]
+
+  // Motivo da alteração
+  changeReason String @db.Text
+
+  // Auditoria
+  changedBy     String   @db.Uuid
+  changedByName String
+  changedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  // Contexto da requisição
+  ipAddress String?
+  userAgent String?
+
+  // Relações
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  administration SOSAdministration @relation(fields: [administrationId], references: [id], onDelete: Cascade)
+  user           User              @relation("SOSAdministrationHistoryUser", fields: [changedBy], references: [id], onDelete: Restrict)
+
+  // Índices
+  @@index([administrationId, versionNumber(sort: Desc)])
+  @@index([tenantId, changedAt(sort: Desc)])
+  @@index([changedBy])
+  @@index([changeType])
+  @@map("sos_administration_history")
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

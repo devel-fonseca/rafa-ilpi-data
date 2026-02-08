@@ -39,8 +39,6 @@ import ResidentsHub from '@/pages/residents/ResidentsHub'
 import ResidentForm from '@/pages/residents/ResidentForm'
 import ResidentView from '@/pages/residents/ResidentView'
 import ResidentMedicalRecord from '@/pages/residents/ResidentMedicalRecord'
-import ResidentDailyRecordsCalendar from '@/pages/residents/ResidentDailyRecordsCalendar'
-import ResidentMedicationsCalendar from '@/pages/residents/ResidentMedicationsCalendar'
 import { ResidentPrintView } from '@/pages/residents/ResidentPrintView'
 import { BelongingsPage } from '@/pages/residents/belongings'
 import ResidentPanelPage from '@/pages/residents/ResidentPanelPage'
@@ -223,14 +221,6 @@ export const router = createBrowserRouter([
       {
         path: 'residentes/:id/print',
         element: <ResidentPrintView />,
-      },
-      {
-        path: 'residentes/:id/registros-calendario',
-        element: <ResidentDailyRecordsCalendar />,
-      },
-      {
-        path: 'residentes/:id/medicacoes-calendario',
-        element: <ResidentMedicationsCalendar />,
       },
       {
         path: 'residentes/:residentId/pertences',
