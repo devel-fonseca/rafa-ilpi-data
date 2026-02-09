@@ -2,17 +2,11 @@
 //  MODAL - ViewMedicationAdministrationModal (Visualização de Administração)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Eye, Clock, User, Pill, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
+import { Eye, Pill, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react'
 import { formatDateTimeSafe } from '@/utils/dateHelpers'
 import { formatMedicationPresentation } from '@/utils/formatters'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ActionDetailsSheet } from '@/design-system/components'
 import type { MedicationAdministration } from '../types'
 
 // ========== HELPERS ==========
@@ -38,6 +32,18 @@ interface ViewMedicationAdministrationModalProps {
   administration: MedicationAdministration | null
 }
 
+function formatMedicationTitle(name?: string, concentration?: string): string {
+  if (!name) return 'Medicamento não especificado'
+  if (!concentration) return name
+
+  const normalizedName = name.toLowerCase()
+  const normalizedConcentration = concentration.toLowerCase()
+
+  if (normalizedName.includes(normalizedConcentration)) return name
+
+  return `${name} ${concentration}`
+}
+
 // ========== COMPONENT ==========
 
 export function ViewMedicationAdministrationModal({
@@ -60,97 +66,83 @@ export function ViewMedicationAdministrationModal({
     createdAt,
     medication,
   } = administration
+  const statusLabel = type === 'SOS' ? 'SOS' : wasAdministered ? 'Administrado' : 'Não administrado'
+  const scheduleSummary =
+    type === 'SOS'
+      ? actualTime
+        ? `Horário ${actualTime}`
+        : null
+      : [scheduledTime ? `Programado ${scheduledTime}` : null, actualTime && actualTime !== scheduledTime ? `Real ${actualTime}` : null]
+          .filter(Boolean)
+          .join(' • ')
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Administração de Medicamento - Detalhes
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Status da Administração */}
-          <div className={`p-4 rounded-lg ${
-            type === 'SOS'
-              ? 'bg-severity-warning/10 border border-severity-warning/30'
-              : wasAdministered
-              ? 'bg-success/10 border border-success/30'
-              : 'bg-danger/10 border border-danger/30'
-          }`}>
-            <div className="flex items-center gap-3">
-              {type === 'SOS' ? (
-                <AlertTriangle className="h-6 w-6 text-severity-warning" />
-              ) : wasAdministered ? (
-                <CheckCircle2 className="h-6 w-6 text-success" />
-              ) : (
-                <XCircle className="h-6 w-6 text-danger" />
-              )}
-              <div>
-                <p className="font-semibold">
-                  {type === 'SOS'
-                    ? 'Medicação SOS'
-                    : wasAdministered
-                    ? 'Medicamento Administrado'
-                    : 'Medicamento Não Administrado'}
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      title="Administração de Medicamento - Detalhes"
+      description={`${type === 'SOS' ? 'Medicação SOS' : 'Medicação de rotina'} • ${statusLabel}`}
+      icon={<Eye className="h-4 w-4" />}
+      summary={(
+        <div className={`p-4 rounded-lg ${
+          type === 'SOS'
+            ? 'bg-severity-warning/5 border border-severity-warning/20'
+            : wasAdministered
+            ? 'bg-success/5 border border-success/20'
+            : 'bg-danger/5 border border-danger/20'
+        }`}>
+          <div className="flex items-center gap-3">
+            {type === 'SOS' ? (
+              <AlertTriangle className="h-5 w-5 text-severity-warning" />
+            ) : wasAdministered ? (
+              <CheckCircle2 className="h-5 w-5 text-success" />
+            ) : (
+              <XCircle className="h-5 w-5 text-danger" />
+            )}
+            <div>
+              <p className="font-semibold">
+                {type === 'SOS'
+                  ? 'Medicação SOS'
+                  : wasAdministered
+                  ? 'Medicamento Administrado'
+                  : 'Medicamento Não Administrado'}
+              </p>
+              {type === 'SOS' && indication && (
+                <p className="text-sm text-muted-foreground">
+                  Indicação: {getIndicationLabel(indication)}
                 </p>
-                {type === 'SOS' && indication && (
-                  <p className="text-sm text-muted-foreground">
-                    Indicação: {getIndicationLabel(indication)}
-                  </p>
-                )}
-              </div>
-              <Badge
-                variant={type === 'SOS' ? 'outline' : wasAdministered ? 'default' : 'destructive'}
-                className={`ml-auto ${
-                  type === 'SOS'
-                    ? 'bg-severity-warning/10 text-severity-warning border-severity-warning/30'
-                    : ''
-                }`}
-              >
-                {type === 'SOS' ? 'SOS' : wasAdministered ? 'Administrado' : 'Não Administrado'}
-              </Badge>
+              )}
             </div>
+            <Badge
+              variant={type === 'SOS' ? 'outline' : wasAdministered ? 'default' : 'destructive'}
+              className={`ml-auto ${
+                type === 'SOS'
+                  ? 'bg-severity-warning/5 text-severity-warning border-severity-warning/30'
+                  : ''
+              }`}
+            >
+              {type === 'SOS' ? 'SOS' : wasAdministered ? 'Administrado' : 'Não Administrado'}
+            </Badge>
           </div>
-
-          {/* Informações do Horário */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            {scheduledTime && (
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Horário Programado:</span>
-                <span className="text-lg font-semibold">{scheduledTime}</span>
-              </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            {scheduleSummary && (
+              <span className="text-muted-foreground">
+                {scheduleSummary}
+              </span>
             )}
-            {actualTime && actualTime !== scheduledTime && (
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Horário Real:</span>
-                <span className="text-lg font-semibold">{actualTime}</span>
-              </div>
-            )}
-            {type === 'SOS' && actualTime && (
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Horário:</span>
-                <span className="text-lg font-semibold">{actualTime}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Registrado por:</span>
-              <span>{administeredBy}</span>
-            </div>
+            <span className="text-muted-foreground">
+              Registrado por: <span className="font-medium text-foreground">{administeredBy}</span>
+            </span>
             {checkedBy && (
-              <div className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Checado por:</span>
-                <span>{checkedBy}</span>
-              </div>
+              <span className="text-muted-foreground">
+                • Checado por: <span className="font-medium text-foreground">{checkedBy}</span>
+              </span>
             )}
           </div>
+        </div>
+      )}
+      bodyClassName="space-y-6"
+    >
 
           {/* Medicamento */}
           {medication && (
@@ -159,32 +151,23 @@ export function ViewMedicationAdministrationModal({
                 <Pill className="h-4 w-4" />
                 Medicamento
               </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 col-span-2">
-                  <p className="text-xs text-muted-foreground">Nome</p>
-                  <p className="text-lg font-semibold">{medication.name}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Dose</p>
-                  <Badge variant="outline" className="font-normal text-sm">
-                    {medication.dose}
-                  </Badge>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Via</p>
-                  <Badge variant="outline" className="font-normal text-sm">
-                    {medication.route}
-                  </Badge>
-                </div>
-
-                {medication.presentation && (
-                  <div className="space-y-1 col-span-2">
-                    <p className="text-xs text-muted-foreground">Apresentação</p>
-                    <p className="text-sm">{formatMedicationPresentation(medication.presentation)}</p>
-                  </div>
-                )}
+              <div className="rounded-lg border bg-muted/10 p-4 space-y-2">
+                <p className="text-xl font-semibold leading-tight">
+                  {formatMedicationTitle(medication.name, medication.concentration)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="text-foreground font-medium">{medication.dose}</span>
+                  {' • '}
+                  <span className="text-foreground font-medium">{medication.route}</span>
+                  {medication.presentation && (
+                    <>
+                      {' • '}
+                      <span className="text-foreground font-medium">
+                        {formatMedicationPresentation(medication.presentation)}
+                      </span>
+                    </>
+                  )}
+                </p>
               </div>
             </div>
           )}
@@ -233,14 +216,6 @@ export function ViewMedicationAdministrationModal({
           <div className="pt-4 border-t text-xs text-muted-foreground">
             Registrado em {formatDateTimeSafe(createdAt)}
           </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

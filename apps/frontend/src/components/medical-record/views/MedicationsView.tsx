@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Calendar, ChevronLeft, ChevronRight, Edit, Eye, History, Pill, Trash2 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Edit, Eye, History, PenLine, Pill, Trash2 } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
@@ -35,6 +35,24 @@ function getIndicationLabel(indication: string): string {
     OUTRO: 'Outro',
   }
   return labels[indication] || indication
+}
+
+function formatMedicationTitle(name?: string, concentration?: string): string {
+  if (!name) return 'Medicamento não especificado'
+  if (!concentration) return name
+
+  const normalizedName = name.toLowerCase()
+  const normalizedConcentration = concentration.toLowerCase()
+
+  // Evita duplicação quando backend já envia nome com concentração (ex.: "Metformina 850mg")
+  if (normalizedName.includes(normalizedConcentration)) return name
+
+  return `${name} ${concentration}`
+}
+
+function isAdministrationEdited(administration: MedicationAdministration): boolean {
+  if (!administration.createdAt || !administration.updatedAt) return false
+  return new Date(administration.updatedAt).getTime() > new Date(administration.createdAt).getTime()
 }
 
 // ========== COMPONENT ==========
@@ -220,6 +238,19 @@ export function MedicationsView({
                           {admin.wasAdministered ? 'Administrado' : 'Não Administrado'}
                         </Badge>
                       )}
+                      {isAdministrationEdited(admin) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-500">
+                              <PenLine className="h-3 w-3" />
+                              <span className="hidden sm:inline">Editado</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Última edição: {formatDateTimeSafe(admin.updatedAt)}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {onViewAdministration && (
                         <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                       )}
@@ -288,16 +319,16 @@ export function MedicationsView({
                 </div>
 
                 {/* Linha 2: Nome do Medicamento */}
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-0.5">
                   <Pill className="h-4 w-4 text-primary" />
                   <span className="font-medium text-sm">
-                    {admin.medication?.name || 'Medicamento não especificado'}
+                    {formatMedicationTitle(admin.medication?.name, admin.medication?.concentration)}
                   </span>
                 </div>
 
                 {/* Linha 3: Dose e Via */}
                 {admin.medication && (
-                  <div className="text-xs text-muted-foreground mb-2">
+                  <div className="text-xs text-muted-foreground">
                     <span>{admin.medication.dose}</span>
                     {' • '}
                     <span>{admin.medication.route}</span>
@@ -310,6 +341,25 @@ export function MedicationsView({
                   </div>
                 )}
 
+                {/* Linha 4: Informações compactas */}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  {admin.actualTime && admin.actualTime !== admin.scheduledTime && admin.type !== 'SOS' && (
+                    <>
+                      <span>Real {admin.actualTime}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span>Por {admin.administeredBy}</span>
+                  <span>•</span>
+                  <span>{formatDateTimeSafe(admin.createdAt)}</span>
+                  {admin.checkedBy && (
+                    <>
+                      <span>•</span>
+                      <span>Checado por {admin.checkedBy}</span>
+                    </>
+                  )}
+                </div>
+
                 {/* Indicação (apenas SOS) */}
                 {admin.type === 'SOS' && admin.indication && (
                   <div className="mt-2 p-2 bg-severity-warning/10 border border-severity-warning/30 rounded text-xs">
@@ -317,20 +367,6 @@ export function MedicationsView({
                     <p className="text-severity-warning/90 mt-1">
                       {getIndicationLabel(admin.indication)}
                     </p>
-                  </div>
-                )}
-
-                {/* Linha 4: Informações de administração */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Registrado por {admin.administeredBy}</span>
-                  <span>•</span>
-                  <span>{formatDateTimeSafe(admin.createdAt)}</span>
-                </div>
-
-                {/* Horário real (se diferente do programado) */}
-                {admin.actualTime && admin.actualTime !== admin.scheduledTime && admin.type !== 'SOS' && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <span className="font-medium">Horário real:</span> {admin.actualTime}
                   </div>
                 )}
 
@@ -350,12 +386,6 @@ export function MedicationsView({
                   </div>
                 )}
 
-                {/* Dupla checagem */}
-                {admin.checkedBy && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    <span className="font-medium">Checado por:</span> {admin.checkedBy}
-                  </div>
-                )}
               </div>
             ))}
           </div>

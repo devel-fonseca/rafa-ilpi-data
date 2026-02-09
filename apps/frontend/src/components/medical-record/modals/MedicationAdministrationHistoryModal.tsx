@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import { api } from '@/services/api'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 // ========== TYPES ==========
 
@@ -198,126 +199,127 @@ export function MedicationAdministrationHistoryModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            Histórico de Alterações
-          </DialogTitle>
-          <DialogDescription>
-            Todas as alterações realizadas nesta administração de medicamento
-          </DialogDescription>
-        </DialogHeader>
-
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {history && !loading && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                <strong className="text-foreground">Total de versões:</strong> {history.totalVersions}
-              </span>
+    <>
+      <ActionDetailsSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Histórico de Alterações"
+      description="Todas as alterações realizadas nesta administração de medicamento"
+      icon={<History className="h-4 w-4" />}
+    >
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
+          )}
 
-            <Separator />
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+              {error}
+            </div>
+          )}
 
-            {/* Filtros */}
-            {history.totalVersions > 0 && (
-              <div className="bg-muted/30 p-4 rounded-lg space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Filter className="h-4 w-4" />
-                  Filtros
-                </div>
+          {history && !loading && (
+            <div className="space-y-4">
+              <div className="bg-muted/20 border rounded-lg p-3 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  <strong className="text-foreground">Total de versões:</strong> {history.totalVersions}
+                </span>
+                {hasActiveFilters && (
+                  <span className="text-xs text-muted-foreground">
+                    {filteredHistory.length} com filtros
+                  </span>
+                )}
+              </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      Usuário
-                    </label>
-                    <Select value={filterUser} onValueChange={setFilterUser}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Todos os usuários" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos os usuários</SelectItem>
-                        {uniqueUsers.map((user) => (
-                          <SelectItem key={user} value={user}>
-                            {user}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              <Separator />
+
+              {/* Filtros */}
+              {history.totalVersions > 0 && (
+                <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Filter className="h-4 w-4" />
+                    Filtros
                   </div>
 
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      Tipo de alteração
-                    </label>
-                    <Select value={filterType} onValueChange={setFilterType}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Todos os tipos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos os tipos</SelectItem>
-                        <SelectItem value="UPDATE">Edição</SelectItem>
-                        <SelectItem value="DELETE">Exclusão</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Usuário
+                      </label>
+                      <Select value={filterUser} onValueChange={setFilterUser}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Todos os usuários" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os usuários</SelectItem>
+                          {uniqueUsers.map((user) => (
+                            <SelectItem key={user} value={user}>
+                              {user}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="text-xs text-muted-foreground mb-1 block">
+                        Tipo de alteração
+                      </label>
+                      <Select value={filterType} onValueChange={setFilterType}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Todos os tipos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos os tipos</SelectItem>
+                          <SelectItem value="UPDATE">Edição</SelectItem>
+                          <SelectItem value="DELETE">Exclusão</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {hasActiveFilters && (
+                      <div className="flex items-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearFilters}
+                          className="h-10"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Limpar filtros
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {hasActiveFilters && (
-                    <div className="flex items-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="h-10"
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Limpar filtros
-                      </Button>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Mostrando <strong>{filteredHistory.length}</strong> de{' '}
+                      <strong>{history.totalVersions}</strong> versões
+                    </p>
                   )}
                 </div>
+              )}
 
-                {hasActiveFilters && (
-                  <p className="text-xs text-muted-foreground">
-                    Mostrando <strong>{filteredHistory.length}</strong> de{' '}
-                    <strong>{history.totalVersions}</strong> versões
-                  </p>
-                )}
-              </div>
-            )}
+              <Separator />
 
-            <Separator />
-
-            <div className="space-y-6">
-              {filteredHistory.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>
-                    {history.totalVersions === 0
-                      ? 'Nenhuma alteração registrada'
-                      : 'Nenhuma versão encontrada com os filtros aplicados'}
-                  </p>
-                </div>
-              ) : (
-                filteredHistory.map((version) => (
-                  <div
-                    key={version.id}
-                    className="border rounded-lg p-4 space-y-3 bg-card"
-                  >
+              <div className="space-y-6">
+                {filteredHistory.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>
+                      {history.totalVersions === 0
+                        ? 'Nenhuma alteração registrada'
+                        : 'Nenhuma versão encontrada com os filtros aplicados'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredHistory.map((version) => (
+                    <div
+                      key={version.id}
+                      className="border rounded-lg p-4 space-y-3 bg-card"
+                    >
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -400,13 +402,13 @@ export function MedicationAdministrationHistoryModal({
                         </div>
                       </details>
                     )}
-                  </div>
-                ))
-              )}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </DialogContent>
+          )}
+      </ActionDetailsSheet>
 
       {/* Dialog de comparação de versões */}
       <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
@@ -538,6 +540,6 @@ export function MedicationAdministrationHistoryModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   )
 }

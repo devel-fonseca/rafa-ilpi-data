@@ -52,6 +52,18 @@ interface DeleteMedicationAdministrationModalProps {
   onSuccess?: () => void
 }
 
+function formatMedicationTitle(name?: string, concentration?: string): string {
+  if (!name) return 'Medicamento não especificado'
+  if (!concentration) return name
+
+  const normalizedName = name.toLowerCase()
+  const normalizedConcentration = concentration.toLowerCase()
+
+  if (normalizedName.includes(normalizedConcentration)) return name
+
+  return `${name} ${concentration}`
+}
+
 // ========== COMPONENT ==========
 
 export function DeleteMedicationAdministrationModal({
@@ -153,7 +165,9 @@ export function DeleteMedicationAdministrationModal({
               {medication && (
                 <div className="flex items-center gap-2">
                   <Pill className="h-4 w-4 text-primary" />
-                  <span className="font-semibold">{medication.name}</span>
+                  <span className="font-semibold">
+                    {formatMedicationTitle(medication.name, medication.concentration)}
+                  </span>
                   {type === 'SOS' && (
                     <Badge variant="outline" className="bg-severity-warning/10 text-severity-warning border-severity-warning/30">
                       SOS

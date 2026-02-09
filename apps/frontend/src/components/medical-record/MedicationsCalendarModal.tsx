@@ -38,10 +38,23 @@ interface MedicationAdministration {
   createdAt: string
   medication?: {
     name: string
+    concentration?: string
     dose: string
     route: string
     presentation?: string
   }
+}
+
+function formatMedicationTitle(name?: string, concentration?: string): string {
+  if (!name) return 'Medicamento não especificado'
+  if (!concentration) return name
+
+  const normalizedName = name.toLowerCase()
+  const normalizedConcentration = concentration.toLowerCase()
+
+  if (normalizedName.includes(normalizedConcentration)) return name
+
+  return `${name} ${concentration}`
 }
 
 interface MedicationsCalendarModalProps {
@@ -216,7 +229,7 @@ export function MedicationsCalendarModal({
                         <div className="flex items-center gap-2 mb-1">
                           <Pill className="h-4 w-4 text-primary" />
                           <span className="font-medium text-sm">
-                            {admin.medication?.name || 'Medicamento não especificado'}
+                            {formatMedicationTitle(admin.medication?.name, admin.medication?.concentration)}
                           </span>
                         </div>
 
@@ -245,11 +258,23 @@ export function MedicationsCalendarModal({
                           </div>
                         )}
 
-                        {/* Linha 4: Informações de administração */}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>Registrado por {admin.administeredBy}</span>
+                        {/* Linha 4: Informações compactas */}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                          {admin.actualTime && admin.actualTime !== admin.scheduledTime && admin.type !== 'SOS' && (
+                            <>
+                              <span>Real {admin.actualTime}</span>
+                              <span>•</span>
+                            </>
+                          )}
+                          <span>Por {admin.administeredBy}</span>
                           <span>•</span>
                           <span>{formatDateTimeSafe(admin.createdAt)}</span>
+                          {admin.checkedBy && (
+                            <>
+                              <span>•</span>
+                              <span>Checado por {admin.checkedBy}</span>
+                            </>
+                          )}
                         </div>
 
                         {/* Motivo (se não foi administrado) */}
@@ -268,12 +293,6 @@ export function MedicationsCalendarModal({
                           </div>
                         )}
 
-                        {/* Dupla checagem */}
-                        {admin.checkedBy && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            <span className="font-medium">Checado por:</span> {admin.checkedBy}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>

@@ -208,9 +208,6 @@ export function DailyRecordsView({
                       >
                         {getRecordTypeLabel(record.type).label}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {record.recordedBy}
-                      </span>
                       {isRecordEdited(record) && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -225,6 +222,11 @@ export function DailyRecordsView({
                         </Tooltip>
                       )}
                       <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      <span>Por {record.recordedBy}</span>
+                      <span>•</span>
+                      <span>{formatDateTimeSafe(record.createdAt)}</span>
                     </div>
                   </div>
 

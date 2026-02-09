@@ -107,8 +107,10 @@ export interface MedicationAdministration {
   notes?: string
   indication?: string
   createdAt: string
+  updatedAt?: string
   medication?: {
     name: string
+    concentration?: string
     dose: string
     route: string
     presentation?: string
