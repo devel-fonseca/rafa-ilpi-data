@@ -1,19 +1,10 @@
 import React from 'react'
-import { Eye, Clock, Calendar, User, Heart } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 interface ComportamentoData {
-  estadoEmocional: string
-  outroEstado?: string
-  observacoes?: string
+  descricao?: string
   [key: string]: unknown
 }
 
@@ -23,6 +14,7 @@ interface ComportamentoRecord {
   date: string
   recordedBy: string
   createdAt: string
+  notes?: string
   [key: string]: unknown
 }
 
@@ -32,6 +24,8 @@ interface ViewComportamentoModalProps {
   record: ComportamentoRecord
 }
 
+const COMPORTAMENTO_OPTIONS = new Set(['Calmo', 'Ansioso', 'Triste', 'Eufórico', 'Irritado', 'Apático'])
+
 export function ViewComportamentoModal({
   open,
   onClose,
@@ -39,65 +33,59 @@ export function ViewComportamentoModal({
 }: ViewComportamentoModalProps) {
   if (!record) return null
 
-  const { data, time, date, recordedBy, createdAt } = record
+  const { data, time, date, recordedBy, createdAt, notes } = record
+  const hasObservacoes = Boolean(notes && String(notes).trim().length > 0)
+  const descricao = String(data.descricao || '').trim()
+  const isKnownType = COMPORTAMENTO_OPTIONS.has(descricao)
+  const comportamentoLabel = isKnownType ? descricao : 'Outro'
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Comportamento - Detalhes
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Informações do Registro */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Data:</span>
-              <span>{formatDateLongSafe(date)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Horário:</span>
-              <span className="text-lg font-semibold">{time}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Registrado por:</span>
-              <span>{recordedBy}</span>
-            </div>
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      title="Comportamento - Detalhes"
+      description="Visualização completa do registro comportamental"
+      icon={<Eye className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span>{formatDateLongSafe(date)}</span>
+            <span>•</span>
+            <span>Horário {time}</span>
+            <span>•</span>
+            <span>Por <span className="font-medium text-foreground">{recordedBy}</span></span>
           </div>
+        </div>
+      )}
+      bodyClassName="space-y-6"
+    >
 
           {/* Comportamento */}
           <div>
-            <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
-              <Heart className="h-4 w-4" />
-              Comportamento
-            </h3>
+            <h3 className="font-semibold text-sm text-muted-foreground mb-3">Comportamento</h3>
             <div className="bg-muted/20 p-4 rounded-lg">
-              <Badge variant="secondary" className="text-base px-3 py-1">
-                {data.estadoEmocional}
-              </Badge>
-              {data.estadoEmocional === 'Outro' && data.outroEstado && (
-                <p className="text-sm mt-3 text-muted-foreground">
-                  Especificação: <span className="font-medium text-foreground">{data.outroEstado}</span>
+              <div className="bg-muted/20 border p-4 rounded-lg">
+                <p className="text-2xl font-semibold">
+                  {comportamentoLabel}
+                </p>
+              </div>
+              {!isKnownType && (
+                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-3 text-muted-foreground">
+                  {descricao || 'Sem descrição informada'}
                 </p>
               )}
             </div>
           </div>
 
           {/* Observações */}
-          {data.observacoes && (
+          {hasObservacoes && (
             <div>
               <h3 className="font-semibold text-sm text-muted-foreground mb-3">
                 Observações
               </h3>
               <div className="bg-muted/20 p-4 rounded-lg">
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {data.observacoes}
+                  {notes}
                 </p>
               </div>
             </div>
@@ -107,14 +95,6 @@ export function ViewComportamentoModal({
           <div className="pt-4 border-t text-xs text-muted-foreground">
             Registrado em {formatDateTimeSafe(createdAt)}
           </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

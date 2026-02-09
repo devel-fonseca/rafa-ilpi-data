@@ -96,8 +96,8 @@ export function HumorModal({
       data: {
         humor: data.humor,
         outroHumor: data.humor === 'Outro' ? data.outroHumor : undefined,
-        observacoes: data.observacoes,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()

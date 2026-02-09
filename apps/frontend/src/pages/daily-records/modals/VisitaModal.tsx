@@ -67,8 +67,8 @@ export function VisitaModal({
       recordedBy: currentUserName,
       data: {
         visitante: data.visitante,
-        observacoes: data.observacoes,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()

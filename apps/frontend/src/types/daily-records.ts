@@ -103,9 +103,6 @@ export interface SonoData {
 export interface HumorData {
   humor?: string
   outroHumor?: string
-  estadoEmocional?: string
-  nivelAgitacao?: string
-  interacaoSocial?: string
   observacoes?: string
 }
 
@@ -120,7 +117,6 @@ export interface AtividadesData {
 // --- COMPORTAMENTO ---
 export interface ComportamentoData {
   descricao?: string
-  observacoes?: string
 }
 
 // --- INTERCORRÊNCIA ---
@@ -139,8 +135,6 @@ export interface MonitoramentoData {
   temperatura?: string | number
   saturacaoO2?: string | number
   glicemia?: string | number
-  peso?: string | number
-  observacoes?: string
 }
 
 // --- OBSERVAÇÃO ---

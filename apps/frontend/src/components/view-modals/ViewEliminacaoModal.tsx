@@ -1,16 +1,10 @@
 import React from 'react'
 
 
-import { Eye, Clock, Calendar, User } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 interface EliminacaoData {
   tipo: string
@@ -39,6 +33,12 @@ interface ViewEliminacaoModalProps {
   record: EliminacaoRecord
 }
 
+function getEliminationTypeLabel(type?: string): string {
+  if (type === 'Fezes') return 'Eliminação Intestinal'
+  if (type === 'Urina') return 'Eliminação Urinária'
+  return type || 'Tipo não informado'
+}
+
 export function ViewEliminacaoModal({
   open,
   onClose,
@@ -47,44 +47,38 @@ export function ViewEliminacaoModal({
   if (!record) return null
 
   const { data, time, date, recordedBy, createdAt, notes } = record
+  const hasObservacoes =
+    Boolean(data.observacoes && String(data.observacoes).trim().length > 0) ||
+    Boolean(notes && String(notes).trim().length > 0)
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Eliminações - Detalhes
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Informações do Registro */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Data:</span>
-              <span>{formatDateLongSafe(date)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Horário:</span>
-              <span className="text-lg font-semibold">{time}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Registrado por:</span>
-              <span>{recordedBy}</span>
-            </div>
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      title="Eliminações - Detalhes"
+      description="Visualização completa do registro de eliminação"
+      icon={<Eye className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span>{formatDateLongSafe(date)}</span>
+            <span>•</span>
+            <span>Horário {time}</span>
+            <span>•</span>
+            <span>Por <span className="font-medium text-foreground">{recordedBy}</span></span>
           </div>
+        </div>
+      )}
+      bodyClassName="space-y-6"
+    >
 
           {/* Tipo de Eliminação */}
           <div>
             <h3 className="font-semibold text-sm text-muted-foreground mb-3">
               Tipo de Eliminação
             </h3>
-            <Badge variant="outline" className="text-lg font-semibold">
-              {data.tipo}
+            <Badge variant="outline" className="font-normal">
+              {getEliminationTypeLabel(data.tipo)}
             </Badge>
           </div>
 
@@ -146,14 +140,14 @@ export function ViewEliminacaoModal({
           </div>
 
           {/* Observações */}
-          {((data.observacoes && data.observacoes !== 'Sem observações') || notes) && (
+          {hasObservacoes && (
             <div>
               <h3 className="font-semibold text-sm text-muted-foreground mb-2">
                 Observações
               </h3>
               <div className="bg-muted/20 p-3 rounded-lg">
                 <p className="text-sm whitespace-pre-wrap">
-                  {data.observacoes || notes}
+                  {notes || data.observacoes}
                 </p>
               </div>
             </div>
@@ -163,14 +157,6 @@ export function ViewEliminacaoModal({
           <div className="pt-4 border-t text-xs text-muted-foreground">
             Registrado em {formatDateTimeSafe(createdAt)}
           </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

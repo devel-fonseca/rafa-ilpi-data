@@ -2,18 +2,10 @@ import { useState, useEffect, MouseEvent } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ChevronRight, ChevronLeft, Check, Edit } from 'lucide-react'
-import { extractDateOnly } from '@/utils/dateHelpers'
+import { ChevronRight, ChevronLeft, Check, Edit, ShieldAlert } from 'lucide-react'
+import { extractDateOnly, formatDateTimeSafe } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import type { AlimentacaoRecord } from '@/types/daily-records'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -27,6 +19,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 const editAlimentacaoSchema = z.object({
   time: z
@@ -65,6 +58,32 @@ interface EditAlimentacaoModalProps {
   isUpdating?: boolean
 }
 
+type ComparableAlimentacaoData = {
+  refeicao?: string
+  cardapio?: string
+  consistencia?: string
+  ingeriu?: string
+  auxilioNecessario?: boolean
+  volumeMl?: number
+  intercorrencia?: string
+}
+
+function normalizeComparableAlimentacaoData(data: Record<string, unknown>): ComparableAlimentacaoData {
+  const volume = data.volumeMl !== undefined && data.volumeMl !== null && data.volumeMl !== ''
+    ? Number(data.volumeMl)
+    : undefined
+
+  return {
+    refeicao: data.refeicao ? String(data.refeicao) : undefined,
+    cardapio: data.cardapio ? String(data.cardapio) : undefined,
+    consistencia: data.consistencia ? String(data.consistencia) : undefined,
+    ingeriu: data.ingeriu ? String(data.ingeriu) : undefined,
+    auxilioNecessario: Boolean(data.auxilioNecessario),
+    volumeMl: Number.isFinite(volume) ? volume : undefined,
+    intercorrencia: data.intercorrencia ? String(data.intercorrencia) : undefined,
+  }
+}
+
 export function EditAlimentacaoModal({
   open,
   onClose,
@@ -84,7 +103,6 @@ export function EditAlimentacaoModal({
     resolver: zodResolver(editAlimentacaoSchema),
   })
 
-  // Reset form when record changes
   useEffect(() => {
     if (record && open) {
       reset({
@@ -103,20 +121,36 @@ export function EditAlimentacaoModal({
   }, [record, open, reset])
 
   const handleFormSubmit = (data: EditAlimentacaoFormData) => {
-    const payload = {
-      time: data.time,
-      data: {
-        refeicao: data.refeicao,
-        cardapio: data.cardapio,
-        consistencia: data.consistencia,
-        ingeriu: data.ingeriu,
-        auxilioNecessario: data.auxilioNecessario,
-        volumeMl: data.volumeMl ? parseInt(data.volumeMl) : undefined,
-        intercorrencia: data.intercorrencia,
-      },
-      notes: data.observacoes,
+    const payload: Record<string, unknown> = {
       editReason: data.editReason,
     }
+
+    if (data.time !== record.time) {
+      payload.time = data.time
+    }
+
+    const nextData: ComparableAlimentacaoData = {
+      refeicao: data.refeicao,
+      cardapio: data.cardapio || undefined,
+      consistencia: data.consistencia,
+      ingeriu: data.ingeriu,
+      auxilioNecessario: data.auxilioNecessario,
+      volumeMl: data.volumeMl ? parseInt(data.volumeMl, 10) : undefined,
+      intercorrencia: data.intercorrencia || undefined,
+    }
+
+    const currentData = normalizeComparableAlimentacaoData(record.data as Record<string, unknown>)
+
+    if (JSON.stringify(nextData) !== JSON.stringify(currentData)) {
+      payload.data = nextData
+    }
+
+    const nextNotes = data.observacoes || ''
+    const currentNotes = record.notes || ''
+    if (nextNotes !== currentNotes) {
+      payload.notes = nextNotes
+    }
+
     onSubmit(payload)
   }
 
@@ -138,238 +172,120 @@ export function EditAlimentacaoModal({
 
   if (!record) return null
 
+  const formId = 'edit-alimentacao-form'
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Alimentação
-          </DialogTitle>
-          <DialogDescription>
-            Edite os dados do registro de alimentação. É obrigatório informar o motivo da edição.
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Stepper */}
-        <div className="flex items-center justify-between mb-6">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className={cn(
-                    'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors',
-                    currentStep === step
-                      ? 'bg-primary text-primary-foreground'
-                      : currentStep > step
-                      ? 'bg-success text-success-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {currentStep > step ? <Check className="h-5 w-5" /> : step}
-                </div>
-                <span className="text-xs mt-1 text-muted-foreground">
-                  {step === 1 && 'Refeição'}
-                  {step === 2 && 'Hidratação'}
-                  {step === 3 && 'Detalhes'}
-                  {step === 4 && 'Motivo'}
-                </span>
-              </div>
-              {step < 4 && (
-                <div
-                  className={cn(
-                    'h-1 flex-1 mx-2',
-                    currentStep > step ? 'bg-success' : 'bg-muted'
-                  )}
-                />
-              )}
-            </div>
-          ))}
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && handleClose()}
+      title="Editar Alimentação"
+      description="Edite os dados do registro de alimentação. É obrigatório informar o motivo da edição."
+      icon={<Edit className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border text-sm text-muted-foreground">
+          Registro original: <span className="font-medium text-foreground">{format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+          {' • '}
+          <span className="font-medium text-foreground">{record.time}</span>
+          {' • '}
+          Por <span className="font-medium text-foreground">{record.recordedBy}</span>
         </div>
-
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Etapa 1: Refeição, Cardápio, Consistência e Ingestão */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                    Horário
-                  </Label>
-                  <Input
-                    {...register('time')}
-                    type="time"
-                    className="mt-2"
-                    placeholder="HH:mm"
-                  />
-                  {errors.time && (
-                    <p className="text-sm text-danger mt-1">
-                      {errors.time.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                    Refeição
-                  </Label>
-                  <Controller
-                    name="refeicao"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Café da Manhã">Café da Manhã</SelectItem>
-                          <SelectItem value="Colação">Colação</SelectItem>
-                          <SelectItem value="Almoço">Almoço</SelectItem>
-                          <SelectItem value="Lanche">Lanche</SelectItem>
-                          <SelectItem value="Jantar">Jantar</SelectItem>
-                          <SelectItem value="Ceia">Ceia</SelectItem>
-                          <SelectItem value="Colação Extra">Colação Extra</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.refeicao && (
-                    <p className="text-sm text-danger mt-1">
-                      {errors.refeicao.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label>Cardápio</Label>
-                <Input
-                  {...register('cardapio')}
-                  className="mt-2"
-                  placeholder="Refeição institucional"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                    Consistência
-                  </Label>
-                  <Controller
-                    name="consistencia"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Geral">Geral</SelectItem>
-                          <SelectItem value="Pastosa">Pastosa</SelectItem>
-                          <SelectItem value="Líquida">Líquida</SelectItem>
-                          <SelectItem value="Triturada">Triturada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.consistencia && (
-                    <p className="text-sm text-danger mt-1">
-                      {errors.consistencia.message}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                    Ingestão
-                  </Label>
-                  <Controller
-                    name="ingeriu"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="100%">100%</SelectItem>
-                          <SelectItem value="75%">75%</SelectItem>
-                          <SelectItem value="50%">50%</SelectItem>
-                          <SelectItem value="<25%">&lt;25%</SelectItem>
-                          <SelectItem value="Recusou">Recusou</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  {errors.ingeriu && (
-                    <p className="text-sm text-danger mt-1">
-                      {errors.ingeriu.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+      )}
+      bodyClassName="space-y-6"
+      showDefaultClose={false}
+      footer={(
+        <>
+          <Button type="button" variant="outline" size="sm" onClick={handleClose} disabled={isUpdating}>
+            Cancelar
+          </Button>
+          {currentStep > 1 && (
+            <Button type="button" variant="outline" size="sm" onClick={(e) => prevStep(e)} disabled={isUpdating}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Voltar
+            </Button>
           )}
-
-          {/* Etapa 2: Hidratação durante a refeição */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <div>
-                <Label>Hidratação durante a refeição (ml)</Label>
-                <Input
-                  {...register('volumeMl')}
-                  type="number"
-                  className="mt-2"
-                  placeholder="200"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Volume de líquidos ingeridos (água, suco, leite, etc)
-                </p>
-              </div>
-            </div>
+          {currentStep < 4 ? (
+            <Button type="button" size="sm" onClick={(e) => nextStep(e)}>
+              Próximo
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button type="submit" size="sm" variant="success" form={formId} disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
           )}
+        </>
+      )}
+    >
+      <div className="flex items-center justify-between mb-6">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center flex-1">
+            <div className="flex flex-col items-center flex-1">
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors',
+                  currentStep === step
+                    ? 'bg-primary text-primary-foreground'
+                    : currentStep > step
+                    ? 'bg-success text-success-foreground'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {currentStep > step ? <Check className="h-5 w-5" /> : step}
+              </div>
+              <span className="text-xs mt-1 text-muted-foreground">
+                {step === 1 && 'Refeição'}
+                {step === 2 && 'Hidratação'}
+                {step === 3 && 'Detalhes'}
+                {step === 4 && 'Motivo'}
+              </span>
+            </div>
+            {step < 4 && (
+              <div
+                className={cn(
+                  'h-1 flex-1 mx-2',
+                  currentStep > step ? 'bg-success' : 'bg-muted'
+                )}
+              />
+            )}
+          </div>
+        ))}
+      </div>
 
-          {/* Etapa 3: Auxílio, Intercorrência e Observações */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+        {currentStep === 1 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Auxílio necessário?</Label>
-                <Controller
-                  name="auxilioNecessario"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      onValueChange={(value) => field.onChange(value === 'true')}
-                      value={field.value ? 'true' : 'false'}
-                      className="mt-2 flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="true" id="auxilio-sim" />
-                        <Label
-                          htmlFor="auxilio-sim"
-                          className="font-normal cursor-pointer"
-                        >
-                          Sim
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="false" id="auxilio-nao" />
-                        <Label
-                          htmlFor="auxilio-nao"
-                          className="font-normal cursor-pointer"
-                        >
-                          Não
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  )}
+                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                  Horário
+                </Label>
+                <Input
+                  {...register('time')}
+                  type="time"
+                  className="mt-2"
+                  placeholder="HH:mm"
                 />
+                {errors.time && (
+                  <p className="text-sm text-danger mt-1">{errors.time.message}</p>
+                )}
               </div>
 
               <div>
-                <Label>Intercorrência</Label>
+                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                  Refeição
+                </Label>
                 <Controller
-                  name="intercorrencia"
+                  name="refeicao"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
@@ -377,51 +293,190 @@ export function EditAlimentacaoModal({
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Nenhuma">Nenhuma</SelectItem>
-                        <SelectItem value="Engasgo">Engasgo</SelectItem>
-                        <SelectItem value="Náusea">Náusea</SelectItem>
-                        <SelectItem value="Vômito">Vômito</SelectItem>
-                        <SelectItem value="Recusa">Recusa</SelectItem>
+                        <SelectItem value="Café da Manhã">Café da Manhã</SelectItem>
+                        <SelectItem value="Colação">Colação</SelectItem>
+                        <SelectItem value="Almoço">Almoço</SelectItem>
+                        <SelectItem value="Lanche">Lanche</SelectItem>
+                        <SelectItem value="Jantar">Jantar</SelectItem>
+                        <SelectItem value="Ceia">Ceia</SelectItem>
+                        <SelectItem value="Colação Extra">Colação Extra</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
                 />
+                {errors.refeicao && (
+                  <p className="text-sm text-danger mt-1">{errors.refeicao.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label>Cardápio</Label>
+              <Input
+                {...register('cardapio')}
+                className="mt-2"
+                placeholder="Refeição institucional"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                  Consistência
+                </Label>
+                <Controller
+                  name="consistencia"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Geral">Geral</SelectItem>
+                        <SelectItem value="Pastosa">Pastosa</SelectItem>
+                        <SelectItem value="Líquida">Líquida</SelectItem>
+                        <SelectItem value="Triturada">Triturada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.consistencia && (
+                  <p className="text-sm text-danger mt-1">{errors.consistencia.message}</p>
+                )}
               </div>
 
               <div>
-                <Label>Observações</Label>
-                <Textarea
-                  {...register('observacoes')}
-                  rows={5}
-                  className="mt-2"
-                  placeholder="Observações adicionais sobre a refeição"
+                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                  Ingestão
+                </Label>
+                <Controller
+                  name="ingeriu"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="100%">100%</SelectItem>
+                        <SelectItem value="75%">75%</SelectItem>
+                        <SelectItem value="50%">50%</SelectItem>
+                        <SelectItem value="<25%">&lt;25%</SelectItem>
+                        <SelectItem value="Recusou">Recusou</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
+                {errors.ingeriu && (
+                  <p className="text-sm text-danger mt-1">{errors.ingeriu.message}</p>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Etapa 4: Motivo da Edição */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <div className="bg-muted/30 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Informações do Registro Original</h4>
-                <div className="text-sm space-y-1">
-                  <p>
-                    <span className="text-muted-foreground">Registrado por:</span>{' '}
-                    {record.recordedBy}
+        {currentStep === 2 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Hidratação durante a refeição (ml)</Label>
+              <Input
+                {...register('volumeMl')}
+                type="number"
+                className="mt-2"
+                placeholder="200"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Volume de líquidos ingeridos (água, suco, leite, etc)
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 3 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Auxílio necessário?</Label>
+              <Controller
+                name="auxilioNecessario"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    onValueChange={(value) => field.onChange(value === 'true')}
+                    value={field.value ? 'true' : 'false'}
+                    className="mt-2 flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="true" id="auxilio-sim" />
+                      <Label htmlFor="auxilio-sim" className="font-normal cursor-pointer">
+                        Sim
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="false" id="auxilio-nao" />
+                      <Label htmlFor="auxilio-nao" className="font-normal cursor-pointer">
+                        Não
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                )}
+              />
+            </div>
+
+            <div>
+              <Label>Intercorrência</Label>
+              <Controller
+                name="intercorrencia"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nenhuma">Nenhuma</SelectItem>
+                      <SelectItem value="Engasgo">Engasgo</SelectItem>
+                      <SelectItem value="Náusea">Náusea</SelectItem>
+                      <SelectItem value="Vômito">Vômito</SelectItem>
+                      <SelectItem value="Recusa">Recusa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                {...register('observacoes')}
+                rows={5}
+                className="mt-2"
+                placeholder="Observações adicionais sobre a refeição"
+              />
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && (
+          <div className="space-y-4">
+            <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                    Este registro integra trilha de auditoria permanente
                   </p>
-                  <p>
-                    <span className="text-muted-foreground">Data:</span>{' '}
-                    {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Registrado por {record.recordedBy}
+                    {record.createdAt
+                      ? ` em ${formatDateTimeSafe(record.createdAt)}`
+                      : ` em ${format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')} ${record.time}`}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="editReason"
-                  className="after:content-['*'] after:ml-0.5 after:text-danger"
-                >
+                <Label htmlFor="editReason" className="after:content-['*'] after:ml-0.5 after:text-danger">
                   Motivo da edição
                 </Label>
                 <Textarea
@@ -435,50 +490,14 @@ export function EditAlimentacaoModal({
                   <p className="text-sm text-danger">{errors.editReason.message}</p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Campo obrigatório para auditoria
+                    Campo obrigatório. A justificativa comporá o registro permanente da instituição.
                   </p>
                 )}
               </div>
             </div>
-          )}
-
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={isUpdating}>
-                Cancelar
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              {currentStep > 1 && (
-                <Button type="button" variant="outline" onClick={(e) => prevStep(e)} disabled={isUpdating}>
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Voltar
-                </Button>
-              )}
-              {currentStep < 4 ? (
-                <Button type="button" onClick={(e) => nextStep(e)}>
-                  Próximo
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button type="submit" disabled={isUpdating} className="bg-primary">
-                  {isUpdating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      Salvar Alterações
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        )}
+      </form>
+    </ActionDetailsSheet>
   )
 }

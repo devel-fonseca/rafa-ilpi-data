@@ -97,8 +97,8 @@ export function SonoModal({
       data: {
         padraoSono: data.padraoSono,
         outroPadrao: data.padraoSono === 'Outro' ? data.outroPadrao : undefined,
-        observacoes: data.observacoes,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()

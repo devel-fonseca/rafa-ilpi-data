@@ -24,8 +24,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-// ========== DESCRIÇÕES DOS COMPORTAMENTOS ==========
-
 const COMPORTAMENTO_DESCRIPTIONS: Record<string, string> = {
   Calmo: 'Apresenta-se tranquilo, colaborativo e sem sinais de sofrimento emocional.',
   Ansioso: 'Mostra inquietação, preocupação ou tensão, podendo solicitar atenção com maior frequência.',
@@ -33,7 +31,7 @@ const COMPORTAMENTO_DESCRIPTIONS: Record<string, string> = {
   Eufórico: 'Apresenta excitação incomum, fala acelerada ou entusiasmo desproporcional ao contexto.',
   Irritado: 'Mostra impaciência, respostas ríspidas ou baixa tolerância a contrariedades.',
   Apático: 'Revela pouca iniciativa, reduzida interação ou desinteresse pelo ambiente.',
-  Outro: 'Utilizar quando o comportamento observado não se enquadrar nas opções acima, descrevendo de forma objetiva.',
+  Outro: 'Utilizar quando o comportamento observado não se enquadrar nas opções acima.',
 }
 
 const comportamentoSchema = z.object({
@@ -44,6 +42,14 @@ const comportamentoSchema = z.object({
   estadoEmocional: z.string().min(1, 'Comportamento é obrigatório'),
   outroEstado: z.string().optional(),
   observacoes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.estadoEmocional === 'Outro' && !data.outroEstado?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['outroEstado'],
+      message: 'Especifique o comportamento',
+    })
+  }
 })
 
 type ComportamentoFormData = z.infer<typeof comportamentoSchema>
@@ -78,12 +84,19 @@ export function ComportamentoModal({
     resolver: zodResolver(comportamentoSchema),
     defaultValues: {
       time: getCurrentTime(),
+      estadoEmocional: '',
+      outroEstado: '',
     },
   })
 
   const watchEstadoEmocional = watch('estadoEmocional')
 
   const handleFormSubmit = (data: ComportamentoFormData) => {
+    const descricao =
+      data.estadoEmocional === 'Outro'
+        ? data.outroEstado?.trim() || 'Outro'
+        : data.estadoEmocional
+
     const payload: CreateDailyRecordInput<ComportamentoData> = {
       residentId,
       type: 'COMPORTAMENTO',
@@ -91,10 +104,9 @@ export function ComportamentoModal({
       time: data.time,
       recordedBy: currentUserName,
       data: {
-        estadoEmocional: data.estadoEmocional,
-        outroEstado: data.estadoEmocional === 'Outro' ? data.outroEstado : undefined,
-        observacoes: data.observacoes,
+        descricao,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()
@@ -119,7 +131,7 @@ export function ComportamentoModal({
           <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed">
-              Registre o comportamento conforme observado no momento do cuidado. Considere o contexto e descreva alterações em relação ao padrão habitual do residente. Mudanças relevantes devem ser comunicadas à equipe técnica.
+              Registre de forma objetiva o comportamento observado no momento do cuidado. Mudanças relevantes em relação ao padrão habitual devem ser comunicadas à equipe técnica.
             </AlertDescription>
           </Alert>
 
@@ -155,28 +167,26 @@ export function ComportamentoModal({
                 </Select>
               )}
             />
-            {/* Descrição do comportamento selecionado */}
             {watchEstadoEmocional && COMPORTAMENTO_DESCRIPTIONS[watchEstadoEmocional] && (
               <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
                 <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
                 <span>{COMPORTAMENTO_DESCRIPTIONS[watchEstadoEmocional]}</span>
               </p>
             )}
-            {errors.estadoEmocional && (
-              <p className="text-sm text-danger mt-1">
-                {errors.estadoEmocional.message}
-              </p>
-            )}
+            {errors.estadoEmocional && <p className="text-sm text-danger mt-1">{errors.estadoEmocional.message}</p>}
           </div>
 
           {watchEstadoEmocional === 'Outro' && (
             <div>
-              <Label>Especificar outro comportamento</Label>
+              <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                Especificar comportamento
+              </Label>
               <Input
                 {...register('outroEstado')}
                 className="mt-2"
-                placeholder="Descreva o comportamento"
+                placeholder="Descreva o comportamento observado"
               />
+              {errors.outroEstado && <p className="text-sm text-danger mt-1">{errors.outroEstado.message}</p>}
             </div>
           )}
 

@@ -26,6 +26,7 @@ import {
 import { dailyRecordsAPI, type DailyRecordHistoryResponse } from '@/api/dailyRecords.api'
 import { getRecordTypeConfig } from '@/design-system/tokens/colors'
 import { getErrorMessage } from '@/utils/errorHandling'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 interface DailyRecordHistoryModalProps {
   recordId: string
@@ -100,8 +101,58 @@ export function DailyRecordHistoryModal({
       recordedBy: 'Registrado por',
       notes: 'Observações',
       deletedAt: 'Excluído em',
+      'data.tipoBanho': 'Tipo de banho',
+      'data.duracao': 'Duração',
+      'data.higieneBucal': 'Higiene bucal',
+      'data.trocaFralda': 'Troca de fralda/roupa',
+      'data.quantidadeFraldas': 'Quantidade de fraldas',
+      'data.condicaoPele': 'Condição da pele',
+      'data.localAlteracao': 'Local da alteração',
+      'data.hidratanteAplicado': 'Hidratante aplicado',
+      'data.observacoes': 'Observações (dados)',
+      'data.padraoSono': 'Padrão de sono',
+      'data.outroPadrao': 'Outro padrão de sono',
+      'data.atividade': 'Atividade',
+      'data.participacao': 'Participação',
+      'data.visitante': 'Visitante',
+      'data.refeicao': 'Refeição',
+      'data.cardapio': 'Cardápio',
+      'data.ingeriu': 'Ingestão',
+      'data.auxilioNecessario': 'Auxílio necessário',
+      'data.intercorrencia': 'Intercorrência',
+      'data.pressaoArterial': 'Pressão arterial',
+      'data.temperatura': 'Temperatura',
+      'data.frequenciaCardiaca': 'Frequência cardíaca',
+      'data.saturacaoO2': 'Saturação O₂',
+      'data.glicemia': 'Glicemia',
+      'data.peso': 'Peso',
+      'data.altura': 'Altura',
+      'data.imc': 'IMC',
+      'data.tipo': 'Tipo de eliminação',
+      'data.volumeMl': 'Volume (ml)',
+      'data.consistencia': 'Consistência',
+      'data.cor': 'Cor',
+      'data.volume': 'Volume',
+      'data.odor': 'Odor',
+      'data.descricao': 'Descrição',
+      'data.humor': 'Humor',
+      'data.outroHumor': 'Outro humor',
+      'data.estadoEmocional': 'Comportamento (legado)',
+      'data.outroEstado': 'Outro comportamento (legado)',
     }
-    return fieldLabels[field] || field
+
+    if (field === 'data.tipo') {
+      if (history?.recordType === 'ELIMINACAO') return 'Tipo de eliminação'
+      if (history?.recordType === 'HIDRATACAO') return 'Tipo de líquido'
+    }
+
+    if (fieldLabels[field]) return fieldLabels[field]
+
+    if (field.startsWith('data.') && history?.recordType === 'HIGIENE') {
+      return field.replace('data.', '').replace(/([A-Z])/g, ' $1').toLowerCase()
+    }
+
+    return field
   }
 
   // Extract unique users for filter
@@ -215,6 +266,10 @@ export function DailyRecordHistoryModal({
   const formatValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return '(vazio)'
+    }
+    if (history?.recordType === 'ELIMINACAO') {
+      if (value === 'Fezes') return 'Eliminação Intestinal'
+      if (value === 'Urina') return 'Eliminação Urinária'
     }
     if (typeof value === 'object') {
       return JSON.stringify(value, null, 2)
@@ -452,33 +507,28 @@ export function DailyRecordHistoryModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Histórico de Versões
-              </DialogTitle>
-              <DialogDescription>
-                Todas as alterações realizadas neste registro
-              </DialogDescription>
-            </div>
-            {history && !loading && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPDF}
-                className="shrink-0"
-                title="Exportar histórico para PDF"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Exportar PDF
-              </Button>
-            )}
+    <>
+      <ActionDetailsSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Histórico de Versões"
+        description="Todas as alterações realizadas neste registro"
+        icon={<History className="h-4 w-4" />}
+        size="lg"
+      >
+        {history && !loading && (
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              title="Exportar histórico para PDF"
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Exportar PDF
+            </Button>
           </div>
-        </DialogHeader>
+        )}
 
         {loading && (
           <div className="flex items-center justify-center py-8">
@@ -697,7 +747,7 @@ export function DailyRecordHistoryModal({
             </div>
           </div>
         )}
-      </DialogContent>
+      </ActionDetailsSheet>
 
       {/* Dialog de confirmação de restauração */}
       <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
@@ -912,6 +962,6 @@ export function DailyRecordHistoryModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Dialog>
+    </>
   )
 }

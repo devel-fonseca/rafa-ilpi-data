@@ -1,13 +1,7 @@
 import React from 'react'
-import { Eye, Clock, Calendar, User, Users } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 interface VisitaData {
   visitante: string
@@ -39,76 +33,55 @@ export function ViewVisitaModal({
   if (!record) return null
 
   const { data, time, date, recordedBy, createdAt, notes } = record
+  const hasObservacoes =
+    Boolean(data.observacoes && String(data.observacoes).trim().length > 0) ||
+    Boolean(notes && String(notes).trim().length > 0)
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            Visita - Detalhes
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Informações do Registro */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Data:</span>
-              <span>{formatDateLongSafe(date)}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Horário:</span>
-              <span className="text-lg font-semibold">{time}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Registrado por:</span>
-              <span>{recordedBy}</span>
-            </div>
-          </div>
-
-          {/* Visitante */}
-          <div>
-            <h3 className="font-semibold text-sm text-muted-foreground mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Visitante
-            </h3>
-            <div className="bg-muted/20 p-4 rounded-lg">
-              <p className="text-sm leading-relaxed">
-                {data.visitante}
-              </p>
-            </div>
-          </div>
-
-          {/* Observações */}
-          {((data.observacoes && data.observacoes !== 'Sem observações') || notes) && (
-            <div>
-              <h3 className="font-semibold text-sm text-muted-foreground mb-2">
-                Observações
-              </h3>
-              <div className="bg-muted/20 p-3 rounded-lg">
-                <p className="text-sm whitespace-pre-wrap">
-                  {data.observacoes || notes}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Rodapé com data de criação */}
-          <div className="pt-4 border-t text-xs text-muted-foreground">
-            Registrado em {formatDateTimeSafe(createdAt)}
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      title="Visita - Detalhes"
+      description="Visualização completa do registro de visita"
+      icon={<Eye className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span>{formatDateLongSafe(date)}</span>
+            <span>•</span>
+            <span>Horário {time}</span>
+            <span>•</span>
+            <span>Por <span className="font-medium text-foreground">{recordedBy}</span></span>
           </div>
         </div>
-
-        <div className="flex justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
+      )}
+      bodyClassName="space-y-6"
+    >
+      <div>
+        <h3 className="font-semibold text-sm text-muted-foreground mb-3">Visitante</h3>
+        <div className="bg-muted/20 p-4 rounded-lg border">
+          <p className="text-sm leading-relaxed">
+            {data.visitante}
+          </p>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      {hasObservacoes && (
+        <div>
+          <h3 className="font-semibold text-sm text-muted-foreground mb-2">
+            Observações
+          </h3>
+          <div className="bg-muted/20 p-3 rounded-lg border">
+            <p className="text-sm whitespace-pre-wrap">
+              {notes || data.observacoes}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="pt-4 border-t text-xs text-muted-foreground">
+        Registrado em {formatDateTimeSafe(createdAt)}
+      </div>
+    </ActionDetailsSheet>
   )
 }

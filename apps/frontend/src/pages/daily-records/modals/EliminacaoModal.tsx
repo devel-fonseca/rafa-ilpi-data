@@ -131,9 +131,9 @@ export function EliminacaoModal({
         cor: data.cor,
         volume: data.volume,
         odor: data.odor,
-        observacoes: data.observacoes,
         trocaFralda: data.trocaFralda,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()
@@ -218,8 +218,8 @@ export function EliminacaoModal({
                         <SelectValue placeholder="Selecione o tipo..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Fezes">Fezes</SelectItem>
-                        <SelectItem value="Urina">Urina</SelectItem>
+                        <SelectItem value="Fezes">Eliminação Intestinal</SelectItem>
+                        <SelectItem value="Urina">Eliminação Urinária</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

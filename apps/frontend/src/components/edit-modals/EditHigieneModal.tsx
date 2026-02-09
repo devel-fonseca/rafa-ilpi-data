@@ -2,18 +2,10 @@ import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { extractDateOnly } from '@/utils/dateHelpers'
+import { Edit, ChevronRight, ChevronLeft, Check, ShieldAlert } from 'lucide-react'
+import { extractDateOnly, formatDateTimeSafe } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import type { HigieneRecord } from '@/types/daily-records'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -27,6 +19,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 const editHigieneSchema = z.object({
   time: z
@@ -53,6 +46,33 @@ interface EditHigieneModalProps {
   onSubmit: (data: Record<string, unknown>) => void
   record: HigieneRecord
   isUpdating?: boolean
+}
+
+type ComparableHigieneData = {
+  tipoBanho?: string
+  duracao?: string
+  condicaoPele?: string
+  localAlteracao?: string
+  hidratanteAplicado?: boolean
+  higieneBucal?: boolean
+  trocaFralda?: boolean
+  quantidadeFraldas?: string
+}
+
+function normalizeComparableHigieneData(data: Record<string, unknown>): ComparableHigieneData {
+  return {
+    tipoBanho: data.tipoBanho ? String(data.tipoBanho) : undefined,
+    duracao: data.duracao !== undefined && data.duracao !== null ? String(data.duracao) : undefined,
+    condicaoPele: data.condicaoPele ? String(data.condicaoPele) : undefined,
+    localAlteracao: data.localAlteracao ? String(data.localAlteracao) : undefined,
+    hidratanteAplicado: Boolean(data.hidratanteAplicado),
+    higieneBucal: Boolean(data.higieneBucal),
+    trocaFralda: Boolean(data.trocaFralda),
+    quantidadeFraldas:
+      data.quantidadeFraldas !== undefined && data.quantidadeFraldas !== null
+        ? String(data.quantidadeFraldas)
+        : undefined,
+  }
 }
 
 export function EditHigieneModal({
@@ -106,23 +126,36 @@ export function EditHigieneModal({
   }, [record, open, reset])
 
   const handleFormSubmit = (data: EditHigieneFormData) => {
-    const payload = {
-      time: data.time,
-      data: {
-        tipoBanho: data.tipoBanho,
-        duracao: data.duracao ? parseInt(data.duracao) : undefined,
-        condicaoPele: data.condicaoPele,
-        localAlteracao: data.localAlteracao,
-        hidratanteAplicado: data.hidratanteAplicado,
-        higieneBucal: data.higieneBucal,
-        trocaFralda: data.trocaFralda,
-        quantidadeFraldas: data.quantidadeFraldas
-          ? parseInt(data.quantidadeFraldas)
-          : undefined,
-      },
-      notes: data.observacoes,
+    const payload: Record<string, unknown> = {
       editReason: data.editReason,
     }
+
+    if (data.time !== record.time) {
+      payload.time = data.time
+    }
+
+    const nextNotes = data.observacoes || ''
+    const currentNotes = record.notes || ''
+    if (nextNotes !== currentNotes) {
+      payload.notes = nextNotes
+    }
+
+    const nextData: ComparableHigieneData = {
+      tipoBanho: data.tipoBanho,
+      duracao: data.duracao || undefined,
+      condicaoPele: data.condicaoPele,
+      localAlteracao: data.localAlteracao || undefined,
+      hidratanteAplicado: data.hidratanteAplicado,
+      higieneBucal: data.higieneBucal,
+      trocaFralda: data.trocaFralda,
+      quantidadeFraldas: data.quantidadeFraldas || undefined,
+    }
+
+    const currentData = normalizeComparableHigieneData(record.data as Record<string, unknown>)
+    if (JSON.stringify(nextData) !== JSON.stringify(currentData)) {
+      payload.data = nextData
+    }
+
     onSubmit(payload)
   }
 
@@ -141,19 +174,66 @@ export function EditHigieneModal({
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Higiene Corporal
-          </DialogTitle>
-          <DialogDescription>
-            É obrigatório informar o motivo da edição para auditoria.
-          </DialogDescription>
-        </DialogHeader>
+  const formId = 'edit-higiene-form'
 
+  return (
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && handleClose()}
+      title="Editar Higiene Corporal"
+      description="É obrigatório informar o motivo da edição para auditoria."
+      icon={<Edit className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border text-sm text-muted-foreground">
+          Registro original: <span className="font-medium text-foreground">{format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+          {' • '}
+          <span className="font-medium text-foreground">{record.time}</span>
+          {' • '}
+          Por <span className="font-medium text-foreground">{record.recordedBy}</span>
+        </div>
+      )}
+      bodyClassName="space-y-6"
+      showDefaultClose={false}
+      footer={(
+        <>
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            Cancelar
+          </Button>
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={(e) => prevStep(e)}
+              disabled={isUpdating}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Voltar
+            </Button>
+          )}
+          {currentStep < 4 ? (
+            <Button type="button" size="sm" onClick={(e) => nextStep(e)}>
+              Próximo
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button type="submit" size="sm" variant="success" form={formId} disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          )}
+        </>
+      )}
+    >
         {/* Stepper */}
         <div className="flex items-center justify-between mb-6">
           {[1, 2, 3, 4].map((step) => (
@@ -190,7 +270,7 @@ export function EditHigieneModal({
           ))}
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Etapa 1: Banho e Higiene Básica */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -365,83 +445,48 @@ export function EditHigieneModal({
           {/* Etapa 4: Informações Originais e Motivo da Edição */}
           {currentStep === 4 && (
             <div className="space-y-4">
-              {/* Box com info do registro original */}
-              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-                <p className="text-sm">
-                  <span className="font-medium">Registrado por:</span>{' '}
-                  {record.recordedBy}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Data:</span>{' '}
-                  {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Horário original:</span> {record.time}
-                </p>
-              </div>
+              {/* Card de Auditoria + Motivo da Edição */}
+              <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                      Este registro integra trilha de auditoria permanente
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Registrado por {record.recordedBy}
+                      {record.createdAt
+                        ? ` em ${formatDateTimeSafe(record.createdAt)}`
+                        : ` em ${format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')} ${record.time}`}
+                    </p>
+                  </div>
+                </div>
 
-              {/* Campo de motivo OBRIGATÓRIO */}
-              <div>
-                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                  Motivo da edição
-                </Label>
-                <Textarea
-                  {...register('editReason')}
-                  rows={4}
-                  className="mt-2 resize-none"
-                  placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
-                />
-                {errors.editReason && (
-                  <p className="text-sm text-danger mt-1">
-                    {errors.editReason.message}
-                  </p>
-                )}
+                <div>
+                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                    Motivo da edição
+                  </Label>
+                  <Textarea
+                    {...register('editReason')}
+                    rows={4}
+                    className="mt-2 resize-none"
+                    placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
+                  />
+                  {errors.editReason ? (
+                    <p className="text-sm text-danger mt-1">
+                      {errors.editReason.message}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Campo obrigatório. A justificativa comporá o registro permanente da instituição.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancelar
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={(e) => prevStep(e)}
-                  disabled={isUpdating}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Voltar
-                </Button>
-              )}
-              {currentStep < 4 ? (
-                <Button type="button" onClick={(e) => nextStep(e)}>
-                  Próximo
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button type="submit" variant="success" disabled={isUpdating}>
-                  {isUpdating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      Salvar Alterações
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

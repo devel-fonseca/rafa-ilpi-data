@@ -2,21 +2,14 @@ import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Edit } from 'lucide-react'
-import { formatDateOnlySafe } from '@/utils/dateHelpers'
+import { Edit, ShieldAlert } from 'lucide-react'
+import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import type { PesoRecord } from '@/types/daily-records'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 const editPesoSchema = z.object({
   time: z
@@ -56,6 +49,35 @@ interface EditPesoModalProps {
   onSubmit: (data: Record<string, unknown>) => void
   record: PesoRecord
   isUpdating?: boolean
+}
+
+type ComparablePesoData = {
+  peso?: number
+  altura?: number
+  imc?: number
+}
+
+function normalizeHeightToCm(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  const height = Number(value)
+  if (!Number.isFinite(height) || height <= 0) return undefined
+
+  // Compatibilidade: alguns registros antigos podem estar em metros (ex.: 1.68).
+  if (height <= 3) return Math.round(height * 100)
+
+  return Math.round(height)
+}
+
+function normalizeComparablePesoData(data: Record<string, unknown>): ComparablePesoData {
+  const peso = data.peso !== undefined && data.peso !== null ? Number(data.peso) : undefined
+  const altura = normalizeHeightToCm(data.altura)
+  const imc = data.imc !== undefined && data.imc !== null ? Number(data.imc) : undefined
+
+  return {
+    peso: Number.isFinite(peso) ? peso : undefined,
+    altura,
+    imc: Number.isFinite(imc) ? Number(imc.toFixed(2)) : undefined,
+  }
 }
 
 export function EditPesoModal({
@@ -112,12 +134,13 @@ export function EditPesoModal({
       const pesoFormatted = record.data.peso
         ? String(record.data.peso).replace('.', ',')
         : ''
+      const alturaCm = normalizeHeightToCm(record.data.altura)
 
       reset({
         time: record.time,
         peso: pesoFormatted,
-        altura: record.data.altura ? String(record.data.altura) : '',
-        observacoes: record.data.observacoes || '',
+        altura: alturaCm ? String(alturaCm) : '',
+        observacoes: record.notes || '',
         editReason: '',
       })
     }
@@ -127,48 +150,79 @@ export function EditPesoModal({
     const pesoNum = parseFloat(data.peso.replace(',', '.'))
     const alturaCm = data.altura ? parseFloat(data.altura) : undefined
 
-    const payload = {
-      time: data.time,
-      data: {
-        peso: pesoNum,
-        altura: alturaCm,
-        imc: imc || undefined,
-        observacoes: data.observacoes,
-      },
-      notes: '',
+    const payload: Record<string, unknown> = {
       editReason: data.editReason,
     }
+
+    if (data.time !== record.time) {
+      payload.time = data.time
+    }
+
+    const nextNotes = data.observacoes || ''
+    const currentNotes = record.notes || ''
+    if (nextNotes !== currentNotes) {
+      payload.notes = nextNotes
+    }
+
+    const nextData: ComparablePesoData = {
+      peso: Number.isFinite(pesoNum) ? pesoNum : undefined,
+      altura: alturaCm && Number.isFinite(alturaCm) ? alturaCm : undefined,
+      imc: imc ? Number(imc.toFixed(2)) : undefined,
+    }
+
+    const currentData = normalizeComparablePesoData(record.data as Record<string, unknown>)
+    if (JSON.stringify(nextData) !== JSON.stringify(currentData)) {
+      payload.data = nextData
+    }
+
     onSubmit(payload)
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Peso e Altura
-          </DialogTitle>
-          <DialogDescription>
-            É obrigatório informar o motivo da edição para auditoria.
-          </DialogDescription>
-        </DialogHeader>
+  const formId = 'edit-peso-form'
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-          {/* Box com info do registro original */}
-          <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-            <p className="text-sm">
-              <span className="font-medium">Registrado por:</span>{' '}
-              {record?.recordedBy}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Data:</span>{' '}
-              {record && formatDateOnlySafe(record.date)}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Horário original:</span> {record?.time}
-            </p>
-          </div>
+  return (
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      title="Editar Peso e Altura"
+      description="É obrigatório informar o motivo da edição para auditoria."
+      icon={<Edit className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border text-sm text-muted-foreground">
+          Registro original: <span className="font-medium text-foreground">{formatDateOnlySafe(record.date)}</span>
+          {' • '}
+          <span className="font-medium text-foreground">{record.time}</span>
+          {' • '}
+          Por <span className="font-medium text-foreground">{record.recordedBy}</span>
+        </div>
+      )}
+      bodyClassName="space-y-4"
+      showDefaultClose={false}
+      footer={(
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            disabled={isUpdating}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" size="sm" variant="success" form={formId} disabled={isUpdating}>
+            {isUpdating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Salvando...
+              </>
+            ) : (
+              'Salvar Alterações'
+            )}
+          </Button>
+        </>
+      )}
+    >
+        <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
 
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
@@ -180,67 +234,69 @@ export function EditPesoModal({
             )}
           </div>
 
-          <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-              Peso (kg)
-            </Label>
-            <Input
-              {...register('peso')}
-              type="text"
-              placeholder="Ex: 65,5"
-              className="mt-2"
-              onChange={(e) => {
-                // Remove tudo que não é dígito
-                const value = e.target.value.replace(/\D/g, '')
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                Peso (kg)
+              </Label>
+              <Input
+                {...register('peso')}
+                type="text"
+                placeholder="Ex: 65,5"
+                className="mt-2"
+                onChange={(e) => {
+                  // Remove tudo que não é dígito
+                  const value = e.target.value.replace(/\D/g, '')
 
-                // Limita a 4 dígitos (máximo 500 kg = 5000)
-                const limited = value.slice(0, 4)
+                  // Limita a 4 dígitos (máximo 500 kg = 5000)
+                  const limited = value.slice(0, 4)
 
-                // Formata com vírgula se tiver mais de 1 dígito
-                let formatted = limited
-                if (limited.length > 1) {
-                  const intPart = limited.slice(0, -1)
-                  const decPart = limited.slice(-1)
-                  formatted = `${intPart},${decPart}`
-                }
+                  // Formata com vírgula se tiver mais de 1 dígito
+                  let formatted = limited
+                  if (limited.length > 1) {
+                    const intPart = limited.slice(0, -1)
+                    const decPart = limited.slice(-1)
+                    formatted = `${intPart},${decPart}`
+                  }
 
-                e.target.value = formatted
-                register('peso').onChange(e)
-              }}
-            />
-            {errors.peso && (
-              <p className="text-sm text-danger mt-1">{errors.peso.message}</p>
-            )}
-          </div>
+                  e.target.value = formatted
+                  register('peso').onChange(e)
+                }}
+              />
+              {errors.peso && (
+                <p className="text-sm text-danger mt-1">{errors.peso.message}</p>
+              )}
+            </div>
 
-          <div>
-            <Label>Altura (cm)</Label>
-            <Input
-              {...register('altura')}
-              type="text"
-              inputMode="numeric"
-              placeholder="Ex: 170"
-              className="mt-2"
-              onChange={(e) => {
-                // Remove tudo que não é dígito
-                const value = e.target.value.replace(/\D/g, '')
+            <div>
+              <Label>Altura (cm)</Label>
+              <Input
+                {...register('altura')}
+                type="text"
+                inputMode="numeric"
+                placeholder="Ex: 170"
+                className="mt-2"
+                onChange={(e) => {
+                  // Remove tudo que não é dígito
+                  const value = e.target.value.replace(/\D/g, '')
 
-                // Limita a 3 dígitos (máximo 300 cm)
-                const limited = value.slice(0, 3)
+                  // Limita a 3 dígitos (máximo 300 cm)
+                  const limited = value.slice(0, 3)
 
-                // Mantém apenas números inteiros (centímetros)
-                e.target.value = limited
-                register('altura').onChange(e)
-              }}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Digite apenas centímetros (Ex: 170 para 1,70m)
-            </p>
-            {errors.altura && (
-              <p className="text-sm text-danger mt-1">
-                {errors.altura.message}
+                  // Mantém apenas números inteiros (centímetros)
+                  e.target.value = limited
+                  register('altura').onChange(e)
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Digite em cm (ex: 170)
               </p>
-            )}
+              {errors.altura && (
+                <p className="text-sm text-danger mt-1">
+                  {errors.altura.message}
+                </p>
+              )}
+            </div>
           </div>
 
           {imc && imcClassificacao && (
@@ -268,46 +324,45 @@ export function EditPesoModal({
             />
           </div>
 
-          {/* Campo de motivo OBRIGATÓRIO */}
-          <div>
-            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-              Motivo da edição
-            </Label>
-            <Textarea
-              {...register('editReason')}
-              rows={4}
-              className="mt-2 resize-none"
-              placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
-            />
-            {errors.editReason && (
-              <p className="text-sm text-danger mt-1">
-                {errors.editReason.message}
-              </p>
-            )}
-          </div>
+          {/* Card de Auditoria + Motivo da Edição */}
+          <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                  Este registro integra trilha de auditoria permanente
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Registrado por {record.recordedBy}
+                  {record.createdAt
+                    ? ` em ${formatDateTimeSafe(record.createdAt)}`
+                    : ` em ${formatDateOnlySafe(record.date)} ${record.time}`}
+                </p>
+              </div>
+            </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isUpdating}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" variant="success" disabled={isUpdating}>
-              {isUpdating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Salvando...
-                </>
+            <div>
+              <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                Motivo da edição
+              </Label>
+              <Textarea
+                {...register('editReason')}
+                rows={4}
+                className="mt-2 resize-none"
+                placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
+              />
+              {errors.editReason ? (
+                <p className="text-sm text-danger mt-1">
+                  {errors.editReason.message}
+                </p>
               ) : (
-                'Salvar Alterações'
+                <p className="text-xs text-muted-foreground mt-2">
+                  Campo obrigatório. A justificativa comporá o registro permanente da instituição.
+                </p>
               )}
-            </Button>
-          </DialogFooter>
+            </div>
+          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

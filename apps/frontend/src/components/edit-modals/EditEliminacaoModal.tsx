@@ -2,19 +2,11 @@ import { useEffect, useState, Fragment, MouseEvent } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Edit, ChevronRight, ChevronLeft, Check } from 'lucide-react'
-import { extractDateOnly } from '@/utils/dateHelpers'
+import { Edit, ChevronRight, ChevronLeft, Check, ShieldAlert } from 'lucide-react'
+import { extractDateOnly, formatDateTimeSafe } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { EliminacaoRecord } from '@/types/daily-records'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -27,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ActionDetailsSheet } from '@/design-system/components'
 
 const editEliminacaoSchema = z.object({
   time: z
@@ -53,6 +46,15 @@ interface EditEliminacaoModalProps {
   onSubmit: (data: Record<string, unknown>) => void
   record: EliminacaoRecord
   isUpdating?: boolean
+}
+
+type ComparableEliminacaoData = {
+  tipo?: string
+  consistencia?: string
+  cor?: string
+  volume?: string
+  odor?: string
+  trocaFralda?: boolean
 }
 
 export function EditEliminacaoModal({
@@ -106,21 +108,40 @@ export function EditEliminacaoModal({
   }, [record, open, reset])
 
   const handleFormSubmit = (data: EditEliminacaoFormData) => {
-    const payload = {
-      time: data.time,
-      data: {
-        tipo: data.tipo,
-        frequencia: 1,
-        consistencia: data.consistencia,
-        cor: data.cor,
-        volume: data.volume,
-        odor: data.odor,
-        observacoes: data.observacoes,
-        trocaFralda: data.trocaFralda,
-      },
-      notes: data.observacoes,
+    const payload: Record<string, unknown> = {
       editReason: data.editReason,
     }
+
+    if (data.time !== record.time) {
+      payload.time = data.time
+    }
+
+    const nextNotes = data.observacoes || ''
+    const currentNotes = record.notes || ''
+    if (nextNotes !== currentNotes) {
+      payload.notes = nextNotes
+    }
+
+    const nextData: ComparableEliminacaoData = {
+      tipo: data.tipo,
+      consistencia: data.consistencia || undefined,
+      cor: data.cor || undefined,
+      volume: data.volume || undefined,
+      odor: data.odor || undefined,
+      trocaFralda: data.trocaFralda,
+    }
+    const currentData: ComparableEliminacaoData = {
+      tipo: record.data.tipo,
+      consistencia: record.data.consistencia || undefined,
+      cor: record.data.cor || undefined,
+      volume: record.data.volume || undefined,
+      odor: record.data.odor || undefined,
+      trocaFralda: Boolean(record.data.trocaFralda),
+    }
+    if (JSON.stringify(nextData) !== JSON.stringify(currentData)) {
+      payload.data = nextData
+    }
+
     onSubmit(payload)
   }
 
@@ -139,18 +160,66 @@ export function EditEliminacaoModal({
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
+  const formId = 'edit-eliminacao-form'
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5" />
-            Editar Eliminações
-          </DialogTitle>
-          <DialogDescription>
-            É obrigatório informar o motivo da edição para auditoria.
-          </DialogDescription>
-        </DialogHeader>
+    <ActionDetailsSheet
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && handleClose()}
+      title="Editar Eliminações"
+      description="É obrigatório informar o motivo da edição para auditoria."
+      icon={<Edit className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border text-sm text-muted-foreground">
+          Registro original: <span className="font-medium text-foreground">{format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+          {' • '}
+          <span className="font-medium text-foreground">{record.time}</span>
+          {' • '}
+          Por <span className="font-medium text-foreground">{record.recordedBy}</span>
+        </div>
+      )}
+      bodyClassName="space-y-4"
+      showDefaultClose={false}
+      footer={(
+        <>
+          <Button type="button" variant="outline" size="sm" onClick={handleClose}>
+            Cancelar
+          </Button>
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={prevStep}
+              disabled={isUpdating}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Voltar
+            </Button>
+          )}
+          {currentStep < 3 ? (
+            <Button type="button" size="sm" onClick={nextStep} disabled={!tipo}>
+              Próximo
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          ) : (
+            <Button type="submit" size="sm" variant="success" form={formId} disabled={isUpdating}>
+              {isUpdating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Salvar Alterações
+                </>
+              )}
+            </Button>
+          )}
+        </>
+      )}
+    >
 
         {/* Stepper */}
         <div className="flex items-center justify-center gap-2 mb-4">
@@ -187,7 +256,7 @@ export function EditEliminacaoModal({
           ))}
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <form id={formId} onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Step 1: Tipo e Horário */}
           {currentStep === 1 && (
             <>
@@ -216,8 +285,8 @@ export function EditEliminacaoModal({
                         <SelectValue placeholder="Selecione o tipo..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Fezes">Fezes</SelectItem>
-                        <SelectItem value="Urina">Urina</SelectItem>
+                        <SelectItem value="Fezes">Eliminação Intestinal</SelectItem>
+                        <SelectItem value="Urina">Eliminação Urinária</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -411,79 +480,46 @@ export function EditEliminacaoModal({
           {/* Step 3: Informações Originais e Motivo */}
           {currentStep === 3 && (
             <>
-              <div className="bg-muted/30 p-4 rounded-lg space-y-2">
-                <p className="text-sm">
-                  <span className="font-medium">Registrado por:</span>{' '}
-                  {record.recordedBy}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Data:</span>{' '}
-                  {format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Horário original:</span> {record.time}
-                </p>
-              </div>
+              <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                      Este registro integra trilha de auditoria permanente
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Registrado por {record.recordedBy}
+                      {record.createdAt
+                        ? ` em ${formatDateTimeSafe(record.createdAt)}`
+                        : ` em ${format(new Date(extractDateOnly(record.date) + 'T12:00:00'), 'dd/MM/yyyy')} ${record.time}`}
+                    </p>
+                  </div>
+                </div>
 
-              <div>
-                <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-                  Motivo da edição
-                </Label>
-                <Textarea
-                  {...register('editReason')}
-                  rows={4}
-                  className="mt-2 resize-none"
-                  placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
-                />
-                {errors.editReason && (
-                  <p className="text-sm text-danger mt-1">
-                    {errors.editReason.message}
-                  </p>
-                )}
+                <div>
+                  <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+                    Motivo da edição
+                  </Label>
+                  <Textarea
+                    {...register('editReason')}
+                    rows={4}
+                    className="mt-2 resize-none"
+                    placeholder="Descreva o motivo da edição (mínimo 10 caracteres)..."
+                  />
+                  {errors.editReason ? (
+                    <p className="text-sm text-danger mt-1">
+                      {errors.editReason.message}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Campo obrigatório. A justificativa comporá o registro permanente da instituição.
+                    </p>
+                  )}
+                </div>
               </div>
             </>
           )}
-
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancelar
-            </Button>
-            <div className="flex gap-2">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  disabled={isUpdating}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Voltar
-                </Button>
-              )}
-              {currentStep < 3 ? (
-                <Button type="button" onClick={nextStep} disabled={!tipo}>
-                  Próximo
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button type="submit" variant="success" disabled={isUpdating}>
-                  {isUpdating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      Salvar Alterações
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ActionDetailsSheet>
   )
 }

@@ -129,8 +129,8 @@ export function PesoModal({
         peso: pesoNum,
         altura: alturaMetros, // Salvar em METROS
         imc: imc || undefined,
-        observacoes: data.observacoes,
       },
+      notes: data.observacoes,
     }
     onSubmit(payload)
     reset()

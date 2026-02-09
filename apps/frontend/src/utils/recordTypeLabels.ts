@@ -213,7 +213,13 @@ export function renderRecordSummary(record: RecordSummaryInput): string {
     }
     case 'ELIMINACAO': {
       const data = record.data
-      const parts: (string | undefined)[] = [data.tipo]
+      const eliminationType =
+        data.tipo === 'Fezes'
+          ? 'Eliminação Intestinal'
+          : data.tipo === 'Urina'
+          ? 'Eliminação Urinária'
+          : data.tipo
+      const parts: (string | undefined)[] = [eliminationType]
 
       if (data.tipo === 'Fezes') {
         if (data.consistencia) parts.push(data.consistencia)
@@ -232,9 +238,6 @@ export function renderRecordSummary(record: RecordSummaryInput): string {
     case 'COMPORTAMENTO': {
       const data = record.data
       const parts: (string | undefined)[] = [data.descricao]
-      if (data.observacoes) {
-        parts.push(data.observacoes.substring(0, 60))
-      }
       return parts.filter(Boolean).join(' - ') || 'Comportamento registrado'
     }
     case 'HUMOR': {
