@@ -72,6 +72,7 @@ export class ResidentsController {
   @ApiQuery({ name: 'search', required: false, description: 'Buscar por nome ou CPF' })
   @ApiQuery({ name: 'status', required: false, description: 'Filtrar por status' })
   @ApiQuery({ name: 'genero', required: false, description: 'Filtrar por gênero' })
+  @ApiQuery({ name: 'dependencyLevel', required: false, description: 'Filtrar por grau de dependência (GRAU_I, GRAU_II, GRAU_III)' })
   @ApiQuery({ name: 'page', required: false, description: 'Página', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: 'Itens por página', example: 10 })
   findAll(

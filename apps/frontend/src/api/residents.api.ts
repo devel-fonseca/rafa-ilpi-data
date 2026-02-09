@@ -128,6 +128,7 @@ export interface ResidentQuery {
   search?: string
   status?: string
   gender?: string
+  dependencyLevel?: 'GRAU_I' | 'GRAU_II' | 'GRAU_III'
   dataAdmissaoInicio?: string
   dataAdmissaoFim?: string
   idadeMinima?: string

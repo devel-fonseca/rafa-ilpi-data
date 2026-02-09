@@ -14,7 +14,7 @@ import { TransferBedDto } from './dto/transfer-bed.dto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
-import { ChangeType, Gender, Prisma } from '@prisma/client';
+import { ChangeType, DependencyLevel, Gender, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ResidentsService {
@@ -580,6 +580,15 @@ export class ResidentsService {
 
       if (query.gender) {
         where.gender = query.gender as Gender;
+      }
+
+      if (query.dependencyLevel) {
+        where.dependencyAssessments = {
+          some: {
+            dependencyLevel: query.dependencyLevel as DependencyLevel,
+            deletedAt: null,
+          },
+        };
       }
 
       // Buscar residentes (sem relações - hierarquia é buscada manualmente)

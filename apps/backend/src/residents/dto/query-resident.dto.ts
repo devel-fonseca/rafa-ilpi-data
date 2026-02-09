@@ -18,6 +18,11 @@ export class QueryResidentDto {
   @IsString()
   gender?: string;
 
+  @ApiPropertyOptional({ description: 'Filtrar por grau de dependência (GRAU_I, GRAU_II, GRAU_III)' })
+  @IsOptional()
+  @IsString()
+  dependencyLevel?: string;
+
   @ApiPropertyOptional({ description: 'Data de admissão inicial (YYYY-MM-DD)' })
   @IsOptional()
   @IsDateOnly()
