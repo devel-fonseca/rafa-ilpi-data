@@ -224,19 +224,19 @@ export default function ResidentPanelPage() {
         <Card className="h-[500px] overflow-hidden">
           <CardContent className="p-0 h-full flex flex-col overflow-hidden">
             {/* Filtros por Status */}
-            <div className="flex border-b">
-              {STATUS_FILTERS.map((filter, index) => (
+            <div className="flex bg-primary/10 rounded-t-lg">
+              {STATUS_FILTERS.map((filter) => (
                 <button
                   key={filter.value}
                   onClick={() => {
                     setStatusFilter(filter.value)
                     setSelectedResidentId(null)
                   }}
-                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors first:rounded-tl-lg last:rounded-tr-lg ${
                     statusFilter === filter.value
                       ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted/50 text-muted-foreground'
-                  } ${index === 0 ? 'rounded-tl-lg' : ''} ${index === STATUS_FILTERS.length - 1 ? 'rounded-tr-lg' : ''}`}
+                      : 'text-primary hover:bg-primary/20'
+                  }`}
                 >
                   {filter.label}
                 </button>
@@ -297,10 +297,10 @@ export default function ResidentPanelPage() {
             ) : selectedResident ? (
               <>
                 {/* Header com Nome, Info e Dropdown */}
-                <div className="flex items-start justify-between p-4 border-b">
+                <div className="flex items-start justify-between px-6 py-4 bg-primary/10 rounded-t-lg">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold">{selectedResident.fullName}</h2>
+                      <h2 className="text-xl font-bold text-primary">{selectedResident.fullName}</h2>
                       <StatusBadge variant={getStatusBadgeVariant(selectedResident.status)}>
                         {selectedResident.status}
                       </StatusBadge>
@@ -327,7 +327,7 @@ export default function ResidentPanelPage() {
                 </div>
 
                 {/* Conteúdo Dinâmico */}
-                <div className="p-4">
+                <div className="p-6">
                   {isLoadingResident || isLoadingActiveViewData ? (
                     <LoadingSpinner size="md" message="Carregando dados..." />
                   ) : (

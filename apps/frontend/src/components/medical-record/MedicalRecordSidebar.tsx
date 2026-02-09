@@ -99,8 +99,8 @@ export function MedicalRecordSidebar({
     <Card className="h-fit sticky top-4">
       <CardContent className="p-0">
         {/* Header */}
-        <div className="px-4 py-3 border-b">
-          <h3 className="font-semibold text-sm">Navegação do prontuário</h3>
+        <div className="px-4 py-3 border-b bg-primary/10 rounded-t-lg">
+          <h3 className="font-semibold text-sm text-primary">Navegação do prontuário</h3>
           <p className="text-xs text-muted-foreground">Acesse as seções abaixo</p>
         </div>
 

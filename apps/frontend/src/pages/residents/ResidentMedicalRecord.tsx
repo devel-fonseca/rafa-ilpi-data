@@ -459,11 +459,11 @@ export default function ResidentProfile() {
         />
 
         <Card className="min-w-0 overflow-hidden">
-          <CardContent className="p-6 min-w-0">
+          <CardContent className="p-0 min-w-0">
             {/* Resident Header */}
-            <div className="mb-6 pb-4 border-b">
+            <div className="px-6 py-4 bg-primary/10 rounded-t-lg">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold">{resident.fullName}</h2>
+                <h2 className="text-xl font-semibold text-primary">{resident.fullName}</h2>
                 <StatusBadge variant={getStatusBadgeVariant(resident.status)}>
                   {resident.status}
                 </StatusBadge>
@@ -474,7 +474,7 @@ export default function ResidentProfile() {
             </div>
 
             {/* Active View Content */}
-            <div className="min-w-0 overflow-x-auto">
+            <div className="p-6 min-w-0 overflow-x-auto">
               {renderActiveView()}
             </div>
           </CardContent>

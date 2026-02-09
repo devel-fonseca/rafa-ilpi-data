@@ -706,12 +706,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
             {/* Content */}
             <Card className="min-w-0 overflow-hidden">
-              <CardContent className="p-6 min-w-0">
+              <CardContent className="p-0 min-w-0">
                 {/* Resident Header (edit/view mode) */}
                 {isEditMode && residentFullName && (
-                  <div className="mb-6 pb-4 border-b">
+                  <div className="px-6 py-4 bg-primary/10 rounded-t-lg">
                     <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-semibold">{residentFullName}</h2>
+                      <h2 className="text-xl font-semibold text-primary">{residentFullName}</h2>
                       <StatusBadge variant={getResidentStatusBadgeVariant(watch('status'))}>
                         {watch('status') || 'Ativo'}
                       </StatusBadge>
@@ -724,14 +724,14 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
                 {/* Section Title (new resident mode) */}
                 {!isEditMode && (
-                  <div className="mb-6 pb-4 border-b">
-                    <h2 className="text-lg font-semibold">{SECTION_CONFIG[activeSection].title}</h2>
+                  <div className="px-6 py-4 bg-primary/10 rounded-t-lg">
+                    <h2 className="text-lg font-semibold text-primary">{SECTION_CONFIG[activeSection].title}</h2>
                     <p className="text-sm text-muted-foreground">{SECTION_CONFIG[activeSection].subtitle}</p>
                   </div>
                 )}
 
                 {/* Documentos sempre editável, outras seções respeitam readOnly */}
-                <div className="min-w-0 overflow-x-auto">
+                <div className="p-6 min-w-0 overflow-x-auto">
                   {activeSection === 'documentos' ? (
                     renderSectionContent()
                   ) : (
