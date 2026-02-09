@@ -13,7 +13,7 @@ type MedicationWithPreselectedTime = Medication & {
 }
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { useResidentStats } from '@/hooks/useResidents'
-import { useDailyRecordsByDate } from '@/hooks/useDailyRecords'
+import { useDailyRecordsCountByDate } from '@/hooks/useDailyRecords'
 import { usersApi } from '@/api/users.api'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
@@ -75,12 +75,11 @@ export function TechnicalManagerDashboard() {
     queryFn: () => usersApi.countActiveUsers(),
   })
 
-  // Buscar registros de hoje (today já foi definido no início do componente)
-  const { data: recordsToday = [] } = useDailyRecordsByDate(today)
+  // Buscar total real de registros de hoje (não depende do tamanho da página da API)
+  const { data: totalRecordsToday = 0 } = useDailyRecordsCountByDate(today)
 
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
-  const totalRecordsToday = recordsToday.length
   const totalUsers = usersCount || 0
 
   // Handler para administrar medicação
