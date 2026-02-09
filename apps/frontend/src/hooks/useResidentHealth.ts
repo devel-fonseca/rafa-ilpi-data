@@ -32,8 +32,11 @@ import { tenantKey } from '@/lib/query-keys'
 /**
  * Hook para buscar resumo de saúde do residente (agregado)
  */
-export function useResidentHealthSummary(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useResidentHealthSummary(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ResidentHealthSummary>({
     queryKey: tenantKey('resident-health', 'summary', residentId),
@@ -41,7 +44,7 @@ export function useResidentHealthSummary(residentId: string | undefined) {
       if (!residentId) throw new Error('residentId is required')
       return getResidentHealthSummary(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
   })
@@ -123,8 +126,12 @@ export function useUpdateBloodType() {
 /**
  * Hook para listar medições antropométricas
  */
-export function useAnthropometryRecords(residentId: string | undefined, limit = 10) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useAnthropometryRecords(
+  residentId: string | undefined,
+  limit = 10,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ResidentAnthropometry[]>({
     queryKey: tenantKey('resident-health', 'anthropometry', residentId, limit),
@@ -132,7 +139,7 @@ export function useAnthropometryRecords(residentId: string | undefined, limit = 
       if (!residentId) throw new Error('residentId is required')
       return getAnthropometryRecords(residentId, limit)
     },
-    enabled,
+    enabled: queryEnabled,
     placeholderData: [],
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
@@ -239,8 +246,11 @@ export function useDeleteAnthropometry() {
 /**
  * Hook para listar avaliações de dependência
  */
-export function useDependencyAssessments(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useDependencyAssessments(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ResidentDependencyAssessment[]>({
     queryKey: tenantKey('resident-health', 'dependency-assessments', residentId),
@@ -248,7 +258,7 @@ export function useDependencyAssessments(residentId: string | undefined) {
       if (!residentId) throw new Error('residentId is required')
       return getDependencyAssessments(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     placeholderData: [],
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,

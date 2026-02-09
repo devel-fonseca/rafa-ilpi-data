@@ -17,8 +17,11 @@ import { tenantKey } from '@/lib/query-keys'
 /**
  * Hook para listar restrições alimentares de um residente específico
  */
-export function useDietaryRestrictionsByResident(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useDietaryRestrictionsByResident(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<DietaryRestriction[]>({
     queryKey: tenantKey('dietary-restrictions', 'resident', residentId),
@@ -28,7 +31,7 @@ export function useDietaryRestrictionsByResident(residentId: string | undefined)
       }
       return getDietaryRestrictionsByResident(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     placeholderData: [],
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
