@@ -42,7 +42,7 @@ const SECTIONS: Array<{
   {
     id: 'clinical-profile',
     label: 'Perfil Clínico',
-    description: 'Diagnósticos, alergias e dispositivos',
+    description: 'Condições, alergias e avaliação funcional',
     icon: HeartPulse,
   },
   {

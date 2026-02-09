@@ -70,10 +70,10 @@ type SectionType = 'perfil' | 'parametros' | 'dependencia' | 'alergias' | 'condi
 
 const SECTION_OPTIONS: { value: SectionType; label: string }[] = [
   { value: 'perfil', label: 'Perfil Clínico' },
-  { value: 'parametros', label: 'Parâmetros de Saúde' },
-  { value: 'dependencia', label: 'Avaliação de Dependência' },
-  { value: 'alergias', label: 'Alergias' },
   { value: 'condicoes', label: 'Condições Crônicas' },
+  { value: 'alergias', label: 'Alergias' },
+  { value: 'dependencia', label: 'Avaliação Funcional' },
+  { value: 'parametros', label: 'Parâmetros de Saúde' },
   { value: 'restricoes', label: 'Restrições Alimentares' },
 ]
 
