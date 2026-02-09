@@ -28,11 +28,24 @@ export class DailyComplianceResponseDto {
   };
 
   @ApiProperty({
-    description: 'Registros obrigatórios esperados vs. realizados',
+    description: 'Registros programados esperados vs. realizados',
     example: {
       expected: 84,
       completed: 78,
     },
+  })
+  scheduledRecords: {
+    expected: number;
+    completed: number;
+  };
+
+  @ApiProperty({
+    description: '[DEPRECATED] Use scheduledRecords',
+    example: {
+      expected: 84,
+      completed: 78,
+    },
+    required: false,
   })
   mandatoryRecords: {
     expected: number;

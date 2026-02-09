@@ -317,10 +317,10 @@ export function AgendaFilters({
                 </div>
               </div>
 
-              {/* Registros Obrigatórios */}
+              {/* Registros Programados */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground mb-2">
-                  Registros Obrigatórios
+                  Registros Programados
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {recordFilters.map((filter) => (

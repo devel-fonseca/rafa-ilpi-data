@@ -1,11 +1,14 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import { AgendaItem, CONTENT_FILTER_ICONS, CONTENT_FILTER_COLORS, STATUS_BADGES } from '@/types/agenda'
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import { Clock, User } from 'lucide-react'
+import { useInstitutionalEventMutations } from '@/hooks/useAgenda'
+import { PermissionType, usePermissions } from '@/hooks/usePermissions'
 
 interface Props {
   item: AgendaItem
@@ -13,10 +16,23 @@ interface Props {
 
 export function AgendaItemCard({ item }: Props) {
   const [showDetails, setShowDetails] = useState(false)
+  const { hasPermission } = usePermissions()
+  const { markComplete } = useInstitutionalEventMutations()
 
   const colors = CONTENT_FILTER_COLORS[item.category as keyof typeof CONTENT_FILTER_COLORS]
   const statusBadge = STATUS_BADGES[item.status]
   const icon = CONTENT_FILTER_ICONS[item.category as keyof typeof CONTENT_FILTER_ICONS]
+  const isInstitutionalEvent = item.category === 'institutional'
+  const canCompleteInstitutionalEvent = hasPermission(PermissionType.UPDATE_INSTITUTIONAL_EVENTS)
+  const canShowCompleteAction =
+    isInstitutionalEvent &&
+    canCompleteInstitutionalEvent &&
+    item.status === 'pending'
+
+  const handleCompleteInstitutionalEvent = async () => {
+    await markComplete.mutateAsync(item.id)
+    setShowDetails(false)
+  }
 
   return (
     <>
@@ -110,11 +126,16 @@ export function AgendaItemCard({ item }: Props) {
                   </div>
                 )}
 
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-muted-foreground italic">
-                    Funcionalidade de registro/edição será implementada em breve.
-                  </p>
-                </div>
+                {canShowCompleteAction && (
+                  <div className="pt-4 border-t flex justify-end">
+                    <Button
+                      onClick={handleCompleteInstitutionalEvent}
+                      disabled={markComplete.isPending}
+                    >
+                      {markComplete.isPending ? 'Concluindo...' : 'Concluir evento'}
+                    </Button>
+                  </div>
+                )}
               </div>
             </DialogDescription>
           </DialogHeader>

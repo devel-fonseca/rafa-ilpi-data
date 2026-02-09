@@ -3,6 +3,7 @@ import { AdminDashboardController } from './admin-dashboard.controller';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { ResidentScheduleModule } from '../resident-schedule/resident-schedule.module';
 
 /**
  * Módulo de Dashboard Administrativo
@@ -13,7 +14,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
  * - Rastrear completude de registros obrigatórios
  */
 @Module({
-  imports: [PrismaModule, PermissionsModule],
+  imports: [PrismaModule, PermissionsModule, ResidentScheduleModule],
   controllers: [AdminDashboardController],
   providers: [AdminDashboardService],
   exports: [AdminDashboardService],

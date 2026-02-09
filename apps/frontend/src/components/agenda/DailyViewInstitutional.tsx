@@ -5,10 +5,13 @@ import { Badge } from '@/components/ui/badge'
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { StatusFilterType } from '@/types/agenda'
 
 interface Props {
   items: AgendaItem[]
   isLoading?: boolean
+  statusFilter?: StatusFilterType
+  onStatusFilterChange?: (filter: StatusFilterType) => void
 }
 
 // Gerar apenas horários que têm itens agendados
@@ -17,9 +20,15 @@ const getRelevantTimeSlots = (items: AgendaItem[]) => {
   return Array.from(times).sort()
 }
 
-export function DailyViewInstitutional({ items, isLoading }: Props) {
+export function DailyViewInstitutional({
+  items,
+  isLoading,
+  statusFilter,
+  onStatusFilterChange,
+}: Props) {
   const [expandedTimes, setExpandedTimes] = useState<Set<string>>(new Set())
   const [showAllTimes, setShowAllTimes] = useState(false)
+  const MAX_VISIBLE_TIMES = 12
 
   if (isLoading) {
     return (
@@ -59,9 +68,10 @@ export function DailyViewInstitutional({ items, isLoading }: Props) {
     {} as Record<string, Record<string, { residentName: string; items: AgendaItem[] }>>,
   )
 
+  const allRelevantTimes = getRelevantTimeSlots(items)
   const relevantTimes = showAllTimes
-    ? getRelevantTimeSlots(items)
-    : getRelevantTimeSlots(items).slice(0, 5)
+    ? allRelevantTimes
+    : allRelevantTimes.slice(0, MAX_VISIBLE_TIMES)
 
   const toggleTimeExpansion = (time: string) => {
     const newExpanded = new Set(expandedTimes)
@@ -73,14 +83,26 @@ export function DailyViewInstitutional({ items, isLoading }: Props) {
     setExpandedTimes(newExpanded)
   }
 
-  const totalHiddenTimes = getRelevantTimeSlots(items).length - 5
+  const totalHiddenTimes = allRelevantTimes.length - MAX_VISIBLE_TIMES
+
+  const expandAllVisible = () => {
+    setExpandedTimes(new Set(relevantTimes))
+  }
+
+  const collapseAllVisible = () => {
+    setExpandedTimes((prev) => {
+      const next = new Set(prev)
+      relevantTimes.forEach((time) => next.delete(time))
+      return next
+    })
+  }
 
   return (
     <div className="space-y-3">
       {/* Estatísticas */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4 text-sm">
-          <div>
+          <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Total de eventos:</span>{' '}
             <span className="font-semibold">{items.length}</span>
           </div>
@@ -100,6 +122,34 @@ export function DailyViewInstitutional({ items, isLoading }: Props) {
               {items.filter((i) => i.status === 'pending').length}
             </span>
           </div>
+          <div>
+            <span className="text-muted-foreground">Perdidos:</span>{' '}
+            <span className="font-semibold text-danger">
+              {items.filter((i) => i.status === 'missed').length}
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={statusFilter === 'pending' ? 'default' : 'outline'}
+            onClick={() => onStatusFilterChange?.(statusFilter === 'pending' ? 'all' : 'pending')}
+          >
+            Só pendentes
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'missed' ? 'default' : 'outline'}
+            onClick={() => onStatusFilterChange?.(statusFilter === 'missed' ? 'all' : 'missed')}
+          >
+            Só perdidos
+          </Button>
+          <Button size="sm" variant="outline" onClick={expandAllVisible}>
+            Expandir visíveis
+          </Button>
+          <Button size="sm" variant="outline" onClick={collapseAllVisible}>
+            Recolher visíveis
+          </Button>
         </div>
       </Card>
 
@@ -189,7 +239,7 @@ export function DailyViewInstitutional({ items, isLoading }: Props) {
         </div>
       )}
 
-      {showAllTimes && getRelevantTimeSlots(items).length > 5 && (
+      {showAllTimes && allRelevantTimes.length > MAX_VISIBLE_TIMES && (
         <div className="text-center">
           <Button variant="outline" onClick={() => setShowAllTimes(false)}>
             Mostrar menos

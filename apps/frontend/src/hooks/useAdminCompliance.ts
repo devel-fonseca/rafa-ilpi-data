@@ -9,6 +9,11 @@ interface ComplianceStats {
     administered: number
     total: number
   }
+  scheduledRecords?: {
+    expected: number
+    completed: number
+  }
+  // Backward compatibility
   mandatoryRecords: {
     expected: number
     completed: number

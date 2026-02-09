@@ -7,6 +7,7 @@ import { AgendaItem, AgendaItemType, VaccineData } from './interfaces/agenda-ite
 import { parseISO, startOfDay, endOfDay, eachDayOfInterval, format, isBefore } from 'date-fns';
 import { RecordType, ScheduledEventType, InstitutionalEventVisibility } from '@prisma/client';
 import { formatDateOnly, DEFAULT_TIMEZONE, localToUTC } from '../utils/date.helpers';
+import { matchRecordsToSuggestedTimes } from './resident-schedule-tasks.service';
 
 @Injectable()
 export class AgendaService {
@@ -17,8 +18,202 @@ export class AgendaService {
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
   ) {}
 
+  private normalize(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value).trim().toLowerCase();
+  }
+
+  private getMedicationAdministrationKey(
+    medicationId: string,
+    dayKey: string,
+    scheduledTime: string,
+  ): string {
+    return `${medicationId}|${dayKey}|${scheduledTime}`;
+  }
+
+  private matchesMealType(
+    recordType: RecordType,
+    expectedMealType: string | null | undefined,
+    recordData: unknown,
+  ): boolean {
+    if (recordType !== 'ALIMENTACAO' || !expectedMealType) {
+      return true;
+    }
+
+    const details = (recordData as Record<string, unknown>) || {};
+    const rawRecordMealType = details.mealType ?? details.refeicao;
+    const normalizedRecordMealType = this.normalize(rawRecordMealType);
+
+    if (!normalizedRecordMealType) {
+      return true;
+    }
+
+    return normalizedRecordMealType === this.normalize(expectedMealType);
+  }
+
+  private shouldGenerateRecurringTaskOnDate(
+    config: { frequency: string; dayOfWeek: number | null; dayOfMonth: number | null },
+    targetDate: Date,
+  ): boolean {
+    const dayOfWeek = targetDate.getDay();
+    const dayOfMonth = targetDate.getDate();
+
+    if (config.frequency === 'DAILY') return true;
+    if (config.frequency === 'WEEKLY') return config.dayOfWeek === dayOfWeek;
+    if (config.frequency !== 'MONTHLY') return false;
+
+    if (config.dayOfMonth === dayOfMonth) return true;
+
+    const lastDayOfMonth = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth() + 1,
+      0,
+    ).getDate();
+
+    return !!config.dayOfMonth && config.dayOfMonth > lastDayOfMonth && dayOfMonth === lastDayOfMonth;
+  }
+
+  private async generateRecurringRecordItemsForRange(
+    startDate: Date,
+    endDate: Date,
+    residentId?: string,
+    recordTypes?: RecordType[],
+  ): Promise<AgendaItem[]> {
+    const items: AgendaItem[] = [];
+
+    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        ...(residentId && { residentId }),
+        ...(recordTypes && recordTypes.length > 0 && { recordType: { in: recordTypes } }),
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    const existingRecords = await this.tenantContext.client.dailyRecord.findMany({
+      where: {
+        deletedAt: null,
+        date: {
+          gte: startOfDay(startDate),
+          lte: endOfDay(endDate),
+        },
+        ...(residentId && { residentId }),
+        ...(recordTypes && recordTypes.length > 0 && { type: { in: recordTypes } }),
+      },
+      select: {
+        residentId: true,
+        type: true,
+        time: true,
+        date: true,
+        data: true,
+        createdAt: true,
+        recordedBy: true,
+        user: {
+          select: { name: true },
+        },
+      },
+    });
+
+    const indexedRecords = existingRecords.map((record, index) => ({
+      ...record,
+      dayKey: formatDateOnly(record.date),
+      _idx: index,
+    }));
+    const consumedRecordIndexes = new Set<number>();
+
+    const daysInRange = eachDayOfInterval({
+      start: startOfDay(startDate),
+      end: startOfDay(endDate),
+    }).map((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      return parseISO(`${dateStr}T12:00:00.000`);
+    });
+
+    const today = startOfDay(new Date());
+
+    for (const config of configs) {
+      const metadata =
+        config.metadata && typeof config.metadata === 'object'
+          ? (config.metadata as Record<string, unknown>)
+          : {};
+      const configCreatedStr = formatDateOnly(config.createdAt);
+      const mealType = typeof metadata.mealType === 'string' ? metadata.mealType : undefined;
+      const suggestedTimes = Array.isArray(config.suggestedTimes)
+        ? config.suggestedTimes.map((time) => String(time))
+        : [];
+      const timesToUse = suggestedTimes.length > 0 ? suggestedTimes : ['00:00'];
+
+      for (const targetDate of daysInRange) {
+        const dayKey = format(targetDate, 'yyyy-MM-dd');
+        if (dayKey < configCreatedStr) {
+          continue;
+        }
+
+        if (!this.shouldGenerateRecurringTaskOnDate(config, targetDate)) {
+          continue;
+        }
+
+        const targetDayStart = startOfDay(targetDate);
+        const isPastDay = targetDayStart < today;
+
+        for (const scheduledTime of timesToUse) {
+          const candidates = indexedRecords.filter((record) => {
+            if (consumedRecordIndexes.has(record._idx)) return false;
+            if (record.dayKey !== dayKey) return false;
+            if (record.residentId !== config.residentId) return false;
+            if (record.type !== config.recordType) return false;
+            return this.matchesMealType(config.recordType, mealType, record.data);
+          });
+
+          const [matchingRecord] = matchRecordsToSuggestedTimes(candidates, [scheduledTime]);
+          if (matchingRecord) {
+            consumedRecordIndexes.add(matchingRecord._idx);
+          }
+
+          const status: 'pending' | 'completed' | 'missed' = matchingRecord
+            ? 'completed'
+            : isPastDay
+              ? 'missed'
+              : 'pending';
+
+          items.push({
+            id: `${config.id}-${dayKey}-${scheduledTime}`,
+            type: AgendaItemType.RECURRING_RECORD,
+            category: this.mapRecordTypeToCategory(config.recordType),
+            residentId: config.residentId,
+            residentName: config.resident.fullName,
+            title: this.getRecordTypeTitle(config.recordType, mealType),
+            description: config.notes || undefined,
+            scheduledDate: targetDate,
+            scheduledTime,
+            status,
+            completedAt: matchingRecord?.createdAt,
+            completedBy: matchingRecord?.user?.name || matchingRecord?.recordedBy || undefined,
+            recordType: config.recordType,
+            suggestedTimes,
+            configId: config.id,
+            mealType,
+            metadata: config.metadata as Record<string, unknown>,
+          });
+        }
+      }
+    }
+
+    return items;
+  }
+
   /**
-   * Busca todos os itens da agenda (medicamentos, eventos agendados e registros recorrentes)
+   * Busca todos os itens da agenda (medicamentos, eventos agendados e registros programados recorrentes)
    * consolidados em uma única lista
    *
    * Suporta 3 modos:
@@ -85,7 +280,7 @@ export class AgendaService {
       items.push(...events);
     }
 
-    // 3. Buscar registros obrigatórios recorrentes
+    // 3. Buscar registros programados recorrentes
     const recordTypes = this.getRecordTypesFromFilters(filters);
     if (recordTypes.length > 0) {
       const records = await this.getRecurringRecordItems(
@@ -177,6 +372,61 @@ export class AgendaService {
       },
     });
 
+    const allMedicationIds = prescriptions.flatMap((prescription) =>
+      prescription.medications.map((medication) => medication.id),
+    );
+    const medicationAdministrationMap = new Map<string, {
+      wasAdministered: boolean;
+      createdAt: Date;
+      administeredBy?: string | null;
+      user?: { name: string } | null;
+    }>();
+
+    if (allMedicationIds.length > 0) {
+      const administrations = await this.tenantContext.client.medicationAdministration.findMany({
+        where: {
+          medicationId: { in: allMedicationIds },
+          date: {
+            gte: startOfDay(startDate),
+            lte: endOfDay(endDate),
+          },
+        },
+        include: {
+          user: {
+            select: { name: true },
+          },
+        },
+      });
+
+      administrations.forEach((administration) => {
+        const dayKey = formatDateOnly(administration.date);
+        const key = this.getMedicationAdministrationKey(
+          administration.medicationId,
+          dayKey,
+          administration.scheduledTime,
+        );
+        const current = medicationAdministrationMap.get(key);
+
+        // Prioriza um registro efetivamente administrado; se ambos iguais, mantém o mais antigo.
+        if (!current) {
+          medicationAdministrationMap.set(key, administration);
+          return;
+        }
+
+        if (administration.wasAdministered && !current.wasAdministered) {
+          medicationAdministrationMap.set(key, administration);
+          return;
+        }
+
+        if (
+          administration.wasAdministered === current.wasAdministered &&
+          administration.createdAt < current.createdAt
+        ) {
+          medicationAdministrationMap.set(key, administration);
+        }
+      });
+    }
+
     // Processar cada medicamento e seus horários
     // Para cada dia do intervalo, criar os itens de medicação
     // Usar parseISO com T12:00 para cada dia, garantindo compatibilidade com MedicationAdministration
@@ -197,11 +447,13 @@ export class AgendaService {
             // ✅ Comparar datas em formato YYYY-MM-DD para evitar timezone shift
             const medicationStartStr = formatDateOnly(medication.startDate);
             const medicationEndStr = medication.endDate ? formatDateOnly(medication.endDate) : null;
+            const medicationCreatedStr = formatDateOnly(medication.createdAt);
             const currentDayStr = format(currentDay, 'yyyy-MM-dd');
 
             // Comparação de strings YYYY-MM-DD (timezone-safe)
             if (currentDayStr < medicationStartStr) continue;
             if (medicationEndStr && currentDayStr > medicationEndStr) continue;
+            if (currentDayStr < medicationCreatedStr) continue;
 
             const currentDayStart = startOfDay(currentDay);
 
@@ -209,20 +461,13 @@ export class AgendaService {
 
             // Criar um item para cada horário agendado
             for (const time of scheduledTimes) {
-              // Verificar se já foi administrado neste horário e dia
-              // Usar currentDay diretamente (T12:00) para match com medicationAdministration
-              const administration = await this.tenantContext.client.medicationAdministration.findFirst({
-                where: {
-                  medicationId: medication.id,
-                  date: currentDay,
-                  scheduledTime: time,
-                },
-                include: {
-                  user: {
-                    select: { name: true },
-                  },
-                },
-              });
+              const administration = medicationAdministrationMap.get(
+                this.getMedicationAdministrationKey(
+                  medication.id,
+                  currentDayStr,
+                  time,
+                ),
+              );
 
               // Determinar o status do item
               let status: 'pending' | 'completed' | 'missed';
@@ -247,7 +492,10 @@ export class AgendaService {
                 scheduledTime: time,
                 status,
                 completedAt: administration?.createdAt,
-                completedBy: administration?.user?.name || administration?.administeredBy,
+                completedBy:
+                  administration?.user?.name ||
+                  administration?.administeredBy ||
+                  undefined,
                 medicationName: medication.name,
                 dosage: `${medication.dose} - ${medication.route}`,
                 prescriptionId: prescription.id,
@@ -353,7 +601,7 @@ export class AgendaService {
   }
 
   /**
-   * Busca registros obrigatórios recorrentes que devem ser feitos no intervalo de datas
+   * Busca registros programados recorrentes que devem ser feitos no intervalo de datas
    */
   private async getRecurringRecordItems(
     startDate: Date,
@@ -361,126 +609,12 @@ export class AgendaService {
     residentId?: string,
     recordTypes?: RecordType[],
   ): Promise<AgendaItem[]> {
-    const items: AgendaItem[] = [];
-
-    // Buscar configurações ativas
-    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        ...(residentId && { residentId }),
-        ...(recordTypes && recordTypes.length > 0 && { recordType: { in: recordTypes } }),
-      },
-      include: {
-        resident: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-    });
-
-    // Para cada dia do intervalo, verificar se deve gerar tarefa
-    // Usar parseISO com T12:00 para cada dia, garantindo compatibilidade com DailyRecord
-    const daysInRange = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) }).map(day => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      return parseISO(`${dateStr}T12:00:00.000`);
-    });
-
-    const today = startOfDay(new Date());
-
-    for (const config of configs) {
-      for (const targetDate of daysInRange) {
-        const dayOfWeek = targetDate.getDay();
-        const dayOfMonth = targetDate.getDate();
-        const targetDayStart = startOfDay(targetDate);
-        const isPastDay = targetDayStart < today;
-        let shouldGenerate = false;
-
-        if (config.frequency === 'DAILY') {
-          shouldGenerate = true;
-        } else if (config.frequency === 'WEEKLY' && config.dayOfWeek === dayOfWeek) {
-          shouldGenerate = true;
-        } else if (config.frequency === 'MONTHLY') {
-          if (config.dayOfMonth === dayOfMonth) {
-            shouldGenerate = true;
-          } else {
-            // Fallback: se config pede dia que não existe no mês, usar último dia
-            const lastDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
-            if (config.dayOfMonth! > lastDayOfMonth && dayOfMonth === lastDayOfMonth) {
-              shouldGenerate = true;
-            }
-          }
-        }
-
-        if (!shouldGenerate) continue;
-
-        // Verificar se já foi realizado
-        const mealType = config.metadata && typeof config.metadata === 'object' && 'mealType' in config.metadata
-          ? (config.metadata as Record<string, unknown>).mealType
-          : null;
-
-        const record = await this.tenantContext.client.dailyRecord.findFirst({
-          where: {
-            residentId: config.residentId,
-            type: config.recordType,
-            date: targetDate,
-            deletedAt: null,
-            ...(mealType ? {
-              data: {
-                path: ['mealType'],
-                equals: mealType,
-              },
-            } : {}),
-          },
-          include: {
-            user: {
-              select: { name: true },
-            },
-          },
-        });
-
-        const suggestedTimes = config.suggestedTimes as string[] || [];
-        const timesToUse = suggestedTimes.length > 0 ? suggestedTimes : ['00:00'];
-
-        // Determinar o status do registro
-        let status: 'pending' | 'completed' | 'missed';
-        if (record && !record.deletedAt) {
-          status = 'completed';
-        } else if (isPastDay) {
-          // Se é um dia passado e não foi registrado, está missed
-          status = 'missed';
-        } else {
-          status = 'pending';
-        }
-
-        // Criar um item de agenda para CADA horário sugerido
-        for (const scheduledTime of timesToUse) {
-          items.push({
-            id: `${config.id}-${format(targetDate, 'yyyy-MM-dd')}-${scheduledTime}`,
-            type: AgendaItemType.RECURRING_RECORD,
-            category: this.mapRecordTypeToCategory(config.recordType),
-            residentId: config.residentId,
-            residentName: config.resident.fullName,
-            title: this.getRecordTypeTitle(config.recordType, mealType as string | null | undefined),
-            description: config.notes || undefined,
-            scheduledDate: targetDate,
-            scheduledTime,
-            status,
-            completedAt: record?.createdAt,
-            completedBy: record?.user?.name || record?.recordedBy,
-            recordType: config.recordType,
-            suggestedTimes: suggestedTimes,
-            configId: config.id,
-            mealType: mealType as string | undefined,
-            metadata: config.metadata as Record<string, unknown>,
-          });
-        }
-      }
-    }
-
-    return items;
+    return this.generateRecurringRecordItemsForRange(
+      startDate,
+      endDate,
+      residentId,
+      recordTypes,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -758,11 +892,17 @@ export class AgendaService {
       select: {
         id: true,
         scheduledDate: true,
+        scheduledTime: true,
         eventType: true,
         status: true,
       },
     });
 
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    });
+    const timezone = tenant?.timezone || DEFAULT_TIMEZONE;
     const now = new Date();
 
     events.forEach(event => {
@@ -774,8 +914,13 @@ export class AgendaService {
 
       // Determinar status (SCHEDULED → MISSED se passou da hora)
       let status = event.status;
-      if (status === 'SCHEDULED' && isBefore(event.scheduledDate, now)) {
-        status = 'MISSED';
+      if (status === 'SCHEDULED') {
+        const dateStr = formatDateOnly(event.scheduledDate);
+        const timeStr = event.scheduledTime || '00:00';
+        const eventDateTime = localToUTC(dateStr, timeStr, timezone);
+        if (isBefore(eventDateTime, now)) {
+          status = 'MISSED';
+        }
       }
 
       // Incrementar contador de status
@@ -901,6 +1046,37 @@ export class AgendaService {
       },
     });
 
+    const allMedicationIds = prescriptions.flatMap((prescription) =>
+      prescription.medications.map((medication) => medication.id),
+    );
+    const administeredTimesByMedicationAndDay = new Map<string, Set<string>>();
+
+    if (allMedicationIds.length > 0) {
+      const administrations = await this.tenantContext.client.medicationAdministration.findMany({
+        where: {
+          medicationId: { in: allMedicationIds },
+          date: {
+            gte: startOfDay(startDate),
+            lte: endOfDay(endDate),
+          },
+          wasAdministered: true,
+        },
+        select: {
+          medicationId: true,
+          date: true,
+          scheduledTime: true,
+        },
+      });
+
+      administrations.forEach((administration) => {
+        const dayKey = formatDateOnly(administration.date);
+        const key = `${administration.medicationId}|${dayKey}`;
+        const times = administeredTimesByMedicationAndDay.get(key) || new Set<string>();
+        times.add(administration.scheduledTime);
+        administeredTimesByMedicationAndDay.set(key, times);
+      });
+    }
+
     const daysInRange = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
     const today = startOfDay(new Date());
 
@@ -912,10 +1088,12 @@ export class AgendaService {
         for (const currentDay of daysInRange) {
           const medicationStartStr = formatDateOnly(medication.startDate);
           const medicationEndStr = medication.endDate ? formatDateOnly(medication.endDate) : null;
+          const medicationCreatedStr = formatDateOnly(medication.createdAt);
           const currentDayStr = format(currentDay, 'yyyy-MM-dd');
 
           if (currentDayStr < medicationStartStr) continue;
           if (medicationEndStr && currentDayStr > medicationEndStr) continue;
+          if (currentDayStr < medicationCreatedStr) continue;
 
           if (!counts[currentDayStr]) {
             counts[currentDayStr] = { total: 0, pending: 0, completed: 0, missed: 0 };
@@ -924,19 +1102,10 @@ export class AgendaService {
           const currentDayStart = startOfDay(currentDay);
           const isPastDay = currentDayStart < today;
 
-          // Contar administrações para este dia
-          const currentDayT12 = parseISO(`${currentDayStr}T12:00:00.000`);
-          const administrations = await this.tenantContext.client.medicationAdministration.findMany({
-            where: {
-              medicationId: medication.id,
-              date: currentDayT12,
-              scheduledTime: { in: scheduledTimes },
-            },
-          });
-
-          const administeredTimes = new Set(
-            administrations.filter(a => a.wasAdministered).map(a => a.scheduledTime)
-          );
+          const administeredTimes =
+            administeredTimesByMedicationAndDay.get(
+              `${medication.id}|${currentDayStr}`,
+            ) || new Set<string>();
 
           scheduledTimes.forEach(time => {
             counts[currentDayStr].total++;
@@ -964,82 +1133,28 @@ export class AgendaService {
     residentId?: string,
   ): Promise<Record<string, { total: number; pending: number; completed: number; missed: number; byType: Record<string, number> }>> {
     const counts: Record<string, { total: number; pending: number; completed: number; missed: number; byType: Record<string, number> }> = {};
+    const recurringItems = await this.generateRecurringRecordItemsForRange(
+      startDate,
+      endDate,
+      residentId,
+    );
 
-    // Buscar configurações ativas
-    const configs = await this.tenantContext.client.residentScheduleConfig.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        ...(residentId && { residentId }),
-      },
-    });
-
-    const daysInRange = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
-    const today = startOfDay(new Date());
-
-    for (const config of configs) {
-      for (const targetDate of daysInRange) {
-        const dayOfWeek = targetDate.getDay();
-        const dayOfMonth = targetDate.getDate();
-        const targetDayStart = startOfDay(targetDate);
-        const isPastDay = targetDayStart < today;
-        let shouldGenerate = false;
-
-        if (config.frequency === 'DAILY') {
-          shouldGenerate = true;
-        } else if (config.frequency === 'WEEKLY' && config.dayOfWeek === dayOfWeek) {
-          shouldGenerate = true;
-        } else if (config.frequency === 'MONTHLY') {
-          if (config.dayOfMonth === dayOfMonth) {
-            shouldGenerate = true;
-          } else {
-            const lastDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
-            if (config.dayOfMonth! > lastDayOfMonth && dayOfMonth === lastDayOfMonth) {
-              shouldGenerate = true;
-            }
-          }
-        }
-
-        if (!shouldGenerate) continue;
-
-        const currentDayStr = format(targetDate, 'yyyy-MM-dd');
-        if (!counts[currentDayStr]) {
-          counts[currentDayStr] = { total: 0, pending: 0, completed: 0, missed: 0, byType: {} };
-        }
-
-        // Verificar se já foi realizado
-        const mealType = config.metadata && typeof config.metadata === 'object' && 'mealType' in config.metadata
-          ? (config.metadata as Record<string, unknown>).mealType
-          : null;
-
-        const targetDateT12 = parseISO(`${currentDayStr}T12:00:00.000`);
-        const record = await this.tenantContext.client.dailyRecord.findFirst({
-          where: {
-            residentId: config.residentId,
-            type: config.recordType,
-            date: targetDateT12,
-            deletedAt: null,
-            ...(mealType ? {
-              data: {
-                path: ['mealType'],
-                equals: mealType,
-              },
-            } : {}),
-          },
-        });
-
-        counts[currentDayStr].total++;
-        counts[currentDayStr].byType[config.recordType] = (counts[currentDayStr].byType[config.recordType] || 0) + 1;
-
-        if (record && !record.deletedAt) {
-          counts[currentDayStr].completed++;
-        } else if (isPastDay) {
-          counts[currentDayStr].missed++;
-        } else {
-          counts[currentDayStr].pending++;
-        }
+    recurringItems.forEach((item) => {
+      const dayKey = formatDateOnly(item.scheduledDate);
+      if (!counts[dayKey]) {
+        counts[dayKey] = { total: 0, pending: 0, completed: 0, missed: 0, byType: {} };
       }
-    }
+
+      counts[dayKey].total++;
+      if (item.recordType) {
+        counts[dayKey].byType[item.recordType] =
+          (counts[dayKey].byType[item.recordType] || 0) + 1;
+      }
+
+      if (item.status === 'completed') counts[dayKey].completed++;
+      else if (item.status === 'missed') counts[dayKey].missed++;
+      else counts[dayKey].pending++;
+    });
 
     return counts;
   }

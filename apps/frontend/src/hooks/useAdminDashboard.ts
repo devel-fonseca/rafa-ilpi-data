@@ -31,9 +31,12 @@ export interface DailyRecordStats {
   completed: number
 }
 
-export interface MandatoryRecordsHistoryData {
+export interface ScheduledRecordsHistoryData {
   data: DailyRecordStats[]
 }
+
+// Backward compatibility alias
+export type MandatoryRecordsHistoryData = ScheduledRecordsHistoryData
 
 export interface MonthlyOccupancy {
   month: string // 'YYYY-MM'
@@ -90,14 +93,14 @@ export function useMedicationsHistory() {
 }
 
 /**
- * Hook para buscar histórico de registros obrigatórios (últimos 7 dias)
+ * Hook para buscar histórico de registros programados (últimos 7 dias)
  * Usado no gráfico de barras do AdminDashboard
  */
-export function useMandatoryRecordsHistory() {
-  return useQuery<MandatoryRecordsHistoryData>({
-    queryKey: tenantKey('admin-mandatory-records-history'),
+export function useScheduledRecordsHistory() {
+  return useQuery<ScheduledRecordsHistoryData>({
+    queryKey: tenantKey('admin-scheduled-records-history'),
     queryFn: async () => {
-      const response = await api.get('/admin-dashboard/mandatory-records-history')
+      const response = await api.get('/admin-dashboard/scheduled-records-history')
       return response.data
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
@@ -105,6 +108,13 @@ export function useMandatoryRecordsHistory() {
     refetchInterval: 5 * 60 * 1000, // Atualiza a cada 5 minutos
     refetchIntervalInBackground: false,
   })
+}
+
+/**
+ * @deprecated Use useScheduledRecordsHistory
+ */
+export function useMandatoryRecordsHistory() {
+  return useScheduledRecordsHistory()
 }
 
 /**

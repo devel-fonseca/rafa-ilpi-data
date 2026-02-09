@@ -3,11 +3,11 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { StatusFilterType } from '@/types/agenda'
@@ -21,6 +21,8 @@ interface Props {
   onClose: () => void
   onNavigate: (direction: 'prev' | 'next') => void
   residentId?: string | null
+  previousLabel?: string
+  nextLabel?: string
 }
 
 /**
@@ -29,7 +31,15 @@ interface Props {
  * Carrega itens da agenda apenas quando o modal é aberto
  * Usado em conjunto com MonthlyViewOptimized
  */
-export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId }: Props) {
+export function DayDetailModalLazy({
+  day,
+  open,
+  onClose,
+  onNavigate,
+  residentId,
+  previousLabel = 'Dia anterior',
+  nextLabel = 'Próximo dia',
+}: Props) {
   const [localStatusFilter, setLocalStatusFilter] = useState<StatusFilterType>('all')
 
   // Carregar itens do dia específico (lazy loading)
@@ -73,9 +83,12 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
   const isToday = format(day, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent
+        side="right"
+        className="w-full p-0 sm:max-w-2xl flex flex-col"
+      >
+        <SheetHeader className="p-6 pb-0">
           {/* Container flexível: navegação + info + filtros */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pr-8">
             {/* Navegação e informações do dia */}
@@ -85,12 +98,14 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
                 size="icon"
                 onClick={() => onNavigate('prev')}
                 className="h-8 w-8 shrink-0"
+                title={previousLabel}
+                aria-label={previousLabel}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
               <div>
-                <DialogTitle className="flex items-center gap-2 flex-wrap">
+                <SheetTitle className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-muted-foreground uppercase">
                     {format(day, 'EEEE', { locale: ptBR })}
                   </span>
@@ -102,7 +117,7 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
                       Hoje
                     </Badge>
                   )}
-                </DialogTitle>
+                </SheetTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {items.length} {items.length === 1 ? 'item agendado' : 'itens agendados'}
                 </p>
@@ -113,6 +128,8 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
                 size="icon"
                 onClick={() => onNavigate('next')}
                 className="h-8 w-8 shrink-0"
+                title={nextLabel}
+                aria-label={nextLabel}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -162,10 +179,10 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
               </Badge>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
         {/* Lista de itens (scrollable) */}
-        <div className="flex-1 overflow-y-auto px-1">
+        <div className="flex-1 overflow-y-auto px-6 pr-8">
           {isLoading ? (
             <LoadingSpinner message="Carregando itens do dia, aguarde..." />
           ) : sortedItems.length === 0 ? (
@@ -184,7 +201,7 @@ export function DayDetailModalLazy({ day, open, onClose, onNavigate, residentId 
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

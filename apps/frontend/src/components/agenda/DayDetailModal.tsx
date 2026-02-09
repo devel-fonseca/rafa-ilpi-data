@@ -3,11 +3,11 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AgendaItem, StatusFilterType } from '@/types/agenda'
@@ -20,9 +20,20 @@ interface Props {
   onClose: () => void
   onNavigateDay: (direction: 'prev' | 'next') => void
   isToday?: boolean
+  previousLabel?: string
+  nextLabel?: string
 }
 
-export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isToday }: Props) {
+export function DayDetailModal({
+  day,
+  items,
+  isOpen,
+  onClose,
+  onNavigateDay,
+  isToday,
+  previousLabel = 'Dia anterior',
+  nextLabel = 'Próximo dia',
+}: Props) {
   const [localStatusFilter, setLocalStatusFilter] = useState<StatusFilterType>('all')
 
   // Filtrar itens por status local
@@ -55,9 +66,12 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
   }, [filteredItems])
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent
+        side="right"
+        className="w-full p-0 sm:max-w-2xl flex flex-col"
+      >
+        <SheetHeader className="p-6 pb-0">
           {/* Container flexível: navegação + info + filtros */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pr-8">
             {/* Navegação e informações do dia */}
@@ -67,12 +81,14 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
                 size="icon"
                 onClick={() => onNavigateDay('prev')}
                 className="h-8 w-8 shrink-0"
+                title={previousLabel}
+                aria-label={previousLabel}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
               <div>
-                <DialogTitle className="flex items-center gap-2 flex-wrap">
+                <SheetTitle className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-muted-foreground uppercase">
                     {format(day, 'EEEE', { locale: ptBR })}
                   </span>
@@ -84,7 +100,7 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
                       Hoje
                     </Badge>
                   )}
-                </DialogTitle>
+                </SheetTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   {items.length} {items.length === 1 ? 'item agendado' : 'itens agendados'}
                 </p>
@@ -95,6 +111,8 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
                 size="icon"
                 onClick={() => onNavigateDay('next')}
                 className="h-8 w-8 shrink-0"
+                title={nextLabel}
+                aria-label={nextLabel}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -148,10 +166,10 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
           </Badge>
             </div>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
         {/* Lista de itens */}
-        <div className="flex-1 overflow-y-auto space-y-2 pr-2 mt-4">
+        <div className="flex-1 overflow-y-auto space-y-2 px-6 pr-8 mt-4">
           {sortedItems.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground text-center">
@@ -173,7 +191,7 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
         </div>
 
         {/* Footer com ações */}
-        <div className="flex items-center justify-between pt-4 border-t">
+        <div className="flex items-center justify-between p-6 pt-4 border-t">
           <div className="text-sm text-muted-foreground">
             Mostrando {sortedItems.length} de {items.length} itens
           </div>
@@ -181,7 +199,7 @@ export function DayDetailModal({ day, items, isOpen, onClose, onNavigateDay, isT
             Fechar
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

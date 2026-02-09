@@ -10,6 +10,11 @@ interface ComplianceStats {
     administered: number
     total: number
   }
+  scheduledRecords?: {
+    expected: number
+    completed: number
+  }
+  // Backward compatibility
   mandatoryRecords: {
     expected: number
     completed: number
@@ -45,12 +50,14 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
     return null
   }
 
+  const recordsStats = stats.scheduledRecords ?? stats.mandatoryRecords
+
   const medicationsPercentage = stats.medications.total > 0
     ? Math.round((stats.medications.administered / stats.medications.total) * 100)
     : 0
 
-  const recordsPercentage = stats.mandatoryRecords.expected > 0
-    ? Math.round((stats.mandatoryRecords.completed / stats.mandatoryRecords.expected) * 100)
+  const recordsPercentage = recordsStats.expected > 0
+    ? Math.round((recordsStats.completed / recordsStats.expected) * 100)
     : 0
 
   // Lógica de criticidade: Azul (info) → Amarelo (atenção) → Vermelho (risco)
@@ -62,7 +69,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
   }
 
   const getRecordsStatus = () => {
-    if (stats.mandatoryRecords.expected === 0) return 'info' // Azul: sem registros esperados
+    if (recordsStats.expected === 0) return 'info' // Azul: sem registros esperados
     if (recordsPercentage === 100) return 'success' // Verde: tudo concluído
     if (recordsPercentage >= 50) return 'warning' // Amarelo: atenção (50%+)
     return 'danger' // Vermelho: risco crítico (<50%)
@@ -188,7 +195,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
             </div>
           </div>
 
-          {/* Card: Registros obrigatórios */}
+          {/* Card: Registros programados */}
           <div className="bg-card rounded-lg p-4 border border-border">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
@@ -196,7 +203,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Registros obrigatórios
+                  Registros programados
                 </p>
               </div>
               <div className={cn("flex items-center justify-center w-6 h-6 rounded-full", recordsClasses.iconBg)}>
@@ -206,7 +213,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-bold text-foreground">
-                  {stats.mandatoryRecords.expected > 0 ? `${recordsPercentage}%` : '0%'}
+                  {recordsStats.expected > 0 ? `${recordsPercentage}%` : '0%'}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
                   concluídos
@@ -214,7 +221,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
               </div>
               <div className="mt-2 pt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground">
-                  <span className="font-semibold">Concluídos:</span> {stats.mandatoryRecords.completed} / {stats.mandatoryRecords.expected}  <span className="font-semibold">• Pendentes:</span> {stats.mandatoryRecords.expected - stats.mandatoryRecords.completed}
+                  <span className="font-semibold">Concluídos:</span> {recordsStats.completed} / {recordsStats.expected}  <span className="font-semibold">• Pendentes:</span> {recordsStats.expected - recordsStats.completed}
                 </p>
               </div>
             </div>

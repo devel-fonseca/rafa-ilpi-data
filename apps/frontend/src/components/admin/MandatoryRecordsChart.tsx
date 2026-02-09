@@ -25,7 +25,7 @@ interface MandatoryRecordsChartProps {
 /**
  * MandatoryRecordsChart
  *
- * Gráfico de barras comparando registros obrigatórios esperados vs completados.
+ * Gráfico de barras comparando registros programados esperados vs completados.
  * Exibe os últimos 7 dias de dados.
  */
 export function MandatoryRecordsChart({
@@ -51,7 +51,7 @@ export function MandatoryRecordsChart({
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-base font-medium text-foreground">
-            Registros Obrigatórios
+            Registros Programados
           </CardTitle>
           <CardDescription>Últimos 7 dias</CardDescription>
         </CardHeader>
@@ -69,7 +69,7 @@ export function MandatoryRecordsChart({
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-base font-medium text-foreground">
-            Registros Obrigatórios
+            Registros Programados
           </CardTitle>
           <CardDescription>Últimos 7 dias</CardDescription>
         </CardHeader>
@@ -86,7 +86,7 @@ export function MandatoryRecordsChart({
     <Card className="bg-card border-border h-[320px] flex flex-col">
       <CardHeader>
         <CardTitle className="text-base font-medium text-foreground">
-          Registros Obrigatórios
+          Registros Programados
         </CardTitle>
         <CardDescription>Últimos 7 dias</CardDescription>
       </CardHeader>

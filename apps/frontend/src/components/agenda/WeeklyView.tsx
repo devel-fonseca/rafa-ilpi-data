@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AgendaItem, StatusFilterType } from '@/types/agenda'
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, subDays } from 'date-fns'
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addWeeks, subWeeks } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { extractDateOnly } from '@/utils/dateHelpers'
 import { AgendaItemCard } from './AgendaItemCard'
@@ -19,6 +19,7 @@ interface Props {
 export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onStatusFilterChange }: Props) {
   // Estado do modal
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [showDetailedWeekList, setShowDetailedWeekList] = useState(false)
 
   // Calcular início e fim da semana (domingo a sábado)
   const weekStart = useMemo(() => startOfWeek(selectedDate, { weekStartsOn: 0 }), [selectedDate])
@@ -28,7 +29,7 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
   // Função de navegação entre dias no modal
   const handleNavigateDay = (direction: 'prev' | 'next') => {
     if (!selectedDay) return
-    const newDay = direction === 'prev' ? subDays(selectedDay, 1) : addDays(selectedDay, 1)
+    const newDay = direction === 'prev' ? subWeeks(selectedDay, 1) : addWeeks(selectedDay, 1)
     setSelectedDay(newDay)
   }
 
@@ -77,7 +78,7 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
   return (
     <div className="space-y-4">
       {/* Header da semana */}
-      <Card className="p-4">
+      <Card className="p-4 sticky top-2 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/90">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold">
@@ -206,63 +207,75 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
         })}
       </div>
 
-      {/* Lista detalhada por dia (opcional, colapsável) */}
-      <div className="space-y-3">
-        {weekDays.map(day => {
-          const dayKey = format(day, 'yyyy-MM-dd')
-          const dayItems = itemsByDay[dayKey] || []
-
-          if (dayItems.length === 0) return null
-
-          return (
-            <details key={dayKey} className="group">
-              <summary className="cursor-pointer list-none">
-                <Card className="p-4 hover:bg-accent transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <p className="text-xs font-medium text-muted-foreground uppercase">
-                          {format(day, 'EEE', { locale: ptBR })}
-                        </p>
-                        <p className="text-xl font-bold">
-                          {format(day, 'dd/MM')}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">
-                          {format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {dayItems.length} {dayItems.length === 1 ? 'item agendado' : 'itens agendados'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">
-                        {dayItems.filter(i => i.status === 'completed').length}/{dayItems.length} concluídos
-                      </Badge>
-                      <svg
-                        className="w-5 h-5 transition-transform group-open:rotate-180"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                </Card>
-              </summary>
-
-              <div className="mt-2 ml-4 space-y-2">
-                {dayItems.map(item => (
-                  <AgendaItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            </details>
-          )
-        })}
+      <div className="flex justify-end">
+        <Badge
+          variant="outline"
+          className="cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setShowDetailedWeekList((prev) => !prev)}
+        >
+          {showDetailedWeekList ? 'Ocultar lista detalhada' : 'Mostrar lista detalhada'}
+        </Badge>
       </div>
+
+      {/* Lista detalhada por dia (opcional) */}
+      {showDetailedWeekList && (
+        <div className="space-y-3">
+          {weekDays.map(day => {
+            const dayKey = format(day, 'yyyy-MM-dd')
+            const dayItems = itemsByDay[dayKey] || []
+
+            if (dayItems.length === 0) return null
+
+            return (
+              <details key={dayKey} className="group">
+                <summary className="cursor-pointer list-none">
+                  <Card className="p-4 hover:bg-accent transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">
+                            {format(day, 'EEE', { locale: ptBR })}
+                          </p>
+                          <p className="text-xl font-bold">
+                            {format(day, 'dd/MM')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-semibold">
+                            {format(day, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {dayItems.length} {dayItems.length === 1 ? 'item agendado' : 'itens agendados'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {dayItems.filter(i => i.status === 'completed').length}/{dayItems.length} concluídos
+                        </Badge>
+                        <svg
+                          className="w-5 h-5 transition-transform group-open:rotate-180"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </Card>
+                </summary>
+
+                <div className="mt-2 ml-4 space-y-2">
+                  {dayItems.map(item => (
+                    <AgendaItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </details>
+            )
+          })}
+        </div>
+      )}
 
       {/* Modal de detalhes do dia */}
       {selectedDay && (
@@ -273,6 +286,8 @@ export function WeeklyView({ items, selectedDate, isLoading, statusFilter, onSta
           onClose={() => setSelectedDay(null)}
           onNavigateDay={handleNavigateDay}
           isToday={isSameDay(selectedDay, today)}
+          previousLabel="Semana anterior"
+          nextLabel="Próxima semana"
         />
       )}
     </div>

@@ -11,8 +11,8 @@ import {
   startOfWeek,
   endOfWeek,
   isSameMonth,
-  addDays,
-  subDays
+  addMonths,
+  subMonths
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { DayDetailModalLazy } from './DayDetailModalLazy'
@@ -59,7 +59,7 @@ export function MonthlyViewOptimized({ selectedDate, residentId, isLoading: exte
   // Função de navegação entre dias no modal
   const handleNavigateDay = (direction: 'prev' | 'next') => {
     if (!selectedDay) return
-    const newDay = direction === 'prev' ? subDays(selectedDay, 1) : addDays(selectedDay, 1)
+    const newDay = direction === 'prev' ? subMonths(selectedDay, 1) : addMonths(selectedDay, 1)
     setSelectedDay(newDay)
   }
 
@@ -117,7 +117,7 @@ export function MonthlyViewOptimized({ selectedDate, residentId, isLoading: exte
   return (
     <div className="space-y-4">
       {/* Header do mês */}
-      <Card className="p-4">
+      <Card className="p-4 sticky top-2 z-10 backdrop-blur supports-[backdrop-filter]:bg-background/90">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-2xl font-bold">
@@ -267,6 +267,8 @@ export function MonthlyViewOptimized({ selectedDate, residentId, isLoading: exte
           onClose={() => setSelectedDay(null)}
           onNavigate={handleNavigateDay}
           residentId={residentId}
+          previousLabel="Mês anterior"
+          nextLabel="Próximo mês"
         />
       )}
     </div>

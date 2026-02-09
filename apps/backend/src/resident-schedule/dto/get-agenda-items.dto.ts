@@ -12,7 +12,7 @@ export enum ContentFilterType {
   PROCEDURES = 'procedures',
   OTHER_EVENTS = 'other_events',
 
-  // Registros obrigatórios recorrentes
+  // Registros programados recorrentes
   HYGIENE = 'hygiene',
   FEEDING = 'feeding',
   HYDRATION = 'hydration',

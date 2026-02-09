@@ -11,7 +11,7 @@ import { MedicationAdministrationChart } from '@/components/admin/MedicationAdmi
 import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
 import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
-import { useResidentsGrowth, useMedicationsHistory, useMandatoryRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
+import { useResidentsGrowth, useMedicationsHistory, useScheduledRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
 import { Page, PageHeader, CollapsibleSection, Section, QuickActionsGrid } from '@/design-system/components'
 import { Users, FileText, Activity, Calendar } from 'lucide-react'
 
@@ -54,7 +54,7 @@ export function AdminDashboard() {
   ]
   const { data: residentsGrowth, isLoading: isLoadingResidents } = useResidentsGrowth()
   const { data: medicationsHistory, isLoading: isLoadingMedications } = useMedicationsHistory()
-  const { data: recordsHistory, isLoading: isLoadingRecords } = useMandatoryRecordsHistory()
+  const { data: recordsHistory, isLoading: isLoadingRecords } = useScheduledRecordsHistory()
   const { data: occupancyRate, isLoading: isLoadingOccupancy } = useOccupancyRate()
 
   return (

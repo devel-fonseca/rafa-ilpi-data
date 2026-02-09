@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
+import { ResidentScheduleTasksService } from '../resident-schedule/resident-schedule-tasks.service';
 import {
   DailyComplianceResponseDto,
   ResidentsGrowthResponseDto,
@@ -13,13 +14,13 @@ import {
   DailyRecordStatsDto,
   MonthlyOccupancyDto,
 } from './dto';
-import { ResidentScheduleConfig } from '@prisma/client';
 
 @Injectable()
 export class AdminDashboardService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly residentScheduleTasksService: ResidentScheduleTasksService,
   ) {}
 
   async getDailySummary(): Promise<DailyComplianceResponseDto> {
@@ -67,12 +68,15 @@ export class AdminDashboardService {
     const recordsData = await this.getMandatoryRecordsCompliance(
       today,
       tomorrow,
+      todayStr,
     )
 
     return {
       activeResidents,
       residentsWithSchedules,
       medications: medicationsData,
+      scheduledRecords: recordsData,
+      // Backward compatibility (deprecated)
       mandatoryRecords: recordsData,
     }
   }
@@ -149,72 +153,17 @@ export class AdminDashboardService {
   }
 
   private async getMandatoryRecordsCompliance(
-    today: Date,
-    tomorrow: Date,
+    _today: Date,
+    _tomorrow: Date,
+    dateStr: string,
   ) {
-    // Buscar configurações de agendamento recorrente ativas
-    const activeConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
-      where: {
-        isActive: true,
-        resident: {
-          status: 'Ativo',
-        },
-      },
-      include: {
-        resident: true,
-      },
-    })
-
-    // Calcular quantos registros são esperados hoje
-    let expectedCount = 0
-
-    for (const config of activeConfigs) {
-      // Verificar se o registro é esperado hoje baseado na frequência
-      const isExpectedToday = this.isRecordExpectedToday(config, today)
-      if (isExpectedToday) {
-        expectedCount++
-      }
-    }
-
-    // Contar registros diários realizados hoje
-    const completedRecords = await this.tenantContext.client.dailyRecord.count({
-      where: {
-        date: {
-          gte: today,
-          lt: tomorrow,
-        },
-      },
-    })
+    const stats = await this.residentScheduleTasksService.getScheduledRecordsStats(
+      dateStr,
+    );
 
     return {
-      expected: expectedCount,
-      completed: completedRecords,
-    }
-  }
-
-  private isRecordExpectedToday(config: ResidentScheduleConfig, today: Date): boolean {
-    const dayOfWeek = today.getDay() // 0 = Domingo, 1 = Segunda, etc.
-
-    switch (config.frequency) {
-      case 'DAILY':
-        return true
-
-      case 'WEEKLY':
-        // Verifica se hoje é o dia da semana configurado
-        if (config.dayOfWeek !== null && config.dayOfWeek !== undefined) {
-          return config.dayOfWeek === dayOfWeek
-        }
-        return false
-
-      case 'MONTHLY':
-        // Verifica se hoje é o dia do mês configurado
-        if (config.dayOfMonth) {
-          return today.getDate() === config.dayOfMonth
-        }
-        return false
-
-      default:
-        return false
+      expected: stats.expected,
+      completed: stats.completed,
     }
   }
 
@@ -376,42 +325,12 @@ export class AdminDashboardService {
       todayDate.setDate(todayDate.getDate() - i)
       const dayStr = todayDate.toISOString().split('T')[0]
 
-      // Obter range do dia
-      const { start: dayStart, end: dayEnd } = getDayRangeInTz(dayStr, timezone)
-
-      // Buscar configurações de agendamento recorrente ativas
-      const activeConfigs = await this.tenantContext.client.residentScheduleConfig.findMany({
-        where: {
-          isActive: true,
-          resident: {
-            status: 'Ativo',
-          },
-        },
-        include: {
-          resident: true,
-        },
-      })
-
-      // Calcular quantos registros são esperados neste dia
-      let expected = 0
-      const targetDate = new Date(dayStr + 'T12:00:00.000')
-
-      for (const config of activeConfigs) {
-        const isExpectedThisDay = this.isRecordExpectedToday(config, targetDate)
-        if (isExpectedThisDay) {
-          expected++
-        }
-      }
-
-      // Contar registros diários completados neste dia
-      const completed = await this.tenantContext.client.dailyRecord.count({
-        where: {
-          date: {
-            gte: dayStart,
-            lt: dayEnd,
-          },
-        },
-      })
+      // Mesmo cálculo canônico usado no resumo diário.
+      const stats = await this.residentScheduleTasksService.getScheduledRecordsStats(
+        dayStr,
+      );
+      const expected = stats.expected
+      const completed = stats.completed
 
       daysData.push({
         day: dayStr,

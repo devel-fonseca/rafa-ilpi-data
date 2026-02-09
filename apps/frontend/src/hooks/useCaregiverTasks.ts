@@ -68,6 +68,14 @@ interface Prescription {
   }>
 }
 
+interface ScheduledRecordsStatsResponse {
+  date: string
+  expected: number
+  completed: number
+  pending: number
+  compliancePercentage: number
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // HOOK PRINCIPAL
 // ──────────────────────────────────────────────────────────────────────────
@@ -122,6 +130,11 @@ export function useCaregiverTasks(date?: string) {
 
       const prescriptions = prescriptionsResponse.data.data
 
+      const scheduledRecordsStatsResponse = await api.get<ScheduledRecordsStatsResponse>(
+        '/resident-schedule/scheduled-records/stats',
+        { params: { date: today } },
+      )
+
       // ────────────────────────────────────────────────────────────────
       // 3. Processar medicações: verificar quais estão pendentes hoje
       // ────────────────────────────────────────────────────────────────
@@ -165,9 +178,7 @@ export function useCaregiverTasks(date?: string) {
       // ────────────────────────────────────────────────────────────────
       // 4. Calcular estatísticas
       // ────────────────────────────────────────────────────────────────
-      const recordsPending = recurringTasks.filter(
-        (task) => !task.isCompleted,
-      ).length
+      const recordsPending = scheduledRecordsStatsResponse.data.pending
 
       const eventsPending = scheduledEvents.filter(
         (event) => event.status === 'SCHEDULED',

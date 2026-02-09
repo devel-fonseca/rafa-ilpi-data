@@ -99,12 +99,12 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
         </div>
       )}
 
-      {/* Registros Obrigatórios Recorrentes */}
+      {/* Registros Programados Recorrentes */}
       {recurringTasks.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Repeat className="h-4 w-4 text-primary dark:text-primary" />
-            <h3 className="font-semibold text-sm">Registros Obrigatórios</h3>
+            <h3 className="font-semibold text-sm">Registros Programados</h3>
             <Badge variant="secondary" className="ml-auto">
               {recurringTasks.length}
             </Badge>

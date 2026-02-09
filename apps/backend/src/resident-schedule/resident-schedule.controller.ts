@@ -65,7 +65,7 @@ export class ResidentScheduleController {
   @Post('configs')
   @RequirePermissions(PermissionType.MANAGE_RESIDENT_SCHEDULE)
   @AuditAction('CREATE')
-  @ApiOperation({ summary: 'Criar configuração de registro obrigatório recorrente' })
+  @ApiOperation({ summary: 'Criar configuração de registro programado recorrente' })
   @ApiResponse({ status: 201, description: 'Configuração criada com sucesso' })
   @ApiResponse({ status: 400, description: 'Dados inválidos' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
@@ -78,7 +78,7 @@ export class ResidentScheduleController {
   @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
   @ApiOperation({
     summary: 'Listar todas as configurações ativas do tenant',
-    description: 'Retorna todas as configurações ativas de registros obrigatórios de residentes ativos (usado para cálculo de cobertura)',
+    description: 'Retorna todas as configurações ativas de registros programados de residentes ativos (usado para cálculo de cobertura)',
   })
   @ApiResponse({ status: 200, description: 'Lista de configurações' })
   getAllActiveConfigs(@CurrentUser() _user: JwtPayload) {
@@ -89,7 +89,7 @@ export class ResidentScheduleController {
   @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
   @ApiOperation({
     summary: 'Listar configurações de um residente',
-    description: 'Retorna todas as configurações ativas de registros obrigatórios',
+    description: 'Retorna todas as configurações ativas de registros programados',
   })
   @ApiResponse({ status: 200, description: 'Lista de configurações' })
   @ApiResponse({ status: 404, description: 'Residente não encontrado' })
@@ -142,7 +142,7 @@ export class ResidentScheduleController {
   @ApiOperation({
     summary: 'Criar 6 configurações de alimentação em batch',
     description:
-      'Cria 6 configurações (uma para cada refeição obrigatória: Café da Manhã, Colação, Almoço, Lanche, Jantar, Ceia)',
+      'Cria 6 configurações (uma para cada refeição programada: Café da Manhã, Colação, Almoço, Lanche, Jantar, Ceia)',
   })
   @ApiResponse({
     status: 201,
@@ -284,7 +284,7 @@ export class ResidentScheduleController {
   @ApiOperation({
     summary: 'Listar tarefas diárias de um residente',
     description:
-      'Retorna tarefas do dia (registros obrigatórios + agendamentos pontuais) para um residente específico',
+      'Retorna tarefas do dia (registros programados + agendamentos pontuais) para um residente específico',
   })
   @ApiResponse({ status: 200, description: 'Lista de tarefas do dia' })
   @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
@@ -309,7 +309,7 @@ export class ResidentScheduleController {
   @ApiOperation({
     summary: 'Listar tarefas diárias de todos os residentes',
     description:
-      'Retorna tarefas do dia (registros obrigatórios + agendamentos pontuais) de todos os residentes do tenant',
+      'Retorna tarefas do dia (registros programados + agendamentos pontuais) de todos os residentes do tenant',
   })
   @ApiResponse({ status: 200, description: 'Lista de tarefas do dia' })
   @ApiQuery({
@@ -319,6 +319,42 @@ export class ResidentScheduleController {
   })
   getDailyTasks(@Query() query: QueryDailyTasksDto, @CurrentUser() _user: JwtPayload) {
     return this.tasksService.getDailyTasks(query.date);
+  }
+
+  @Get('mandatory-records/stats')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Obter estatísticas canônicas de registros programados do dia',
+    description:
+      'Retorna expected/completed/pending/compliancePercentage usando a mesma lógica de tarefas recorrentes por horário.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estatísticas de registros programados retornadas com sucesso',
+  })
+  getMandatoryRecordsStats(
+    @Query() query: QueryDailyTasksDto,
+    @CurrentUser() _user: JwtPayload,
+  ) {
+    return this.tasksService.getScheduledRecordsStats(query.date);
+  }
+
+  @Get('scheduled-records/stats')
+  @RequirePermissions(PermissionType.VIEW_RESIDENT_SCHEDULE)
+  @ApiOperation({
+    summary: 'Obter estatísticas de registros programados do dia',
+    description:
+      'Retorna expected/completed/pending/compliancePercentage usando a lógica canônica de tarefas recorrentes por horário.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estatísticas de registros programados retornadas com sucesso',
+  })
+  getScheduledRecordsStats(
+    @Query() query: QueryDailyTasksDto,
+    @CurrentUser() _user: JwtPayload,
+  ) {
+    return this.tasksService.getScheduledRecordsStats(query.date);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -366,7 +402,7 @@ export class ResidentScheduleController {
   @ApiOperation({
     summary: 'Buscar itens da agenda consolidados',
     description:
-      'Retorna todos os itens da agenda (medicamentos, eventos agendados e registros obrigatórios) ' +
+      'Retorna todos os itens da agenda (medicamentos, eventos agendados e registros programados) ' +
       'consolidados em uma única lista. Permite filtrar por residente e tipo de conteúdo.\n\n' +
       '**Modos de consulta:**\n' +
       '1. **Single date**: Fornece apenas `date` (visualização diária)\n' +

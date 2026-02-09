@@ -32,7 +32,7 @@ export class AdminDashboardController {
   @ApiOperation({
     summary: 'Obter resumo operacional do dia para dashboard administrativo',
     description:
-      'Retorna métricas operacionais: residentes ativos, medicamentos programados/administrados, registros obrigatórios completados (Acesso restrito: Administrador e Responsável Técnico)',
+      'Retorna métricas operacionais: residentes ativos, medicamentos programados/administrados, registros programados completados (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
@@ -86,16 +86,34 @@ export class AdminDashboardController {
   @ApiOperation({
     summary: 'Obter histórico de registros obrigatórios nos últimos 7 dias',
     description:
-      'Retorna dados diários de registros esperados vs completados para gráfico (Acesso restrito: Administrador e Responsável Técnico)',
+      'Retorna dados diários de registros programados esperados vs completados para gráfico (Acesso restrito: Administrador e Responsável Técnico)',
   })
   @ApiResponse({
     status: 200,
-    description: 'Histórico de registros obrigatórios retornado com sucesso',
+    description: 'Histórico de registros programados retornado com sucesso',
     type: MandatoryRecordsHistoryResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
   @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
   async getMandatoryRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
+    return this.adminDashboardService.getMandatoryRecordsHistory();
+  }
+
+  @Get('scheduled-records-history')
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  @ApiOperation({
+    summary: 'Obter histórico de registros programados nos últimos 7 dias',
+    description:
+      'Retorna dados diários de registros esperados vs completados para gráfico (Acesso restrito: Administrador e Responsável Técnico)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Histórico de registros programados retornado com sucesso',
+    type: MandatoryRecordsHistoryResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
+  async getScheduledRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
     return this.adminDashboardService.getMandatoryRecordsHistory();
   }
 

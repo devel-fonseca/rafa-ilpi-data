@@ -2,10 +2,9 @@ import { CheckCircle2, AlertTriangle, Clock, Target } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDailyRecordsByDate, type DailyRecord } from '@/hooks/useDailyRecords'
-import { useAllActiveScheduleConfigs } from '@/hooks/useResidentSchedule'
+import { useScheduledRecordsStats } from '@/hooks/useResidentSchedule'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import { useMemo } from 'react'
-import { parseISO } from 'date-fns'
 
 interface Resident {
   id: string
@@ -31,13 +30,11 @@ export function DailyRecordsOverviewStats({
 }: DailyRecordsOverviewStatsProps) {
   const today = getCurrentDate()
   const { data: allRecordsToday } = useDailyRecordsByDate(today)
-  const { data: scheduleConfigs } = useAllActiveScheduleConfigs()
+  const { data: scheduledRecordsStats } = useScheduledRecordsStats(today)
 
   // Garantir que allRecordsToday é array
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeAllRecordsToday = Array.isArray(allRecordsToday) ? allRecordsToday : []
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const safeScheduleConfigs = Array.isArray(scheduleConfigs) ? scheduleConfigs : []
 
   // Filtrar apenas residentes ativos
   const activeResidents = useMemo(
@@ -100,61 +97,7 @@ export function DailyRecordsOverviewStats({
   // ──────────────────────────────────────────────────────────────────────────
   // CARD 4: Taxa de Cobertura de Registros Obrigatórios
   // ──────────────────────────────────────────────────────────────────────────
-  const mandatoryRecordsCoverage = useMemo(() => {
-    // Se não há configs, retornar 100% (não há obrigações)
-    if (safeScheduleConfigs.length === 0) return 100
-
-    const todayDate = parseISO(`${today}T12:00:00.000`)
-    const todayDayOfWeek = todayDate.getDay()
-    const todayDayOfMonth = todayDate.getDate()
-
-    // Filtrar configs que devem ser executadas hoje
-    const configsDueToday = safeScheduleConfigs.filter((config) => {
-      if (config.frequency === 'DAILY') return true
-      if (config.frequency === 'WEEKLY' && config.dayOfWeek === todayDayOfWeek) return true
-      if (config.frequency === 'MONTHLY') {
-        if (config.dayOfMonth === todayDayOfMonth) return true
-        // Fallback: se config pede dia que não existe no mês, usar último dia
-        const lastDayOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate()
-        if (config.dayOfMonth! > lastDayOfMonth && todayDayOfMonth === lastDayOfMonth) return true
-      }
-      return false
-    })
-
-    const totalExpected = configsDueToday.length
-    if (totalExpected === 0) return 100
-
-    // Contar quantas configs foram completadas hoje
-    let totalCompleted = 0
-
-    configsDueToday.forEach((config) => {
-      // Para ALIMENTACAO, verificar se mealType bate
-      const mealType = config.metadata && typeof config.metadata === 'object' && 'mealType' in config.metadata
-        ? (config.metadata as { mealType?: string }).mealType
-        : null
-
-      // Verificar se há registro hoje deste tipo para este residente
-      const hasRecord = safeAllRecordsToday.some((record: DailyRecord) => {
-        const matchesResident = record.residentId === config.residentId
-        const matchesType = record.type === config.recordType
-        const matchesDate = extractDateOnly(record.date) === today
-
-        // Se é ALIMENTACAO, verificar mealType também
-        if (config.recordType === 'ALIMENTACAO' && mealType) {
-          const recordMealType = record.data?.mealType
-          return matchesResident && matchesType && matchesDate && recordMealType === mealType
-        }
-
-        return matchesResident && matchesType && matchesDate
-      })
-
-      if (hasRecord) {
-        totalCompleted++
-      }
-    })
-
-    return Math.round((totalCompleted / totalExpected) * 100)
-  }, [safeScheduleConfigs, safeAllRecordsToday, today])
+  const mandatoryRecordsCoverage = scheduledRecordsStats?.compliancePercentage ?? 100
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -318,7 +261,7 @@ export function DailyRecordsOverviewStats({
         </Tooltip>
       </TooltipProvider>
 
-      {/* Card 4: Taxa de Cobertura Obrigatórios */}
+      {/* Card 4: Taxa de Cobertura Programados */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -327,7 +270,7 @@ export function DailyRecordsOverviewStats({
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-muted-foreground">
-                      Cobertura obrigatórios
+                      Cobertura programados
                     </h3>
                     <div className="mt-2 flex items-baseline gap-2">
                       <p className={`text-2xl font-bold ${
@@ -369,27 +312,10 @@ export function DailyRecordsOverviewStats({
             <p className="text-xs mb-2">
               Considera registros configurados no agendamento de cada residente.
             </p>
-            {safeScheduleConfigs.length > 0 ? (
+            {scheduledRecordsStats ? (
               <>
                 <p className="text-xs text-muted-foreground">
-                  {(() => {
-                    const todayDate = parseISO(`${today}T12:00:00.000`)
-                    const todayDayOfWeek = todayDate.getDay()
-                    const todayDayOfMonth = todayDate.getDate()
-
-                    const configsDueToday = safeScheduleConfigs.filter((config) => {
-                      if (config.frequency === 'DAILY') return true
-                      if (config.frequency === 'WEEKLY' && config.dayOfWeek === todayDayOfWeek) return true
-                      if (config.frequency === 'MONTHLY') {
-                        if (config.dayOfMonth === todayDayOfMonth) return true
-                        const lastDayOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth() + 1, 0).getDate()
-                        if (config.dayOfMonth! > lastDayOfMonth && todayDayOfMonth === lastDayOfMonth) return true
-                      }
-                      return false
-                    })
-
-                    return `${configsDueToday.length} ${configsDueToday.length === 1 ? 'registro obrigatório' : 'registros obrigatórios'} esperados hoje`
-                  })()}
+                  {`${scheduledRecordsStats.expected} ${scheduledRecordsStats.expected === 1 ? 'registro programado' : 'registros programados'} esperados hoje`}
                 </p>
                 <p className="text-xs mt-2 text-muted-foreground">
                   Meta: 80% ou mais
@@ -397,7 +323,7 @@ export function DailyRecordsOverviewStats({
               </>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Nenhuma configuração de registro obrigatório ativa
+                Sem estatísticas de registros programados disponíveis
               </p>
             )}
           </TooltipContent>

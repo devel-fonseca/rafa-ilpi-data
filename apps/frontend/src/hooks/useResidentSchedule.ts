@@ -37,6 +37,14 @@ import type {
   UpdateAlimentacaoConfigInput,
 } from '@/types/resident-schedule';
 
+export interface ScheduledRecordsStats {
+  date: string;
+  expected: number;
+  completed: number;
+  pending: number;
+  compliancePercentage: number;
+}
+
 // Alias para compatibilidade com código existente que usa RecordType
 export type { SchedulableRecordType as RecordType } from '@/types/resident-schedule';
 
@@ -79,6 +87,29 @@ export function useAllActiveScheduleConfigs(enabled: boolean = true) {
     },
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+/**
+ * Hook para buscar estatísticas canônicas de registros programados em uma data.
+ */
+export function useScheduledRecordsStats(
+  date?: string,
+  enabled: boolean = true,
+) {
+  return useQuery({
+    queryKey: tenantKey('scheduled-records', 'stats', date || 'today'),
+    queryFn: async () => {
+      const params = date ? { date } : {};
+      const response = await api.get<ScheduledRecordsStats>(
+        '/resident-schedule/scheduled-records/stats',
+        { params },
+      );
+      return response.data;
+    },
+    enabled,
+    staleTime: 1 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 }
 

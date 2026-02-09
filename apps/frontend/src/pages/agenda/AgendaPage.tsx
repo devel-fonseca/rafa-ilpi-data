@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import { format, addDays, subDays, parseISO } from 'date-fns'
+import { format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, parseISO } from 'date-fns'
 import { AgendaFilters } from '@/components/agenda/AgendaFilters'
 import { DailyView } from '@/components/agenda/DailyView'
 import { DailyViewInstitutional } from '@/components/agenda/DailyViewInstitutional'
@@ -20,6 +20,13 @@ const STORAGE_KEY = 'agenda-preferences'
 
 // Todos os filtros por padrão
 const ALL_FILTERS = Object.values(ContentFilterType)
+const MEDICATIONS_ONLY = [ContentFilterType.MEDICATIONS]
+const DELAY_RISK_FILTERS = [
+  ContentFilterType.MEDICATIONS,
+  ContentFilterType.FEEDING,
+  ContentFilterType.HYDRATION,
+  ContentFilterType.MONITORING,
+]
 
 export default function AgendaPage() {
   // Estado da agenda
@@ -92,8 +99,29 @@ export default function AgendaPage() {
   const items = scope === 'institutional' ? institutionalItems : agendaItems
   const isLoading = scope === 'institutional' ? isLoadingInstitutional : isLoadingAgenda
 
-  const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1))
-  const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1))
+  const handlePrevDay = () => {
+    if (viewType === 'weekly') {
+      setSelectedDate(subWeeks(selectedDate, 1))
+      return
+    }
+    if (viewType === 'monthly') {
+      setSelectedDate(subMonths(selectedDate, 1))
+      return
+    }
+    setSelectedDate(subDays(selectedDate, 1))
+  }
+
+  const handleNextDay = () => {
+    if (viewType === 'weekly') {
+      setSelectedDate(addWeeks(selectedDate, 1))
+      return
+    }
+    if (viewType === 'monthly') {
+      setSelectedDate(addMonths(selectedDate, 1))
+      return
+    }
+    setSelectedDate(addDays(selectedDate, 1))
+  }
   const handleToday = () => setSelectedDate(new Date())
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
@@ -105,11 +133,38 @@ export default function AgendaPage() {
     await createEvent.mutateAsync(data)
   }
 
+  const applyPreset = (preset: 'all' | 'pending' | 'medications' | 'delays') => {
+    if (preset === 'all') {
+      setStatusFilter('all')
+      if (scope !== 'institutional') {
+        setContentFilters(ALL_FILTERS)
+      }
+      return
+    }
+
+    if (preset === 'pending') {
+      setStatusFilter('pending')
+      return
+    }
+
+    if (scope === 'institutional') {
+      return
+    }
+
+    if (preset === 'medications') {
+      setContentFilters(MEDICATIONS_ONLY)
+      return
+    }
+
+    setStatusFilter('pending')
+    setContentFilters(DELAY_RISK_FILTERS)
+  }
+
   return (
     <Page>
       <PageHeader
         title="Agenda"
-        subtitle="Visualize medicamentos, agendamentos e registros obrigatórios"
+        subtitle="Visualize medicamentos, agendamentos e registros programados"
       />
 
       {/* Filtros */}
@@ -189,15 +244,70 @@ export default function AgendaPage() {
         </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => applyPreset('all')}
+          >
+            Ver tudo
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === 'pending' ? 'default' : 'outline'}
+            onClick={() => applyPreset('pending')}
+          >
+            Só pendentes
+          </Button>
+          {scope !== 'institutional' && (
+            <>
+              <Button
+                size="sm"
+                variant={
+                  contentFilters.length === MEDICATIONS_ONLY.length &&
+                  contentFilters.every((f) => MEDICATIONS_ONLY.includes(f))
+                    ? 'default'
+                    : 'outline'
+                }
+                onClick={() => applyPreset('medications')}
+              >
+                Só medicações
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => applyPreset('delays')}
+              >
+                Risco de atraso
+              </Button>
+            </>
+          )}
+        </div>
+
         {/* Conteúdo da Visualização */}
         {viewType === 'daily' && scope === 'general' && (
-          <DailyViewInstitutional items={items} isLoading={isLoading} />
+          <DailyViewInstitutional
+            items={items}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
         {viewType === 'daily' && scope === 'institutional' && (
-          <DailyViewInstitutional items={items} isLoading={isLoading} />
+          <DailyViewInstitutional
+            items={items}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
         {viewType === 'daily' && scope === 'resident' && (
-          <DailyView items={items} isLoading={isLoading} />
+          <DailyView
+            items={items}
+            isLoading={isLoading}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
         )}
         {viewType === 'weekly' && (
           <WeeklyView
