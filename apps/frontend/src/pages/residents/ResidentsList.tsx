@@ -7,9 +7,7 @@ import { ResidentHistoryDrawer } from '@/components/residents/ResidentHistoryDra
 import { ResidentDocumentsModal } from '@/components/residents/ResidentDocumentsModal'
 import { DeleteResidentModal } from '@/components/modals/DeleteResidentModal'
 import {
-  Page,
-  PageHeader,
-  Section,
+  EntityListPage,
   EmptyState,
   StatusBadge,
   AccessDenied,
@@ -71,6 +69,7 @@ export default function ResidentsList() {
   const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [dependencyFilter, setDependencyFilter] = useState<'ALL' | 'GRAU_I' | 'GRAU_II' | 'GRAU_III'>('ALL')
   const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [historyDrawer, setHistoryDrawer] = useState<{
@@ -90,7 +89,6 @@ export default function ResidentsList() {
     residentId: null,
   })
 
-  // Detectar state de navegação para abrir modal automaticamente após criação
   useEffect(() => {
     const state = location.state as { openDocumentsModal?: boolean; residentId?: string; residentName?: string } | null
     if (state?.openDocumentsModal && state?.residentId) {
@@ -99,7 +97,6 @@ export default function ResidentsList() {
         residentId: state.residentId,
         residentName: state.residentName,
       })
-      // Limpar state para evitar reabrir ao navegar de volta
       window.history.replaceState({}, document.title)
     }
   }, [location])
@@ -109,33 +106,31 @@ export default function ResidentsList() {
     limit: 10,
   })
 
-  // Verificar se o usuário tem permissão para gerenciar residentes
   const canManageResidents = hasPermission(PermissionType.CREATE_RESIDENTS) ||
                              hasPermission(PermissionType.UPDATE_RESIDENTS) ||
                              hasPermission(PermissionType.DELETE_RESIDENTS)
   const canViewBelongings = hasPermission(PermissionType.VIEW_BELONGINGS)
 
-  // Aplicar busca
   const handleSearch = () => {
     setQuery({
       ...query,
       search: searchTerm,
       status: statusFilter === 'ALL' ? undefined : statusFilter,
+      dependencyLevel: dependencyFilter === 'ALL' ? undefined : dependencyFilter,
       page: 1,
     })
   }
 
-  // Limpar filtros
   const handleClearFilters = () => {
     setSearchTerm('')
     setStatusFilter('ALL')
+    setDependencyFilter('ALL')
     setQuery({
       page: 1,
       limit: 10,
     })
   }
 
-  // Handler de sucesso após exclusão
   const handleDeleteSuccess = () => {
     toast({
       title: 'Sucesso',
@@ -143,11 +138,8 @@ export default function ResidentsList() {
     })
   }
 
-  // Calcular idade
   const calculateAge = (birthDate: string) => {
     const today = new Date()
-
-    // ✅ Usa extractDateOnly para evitar timezone shift em campo DATE
     const dayKey = extractDateOnly(birthDate)
     const birth = new Date(dayKey + 'T12:00:00')
     let age = today.getFullYear() - birth.getFullYear()
@@ -158,7 +150,6 @@ export default function ResidentsList() {
     return age
   }
 
-  // Obter cor do badge de status
   const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'info' | 'secondary' => {
     switch (status) {
       case 'ATIVO':
@@ -176,7 +167,6 @@ export default function ResidentsList() {
     }
   }
 
-  // Obter cor do badge de grau de dependência
   const getDependencyBadgeVariant = (level: DependencyLevel): 'success' | 'warning' | 'danger' => {
     switch (level) {
       case 'GRAU_I':
@@ -190,7 +180,6 @@ export default function ResidentsList() {
     }
   }
 
-  // Verificar se o usuário tem permissão para acessar a página
   if (!canManageResidents) {
     return (
       <AccessDenied message="Você não tem permissão para acessar a gestão de residentes." />
@@ -198,103 +187,121 @@ export default function ResidentsList() {
   }
 
   return (
-    <Page>
-      <PageHeader
-        title="Lista de Residentes"
-        subtitle="Consulte e gerencie os residentes cadastrados"
-        actions={
-          <Button onClick={() => navigate('/dashboard/residentes/new')}>
-            <Plus className="h-4 w-4" />
-            Novo Residente
-          </Button>
-        }
-      />
-
-      {/* Filters */}
-      <Section title="Filtros">
-        <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <Label htmlFor="search">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="Nome ou CPF..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
-                />
+    <>
+      <EntityListPage
+        pageHeader={{
+          title: 'Lista de Residentes',
+          subtitle: 'Consulte e gerencie os residentes cadastrados',
+          actions: (
+            <Button onClick={() => navigate('/dashboard/residentes/new')}>
+              <Plus className="h-4 w-4" />
+              Novo Residente
+            </Button>
+          ),
+        }}
+        filters={{
+          title: 'Filtros',
+          description: 'Refine a lista por busca, status e grau de dependência.',
+          defaultOpen: false,
+          content: (
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1">
+                <Label htmlFor="search">Buscar</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Nome ou CPF..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="w-48">
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">Todos</SelectItem>
-                  <SelectItem value="ATIVO">Ativos</SelectItem>
-                  <SelectItem value="INATIVO">Inativos</SelectItem>
-                  <SelectItem value="ALTA">Alta</SelectItem>
-                  <SelectItem value="OBITO">Óbito</SelectItem>
-                  <SelectItem value="TRANSFERIDO">Transferido</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="w-48">
+                <Label htmlFor="status">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Todos</SelectItem>
+                    <SelectItem value="ATIVO">Ativos</SelectItem>
+                    <SelectItem value="INATIVO">Inativos</SelectItem>
+                    <SelectItem value="ALTA">Alta</SelectItem>
+                    <SelectItem value="OBITO">Óbito</SelectItem>
+                    <SelectItem value="TRANSFERIDO">Transferido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Button onClick={handleSearch} variant="default">
-              Filtrar
-            </Button>
+              <div className="w-52">
+                <Label htmlFor="dependencyLevel">Dependência</Label>
+                <Select
+                  value={dependencyFilter}
+                  onValueChange={(value) => setDependencyFilter(value as 'ALL' | 'GRAU_I' | 'GRAU_II' | 'GRAU_III')}
+                >
+                  <SelectTrigger id="dependencyLevel">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Todos</SelectItem>
+                    <SelectItem value="GRAU_I">Grau I</SelectItem>
+                    <SelectItem value="GRAU_II">Grau II</SelectItem>
+                    <SelectItem value="GRAU_III">Grau III</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Button onClick={handleClearFilters} variant="outline">
-              Limpar
-            </Button>
-        </div>
-      </Section>
-
-      {/* Table */}
-      <Section
-        title="Lista de Residentes"
-        description={meta ? `${meta.total} residente${meta.total !== 1 ? 's' : ''} no total` : undefined}
-      >
-        {isLoading ? (
-          <LoadingSpinner message="Carregando residentes..." />
-        ) : error ? (
-          <EmptyState
-            icon={Users}
-            title="Erro ao carregar residentes"
-            description="Ocorreu um erro ao buscar os residentes. Tente novamente."
-            variant="error"
-          />
-        ) : residents.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="Nenhum residente encontrado"
-            description="Comece cadastrando o primeiro residente da instituição"
-            action={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/dashboard/residentes/new')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar primeiro residente
+              <Button onClick={handleSearch} variant="default">
+                Filtrar
               </Button>
-            }
-          />
-        ) : (
-          <div className="rounded-md border">{/* Wrapper for table with border */}
-            <>
+
+              <Button onClick={handleClearFilters} variant="outline">
+                Limpar
+              </Button>
+            </div>
+          ),
+        }}
+        list={{
+          title: 'Lista de Residentes',
+          description: meta ? `${meta.total} residente${meta.total !== 1 ? 's' : ''} no total` : undefined,
+          content: isLoading ? (
+            <LoadingSpinner message="Carregando residentes..." />
+          ) : error ? (
+            <EmptyState
+              icon={Users}
+              title="Erro ao carregar residentes"
+              description="Ocorreu um erro ao buscar os residentes. Tente novamente."
+              variant="error"
+            />
+          ) : residents.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Nenhum residente encontrado"
+              description="Comece cadastrando o primeiro residente da instituição"
+              action={(
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/dashboard/residentes/new')}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar primeiro residente
+                </Button>
+              )}
+            />
+          ) : (
+            <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                <TableHeader className="bg-primary/5">
+                  <TableRow className="border-b border-primary/10 hover:bg-primary/5">
+                    <TableHead className="w-12 h-10 py-2"></TableHead>
+                    <TableHead className="h-10 py-2">Nome</TableHead>
+                    <TableHead className="text-right h-10 py-2">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -429,7 +436,6 @@ export default function ResidentsList() {
                 </TableBody>
               </Table>
 
-              {/* Pagination */}
               {meta && meta.totalPages > 1 && (
                 <div className="flex items-center justify-between px-6 py-4 border-t">
                   <div className="text-sm text-muted-foreground">
@@ -458,12 +464,11 @@ export default function ResidentsList() {
                   </div>
                 </div>
               )}
-            </>
-          </div>
-        )}
-      </Section>
+            </div>
+          ),
+        }}
+      />
 
-      {/* Delete Confirmation Modal */}
       <DeleteResidentModal
         resident={residentToDelete}
         open={deleteModalOpen}
@@ -471,7 +476,6 @@ export default function ResidentsList() {
         onSuccess={handleDeleteSuccess}
       />
 
-      {/* Drawer de Histórico */}
       <ResidentHistoryDrawer
         residentId={historyDrawer.residentId || undefined}
         residentName={historyDrawer.residentName}
@@ -481,7 +485,6 @@ export default function ResidentsList() {
         }
       />
 
-      {/* Modal de Documentos */}
       {documentsModal.residentId && (
         <ResidentDocumentsModal
           isOpen={documentsModal.open}
@@ -492,6 +495,6 @@ export default function ResidentsList() {
           residentName={documentsModal.residentName || 'Residente'}
         />
       )}
-    </Page>
+    </>
   )
 }

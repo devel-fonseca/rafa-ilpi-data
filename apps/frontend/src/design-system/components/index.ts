@@ -15,10 +15,14 @@ export {
   PageHeader,
   Section,
   CollapsibleSection,
+  EntityListPage,
+  ResidentWorkspacePage,
   type PageProps,
   type PageHeaderProps,
   type SectionProps,
   type CollapsibleSectionProps,
+  type EntityListPageProps,
+  type ResidentWorkspacePageProps,
   type Breadcrumb,
   type BackButtonConfig,
 } from './layout'
@@ -29,6 +33,9 @@ export { EmptyState, type EmptyStateProps } from './data'
 // Componentes de feedback
 export { AccessDenied } from './feedback'
 export { LoadingSpinner } from './LoadingSpinner'
+
+// Componentes de overlay
+export { ActionDetailsSheet, type ActionDetailsSheetProps } from './overlay'
 
 // Componentes de ações
 export {

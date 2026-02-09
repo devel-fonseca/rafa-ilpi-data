@@ -350,6 +350,20 @@ class DailyReportPDFGenerator {
       const value = details[field]
       return typeof value === 'string' || typeof value === 'number' ? String(value) : ''
     }
+    const getNumberField = (field: string): number | null => {
+      const value = details[field]
+      if (typeof value === 'number' && Number.isFinite(value)) return value
+      if (typeof value === 'string') {
+        const parsed = Number(value.replace(',', '.'))
+        return Number.isFinite(parsed) ? parsed : null
+      }
+      return null
+    }
+    const getBooleanField = (field: string): boolean | null => {
+      const value = details[field]
+      if (typeof value === 'boolean') return value
+      return null
+    }
 
     let formatted = ''
 
@@ -373,16 +387,8 @@ class DailyReportPDFGenerator {
         }
         break
       case 'COMPORTAMENTO': {
-        const estado = getField('estadoEmocional')
-        const outroEstado = getField('outroEstado')
-        const obsComp = getField('observacoes')
-        if (!estado) {
-          formatted = 'Sem detalhes'
-        } else {
-          formatted = estado
-          if (estado === 'Outro' && outroEstado) formatted += ` (${outroEstado})`
-          if (obsComp) formatted += ` • ${obsComp}`
-        }
+        const descricao = getField('descricao')
+        formatted = descricao || 'Sem detalhes'
         break
       }
       case 'HUMOR': {
@@ -411,12 +417,66 @@ class DailyReportPDFGenerator {
         }
         break
       }
-      case 'ELIMINACAO':
-        formatted = `${getField('tipo') || 'N/A'} • ${getField('caracteristica')} ${getField('observacao')}`
+      case 'ELIMINACAO': {
+        const rawType = getField('tipo')
+        const eliminationType =
+          rawType === 'Urina'
+            ? 'Eliminação Urinária'
+            : rawType === 'Fezes'
+              ? 'Eliminação Intestinal'
+              : (rawType || 'N/A')
+        const parts: string[] = [eliminationType]
+
+        if (rawType === 'Fezes') {
+          const consistencia = getField('consistencia')
+          const cor = getField('cor')
+          const volume = getField('volume')
+          if (consistencia) parts.push(consistencia)
+          if (cor) parts.push(cor)
+          if (volume) parts.push(volume)
+        } else if (rawType === 'Urina') {
+          const cor = getField('cor')
+          const odor = getField('odor')
+          const volume = getField('volume')
+          if (cor) parts.push(cor)
+          if (odor && odor !== 'Normal') parts.push(`Odor: ${odor}`)
+          if (volume) parts.push(volume)
+        }
+
+        const trocaFralda = getBooleanField('trocaFralda')
+        if (trocaFralda === true) {
+          parts.push('Troca de fralda: Sim')
+        }
+
+        formatted = parts.join(' • ')
         break
-      case 'PESO':
-        formatted = `${getField('peso') || 'N/A'} kg • IMC: ${getField('imc') || 'N/A'}`
+      }
+      case 'PESO': {
+        const peso = getNumberField('peso')
+        const alturaRaw = getNumberField('altura')
+        const alturaMetros =
+          alturaRaw && alturaRaw > 0
+            ? (alturaRaw > 3 ? alturaRaw / 100 : alturaRaw)
+            : null
+        const alturaCm = alturaMetros ? Math.round(alturaMetros * 100) : null
+        const imcRaw = getNumberField('imc')
+        const imcCalculado =
+          peso && alturaMetros
+            ? peso / (alturaMetros * alturaMetros)
+            : null
+        const imc =
+          imcRaw && imcRaw > 0 && imcRaw < 150
+            ? imcRaw
+            : imcCalculado
+
+        const parts: string[] = []
+        parts.push(`${peso !== null ? peso : 'N/A'} kg`)
+        if (alturaCm !== null) parts.push(`${alturaCm} cm`)
+        parts.push(`IMC: ${imc !== null ? imc.toFixed(1) : 'N/A'}`)
+
+        formatted = parts.join(' • ')
         break
+      }
       case 'ATIVIDADES':
         formatted = getField('atividade') || getField('descricao') || 'Sem detalhes'
         break

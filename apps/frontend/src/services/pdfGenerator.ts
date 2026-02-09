@@ -417,9 +417,9 @@ function drawHygieneElimination(doc: jsPDF, records: DailyRecord[], startY: numb
     const urinaCount = eliminacaoRecords.filter(r => r.data?.tipo === 'Urina').length
     const fezesCount = eliminacaoRecords.filter(r => r.data?.tipo === 'Fezes').length
 
-    doc.text(`Urina: ${urinaCount}x`, MARGIN + colWidth + 7, textY)
+    doc.text(`Eliminação Urinária: ${urinaCount}x`, MARGIN + colWidth + 7, textY)
     textY += 3
-    doc.text(`Fezes: ${fezesCount}x`, MARGIN + colWidth + 7, textY)
+    doc.text(`Eliminação Intestinal: ${fezesCount}x`, MARGIN + colWidth + 7, textY)
 
     // Observações (limitadas)
     let obsCount = 0

@@ -280,7 +280,7 @@ export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Pro
 
   return (
     <>
-      <Card className="p-4 mb-6">
+      <Card className="p-4 mb-6 bg-primary/5 rounded-xl">
         <div className="relative">
           <div className="flex items-center gap-3">
             {/* Select de tipo de busca */}
