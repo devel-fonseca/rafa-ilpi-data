@@ -77,7 +77,7 @@ export function useResidentAlerts() {
     // NOTA: Alerta de dados antropométricos incompletos foi removido pois
     // bloodType, height, weight e dependencyLevel agora estão em tabelas separadas
     // (resident_blood_types, resident_anthropometry, resident_dependency_assessments)
-    // e são gerenciados no prontuário individual do residente via HealthDataSection.
+    // e são gerenciados no prontuário individual do residente via ClinicalProfileView.
 
     // 🔵 INFORMATIVOS
     const currentMonth = new Date().getMonth()
