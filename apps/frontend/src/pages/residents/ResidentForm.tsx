@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertCircle, FileText, Edit, History } from 'lucide-react'
+import { AlertCircle, FileText, Edit, History, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -594,7 +594,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         backButton={{ onClick: handleVoltar }}
         actions={
           <div className="flex gap-2">
-            {readOnly && (
+            {readOnly ? (
               <>
                 <Button onClick={() => navigate(`/dashboard/residentes/${id}`)} variant="default">
                   <FileText className="h-4 w-4 mr-2" />
@@ -609,12 +609,39 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                   Editar
                 </Button>
               </>
-            )}
-            {isEditMode && !readOnly && id && (
-              <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline" type="button">
-                <History className="h-4 w-4 mr-2" />
-                Histórico
-              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isUploading}
+                >
+                  Cancelar
+                </Button>
+                {isEditMode && id && (
+                  <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline" type="button">
+                    <History className="h-4 w-4 mr-2" />
+                    Histórico
+                  </Button>
+                )}
+                <Button
+                  type="submit"
+                  form="resident-form"
+                  disabled={isUploading || isLoading || hasResidentLoadError}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isEditMode ? 'Atualizando...' : 'Salvando...'}
+                    </>
+                  ) : isEditMode ? (
+                    'Salvar Alterações'
+                  ) : (
+                    'Criar Residente'
+                  )}
+                </Button>
+              </>
             )}
           </div>
         }
@@ -637,6 +664,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       ) : (
         <FormProvider {...methods}>
           <form
+            id="resident-form"
             onSubmit={handleSubmit(onSubmit, (errors) => {
               const firstError = Object.entries(errors)[0]
               if (firstError) {
@@ -697,12 +725,26 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
           {/* Split-View Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:items-start min-w-0">
-            {/* Sidebar */}
-            <FormSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-              isNewResident={!id}
-            />
+            {/* Sidebar + Card Informativo */}
+            <div className="space-y-4">
+              <FormSidebar
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
+                isNewResident={!id}
+              />
+
+              {/* Card Informativo - abaixo da navegação */}
+              {!readOnly && (
+                <Card className="bg-info/10 border-info/30">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-info">
+                      O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo{' '}
+                      <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
             {/* Content */}
             <Card className="min-w-0 overflow-hidden">
@@ -748,48 +790,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
           {isUploading && (
             <div className="text-center mt-6 p-4 bg-info/10 rounded-lg border border-info/30">
               <p className="text-info font-semibold">{uploadProgress}</p>
-            </div>
-          )}
-
-          {/* Card Informativo */}
-          {!readOnly && (
-            <Card className="bg-info/10 border-info/30 mt-6">
-              <CardContent className="p-4">
-                <p className="text-sm text-info">
-                  O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo{' '}
-                  <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Botões de Ação */}
-          {!readOnly && (
-            <div className="text-center space-x-4 mt-6">
-              <Button
-                type="submit"
-                disabled={isUploading || isLoading || hasResidentLoadError}
-                variant="default"
-                className="px-8 py-6 text-lg font-semibold"
-              >
-                {isUploading
-                  ? isEditMode
-                    ? 'Atualizando...'
-                    : 'Salvando...'
-                  : isEditMode
-                  ? 'Atualizar Residente'
-                  : 'Salvar Residente'}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isUploading}
-                className="px-8 py-6 text-lg"
-              >
-                Cancelar
-              </Button>
             </div>
           )}
           </form>

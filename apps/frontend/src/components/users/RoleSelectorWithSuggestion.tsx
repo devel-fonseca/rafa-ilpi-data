@@ -121,7 +121,7 @@ export function RoleSelectorWithSuggestion({
               ? 'bg-primary/5 dark:bg-primary/95 border-primary/30 dark:border-primary/80'
               : isDifferentFromSuggestion
                 ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800'
-                : 'bg-success/5 dark:bg-success/95 border-success/30 dark:border-success/80'
+                : 'bg-info/10 border-info/30'
           }
         >
           <div className="flex gap-2">
@@ -130,7 +130,7 @@ export function RoleSelectorWithSuggestion({
             ) : isDifferentFromSuggestion ? (
               <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
             ) : (
-              <CheckCircle2 className="h-4 w-4 text-success dark:text-success/40 mt-0.5" />
+              <CheckCircle2 className="h-4 w-4 text-info mt-0.5" />
             )}
             <div className="flex-1">
               <AlertDescription className="text-sm">
@@ -157,7 +157,7 @@ export function RoleSelectorWithSuggestion({
                 ) : (
                   <>
                     <p>
-                      <strong className="text-success/80 dark:text-success/30">
+                      <strong className="text-info">
                         ✓ Recomendação seguida:
                       </strong>{' '}
                       {recommendation.reason}

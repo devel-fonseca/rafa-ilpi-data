@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -11,13 +12,6 @@ import {
   POSITION_CODE_LABELS,
   POSITION_CODE_DESCRIPTIONS,
 } from '@/types/permissions';
-import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface PositionCodeSelectorProps {
   value?: PositionCode | string;
@@ -34,6 +28,10 @@ export function PositionCodeSelector({
   required = false,
   disabled = false,
 }: PositionCodeSelectorProps) {
+  const selectedDescription = value
+    ? POSITION_CODE_DESCRIPTIONS[value as PositionCode]
+    : null;
+
   return (
     <div className="space-y-2">
       <Label htmlFor="positionCode">
@@ -47,31 +45,34 @@ export function PositionCodeSelector({
         <SelectTrigger id="positionCode">
           <SelectValue placeholder="Selecione um cargo..." />
         </SelectTrigger>
-        <SelectContent className="max-h-[400px]">
+        <SelectContent className="max-h-[280px]">
           {Object.entries(PositionCode).map(([, code]) => (
-            <SelectItem key={code} value={code} className="py-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  <div className="font-medium">{POSITION_CODE_LABELS[code]}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {POSITION_CODE_DESCRIPTIONS[code]}
-                  </div>
+            <SelectItem
+              key={code}
+              value={code}
+              className="py-3"
+              textValue={POSITION_CODE_LABELS[code]}
+            >
+              <div>
+                <div className="font-medium">{POSITION_CODE_LABELS[code]}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {POSITION_CODE_DESCRIPTIONS[code]}
                 </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs">
-                      <p>{POSITION_CODE_DESCRIPTIONS[code]}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
+      {selectedDescription ? (
+        <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+          {selectedDescription}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          O cargo determina permissões técnicas e clínicas.
+        </p>
+      )}
     </div>
   );
 }

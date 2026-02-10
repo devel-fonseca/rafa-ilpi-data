@@ -25,7 +25,7 @@ interface ListConfig {
 
 export interface EntityListPageProps {
   pageHeader: Pick<PageHeaderProps, 'title' | 'subtitle' | 'actions' | 'badge' | 'breadcrumbs' | 'backButton'>
-  filters: FiltersConfig
+  filters?: FiltersConfig
   list: ListConfig
 }
 
@@ -38,7 +38,7 @@ export interface EntityListPageProps {
  * - Card de listagem com header destacado
  */
 export function EntityListPage({ pageHeader, filters, list }: EntityListPageProps) {
-  const [isFiltersOpen, setIsFiltersOpen] = React.useState(filters.defaultOpen ?? false)
+  const [isFiltersOpen, setIsFiltersOpen] = React.useState(filters?.defaultOpen ?? false)
 
   return (
     <Page>
@@ -51,26 +51,28 @@ export function EntityListPage({ pageHeader, filters, list }: EntityListPageProp
         backButton={pageHeader.backButton}
       />
 
-      <Section
-        title={filters.title ?? 'Filtros'}
-        description={filters.description}
-        className="overflow-hidden [&>div:first-child]:bg-primary/5"
-        headerAction={(
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setIsFiltersOpen((prev) => !prev)}
-            aria-label={isFiltersOpen ? 'Recolher filtros' : 'Expandir filtros'}
-          >
-            {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        )}
-      >
-        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-          <CollapsibleContent>{filters.content}</CollapsibleContent>
-        </Collapsible>
-      </Section>
+      {filters && (
+        <Section
+          title={filters.title ?? 'Filtros'}
+          description={filters.description}
+          className="overflow-hidden [&>div:first-child]:bg-primary/5"
+          headerAction={(
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setIsFiltersOpen((prev) => !prev)}
+              aria-label={isFiltersOpen ? 'Recolher filtros' : 'Expandir filtros'}
+            >
+              {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          )}
+        >
+          <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+            <CollapsibleContent>{filters.content}</CollapsibleContent>
+          </Collapsible>
+        </Section>
+      )}
 
       <Section
         title={list.title}
