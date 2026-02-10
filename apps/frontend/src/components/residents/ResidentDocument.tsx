@@ -18,7 +18,7 @@ import { PhotoViewer } from '@/components/form/PhotoViewer'
 import { InstitutionalHeader } from '@/components/print/InstitutionalHeader'
 import { SignatureFooter } from '@/components/print/SignatureFooter'
 
-interface ResidentData extends Omit<Resident, 'allergies'> {
+interface ResidentData extends Omit<Resident, 'allergies' | 'documents' | 'emergencyContacts' | 'healthPlans'> {
   photo?: { url: string; uploadedAt: string } | null
   documents?: string[] | null
   addressDocuments?: string[] | null
@@ -39,15 +39,15 @@ interface ResidentData extends Omit<Resident, 'allergies'> {
   bloodType?: string
   height?: number | string
   weight?: number | string
-  dependencyLevel?: string
+  dependencyLevel?: Resident['dependencyLevel']
   mobilityAid?: boolean
   // Alergias (estrutura diferente do Resident base)
   allergies?: Array<{ substance: string; [key: string]: unknown }> | null
   // Acomodação - objetos expandidos vindos do backend
-  bed?: { id: string; code: string; status?: string } | null
-  room?: { id: string; name: string; code?: string } | null
-  floor?: { id: string; name: string; code?: string } | null
-  building?: { id: string; name: string; code?: string } | null
+  bed?: { id: string; code: string; status?: string }
+  room?: { id: string; name: string; code?: string }
+  floor?: { id: string; name: string; code?: string }
+  building?: { id: string; name: string; code?: string }
 }
 
 interface ResidentDocumentProps {

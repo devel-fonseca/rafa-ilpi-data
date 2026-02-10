@@ -1,4 +1,3 @@
-import React from 'react'
 import { Eye } from 'lucide-react'
 import { formatDateLongSafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 import { ActionDetailsSheet } from '@/design-system/components'

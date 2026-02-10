@@ -32,35 +32,35 @@ export interface MedicalViewProps {
  */
 export interface ResidentWithAccommodation extends Resident {
   bed?: {
-    id: string
-    code: string
+    id?: string
+    code?: string
     room?: {
-      id: string
-      code: string
-      name: string
+      id?: string
+      code?: string
+      name?: string
       floor?: {
-        id: string
-        code: string
-        name: string
+        id?: string
+        code?: string
+        name?: string
         building?: {
-          id: string
-          code: string
-          name: string
+          id?: string
+          code?: string
+          name?: string
         }
       }
     }
   }
   room?: {
-    id: string
-    name: string
+    id?: string
+    name?: string
   }
   floor?: {
-    id: string
-    name: string
+    id?: string
+    name?: string
   }
   building?: {
-    id: string
-    name: string
+    id?: string
+    name?: string
   }
 }
 

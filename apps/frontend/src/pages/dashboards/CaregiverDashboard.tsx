@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
-import type { Medication } from '@/api/medications.api'
+import type {
+  Medication,
+  MedicationPresentation,
+  AdministrationRoute,
+} from '@/api/prescriptions.api'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
@@ -16,6 +20,7 @@ import { toast } from 'sonner'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
+import type { CreateDailyRecordInput, DailyRecordData } from '@/types/daily-records'
 
 // Modais de registro (reutilizando de DailyRecordsPage)
 import { HigieneModal } from '@/pages/daily-records/modals/HigieneModal'
@@ -32,6 +37,10 @@ import { AtividadesModal } from '@/pages/daily-records/modals/AtividadesModal'
 import { VisitaModal } from '@/pages/daily-records/modals/VisitaModal'
 import { OutrosModal } from '@/pages/daily-records/modals/OutrosModal'
 import { AdministerMedicationModal } from '@/pages/prescriptions/components/AdministerMedicationModal'
+
+type MedicationWithPreselectedTime = Medication & {
+  preselectedScheduledTime?: string
+}
 
 export function CaregiverDashboard() {
   const { user } = useAuthStore()
@@ -51,11 +60,11 @@ export function CaregiverDashboard() {
   const [currentResidentName, setCurrentResidentName] = useState<string>('')
 
   // Estado para modal de administração de medicação
-  const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null)
+  const [selectedMedication, setSelectedMedication] = useState<MedicationWithPreselectedTime | null>(null)
 
   // Mutation para criar registro
   const createMutation = useMutation({
-    mutationFn: async (recordData: Record<string, unknown>) => {
+    mutationFn: async (recordData: CreateDailyRecordInput<DailyRecordData>) => {
       return await api.post('/daily-records', recordData)
     },
     onSuccess: (response) => {
@@ -78,7 +87,7 @@ export function CaregiverDashboard() {
     },
   })
 
-  const handleCreateRecord = (recordData: Record<string, unknown>) => {
+  const handleCreateRecord = (recordData: CreateDailyRecordInput<DailyRecordData>) => {
     createMutation.mutate(recordData)
   }
 
@@ -109,12 +118,18 @@ export function CaregiverDashboard() {
       setSelectedMedication({
         id: medicationTask.medicationId,
         name: medicationTask.medicationName,
-        presentation: medicationTask.presentation,
+        presentation: medicationTask.presentation as MedicationPresentation,
         concentration: medicationTask.concentration,
         dose: medicationTask.dose,
-        route: medicationTask.route,
-        requiresDoubleCheck: medicationTask.requiresDoubleCheck,
+        route: medicationTask.route as AdministrationRoute,
+        requiresDoubleCheck: medicationTask.requiresDoubleCheck ?? false,
         scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
+        frequency: 'PERSONALIZADO',
+        startDate: today,
+        isControlled: false,
+        isHighRisk: false,
+        createdAt: '',
+        updatedAt: '',
         preselectedScheduledTime: scheduledTime, // Pré-selecionar o horário clicado
       })
     }
@@ -135,7 +150,7 @@ export function CaregiverDashboard() {
           icon={Loader2}
           title="Carregando tarefas do dia..."
           description="Aguarde enquanto buscamos suas tarefas"
-          variant="loading"
+          variant="info"
         />
       </Page>
     )

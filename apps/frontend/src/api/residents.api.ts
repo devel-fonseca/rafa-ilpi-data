@@ -85,6 +85,36 @@ export interface Resident {
   // Acomodação
   roomId?: string
   bedId?: string
+  /**
+   * Hierarquia nova (bed -> room -> floor -> building)
+   * Pode vir expandida em endpoints de listagem/visualização.
+   */
+  bed?: {
+    id?: string
+    code?: string
+    status?: string
+    room?: {
+      id?: string
+      name?: string
+      code?: string
+      floor?: {
+        id?: string
+        name?: string
+        code?: string
+        building?: {
+          id?: string
+          name?: string
+          code?: string
+        }
+      }
+    }
+  }
+  /**
+   * Fallback legado ainda usado em alguns payloads/telas.
+   */
+  room?: { id?: string; name?: string; code?: string }
+  floor?: { id?: string; name?: string; code?: string }
+  building?: { id?: string; name?: string; code?: string }
 
   // Status e controle
   status: string

@@ -6,21 +6,27 @@ import type { Bed } from '@/api/beds.api'
  */
 export interface ResidentWithBed {
   bed?: {
-    code?: string
+    code?: string | null
     room?: {
-      code?: string
+      code?: string | null
       floor?: {
-        code?: string
+        code?: string | null
         building?: {
-          code?: string
-        }
-      }
-    }
-  }
+          id?: string | null
+          name?: string | null
+          code?: string | null
+        } | null
+      } | null
+    } | null
+  } | null
   // Fallback para dados legados
-  building?: { code?: string }
-  floor?: { code?: string }
-  room?: { code?: string }
+  building?: {
+    id?: string | null
+    name?: string | null
+    code?: string | null
+  } | null
+  floor?: { code?: string | null } | null
+  room?: { code?: string | null } | null
 }
 
 export interface BedIdentificationParts {

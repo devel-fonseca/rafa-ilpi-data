@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Calendar, ChevronLeft, ChevronRight, Edit, Eye, History, PenLine, Trash2 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Edit, History, PenLine, Trash2 } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
@@ -167,10 +167,6 @@ export function DailyRecordsView({
         residentName={residentName}
         initialDate={parseISO(viewDate + 'T12:00:00')}
         onDateSelect={onDateChange}
-        onViewRecord={(record) => {
-          setCalendarModalOpen(false)
-          onViewRecord(record)
-        }}
       />
 
       {/* Conteúdo */}
@@ -221,7 +217,6 @@ export function DailyRecordsView({
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                       <span>Por {record.recordedBy}</span>

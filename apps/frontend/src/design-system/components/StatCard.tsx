@@ -7,7 +7,6 @@
  * @date 24 de novembro de 2025
  */
 
-import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'

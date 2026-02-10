@@ -60,7 +60,7 @@ export function CreatePlanDialog({ trigger }: CreatePlanDialogProps) {
   const [newFeature, setNewFeature] = useState('')
 
   // Gerar nome técnico automaticamente baseado no displayName
-  const generateTechnicalName = (displayName: string, type: PlanType, cycle: BillingCycle): string => {
+  const generateTechnicalName = (displayName: string, _type: PlanType, cycle: BillingCycle): string => {
     const cleanName = displayName
       .toLowerCase()
       .normalize('NFD')

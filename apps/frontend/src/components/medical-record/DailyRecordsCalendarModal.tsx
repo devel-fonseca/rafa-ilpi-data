@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Calendar, Eye, Loader2 } from 'lucide-react'
+import { Calendar, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { api } from '@/services/api'
@@ -32,7 +32,6 @@ interface DailyRecordsCalendarModalProps {
   residentName: string
   initialDate?: Date
   onDateSelect?: (date: string) => void
-  onViewRecord?: (record: DailyRecord) => void
 }
 
 // ========== COMPONENT ==========
@@ -44,7 +43,6 @@ export function DailyRecordsCalendarModal({
   residentName,
   initialDate,
   onDateSelect,
-  onViewRecord,
 }: DailyRecordsCalendarModalProps) {
   const [selectedDate, setSelectedDate] = useState(initialDate || new Date())
   const [currentYear, setCurrentYear] = useState(
@@ -108,12 +106,6 @@ export function DailyRecordsCalendarModal({
     onOpenChange(false)
   }
 
-  const handleRecordClick = (record: DailyRecord) => {
-    if (onViewRecord) {
-      onViewRecord(record)
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -158,8 +150,7 @@ export function DailyRecordsCalendarModal({
                     {records.map((record: DailyRecord) => (
                       <div
                         key={record.id}
-                        onClick={() => handleRecordClick(record)}
-                        className={`border-l-4 pl-4 py-2 rounded-r-md cursor-pointer transition-all hover:shadow-md ${getRecordTypeLabel(record.type).bgColor}`}
+                        className={`border-l-4 pl-4 py-2 rounded-r-md ${getRecordTypeLabel(record.type).bgColor}`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-semibold text-base min-w-[50px]">
@@ -171,7 +162,6 @@ export function DailyRecordsCalendarModal({
                           >
                             {getRecordTypeLabel(record.type).label}
                           </Badge>
-                          <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                           <span>Registrado por {record.recordedBy}</span>

@@ -213,7 +213,7 @@ export function useChangePlan() {
   return useMutation({
     mutationFn: ({ tenantId, data }: { tenantId: string; data: ChangePlanData }) =>
       changePlan(tenantId, data),
-    onSuccess: (newSubscription, variables) => {
+    onSuccess: (_newSubscription, variables) => {
       // Invalidar tenant
       queryClient.invalidateQueries({
         queryKey: ['superadmin', 'tenant', variables.tenantId],

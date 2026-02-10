@@ -1,4 +1,3 @@
-import React from 'react'
 import { LineChart, Line, ResponsiveContainer, YAxis, Tooltip } from 'recharts'
 
 interface SparklineProps {

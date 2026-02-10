@@ -421,7 +421,7 @@ export function invalidateAfterPrescriptionMutation(
  */
 export function invalidateAfterBedMutation(
   queryClient: QueryClient,
-  bedIds?: string[],
+  _bedIds?: string[],
   residentId?: string
 ) {
   console.log('🔄 Invalidando queries de beds')

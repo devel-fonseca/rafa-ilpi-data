@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -42,12 +42,12 @@ import {
   type ResidentBelonging,
 } from '@/types/belongings'
 
-const formSchema = z.object({
-  category: z.nativeEnum(BelongingCategory, { required_error: 'Selecione uma categoria' }),
+const baseFormSchema = z.object({
+  category: z.nativeEnum(BelongingCategory, { message: 'Selecione uma categoria' }),
   description: z.string().min(1, 'Descrição é obrigatória').max(255),
   brandModel: z.string().max(100).optional(),
-  quantity: z.coerce.number().min(1, 'Quantidade mínima é 1').default(1),
-  conservationState: z.nativeEnum(ConservationState, { required_error: 'Selecione o estado' }),
+  quantity: z.coerce.number().min(1, 'Quantidade mínima é 1'),
+  conservationState: z.nativeEnum(ConservationState, { message: 'Selecione o estado' }),
   identification: z.string().max(100).optional(),
   declaredValue: z.coerce.number().min(0).optional(),
   storageLocation: z.string().max(100).optional(),
@@ -58,7 +58,7 @@ const formSchema = z.object({
   changeReason: z.string().min(10, 'Motivo deve ter no mínimo 10 caracteres').optional(),
 })
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<typeof baseFormSchema>
 
 interface BelongingFormDialogProps {
   open: boolean
@@ -75,15 +75,18 @@ export function BelongingFormDialog({
 }: BelongingFormDialogProps) {
   const queryClient = useQueryClient()
   const isEditing = !!belonging
+  const formSchema = baseFormSchema.superRefine((data, ctx) => {
+    if (isEditing && (!data.changeReason || data.changeReason.trim().length < 10)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['changeReason'],
+        message: 'Motivo deve ter no mínimo 10 caracteres',
+      })
+    }
+  })
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(
-      isEditing
-        ? formSchema.extend({
-            changeReason: z.string().min(10, 'Motivo deve ter no mínimo 10 caracteres'),
-          })
-        : formSchema,
-    ),
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: {
       quantity: 1,
       entryDate: format(new Date(), 'yyyy-MM-dd'),

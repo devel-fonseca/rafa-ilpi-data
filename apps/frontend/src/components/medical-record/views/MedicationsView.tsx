@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Calendar, ChevronLeft, ChevronRight, Edit, Eye, History, PenLine, Pill, Trash2 } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Edit, History, PenLine, Pill, Trash2 } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { api } from '@/services/api'
 import { tenantKey } from '@/lib/query-keys'
@@ -210,15 +210,13 @@ export function MedicationsView({
                     : admin.wasAdministered
                     ? 'bg-success/5 border-success'
                     : 'bg-danger/5 border-danger'
-                }`}
+                } ${onViewAdministration ? 'cursor-pointer' : ''}`}
+                onClick={() => onViewAdministration?.(admin)}
               >
                 {/* Linha 1: Horário, Status e Botões de Ação */}
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  {/* Conteúdo principal - clicável para visualizar */}
-                  <div
-                    className={`flex flex-col gap-1 flex-1 ${onViewAdministration ? 'cursor-pointer' : ''}`}
-                    onClick={() => onViewAdministration?.(admin)}
-                  >
+                  {/* Conteúdo principal */}
+                  <div className="flex flex-col gap-1 flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="font-semibold text-base min-w-[50px]">
                         {admin.scheduledTime || admin.actualTime || 'SOS'}
@@ -247,12 +245,9 @@ export function MedicationsView({
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            Última edição: {formatDateTimeSafe(admin.updatedAt)}
+                            Última edição: {admin.updatedAt ? formatDateTimeSafe(admin.updatedAt) : '-'}
                           </TooltipContent>
                         </Tooltip>
-                      )}
-                      {onViewAdministration && (
-                        <Eye className="h-4 w-4 text-muted-foreground ml-auto" />
                       )}
                     </div>
                   </div>

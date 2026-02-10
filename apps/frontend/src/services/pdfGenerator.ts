@@ -58,20 +58,6 @@ const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN
 // ==================== FUNÇÕES AUXILIARES ====================
 
 /**
- * Agrupa registros por tipo
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function groupRecordsByType(records: DailyRecord[]): Record<string, DailyRecord[]> {
-  return records.reduce((acc, record) => {
-    if (!acc[record.type]) {
-      acc[record.type] = []
-    }
-    acc[record.type].push(record)
-    return acc
-  }, {} as Record<string, DailyRecord[]>)
-}
-
-/**
  * Calcula idade a partir da data de nascimento
  */
 function calculateAge(birthDate: string): number {

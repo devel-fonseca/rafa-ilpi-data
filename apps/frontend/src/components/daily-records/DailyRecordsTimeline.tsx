@@ -48,7 +48,7 @@ export function DailyRecordsTimeline({ records, onRecordClick }: DailyRecordsTim
       </div>
 
       {/* Linha do tempo */}
-      <div className="relative h-2 bg-muted rounded-full">
+      <div className="relative h-1 bg-muted rounded-full">
         {/* Linha principal */}
         <div className="absolute inset-0 bg-gradient-to-r from-muted-foreground/20 via-muted-foreground/30 to-muted-foreground/20 rounded-full" />
 
@@ -56,7 +56,7 @@ export function DailyRecordsTimeline({ records, onRecordClick }: DailyRecordsTim
         {[25, 50, 75].map((position) => (
           <div
             key={position}
-            className="absolute top-0 h-2 w-0.5 bg-muted-foreground/40"
+            className="absolute top-0 h-1 w-px bg-muted-foreground/40"
             style={{ left: `${position}%` }}
           />
         ))}
@@ -68,7 +68,7 @@ export function DailyRecordsTimeline({ records, onRecordClick }: DailyRecordsTim
               <TooltipTrigger asChild>
                 <button
                   onClick={() => onRecordClick?.(item.record)}
-                  className="absolute -top-2 -translate-x-1/2 w-6 h-6 rounded-full border-2 border-background shadow-md transition-all hover:scale-125 hover:shadow-lg hover:z-10 cursor-pointer"
+                  className="absolute -top-1.5 -translate-x-1/2 w-4 h-4 rounded-full border border-background shadow-sm transition-all hover:scale-125 hover:shadow-md hover:z-10 cursor-pointer"
                   style={{
                     left: `${item.percentage}%`,
                     backgroundColor: item.color,

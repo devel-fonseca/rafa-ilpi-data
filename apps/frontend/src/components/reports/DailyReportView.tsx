@@ -15,9 +15,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import type { DailyReport, MultiDayReport, ShiftReport } from '@/types/reports'
+import type { DailyReport, DailyRecordReport, MultiDayReport, ShiftReport } from '@/types/reports'
 import { formatDateOnlySafe, getCurrentDateTime } from '@/utils/dateHelpers'
-import { RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { getRecordTypeLabel, RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
 import {
   Bath,
   Utensils,
@@ -159,7 +159,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
   const reportDateLabel = formatDateOnlySafe(summary.date)
   const generatedAtLabel = getCurrentDateTime()
 
-  const getResidentKey = (record: DailyRecord) =>
+  const getResidentKey = (record: DailyRecordReport) =>
     record.residentCpf || record.residentCns || record.residentName
   const complianceMap = new Map(
     (summary.compliance ?? []).map((metric) => [metric.recordType, metric]),
@@ -183,10 +183,10 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
     const labelConfig = getRecordTypeLabel(category.styleType)
     const labelClasses = (labelConfig?.bgColor ?? 'bg-muted border-border').split(' ').filter(Boolean)
     const headerBgClasses = labelClasses
-      .filter((cls) => cls.startsWith('bg-') || cls.startsWith('dark:bg-'))
+      .filter((cls: string) => cls.startsWith('bg-') || cls.startsWith('dark:bg-'))
       .join(' ')
     const borderClasses = labelClasses
-      .filter((cls) => cls.startsWith('border-') || cls.startsWith('dark:border-'))
+      .filter((cls: string) => cls.startsWith('border-') || cls.startsWith('dark:border-'))
       .join(' ')
     return (
       <Collapsible
@@ -274,7 +274,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{record.bedCode}</TableCell>
                           <TableCell className="text-xs">
-                            {getRecordTypeLabel(record.type)}
+                            {getRecordTypeText(record.type)}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{record.time}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{record.recordedBy}</TableCell>
@@ -364,7 +364,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
 
 
 
-  const getRecordTypeLabel = (type: string) => {
+  const getRecordTypeText = (type: string) => {
     const labelMap: Record<string, string> = {
       HIGIENE: 'Higiene',
       ALIMENTACAO: 'Alimentação',

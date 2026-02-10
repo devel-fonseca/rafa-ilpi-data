@@ -36,6 +36,9 @@ export type RecordType =
   | 'MONITORAMENTO'
   | 'ELIMINACAO'
   | 'COMPORTAMENTO'
+  | 'HUMOR'
+  | 'SONO'
+  | 'PESO'
   | 'INTERCORRENCIA'
   | 'ATIVIDADES'
   | 'VISITA'
@@ -132,6 +135,21 @@ export const RECORD_TYPE_CONFIG: Record<
     label: 'Comportamento',
     color: 'text-purple-700',
     bgColor: 'bg-purple-100 border-purple-300',
+  },
+  HUMOR: {
+    label: 'Humor',
+    color: 'text-pink-700',
+    bgColor: 'bg-pink-100 border-pink-300',
+  },
+  SONO: {
+    label: 'Sono',
+    color: 'text-indigo-700',
+    bgColor: 'bg-indigo-100 border-indigo-300',
+  },
+  PESO: {
+    label: 'Peso e Altura',
+    color: 'text-slate-700',
+    bgColor: 'bg-slate-100 border-slate-300',
   },
   INTERCORRENCIA: {
     label: 'Intercorrência',

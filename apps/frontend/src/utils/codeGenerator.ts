@@ -171,7 +171,7 @@ export function generateRoomCode(
 export function generateBedCode(
   name: string,
   existingCodes: string[],
-  bedNumber?: number,
+  _bedNumber?: number,
   useLetters: boolean = true
 ): string {
   const normalized = normalizeText(name)

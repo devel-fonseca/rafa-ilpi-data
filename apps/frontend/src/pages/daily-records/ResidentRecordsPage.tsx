@@ -8,7 +8,14 @@ import { useConditionsByResident } from '@/hooks/useConditions'
 import type { Allergy } from '@/api/allergies.api'
 import type { Condition } from '@/api/conditions.api'
 import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
-import type { DailyRecord, AlimentacaoData, HidratacaoData, MonitoramentoData } from '@/types/daily-records'
+import type {
+  DailyRecord,
+  AlimentacaoData,
+  HidratacaoData,
+  MonitoramentoData,
+  CreateDailyRecordInput,
+  DailyRecordData,
+} from '@/types/daily-records'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { useDailyRecordsRealtime } from '@/hooks/useDailyRecordsRealtime'
 import { useLatestAnthropometry } from '@/hooks/useResidentHealth'
@@ -136,7 +143,7 @@ export default function ResidentRecordsPage() {
 
   // Mutation para criar registro
   const createMutation = useMutation({
-    mutationFn: async (data: Partial<DailyRecord>) => {
+    mutationFn: async (data: CreateDailyRecordInput<DailyRecordData>) => {
       return await api.post('/daily-records', data)
     },
     onSuccess: (response) => {
@@ -155,7 +162,7 @@ export default function ResidentRecordsPage() {
     },
   })
 
-  const handleCreateRecord = (data: Partial<DailyRecord>) => {
+  const handleCreateRecord = (data: CreateDailyRecordInput<DailyRecordData>) => {
     createMutation.mutate(data)
   }
 
@@ -944,7 +951,9 @@ export default function ResidentRecordsPage() {
           residentName={resident?.fullName || ''}
           date={selectedDate}
           currentUserName={user?.name || ''}
-          existingRecords={(records as DailyRecord[] | undefined)?.filter((r) => r.type === 'ALIMENTACAO') || []}
+          existingRecords={((records as DailyRecord[] | undefined) || [])
+            .filter((r) => r.type === 'ALIMENTACAO' && typeof (r.data as AlimentacaoData)?.refeicao === 'string')
+            .map((r) => ({ data: { refeicao: String((r.data as AlimentacaoData).refeicao) } }))}
           defaultMealType={selectedMealType}
         />
       )}
@@ -1075,7 +1084,7 @@ export default function ResidentRecordsPage() {
         <ViewHigieneModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1083,7 +1092,7 @@ export default function ResidentRecordsPage() {
         <ViewAlimentacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1091,7 +1100,7 @@ export default function ResidentRecordsPage() {
         <ViewHidratacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1099,7 +1108,7 @@ export default function ResidentRecordsPage() {
         <ViewMonitoramentoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1107,7 +1116,7 @@ export default function ResidentRecordsPage() {
         <ViewEliminacaoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1115,7 +1124,7 @@ export default function ResidentRecordsPage() {
         <ViewComportamentoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1123,7 +1132,7 @@ export default function ResidentRecordsPage() {
         <ViewHumorModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1131,7 +1140,7 @@ export default function ResidentRecordsPage() {
         <ViewSonoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1139,7 +1148,7 @@ export default function ResidentRecordsPage() {
         <ViewPesoModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1147,7 +1156,7 @@ export default function ResidentRecordsPage() {
         <ViewIntercorrenciaModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1155,7 +1164,7 @@ export default function ResidentRecordsPage() {
         <ViewAtividadesModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1163,7 +1172,7 @@ export default function ResidentRecordsPage() {
         <ViewVisitaModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
 
@@ -1171,7 +1180,7 @@ export default function ResidentRecordsPage() {
         <ViewOutrosModal
           open={viewModalOpen}
           onClose={() => setViewModalOpen(false)}
-          record={viewingRecord}
+          record={viewingRecord as unknown as any}
         />
       )}
     </Page>
