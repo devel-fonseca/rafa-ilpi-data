@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import type {
   Shift,
   ShiftHistory,
+  ShiftHandover,
   ListShiftsQueryDto,
   CreateShiftDto,
   UpdateShiftDto,
@@ -13,6 +14,7 @@ import type {
   SubstituteTeamDto,
   SubstituteMemberDto,
   AddMemberDto,
+  CreateHandoverDto,
   ShiftResponse,
 } from '../../types/care-shifts/care-shifts';
 import type {
@@ -24,6 +26,18 @@ import type {
 
 const BASE_URL = '/care-shifts';
 const RDC_URL = '/care-shifts/rdc';
+
+/**
+ * Tradeoff de compatibilidade: o backend do módulo alterna entre retorno
+ * direto (`Shift`) e envelopado (`{ shift: Shift }`) em alguns endpoints.
+ * Este helper evita quebra de UI durante a padronização do contrato.
+ */
+function unwrapShiftResponse(payload: Shift | ShiftResponse): Shift {
+  if (payload && typeof payload === 'object' && 'shift' in payload) {
+    return payload.shift;
+  }
+  return payload as Shift;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // CRUD de Plantões
@@ -43,16 +57,16 @@ export const listShifts = async (
  * Buscar plantão por ID (com membros e histórico)
  */
 export const getShiftById = async (id: string): Promise<Shift> => {
-  const response = await api.get<ShiftResponse>(`${BASE_URL}/${id}`);
-  return response.data.shift;
+  const response = await api.get<Shift | ShiftResponse>(`${BASE_URL}/${id}`);
+  return unwrapShiftResponse(response.data);
 };
 
 /**
  * Criar plantão manual
  */
 export const createShift = async (data: CreateShiftDto): Promise<Shift> => {
-  const response = await api.post<ShiftResponse>(BASE_URL, data);
-  return response.data.shift;
+  const response = await api.post<Shift | ShiftResponse>(BASE_URL, data);
+  return unwrapShiftResponse(response.data);
 };
 
 /**
@@ -62,8 +76,8 @@ export const updateShift = async (
   id: string,
   data: UpdateShiftDto,
 ): Promise<Shift> => {
-  const response = await api.patch<ShiftResponse>(`${BASE_URL}/${id}`, data);
-  return response.data.shift;
+  const response = await api.patch<Shift | ShiftResponse>(`${BASE_URL}/${id}`, data);
+  return unwrapShiftResponse(response.data);
 };
 
 /**
@@ -84,11 +98,11 @@ export const assignTeamToShift = async (
   shiftId: string,
   data: AssignTeamDto,
 ): Promise<Shift> => {
-  const response = await api.post<ShiftResponse>(
+  const response = await api.post<Shift | ShiftResponse>(
     `${BASE_URL}/${shiftId}/assign-team`,
     data,
   );
-  return response.data.shift;
+  return unwrapShiftResponse(response.data);
 };
 
 /**
@@ -98,11 +112,11 @@ export const substituteTeam = async (
   shiftId: string,
   data: SubstituteTeamDto,
 ): Promise<Shift> => {
-  const response = await api.post<ShiftResponse>(
+  const response = await api.post<Shift | ShiftResponse>(
     `${BASE_URL}/${shiftId}/substitute-team`,
     data,
   );
-  return response.data.shift;
+  return unwrapShiftResponse(response.data);
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -116,11 +130,11 @@ export const substituteMember = async (
   shiftId: string,
   data: SubstituteMemberDto,
 ): Promise<Shift> => {
-  const response = await api.post<ShiftResponse>(
+  const response = await api.post<Shift | ShiftResponse>(
     `${BASE_URL}/${shiftId}/substitute-member`,
     data,
   );
-  return response.data.shift;
+  return unwrapShiftResponse(response.data);
 };
 
 /**
@@ -130,11 +144,11 @@ export const addMember = async (
   shiftId: string,
   data: AddMemberDto,
 ): Promise<Shift> => {
-  const response = await api.post<ShiftResponse>(
+  const response = await api.post<Shift | ShiftResponse>(
     `${BASE_URL}/${shiftId}/add-member`,
     data,
   );
-  return response.data.shift;
+  return unwrapShiftResponse(response.data);
 };
 
 /**
@@ -159,6 +173,51 @@ export const getShiftHistory = async (shiftId: string): Promise<ShiftHistory[]> 
     `${BASE_URL}/${shiftId}/history`,
   );
   return response.data.history;
+};
+
+// ────────────────────────────────────────────────────────────────────────────
+// Check-in e Handover
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Fazer check-in do plantão (CONFIRMED → IN_PROGRESS)
+ * Apenas Líder ou Suplente podem fazer check-in
+ */
+export const checkInShift = async (shiftId: string): Promise<Shift> => {
+  const response = await api.post<Shift | ShiftResponse>(`${BASE_URL}/${shiftId}/check-in`);
+  return unwrapShiftResponse(response.data);
+};
+
+/**
+ * Fazer passagem de plantão (handover)
+ * Apenas Líder ou Suplente podem fazer handover
+ */
+export const handoverShift = async (
+  shiftId: string,
+  data: CreateHandoverDto,
+): Promise<Shift> => {
+  const response = await api.post<Shift | ShiftResponse>(`${BASE_URL}/${shiftId}/handover`, data);
+  return unwrapShiftResponse(response.data);
+};
+
+/**
+ * Buscar passagem de plantão de um plantão específico
+ */
+export const getShiftHandover = async (shiftId: string): Promise<ShiftHandover> => {
+  const response = await api.get<ShiftHandover>(`${BASE_URL}/${shiftId}/handover`);
+  return response.data;
+};
+
+/**
+ * Atualizar notas do plantão
+ * Permite que o líder/suplente registre observações durante o turno
+ */
+export const updateShiftNotes = async (
+  shiftId: string,
+  notes: string | undefined,
+): Promise<Shift> => {
+  const response = await api.patch<Shift | ShiftResponse>(`${BASE_URL}/${shiftId}/notes`, { notes });
+  return unwrapShiftResponse(response.data);
 };
 
 // ────────────────────────────────────────────────────────────────────────────

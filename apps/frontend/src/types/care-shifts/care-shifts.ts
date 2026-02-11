@@ -57,11 +57,60 @@ export interface Shift {
   team: Team | null;
   members: ShiftAssignment[];
   substitutions: ShiftSubstitution[];
+  // Check-in data
+  checkedInAt: string | null;
+  checkedInBy: string | null;
+  // Handover relation
+  handover?: ShiftHandover | null;
   createdBy: string;
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+}
+
+/**
+ * Passagem de plantão
+ */
+export interface ShiftHandover {
+  id: string;
+  tenantId: string;
+  shiftId: string;
+  handedOverBy: string;
+  receivedBy: string | null;
+  report: string;
+  activitiesSnapshot: ActivitiesSnapshot;
+  createdAt: string;
+  // Enriched data
+  handedOverByUser?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  receivedByUser?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+}
+
+/**
+ * Snapshot de atividades do turno
+ */
+export interface ActivitiesSnapshot {
+  shiftId: string;
+  date: string;
+  totalRecords: number;
+  byType: Array<{
+    type: string;
+    count: number;
+    records: Array<{
+      id: string;
+      residentId: string;
+      time: string;
+    }>;
+  }>;
+  generatedAt: string;
 }
 
 /**
@@ -163,6 +212,11 @@ export interface SubstituteMemberDto {
 export interface AddMemberDto {
   userId: string;
   reason: string;
+}
+
+export interface CreateHandoverDto {
+  report: string;
+  receivedBy?: string;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

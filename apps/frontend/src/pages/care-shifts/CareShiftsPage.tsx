@@ -2,8 +2,9 @@
 //  PAGE - CareShiftsPage (Página Principal do Módulo de Escalas)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
-import { Users, Calendar, Settings, ClipboardCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Users, Calendar, Settings, ClipboardCheck, History } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Page, PageHeader } from '@/design-system/components';
 import { TeamsViewTab } from './TeamsViewTab';
@@ -11,9 +12,25 @@ import { ShiftsViewTab } from './ShiftsViewTab';
 import { ShiftsCalendarTab } from './ShiftsCalendarTab';
 import { TurnsConfigTab } from './TurnsConfigTab';
 import { CoverageReportTab } from './CoverageReportTab';
+import { ShiftsHistoryTab } from './ShiftsHistoryTab';
+
+const VALID_TABS = ['calendar', 'shifts', 'teams', 'turns-config', 'coverage', 'history'];
 
 export default function CareShiftsPage() {
-  const [activeTab, setActiveTab] = useState('calendar');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab = tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'calendar';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Sincronizar URL quando tab muda
+  useEffect(() => {
+    if (activeTab !== 'calendar') {
+      setSearchParams({ tab: activeTab }, { replace: true });
+    } else {
+      // Remover param se for a tab default
+      setSearchParams({}, { replace: true });
+    }
+  }, [activeTab, setSearchParams]);
 
   return (
     <Page>
@@ -23,7 +40,7 @@ export default function CareShiftsPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Calendário</span>
@@ -43,6 +60,10 @@ export default function CareShiftsPage() {
           <TabsTrigger value="coverage" className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Cobertura</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
         </TabsList>
 
@@ -69,6 +90,11 @@ export default function CareShiftsPage() {
         {/* Aba de Cobertura */}
         <TabsContent value="coverage">
           <CoverageReportTab />
+        </TabsContent>
+
+        {/* Aba de Histórico */}
+        <TabsContent value="history">
+          <ShiftsHistoryTab />
         </TabsContent>
       </Tabs>
     </Page>

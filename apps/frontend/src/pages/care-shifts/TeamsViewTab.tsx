@@ -8,7 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +35,7 @@ import { POSITION_CODE_LABELS, PositionCode } from '@/types/permissions';
 export function TeamsViewTab() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(undefined);
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
-  const [memberRole, setMemberRole] = useState('');
+  const [memberRole, setMemberRole] = useState('Membro');
   const [removingMember, setRemovingMember] = useState<TeamMember | undefined>(undefined);
 
   // Permissões
@@ -49,7 +55,7 @@ export function TeamsViewTab() {
   const handleTeamSelect = (team: Team) => {
     setSelectedTeamId(team.id);
     setSelectedUserId(undefined);
-    setMemberRole('');
+    setMemberRole('Membro');
   };
 
   const handleAddMember = async () => {
@@ -60,11 +66,11 @@ export function TeamsViewTab() {
         teamId: selectedTeamId,
         data: {
           userId: selectedUserId,
-          role: memberRole || undefined,
+          role: memberRole,
         },
       });
       setSelectedUserId(undefined);
-      setMemberRole('');
+      setMemberRole('Membro');
     } catch (error) {
       // Erro tratado pelo hook
     }
@@ -160,14 +166,23 @@ export function TeamsViewTab() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">Função (opcional)</Label>
-                    <Input
-                      id="role"
+                    <Label htmlFor="role">Função na Equipe</Label>
+                    <Select
                       value={memberRole}
-                      onChange={(e) => setMemberRole(e.target.value)}
-                      placeholder="Ex: Líder, Suplente"
-                      maxLength={50}
-                    />
+                      onValueChange={setMemberRole}
+                    >
+                      <SelectTrigger id="role">
+                        <SelectValue placeholder="Selecione a função" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Membro">Membro</SelectItem>
+                        <SelectItem value="Líder">Líder</SelectItem>
+                        <SelectItem value="Suplente">Suplente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Líder e Suplente podem fazer check-in e passagem de plantão
+                    </p>
                   </div>
 
                   <Button

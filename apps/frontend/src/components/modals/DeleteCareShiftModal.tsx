@@ -25,6 +25,7 @@ import { deleteShift } from '@/api/care-shifts/care-shifts.api'
 import type { Shift } from '@/types/care-shifts/care-shifts'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
+import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 
 // ========== VALIDATION SCHEMA ==========
 
@@ -159,7 +160,7 @@ export function DeleteCareShiftModal({ shift, open, onOpenChange, onSuccess }: D
                   </>
                 )}
                 <p className="text-sm">
-                  <span className="font-semibold">Status:</span> {shift.status}
+                  <span className="font-semibold">Status:</span> {formatShiftStatusLabel(shift.status)}
                 </p>
               </div>
             </div>

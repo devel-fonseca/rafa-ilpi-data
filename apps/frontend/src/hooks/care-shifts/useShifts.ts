@@ -17,9 +17,14 @@ import {
   removeMember,
   getShiftHistory,
   generateShifts,
+  checkInShift,
+  handoverShift,
+  getShiftHandover,
+  updateShiftNotes,
 } from '@/api/care-shifts/care-shifts.api';
 import type {
   Shift,
+  ShiftHandover,
   ListShiftsQueryDto,
   CreateShiftDto,
   UpdateShiftDto,
@@ -27,6 +32,7 @@ import type {
   SubstituteTeamDto,
   SubstituteMemberDto,
   AddMemberDto,
+  CreateHandoverDto,
   ShiftHistory,
 } from '@/types/care-shifts/care-shifts';
 import { tenantKey } from '@/lib/query-keys';
@@ -374,6 +380,131 @@ export function useGenerateShifts() {
       const message =
         error.response?.data?.message ||
         'Erro ao gerar plantões. Verifique se há um padrão semanal ativo.';
+      toast.error(message);
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// CHECK-IN E HANDOVER
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Hook para fazer check-in do plantão (CONFIRMED → IN_PROGRESS)
+ * Apenas Líder ou Suplente podem fazer check-in
+ */
+export function useCheckInShift() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (shiftId: string) => checkInShift(shiftId),
+    onSuccess: (updatedShift) => {
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', 'list'),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', updatedShift.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('daily-records', 'permission-context'),
+      });
+      toast.success('Check-in realizado com sucesso! Plantão iniciado.');
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message =
+        error.response?.data?.message ||
+        'Erro ao fazer check-in. Verifique se você tem permissão.';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook para fazer passagem de plantão (handover)
+ * Apenas Líder ou Suplente podem fazer handover
+ */
+export function useHandoverShift() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      shiftId,
+      data,
+    }: {
+      shiftId: string;
+      data: CreateHandoverDto;
+    }) => handoverShift(shiftId, data),
+    onSuccess: (updatedShift) => {
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', 'list'),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', updatedShift.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('daily-records', 'permission-context'),
+      });
+      toast.success('Passagem de plantão realizada com sucesso!');
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message =
+        error.response?.data?.message ||
+        'Erro ao fazer passagem de plantão. Verifique se você tem permissão.';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook para buscar passagem de plantão de um plantão específico
+ */
+export function useShiftHandover(shiftId: string | undefined) {
+  const enabled = !!shiftId && shiftId !== 'new';
+
+  return useQuery<ShiftHandover>({
+    queryKey: tenantKey('care-shifts', 'shifts', shiftId, 'handover'),
+    queryFn: () => {
+      if (!shiftId) {
+        throw new Error('shiftId is required');
+      }
+      return getShiftHandover(shiftId);
+    },
+    enabled,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Hook para atualizar notas do plantão
+ * Permite que o líder/suplente registre observações durante o turno
+ */
+export function useUpdateShiftNotes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      shiftId,
+      notes,
+    }: {
+      shiftId: string;
+      notes: string | undefined;
+    }) => updateShiftNotes(shiftId, notes),
+    onSuccess: (updatedShift) => {
+      // Atualizar cache do plantão específico
+      queryClient.setQueryData(
+        tenantKey('care-shifts', 'shifts', updatedShift.id),
+        updatedShift,
+      );
+      // Invalidar lista para garantir consistência
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', 'list'),
+      });
+      // Não mostra toast para auto-save (seria muito invasivo)
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message =
+        error.response?.data?.message ||
+        'Erro ao salvar notas. Verifique sua conexão.';
       toast.error(message);
     },
   });

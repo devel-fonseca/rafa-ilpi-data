@@ -2,7 +2,7 @@
 //  COMPONENT - ShiftDetailsModal (Modal de Detalhes do Plantão)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { Clock, Users, Calendar, FileText } from 'lucide-react';
+import { Clock, Users, Calendar, FileText, ClipboardCheck, BarChart3 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { CoverageStatusBadge } from '../compliance/CoverageStatusBadge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatDateTimeSafe } from '@/utils/dateHelpers';
+import { formatShiftStatusLabel } from '@/utils/shiftStatus';
 import { POSITION_CODE_LABELS, PositionCode } from '@/types/permissions';
 import type { Shift } from '@/types/care-shifts/care-shifts';
 
@@ -60,17 +61,6 @@ export function ShiftDetailsModal({
     }
   };
 
-  const translateStatus = (status: string) => {
-    const statusMap: Record<string, string> = {
-      SCHEDULED: 'Agendado',
-      CONFIRMED: 'Confirmado',
-      IN_PROGRESS: 'Em Andamento',
-      COMPLETED: 'Concluído',
-      CANCELLED: 'Cancelado',
-    };
-    return statusMap[status] || status;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -108,7 +98,7 @@ export function ShiftDetailsModal({
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Status</p>
             <div className="flex items-center gap-2">
-              <Badge variant="outline">{translateStatus(shift.status)}</Badge>
+              <Badge variant="outline">{formatShiftStatusLabel(shift.status)}</Badge>
               <CoverageStatusBadge
                 assignedCount={assignedCount}
                 minimumRequired={minimumRequired}
@@ -195,16 +185,62 @@ export function ShiftDetailsModal({
             )}
           </div>
 
-          {/* Observações */}
+          {/* Ocorrências do Turno */}
           {shift.notes && (
             <>
               <Separator />
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <FileText className="h-4 w-4" />
-                  <span>Observações</span>
+                  <span>Ocorrências do Turno</span>
                 </div>
-                <p className="text-sm p-3 bg-muted rounded-lg">{shift.notes}</p>
+                <p className="text-sm p-3 bg-muted rounded-lg whitespace-pre-wrap">{shift.notes}</p>
+              </div>
+            </>
+          )}
+
+          {/* Relatório de Passagem (Handover) */}
+          {shift.handover && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ClipboardCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span>Relatório de Passagem</span>
+                </div>
+
+                {/* Metadados do handover */}
+                <div className="text-xs text-muted-foreground">
+                  Realizado por{' '}
+                  <span className="font-medium text-foreground">
+                    {shift.handover.handedOverByUser?.name || 'Usuário'}
+                  </span>
+                  {shift.handover.createdAt && (
+                    <> em {formatDateTimeSafe(shift.handover.createdAt)}</>
+                  )}
+                </div>
+
+                {/* Relatório */}
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{shift.handover.report}</p>
+                </div>
+
+                {/* Snapshot de Atividades */}
+                {shift.handover.activitiesSnapshot && shift.handover.activitiesSnapshot.totalRecords > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <BarChart3 className="h-3 w-3" />
+                      <span>Resumo de Atividades ({shift.handover.activitiesSnapshot.totalRecords} registros)</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {shift.handover.activitiesSnapshot.byType.map((item) => (
+                        <Badge key={item.type} variant="secondary" className="text-xs">
+                          {item.type}: {item.count}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -216,8 +252,7 @@ export function ShiftDetailsModal({
               <p>✓ Gerado automaticamente do padrão semanal</p>
             )}
             <p>
-              Versão: {shift.versionNumber} | Criado em:{' '}
-              {formatDateTimeSafe(shift.createdAt)}
+              Criado em: {formatDateTimeSafe(shift.createdAt)}
             </p>
           </div>
         </div>
