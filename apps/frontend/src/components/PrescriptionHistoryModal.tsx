@@ -154,9 +154,9 @@ export function PrescriptionHistoryModal({
                           <Badge className={getChangeTypeColor(entry.changeType)}>
                             {getChangeTypeLabel(entry.changeType)}
                           </Badge>
-                          <span className="text-sm font-medium">
-                            Versão {entry.versionNumber}
-                          </span>
+                          <Badge variant="outline" className="font-mono">
+                            v{entry.versionNumber}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="h-3 w-3" />

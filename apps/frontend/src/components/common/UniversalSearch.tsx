@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -10,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, User, FileText, Eye, X } from 'lucide-react'
+import { Search, User, FileText, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { cn } from '@/lib/utils'
 import { tenantKey } from '@/lib/query-keys'
@@ -81,13 +79,20 @@ interface Props {
   // Callbacks para ações após seleção
   onAfterSelectResident?: () => void
   onAfterSelectPop?: () => void
+  className?: string
+  variant?: 'boxed' | 'plain'
 }
 
 // ──────────────────────────────────────────────────────────────────────────
 // COMPONENT
 // ──────────────────────────────────────────────────────────────────────────
 
-export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Props) {
+export function UniversalSearch({
+  onAfterSelectResident,
+  onAfterSelectPop,
+  className,
+  variant = 'boxed',
+}: Props) {
   // ────────────────────────────────────────────────────────────────────────
   // STATE
   // ────────────────────────────────────────────────────────────────────────
@@ -280,7 +285,15 @@ export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Pro
 
   return (
     <>
-      <Card className="p-4 mb-6 bg-primary/5 rounded-xl">
+      <div
+        className={cn(
+          'mb-6',
+          variant === 'boxed'
+            ? 'p-4 bg-primary/5 rounded-xl border border-border'
+            : 'p-0 bg-transparent border-0 rounded-none',
+          className,
+        )}
+      >
         <div className="relative">
           <div className="flex items-center gap-3">
             {/* Select de tipo de busca */}
@@ -331,22 +344,6 @@ export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Pro
                 </button>
               )}
             </div>
-
-            {/* Botão visualizar */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                if (filteredResults.length > 0) {
-                  const first = filteredResults[0] as Resident | Pop
-                  handleSelectItem(first.id)
-                }
-              }}
-              disabled={filteredResults.length === 0}
-              title="Visualizar"
-            >
-              <Eye className="w-4 h-4" />
-            </Button>
           </div>
 
           {/* Dropdown de resultados */}
@@ -434,7 +431,7 @@ export function UniversalSearch({ onAfterSelectResident, onAfterSelectPop }: Pro
             {filteredResults.length !== 1 ? 's' : ''}
           </p>
         )}
-      </Card>
+      </div>
 
       {/* Modals */}
       {selectedResidentId && (

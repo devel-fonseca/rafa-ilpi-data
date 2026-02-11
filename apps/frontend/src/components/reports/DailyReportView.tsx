@@ -18,6 +18,7 @@ import {
 import type { DailyReport, DailyRecordReport, MultiDayReport, ShiftReport } from '@/types/reports'
 import { formatDateOnlySafe, getCurrentDateTime } from '@/utils/dateHelpers'
 import { getRecordTypeLabel, RECORD_TYPE_LABELS } from '@/utils/recordTypeLabels'
+import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 import {
   Bath,
   Utensils,
@@ -402,7 +403,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
           'Sem equipe'
         )}
       </TableCell>
-      <TableCell className="text-sm">{shift.status}</TableCell>
+      <TableCell className="text-sm">{formatShiftStatusLabel(shift.status)}</TableCell>
     </TableRow>
   )
 

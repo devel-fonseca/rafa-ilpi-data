@@ -5,6 +5,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { MultiDayReport, DailyReport, DailyRecordReport } from '@/types/reports'
+import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 
 // ========== TYPES ==========
 
@@ -248,7 +249,7 @@ class DailyReportPDFGenerator {
       shift.name,
       `${shift.startTime} - ${shift.endTime}`,
       shift.teamName || 'Sem equipe',
-      shift.status,
+      formatShiftStatusLabel(shift.status),
     ])
 
     autoTable(this.doc, {

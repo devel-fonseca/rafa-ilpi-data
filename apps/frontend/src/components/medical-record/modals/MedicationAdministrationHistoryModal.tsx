@@ -326,9 +326,9 @@ export function MedicationAdministrationHistoryModal({
                           <Badge variant={getChangeTypeBadgeVariant(version.changeType)}>
                             {getChangeTypeLabel(version.changeType)}
                           </Badge>
-                          <span className="text-sm font-medium">
-                            Versão #{version.versionNumber}
-                          </span>
+                          <Badge variant="outline" className="font-mono">
+                            v{version.versionNumber}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <User className="h-3 w-3" />
@@ -450,9 +450,9 @@ export function MedicationAdministrationHistoryModal({
                       <Badge variant={getChangeTypeBadgeVariant(compareVersion.changeType)}>
                         {getChangeTypeLabel(compareVersion.changeType)}
                       </Badge>
-                      <span className="font-medium">
-                        Versão #{compareVersion.versionNumber}
-                      </span>
+                      <Badge variant="outline" className="font-mono">
+                        v{compareVersion.versionNumber}
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Clock className="h-3 w-3" />

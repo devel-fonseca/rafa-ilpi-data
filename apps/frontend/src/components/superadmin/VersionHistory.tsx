@@ -133,7 +133,7 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">Versão {version.versionNumber}</Badge>
+                      <Badge variant="outline" className="font-mono">v{version.versionNumber}</Badge>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {format(new Date(version.createdAt), "dd/MM/yyyy 'às' HH:mm", {
@@ -184,7 +184,7 @@ export function VersionHistory({ templateId }: VersionHistoryProps) {
             <AlertDialogTitle>Restaurar versão anterior?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                Você está prestes a restaurar a <strong>versão {versionToRestore?.versionNumber}</strong> deste template.
+                Você está prestes a restaurar a <strong>v{versionToRestore?.versionNumber}</strong> deste template.
               </p>
               <p className="text-sm">
                 <strong>Subject:</strong> {versionToRestore?.subject}

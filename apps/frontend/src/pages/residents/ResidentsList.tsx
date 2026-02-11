@@ -190,8 +190,8 @@ export default function ResidentsList() {
     <>
       <EntityListPage
         pageHeader={{
-          title: 'Lista de Residentes',
-          subtitle: 'Consulte e gerencie os residentes cadastrados',
+          title: 'Cadastro de Residentes',
+          subtitle: 'Consulte e gerencie os residentes da instituição',
           actions: (
             <Button onClick={() => navigate('/dashboard/residentes/new')}>
               <Plus className="h-4 w-4" />

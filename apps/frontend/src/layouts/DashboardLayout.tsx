@@ -402,7 +402,7 @@ export function DashboardLayout() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
-                      to="/dashboard/residentes-hub"
+                      to="/dashboard/residentes"
                       className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
                         preferences.sidebarCollapsed ? 'justify-center' : ''
                       }`}
@@ -749,7 +749,7 @@ export function DashboardLayout() {
               {/* Residentes */}
               {canManageResidents && (
                 <Link
-                  to="/dashboard/residentes-hub"
+                  to="/dashboard/residentes"
                   onClick={() => setIsSidebarOpen(false)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
                 >
