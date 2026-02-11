@@ -4,10 +4,34 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { TenantContextService } from '../prisma/tenant-context.service';
-import { ChangeType, SubstitutionType, Prisma } from '@prisma/client';
-import { parseISO } from 'date-fns';
+import {
+  ChangeType,
+  SubstitutionType,
+  Prisma,
+  ShiftStatus,
+  PositionCode,
+} from '@prisma/client';
+import {
+  parseISO,
+  addMinutes,
+  isBefore,
+  isAfter,
+  parse,
+  format,
+  addDays,
+  subDays,
+} from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import {
+  DEFAULT_TIMEZONE,
+  getCurrentDateInTz,
+  localToUTC,
+  parseDateOnly,
+  formatDateOnly,
+} from '../utils/date.helpers';
 import {
   CreateShiftDto,
   UpdateShiftDto,
@@ -16,7 +40,54 @@ import {
   SubstituteTeamDto,
   SubstituteMemberDto,
   AddMemberDto,
+  CreateHandoverDto,
 } from './dto';
+
+/**
+ * Valores padronizados para TeamMember.role
+ */
+const TEAM_MEMBER_ROLES = {
+  LEADER: 'Líder',
+  SUBSTITUTE: 'Suplente',
+  MEMBER: 'Membro',
+} as const;
+
+/**
+ * Tolerância de horário para check-in e registros
+ */
+const SHIFT_TOLERANCE = {
+  BEFORE_START_MINUTES: 0, // Não permitir antes do início
+  AFTER_END_MINUTES: 30, // 30 minutos após o fim
+} as const;
+
+/**
+ * Cargos que podem registrar sem estar de plantão
+ */
+const BYPASS_POSITIONS: PositionCode[] = [
+  PositionCode.NURSE,
+  PositionCode.NURSING_COORDINATOR,
+  PositionCode.TECHNICAL_MANAGER,
+  PositionCode.DOCTOR,
+];
+
+/**
+ * Cargos que precisam estar de plantão para registrar
+ */
+const SHIFT_REQUIRED_POSITIONS: PositionCode[] = [
+  PositionCode.CAREGIVER,
+  PositionCode.NURSING_TECHNICIAN,
+  PositionCode.NURSING_ASSISTANT,
+];
+
+export interface ShiftRegistrationContext {
+  canRegister: boolean;
+  reason: string | null;
+  positionCode: PositionCode | null;
+  hasBypass: boolean;
+  isLeaderOrSubstitute: boolean;
+  activeShift: Awaited<ReturnType<CareShiftsService['findAll']>>[number] | null;
+  currentShift: Awaited<ReturnType<CareShiftsService['findAll']>>[number] | null;
+}
 
 /**
  * Service principal para gerenciamento de plantões (Shifts)
@@ -30,7 +101,23 @@ import {
  */
 @Injectable({ scope: Scope.REQUEST })
 export class CareShiftsService {
+  private tenantTimezoneCache: string | null = null;
+
   constructor(private readonly tenantContext: TenantContextService) {}
+
+  private async getTenantTimezone(): Promise<string> {
+    if (this.tenantTimezoneCache) {
+      return this.tenantTimezoneCache;
+    }
+
+    const tenant = await this.tenantContext.publicClient.tenant.findUnique({
+      where: { id: this.tenantContext.tenantId },
+      select: { timezone: true },
+    });
+
+    this.tenantTimezoneCache = tenant?.timezone || DEFAULT_TIMEZONE;
+    return this.tenantTimezoneCache;
+  }
 
   /**
    * Enriquecer membros com dados do usuário (busca manual sem FK)
@@ -60,6 +147,227 @@ export class CareShiftsService {
       ...member,
       user: userMap.get(member.userId) || null,
     }));
+  }
+
+  /**
+   * Calcula janela temporal real do plantão, considerando turnos que cruzam meia-noite.
+   */
+  private buildShiftWindow(
+    shiftDate: Date | string,
+    startTime: string,
+    endTime: string,
+    tenantTimezone: string,
+  ) {
+    // Padrão DATE: sempre normalizar para YYYY-MM-DD antes de combinar com HH:mm.
+    const shiftDateStr = formatDateOnly(shiftDate);
+    const start = localToUTC(shiftDateStr, startTime, tenantTimezone);
+    let end = localToUTC(shiftDateStr, endTime, tenantTimezone);
+    const crossesMidnight = end <= start;
+    if (crossesMidnight) {
+      end = addDays(end, 1);
+    }
+
+    return { start, end, crossesMidnight };
+  }
+
+  /**
+   * Resolve datetime de registro para comparação com janela do plantão.
+   * Tradeoff: sem fuso por usuário, segue o padrão local já adotado no módulo.
+   */
+  private buildRecordDateTime(
+    recordDate: Date | string,
+    recordTime: string,
+    shiftWindow: { start: Date; crossesMidnight: boolean },
+    tenantTimezone: string,
+  ) {
+    const recordDateStr = formatDateOnly(recordDate);
+    let recordDateTime = localToUTC(recordDateStr, recordTime, tenantTimezone);
+
+    if (shiftWindow.crossesMidnight && recordDateTime < shiftWindow.start) {
+      recordDateTime = addDays(recordDateTime, 1);
+    }
+
+    return recordDateTime;
+  }
+
+  /**
+   * Busca contexto de permissão de registro diário.
+   * Reutilizado pelo guard e por endpoint de UI para evitar drift de regra.
+   */
+  async getRegistrationContext(
+    userId: string,
+    options?: { date?: string; time?: string },
+  ): Promise<ShiftRegistrationContext> {
+    const tenantTimezone = await this.getTenantTimezone();
+    const userProfile = await this.tenantContext.client.userProfile.findFirst({
+      where: { userId },
+      select: { positionCode: true },
+    });
+
+    if (!userProfile?.positionCode) {
+      return {
+        canRegister: false,
+        reason: 'Seu perfil não tem um cargo definido. Contate o administrador.',
+        positionCode: null,
+        hasBypass: false,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
+
+    const positionCode = userProfile.positionCode;
+    const hasBypass = BYPASS_POSITIONS.includes(positionCode);
+    if (hasBypass) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: true,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
+
+    if (!SHIFT_REQUIRED_POSITIONS.includes(positionCode)) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: false,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
+
+    const referenceDateStr = parseDateOnly(
+      options?.date || getCurrentDateInTz(tenantTimezone),
+    );
+    const referenceDate = parse(
+      `${referenceDateStr} 12:00`,
+      'yyyy-MM-dd HH:mm',
+      new Date(),
+    );
+    const recordTime =
+      options?.time || formatInTimeZone(new Date(), tenantTimezone, 'HH:mm');
+
+    // Tradeoff: inclui o dia anterior para cobrir turno noturno que cruza meia-noite.
+    const startDate = subDays(referenceDate, 1);
+    const shifts = await this.findAll({
+      startDate: formatDateOnly(startDate),
+      endDate: formatDateOnly(referenceDate),
+    });
+
+    const userShifts = shifts
+      .filter((shift) =>
+        shift.members?.some((member) => member.userId === userId && !member.removedAt),
+      )
+      .filter((shift) =>
+        shift.status === ShiftStatus.CONFIRMED ||
+        shift.status === ShiftStatus.IN_PROGRESS,
+      );
+
+    if (!userShifts.length) {
+      return {
+        canRegister: false,
+        reason: 'Você não está escalado para nenhum plantão hoje.',
+        positionCode,
+        hasBypass: false,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
+
+    const now = new Date();
+    const inProgressShifts = userShifts.filter(
+      (shift) => shift.status === ShiftStatus.IN_PROGRESS,
+    );
+
+    let activeShift: ShiftRegistrationContext['activeShift'] = null;
+    for (const shift of inProgressShifts) {
+      if (!shift.shiftTemplate) continue;
+
+      const shiftDate = shift.date;
+      const window = this.buildShiftWindow(
+        shiftDate,
+        shift.shiftTemplate.startTime,
+        shift.shiftTemplate.endTime,
+        tenantTimezone,
+      );
+      const minAllowed = addMinutes(window.start, -SHIFT_TOLERANCE.BEFORE_START_MINUTES);
+      const maxAllowed = addMinutes(window.end, SHIFT_TOLERANCE.AFTER_END_MINUTES);
+      const recordDateTime = this.buildRecordDateTime(
+        referenceDate,
+        recordTime,
+        window,
+        tenantTimezone,
+      );
+
+      if (!isBefore(recordDateTime, minAllowed) && !isAfter(recordDateTime, maxAllowed)) {
+        activeShift = shift;
+        break;
+      }
+    }
+
+    const currentShift =
+      activeShift ||
+      inProgressShifts.find((shift) => {
+        if (!shift.shiftTemplate) return false;
+        const shiftDate = shift.date;
+        const window = this.buildShiftWindow(
+          shiftDate,
+          shift.shiftTemplate.startTime,
+          shift.shiftTemplate.endTime,
+          tenantTimezone,
+        );
+        return now >= window.start && now <= addMinutes(window.end, SHIFT_TOLERANCE.AFTER_END_MINUTES);
+      }) ||
+      userShifts.find((shift) => shift.status === ShiftStatus.CONFIRMED) ||
+      null;
+
+    const isLeaderOrSubstitute = currentShift
+      ? await this.isUserLeaderOrSubstitute(userId, currentShift.teamId)
+      : false;
+
+    if (activeShift) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: false,
+        isLeaderOrSubstitute,
+        activeShift,
+        currentShift: currentShift || activeShift,
+      };
+    }
+
+    const confirmedShift = userShifts.find(
+      (shift) => shift.status === ShiftStatus.CONFIRMED,
+    );
+    if (confirmedShift) {
+      return {
+        canRegister: false,
+        reason: 'Seu plantão ainda não foi iniciado. Aguarde o líder fazer o check-in.',
+        positionCode,
+        hasBypass: false,
+        isLeaderOrSubstitute,
+        activeShift: null,
+        currentShift: confirmedShift,
+      };
+    }
+
+    return {
+      canRegister: false,
+      reason: 'Você não tem plantão ativo no momento.',
+      positionCode,
+      hasBypass: false,
+      isLeaderOrSubstitute,
+      activeShift: null,
+      currentShift,
+    };
   }
 
   /**
@@ -191,6 +499,7 @@ export class CareShiftsService {
           where: { removedAt: null },
           orderBy: { assignedAt: 'asc' },
         },
+        handover: true,
       },
     });
 
@@ -212,6 +521,26 @@ export class CareShiftsService {
       });
     const configMap = new Map(tenantConfigs.map((c) => [c.shiftTemplateId, c]));
 
+    const handoverUserIds = Array.from(
+      new Set(
+        shifts.flatMap((shift) =>
+          shift.handover
+            ? [shift.handover.handedOverBy, shift.handover.receivedBy].filter(
+                (id): id is string => !!id,
+              )
+            : [],
+        ),
+      ),
+    );
+    const handoverUsers =
+      handoverUserIds.length > 0
+        ? await this.tenantContext.client.user.findMany({
+            where: { id: { in: handoverUserIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+    const handoverUserMap = new Map(handoverUsers.map((u) => [u.id, u]));
+
     // Enriquecer todos os shifts com dados do usuário e shift template (com customizações)
     const enrichedShifts = await Promise.all(
       shifts.map(async (shift) => {
@@ -231,6 +560,15 @@ export class CareShiftsService {
                 description: template.description,
                 isActive: template.isActive,
                 displayOrder: template.displayOrder,
+              }
+            : null,
+          handover: shift.handover
+            ? {
+                ...shift.handover,
+                handedOverByUser: handoverUserMap.get(shift.handover.handedOverBy) || null,
+                receivedByUser: shift.handover.receivedBy
+                  ? handoverUserMap.get(shift.handover.receivedBy) || null
+                  : null,
               }
             : null,
           members: await this.enrichMembersWithUserData(shift.members),
@@ -274,6 +612,7 @@ export class CareShiftsService {
           },
           orderBy: { substitutedAt: 'desc' },
         },
+        handover: true,
       },
     });
 
@@ -298,6 +637,19 @@ export class CareShiftsService {
 
     // Enriquecer membros com dados do usuário
     const enrichedMembers = await this.enrichMembersWithUserData(shift.members);
+    const handoverUserIds = shift.handover
+      ? [shift.handover.handedOverBy, shift.handover.receivedBy].filter(
+          (id): id is string => !!id,
+        )
+      : [];
+    const handoverUsers =
+      handoverUserIds.length > 0
+        ? await this.tenantContext.client.user.findMany({
+            where: { id: { in: handoverUserIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+    const handoverUserMap = new Map(handoverUsers.map((u) => [u.id, u]));
 
     return {
       ...shift,
@@ -312,6 +664,15 @@ export class CareShiftsService {
             description: shiftTemplate.description,
             isActive: shiftTemplate.isActive,
             displayOrder: shiftTemplate.displayOrder,
+          }
+        : null,
+      handover: shift.handover
+        ? {
+            ...shift.handover,
+            handedOverByUser: handoverUserMap.get(shift.handover.handedOverBy) || null,
+            receivedByUser: shift.handover.receivedBy
+              ? handoverUserMap.get(shift.handover.receivedBy) || null
+              : null,
           }
         : null,
       members: enrichedMembers,
@@ -1025,7 +1386,7 @@ export class CareShiftsService {
         // Verificar se já existe plantão para este dia + turno
         const existing = await this.tenantContext.client.shift.findFirst({
           where: {
-            date: new Date(date + 'T12:00:00'),
+            date: parseDateOnly(date),
             shiftTemplateId,
             deletedAt: null,
           },
@@ -1060,14 +1421,14 @@ export class CareShiftsService {
           continue;
         }
 
-        // Criar plantão
+        // Criar plantão (CONFIRMED se tem equipe, SCHEDULED caso contrário)
         const shift = await this.tenantContext.client.shift.create({
           data: {
             tenantId: this.tenantContext.tenantId,
-            date: new Date(date + 'T12:00:00'),
+            date: parseDateOnly(date),
             shiftTemplateId,
             teamId,
-            status: 'SCHEDULED',
+            status: teamId ? 'CONFIRMED' : 'SCHEDULED',
             versionNumber: 1,
             createdBy: userId,
             updatedAt: new Date(),
@@ -1120,6 +1481,444 @@ export class CareShiftsService {
     }
 
     return results;
+  }
+
+  // ========== CHECK-IN E HANDOVER ==========
+
+  /**
+   * Fazer check-in do plantão (transição CONFIRMED → IN_PROGRESS)
+   *
+   * Regras:
+   * 1. Plantão deve estar no status CONFIRMED
+   * 2. Usuário deve ser LEADER ou SUBSTITUTE da equipe
+   * 3. Não pode fazer check-in antes do horário de início do plantão
+   */
+  async checkIn(shiftId: string, userId: string) {
+    // 1. Buscar plantão com dados necessários
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+      },
+      include: {
+        members: {
+          where: { removedAt: null },
+        },
+        team: true,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException(`Plantão com ID "${shiftId}" não encontrado`);
+    }
+
+    // 2. Validar status
+    if (shift.status !== ShiftStatus.CONFIRMED) {
+      throw new BadRequestException(
+        `Check-in só pode ser feito em plantões CONFIRMED. Status atual: ${shift.status}`,
+      );
+    }
+
+    // 3. Validar que usuário está designado ao plantão
+    const userMember = shift.members.find((m) => m.userId === userId);
+    if (!userMember) {
+      throw new ForbiddenException(
+        'Você não está designado a este plantão',
+      );
+    }
+
+    // 4. Verificar se usuário é LEADER ou SUBSTITUTE na equipe
+    const isLeaderOrSubstitute = await this.isUserLeaderOrSubstitute(
+      userId,
+      shift.teamId,
+    );
+
+    if (!isLeaderOrSubstitute) {
+      throw new ForbiddenException(
+        'Apenas o Líder ou Suplente pode fazer check-in do plantão',
+      );
+    }
+
+    // 5. Buscar horários do turno (shift template)
+    const shiftTemplate =
+      await this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shift.shiftTemplateId },
+      });
+
+    if (!shiftTemplate) {
+      throw new NotFoundException('Template de turno não encontrado');
+    }
+
+    // 6. Validar horário (não pode ser antes do início)
+    const now = new Date();
+    const tenantTimezone = await this.getTenantTimezone();
+
+    // Construir datetime do início do plantão
+    const shiftDate = shift.date;
+    const shiftDateStr = formatDateOnly(shiftDate);
+    const shiftStartDateTime = localToUTC(
+      shiftDateStr,
+      shiftTemplate.startTime,
+      tenantTimezone,
+    );
+
+    if (isBefore(now, shiftStartDateTime)) {
+      throw new BadRequestException(
+        `Check-in não pode ser feito antes do início do plantão (${shiftTemplate.startTime})`,
+      );
+    }
+
+    // 7. Atualizar plantão para IN_PROGRESS
+    const updated = await this.tenantContext.client.shift.update({
+      where: { id: shiftId },
+      data: {
+        status: ShiftStatus.IN_PROGRESS,
+        checkedInAt: now,
+        checkedInBy: userId,
+        updatedBy: userId,
+        versionNumber: shift.versionNumber + 1,
+      },
+    });
+
+    // 8. Criar histórico
+    await this.createHistory(
+      shiftId,
+      userId,
+      ChangeType.UPDATE,
+      'Check-in do plantão realizado',
+      shift as Prisma.InputJsonValue,
+      updated as Prisma.InputJsonValue,
+    );
+
+    return this.findOne(shiftId);
+  }
+
+  /**
+   * Verificar se usuário é Líder ou Suplente da equipe
+   */
+  private async isUserLeaderOrSubstitute(
+    userId: string,
+    teamId: string | null,
+  ): Promise<boolean> {
+    if (!teamId) return false;
+
+    const teamMember = await this.tenantContext.client.teamMember.findFirst({
+      where: {
+        teamId,
+        userId,
+        removedAt: null,
+      },
+      select: { role: true },
+    });
+
+    if (!teamMember) return false;
+
+    return (
+      teamMember.role === TEAM_MEMBER_ROLES.LEADER ||
+      teamMember.role === TEAM_MEMBER_ROLES.SUBSTITUTE
+    );
+  }
+
+  /**
+   * Fazer passagem de plantão (handover) - transição IN_PROGRESS → COMPLETED
+   *
+   * Regras:
+   * 1. Plantão deve estar no status IN_PROGRESS
+   * 2. Usuário deve ser LEADER ou SUBSTITUTE da equipe
+   * 3. Relatório é obrigatório (mínimo 50 caracteres)
+   * 4. Pode ser feito até 30 minutos após o fim do plantão
+   */
+  async handover(shiftId: string, dto: CreateHandoverDto, userId: string) {
+    // 1. Buscar plantão com dados necessários
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+      },
+      include: {
+        members: {
+          where: { removedAt: null },
+        },
+        team: true,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException(`Plantão com ID "${shiftId}" não encontrado`);
+    }
+
+    // 2. Validar status
+    if (shift.status !== ShiftStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        `Passagem de plantão só pode ser feita em plantões IN_PROGRESS. Status atual: ${shift.status}`,
+      );
+    }
+
+    // 3. Validar que usuário está designado ao plantão
+    const userMember = shift.members.find((m) => m.userId === userId);
+    if (!userMember) {
+      throw new ForbiddenException(
+        'Você não está designado a este plantão',
+      );
+    }
+
+    // 4. Verificar se usuário é LEADER ou SUBSTITUTE na equipe
+    const isLeaderOrSubstitute = await this.isUserLeaderOrSubstitute(
+      userId,
+      shift.teamId,
+    );
+
+    if (!isLeaderOrSubstitute) {
+      throw new ForbiddenException(
+        'Apenas o Líder ou Suplente pode fazer a passagem de plantão',
+      );
+    }
+
+    // 5. Buscar horários do turno (shift template)
+    const shiftTemplate =
+      await this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shift.shiftTemplateId },
+      });
+
+    if (!shiftTemplate) {
+      throw new NotFoundException('Template de turno não encontrado');
+    }
+
+    // 6. Validar horário (tolerância de 30min após fim)
+    const now = new Date();
+    const tenantTimezone = await this.getTenantTimezone();
+    const shiftDate = shift.date;
+    const { end: shiftEndDateTime } = this.buildShiftWindow(
+      shiftDate,
+      shiftTemplate.startTime,
+      shiftTemplate.endTime,
+      tenantTimezone,
+    );
+
+    const maxAllowedTime = addMinutes(shiftEndDateTime, SHIFT_TOLERANCE.AFTER_END_MINUTES);
+
+    if (isAfter(now, maxAllowedTime)) {
+      throw new BadRequestException(
+        `Passagem de plantão só pode ser feita até ${SHIFT_TOLERANCE.AFTER_END_MINUTES} minutos após o fim do turno (${shiftTemplate.endTime})`,
+      );
+    }
+
+    // 7. Gerar snapshot de atividades do turno
+    const activitiesSnapshot = await this.generateActivitiesSnapshot(shift.id, shiftDate);
+
+    // 8. Criar transação para handover + atualização do shift
+    await this.tenantContext.client.$transaction(async (tx) => {
+      // Criar registro de handover
+      await tx.shiftHandover.create({
+        data: {
+          tenantId: this.tenantContext.tenantId,
+          shiftId: shift.id,
+          handedOverBy: userId,
+          receivedBy: dto.receivedBy || null,
+          report: dto.report,
+          activitiesSnapshot: activitiesSnapshot as Prisma.InputJsonValue,
+        },
+      });
+
+      // Atualizar plantão para COMPLETED
+      await tx.shift.update({
+        where: { id: shiftId },
+        data: {
+          status: ShiftStatus.COMPLETED,
+          updatedBy: userId,
+          versionNumber: shift.versionNumber + 1,
+        },
+      });
+
+      // Criar histórico
+      await this.createHistoryInTransaction(
+        tx,
+        shiftId,
+        userId,
+        ChangeType.UPDATE,
+        'Passagem de plantão realizada',
+        shift as Prisma.InputJsonValue,
+        { ...shift, status: ShiftStatus.COMPLETED } as Prisma.InputJsonValue,
+      );
+    });
+
+    return this.findOne(shiftId);
+  }
+
+  /**
+   * Buscar passagem de plantão (handover) de um plantão específico
+   */
+  async getHandover(shiftId: string) {
+    // Verificar se plantão existe
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException(`Plantão com ID "${shiftId}" não encontrado`);
+    }
+
+    // Buscar handover
+    const handover = await this.tenantContext.client.shiftHandover.findUnique({
+      where: { shiftId },
+    });
+
+    if (!handover) {
+      throw new NotFoundException('Passagem de plantão não encontrada para este plantão');
+    }
+
+    // Enriquecer com dados dos usuários
+    const [handedOverByUser, receivedByUser] = await Promise.all([
+      this.tenantContext.client.user.findUnique({
+        where: { id: handover.handedOverBy },
+        select: { id: true, name: true, email: true },
+      }),
+      handover.receivedBy
+        ? this.tenantContext.client.user.findUnique({
+            where: { id: handover.receivedBy },
+            select: { id: true, name: true, email: true },
+          })
+        : null,
+    ]);
+
+    return {
+      ...handover,
+      handedOverByUser,
+      receivedByUser,
+    };
+  }
+
+  /**
+   * Atualizar notas do plantão durante o turno
+   *
+   * Permite que o líder/suplente registre observações progressivamente.
+   *
+   * Regras:
+   * 1. Plantão deve estar no status IN_PROGRESS
+   * 2. Usuário deve ser LEADER ou SUBSTITUTE da equipe
+   */
+  async updateNotes(shiftId: string, notes: string | undefined, userId: string) {
+    // 1. Buscar plantão com dados necessários
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+      },
+      include: {
+        members: {
+          where: { removedAt: null },
+        },
+        team: true,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException(`Plantão com ID "${shiftId}" não encontrado`);
+    }
+
+    // 2. Validar status - só pode atualizar notas de plantões IN_PROGRESS
+    if (shift.status !== ShiftStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        `Notas só podem ser atualizadas em plantões IN_PROGRESS. Status atual: ${shift.status}`,
+      );
+    }
+
+    // 3. Validar que usuário está designado ao plantão
+    const userMember = shift.members.find((m) => m.userId === userId);
+    if (!userMember) {
+      throw new ForbiddenException(
+        'Você não está designado a este plantão',
+      );
+    }
+
+    // 4. Verificar se usuário é LEADER ou SUBSTITUTE na equipe
+    const isLeaderOrSubstitute = await this.isUserLeaderOrSubstitute(
+      userId,
+      shift.teamId,
+    );
+
+    if (!isLeaderOrSubstitute) {
+      throw new ForbiddenException(
+        'Apenas o Líder ou Suplente pode atualizar as notas do plantão',
+      );
+    }
+
+    // 5. Atualizar notas
+    await this.tenantContext.client.shift.update({
+      where: { id: shiftId },
+      data: {
+        notes: notes ?? null,
+        updatedBy: userId,
+      },
+    });
+
+    // 6. Retornar plantão atualizado
+    return this.findOne(shiftId);
+  }
+
+  /**
+   * Gerar snapshot de atividades do turno
+   * Busca registros diários associados ao plantão
+   */
+  private async generateActivitiesSnapshot(shiftId: string, shiftDate: Date) {
+    // Buscar membros do plantão
+    const members = await this.tenantContext.client.shiftAssignment.findMany({
+      where: {
+        shiftId,
+        removedAt: null,
+      },
+      select: { userId: true },
+    });
+
+    const memberIds = members.map((m) => m.userId);
+
+    // Buscar registros diários feitos pelos membros do plantão nesta data
+    const dailyRecords = await this.tenantContext.client.dailyRecord.findMany({
+      where: {
+        userId: { in: memberIds },
+        date: shiftDate,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        residentId: true,
+        type: true,
+        date: true,
+        time: true,
+        userId: true,
+      },
+      orderBy: { time: 'asc' },
+    });
+
+    // Agrupar por tipo de registro
+    const byType = dailyRecords.reduce(
+      (acc, record) => {
+        const recordType = record.type;
+        if (!acc[recordType]) acc[recordType] = [];
+        acc[recordType].push(record);
+        return acc;
+      },
+      {} as Record<string, typeof dailyRecords>,
+    );
+
+    return {
+      shiftId,
+      date: format(shiftDate, 'yyyy-MM-dd'),
+      totalRecords: dailyRecords.length,
+      byType: Object.entries(byType).map(([type, records]) => ({
+        type,
+        count: records.length,
+        records: records.map((r) => ({
+          id: r.id,
+          residentId: r.residentId,
+          time: r.time,
+        })),
+      })),
+      generatedAt: new Date().toISOString(),
+    };
   }
 
   /**

@@ -596,6 +596,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Mensagens Internas
       PermissionType.VIEW_MESSAGES, // Ver mensagens recebidas
       PermissionType.SEND_MESSAGES, // Enviar mensagens diretas
+      // Plantões - Ver seu plantão e fazer check-in (se líder/suplente)
+      PermissionType.VIEW_CARE_SHIFTS, // Ver plantão em que está escalado
+      PermissionType.CHECKIN_CARE_SHIFTS, // Check-in/passagem (validação adicional no service)
     ],
   },
 

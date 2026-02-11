@@ -43,6 +43,8 @@ import {
   RDCCalculationQueryDto,
   CoverageReportQueryDto,
   AvailableShiftTemplateDto,
+  CreateHandoverDto,
+  UpdateShiftNotesDto,
 } from './dto';
 
 @ApiTags('Care Shifts - Plantões de Cuidadores')
@@ -360,6 +362,120 @@ export class CareShiftsController {
     @Req() req: RequestWithUser,
   ) {
     return this.careShiftsService.removeMember(id, userId, req.user.id);
+  }
+
+  // ========== Check-in e Passagem de Plantão ==========
+
+  @Post(':id/check-in')
+  @RequireAnyPermission(PermissionType.CHECKIN_CARE_SHIFTS, PermissionType.UPDATE_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Fazer check-in do plantão',
+    description:
+      'Inicia o plantão (transição CONFIRMED → IN_PROGRESS). Apenas o Líder ou Suplente da equipe pode fazer check-in.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID do plantão',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Check-in realizado com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Plantão não está em status CONFIRMED ou check-in fora do horário permitido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuário não é Líder ou Suplente da equipe',
+  })
+  checkIn(@Param('id', ParseUUIDPipe) id: string, @Req() req: RequestWithUser) {
+    return this.careShiftsService.checkIn(id, req.user.id);
+  }
+
+  @Post(':id/handover')
+  @RequireAnyPermission(PermissionType.CHECKIN_CARE_SHIFTS, PermissionType.UPDATE_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Fazer passagem de plantão',
+    description:
+      'Encerra o plantão com passagem obrigatória (transição IN_PROGRESS → COMPLETED). Apenas o Líder ou Suplente da equipe pode fazer a passagem.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID do plantão',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Passagem de plantão realizada com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Plantão não está em status IN_PROGRESS ou relatório inválido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuário não é Líder ou Suplente da equipe',
+  })
+  handover(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() handoverDto: CreateHandoverDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.careShiftsService.handover(id, handoverDto, req.user.id);
+  }
+
+  @Get(':id/handover')
+  @RequireAnyPermission(PermissionType.VIEW_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Buscar passagem de plantão',
+    description: 'Retorna os detalhes da passagem de plantão, se existir',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID do plantão',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Passagem de plantão retornada com sucesso',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Passagem de plantão não encontrada',
+  })
+  getHandover(@Param('id', ParseUUIDPipe) id: string) {
+    return this.careShiftsService.getHandover(id);
+  }
+
+  @Patch(':id/notes')
+  @RequireAnyPermission(PermissionType.CHECKIN_CARE_SHIFTS, PermissionType.UPDATE_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Atualizar notas do plantão',
+    description:
+      'Permite que o líder/suplente atualize as notas do plantão durante o turno. Apenas plantões IN_PROGRESS podem ter notas atualizadas.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID do plantão',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Notas atualizadas com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Plantão não está em status IN_PROGRESS',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuário não é Líder ou Suplente da equipe',
+  })
+  updateNotes(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateNotesDto: UpdateShiftNotesDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.careShiftsService.updateNotes(id, updateNotesDto.notes, req.user.id);
   }
 
   // ========== Histórico ==========

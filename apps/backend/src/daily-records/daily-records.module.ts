@@ -12,6 +12,7 @@ import { EventsModule } from '../events/events.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuthModule } from '../auth/auth.module';
+import { CareShiftsModule } from '../care-shifts/care-shifts.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AuthModule } from '../auth/auth.module';
     forwardRef(() => EventsModule),
     forwardRef(() => NotificationsModule),
     AuthModule,
+    CareShiftsModule,
   ],
   controllers: [DailyRecordsController],
   providers: [

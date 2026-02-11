@@ -217,6 +217,7 @@ enum PermissionType {
   CREATE_CARE_SHIFTS
   UPDATE_CARE_SHIFTS
   DELETE_CARE_SHIFTS
+  CHECKIN_CARE_SHIFTS // Check-in e passagem de plantão (para líderes/suplentes)
   MANAGE_TEAMS
   VIEW_RDC_COMPLIANCE
   CONFIGURE_SHIFT_SETTINGS

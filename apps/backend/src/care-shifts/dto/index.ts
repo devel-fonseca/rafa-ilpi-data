@@ -9,3 +9,5 @@ export { BulkCreateShiftsDto, ShiftAssignmentDto } from './bulk-create-shifts.dt
 export { RDCCalculationQueryDto } from './rdc-calculation-query.dto';
 export { CoverageReportQueryDto } from './coverage-report-query.dto';
 export { AvailableShiftTemplateDto } from './available-shift-template.dto';
+export { CreateHandoverDto } from './create-handover.dto';
+export { UpdateShiftNotesDto } from './update-shift-notes.dto';

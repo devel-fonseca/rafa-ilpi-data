@@ -140,12 +140,17 @@ model Shift {
   status          ShiftStatus @default(SCHEDULED)
   notes           String?     @db.Text
 
+  // Check-in do plantão (transição CONFIRMED → IN_PROGRESS)
+  checkedInAt DateTime? @map("checked_in_at") @db.Timestamptz(3) // Momento exato do check-in
+  checkedInBy String?   @map("checked_in_by") @db.Uuid // Líder ou suplente que fez check-in
+
   // Relações (apenas same-schema)
   // shiftTemplate - NO FK (cross-schema to public.shift_templates, validated in app layer)
   team          Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
   members       ShiftAssignment[]
   substitutions ShiftSubstitution[]
   history       ShiftHistory[]
+  handover      ShiftHandover? // Passagem de plantão (1:1)
 
   // Versionamento
   versionNumber Int @default(1)
@@ -260,4 +265,43 @@ model ShiftHistory {
   @@index([tenantId, changedAt(sort: Desc)])
   @@index([changedBy])
   @@map("shift_history")
+}
+
+// ==========================================
+// PASSAGEM DE PLANTÃO
+// ==========================================
+
+// ShiftHandover: Registro de passagem de plantão
+// Tabela TENANT-SCOPED
+// Obrigatória antes de marcar plantão como COMPLETED
+model ShiftHandover {
+  id       String @id @default(uuid()) @db.Uuid
+  tenantId String @db.Uuid // Stored for reference, no FK (cross-schema)
+  shiftId  String @unique @db.Uuid // 1:1 com Shift
+
+  // Quem fez a passagem (Líder ou Suplente da equipe)
+  handedOverBy String @db.Uuid
+
+  // Para quem (Líder do próximo turno - opcional se último do dia)
+  receivedBy String? @db.Uuid
+
+  // Relatório da passagem (rich text, mínimo 50 caracteres)
+  report String @db.Text
+
+  // Snapshot das atividades realizadas durante o turno
+  // Contém: registros diários, medicações administradas, intercorrências, etc.
+  activitiesSnapshot Json @db.JsonB
+
+  // Auditoria
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Relações
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  // handedOverBy user - NO FK (validated in app layer)
+  // receivedBy user - NO FK (validated in app layer)
+
+  @@index([tenantId])
+  @@index([shiftId])
+  @@index([handedOverBy])
+  @@map("shift_handovers")
 }

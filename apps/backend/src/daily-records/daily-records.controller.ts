@@ -38,6 +38,8 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { EventsGateway } from '../events/events.gateway';
 import { RequiresReauthentication } from '../auth/decorators/requires-reauthentication.decorator';
 import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
+import { ShiftValidationGuard } from '../care-shifts/guards';
+import { CareShiftsService } from '../care-shifts/care-shifts.service';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth()
@@ -47,11 +49,13 @@ import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,
+    private readonly careShiftsService: CareShiftsService,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway,
   ) {}
 
   @Post()
+  @UseGuards(ShiftValidationGuard)
   @RequirePermissions(PermissionType.CREATE_DAILY_RECORDS)
   @AuditAction('CREATE')
   @ApiOperation({ summary: 'Criar novo registro diário' })
@@ -120,6 +124,21 @@ export class DailyRecordsController {
   })
   findLatestByResidents(@CurrentUser() _user: JwtPayload) {
     return this.dailyRecordsService.findLatestByResidents();
+  }
+
+  @Get('permission-context')
+  @RequirePermissions(PermissionType.CREATE_DAILY_RECORDS)
+  @ApiOperation({
+    summary: 'Buscar contexto de permissão para registros diários',
+    description:
+      'Retorna se o usuário pode registrar agora, motivo de bloqueio (quando houver) e dados do plantão atual para UI.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contexto de permissão retornado com sucesso',
+  })
+  getPermissionContext(@CurrentUser() user: JwtPayload) {
+    return this.careShiftsService.getRegistrationContext(user.id);
   }
 
   @Get('resident/:residentId/latest')
