@@ -15,12 +15,14 @@ import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
+import { ShiftStatusBanner } from '@/components/care-shifts/shifts/ShiftStatusBanner'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { getCurrentDate } from '@/utils/dateHelpers'
 import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 import type { CreateDailyRecordInput, DailyRecordData } from '@/types/daily-records'
+import { useCanRegister } from '@/hooks/useCanRegister'
 
 // Modais de registro (reutilizando de DailyRecordsPage)
 import { HigieneModal } from '@/pages/daily-records/modals/HigieneModal'
@@ -47,6 +49,17 @@ export function CaregiverDashboard() {
   const queryClient = useQueryClient()
   const { data, isLoading, error, refetch } = useCaregiverTasks()
   const today = getCurrentDate()
+
+  // Hook para verificar se pode fazer registros (baseado no plantão)
+  const {
+    canRegister,
+    reason: cannotRegisterReason,
+    activeShift,
+    currentShift,
+    isLoading: isLoadingShift,
+    isLeaderOrSubstitute,
+    hasBypass,
+  } = useCanRegister()
 
   // Estado para modals
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(
@@ -91,48 +104,94 @@ export function CaregiverDashboard() {
     createMutation.mutate(recordData)
   }
 
-  const handleOpenModal = (
+  const handleOpenModal = async (
     residentId: string,
     residentName: string,
     recordType: string,
+    scheduledTime?: string,
     mealType?: string,
   ) => {
+    // Refetch para garantir dados atualizados antes de abrir modal
+    // Isso evita que dois cuidadores registrem a mesma tarefa programada
+    const { data: freshData } = await refetch()
+
+    // Verificar se a tarefa específica ainda está pendente (não foi registrada por outro usuário)
+    // Importante: comparar também o scheduledTime para diferenciar múltiplos horários do mesmo tipo
+    const task = freshData?.recurringTasks.find(
+      (t) =>
+        t.residentId === residentId &&
+        t.recordType === recordType &&
+        // Comparar horário específico (se fornecido)
+        (!scheduledTime || t.scheduledTime === scheduledTime) &&
+        // Para ALIMENTACAO, também comparar mealType
+        (recordType !== 'ALIMENTACAO' || t.mealType === mealType),
+    )
+
+    if (task?.isCompleted) {
+      toast.warning(
+        `Este registro já foi feito por ${task.completedBy || 'outro profissional'}`,
+        {
+          description: 'A lista foi atualizada com os dados mais recentes.',
+        },
+      )
+      return
+    }
+
     setCurrentResidentId(residentId)
     setCurrentResidentName(residentName)
     setActiveModal(recordType)
     setSelectedMealType(mealType)
   }
 
-  const handleAdministerMedication = (
+  const handleAdministerMedication = async (
     medicationId: string,
     _residentId: string,
     scheduledTime: string,
   ) => {
-    // Buscar dados completos da medicação da lista
-    const medicationTask = data?.medications.find(
+    // Refetch para garantir dados atualizados antes de abrir modal
+    // Isso evita que dois cuidadores administrem a mesma medicação programada
+    const { data: freshData } = await refetch()
+
+    // Verificar se a medicação ainda está pendente (não foi administrada por outro usuário)
+    const medicationTask = freshData?.medications.find(
       (m) => m.medicationId === medicationId && m.scheduledTime === scheduledTime
     )
 
-    if (medicationTask) {
-      // Montar objeto no formato esperado pelo modal
-      setSelectedMedication({
-        id: medicationTask.medicationId,
-        name: medicationTask.medicationName,
-        presentation: medicationTask.presentation as MedicationPresentation,
-        concentration: medicationTask.concentration,
-        dose: medicationTask.dose,
-        route: medicationTask.route as AdministrationRoute,
-        requiresDoubleCheck: medicationTask.requiresDoubleCheck ?? false,
-        scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
-        frequency: 'PERSONALIZADO',
-        startDate: today,
-        isControlled: false,
-        isHighRisk: false,
-        createdAt: '',
-        updatedAt: '',
-        preselectedScheduledTime: scheduledTime, // Pré-selecionar o horário clicado
+    if (!medicationTask) {
+      toast.warning('Medicação não encontrada na lista atual', {
+        description: 'A lista foi atualizada com os dados mais recentes.',
       })
+      return
     }
+
+    if (medicationTask.wasAdministered) {
+      toast.warning(
+        `Esta medicação já foi administrada por ${medicationTask.administeredBy || 'outro profissional'}`,
+        {
+          description: `Horário real: ${medicationTask.actualTime || scheduledTime}. A lista foi atualizada.`,
+        },
+      )
+      return
+    }
+
+    // Medicação ainda pendente - abrir modal
+    setSelectedMedication({
+      id: medicationTask.medicationId,
+      name: medicationTask.medicationName,
+      presentation: medicationTask.presentation as MedicationPresentation,
+      concentration: medicationTask.concentration,
+      dose: medicationTask.dose,
+      route: medicationTask.route as AdministrationRoute,
+      requiresDoubleCheck: medicationTask.requiresDoubleCheck ?? false,
+      scheduledTimes: medicationTask.scheduledTimes || [scheduledTime],
+      frequency: 'PERSONALIZADO',
+      startDate: today,
+      isControlled: false,
+      isHighRisk: false,
+      createdAt: '',
+      updatedAt: '',
+      preselectedScheduledTime: scheduledTime, // Pré-selecionar o horário clicado
+    })
   }
 
   // ──────────────────────────────────────────────────────────────────────
@@ -141,7 +200,7 @@ export function CaregiverDashboard() {
 
   if (isLoading) {
     return (
-      <Page>
+      <Page maxWidth="wide" spacing="compact">
         <PageHeader
           title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
           subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
@@ -162,7 +221,7 @@ export function CaregiverDashboard() {
 
   if (error) {
     return (
-      <Page>
+      <Page maxWidth="wide" spacing="compact">
         <PageHeader
           title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
           subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
@@ -188,7 +247,7 @@ export function CaregiverDashboard() {
 
   if (!data) {
     return (
-      <Page>
+      <Page maxWidth="wide" spacing="compact">
         <PageHeader
           title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
           subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
@@ -208,11 +267,29 @@ export function CaregiverDashboard() {
   // ──────────────────────────────────────────────────────────────────────
 
   return (
-    <Page>
+    <Page maxWidth="wide" spacing="compact">
       <PageHeader
         title={`Bem-vindo, ${user?.name?.split(' ')[0]}!`}
         subtitle={`Tarefas do dia - ${new Date().toLocaleDateString('pt-BR')}`}
       />
+
+      {/* Banner de Status do Plantão (apenas para cargos que precisam de plantão) */}
+      {!hasBypass && (
+        <ShiftStatusBanner
+          shift={currentShift || activeShift}
+          isLeaderOrSubstitute={isLeaderOrSubstitute}
+          loading={isLoadingShift}
+          onCheckInSuccess={() => refetch()}
+          onHandoverSuccess={() => refetch()}
+        />
+      )}
+
+      {/* Aviso se não pode registrar */}
+      {!canRegister && cannotRegisterReason && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+          <strong>Atenção:</strong> {cannotRegisterReason}
+        </div>
+      )}
 
       {/* Busca Universal */}
       <UniversalSearch
@@ -250,20 +327,20 @@ export function CaregiverDashboard() {
         // Se há pendências, mostrar COM título
         return (
           <Section title="Atividades Programadas">
-            <div className={`grid grid-cols-1 gap-6 ${hasTasksPending && hasMedicationsPending ? 'lg:grid-cols-2' : ''}`}>
+            <div className={`grid grid-cols-1 gap-6 ${hasTasksPending && hasMedicationsPending ? 'md:grid-cols-2' : ''}`}>
               {/* Coluna 1: Registros AVDs */}
               {hasTasksPending && (
                 <div>
                   <TasksSection
                     title="Registros AVDs"
                     tasks={data.recurringTasks}
-                    onRegister={(residentId, recordType, mealType) => {
+                    onRegister={(residentId, recordType, scheduledTime, mealType) => {
                       // Buscar nome do residente
                       const task = data.recurringTasks.find(
                         (t) => t.residentId === residentId,
                       )
                       const residentName = task?.residentName || 'Residente'
-                      handleOpenModal(residentId, residentName, recordType, mealType)
+                      handleOpenModal(residentId, residentName, recordType, scheduledTime, mealType)
                     }}
                     onViewResident={(residentId) => setSelectedResidentId(residentId)}
                     isLoading={isLoading}
@@ -319,7 +396,8 @@ export function CaregiverDashboard() {
             const allTasks = [...data.recurringTasks, ...data.medications, ...data.scheduledEvents]
             const task = allTasks.find((t) => t.residentId === selectedResidentId)
             const residentName = task?.residentName || 'Residente'
-            handleOpenModal(selectedResidentId, residentName, recordType, mealType)
+            // Registro ad hoc (sem scheduledTime) - não bloqueia verificação de duplicação
+            handleOpenModal(selectedResidentId, residentName, recordType, undefined, mealType)
           }}
           onAdministerMedication={handleAdministerMedication}
         />

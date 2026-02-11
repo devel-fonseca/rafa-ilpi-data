@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Pill, FileText, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,20 +28,11 @@ interface Props {
 export function OperationalComplianceSection({ stats, isLoading }: Props) {
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">
-            Situação Operacional – Hoje
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 min-[1120px]:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-24 bg-muted rounded-lg animate-pulse" />
+        ))}
+      </div>
     )
   }
 
@@ -123,22 +113,15 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
   const RecordsIcon = recordsClasses.icon
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-semibold">
-          Situação Operacional – Hoje
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 min-[1120px]:grid-cols-3 gap-4">
           {/* Card: Residentes */}
-          <div className="bg-card rounded-lg p-4 border border-border">
+          <div className="bg-card rounded-lg p-4 border border-border min-w-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
                 <Users className="w-5 h-5 text-foreground" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground break-words">
                   Residentes
                 </p>
               </div>
@@ -148,7 +131,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
+                <span className="text-3xl sm:text-4xl font-bold text-foreground leading-none">
                   {stats.activeResidents}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
@@ -164,13 +147,13 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
           </div>
 
           {/* Card: Medicações */}
-          <div className="bg-card rounded-lg p-4 border border-border">
+          <div className="bg-card rounded-lg p-4 border border-border min-w-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
                 <Pill className="w-5 h-5 text-foreground" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground break-words">
                   Medicações
                 </p>
               </div>
@@ -180,7 +163,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
+                <span className="text-3xl sm:text-4xl font-bold text-foreground leading-none">
                   {stats.medications.total > 0 ? `${medicationsPercentage}%` : '0%'}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
@@ -196,13 +179,13 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
           </div>
 
           {/* Card: Registros programados */}
-          <div className="bg-card rounded-lg p-4 border border-border">
+          <div className="bg-card rounded-lg p-4 border border-border min-w-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
                 <FileText className="w-5 h-5 text-foreground" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground break-words">
                   Registros programados
                 </p>
               </div>
@@ -212,7 +195,7 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
+                <span className="text-3xl sm:text-4xl font-bold text-foreground leading-none">
                   {recordsStats.expected > 0 ? `${recordsPercentage}%` : '0%'}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
@@ -226,8 +209,6 @@ export function OperationalComplianceSection({ stats, isLoading }: Props) {
               </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }

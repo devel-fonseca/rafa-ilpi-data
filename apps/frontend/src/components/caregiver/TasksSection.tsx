@@ -106,6 +106,7 @@ interface Props {
   onRegister: (
     residentId: string,
     recordType: string,
+    scheduledTime?: string,
     mealType?: string,
   ) => void
   onViewResident: (residentId: string) => void
@@ -251,6 +252,7 @@ export function TasksSection({
                         onRegister(
                           task.residentId,
                           task.recordType!,
+                          task.scheduledTime,
                           task.mealType,
                         )
                       }

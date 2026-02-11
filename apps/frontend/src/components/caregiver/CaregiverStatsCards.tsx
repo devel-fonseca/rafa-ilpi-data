@@ -73,13 +73,13 @@ export function CaregiverStatsCards({ stats, isLoading }: Props) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Card: Registros Programados */}
-      <div className="bg-card rounded-lg p-4 border border-border">
+      <div className="bg-card rounded-lg p-4 border border-border min-w-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
                 <Activity className="w-5 h-5 text-foreground" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground break-words">
                   Registros Programados
                 </p>
               </div>
@@ -89,7 +89,7 @@ export function CaregiverStatsCards({ stats, isLoading }: Props) {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
+                <span className="text-3xl sm:text-4xl font-bold text-foreground leading-none">
                   {stats.recordsPending}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
@@ -111,13 +111,13 @@ export function CaregiverStatsCards({ stats, isLoading }: Props) {
           </div>
 
           {/* Card: Medicações Agendadas */}
-          <div className="bg-card rounded-lg p-4 border border-border">
+          <div className="bg-card rounded-lg p-4 border border-border min-w-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted">
                 <Pill className="w-5 h-5 text-foreground" />
               </div>
-              <div className="flex-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground break-words">
                   Medicações Agendadas
                 </p>
               </div>
@@ -127,7 +127,7 @@ export function CaregiverStatsCards({ stats, isLoading }: Props) {
             </div>
             <div className="mt-3">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-foreground">
+                <span className="text-3xl sm:text-4xl font-bold text-foreground leading-none">
                   {stats.medicationsCount}
                 </span>
                 <span className="text-sm font-medium ml-1 text-muted-foreground">
