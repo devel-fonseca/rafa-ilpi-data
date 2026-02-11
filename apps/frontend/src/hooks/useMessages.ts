@@ -3,6 +3,7 @@ import {
   messagesAPI,
   MessageQuery,
   CreateMessageDto,
+  GetMessageOptions,
 } from '../api/messages.api';
 import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
@@ -60,12 +61,12 @@ export function useSent(initialQuery?: MessageQuery) {
 }
 
 // Hook para buscar uma mensagem
-export function useMessage(id: string | undefined) {
+export function useMessage(id: string | undefined, options?: GetMessageOptions) {
   return useQuery({
-    queryKey: tenantKey('messages', id),
+    queryKey: tenantKey('messages', id, JSON.stringify(options || {})),
     queryFn: () => {
       if (!id) throw new Error('ID is required');
-      return messagesAPI.getById(id);
+      return messagesAPI.getById(id, options);
     },
     enabled: !!id,
   });
@@ -179,6 +180,54 @@ export function useDeleteMessage() {
         title: 'Erro ao excluir',
         description:
           errorResponse?.data?.message || 'Erro ao excluir mensagem.',
+      });
+    },
+  });
+}
+
+export function useArchiveMessage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => messagesAPI.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('messages') });
+      toast({
+        title: 'Mensagem arquivada',
+        description: 'A mensagem foi movida para Arquivadas.',
+      });
+    },
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao arquivar',
+        description: errorResponse?.data?.message || 'Erro ao arquivar mensagem.',
+      });
+    },
+  });
+}
+
+export function useUnarchiveMessage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (id: string) => messagesAPI.unarchive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tenantKey('messages') });
+      toast({
+        title: 'Mensagem desarquivada',
+        description: 'A mensagem foi restaurada para a caixa ativa.',
+      });
+    },
+    onError: (error: unknown) => {
+      const errorResponse = (error as { response?: { data?: { message?: string } } }).response
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao desarquivar',
+        description: errorResponse?.data?.message || 'Erro ao desarquivar mensagem.',
       });
     },
   });

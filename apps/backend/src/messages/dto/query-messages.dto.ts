@@ -65,6 +65,19 @@ export class QueryMessagesDto {
   unreadOnly?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Filtrar mensagens arquivadas',
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value;
+  })
+  @IsBoolean()
+  archivedOnly?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Ordenação',
     enum: ['asc', 'desc'],
     default: 'desc',

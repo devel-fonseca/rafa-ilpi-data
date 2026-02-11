@@ -103,11 +103,19 @@ export class MessagesController {
   @Get(':id')
   @RequirePermissions(PermissionType.VIEW_MESSAGES)
   @ApiOperation({ summary: 'Buscar mensagem por ID (auto-marca como lida)' })
+  @ApiQuery({
+    name: 'markAsRead',
+    required: false,
+    description: 'Se false, não marca automaticamente como lida',
+    example: 'true',
+  })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
+    @Query('markAsRead') markAsRead: string | undefined,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.messagesService.findOne(id, user.id);
+    const shouldMarkAsRead = markAsRead !== 'false';
+    return this.messagesService.findOne(id, user.id, shouldMarkAsRead);
   }
 
   @Post('read')
@@ -115,6 +123,26 @@ export class MessagesController {
   @ApiOperation({ summary: 'Marcar mensagens como lidas' })
   markAsRead(@Body() markAsReadDto: MarkAsReadDto, @CurrentUser() user: JwtPayload) {
     return this.messagesService.markAsRead(markAsReadDto, user.id);
+  }
+
+  @Post(':id/archive')
+  @RequirePermissions(PermissionType.VIEW_MESSAGES)
+  @ApiOperation({ summary: 'Arquivar mensagem para o usuário atual' })
+  archive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.messagesService.archive(id, user.id);
+  }
+
+  @Post(':id/unarchive')
+  @RequirePermissions(PermissionType.VIEW_MESSAGES)
+  @ApiOperation({ summary: 'Desarquivar mensagem para o usuário atual' })
+  unarchive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.messagesService.unarchive(id, user.id);
   }
 
   @Delete(':id')

@@ -21,6 +21,7 @@ export interface Message {
   body: string;
   threadId?: string;
   isReply: boolean;
+  conversationRepliesCount?: number;
   metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -71,6 +72,7 @@ export interface MessageQuery {
   status?: MessageStatus;
   search?: string;
   unreadOnly?: boolean;
+  archivedOnly?: boolean;
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -119,6 +121,10 @@ export interface MessageReadStats {
   };
 }
 
+export interface GetMessageOptions {
+  markAsRead?: boolean;
+}
+
 // API Class
 class MessagesAPI {
   async getInbox(query?: MessageQuery): Promise<MessagesResponse> {
@@ -155,8 +161,13 @@ class MessagesAPI {
     return response.data;
   }
 
-  async getById(id: string): Promise<Message> {
-    const response = await api.get(`/messages/${id}`);
+  async getById(id: string, options?: GetMessageOptions): Promise<Message> {
+    const params = new URLSearchParams();
+    if (options?.markAsRead !== undefined) {
+      params.set('markAsRead', String(options.markAsRead));
+    }
+    const queryString = params.toString();
+    const response = await api.get(`/messages/${id}${queryString ? '?' + queryString : ''}`);
     return response.data;
   }
 
@@ -198,6 +209,16 @@ class MessagesAPI {
     const response = await api.delete(`/messages/${id}`, {
       data: { deleteReason },
     });
+    return response.data;
+  }
+
+  async archive(id: string): Promise<{ message: string }> {
+    const response = await api.post(`/messages/${id}/archive`);
+    return response.data;
+  }
+
+  async unarchive(id: string): Promise<{ message: string }> {
+    const response = await api.post(`/messages/${id}/unarchive`);
     return response.data;
   }
 }

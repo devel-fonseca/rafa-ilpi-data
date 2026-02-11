@@ -26,6 +26,78 @@ export class MessagesService {
   ) {}
 
   /**
+   * Tradeoff consciente sem migration:
+   * - Inbox (destinatário): usamos status DELIVERED para representar "arquivada"
+   * - Enviadas (remetente): usamos metadata.archivedBySenderIds (JSON)
+   *
+   * Isso evita mudança de schema agora, porém reusa DELIVERED com novo significado.
+   */
+  private isSenderArchived(metadata: Prisma.JsonValue | null, userId: string): boolean {
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      return false;
+    }
+    const raw = (metadata as Record<string, unknown>).archivedBySenderIds;
+    if (!Array.isArray(raw)) return false;
+    return raw.includes(userId);
+  }
+
+  private buildSenderArchiveMetadata(
+    metadata: Prisma.JsonValue | null,
+    userId: string,
+    archived: boolean,
+  ): Prisma.InputJsonValue {
+    const base =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? { ...(metadata as Record<string, unknown>) }
+        : {};
+
+    const raw = base.archivedBySenderIds;
+    const currentIds = Array.isArray(raw)
+      ? raw.filter((id): id is string => typeof id === 'string')
+      : [];
+
+    const nextIds = archived
+      ? Array.from(new Set([...currentIds, userId]))
+      : currentIds.filter((id) => id !== userId);
+
+    return {
+      ...base,
+      archivedBySenderIds: nextIds,
+    };
+  }
+
+  private async getThreadMessageIds(messageId: string): Promise<string[]> {
+    const baseMessage = await this.tenantContext.client.message.findFirst({
+      where: {
+        id: messageId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        threadId: true,
+      },
+    });
+
+    if (!baseMessage) {
+      throw new NotFoundException('Mensagem não encontrada');
+    }
+
+    const rootId = baseMessage.threadId || baseMessage.id;
+    const threadMessages = await this.tenantContext.client.message.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { id: rootId },
+          { threadId: rootId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return threadMessages.map((m) => m.id);
+  }
+
+  /**
    * Criar nova mensagem (DIRECT ou BROADCAST)
    */
   async create(
@@ -252,12 +324,18 @@ export class MessagesService {
       userId,
     };
 
-    if (query.status) {
-      where.status = query.status;
-    }
-
-    if (query.unreadOnly) {
-      where.status = { not: MessageStatus.READ };
+    if (query.archivedOnly) {
+      // Tradeoff: DELIVERED está sendo usado como "arquivada" na inbox.
+      where.status = MessageStatus.DELIVERED;
+    } else {
+      // Define explicitamente os status "ativos" da inbox para evitar ambiguidades.
+      where.status = { in: [MessageStatus.SENT, MessageStatus.READ] };
+      if (query.status) {
+        where.status = query.status;
+      }
+      if (query.unreadOnly) {
+        where.status = MessageStatus.SENT;
+      }
     }
 
     // Incluir filtros da mensagem
@@ -291,6 +369,11 @@ export class MessagesService {
         include: {
           message: {
             include: {
+              _count: {
+                select: {
+                  replies: true,
+                },
+              },
               sender: {
                 select: {
                   id: true,
@@ -319,6 +402,7 @@ export class MessagesService {
     return {
       data: data.map((recipient) => ({
         ...recipient.message,
+        conversationRepliesCount: recipient.message._count?.replies || 0,
         recipientStatus: recipient.status,
         recipientReadAt: recipient.readAt,
       })),
@@ -337,7 +421,6 @@ export class MessagesService {
   async findSent(query: QueryMessagesDto, userId: string) {
     const page = query.page || 1;
     const limit = query.limit || 20;
-    const skip = (page - 1) * limit;
 
     // Construir filtros
     const where: Prisma.MessageWhereInput = {
@@ -356,38 +439,51 @@ export class MessagesService {
       ];
     }
 
-    // Buscar com paginação
-    const [data, total] = await Promise.all([
-      this.tenantContext.client.message.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: query.sortOrder || 'desc',
-        },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+    // Tradeoff: filtro de arquivamento em enviadas é aplicado em memória
+    // para evitar edge cases de JSON path em diferentes versões/ambientes.
+    const raw = await this.tenantContext.client.message.findMany({
+      where,
+      orderBy: {
+        createdAt: query.sortOrder || 'desc',
+      },
+      include: {
+        _count: {
+          select: {
+            replies: true,
           },
-          recipients: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
+        },
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        recipients: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
               },
             },
           },
         },
-      }),
-      this.tenantContext.client.message.count({ where }),
-    ]);
+      },
+    });
+
+    const filtered = raw.filter((message) => {
+      const archived = this.isSenderArchived(message.metadata, userId);
+      return query.archivedOnly ? archived : !archived;
+    });
+
+    const total = filtered.length;
+    const skip = (page - 1) * limit;
+    const data = filtered.slice(skip, skip + limit).map((message) => ({
+      ...message,
+      conversationRepliesCount: message._count?.replies || 0,
+    }));
 
     return {
       data,
@@ -403,7 +499,7 @@ export class MessagesService {
   /**
    * Buscar mensagem por ID (auto-marca como lida se for recipiente)
    */
-  async findOne(messageId: string, userId: string) {
+  async findOne(messageId: string, userId: string, markAsRead = true) {
     const message = await this.tenantContext.client.message.findFirst({
       where: {
         id: messageId,
@@ -456,9 +552,13 @@ export class MessagesService {
     }
 
     // Se é destinatário, marcar como lida automaticamente
-    if (isRecipient) {
+    if (isRecipient && markAsRead) {
       const recipient = message.recipients.find((r) => r.userId === userId);
-      if (recipient && recipient.status !== MessageStatus.READ) {
+      if (
+        recipient &&
+        recipient.status !== MessageStatus.READ &&
+        recipient.status !== MessageStatus.DELIVERED
+      ) {
         await this.tenantContext.client.messageRecipient.update({
           where: { id: recipient.id },
           data: {
@@ -477,7 +577,7 @@ export class MessagesService {
    */
   async findThread(threadId: string, userId: string) {
     // Buscar mensagem original
-    const originalMessage = await this.findOne(threadId, userId);
+    const originalMessage = await this.findOne(threadId, userId, false);
 
     // Buscar respostas
     const replies = await this.tenantContext.client.message.findMany({
@@ -517,7 +617,7 @@ export class MessagesService {
     const count = await this.tenantContext.client.messageRecipient.count({
       where: {
         userId,
-        status: { not: MessageStatus.READ },
+        status: MessageStatus.SENT,
         message: {
           deletedAt: null,
         },
@@ -538,7 +638,7 @@ export class MessagesService {
 
     const where: Prisma.MessageRecipientWhereInput = {
       userId,
-      status: { not: MessageStatus.READ },
+      status: MessageStatus.SENT,
       message: {
         deletedAt: null,
       },
@@ -616,32 +716,185 @@ export class MessagesService {
    * Estatísticas de mensagens
    */
   async getStats(userId: string) {
-    const [unreadCount, receivedCount, sentCount] = await Promise.all([
+    const [unreadCount, receivedCount, sentRaw] = await Promise.all([
       this.tenantContext.client.messageRecipient.count({
         where: {
           userId,
-          status: { not: MessageStatus.READ },
+          status: MessageStatus.SENT,
           message: { deletedAt: null },
         },
       }),
       this.tenantContext.client.messageRecipient.count({
         where: {
           userId,
+          status: { not: MessageStatus.DELIVERED },
           message: { deletedAt: null },
         },
       }),
-      this.tenantContext.client.message.count({
+      this.tenantContext.client.message.findMany({
         where: {
           senderId: userId,
           deletedAt: null,
         },
+        select: { metadata: true },
       }),
     ]);
+    const sentCount = sentRaw.filter((m) => !this.isSenderArchived(m.metadata, userId)).length;
 
     return {
       unread: unreadCount,
       received: receivedCount,
       sent: sentCount,
     };
+  }
+
+  async archive(messageId: string, userId: string) {
+    const message = await this.tenantContext.client.message.findFirst({
+      where: {
+        id: messageId,
+        deletedAt: null,
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Mensagem não encontrada');
+    }
+
+    // Regra de produto: arquivar uma mensagem arquiva a thread atual inteira
+    // (somente mensagens já existentes; novas mensagens da thread voltam a aparecer).
+    const threadMessageIds = await this.getThreadMessageIds(messageId);
+
+    await this.tenantContext.client.$transaction(async (tx) => {
+      const [recipientCount, senderMessages] = await Promise.all([
+        tx.messageRecipient.count({
+          where: {
+            userId,
+            messageId: { in: threadMessageIds },
+          },
+        }),
+        tx.message.findMany({
+          where: {
+            id: { in: threadMessageIds },
+            senderId: userId,
+          },
+          select: {
+            id: true,
+            metadata: true,
+          },
+        }),
+      ]);
+
+      if (!recipientCount && senderMessages.length === 0) {
+        throw new ForbiddenException('Você não tem permissão para arquivar esta mensagem');
+      }
+
+      // Se o usuário participa da thread como destinatário, arquiva a visão de inbox.
+      if (recipientCount > 0) {
+        await tx.messageRecipient.updateMany({
+          where: {
+            userId,
+            messageId: { in: threadMessageIds },
+          },
+          data: {
+            status: MessageStatus.DELIVERED,
+          },
+        });
+      }
+
+      // Se o usuário participa da thread como remetente, arquiva a visão de enviadas.
+      if (senderMessages.length > 0) {
+        for (const senderMessage of senderMessages) {
+          if (!this.isSenderArchived(senderMessage.metadata, userId)) {
+            await tx.message.update({
+              where: { id: senderMessage.id },
+              data: {
+                metadata: this.buildSenderArchiveMetadata(senderMessage.metadata, userId, true),
+              },
+            });
+          }
+        }
+      }
+    });
+
+    return { message: 'Mensagem arquivada com sucesso' };
+  }
+
+  async unarchive(messageId: string, userId: string) {
+    const message = await this.tenantContext.client.message.findFirst({
+      where: {
+        id: messageId,
+        deletedAt: null,
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Mensagem não encontrada');
+    }
+
+    const threadMessageIds = await this.getThreadMessageIds(messageId);
+
+    await this.tenantContext.client.$transaction(async (tx) => {
+      const [archivedRecipientCount, senderMessages] = await Promise.all([
+        tx.messageRecipient.count({
+          where: {
+            userId,
+            status: MessageStatus.DELIVERED,
+            messageId: { in: threadMessageIds },
+          },
+        }),
+        tx.message.findMany({
+          where: {
+            id: { in: threadMessageIds },
+            senderId: userId,
+          },
+          select: {
+            id: true,
+            metadata: true,
+          },
+        }),
+      ]);
+
+      if (!archivedRecipientCount && senderMessages.length === 0) {
+        throw new ForbiddenException('Você não tem permissão para desarquivar esta mensagem');
+      }
+
+      if (archivedRecipientCount > 0) {
+        const archivedRecipients = await tx.messageRecipient.findMany({
+          where: {
+            userId,
+            status: MessageStatus.DELIVERED,
+            messageId: { in: threadMessageIds },
+          },
+          select: {
+            id: true,
+            readAt: true,
+          },
+        });
+
+        for (const archivedRecipient of archivedRecipients) {
+          await tx.messageRecipient.update({
+            where: { id: archivedRecipient.id },
+            data: {
+              status: archivedRecipient.readAt ? MessageStatus.READ : MessageStatus.SENT,
+            },
+          });
+        }
+      }
+
+      if (senderMessages.length > 0) {
+        for (const senderMessage of senderMessages) {
+          if (this.isSenderArchived(senderMessage.metadata, userId)) {
+            await tx.message.update({
+              where: { id: senderMessage.id },
+              data: {
+                metadata: this.buildSenderArchiveMetadata(senderMessage.metadata, userId, false),
+              },
+            });
+          }
+        }
+      }
+    });
+
+    return { message: 'Mensagem desarquivada com sucesso' };
   }
 }
