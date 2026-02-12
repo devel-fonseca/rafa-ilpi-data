@@ -3,11 +3,13 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationRecipientsResolverService } from '../notifications/notification-recipients-resolver.service';
 import { EmailService } from '../email/email.service';
 import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
+  PositionCode,
   Prisma,
 } from '@prisma/client';
 import { format } from 'date-fns';
@@ -23,7 +25,7 @@ import { DailyRecordCreatedEvent } from './events/daily-record-created.event';
  *
  * WORKFLOW AUTOMÁTICO:
  * 1. Detectar Evento Sentinela (isEventoSentinela = true)
- * 2. Criar notificação CRÍTICA broadcast
+ * 2. Criar notificação CRÍTICA direcionada para gestão técnica
  * 3. Enviar email para Responsável Técnico (RT)
  * 4. Criar registro de rastreamento (SentinelEventNotification)
  * 5. Monitorar protocolo de notificação à vigilância
@@ -36,6 +38,7 @@ export class SentinelEventsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly notificationsService: NotificationsService,
+    private readonly recipientsResolver: NotificationRecipientsResolverService,
     private readonly emailService: EmailService,
   ) {}
 
@@ -150,7 +153,7 @@ export class SentinelEventsService {
   }
 
   /**
-   * Cria notificação CRÍTICA broadcast para todo o tenant
+   * Cria notificação CRÍTICA direcionada para gestão técnica
    */
   private async createSentinelNotification(
     record: { id: string; resident: { id: string; fullName: string }; date: Date; time?: string | null },
@@ -159,7 +162,18 @@ export class SentinelEventsService {
     const title = `🚨 EVENTO SENTINELA: ${eventType}`;
     const message = `Residente ${record.resident.fullName} - Notificação obrigatória à vigilância epidemiológica conforme RDC 502/2021 Art. 55. Prazo: 24 horas.`;
 
-    return this.notificationsService.create({
+    const recipientIds = await this.recipientsResolver.resolveByTenantId(
+      this.tenantContext.tenantId,
+      {
+        positionCodes: [PositionCode.ADMINISTRATOR, PositionCode.TECHNICAL_MANAGER],
+        includeTechnicalManagerFlag: true,
+      },
+    );
+
+    return this.notificationsService.createDirectedNotification(
+      this.tenantContext.tenantId,
+      recipientIds,
+      {
       type: SystemNotificationType.INCIDENT_SENTINEL_EVENT,
       category: NotificationCategory.INCIDENT,
       severity: NotificationSeverity.CRITICAL,

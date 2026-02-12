@@ -92,6 +92,7 @@ export class InstitutionalEventsService {
         event.eventType,
         event.scheduledDate,
         'Sistema',
+        event.visibility,
       );
     } catch (error) {
       this.logger.error('Erro ao criar notificação de evento institucional', error);
@@ -257,6 +258,7 @@ export class InstitutionalEventsService {
         event.eventType,
         event.scheduledDate,
         'Sistema',
+        event.visibility,
       );
     } catch (error) {
       this.logger.error('Erro ao criar notificação de atualização de evento', error);

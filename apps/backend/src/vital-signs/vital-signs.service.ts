@@ -16,9 +16,11 @@ import {
   NotificationSeverity,
   VitalSignAlertType,
   AlertSeverity,
+  PositionCode,
   Prisma,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationRecipientsResolverService } from '../notifications/notification-recipients-resolver.service';
 import { VitalSignAlertsService } from '../vital-sign-alerts/vital-sign-alerts.service';
 import { getDayRangeInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
 
@@ -28,6 +30,7 @@ export class VitalSignsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly notificationsService: NotificationsService,
+    private readonly recipientsResolver: NotificationRecipientsResolverService,
     private readonly vitalSignAlertsService: VitalSignAlertsService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
@@ -494,10 +497,28 @@ export class VitalSignsService {
     data: CreateVitalSignDto | UpdateVitalSignDto,
   ) {
     try {
+      const recipientIds = await this.recipientsResolver.resolveByTenantId(
+        this.tenantContext.tenantId,
+        {
+          positionCodes: [
+            PositionCode.ADMINISTRATOR,
+            PositionCode.TECHNICAL_MANAGER,
+            PositionCode.NURSE,
+            PositionCode.NURSING_COORDINATOR,
+            PositionCode.NURSING_TECHNICIAN,
+          ],
+          includeTechnicalManagerFlag: true,
+        },
+      );
+      if (recipientIds.length === 0) return;
+
       // Pressão Arterial Sistólica
       if (data.systolicBloodPressure !== undefined && data.systolicBloodPressure !== null) {
         if (data.systolicBloodPressure >= 160 || data.systolicBloodPressure < 80) {
-          const notification = await this.notificationsService.create({
+          const notification = await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -536,7 +557,10 @@ export class VitalSignsService {
             },
           });
         } else if (data.systolicBloodPressure >= 140 || data.systolicBloodPressure < 90) {
-          const notification = await this.notificationsService.create({
+          const notification = await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -580,7 +604,10 @@ export class VitalSignsService {
       // Glicemia
       if (data.bloodGlucose !== undefined && data.bloodGlucose !== null) {
         if (data.bloodGlucose >= 250 || data.bloodGlucose < 60) {
-          const notification = await this.notificationsService.create({
+          const notification = await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -610,7 +637,10 @@ export class VitalSignsService {
             },
           });
         } else if (data.bloodGlucose >= 180 || data.bloodGlucose < 70) {
-          const notification = await this.notificationsService.create({
+          const notification = await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_GLUCOSE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -645,7 +675,10 @@ export class VitalSignsService {
       // Temperatura
       if (data.temperature !== undefined && data.temperature !== null) {
         if (data.temperature >= 39 || data.temperature < 35) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -658,7 +691,10 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: Temperatura Crítica', { residentName, value: data.temperature });
         } else if (data.temperature >= 38 || data.temperature < 35.5) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_TEMPERATURE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -676,7 +712,10 @@ export class VitalSignsService {
       // Saturação de Oxigênio
       if (data.oxygenSaturation !== undefined && data.oxygenSaturation !== null) {
         if (data.oxygenSaturation < 90) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -689,7 +728,10 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: SpO₂ Crítica', { residentName, value: data.oxygenSaturation });
         } else if (data.oxygenSaturation < 92) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_BP, // Usando BP como placeholder
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,
@@ -707,7 +749,10 @@ export class VitalSignsService {
       // Frequência Cardíaca
       if (data.heartRate !== undefined && data.heartRate !== null) {
         if (data.heartRate > 120 || data.heartRate < 50) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.CRITICAL,
@@ -720,7 +765,10 @@ export class VitalSignsService {
           });
           this.logger.warn('Notificação criada: FC Crítica', { residentName, value: data.heartRate });
         } else if (data.heartRate > 100 || data.heartRate < 60) {
-          await this.notificationsService.create({
+          await this.notificationsService.createDirectedNotification(
+            this.tenantContext.tenantId,
+            recipientIds,
+            {
             type: SystemNotificationType.VITAL_SIGN_ABNORMAL_HEART_RATE,
             category: NotificationCategory.VITAL_SIGN,
             severity: NotificationSeverity.WARNING,

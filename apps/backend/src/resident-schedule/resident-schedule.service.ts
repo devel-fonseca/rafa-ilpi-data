@@ -11,7 +11,7 @@ import { TenantContextService } from '../prisma/tenant-context.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO, format } from 'date-fns';
-import { ScheduleFrequency, Prisma } from '@prisma/client';
+import { ScheduleFrequency, Prisma, PositionCode, SystemNotificationType, NotificationCategory, NotificationSeverity } from '@prisma/client';
 import {
   CreateScheduleConfigDto,
   UpdateScheduleConfigDto,
@@ -22,6 +22,7 @@ import { CreateAlimentacaoConfigDto } from './dto/create-alimentacao-config.dto'
 import { UpdateAlimentacaoConfigDto } from './dto/update-alimentacao-config.dto';
 import { MEAL_TYPES } from './constants/meal-types.constant';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationRecipientsResolverService } from '../notifications/notification-recipients-resolver.service';
 
 @Injectable()
 export class ResidentScheduleService {
@@ -31,6 +32,7 @@ export class ResidentScheduleService {
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly recipientsResolver: NotificationRecipientsResolverService,
   ) {}
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -741,12 +743,38 @@ export class ResidentScheduleService {
 
     if (dateChanged || timeChanged) {
       try {
-        await this.notificationsService.createScheduledEventDueNotification(
-          updated.id,
-          updated.resident.id,
-          updated.resident.fullName,
-          updated.title,
-          updated.scheduledTime,
+        const recipientIds = await this.recipientsResolver.resolveByTenantId(
+          this.tenantContext.tenantId,
+          {
+            positionCodes: [
+              PositionCode.ADMINISTRATOR,
+              PositionCode.TECHNICAL_MANAGER,
+              PositionCode.ADMINISTRATIVE,
+              PositionCode.ADMINISTRATIVE_ASSISTANT,
+            ],
+            includeTechnicalManagerFlag: true,
+          },
+        );
+
+        await this.notificationsService.createDirectedNotification(
+          this.tenantContext.tenantId,
+          recipientIds,
+          {
+            type: SystemNotificationType.SCHEDULED_EVENT_DUE,
+            category: NotificationCategory.SCHEDULED_EVENT,
+            severity: NotificationSeverity.INFO,
+            title: 'Evento Agendado Hoje',
+            message: `${updated.resident.fullName} tem um agendamento hoje às ${updated.scheduledTime}: ${updated.title}`,
+            actionUrl: `/dashboard/residentes/${updated.resident.id}`,
+            entityType: 'SCHEDULED_EVENT',
+            entityId: updated.id,
+            metadata: {
+              residentId: updated.resident.id,
+              residentName: updated.resident.fullName,
+              eventTitle: updated.title,
+              scheduledTime: updated.scheduledTime,
+            },
+          },
         );
       } catch (error) {
         this.logger.error('Failed to create notification for rescheduled event', {
