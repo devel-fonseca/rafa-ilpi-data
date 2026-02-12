@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FilesModule } from '../files/files.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { FinancialOperationsModule } from '../financial-operations/financial-operations.module';
 import {
   ResidentContractsGeneralController,
   ResidentContractsController,
@@ -39,6 +40,7 @@ import { ResidentContractsService } from './resident-contracts.service';
     PrismaModule,       // Acesso ao banco de dados
     FilesModule,        // Upload/download MinIO
     PermissionsModule,  // Sistema de permissões
+    FinancialOperationsModule, // Integração contrato -> financeiro
   ],
   controllers: [
     ResidentContractsGeneralController, // Listagem geral (GET /resident-contracts)

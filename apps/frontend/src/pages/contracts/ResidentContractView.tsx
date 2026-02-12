@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getContractDetails, getContractHistory, type ResidentContract, type ContractHistory } from '@/services/residentContractsApi'
+import { useFinancialTransactions } from '@/hooks/useFinancialOperations'
 import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,14 +16,12 @@ import {
   Calendar,
   DollarSign,
   User,
-  Shield,
-  Clock,
-  Hash,
   CheckCircle2,
+  Wallet,
+  ExternalLink,
 } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { toast } from 'sonner'
 
 export default function ResidentContractView() {
   const navigate = useNavigate()
@@ -30,6 +29,7 @@ export default function ResidentContractView() {
   const { hasPermission } = usePermissions()
 
   const canViewContracts = hasPermission(PermissionType.VIEW_CONTRACTS)
+  const canViewFinancial = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
 
   // Buscar contrato
   const { data: contract, isLoading, error } = useQuery<ResidentContract>({
@@ -44,6 +44,18 @@ export default function ResidentContractView() {
     queryFn: () => getContractHistory(residentId!, contractId!),
     enabled: !!residentId && !!contractId && canViewContracts,
   })
+
+  // Buscar transações/parcelas vinculadas ao contrato
+  const {
+    data: contractTransactionsData,
+    isLoading: isLoadingContractTransactions,
+    error: contractTransactionsError,
+  } = useFinancialTransactions({
+    residentContractId: contractId,
+    limit: 100,
+    sortField: 'dueDate',
+    sortDirection: 'desc',
+  }, { enabled: canViewFinancial && !!contractId })
 
   // Obter cor do badge de status
   const getStatusBadgeColor = (status: string) => {
@@ -113,25 +125,66 @@ export default function ResidentContractView() {
     }).format(value)
   }
 
+  const translateTransactionStatus = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Pendente'
+      case 'PAID':
+        return 'Pago'
+      case 'OVERDUE':
+        return 'Atrasado'
+      case 'CANCELLED':
+        return 'Cancelado'
+      case 'REFUNDED':
+        return 'Estornado'
+      case 'PARTIALLY_PAID':
+        return 'Parcial'
+      default:
+        return status
+    }
+  }
+
+  const getTransactionStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'bg-success/10 text-success border-success/30'
+      case 'OVERDUE':
+        return 'bg-danger/10 text-danger border-danger/30'
+      case 'PENDING':
+        return 'bg-warning/10 text-warning border-warning/30'
+      case 'CANCELLED':
+        return 'bg-muted text-muted-foreground border-border'
+      default:
+        return 'bg-muted text-muted-foreground border-border'
+    }
+  }
+
+  const buildFinancialDeepLink = (transaction: { status: string; dueDate: string }) => {
+    const params = new URLSearchParams()
+    params.set('tab', 'transactions')
+    params.set('residentContractId', contract.id)
+    params.set('status', transaction.status)
+    const dueDate = transaction.dueDate ? transaction.dueDate.slice(0, 10) : ''
+    if (dueDate) {
+      params.set('dueDateFrom', dueDate)
+      params.set('dueDateTo', dueDate)
+    }
+    return `/dashboard/financeiro?${params.toString()}`
+  }
+
+  const contractTransactions = contractTransactionsData?.items ?? []
+  const totalTransactions = contractTransactions.length
+  const paidTransactions = contractTransactions.filter((item) => item.status === 'PAID').length
+  const pendingTransactions = contractTransactions.filter((item) => item.status === 'PENDING').length
+  const overdueTransactions = contractTransactions.filter((item) => item.status === 'OVERDUE').length
+  const contractualResponsibles = contract.signatories.filter(
+    (signatory) => signatory.role !== 'ILPI' && signatory.role !== 'TESTEMUNHA',
+  )
+
   // Download do PDF processado
   const handleDownloadProcessed = () => {
     if (contract?.processedFileUrl) {
       window.open(contract.processedFileUrl, '_blank')
-    }
-  }
-
-  // Download do arquivo original
-  const handleDownloadOriginal = () => {
-    if (contract?.originalFileUrl) {
-      window.open(contract.originalFileUrl, '_blank')
-    }
-  }
-
-  // Copiar hash para validação
-  const handleCopyHash = () => {
-    if (contract?.processedFileHash) {
-      navigator.clipboard.writeText(contract.processedFileHash)
-      toast.success('Hash copiado para a área de transferência!')
     }
   }
 
@@ -177,27 +230,22 @@ export default function ResidentContractView() {
     <Page maxWidth="default">
       <PageHeader
         title={`Contrato ${contract.contractNumber}`}
-        subtitle={`Residente: ${contract.resident?.fullName || 'Nome não disponível'}`}
+        subtitle={`Residente: ${contract.resident?.fullName || 'Não informado'}`}
         backButton={{ onClick: () => navigate('/dashboard/contratos') }}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleDownloadOriginal}>
-              <Download className="mr-2 h-4 w-4" />
-              Original
-            </Button>
-            <Button onClick={handleDownloadProcessed}>
-              <Download className="mr-2 h-4 w-4" />
-              PDF Processado
-            </Button>
-          </div>
+          <Button onClick={handleDownloadProcessed}>
+            <Download className="mr-2 h-4 w-4" />
+            Ver contrato
+          </Button>
         }
       />
 
       <Tabs defaultValue="details" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${canViewFinancial ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="files">Arquivos</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
+          {canViewFinancial && <TabsTrigger value="financial">Financeiro</TabsTrigger>}
         </TabsList>
 
         {/* TAB: Detalhes */}
@@ -239,7 +287,7 @@ export default function ResidentContractView() {
               <CardTitle>Valores e Pagamento</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Valor da Mensalidade</p>
                   <div className="flex items-center gap-2">
@@ -250,6 +298,16 @@ export default function ResidentContractView() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Dia de Vencimento</p>
                   <p className="text-lg font-medium">Dia {contract.dueDay}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Multa por atraso</p>
+                  <p className="text-lg font-medium">{Number(contract.lateFeePercent ?? 0).toFixed(2)}%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Juros por atraso</p>
+                  <p className="text-lg font-medium">
+                    {Number(contract.interestMonthlyPercent ?? 0).toFixed(2)}% a.m.
+                  </p>
                 </div>
               </div>
 
@@ -279,14 +337,19 @@ export default function ResidentContractView() {
             </CardContent>
           </Card>
 
-          {/* Assinantes */}
+          {/* Responsáveis contratuais */}
           <Card>
             <CardHeader>
-              <CardTitle>Assinantes</CardTitle>
+              <CardTitle>Responsáveis Contratuais</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {contract.signatories.map((signatory, index) => (
+                {contractualResponsibles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum responsável contratual informado.
+                  </p>
+                ) : (
+                  contractualResponsibles.map((signatory, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1">
@@ -297,7 +360,8 @@ export default function ResidentContractView() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -317,28 +381,21 @@ export default function ResidentContractView() {
           {/* Metadados */}
           <Card>
             <CardHeader>
-              <CardTitle>Informações de Upload</CardTitle>
+              <CardTitle>Informações de Cadastro</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Upload por</p>
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <p className="font-medium">{contract.uploader?.name || 'Desconhecido'}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Data de Upload</p>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <p className="font-medium">{formatDateOnlySafe(contract.createdAt)}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Versão</p>
-                  <p className="font-medium">v{contract.version}</p>
-                </div>
+              <div className="text-sm text-muted-foreground">
+                <span>
+                  Cadastrado por: <span className="text-foreground font-medium">{contract.uploader?.name || 'Desconhecido'}</span>
+                </span>
+                <span className="mx-2">•</span>
+                <span>
+                  Data: <span className="text-foreground font-medium">{formatDateOnlySafe(contract.createdAt)}</span>
+                </span>
+                <span className="mx-2">•</span>
+                <span>
+                  Versão: <span className="text-foreground font-medium">v{contract.version}</span>
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -346,12 +403,11 @@ export default function ResidentContractView() {
 
         {/* TAB: Arquivos */}
         <TabsContent value="files" className="space-y-4">
-          {/* Arquivo Processado */}
           <Card>
             <CardHeader>
-              <CardTitle>PDF Processado com Carimbo Institucional</CardTitle>
+              <CardTitle>Contrato</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="flex items-start gap-4 p-4 border rounded-lg">
                 <FileText className="h-12 w-12 text-primary" />
                 <div className="flex-1">
@@ -361,53 +417,9 @@ export default function ResidentContractView() {
                   </p>
                   <Button onClick={handleDownloadProcessed} size="sm">
                     <Download className="mr-2 h-4 w-4" />
-                    Download PDF Processado
+                    Ver contrato
                   </Button>
                 </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-2">Hash SHA-256 para Validação</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-xs bg-muted p-2 rounded font-mono">
-                    {contract.processedFileHash}
-                  </code>
-                  <Button variant="outline" size="sm" onClick={handleCopyHash}>
-                    <Hash className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Este hash pode ser usado para validar a autenticidade do documento
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Arquivo Original */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Arquivo Original</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-4 p-4 border rounded-lg">
-                <FileText className="h-12 w-12 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="font-medium mb-1">{contract.originalFileName}</p>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {(contract.originalFileSize / 1024 / 1024).toFixed(2)} MB • {contract.originalFileMimeType}
-                  </p>
-                  <Button onClick={handleDownloadOriginal} variant="outline" size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Original
-                  </Button>
-                </div>
-              </div>
-
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-medium mb-2">Hash SHA-256 (Original)</p>
-                <code className="block text-xs bg-muted p-2 rounded font-mono">
-                  {contract.originalFileHash}
-                </code>
               </div>
             </CardContent>
           </Card>
@@ -466,6 +478,99 @@ export default function ResidentContractView() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* TAB: Financeiro */}
+        {canViewFinancial && (
+          <TabsContent value="financial" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Histórico Financeiro do Contrato</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="p-3 border rounded-lg">
+                    <p className="text-sm text-muted-foreground">Total de parcelas</p>
+                    <p className="text-xl font-semibold">{totalTransactions}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <p className="text-sm text-muted-foreground">Pagas</p>
+                    <p className="text-xl font-semibold text-success">{paidTransactions}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <p className="text-sm text-muted-foreground">Pendentes</p>
+                    <p className="text-xl font-semibold text-warning">{pendingTransactions}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <p className="text-sm text-muted-foreground">Atrasadas</p>
+                    <p className="text-xl font-semibold text-danger">{overdueTransactions}</p>
+                  </div>
+                </div>
+
+                {isLoadingContractTransactions ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : contractTransactionsError ? (
+                  <div className="flex items-center gap-2 text-danger py-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <p className="text-sm">Erro ao carregar histórico financeiro deste contrato.</p>
+                  </div>
+                ) : contractTransactions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                    <Wallet className="h-8 w-8 mb-2" />
+                    <p className="text-sm">Nenhuma parcela/transação encontrada para este contrato.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {contractTransactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="grid grid-cols-1 md:grid-cols-7 gap-3 p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="text-xs text-muted-foreground">Competência</p>
+                          <p className="font-medium">{formatDateOnlySafe(transaction.competenceMonth)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Vencimento</p>
+                          <p className="font-medium">{formatDateOnlySafe(transaction.dueDate)}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-xs text-muted-foreground">Descrição</p>
+                          <p className="font-medium">{transaction.description}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Valor líquido</p>
+                          <p className="font-semibold">
+                            {formatCurrency(Number(transaction.netAmount))}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Status</p>
+                          <Badge className={getTransactionStatusBadgeColor(transaction.status)}>
+                            {translateTransactionStatus(transaction.status)}
+                          </Badge>
+                        </div>
+                        <div className="md:justify-self-end">
+                          <p className="text-xs text-muted-foreground">Ações</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(buildFinancialDeepLink(transaction))}
+                            className="mt-1"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Abrir no Financeiro
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </Page>
   )

@@ -1,0 +1,3 @@
+ALTER TABLE "resident_contracts"
+  ADD COLUMN IF NOT EXISTS "lateFeePercent" DECIMAL(5,2) NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS "interestMonthlyPercent" DECIMAL(5,2) NOT NULL DEFAULT 0;

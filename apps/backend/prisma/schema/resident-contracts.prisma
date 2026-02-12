@@ -18,39 +18,41 @@ enum SignatoryRole {
 }
 
 model ResidentContract {
-  id                   String                 @id @default(uuid()) @db.Uuid
-  tenantId             String                 @db.Uuid
-  residentId           String                 @db.Uuid
-  contractNumber       String                 @db.VarChar(100)
-  startDate            DateTime               @db.Date
-  endDate              DateTime               @db.Date
-  monthlyAmount        Decimal                @db.Decimal(10, 2)
-  dueDay               Int
-  status               ContractDocumentStatus
-  adjustmentIndex      String?                @db.VarChar(50)
-  adjustmentRate       Decimal?               @db.Decimal(5, 2)
-  lastAdjustmentDate   DateTime?              @db.Date
-  signatories          Json                   @db.JsonB
-  originalFileUrl      String                 @db.Text
-  originalFileKey      String                 @db.Text
-  originalFileName     String                 @db.Text
-  originalFileSize     Int
-  originalFileMimeType String                 @db.VarChar(100)
-  originalFileHash     String                 @db.VarChar(64)
-  processedFileUrl     String                 @db.Text
-  processedFileKey     String                 @db.Text
-  processedFileName    String                 @db.Text
-  processedFileSize    Int
-  processedFileHash    String                 @db.VarChar(64)
-  publicToken          String                 @unique @db.VarChar(64) // Token público para validação de autenticidade
-  notes                String?                @db.Text
-  version              Int                    @default(1)
-  replacedById         String?                @db.Uuid
-  replacedAt           DateTime?              @db.Timestamptz(3)
-  uploadedBy           String                 @db.Uuid
-  createdAt            DateTime               @default(now()) @db.Timestamptz(3)
-  updatedAt            DateTime               @updatedAt @db.Timestamptz(3)
-  deletedAt            DateTime?              @db.Timestamptz(3)
+  id                     String                 @id @default(uuid()) @db.Uuid
+  tenantId               String                 @db.Uuid
+  residentId             String                 @db.Uuid
+  contractNumber         String                 @db.VarChar(100)
+  startDate              DateTime               @db.Date
+  endDate                DateTime               @db.Date
+  monthlyAmount          Decimal                @db.Decimal(10, 2)
+  dueDay                 Int
+  lateFeePercent         Decimal                @default(0) @db.Decimal(5, 2)
+  interestMonthlyPercent Decimal                @default(0) @db.Decimal(5, 2)
+  status                 ContractDocumentStatus
+  adjustmentIndex        String?                @db.VarChar(50)
+  adjustmentRate         Decimal?               @db.Decimal(5, 2)
+  lastAdjustmentDate     DateTime?              @db.Date
+  signatories            Json                   @db.JsonB
+  originalFileUrl        String                 @db.Text
+  originalFileKey        String                 @db.Text
+  originalFileName       String                 @db.Text
+  originalFileSize       Int
+  originalFileMimeType   String                 @db.VarChar(100)
+  originalFileHash       String                 @db.VarChar(64)
+  processedFileUrl       String                 @db.Text
+  processedFileKey       String                 @db.Text
+  processedFileName      String                 @db.Text
+  processedFileSize      Int
+  processedFileHash      String                 @db.VarChar(64)
+  publicToken            String                 @unique @db.VarChar(64) // Token público para validação de autenticidade
+  notes                  String?                @db.Text
+  version                Int                    @default(1)
+  replacedById           String?                @db.Uuid
+  replacedAt             DateTime?              @db.Timestamptz(3)
+  uploadedBy             String                 @db.Uuid
+  createdAt              DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime               @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?              @db.Timestamptz(3)
 
   // Relations
   tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)

@@ -13,8 +13,10 @@ import { FileProcessingService } from '../files/file-processing.service';
 import { CreateContractDto, SignatoryDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, parseISO } from 'date-fns';
 import { ContractDocumentStatus, ContractHistoryAction, Prisma } from '@prisma/client';
+import { DEFAULT_TIMEZONE, getCurrentDateInTz } from '../utils/date.helpers';
+import { FinancialContractTransactionsService } from '../financial-operations/services/financial-contract-transactions.service';
 
 /**
  * Serviço de digitalização de contratos de prestação de serviços
@@ -36,7 +38,77 @@ export class ResidentContractsService {
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
     private readonly fileProcessingService: FileProcessingService,
+    private readonly financialContractTransactionsService: FinancialContractTransactionsService,
   ) {}
+
+  private normalizeContractNumber(contractNumber?: string | null): string {
+    if (typeof contractNumber !== 'string') {
+      throw new BadRequestException('Número do contrato é obrigatório');
+    }
+    const trimmed = contractNumber.trim();
+    if (trimmed.length === 0) {
+      throw new BadRequestException('Número do contrato é obrigatório');
+    }
+    return trimmed;
+  }
+
+  private buildContractPdfFileName(
+    contractNumber: string | undefined,
+    fallbackReference: string,
+    version?: number,
+  ): string {
+    const baseReference = contractNumber?.trim()
+      ? contractNumber.trim()
+      : `sem-numero-${fallbackReference}`;
+    if (version && version > 1) {
+      return `contrato-${baseReference}-v${version}.pdf`;
+    }
+    return `contrato-${baseReference}.pdf`;
+  }
+
+  /**
+   * Tradeoff: como ResidentContractsService é tenant-scoped (request context),
+   * não usamos cron aqui. Em vez disso, sincronizamos status em pontos de leitura.
+   * Mantém consistência sem acoplar a um job global não estático.
+   */
+  private async syncStatusesForTenant(): Promise<void> {
+    const todayDateOnly = getCurrentDateInTz(DEFAULT_TIMEZONE);
+    const today = parseISO(`${todayDateOnly}T12:00:00.000`);
+    const expiringThreshold = new Date(today);
+    expiringThreshold.setDate(expiringThreshold.getDate() + 30);
+
+    await this.tenantContext.client.$transaction(async (tx) => {
+      await tx.residentContract.updateMany({
+        where: {
+          tenantId: this.tenantContext.tenantId,
+          deletedAt: null,
+          endDate: { lt: today },
+          status: { not: ContractDocumentStatus.VENCIDO },
+        },
+        data: { status: ContractDocumentStatus.VENCIDO },
+      });
+
+      await tx.residentContract.updateMany({
+        where: {
+          tenantId: this.tenantContext.tenantId,
+          deletedAt: null,
+          endDate: { gte: today, lte: expiringThreshold },
+          status: { not: ContractDocumentStatus.VENCENDO_EM_30_DIAS },
+        },
+        data: { status: ContractDocumentStatus.VENCENDO_EM_30_DIAS },
+      });
+
+      await tx.residentContract.updateMany({
+        where: {
+          tenantId: this.tenantContext.tenantId,
+          deletedAt: null,
+          endDate: { gt: expiringThreshold },
+          status: { not: ContractDocumentStatus.VIGENTE },
+        },
+        data: { status: ContractDocumentStatus.VIGENTE },
+      });
+    });
+  }
 
   /**
    * Upload e digitalização de contrato físico
@@ -47,8 +119,12 @@ export class ResidentContractsService {
     file: Express.Multer.File,
     dto: CreateContractDto,
   ) {
+    const normalizedContractNumber = this.normalizeContractNumber(
+      dto.contractNumber,
+    );
+
     this.logger.log(
-      `Iniciando upload de contrato ${dto.contractNumber} para residente ${residentId}`,
+      `Iniciando upload de contrato ${normalizedContractNumber} para residente ${residentId}`,
     );
 
     // 1. Validar residente
@@ -64,13 +140,15 @@ export class ResidentContractsService {
     // 2. Validar número único
     const existing = await this.tenantContext.client.residentContract.findFirst({
       where: {
-        contractNumber: dto.contractNumber,
+        tenantId: this.tenantContext.tenantId,
+        deletedAt: null,
+        contractNumber: normalizedContractNumber,
       },
     });
 
     if (existing) {
       throw new ConflictException(
-        `Número de contrato "${dto.contractNumber}" já existe`,
+        `Número de contrato "${normalizedContractNumber}" já existe`,
       );
     }
 
@@ -170,7 +248,10 @@ export class ResidentContractsService {
     // 6. Upload PDF processado
     const processedFile: Express.Multer.File = {
       buffer: processed.pdfBuffer,
-      originalname: `contrato-${dto.contractNumber}.pdf`,
+      originalname: this.buildContractPdfFileName(
+        normalizedContractNumber,
+        contractId.slice(0, 8),
+      ),
       mimetype: 'application/pdf',
       size: processed.pdfBuffer.length,
       fieldname: 'file',
@@ -223,11 +304,13 @@ export class ResidentContractsService {
           tenantId: this.tenantContext.tenantId, // ⚠️ TEMPORARY: Schema ainda não migrado
           id: contractId,
           residentId,
-          contractNumber: dto.contractNumber || '',
+          contractNumber: normalizedContractNumber,
           startDate: new Date(dto.startDate),
           endDate: new Date(dto.endDate),
           monthlyAmount: dto.monthlyAmount,
           dueDay: dto.dueDay,
+          lateFeePercent: dto.lateFeePercent ?? 0,
+          interestMonthlyPercent: dto.interestMonthlyPercent ?? 0,
           status,
           adjustmentIndex: dto.adjustmentIndex,
           adjustmentRate: dto.adjustmentRate,
@@ -244,7 +327,10 @@ export class ResidentContractsService {
           originalFileHash: processed.hashOriginal,
           processedFileUrl: processedUpload.fileUrl,
           processedFileKey: processedUpload.fileUrl,
-          processedFileName: `contrato-${dto.contractNumber}.pdf`,
+          processedFileName: this.buildContractPdfFileName(
+            normalizedContractNumber,
+            contractId.slice(0, 8),
+          ),
           processedFileSize: processed.pdfBuffer.length,
           processedFileHash: processed.hashFinal,
           publicToken, // Token público para validação
@@ -273,6 +359,11 @@ export class ResidentContractsService {
     const originalUrl = await this.filesService.getFileUrl(contract.originalFileUrl);
     const processedUrl = await this.filesService.getFileUrl(contract.processedFileUrl);
 
+    await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
+      userId,
+      contractId: contract.id,
+    });
+
     return {
       ...contract,
       originalFileUrl: originalUrl,
@@ -291,6 +382,8 @@ export class ResidentContractsService {
       search?: string;
     },
   ) {
+    await this.syncStatusesForTenant();
+
     // Construir where clause dinamicamente
     const where: Prisma.ResidentContractWhereInput = {
       deletedAt: null,
@@ -351,6 +444,8 @@ export class ResidentContractsService {
       endDate?: Date;
     },
   ) {
+    await this.syncStatusesForTenant();
+
     const resident = await this.tenantContext.client.resident.findFirst({
       where: { id: residentId, deletedAt: null },
     });
@@ -388,10 +483,12 @@ export class ResidentContractsService {
    * Buscar um contrato específico
    */
   async findOne(contractId: string) {
+    await this.syncStatusesForTenant();
+
     const contract = await this.tenantContext.client.residentContract.findFirst({
       where: { id: contractId, deletedAt: null },
       include: {
-        resident: { select: { id: true } },
+        resident: { select: { id: true, fullName: true, cpf: true, status: true } },
         uploader: { select: { id: true, name: true } },
       },
     });
@@ -447,6 +544,33 @@ export class ResidentContractsService {
 
     const changedFields: string[] = [];
     const updates: Prisma.ResidentContractUpdateInput = {};
+    const normalizedCurrentContractNumber = current.contractNumber;
+
+    if (dto.contractNumber !== undefined) {
+      const normalizedNextContractNumber = this.normalizeContractNumber(
+        dto.contractNumber,
+      );
+      if (normalizedNextContractNumber !== normalizedCurrentContractNumber) {
+        const existing = await this.tenantContext.client.residentContract.findFirst({
+          where: {
+            tenantId: this.tenantContext.tenantId,
+            deletedAt: null,
+            contractNumber: normalizedNextContractNumber,
+            id: { not: contractId },
+          },
+          select: { id: true },
+        });
+
+        if (existing) {
+          throw new ConflictException(
+            `Número de contrato "${normalizedNextContractNumber}" já existe`,
+          );
+        }
+
+        changedFields.push('contractNumber');
+        updates.contractNumber = normalizedNextContractNumber;
+      }
+    }
 
     if (dto.startDate && dto.startDate !== current.startDate.toISOString().split('T')[0]) {
       changedFields.push('startDate');
@@ -467,6 +591,22 @@ export class ResidentContractsService {
     if (dto.dueDay !== undefined && dto.dueDay !== current.dueDay) {
       changedFields.push('dueDay');
       updates.dueDay = dto.dueDay;
+    }
+
+    if (
+      dto.lateFeePercent !== undefined &&
+      dto.lateFeePercent !== Number(current.lateFeePercent)
+    ) {
+      changedFields.push('lateFeePercent');
+      updates.lateFeePercent = dto.lateFeePercent;
+    }
+
+    if (
+      dto.interestMonthlyPercent !== undefined &&
+      dto.interestMonthlyPercent !== Number(current.interestMonthlyPercent)
+    ) {
+      changedFields.push('interestMonthlyPercent');
+      updates.interestMonthlyPercent = dto.interestMonthlyPercent;
     }
 
     if (dto.adjustmentIndex !== undefined) {
@@ -515,6 +655,11 @@ export class ResidentContractsService {
       });
 
       return updatedContract;
+    });
+
+    await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
+      userId,
+      contractId,
     });
 
     return this.findOne(updated.id);
@@ -634,7 +779,11 @@ export class ResidentContractsService {
     // Upload PDF processado
     const processedFile: Express.Multer.File = {
       buffer: processed.pdfBuffer,
-      originalname: `contrato-${current.contractNumber}-v${current.version + 1}.pdf`,
+      originalname: this.buildContractPdfFileName(
+        current.contractNumber,
+        current.id.slice(0, 8),
+        current.version + 1,
+      ),
       mimetype: 'application/pdf',
       size: processed.pdfBuffer.length,
       fieldname: 'file',
@@ -669,6 +818,8 @@ export class ResidentContractsService {
           endDate: current.endDate,
           monthlyAmount: current.monthlyAmount,
           dueDay: current.dueDay,
+          lateFeePercent: current.lateFeePercent,
+          interestMonthlyPercent: current.interestMonthlyPercent,
           status: current.status,
           adjustmentIndex: current.adjustmentIndex,
           adjustmentRate: current.adjustmentRate,
@@ -683,7 +834,11 @@ export class ResidentContractsService {
           originalFileHash: processed.hashOriginal,
           processedFileUrl: processedUpload.fileUrl,
           processedFileKey: processedUpload.fileUrl,
-          processedFileName: `contrato-${current.contractNumber}-v${current.version + 1}.pdf`,
+          processedFileName: this.buildContractPdfFileName(
+            current.contractNumber,
+            current.id.slice(0, 8),
+            current.version + 1,
+          ),
           processedFileSize: processed.pdfBuffer.length,
           processedFileHash: processed.hashFinal,
           publicToken, // Token público para validação
@@ -805,8 +960,9 @@ export class ResidentContractsService {
    * Calcular status do contrato baseado na data de vigência
    */
   private calculateContractStatus(endDate: Date): ContractDocumentStatus {
-    const now = new Date();
-    const daysUntilExpiry = differenceInDays(endDate, now);
+    const todayDateOnly = getCurrentDateInTz(DEFAULT_TIMEZONE);
+    const today = parseISO(`${todayDateOnly}T12:00:00.000`);
+    const daysUntilExpiry = differenceInDays(endDate, today);
 
     if (daysUntilExpiry < 0) {
       return ContractDocumentStatus.VENCIDO;

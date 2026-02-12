@@ -2,7 +2,7 @@
 
 **Status:** ✅ Implementado
 **Versão:** 1.0.0
-**Última atualização:** 13/01/2026
+**Última atualização:** 12/02/2026
 
 ## Visão Geral
 
@@ -12,12 +12,37 @@ Sistema completo de digitalização e armazenamento de contratos físicos entre 
 
 - ✅ **Upload de documentos físicos**: JPEG, PNG, WEBP, PDF (até 10MB)
 - ✅ **Conversão automática**: Imagem → PDF A4 com qualidade preservada
-- ✅ **Carimbo institucional**: Validação digital com dados da ILPI, usuário, hash SHA-256 e token público
-- ✅ **Armazenamento dual**: Arquivo original + PDF processado (criptografia SSE-C)
+- ✅ **Carimbo institucional**: Validação digital com dados da ILPI e trilha de integridade (uso interno)
+- ✅ **Armazenamento dual**: Arquivo original + PDF processado (criptografia SSE-C, uso interno/auditoria)
 - ✅ **Versionamento completo**: Substituição de contratos com histórico auditado
 - ✅ **Status automático**: VIGENTE, VENCENDO_EM_30_DIAS, VENCIDO
-- ✅ **Validação pública**: Endpoint para verificar autenticidade por hash
+- ✅ **Validação pública**: Endpoint técnico para verificação de autenticidade (uso administrativo/técnico)
 - ✅ **Metadados completos**: Número contrato, vigência, valor mensalidade, dia vencimento, assinantes
+
+## Integração Financeira (atual)
+
+O módulo de contratos está integrado ao Financeiro Operacional para geração e acompanhamento das mensalidades.
+
+Pontos principais:
+- ✅ Campos financeiros no contrato: `lateFeePercent` e `interestMonthlyPercent`
+- ✅ Geração de transações de mensalidade com vínculo `residentContractId`
+- ✅ Origem rastreável da transação: `generationSource = RESIDENT_CONTRACT`
+- ✅ Aba **Financeiro** no detalhe do contrato com histórico das parcelas/transações vinculadas
+- ✅ Ação de deep link **Abrir no Financeiro** com filtros aplicados
+
+Documentação completa da integração:
+- [Contratos + Integração com Financeiro](contracts-financial-integration.md)
+- [Módulo Financeiro Operacional](financial-operations.md)
+
+## UX atual no frontend (usuário final)
+
+Para o usuário da ILPI, a tela de contrato foi simplificada:
+- Exibe apenas ação **Ver contrato** (PDF processado).
+- Não exibe botão de download do arquivo original.
+- Não exibe hash SHA-256 na interface.
+
+Observação:
+- Arquivo original e hashes continuam armazenados e disponíveis para auditoria/validação técnica no backend.
 
 ## Arquitetura
 
@@ -328,7 +353,7 @@ const scale = Math.min(
 - ✅ Lista de contratos ativos e versões anteriores
 - ✅ Status visual (VIGENTE/VENCENDO/VENCIDO)
 - ✅ Valor da mensalidade e dia de vencimento
-- ✅ Download de arquivo original e PDF processado
+- ✅ Visualização do contrato processado (ação \"Ver contrato\")
 - ✅ Histórico de alterações (auditoria)
 - ✅ Ações: Visualizar, Substituir, Excluir
 
@@ -336,6 +361,8 @@ const scale = Math.min(
 
 - [CHANGELOG - 2026-01-13](../../CHANGELOG.md#2026-01-13---digitalização-de-contratos)
 - [Módulo de Residentes](residents.md) - Integração com prontuário
+- [Módulo Financeiro Operacional](financial-operations.md)
+- [Contratos + Integração com Financeiro](contracts-financial-integration.md)
 - [Documentação de File Storage](../architecture/file-storage.md) - Criptografia SSE-C
 
 ---

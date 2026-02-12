@@ -36,6 +36,8 @@ export default function ResidentContractUpload() {
   const [endDate, setEndDate] = useState('')
   const [monthlyAmount, setMonthlyAmount] = useState('')
   const [dueDay, setDueDay] = useState('10')
+  const [lateFeePercent, setLateFeePercent] = useState('2')
+  const [interestMonthlyPercent, setInterestMonthlyPercent] = useState('1')
   const [adjustmentIndex, setAdjustmentIndex] = useState('')
   const [adjustmentRate, setAdjustmentRate] = useState('')
   const [lastAdjustmentDate, setLastAdjustmentDate] = useState('')
@@ -117,6 +119,7 @@ export default function ResidentContractUpload() {
     const newErrors: Record<string, string> = {}
 
     if (!residentId) newErrors.residentId = 'Selecione um residente'
+    if (!contractNumber.trim()) newErrors.contractNumber = 'Informe o número do contrato'
     if (!startDate) newErrors.startDate = 'Informe a data de início'
     if (!endDate) newErrors.endDate = 'Informe a data de fim'
     if (!monthlyAmount) newErrors.monthlyAmount = 'Informe o valor mensal'
@@ -137,6 +140,17 @@ export default function ResidentContractUpload() {
     // Validar valor
     if (monthlyAmount && Number(monthlyAmount) <= 0) {
       newErrors.monthlyAmount = 'Valor deve ser maior que zero'
+    }
+
+    if (lateFeePercent && (Number(lateFeePercent) < 0 || Number(lateFeePercent) > 100)) {
+      newErrors.lateFeePercent = 'Multa deve estar entre 0 e 100%'
+    }
+
+    if (
+      interestMonthlyPercent &&
+      (Number(interestMonthlyPercent) < 0 || Number(interestMonthlyPercent) > 100)
+    ) {
+      newErrors.interestMonthlyPercent = 'Juros deve estar entre 0 e 100% ao mês'
     }
 
     // Validar dia de vencimento
@@ -163,11 +177,13 @@ export default function ResidentContractUpload() {
     // Frontend envia apenas responsáveis contratuais
 
     const data: CreateContractDto = {
-      contractNumber,
+      contractNumber: contractNumber.trim(),
       startDate,
       endDate,
       monthlyAmount: Number(monthlyAmount),
       dueDay: Number(dueDay),
+      lateFeePercent: Number(lateFeePercent || 0),
+      interestMonthlyPercent: Number(interestMonthlyPercent || 0),
       signatories: contractualResponsibles,
       adjustmentIndex: adjustmentIndex || undefined,
       adjustmentRate: adjustmentRate ? Number(adjustmentRate) : undefined,
@@ -246,7 +262,7 @@ export default function ResidentContractUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contractNumber">Número do Contrato</Label>
+                <Label htmlFor="contractNumber">Número do Contrato *</Label>
                 <Input
                   id="contractNumber"
                   value={contractNumber}
@@ -312,6 +328,44 @@ export default function ResidentContractUpload() {
                   className={errors.dueDay ? 'border-danger' : ''}
                 />
                 {errors.dueDay && <p className="text-sm text-danger">{errors.dueDay}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lateFeePercent">Multa por atraso (%)</Label>
+                <Input
+                  id="lateFeePercent"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={lateFeePercent}
+                  onChange={(e) => setLateFeePercent(e.target.value)}
+                  placeholder="Ex: 2"
+                  className={errors.lateFeePercent ? 'border-danger' : ''}
+                />
+                {errors.lateFeePercent && (
+                  <p className="text-sm text-danger">{errors.lateFeePercent}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="interestMonthlyPercent">Juros por atraso (% ao mês)</Label>
+                <Input
+                  id="interestMonthlyPercent"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={interestMonthlyPercent}
+                  onChange={(e) => setInterestMonthlyPercent(e.target.value)}
+                  placeholder="Ex: 1"
+                  className={errors.interestMonthlyPercent ? 'border-danger' : ''}
+                />
+                {errors.interestMonthlyPercent && (
+                  <p className="text-sm text-danger">{errors.interestMonthlyPercent}</p>
+                )}
               </div>
             </div>
           </CardContent>

@@ -41,11 +41,11 @@ export class SignatoryDto {
  * DTO para criação de contrato de prestação de serviços (digitalização)
  */
 export class CreateContractDto {
-  @ApiProperty({ example: 'CONT-2025-001', description: 'Número único do contrato', required: false })
-  @IsOptional()
+  @ApiProperty({ example: 'CONT-2025-001', description: 'Número único do contrato' })
+  @IsNotEmpty()
   @IsString()
   @MaxLength(100)
-  contractNumber?: string;
+  contractNumber: string;
 
   @ApiProperty({ example: '2025-01-01', description: 'Data de início da vigência (YYYY-MM-DD)' })
   @IsDateString()
@@ -65,6 +65,20 @@ export class CreateContractDto {
   @Min(1)
   @Max(28)
   dueDay: number;
+
+  @ApiProperty({ example: 2.0, required: false, description: 'Multa percentual por atraso (ex.: 2 para 2%)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  lateFeePercent?: number;
+
+  @ApiProperty({ example: 1.0, required: false, description: 'Juros percentual ao mês por atraso (ex.: 1 para 1% a.m.)' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  interestMonthlyPercent?: number;
 
   @ApiProperty({ example: 'INPC', required: false, description: 'Índice de reajuste (INPC, IGP-M, etc)' })
   @IsOptional()

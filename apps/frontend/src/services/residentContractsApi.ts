@@ -9,6 +9,8 @@ export interface ResidentContract {
   endDate: string
   monthlyAmount: number
   dueDay: number
+  lateFeePercent: number
+  interestMonthlyPercent: number
   status: 'VIGENTE' | 'VENCENDO_EM_30_DIAS' | 'VENCIDO'
   adjustmentIndex?: string
   adjustmentRate?: number
@@ -70,6 +72,8 @@ export interface CreateContractDto {
   endDate: string
   monthlyAmount: number
   dueDay: number
+  lateFeePercent?: number
+  interestMonthlyPercent?: number
   adjustmentIndex?: string
   adjustmentRate?: number
   lastAdjustmentDate?: string
@@ -84,6 +88,8 @@ export interface CreateContractDto {
 export interface UpdateContractDto {
   monthlyAmount?: number
   dueDay?: number
+  lateFeePercent?: number
+  interestMonthlyPercent?: number
   adjustmentIndex?: string
   adjustmentRate?: number
   lastAdjustmentDate?: string
