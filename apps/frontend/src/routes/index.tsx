@@ -114,6 +114,7 @@ import { SystemSettings } from '@/pages/superadmin/SystemSettings'
 
 // Settings Pages
 import { BillingPage } from '@/pages/settings/BillingPage'
+import FinancialOperationsPage from '@/pages/financial/FinancialOperationsPage'
 
 // Onboarding Pages
 import { OnboardingWizard } from '@/pages/onboarding/OnboardingWizard'
@@ -544,6 +545,16 @@ export const router = createBrowserRouter([
       {
         path: 'settings/billing',
         element: <BillingPage />,
+      },
+      {
+        path: 'financeiro',
+        element: (
+          <ProtectedRoute
+            requiredPermissions={[PermissionType.VIEW_FINANCIAL_OPERATIONS]}
+          >
+            <FinancialOperationsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'contratos',

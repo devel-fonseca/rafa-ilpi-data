@@ -316,6 +316,13 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.SEND_MESSAGES,
       PermissionType.DELETE_MESSAGES,
       PermissionType.BROADCAST_MESSAGES, // Admin pode enviar mensagens para todos
+      // Financeiro Operacional
+      PermissionType.VIEW_FINANCIAL_OPERATIONS,
+      PermissionType.MANAGE_FINANCIAL_CATEGORIES,
+      PermissionType.MANAGE_FINANCIAL_TRANSACTIONS,
+      PermissionType.MANAGE_FINANCIAL_ACCOUNTS,
+      PermissionType.MANAGE_FINANCIAL_RECONCILIATION,
+      PermissionType.VIEW_FINANCIAL_DASHBOARD,
     ],
   },
 
@@ -357,6 +364,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Mensagens Internas
       PermissionType.VIEW_MESSAGES,
       PermissionType.SEND_MESSAGES,
+      // Financeiro Operacional (somente visualização)
+      PermissionType.VIEW_FINANCIAL_OPERATIONS,
+      PermissionType.VIEW_FINANCIAL_DASHBOARD,
     ],
   },
 
@@ -393,6 +403,9 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       PermissionType.UPDATE_CONTRACTS,
       PermissionType.DELETE_CONTRACTS,
       PermissionType.REPLACE_CONTRACTS,
+      // Financeiro Operacional (somente visualização)
+      PermissionType.VIEW_FINANCIAL_OPERATIONS,
+      PermissionType.VIEW_FINANCIAL_DASHBOARD,
     ],
   },
 
@@ -646,6 +659,10 @@ export const ILPI_POSITION_PROFILES: Record<PositionCode, PositionProfile> = {
       // Mensagens Internas
       PermissionType.VIEW_MESSAGES,
       PermissionType.SEND_MESSAGES,
+      // Financeiro Operacional
+      PermissionType.VIEW_FINANCIAL_OPERATIONS,
+      PermissionType.MANAGE_FINANCIAL_TRANSACTIONS,
+      PermissionType.VIEW_FINANCIAL_DASHBOARD,
     ],
   },
 

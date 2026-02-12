@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth.store'
-import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, BarChart3, Map, NotebookPen } from 'lucide-react'
+import { Building2, LogOut, Pill, LayoutDashboard, Users, Bed, Menu, FileText, User2, Shield, Moon, Sun, ChevronLeft, ChevronRight, Mail, CalendarDays, Bell, ShieldCheck, FileSignature, CalendarClock, CreditCard, BarChart3, Map, NotebookPen, Landmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -59,6 +59,7 @@ export function DashboardLayout() {
                             hasPermission(PermissionType.VIEW_SENTINEL_EVENTS)
   const canViewCareShifts = hasPermission(PermissionType.VIEW_CARE_SHIFTS)
   const canViewReports = hasPermission(PermissionType.VIEW_REPORTS)
+  const canViewFinancialOperations = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
 
   // Carregar foto do perfil e cargo do usuário
   useEffect(() => {
@@ -496,6 +497,26 @@ export function DashboardLayout() {
                 </Tooltip>
               )}
 
+              {/* Financeiro Operacional */}
+              {canViewFinancialOperations && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/dashboard/financeiro"
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors ${
+                        preferences.sidebarCollapsed ? 'justify-center' : ''
+                      }`}
+                    >
+                      <Landmark className={desktopSidebarIconClass} />
+                      {!preferences.sidebarCollapsed && 'Financeiro'}
+                    </Link>
+                  </TooltipTrigger>
+                  {preferences.sidebarCollapsed && (
+                    <TooltipContent side="right">Financeiro</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+
               {/* Relatórios */}
               {canViewReports && (
                 <Tooltip>
@@ -802,6 +823,18 @@ export function DashboardLayout() {
                 >
                   <FileSignature className="h-4 w-4" />
                   Contratos
+                </Link>
+              )}
+
+              {/* Financeiro Operacional */}
+              {canViewFinancialOperations && (
+                <Link
+                  to="/dashboard/financeiro"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                >
+                  <Landmark className="h-4 w-4" />
+                  Financeiro
                 </Link>
               )}
 

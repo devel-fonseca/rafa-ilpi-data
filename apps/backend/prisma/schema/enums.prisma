@@ -222,6 +222,14 @@ enum PermissionType {
   VIEW_RDC_COMPLIANCE
   CONFIGURE_SHIFT_SETTINGS
 
+  // Financeiro Operacional (Tenant)
+  VIEW_FINANCIAL_OPERATIONS
+  MANAGE_FINANCIAL_CATEGORIES
+  MANAGE_FINANCIAL_TRANSACTIONS
+  MANAGE_FINANCIAL_ACCOUNTS
+  MANAGE_FINANCIAL_RECONCILIATION
+  VIEW_FINANCIAL_DASHBOARD
+
   @@map("PermissionType")
 }
 
@@ -260,6 +268,52 @@ enum RegistrationType {
   NONE // Sem registro (para cargos que não exigem)
 
   @@map("RegistrationType")
+}
+
+// ==========================================
+// FINANCEIRO OPERACIONAL (5 enums)
+// ==========================================
+
+enum FinancialCategoryType {
+  INCOME
+  EXPENSE
+
+  @@map("FinancialCategoryType")
+}
+
+enum FinancialAccountType {
+  CHECKING
+  SAVINGS
+  PAYMENT
+
+  @@map("FinancialAccountType")
+}
+
+enum FinancialTransactionType {
+  INCOME
+  EXPENSE
+
+  @@map("FinancialTransactionType")
+}
+
+enum FinancialTransactionStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+  PARTIALLY_PAID
+
+  @@map("FinancialTransactionStatus")
+}
+
+enum FinancialReconciliationStatus {
+  PENDING
+  IN_PROGRESS
+  RECONCILED
+  DISCREPANCY
+
+  @@map("FinancialReconciliationStatus")
 }
 
 // ENUM: Ações de Acesso para Logs de Auditoria
