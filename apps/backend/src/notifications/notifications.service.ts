@@ -5,11 +5,14 @@ import {
   SystemNotificationType,
   NotificationCategory,
   NotificationSeverity,
+  InstitutionalEventVisibility,
+  PositionCode,
   Prisma,
 } from '@prisma/client'
 import { CreateNotificationDto } from './dto/create-notification.dto'
 import { QueryNotificationDto } from './dto/query-notification.dto'
 import { formatDateOnly } from '../utils/date.helpers'
+import { NotificationRecipientsResolverService } from './notification-recipients-resolver.service'
 
 @Injectable()
 export class NotificationsService {
@@ -18,6 +21,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly recipientsResolver: NotificationRecipientsResolverService,
   ) {}
 
   /**
@@ -309,6 +313,12 @@ export class NotificationsService {
               { expiresAt: null },
             ],
           },
+          {
+            OR: [
+              { recipients: { none: {} } }, // Broadcast
+              { recipients: { some: { userId } } }, // Direcionada para o usuário
+            ],
+          },
         ],
       },
       select: {
@@ -596,13 +606,14 @@ export class NotificationsService {
     eventType: string,
     scheduledDate: Date,
     createdByName: string,
+    visibility: InstitutionalEventVisibility = InstitutionalEventVisibility.ALL_USERS,
   ) {
     // ✅ Usar formatDateOnly para evitar timezone shift em campo DATE
     const dateOnlyStr = formatDateOnly(scheduledDate) // YYYY-MM-DD
     const [year, month, day] = dateOnlyStr.split('-')
     const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
-    return this.create({
+    const dto: CreateNotificationDto = {
       type: SystemNotificationType.INSTITUTIONAL_EVENT_CREATED,
       category: NotificationCategory.INSTITUTIONAL_EVENT,
       severity: NotificationSeverity.INFO,
@@ -611,8 +622,14 @@ export class NotificationsService {
       actionUrl: `/dashboard/agenda`,
       entityType: 'INSTITUTIONAL_EVENT',
       entityId: eventId,
-      metadata: { eventTitle, eventType, scheduledDate: dateStr, createdByName },
-    })
+      metadata: { eventTitle, eventType, scheduledDate: dateStr, createdByName, visibility },
+    }
+
+    const recipientIds = await this.getInstitutionalEventRecipientIds(visibility)
+    if (recipientIds === null) {
+      return this.create(dto) // ALL_USERS permanece broadcast
+    }
+    return this.createDirectedNotification(this.tenantContext.tenantId, recipientIds, dto)
   }
 
   /**
@@ -624,13 +641,14 @@ export class NotificationsService {
     eventType: string,
     scheduledDate: Date,
     updatedByName: string,
+    visibility: InstitutionalEventVisibility = InstitutionalEventVisibility.ALL_USERS,
   ) {
     // ✅ Usar formatDateOnly para evitar timezone shift em campo DATE
     const dateOnlyStr = formatDateOnly(scheduledDate) // YYYY-MM-DD
     const [year, month, day] = dateOnlyStr.split('-')
     const dateStr = `${day}/${month}/${year}` // DD/MM/YYYY
 
-    return this.create({
+    const dto: CreateNotificationDto = {
       type: SystemNotificationType.INSTITUTIONAL_EVENT_UPDATED,
       category: NotificationCategory.INSTITUTIONAL_EVENT,
       severity: NotificationSeverity.INFO,
@@ -639,8 +657,14 @@ export class NotificationsService {
       actionUrl: `/dashboard/agenda`,
       entityType: 'INSTITUTIONAL_EVENT',
       entityId: eventId,
-      metadata: { eventTitle, eventType, scheduledDate: dateStr, updatedByName },
-    })
+      metadata: { eventTitle, eventType, scheduledDate: dateStr, updatedByName, visibility },
+    }
+
+    const recipientIds = await this.getInstitutionalEventRecipientIds(visibility)
+    if (recipientIds === null) {
+      return this.create(dto) // ALL_USERS permanece broadcast
+    }
+    return this.createDirectedNotification(this.tenantContext.tenantId, recipientIds, dto)
   }
 
   // ========================================================================
@@ -703,37 +727,36 @@ export class NotificationsService {
     tenantId: string,
     createdByUserId: string,
   ): Promise<string[]> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { schemaName: true },
+    const uniqueIds = await this.recipientsResolver.resolveByTenantId(tenantId, {
+      positionCodes: [PositionCode.ADMINISTRATOR, PositionCode.TECHNICAL_MANAGER],
+      includeTechnicalManagerFlag: true,
+      includeLegacyAdminRole: true,
+      includeUserIds: [createdByUserId],
     })
-
-    if (!tenant) {
-      throw new NotFoundException(`Tenant ${tenantId} não encontrado`)
-    }
-
-    const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
-
-    // Buscar:
-    // 1. Todos ADMINs
-    // 2. Autor (createdByUserId)
-    const users = await tenantClient.user.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          { role: 'ADMIN' },
-          { id: createdByUserId },
-        ],
-      },
-      select: { id: true },
-    })
-
-    // Retornar IDs únicos (caso o autor seja ADMIN, não duplicar)
-    const uniqueIds = [...new Set(users.map((u) => u.id))]
     this.logger.log(
       `Found ${uniqueIds.length} recipients for incident notification in tenant ${tenantId}`,
     )
     return uniqueIds
+  }
+
+  private async getInstitutionalEventRecipientIds(
+    visibility: InstitutionalEventVisibility,
+  ): Promise<string[] | null> {
+    if (visibility === InstitutionalEventVisibility.ALL_USERS) {
+      return null
+    }
+
+    return this.recipientsResolver.resolveByTenantId(this.tenantContext.tenantId, {
+      positionCodes:
+        visibility === InstitutionalEventVisibility.RT_ONLY
+          ? [PositionCode.ADMINISTRATOR, PositionCode.TECHNICAL_MANAGER]
+          : [
+              PositionCode.ADMINISTRATOR,
+              PositionCode.ADMINISTRATIVE,
+              PositionCode.ADMINISTRATIVE_ASSISTANT,
+            ],
+      includeTechnicalManagerFlag: visibility === InstitutionalEventVisibility.RT_ONLY,
+    })
   }
 
   /**

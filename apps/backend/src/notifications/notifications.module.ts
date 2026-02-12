@@ -3,12 +3,22 @@ import { NotificationsController } from './notifications.controller'
 import { NotificationsService } from './notifications.service'
 import { NotificationsHelperService } from './notifications-helper.service'
 import { NotificationsCronService } from './notifications.cron'
+import { NotificationRecipientsResolverService } from './notification-recipients-resolver.service'
 import { PrismaModule } from '../prisma/prisma.module'
 
 @Module({
   imports: [PrismaModule],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationsHelperService, NotificationsCronService],
-  exports: [NotificationsService, NotificationsHelperService], // Exportar para usar em outros módulos
+  providers: [
+    NotificationsService,
+    NotificationsHelperService,
+    NotificationsCronService,
+    NotificationRecipientsResolverService,
+  ],
+  exports: [
+    NotificationsService,
+    NotificationsHelperService,
+    NotificationRecipientsResolverService,
+  ], // Exportar para usar em outros módulos
 })
 export class NotificationsModule {}

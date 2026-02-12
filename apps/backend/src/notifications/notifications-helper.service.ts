@@ -61,6 +61,64 @@ export class NotificationsHelperService {
   }
 
   /**
+   * Criar notificação direcionada para destinatários específicos em contexto sem REQUEST.
+   * Se recipientUserIds estiver vazio, cai para broadcast padrão.
+   */
+  async createDirectedForTenant(
+    tenantId: string,
+    recipientUserIds: string[],
+    dto: CreateNotificationDto,
+  ) {
+    if (recipientUserIds.length === 0) {
+      return this.createForTenant(tenantId, dto)
+    }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { schemaName: true },
+    })
+
+    if (!tenant) {
+      throw new NotFoundException(`Tenant ${tenantId} não encontrado`)
+    }
+
+    const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
+
+    const notification = await tenantClient.$transaction(async (tx) => {
+      const createdNotification = await tx.notification.create({
+        data: {
+          tenantId,
+          type: dto.type,
+          category: dto.category,
+          severity: dto.severity,
+          title: dto.title,
+          message: dto.message,
+          actionUrl: dto.actionUrl,
+          entityType: dto.entityType,
+          entityId: dto.entityId,
+          metadata: (dto.metadata || {}) as unknown as Prisma.InputJsonValue,
+          expiresAt: dto.expiresAt,
+        },
+      })
+
+      await tx.notificationRecipient.createMany({
+        data: recipientUserIds.map((userId) => ({
+          notificationId: createdNotification.id,
+          userId,
+        })),
+        skipDuplicates: true,
+      })
+
+      return createdNotification
+    })
+
+    this.logger.log(
+      `Directed notification created for tenant ${tenantId}: ${notification.id} (${recipientUserIds.length} recipients)`,
+    )
+    return notification
+  }
+
+  /**
    * Versão para CronJob: Criar notificação de evento agendado para hoje
    */
   async createScheduledEventDueNotificationForTenant(
