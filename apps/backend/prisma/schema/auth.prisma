@@ -109,10 +109,10 @@ model User {
   scheduledEventsUpdated ResidentScheduledEvent[] @relation("ScheduledEventUpdatedBy")
 
   // Relações de contratos e políticas
-  createdContracts      ServiceContract[] @relation("ContractCreator") // DEPRECATED
-  revokedContracts      ServiceContract[] @relation("ContractRevoker") // DEPRECATED
-  createdTerms          TermsOfService[]  @relation("TermsCreator") // Nova relação
-  revokedTerms          TermsOfService[]  @relation("TermsRevoker") // Nova relação
+  createdContracts ServiceContract[] @relation("ContractCreator") // DEPRECATED
+  revokedContracts ServiceContract[] @relation("ContractRevoker") // DEPRECATED
+  createdTerms     TermsOfService[]  @relation("TermsCreator") // Nova relação
+  revokedTerms     TermsOfService[]  @relation("TermsRevoker") // Nova relação
   // contractAcceptances - NO FK (cross-schema: tenant_xxx → public)
   // termsOfServiceAcceptances - NO FK (cross-schema: tenant_xxx → public)
   // privacyPolicyAcceptances - NO FK (cross-schema: tenant_xxx → public)
@@ -143,22 +143,22 @@ model User {
   sentinelEventNotifications SentinelEventNotification[] @relation("SentinelEventResponsible")
 
   // Pertences de Residentes
-  belongingsCreated     ResidentBelonging[]  @relation("BelongingCreator")
-  belongingsUpdated     ResidentBelonging[]  @relation("BelongingUpdater")
-  belongingTermsCreated BelongingTerm[]      @relation("BelongingTermCreator")
-  belongingHistoryChanges BelongingHistory[] @relation("BelongingHistoryChanger")
+  belongingsCreated       ResidentBelonging[] @relation("BelongingCreator")
+  belongingsUpdated       ResidentBelonging[] @relation("BelongingUpdater")
+  belongingTermsCreated   BelongingTerm[]     @relation("BelongingTermCreator")
+  belongingHistoryChanges BelongingHistory[]  @relation("BelongingHistoryChanger")
 
   // Dados de Saúde do Residente
-  residentBloodTypesCreated              ResidentBloodType[]        @relation("ResidentBloodTypeCreatedBy")
-  residentBloodTypesUpdated              ResidentBloodType[]        @relation("ResidentBloodTypeUpdatedBy")
-  residentBloodTypeHistory               ResidentBloodTypeHistory[] @relation("ResidentBloodTypeHistoryUser")
-  residentAnthropometryCreated           ResidentAnthropometry[]        @relation("ResidentAnthropometryCreatedBy")
-  residentAnthropometryUpdated           ResidentAnthropometry[]        @relation("ResidentAnthropometryUpdatedBy")
-  residentAnthropometryHistory           ResidentAnthropometryHistory[] @relation("ResidentAnthropometryHistoryUser")
-  residentDependencyAssessmentsAssessed  ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentAssessor")
-  residentDependencyAssessmentsCreated   ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentCreatedBy")
-  residentDependencyAssessmentsUpdated   ResidentDependencyAssessment[] @relation("ResidentDependencyAssessmentUpdatedBy")
-  residentDependencyAssessmentHistory    ResidentDependencyAssessmentHistory[] @relation("ResidentDependencyAssessmentHistoryUser")
+  residentBloodTypesCreated             ResidentBloodType[]                   @relation("ResidentBloodTypeCreatedBy")
+  residentBloodTypesUpdated             ResidentBloodType[]                   @relation("ResidentBloodTypeUpdatedBy")
+  residentBloodTypeHistory              ResidentBloodTypeHistory[]            @relation("ResidentBloodTypeHistoryUser")
+  residentAnthropometryCreated          ResidentAnthropometry[]               @relation("ResidentAnthropometryCreatedBy")
+  residentAnthropometryUpdated          ResidentAnthropometry[]               @relation("ResidentAnthropometryUpdatedBy")
+  residentAnthropometryHistory          ResidentAnthropometryHistory[]        @relation("ResidentAnthropometryHistoryUser")
+  residentDependencyAssessmentsAssessed ResidentDependencyAssessment[]        @relation("ResidentDependencyAssessmentAssessor")
+  residentDependencyAssessmentsCreated  ResidentDependencyAssessment[]        @relation("ResidentDependencyAssessmentCreatedBy")
+  residentDependencyAssessmentsUpdated  ResidentDependencyAssessment[]        @relation("ResidentDependencyAssessmentUpdatedBy")
+  residentDependencyAssessmentHistory   ResidentDependencyAssessmentHistory[] @relation("ResidentDependencyAssessmentHistoryUser")
 
   // Escala de Cuidados (Gestão de Turnos e Plantões)
   // teamMemberships - NO FK (evita problemas de referência, Prisma gerencia a relação)

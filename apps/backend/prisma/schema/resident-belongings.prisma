@@ -127,12 +127,12 @@ model ResidentBelonging {
   deletedAt DateTime? @db.Timestamptz(3)
 
   // Relações
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  resident  Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  creator   User     @relation("BelongingCreator", fields: [createdBy], references: [id])
-  updater   User?    @relation("BelongingUpdater", fields: [updatedBy], references: [id])
-  entryTerm BelongingTerm? @relation("EntryTermBelongings", fields: [entryTermId], references: [id])
-  exitTerm  BelongingTerm? @relation("ExitTermBelongings", fields: [exitTermId], references: [id])
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident  Resident            @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  creator   User                @relation("BelongingCreator", fields: [createdBy], references: [id])
+  updater   User?               @relation("BelongingUpdater", fields: [updatedBy], references: [id])
+  entryTerm BelongingTerm?      @relation("EntryTermBelongings", fields: [entryTermId], references: [id])
+  exitTerm  BelongingTerm?      @relation("ExitTermBelongings", fields: [exitTermId], references: [id])
   termItems BelongingTermItem[]
   history   BelongingHistory[]
 

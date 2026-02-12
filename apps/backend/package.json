@@ -25,8 +25,11 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:seed:email-templates": "ts-node prisma/seed-template-emails.ts",
+    "prisma:seed:financial-operations": "ts-node prisma/seeds/financial-operations.seed.ts",
     "tenants:sync-schemas": "ts-node scripts/apply-tenant-migrations.ts",
-    "tenants:sync-single": "ts-node scripts/apply-tenant-migrations.ts --schema"
+    "tenants:sync-single": "ts-node scripts/apply-tenant-migrations.ts --schema",
+    "financial:backfill-ledger": "ts-node scripts/backfill-financial-ledger.ts",
+    "financial:rebuild-ledger-account": "ts-node scripts/rebuild-financial-ledger-account.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.930.0",

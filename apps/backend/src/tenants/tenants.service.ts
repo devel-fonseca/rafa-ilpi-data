@@ -851,6 +851,8 @@ export class TenantsService {
 
       this.logger.log(`Schema ${schemaName} criado com sucesso`);
 
+      await this.ensureFinancialEnumsInSchema(schemaName);
+
       // 2. Executar todas as migrations do Prisma para popular o schema
       // Conecta ao banco usando o schema específico do tenant
       const DATABASE_URL = process.env.DATABASE_URL;
@@ -887,6 +889,73 @@ export class TenantsService {
         `Falha ao criar schema do tenant: ${error.message}`,
       );
     }
+  }
+
+  /**
+   * Garante enums do módulo financeiro no schema do tenant.
+   *
+   * Tradeoff documentado:
+   * - A migration de financeiro faz checagem de tipo por nome global em pg_type.
+   * - Se o tipo já existir no public, pode não ser criado no schema tenant.
+   * - Este passo garante consistência para novos tenants sem depender da ordem histórica de migrations.
+   */
+  private async ensureFinancialEnumsInSchema(schemaName: string): Promise<void> {
+    const safeSchemaName = schemaName.replace(/"/g, '""');
+
+    await this.prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = 'FinancialCategoryType'
+            AND n.nspname = '${safeSchemaName}'
+        ) THEN
+          EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialCategoryType" AS ENUM (''INCOME'', ''EXPENSE'')';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = 'FinancialAccountType'
+            AND n.nspname = '${safeSchemaName}'
+        ) THEN
+          EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialAccountType" AS ENUM (''CHECKING'', ''SAVINGS'', ''PAYMENT'')';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = 'FinancialTransactionType'
+            AND n.nspname = '${safeSchemaName}'
+        ) THEN
+          EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialTransactionType" AS ENUM (''INCOME'', ''EXPENSE'')';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = 'FinancialTransactionStatus'
+            AND n.nspname = '${safeSchemaName}'
+        ) THEN
+          EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialTransactionStatus" AS ENUM (''PENDING'', ''PAID'', ''OVERDUE'', ''CANCELLED'', ''REFUNDED'', ''PARTIALLY_PAID'')';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE t.typname = 'FinancialReconciliationStatus'
+            AND n.nspname = '${safeSchemaName}'
+        ) THEN
+          EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialReconciliationStatus" AS ENUM (''PENDING'', ''IN_PROGRESS'', ''RECONCILED'', ''DISCREPANCY'')';
+        END IF;
+      END $$;
+    `);
   }
 
   /**

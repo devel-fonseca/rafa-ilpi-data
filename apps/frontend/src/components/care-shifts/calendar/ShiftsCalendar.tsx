@@ -155,7 +155,7 @@ export function ShiftsCalendar({
                 Limpar
               </Button>
               <Button size="sm" onClick={confirmSelection}>
-                Designar Equipes
+                Designar Equipe
               </Button>
             </div>
           </div>
@@ -265,6 +265,7 @@ export function ShiftsCalendar({
           </div>
         </div>
       </CardContent>
+
     </Card>
   );
 }

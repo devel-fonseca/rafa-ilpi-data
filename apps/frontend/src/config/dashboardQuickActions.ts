@@ -4,6 +4,7 @@ import {
   Calendar,
   FileText,
   LayoutGrid,
+  Landmark,
   Pill,
   UserPlus,
   Users,
@@ -52,6 +53,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       description: 'Central de relatórios e documentos',
       icon: FileText,
       to: '/dashboard/relatorios',
+      visibleFor: [PositionCode.ADMINISTRATOR],
+    },
+    {
+      id: 'financial_operations',
+      title: 'Financeiro',
+      description: 'Lançamentos e categorias financeiras',
+      icon: Landmark,
+      to: '/dashboard/financeiro',
       visibleFor: [PositionCode.ADMINISTRATOR],
     },
     {
@@ -110,6 +119,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       description: 'Central de relatórios e documentos',
       icon: FileText,
       to: '/dashboard/relatorios',
+      visibleFor: [PositionCode.TECHNICAL_MANAGER],
+    },
+    {
+      id: 'financial_operations',
+      title: 'Financeiro',
+      description: 'Lançamentos e categorias financeiras',
+      icon: Landmark,
+      to: '/dashboard/financeiro',
       visibleFor: [PositionCode.TECHNICAL_MANAGER],
     },
     {

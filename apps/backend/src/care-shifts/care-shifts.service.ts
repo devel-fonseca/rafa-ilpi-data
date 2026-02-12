@@ -1413,11 +1413,13 @@ export class CareShiftsService {
     for (const shiftData of shifts) {
       try {
         const { date, shiftTemplateId, teamId } = shiftData;
+        // Prisma exige Date para campo @db.Date (DateTime no client); meio-dia evita shift de timezone.
+        const shiftDate = parseISO(`${parseDateOnly(date)}T12:00:00.000`);
 
         // Verificar se já existe plantão para este dia + turno
         const existing = await this.tenantContext.client.shift.findFirst({
           where: {
-            date: parseDateOnly(date),
+            date: shiftDate,
             shiftTemplateId,
             deletedAt: null,
           },
@@ -1456,7 +1458,7 @@ export class CareShiftsService {
         const shift = await this.tenantContext.client.shift.create({
           data: {
             tenantId: this.tenantContext.tenantId,
-            date: parseDateOnly(date),
+            date: shiftDate,
             shiftTemplateId,
             teamId,
             status: teamId ? 'CONFIRMED' : 'SCHEDULED',
@@ -1912,7 +1914,9 @@ export class CareShiftsService {
     }
 
     // 3. Gerar snapshot de atividades antes de encerrar
-    const shiftDate = parseISO(parseDateOnly(shift.date as unknown as string));
+    // `shift.date` (campo @db.Date) já chega como Date no Prisma client.
+    // Evita parseDateOnly(string) para não quebrar com input Date.
+    const shiftDate = shift.date;
     const activitiesSnapshot = await this.generateActivitiesSnapshot(shift.id, shiftDate);
 
     // 4. Encerrar administrativamente

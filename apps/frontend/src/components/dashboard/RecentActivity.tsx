@@ -13,18 +13,31 @@ import {
 } from '@/components/ui/tooltip'
 
 const entityTypeLabels: Record<string, string> = {
+  ADMIN_DASHBOARD: 'painel administrativo',
+  BELONGING_TERM: 'termo de pertences',
+  COMPLIANCE_ASSESSMENT: 'avaliação de conformidade',
   RESIDENT: 'residente',
+  RESIDENT_HEALTH: 'saúde do residente',
+  RESIDENT_BELONGING: 'pertencente do residente',
+  RESIDENT_CONTRACT: 'contrato do residente',
+  RESIDENT_DOCUMENT: 'documento do residente',
+  RESIDENT_SCHEDULE: 'agenda do residente',
   DAILY_RECORD: 'registro diário',
   PRESCRIPTION: 'prescrição',
   MEDICATION: 'medicamento',
   SOS_MEDICATION: 'medicamento SOS',
   MEDICATION_ADMINISTRATION: 'administração de medicamento',
   VACCINATION: 'vacinação',
-  BUILDING: 'prédio',
+  PERMISSIONS: 'permissões',
+  RDC_INDICATOR: 'indicador RDC',
+  SENTINEL_EVENT: 'evento sentinela',
+  BUILDING: 'estrutura',
   FLOOR: 'andar',
   ROOM: 'quarto',
   BED: 'leito',
+  INSTITUTIONAL_EVENTS: 'eventos institucionais',
   VITAL_SIGN: 'sinal vital',
+  VITAL_SIGN_ALERT: 'alerta de sinal vital',
   CLINICAL_NOTE: 'evolução clínica',
   CLINICAL_PROFILE: 'perfil clínico',
   ALLERGY: 'alergia',
@@ -32,12 +45,27 @@ const entityTypeLabels: Record<string, string> = {
   DIETARY_RESTRICTION: 'restrição alimentar',
   INSTITUTIONAL_PROFILE: 'perfil institucional',
   TENANT_DOCUMENT: 'documento institucional',
-  RESIDENT_DOCUMENT: 'documento do residente',
   USER_PROFILE: 'perfil de usuário',
+  TENANT_PROFILE: 'perfil institucional',
+  'TENANT PROFILE': 'perfil institucional',
   USER: 'usuário',
   TENANT: 'organização',
   RESIDENT_SCHEDULE_CONFIG: 'configuração de agenda',
   RESIDENT_SCHEDULED_EVENT: 'evento agendado',
+}
+
+const fallbackEntityWordMap: Record<string, string> = {
+  tenant: 'organização',
+  profile: 'perfil',
+  building: 'estrutura',
+  floor: 'andar',
+  room: 'quarto',
+  bed: 'leito',
+  user: 'usuário',
+  resident: 'residente',
+  schedule: 'agenda',
+  event: 'evento',
+  document: 'documento',
 }
 
 const actionLabels: Record<string, string> = {
@@ -48,6 +76,18 @@ const actionLabels: Record<string, string> = {
   DELETE: 'excluiu',
   DELETE_USER: 'removeu',
   READ: 'visualizou',
+  MEDICAL_REVIEW: 'revisou',
+  REPLACE: 'substituiu',
+  SIGN: 'assinou',
+  CANCEL: 'cancelou',
+  STATUS_CHANGE: 'alterou status de',
+  PHOTO_UPLOAD: 'enviou foto de',
+  RESERVE_BED: 'reservou',
+  BLOCK_BED: 'bloqueou',
+  RELEASE_BED: 'liberou',
+  GRANT_CUSTOM_PERMISSION: 'concedeu permissão personalizada em',
+  REVOKE_CUSTOM_PERMISSION: 'revogou permissão personalizada em',
+  MANAGE_CUSTOM_PERMISSIONS: 'gerenciou permissões personalizadas de',
   ADMINISTER_MEDICATION: 'administrou medicação',
   ADMINISTER_SOS: 'administrou medicação SOS',
   TRANSFER_BED: 'transferiu de leito',
@@ -76,7 +116,20 @@ function getActivityColor(action: string) {
 }
 
 function formatActivityMessage(log: AuditLog) {
-  const entityLabel = entityTypeLabels[log.entityType] || log.entityType.toLowerCase().replace('_', ' ')
+  const normalizedEntityType = (log.entityType || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase()
+  const fallbackEntityLabel = log.entityType
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((word) => fallbackEntityWordMap[word] || word)
+    .join(' ')
+
+  const entityLabel = entityTypeLabels[normalizedEntityType] || fallbackEntityLabel
   const actionLabel = actionLabels[log.action] || log.action.toLowerCase()
 
   // Normalizar entity type para maiúsculo para comparação

@@ -1,12 +1,70 @@
 import { PrismaClient } from '@prisma/client'
 import { execSync } from 'child_process'
 import * as path from 'path'
-import { fileURLToPath } from 'url'
 
 const prisma = new PrismaClient()
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+async function ensureFinancialEnumsInSchema(schemaName: string) {
+  const safeSchemaName = schemaName.replace(/"/g, '""')
+
+  // Tradeoff: migration 20260212064000 checks pg_type globally by typname.
+  // When enum exists in public, tenant schema creation may be skipped and table creation fails.
+  // To keep deploy deterministic for all tenant schemas, ensure enums exist in target schema first.
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'FinancialCategoryType'
+          AND n.nspname = '${safeSchemaName}'
+      ) THEN
+        EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialCategoryType" AS ENUM (''INCOME'', ''EXPENSE'')';
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'FinancialAccountType'
+          AND n.nspname = '${safeSchemaName}'
+      ) THEN
+        EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialAccountType" AS ENUM (''CHECKING'', ''SAVINGS'', ''PAYMENT'')';
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'FinancialTransactionType'
+          AND n.nspname = '${safeSchemaName}'
+      ) THEN
+        EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialTransactionType" AS ENUM (''INCOME'', ''EXPENSE'')';
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'FinancialTransactionStatus'
+          AND n.nspname = '${safeSchemaName}'
+      ) THEN
+        EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialTransactionStatus" AS ENUM (''PENDING'', ''PAID'', ''OVERDUE'', ''CANCELLED'', ''REFUNDED'', ''PARTIALLY_PAID'')';
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'FinancialReconciliationStatus'
+          AND n.nspname = '${safeSchemaName}'
+      ) THEN
+        EXECUTE 'CREATE TYPE "${safeSchemaName}"."FinancialReconciliationStatus" AS ENUM (''PENDING'', ''IN_PROGRESS'', ''RECONCILED'', ''DISCREPANCY'')';
+      END IF;
+    END $$;
+  `)
+}
 
 async function applyMigrationsToTenant(schemaName: string) {
   console.log(`📦 Aplicando migrations no schema: ${schemaName}`)
@@ -92,6 +150,8 @@ async function main() {
       await prisma.$executeRawUnsafe(
         `CREATE SCHEMA IF NOT EXISTS "${tenant.schemaName}";`,
       )
+
+      await ensureFinancialEnumsInSchema(tenant.schemaName)
 
       // Aplicar migrations
       await applyMigrationsToTenant(tenant.schemaName)

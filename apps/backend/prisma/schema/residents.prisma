@@ -127,9 +127,9 @@ model Resident {
   belongingTerms            BelongingTerm[] // Termos de pertences
 
   // Dados de Saúde (tabelas separadas)
-  bloodTypeRecord         ResidentBloodType? // Tipo sanguíneo (1:1)
-  anthropometryRecords    ResidentAnthropometry[] // Medições de peso/altura (1:N evolutivo)
-  dependencyAssessments   ResidentDependencyAssessment[] // Avaliações de dependência (1:N)
+  bloodTypeRecord       ResidentBloodType? // Tipo sanguíneo (1:1)
+  anthropometryRecords  ResidentAnthropometry[] // Medições de peso/altura (1:N evolutivo)
+  dependencyAssessments ResidentDependencyAssessment[] // Avaliações de dependência (1:N)
 
   // Índices
   @@unique([tenantId, cpf])

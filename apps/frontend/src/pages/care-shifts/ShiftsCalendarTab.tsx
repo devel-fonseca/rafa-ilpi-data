@@ -76,7 +76,7 @@ export function ShiftsCalendarTab() {
           <h2 className="text-2xl font-bold">Calendário de Plantões</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Selecione os dias no calendário para criar plantões em lote
+          Selecione os dias no calendário para criar plantões em lote com uma equipe e um turno
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function ShiftsCalendarTab() {
           <Calendar className="h-4 w-4" />
           <AlertDescription>
             <strong>Como usar:</strong> Clique nos dias do calendário para selecioná-los. Após
-            selecionar, clique em "Designar Equipes" para criar plantões em lote.
+            selecionar, clique em "Designar Equipe" para criar plantões em lote.
           </AlertDescription>
         </Alert>
       )}

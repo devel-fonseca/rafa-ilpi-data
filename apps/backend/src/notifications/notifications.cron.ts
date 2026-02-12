@@ -36,6 +36,10 @@ export class NotificationsCronService {
     PositionCode.ADMINISTRATIVE,
     PositionCode.ADMINISTRATIVE_ASSISTANT,
   ]
+  private static readonly SCHEDULED_EVENT_POSITIONS: PositionCode[] =
+    NotificationsCronService.ADMIN_TECH_OFFICE_POSITIONS
+  private static readonly DOCUMENT_POSITIONS: PositionCode[] =
+    NotificationsCronService.ADMIN_TECH_POSITIONS
   private static readonly CLINICAL_CORE_POSITIONS: PositionCode[] = [
     PositionCode.ADMINISTRATOR,
     PositionCode.TECHNICAL_MANAGER,
@@ -43,10 +47,6 @@ export class NotificationsCronService {
     PositionCode.NURSING_COORDINATOR,
     PositionCode.NURSING_TECHNICIAN,
   ]
-  // Compat: enquanto o Prisma Client local não refletir o novo enum, usamos cast explícito.
-  private static readonly SHIFT_PENDING_CLOSURE_TYPE =
-    'SHIFT_PENDING_CLOSURE' as unknown as SystemNotificationType
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsHelper: NotificationsHelperService,
@@ -139,7 +139,7 @@ export class NotificationsCronService {
         const inProgressShiftIds = inProgressShifts.map((s) => s.id)
         const existingShiftNotifications = await tenantClient.notification.findMany({
           where: {
-            type: NotificationsCronService.SHIFT_PENDING_CLOSURE_TYPE,
+            type: SystemNotificationType.SHIFT_PENDING_CLOSURE,
             entityType: 'SHIFT',
             entityId: { in: inProgressShiftIds },
           },
@@ -276,7 +276,7 @@ export class NotificationsCronService {
           const shiftDate = formatDateOnly(shift.date)
 
           await this.notificationsHelper.createDirectedForTenant(tenant.id, recipientIds, {
-            type: NotificationsCronService.SHIFT_PENDING_CLOSURE_TYPE,
+            type: SystemNotificationType.SHIFT_PENDING_CLOSURE,
             category: NotificationCategory.SYSTEM,
             severity: NotificationSeverity.WARNING,
             title: 'Encerramento de Plantão Pendente',
@@ -341,7 +341,7 @@ export class NotificationsCronService {
         // Obter tenant client para isolamento de schema
         const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
         const recipientIds = await this.recipientsResolver.resolveBySchemaName(tenant.schemaName, {
-          positionCodes: NotificationsCronService.ADMIN_TECH_OFFICE_POSITIONS,
+          positionCodes: NotificationsCronService.SCHEDULED_EVENT_POSITIONS,
           includeTechnicalManagerFlag: true,
         })
         if (recipientIds.length === 0) continue
@@ -690,7 +690,7 @@ export class NotificationsCronService {
         // Obter tenant client para isolamento de schema
         const tenantClient = this.prisma.getTenantClient(tenant.schemaName)
         const recipientIds = await this.recipientsResolver.resolveBySchemaName(tenant.schemaName, {
-          positionCodes: NotificationsCronService.ADMIN_TECH_OFFICE_POSITIONS,
+          positionCodes: NotificationsCronService.DOCUMENT_POSITIONS,
           includeTechnicalManagerFlag: true,
         })
         if (recipientIds.length === 0) continue

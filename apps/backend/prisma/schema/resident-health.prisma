@@ -109,10 +109,10 @@ model ResidentAnthropometry {
   deletedAt     DateTime? @db.Timestamptz(3)
 
   // Relações
-  tenant        Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  resident      Resident                      @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  createdByUser User                          @relation("ResidentAnthropometryCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User?                         @relation("ResidentAnthropometryUpdatedBy", fields: [updatedBy], references: [id])
+  tenant        Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                       @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  createdByUser User                           @relation("ResidentAnthropometryCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                          @relation("ResidentAnthropometryUpdatedBy", fields: [updatedBy], references: [id])
   history       ResidentAnthropometryHistory[]
 
   // Índices
@@ -203,11 +203,11 @@ model ResidentDependencyAssessment {
   deletedAt     DateTime? @db.Timestamptz(3)
 
   // Relações
-  tenant        Tenant                               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  resident      Resident                             @relation(fields: [residentId], references: [id], onDelete: Cascade)
-  assessor      User                                 @relation("ResidentDependencyAssessmentAssessor", fields: [assessedBy], references: [id])
-  createdByUser User                                 @relation("ResidentDependencyAssessmentCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User?                                @relation("ResidentDependencyAssessmentUpdatedBy", fields: [updatedBy], references: [id])
+  tenant        Tenant                                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resident      Resident                              @relation(fields: [residentId], references: [id], onDelete: Cascade)
+  assessor      User                                  @relation("ResidentDependencyAssessmentAssessor", fields: [assessedBy], references: [id])
+  createdByUser User                                  @relation("ResidentDependencyAssessmentCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?                                 @relation("ResidentDependencyAssessmentUpdatedBy", fields: [updatedBy], references: [id])
   history       ResidentDependencyAssessmentHistory[]
 
   // Índices

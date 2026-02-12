@@ -66,8 +66,8 @@ model Tenant {
   // - Negociações comerciais (ajuste fino antes de fechar contrato)
   //
   // Lógica de resolução: customField ?? plan.field ?? default
-  customMaxUsers     Int?  // null = usa Plan.maxUsers | número = override
-  customMaxResidents Int?  // null = usa Plan.maxResidents | número = override
+  customMaxUsers     Int? // null = usa Plan.maxUsers | número = override
+  customMaxResidents Int? // null = usa Plan.maxResidents | número = override
   customFeatures     Json? // null = usa Plan.features | objeto = merge com plano base
   // Exemplo customFeatures: {"evolucoes_clinicas": true, "agenda": false}
   // Adiciona "evolucoes_clinicas" e remove "agenda" do plano base
@@ -77,79 +77,79 @@ model Tenant {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  subscriptions              Subscription[]
-  users                      User[]
-  userProfiles               UserProfile[]
-  userHistory                UserHistory[] // Histórico de usuários
-  residents                  Resident[]
-  residentHistory            ResidentHistory[] // Histórico de residentes
-  dailyRecords               DailyRecord[]
-  dailyRecordHistory         DailyRecordHistory[]
-  vitalSigns                 VitalSign[]
-  prescriptions                       Prescription[]
-  prescriptionHistory                 PrescriptionHistory[] // Histórico de prescrições
-  medicationHistory                   MedicationHistory[] // Histórico de medicamentos
-  sosMedicationHistory                SOSMedicationHistory[] // Histórico de medicamentos SOS
-  medicationAdministrations           MedicationAdministration[]
-  sosAdministrations                  SOSAdministration[]
-  medicationAdministrationHistory     MedicationAdministrationHistory[] // Histórico de administrações
-  sosAdministrationHistory            SOSAdministrationHistory[] // Histórico de administrações SOS
-  vaccinations                        Vaccination[]
-  vaccinationHistory         VaccinationHistory[] // Histórico de vacinações
-  allergies                  Allergy[]
-  allergyHistory             AllergyHistory[] // Histórico de alergias
-  conditions                 Condition[]
-  conditionHistory           ConditionHistory[] // Histórico de condições
-  clinicalNotes              ClinicalNote[]
-  clinicalNoteHistory        ClinicalNoteHistory[]
-  clinicalProfiles           ClinicalProfile[]
-  clinicalProfileHistory     ClinicalProfileHistory[]
-  dietaryRestrictions        DietaryRestriction[]
-  dietaryRestrictionHistory  DietaryRestrictionHistory[]
-  buildings                  Building[]
-  floors                     Floor[]
-  beds                       Bed[]
-  profile                    TenantProfile?
-  documents                  TenantDocument[]
-  residentDocuments          ResidentDocument[]
-  residentContracts          ResidentContract[] // Contratos de serviço dos residentes (NÃO confundir com ServiceContract de SaaS)
-  contractHistory            ContractHistory[] // Histórico de alterações nos contratos dos residentes
-  notifications              Notification[]
-  clinicalNoteDocuments      ClinicalNoteDocument[]
-  documentHistory            DocumentHistory[]
-  pops                       Pop[]
-  popAttachments             PopAttachment[]
-  popHistory                 PopHistory[]
-  VitalSignHistory           VitalSignHistory[]
-  bedTransferHistory         BedTransferHistory[]
-  residentScheduleConfigs    ResidentScheduleConfig[]
-  residentScheduledEvents    ResidentScheduledEvent[]
-  invoices                   Invoice[] // SuperAdmin - Faturas
-  usageMetrics               UsageMetrics[] // SuperAdmin - Métricas de uso
-  systemAlerts                SystemAlert[] // SuperAdmin - Alertas
-  contractAcceptance          ContractAcceptance? // DEPRECATED - migrar para termsOfServiceAcceptance
-  termsOfServiceAcceptance    TermsOfServiceAcceptance? // Nova tabela de aceite de termos de uso
-  privacyPolicyAcceptance     PrivacyPolicyAcceptance?
-  messages                    Message[]
-  messageRecipients          MessageRecipient[]
-  messageAttachments         MessageAttachment[]
-  emailLogs                  EmailLog[] // Auditoria de emails enviados
-  accessLogs                 AccessLog[] // Logs de acesso e auditoria de segurança
-  vitalSignAlerts            VitalSignAlert[] // Alertas médicos de sinais vitais
-  institutionalEvents        InstitutionalEvent[] // Eventos institucionais
-  sentinelEventNotifications SentinelEventNotification[] // Notificações de Eventos Sentinela
-  stats                      TenantStats? // Cache de estatísticas (evita N+1 queries)
-  residentBelongings         ResidentBelonging[] // Pertences dos residentes
-  belongingTerms             BelongingTerm[] // Termos de pertences
-  belongingHistory           BelongingHistory[] // Histórico de pertences
+  subscriptions                   Subscription[]
+  users                           User[]
+  userProfiles                    UserProfile[]
+  userHistory                     UserHistory[] // Histórico de usuários
+  residents                       Resident[]
+  residentHistory                 ResidentHistory[] // Histórico de residentes
+  dailyRecords                    DailyRecord[]
+  dailyRecordHistory              DailyRecordHistory[]
+  vitalSigns                      VitalSign[]
+  prescriptions                   Prescription[]
+  prescriptionHistory             PrescriptionHistory[] // Histórico de prescrições
+  medicationHistory               MedicationHistory[] // Histórico de medicamentos
+  sosMedicationHistory            SOSMedicationHistory[] // Histórico de medicamentos SOS
+  medicationAdministrations       MedicationAdministration[]
+  sosAdministrations              SOSAdministration[]
+  medicationAdministrationHistory MedicationAdministrationHistory[] // Histórico de administrações
+  sosAdministrationHistory        SOSAdministrationHistory[] // Histórico de administrações SOS
+  vaccinations                    Vaccination[]
+  vaccinationHistory              VaccinationHistory[] // Histórico de vacinações
+  allergies                       Allergy[]
+  allergyHistory                  AllergyHistory[] // Histórico de alergias
+  conditions                      Condition[]
+  conditionHistory                ConditionHistory[] // Histórico de condições
+  clinicalNotes                   ClinicalNote[]
+  clinicalNoteHistory             ClinicalNoteHistory[]
+  clinicalProfiles                ClinicalProfile[]
+  clinicalProfileHistory          ClinicalProfileHistory[]
+  dietaryRestrictions             DietaryRestriction[]
+  dietaryRestrictionHistory       DietaryRestrictionHistory[]
+  buildings                       Building[]
+  floors                          Floor[]
+  beds                            Bed[]
+  profile                         TenantProfile?
+  documents                       TenantDocument[]
+  residentDocuments               ResidentDocument[]
+  residentContracts               ResidentContract[] // Contratos de serviço dos residentes (NÃO confundir com ServiceContract de SaaS)
+  contractHistory                 ContractHistory[] // Histórico de alterações nos contratos dos residentes
+  notifications                   Notification[]
+  clinicalNoteDocuments           ClinicalNoteDocument[]
+  documentHistory                 DocumentHistory[]
+  pops                            Pop[]
+  popAttachments                  PopAttachment[]
+  popHistory                      PopHistory[]
+  VitalSignHistory                VitalSignHistory[]
+  bedTransferHistory              BedTransferHistory[]
+  residentScheduleConfigs         ResidentScheduleConfig[]
+  residentScheduledEvents         ResidentScheduledEvent[]
+  invoices                        Invoice[] // SuperAdmin - Faturas
+  usageMetrics                    UsageMetrics[] // SuperAdmin - Métricas de uso
+  systemAlerts                    SystemAlert[] // SuperAdmin - Alertas
+  contractAcceptance              ContractAcceptance? // DEPRECATED - migrar para termsOfServiceAcceptance
+  termsOfServiceAcceptance        TermsOfServiceAcceptance? // Nova tabela de aceite de termos de uso
+  privacyPolicyAcceptance         PrivacyPolicyAcceptance?
+  messages                        Message[]
+  messageRecipients               MessageRecipient[]
+  messageAttachments              MessageAttachment[]
+  emailLogs                       EmailLog[] // Auditoria de emails enviados
+  accessLogs                      AccessLog[] // Logs de acesso e auditoria de segurança
+  vitalSignAlerts                 VitalSignAlert[] // Alertas médicos de sinais vitais
+  institutionalEvents             InstitutionalEvent[] // Eventos institucionais
+  sentinelEventNotifications      SentinelEventNotification[] // Notificações de Eventos Sentinela
+  stats                           TenantStats? // Cache de estatísticas (evita N+1 queries)
+  residentBelongings              ResidentBelonging[] // Pertences dos residentes
+  belongingTerms                  BelongingTerm[] // Termos de pertences
+  belongingHistory                BelongingHistory[] // Histórico de pertences
 
   // Dados de Saúde do Residente (tabelas separadas)
-  residentBloodTypes                    ResidentBloodType[]
-  residentBloodTypeHistory              ResidentBloodTypeHistory[]
-  residentAnthropometry                 ResidentAnthropometry[]
-  residentAnthropometryHistory          ResidentAnthropometryHistory[]
-  residentDependencyAssessments         ResidentDependencyAssessment[]
-  residentDependencyAssessmentHistory   ResidentDependencyAssessmentHistory[]
+  residentBloodTypes                  ResidentBloodType[]
+  residentBloodTypeHistory            ResidentBloodTypeHistory[]
+  residentAnthropometry               ResidentAnthropometry[]
+  residentAnthropometryHistory        ResidentAnthropometryHistory[]
+  residentDependencyAssessments       ResidentDependencyAssessment[]
+  residentDependencyAssessmentHistory ResidentDependencyAssessmentHistory[]
 
   @@index([timezone])
   @@map("tenants")
@@ -171,10 +171,10 @@ model Subscription {
 
   // Asaas Integration
   asaasSubscriptionId String?   @unique @db.VarChar(255) // ID da assinatura no Asaas
-  asaasCreatedAt      DateTime? @db.Timestamptz(3) @map("asaas_created_at") // Data de criação no Asaas
-  asaasCreationError  String?   @db.Text @map("asaas_creation_error") // Erro na tentativa de criação (retry manual)
-  lastSyncedAt        DateTime? @db.Timestamptz(3) @map("last_synced_at") // Última sincronização com Asaas
-  asaasSyncError      String?   @db.Text @map("asaas_sync_error") // Erro na sincronização
+  asaasCreatedAt      DateTime? @map("asaas_created_at") @db.Timestamptz(3) // Data de criação no Asaas
+  asaasCreationError  String?   @map("asaas_creation_error") @db.Text // Erro na tentativa de criação (retry manual)
+  lastSyncedAt        DateTime? @map("last_synced_at") @db.Timestamptz(3) // Última sincronização com Asaas
+  asaasSyncError      String?   @map("asaas_sync_error") @db.Text // Erro na sincronização
 
   // Pricing Overrides (Descontos e Preços Personalizados)
   discountPercent Decimal? @db.Decimal(5, 2) // Desconto percentual (0.00 a 100.00)

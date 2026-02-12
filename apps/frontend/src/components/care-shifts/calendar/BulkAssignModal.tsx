@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -53,52 +53,43 @@ export function BulkAssignModal({
   onConfirm,
   isSubmitting,
 }: BulkAssignModalProps) {
-  const [selectedShiftTemplates, setSelectedShiftTemplates] = useState<string[]>([]);
+  const [selectedShiftTemplateId, setSelectedShiftTemplateId] = useState<string>('');
   const [selectedTeamId, setSelectedTeamId] = useState<string>('');
 
   // Resetar ao fechar
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      setSelectedShiftTemplates([]);
+      setSelectedShiftTemplateId('');
       setSelectedTeamId('');
     }
     onOpenChange(newOpen);
   };
 
-  // Toggle shift template
-  const toggleShiftTemplate = (id: string) => {
-    setSelectedShiftTemplates((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-  };
-
   // Handler de confirmação
   const handleConfirm = () => {
-    if (selectedShiftTemplates.length === 0 || !selectedTeamId) return;
+    if (!selectedShiftTemplateId || !selectedTeamId) return;
 
-    // Gerar todas as combinações (dates × shiftTemplates)
+    // Gerar combinações (dates × 1 turno)
     const assignments: Array<{ date: string; shiftTemplateId: string; teamId: string }> = [];
 
     dates.forEach((date) => {
-      selectedShiftTemplates.forEach((shiftTemplateId) => {
-        assignments.push({
-          date: format(date, 'yyyy-MM-dd'),
-          shiftTemplateId,
-          teamId: selectedTeamId,
-        });
+      assignments.push({
+        date: format(date, 'yyyy-MM-dd'),
+        shiftTemplateId: selectedShiftTemplateId,
+        teamId: selectedTeamId,
       });
     });
 
     onConfirm(assignments);
   };
 
-  const canConfirm = selectedShiftTemplates.length > 0 && selectedTeamId;
+  const canConfirm = !!selectedShiftTemplateId && !!selectedTeamId;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Designar Equipes em Lote</DialogTitle>
+          <DialogTitle>Designar Equipe em Lote</DialogTitle>
           <DialogDescription>
             Crie plantões para os dias selecionados
           </DialogDescription>
@@ -127,27 +118,26 @@ export function BulkAssignModal({
             </div>
           </div>
 
-          {/* Selecionar turnos */}
+          {/* Selecionar turno */}
           <div className="space-y-2">
-            <Label>Turnos</Label>
+            <Label>Turno</Label>
             <div className="space-y-2 border rounded-lg p-3">
-              {shiftTemplates
-                .filter((st) => st.isActive && st.tenantConfig?.isEnabled !== false)
-                .map((template) => (
-                  <div key={template.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={template.id}
-                      checked={selectedShiftTemplates.includes(template.id)}
-                      onCheckedChange={() => toggleShiftTemplate(template.id)}
-                    />
-                    <label
-                      htmlFor={template.id}
-                      className="text-sm flex-1 cursor-pointer"
-                    >
-                      {template.name} ({template.startTime} - {template.endTime})
-                    </label>
-                  </div>
-                ))}
+              <RadioGroup
+                value={selectedShiftTemplateId}
+                onValueChange={setSelectedShiftTemplateId}
+                className="space-y-2"
+              >
+                {shiftTemplates
+                  .filter((st) => st.isActive && st.tenantConfig?.isEnabled !== false)
+                  .map((template) => (
+                    <div key={template.id} className="flex items-center gap-2">
+                      <RadioGroupItem id={template.id} value={template.id} />
+                      <label htmlFor={template.id} className="text-sm flex-1 cursor-pointer">
+                        {template.name} ({template.startTime} - {template.endTime})
+                      </label>
+                    </div>
+                  ))}
+              </RadioGroup>
               {shiftTemplates.filter((st) => st.isActive && st.tenantConfig?.isEnabled !== false)
                 .length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-2">
@@ -156,7 +146,7 @@ export function BulkAssignModal({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Selecione os turnos que deseja criar
+              Selecione um turno para criação em lote
             </p>
           </div>
 
@@ -189,8 +179,7 @@ export function BulkAssignModal({
           {canConfirm && (
             <div className="bg-primary/10 p-3 rounded-lg">
               <p className="text-sm font-medium text-primary">
-                Total: {dates.length} dia(s) × {selectedShiftTemplates.length} turno(s) ={' '}
-                {dates.length * selectedShiftTemplates.length} plantão(ões)
+                Total: {dates.length} dia(s) × 1 turno = {dates.length} plantão(ões)
               </p>
             </div>
           )}
@@ -210,7 +199,7 @@ export function BulkAssignModal({
             onClick={handleConfirm}
             disabled={!canConfirm || isSubmitting}
           >
-            {isSubmitting ? 'Criando...' : 'Criar Plantões'}
+            {isSubmitting ? 'Criando...' : 'Criar Plantão'}
           </Button>
         </DialogFooter>
       </DialogContent>

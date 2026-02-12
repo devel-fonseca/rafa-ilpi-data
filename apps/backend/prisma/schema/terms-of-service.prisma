@@ -22,9 +22,9 @@ model TermsOfService {
   revokedBy     String?        @map("revoked_by") @db.Uuid
 
   // Relações
-  plan        Plan?                        @relation("TermsOfServicePlan", fields: [planId], references: [id], onDelete: SetNull)
-  creator     User                         @relation("TermsCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  revoker     User?                        @relation("TermsRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
+  plan        Plan?                      @relation("TermsOfServicePlan", fields: [planId], references: [id], onDelete: SetNull)
+  creator     User                       @relation("TermsCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  revoker     User?                      @relation("TermsRevoker", fields: [revokedBy], references: [id], onDelete: Restrict)
   acceptances TermsOfServiceAcceptance[]
 
   @@unique([version, planId])
