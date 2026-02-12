@@ -220,6 +220,18 @@ export const updateShiftNotes = async (
   return unwrapShiftResponse(response.data);
 };
 
+/**
+ * Encerrar plantão administrativamente (pelo RT/Admin)
+ * Transição IN_PROGRESS/PENDING_CLOSURE → ADMIN_CLOSED
+ */
+export const adminCloseShift = async (
+  shiftId: string,
+  reason: string,
+): Promise<Shift> => {
+  const response = await api.post<Shift | ShiftResponse>(`${BASE_URL}/${shiftId}/admin-close`, { reason });
+  return unwrapShiftResponse(response.data);
+};
+
 // ────────────────────────────────────────────────────────────────────────────
 // RDC Compliance
 // ────────────────────────────────────────────────────────────────────────────

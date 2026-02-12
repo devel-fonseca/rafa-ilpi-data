@@ -19,6 +19,7 @@ import {
   generateShifts,
   checkInShift,
   handoverShift,
+  adminCloseShift,
   getShiftHandover,
   updateShiftNotes,
 } from '@/api/care-shifts/care-shifts.api';
@@ -450,6 +451,42 @@ export function useHandoverShift() {
       const message =
         error.response?.data?.message ||
         'Erro ao fazer passagem de plantão. Verifique se você tem permissão.';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook para encerramento administrativo do plantão (RT/Admin)
+ * Transição IN_PROGRESS/PENDING_CLOSURE → ADMIN_CLOSED
+ */
+export function useAdminCloseShift() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      shiftId,
+      reason,
+    }: {
+      shiftId: string;
+      reason: string;
+    }) => adminCloseShift(shiftId, reason),
+    onSuccess: (updatedShift) => {
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', 'list'),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('care-shifts', 'shifts', updatedShift.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: tenantKey('daily-records', 'permission-context'),
+      });
+      toast.success('Plantão encerrado administrativamente com sucesso.');
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      const message =
+        error.response?.data?.message ||
+        'Erro ao encerrar plantão administrativamente.';
       toast.error(message);
     },
   });

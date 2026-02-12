@@ -706,6 +706,9 @@ enum SystemNotificationType {
   INCIDENT_CREATED
   INCIDENT_SENTINEL_EVENT
   INCIDENT_RDC_INDICATOR_ALERT
+
+  // Escalas e Plantões
+  SHIFT_PENDING_CLOSURE
 }
 
 enum NotificationCategory {
@@ -876,7 +879,9 @@ enum ShiftStatus {
   SCHEDULED // Agendado (gerado do padrão semanal)
   CONFIRMED // Confirmado (com equipe designada)
   IN_PROGRESS // Em andamento
-  COMPLETED // Concluído
+  PENDING_CLOSURE // Encerramento pendente (horário terminou, aguardando passagem)
+  COMPLETED // Concluído (com passagem de plantão)
+  ADMIN_CLOSED // Encerrado administrativamente (pelo RT)
   CANCELLED // Cancelado
 
   @@map("ShiftStatus")

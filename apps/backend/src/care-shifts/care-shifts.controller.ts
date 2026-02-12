@@ -45,6 +45,7 @@ import {
   AvailableShiftTemplateDto,
   CreateHandoverDto,
   UpdateShiftNotesDto,
+  AdminCloseShiftDto,
 } from './dto';
 
 @ApiTags('Care Shifts - Plantões de Cuidadores')
@@ -476,6 +477,37 @@ export class CareShiftsController {
     @Req() req: RequestWithUser,
   ) {
     return this.careShiftsService.updateNotes(id, updateNotesDto.notes, req.user.id);
+  }
+
+  // ========== Encerramento Administrativo ==========
+
+  @Post(':id/admin-close')
+  @RequireAnyPermission(PermissionType.UPDATE_CARE_SHIFTS)
+  @ApiOperation({
+    summary: 'Encerrar plantão administrativamente',
+    description:
+      'Permite que o RT ou Admin encerre um plantão que não foi finalizado pela equipe. ' +
+      'Transição IN_PROGRESS/PENDING_CLOSURE → ADMIN_CLOSED. ' +
+      'Não bloqueia plantões seguintes.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID do plantão',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Plantão encerrado administrativamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Plantão não está em status que permita encerramento administrativo',
+  })
+  adminCloseShift(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() adminCloseDto: AdminCloseShiftDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.careShiftsService.adminClose(id, adminCloseDto.reason, req.user.id);
   }
 
   // ========== Histórico ==========

@@ -120,6 +120,37 @@ export class CareShiftsService {
   }
 
   /**
+   * Resolve horários efetivos do turno para o tenant.
+   * Usa customStartTime/customEndTime quando configurados.
+   */
+  private async getEffectiveShiftTimes(shiftTemplateId: string) {
+    const [shiftTemplate, tenantConfig] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shiftTemplateId },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: {
+          shiftTemplateId,
+          deletedAt: null,
+        },
+        select: {
+          customStartTime: true,
+          customEndTime: true,
+        },
+      }),
+    ]);
+
+    if (!shiftTemplate) {
+      throw new NotFoundException('Template de turno não encontrado');
+    }
+
+    const startTime = tenantConfig?.customStartTime || shiftTemplate.startTime;
+    const endTime = tenantConfig?.customEndTime || shiftTemplate.endTime;
+
+    return { startTime, endTime };
+  }
+
+  /**
    * Enriquecer membros com dados do usuário (busca manual sem FK)
    */
   private async enrichMembersWithUserData(
@@ -1539,15 +1570,8 @@ export class CareShiftsService {
       );
     }
 
-    // 5. Buscar horários do turno (shift template)
-    const shiftTemplate =
-      await this.tenantContext.publicClient.shiftTemplate.findUnique({
-        where: { id: shift.shiftTemplateId },
-      });
-
-    if (!shiftTemplate) {
-      throw new NotFoundException('Template de turno não encontrado');
-    }
+    // 5. Buscar horários efetivos do turno (considera customização do tenant)
+    const { startTime } = await this.getEffectiveShiftTimes(shift.shiftTemplateId);
 
     // 6. Validar horário (não pode ser antes do início)
     const now = new Date();
@@ -1558,13 +1582,13 @@ export class CareShiftsService {
     const shiftDateStr = formatDateOnly(shiftDate);
     const shiftStartDateTime = localToUTC(
       shiftDateStr,
-      shiftTemplate.startTime,
+      startTime,
       tenantTimezone,
     );
 
     if (isBefore(now, shiftStartDateTime)) {
       throw new BadRequestException(
-        `Check-in não pode ser feito antes do início do plantão (${shiftTemplate.startTime})`,
+        `Check-in não pode ser feito antes do início do plantão (${startTime})`,
       );
     }
 
@@ -1674,15 +1698,8 @@ export class CareShiftsService {
       );
     }
 
-    // 5. Buscar horários do turno (shift template)
-    const shiftTemplate =
-      await this.tenantContext.publicClient.shiftTemplate.findUnique({
-        where: { id: shift.shiftTemplateId },
-      });
-
-    if (!shiftTemplate) {
-      throw new NotFoundException('Template de turno não encontrado');
-    }
+    // 5. Buscar horários efetivos do turno (considera customização do tenant)
+    const { startTime, endTime } = await this.getEffectiveShiftTimes(shift.shiftTemplateId);
 
     // 6. Validar horário (tolerância de 30min após fim)
     const now = new Date();
@@ -1690,8 +1707,8 @@ export class CareShiftsService {
     const shiftDate = shift.date;
     const { end: shiftEndDateTime } = this.buildShiftWindow(
       shiftDate,
-      shiftTemplate.startTime,
-      shiftTemplate.endTime,
+      startTime,
+      endTime,
       tenantTimezone,
     );
 
@@ -1699,7 +1716,7 @@ export class CareShiftsService {
 
     if (isAfter(now, maxAllowedTime)) {
       throw new BadRequestException(
-        `Passagem de plantão só pode ser feita até ${SHIFT_TOLERANCE.AFTER_END_MINUTES} minutos após o fim do turno (${shiftTemplate.endTime})`,
+        `Passagem de plantão só pode ser feita até ${SHIFT_TOLERANCE.AFTER_END_MINUTES} minutos após o fim do turno (${endTime})`,
       );
     }
 
@@ -1856,6 +1873,84 @@ export class CareShiftsService {
     });
 
     // 6. Retornar plantão atualizado
+    return this.findOne(shiftId);
+  }
+
+  /**
+   * Encerrar plantão administrativamente
+   *
+   * Permite que o RT ou Admin encerre um plantão que não foi finalizado pela equipe.
+   * O próximo plantão NÃO é bloqueado - flui normalmente (padrão hospitalar).
+   *
+   * Regras:
+   * 1. Plantão deve estar em IN_PROGRESS ou PENDING_CLOSURE
+   * 2. Não bloqueia plantões seguintes
+   * 3. Registra o motivo e quem fez o encerramento
+   */
+  async adminClose(shiftId: string, reason: string, userId: string) {
+    // 1. Buscar plantão
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException(`Plantão com ID "${shiftId}" não encontrado`);
+    }
+
+    // 2. Validar status - aceita IN_PROGRESS ou PENDING_CLOSURE
+    if (
+      shift.status !== ShiftStatus.IN_PROGRESS &&
+      shift.status !== ShiftStatus.PENDING_CLOSURE
+    ) {
+      throw new BadRequestException(
+        `Encerramento administrativo só pode ser feito em plantões IN_PROGRESS ou PENDING_CLOSURE. ` +
+        `Status atual: ${shift.status}`,
+      );
+    }
+
+    // 3. Gerar snapshot de atividades antes de encerrar
+    const shiftDate = parseISO(parseDateOnly(shift.date as unknown as string));
+    const activitiesSnapshot = await this.generateActivitiesSnapshot(shift.id, shiftDate);
+
+    // 4. Encerrar administrativamente
+    await this.tenantContext.client.$transaction(async (tx) => {
+      // Criar registro "administrativo" similar a handover, mas com flag
+      await tx.shiftHandover.create({
+        data: {
+          tenantId: this.tenantContext.tenantId,
+          shiftId: shift.id,
+          handedOverBy: userId,
+          receivedBy: null,
+          report: `[ENCERRAMENTO ADMINISTRATIVO]\n\nMotivo: ${reason}`,
+          activitiesSnapshot: activitiesSnapshot as Prisma.InputJsonValue,
+        },
+      });
+
+      // Atualizar plantão para ADMIN_CLOSED
+      await tx.shift.update({
+        where: { id: shiftId },
+        data: {
+          status: ShiftStatus.ADMIN_CLOSED,
+          updatedBy: userId,
+          versionNumber: shift.versionNumber + 1,
+        },
+      });
+
+      // Criar histórico
+      await this.createHistoryInTransaction(
+        tx,
+        shiftId,
+        userId,
+        ChangeType.UPDATE,
+        `Encerramento administrativo: ${reason}`,
+        shift as unknown as Prisma.InputJsonValue,
+        { ...shift, status: ShiftStatus.ADMIN_CLOSED } as unknown as Prisma.InputJsonValue,
+      );
+    });
+
     return this.findOne(shiftId);
   }
 

@@ -12,7 +12,9 @@ export enum ShiftStatus {
   SCHEDULED = 'SCHEDULED', // Agendado (do padrão semanal)
   CONFIRMED = 'CONFIRMED', // Confirmado (com equipe designada)
   IN_PROGRESS = 'IN_PROGRESS', // Em andamento
-  COMPLETED = 'COMPLETED', // Concluído
+  PENDING_CLOSURE = 'PENDING_CLOSURE', // Encerramento pendente (horário terminou, aguardando passagem)
+  COMPLETED = 'COMPLETED', // Concluído (com passagem de plantão)
+  ADMIN_CLOSED = 'ADMIN_CLOSED', // Encerrado administrativamente (pelo RT)
   CANCELLED = 'CANCELLED', // Cancelado
 }
 
@@ -217,6 +219,10 @@ export interface AddMemberDto {
 export interface CreateHandoverDto {
   report: string;
   receivedBy?: string;
+}
+
+export interface AdminCloseShiftDto {
+  reason: string;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
