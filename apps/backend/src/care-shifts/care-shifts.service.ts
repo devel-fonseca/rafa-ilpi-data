@@ -375,6 +375,22 @@ export class CareShiftsService {
       };
     }
 
+    // Fallback operacional:
+    // se o usuário está em um plantão IN_PROGRESS no momento atual, libera o registro
+    // mesmo que date/time enviados no payload não casem com a janela calculada.
+    // Isso evita bloqueio indevido por divergência de data/hora no cliente.
+    if (currentShift?.status === ShiftStatus.IN_PROGRESS) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: false,
+        isLeaderOrSubstitute,
+        activeShift: currentShift,
+        currentShift,
+      };
+    }
+
     const confirmedShift = userShifts.find(
       (shift) => shift.status === ShiftStatus.CONFIRMED,
     );

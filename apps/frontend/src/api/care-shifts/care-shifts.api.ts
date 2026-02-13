@@ -209,6 +209,14 @@ export const getShiftHandover = async (shiftId: string): Promise<ShiftHandover> 
 };
 
 /**
+ * Buscar template padrão de relatório de passagem
+ */
+export const getHandoverReportTemplate = async (): Promise<string> => {
+  const response = await api.get<{ report: string }>(`${BASE_URL}/handover-report-template`);
+  return response.data.report;
+};
+
+/**
  * Atualizar notas do plantão
  * Permite que o líder/suplente registre observações durante o turno
  */

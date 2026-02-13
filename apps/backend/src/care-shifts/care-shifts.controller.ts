@@ -48,6 +48,18 @@ import {
   AdminCloseShiftDto,
 } from './dto';
 
+const HANDOVER_EASTER_EGG_REPORT = `O plantão transcorreu dentro da normalidade operacional da instituição, sem registro de intercorrências clínicas ou assistenciais relevantes.
+
+Os residentes mantiveram-se estáveis durante o período, sem alterações agudas de saúde, quedas, episódios de desorientação grave ou outras situações que demandassem intervenção emergencial.
+
+As rotinas assistenciais foram executadas conforme os protocolos institucionais, incluindo cuidados de higiene, administração de medicações prescritas, acompanhamento das refeições e monitoramento periódico.
+
+Os registros detalhados das atividades encontram-se devidamente lançados no sistema.
+
+Não há pendências assistenciais para o turno subsequente até o presente momento.
+
+Recomenda-se manter a rotina habitual de cuidados e a observação periódica dos residentes, conforme planejamento assistencial.`;
+
 @ApiTags('Care Shifts - Plantões de Cuidadores')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
@@ -129,6 +141,20 @@ export class CareShiftsController {
   })
   getAvailableShiftTemplates() {
     return this.careShiftsService.getAvailableShiftTemplates();
+  }
+
+  @Get('handover-report-template')
+  @ApiOperation({
+    summary: 'Template padrão de relatório de passagem',
+    description:
+      'Retorna um texto modelo para auxiliar no preenchimento do relatório de passagem de plantão.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template retornado com sucesso',
+  })
+  getHandoverReportTemplate() {
+    return { report: HANDOVER_EASTER_EGG_REPORT };
   }
 
   @Get(':id')

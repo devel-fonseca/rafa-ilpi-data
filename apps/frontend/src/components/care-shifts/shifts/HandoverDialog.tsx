@@ -2,8 +2,9 @@
 //  COMPONENT - HandoverDialog (Dialog de Passagem de Plantão)
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { FileText, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useHandoverShift } from '@/hooks/care-shifts';
+import { getHandoverReportTemplate } from '@/api/care-shifts';
 import type { Shift, ShiftStatus } from '@/types/care-shifts/care-shifts';
 
 interface HandoverDialogProps {
@@ -77,6 +79,19 @@ export function HandoverDialog({
     }
   };
 
+  const handleReportLabelClick = async (
+    e: MouseEvent<HTMLLabelElement>,
+  ) => {
+    if (!e.ctrlKey) return;
+
+    try {
+      const template = await getHandoverReportTemplate();
+      setReport(template);
+    } catch {
+      toast.error('Não foi possível carregar o texto modelo.');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -114,7 +129,10 @@ export function HandoverDialog({
 
           {/* Relatório */}
           <div className="space-y-2">
-            <Label htmlFor="report">
+            <Label
+              htmlFor="report"
+              onClick={handleReportLabelClick}
+            >
               Relatório da Passagem <span className="text-destructive">*</span>
             </Label>
             <Textarea
