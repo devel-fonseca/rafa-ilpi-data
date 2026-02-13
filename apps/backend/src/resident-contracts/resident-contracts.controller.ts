@@ -161,9 +161,12 @@ export class ResidentContractsController {
       new ParseFilePipeBuilder()
         .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
         .addMaxSizeValidator({ maxSize: 10 * 1024 * 1024 }) // 10MB
-        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          fileIsRequired: false,
+        }),
     )
-    file: Express.Multer.File,
+    file: Express.Multer.File | undefined,
     @Body() dto: CreateContractDto,
   ) {
     return this.contractsService.uploadContract(

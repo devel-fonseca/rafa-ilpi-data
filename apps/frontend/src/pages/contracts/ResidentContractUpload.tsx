@@ -124,7 +124,7 @@ export default function ResidentContractUpload() {
     if (!endDate) newErrors.endDate = 'Informe a data de fim'
     if (!monthlyAmount) newErrors.monthlyAmount = 'Informe o valor mensal'
     if (!dueDay) newErrors.dueDay = 'Informe o dia de vencimento'
-    if (!file) newErrors.file = 'Selecione o arquivo do contrato'
+    // Arquivo é opcional
 
     // Validar responsável contratual (se preenchido, ambos os campos são obrigatórios)
     // Validar responsáveis contratuais (se houver algum, todos devem ter nome e CPF)
@@ -171,7 +171,7 @@ export default function ResidentContractUpload() {
       return
     }
 
-    if (!file || !residentId) return
+    if (!residentId) return
 
     // Backend adiciona automaticamente ILPI + RESIDENTE
     // Frontend envia apenas responsáveis contratuais
@@ -191,7 +191,7 @@ export default function ResidentContractUpload() {
       notes: notes || undefined,
     }
 
-    uploadMutation.mutate({ residentId, file, data })
+    uploadMutation.mutate({ residentId, file: file || null, data })
   }
 
   if (!canCreateContracts) {
@@ -425,7 +425,7 @@ export default function ResidentContractUpload() {
           <CardHeader>
             <CardTitle>Documento do Contrato</CardTitle>
             <CardDescription>
-              Faça upload do contrato do residente
+              Upload opcional do contrato do residente
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -436,7 +436,7 @@ export default function ResidentContractUpload() {
                   className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-accent/50 transition-colors"
                 >
                   <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm font-medium mb-1">Clique para selecionar o arquivo</p>
+                  <p className="text-sm font-medium mb-1">Clique para selecionar o arquivo (opcional)</p>
                   <p className="text-xs text-muted-foreground">
                     JPG, PNG, WEBP ou PDF (máx. 10MB)
                   </p>

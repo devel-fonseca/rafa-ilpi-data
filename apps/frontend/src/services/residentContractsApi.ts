@@ -21,15 +21,15 @@ export interface ResidentContract {
     role: 'RESIDENTE' | 'RESPONSAVEL_LEGAL' | 'RESPONSAVEL_CONTRATUAL' | 'TESTEMUNHA' | 'ILPI'
   }>
   notes?: string
-  originalFileUrl: string
-  originalFileName: string
-  originalFileSize: number
-  originalFileMimeType: string
-  originalFileHash: string
-  processedFileUrl: string
-  processedFileName: string
-  processedFileSize: number
-  processedFileHash: string
+  originalFileUrl?: string | null
+  originalFileName?: string | null
+  originalFileSize?: number | null
+  originalFileMimeType?: string | null
+  originalFileHash?: string | null
+  processedFileUrl?: string | null
+  processedFileName?: string | null
+  processedFileSize?: number | null
+  processedFileHash?: string | null
   version: number
   replacedById?: string
   replacedAt?: string
@@ -137,11 +137,13 @@ export async function getContractDetails(residentId: string, contractId: string)
  */
 export async function uploadContract(
   residentId: string,
-  file: File,
+  file: File | null | undefined,
   data: CreateContractDto
 ): Promise<ResidentContract> {
   const formData = new FormData()
-  formData.append('file', file)
+  if (file) {
+    formData.append('file', file)
+  }
 
   // Adicionar campos do DTO ao FormData
   Object.entries(data).forEach(([key, value]) => {

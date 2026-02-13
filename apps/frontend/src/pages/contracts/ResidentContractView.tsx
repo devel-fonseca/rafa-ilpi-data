@@ -177,7 +177,7 @@ export default function ResidentContractView() {
   const paidTransactions = contractTransactions.filter((item) => item.status === 'PAID').length
   const pendingTransactions = contractTransactions.filter((item) => item.status === 'PENDING').length
   const overdueTransactions = contractTransactions.filter((item) => item.status === 'OVERDUE').length
-  const contractualResponsibles = contract.signatories.filter(
+  const contractualResponsibles = (contract?.signatories ?? []).filter(
     (signatory) => signatory.role !== 'ILPI' && signatory.role !== 'TESTEMUNHA',
   )
 
@@ -233,10 +233,12 @@ export default function ResidentContractView() {
         subtitle={`Residente: ${contract.resident?.fullName || 'Não informado'}`}
         backButton={{ onClick: () => navigate('/dashboard/contratos') }}
         actions={
-          <Button onClick={handleDownloadProcessed}>
-            <Download className="mr-2 h-4 w-4" />
-            Ver contrato
-          </Button>
+          contract.processedFileUrl ? (
+            <Button onClick={handleDownloadProcessed}>
+              <Download className="mr-2 h-4 w-4" />
+              Ver contrato
+            </Button>
+          ) : null
         }
       />
 
@@ -408,19 +410,25 @@ export default function ResidentContractView() {
               <CardTitle>Contrato</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-start gap-4 p-4 border rounded-lg">
-                <FileText className="h-12 w-12 text-primary" />
-                <div className="flex-1">
-                  <p className="font-medium mb-1">{contract.processedFileName}</p>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {(contract.processedFileSize / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  <Button onClick={handleDownloadProcessed} size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Ver contrato
-                  </Button>
+              {contract.processedFileUrl ? (
+                <div className="flex items-start gap-4 p-4 border rounded-lg">
+                  <FileText className="h-12 w-12 text-primary" />
+                  <div className="flex-1">
+                    <p className="font-medium mb-1">{contract.processedFileName}</p>
+                    {typeof contract.processedFileSize === 'number' && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {(contract.processedFileSize / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    )}
+                    <Button onClick={handleDownloadProcessed} size="sm">
+                      <Download className="mr-2 h-4 w-4" />
+                      Ver contrato
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum arquivo anexado.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -33,17 +33,17 @@ model ResidentContract {
   adjustmentRate         Decimal?               @db.Decimal(5, 2)
   lastAdjustmentDate     DateTime?              @db.Date
   signatories            Json                   @db.JsonB
-  originalFileUrl        String                 @db.Text
-  originalFileKey        String                 @db.Text
-  originalFileName       String                 @db.Text
-  originalFileSize       Int
-  originalFileMimeType   String                 @db.VarChar(100)
-  originalFileHash       String                 @db.VarChar(64)
-  processedFileUrl       String                 @db.Text
-  processedFileKey       String                 @db.Text
-  processedFileName      String                 @db.Text
-  processedFileSize      Int
-  processedFileHash      String                 @db.VarChar(64)
+  originalFileUrl        String?                @db.Text
+  originalFileKey        String?                @db.Text
+  originalFileName       String?                @db.Text
+  originalFileSize       Int?
+  originalFileMimeType   String?                @db.VarChar(100)
+  originalFileHash       String?                @db.VarChar(64)
+  processedFileUrl       String?                @db.Text
+  processedFileKey       String?                @db.Text
+  processedFileName      String?                @db.Text
+  processedFileSize      Int?
+  processedFileHash      String?                @db.VarChar(64)
   publicToken            String                 @unique @db.VarChar(64) // Token público para validação de autenticidade
   notes                  String?                @db.Text
   version                Int                    @default(1)

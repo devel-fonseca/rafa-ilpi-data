@@ -116,7 +116,7 @@ export class ResidentContractsService {
   async uploadContract(
     residentId: string,
     userId: string,
-    file: Express.Multer.File,
+    file: Express.Multer.File | undefined,
     dto: CreateContractDto,
   ) {
     const normalizedContractNumber = this.normalizeContractNumber(
@@ -152,13 +152,17 @@ export class ResidentContractsService {
       );
     }
 
-    // 3. Upload arquivo original
-    const originalUpload = await this.filesService.uploadFile(
-      this.tenantContext.tenantId,
-      file,
-      'contracts-original',
-      residentId,
-    );
+    const hasFile = !!file;
+
+    // 3. Upload arquivo original (opcional)
+    const originalUpload = hasFile
+      ? await this.filesService.uploadFile(
+          this.tenantContext.tenantId,
+          file!,
+          'contracts-original',
+          residentId,
+        )
+      : null;
 
     // 4. Obter metadados
     const tenant = await this.prisma.tenant.findUnique({
@@ -190,8 +194,6 @@ export class ResidentContractsService {
       throw new NotFoundException('Tenant ou usuário não encontrado');
     }
 
-    // 5. Processar arquivo
-    const isImage = file.mimetype.startsWith('image/');
     const contractId = crypto.randomUUID();
     const publicToken = crypto.randomUUID(); // Token público para validação
 
@@ -241,34 +243,41 @@ export class ResidentContractsService {
       publicToken,
     };
 
-    const processed = isImage
-      ? await this.fileProcessingService.processImage(file.buffer, metadata)
-      : await this.fileProcessingService.processPdf(file.buffer, metadata);
+    let processed: { pdfBuffer: Buffer; hashOriginal: string; hashFinal: string } | null = null;
+    let processedUpload: { fileUrl: string } | null = null;
 
-    // 6. Upload PDF processado
-    const processedFile: Express.Multer.File = {
-      buffer: processed.pdfBuffer,
-      originalname: this.buildContractPdfFileName(
-        normalizedContractNumber,
-        contractId.slice(0, 8),
-      ),
-      mimetype: 'application/pdf',
-      size: processed.pdfBuffer.length,
-      fieldname: 'file',
-      encoding: '7bit',
-      stream: Readable.from(processed.pdfBuffer),
-      destination: '',
-      filename: '',
-      path: '',
-    };
+    if (hasFile) {
+      // 5. Processar arquivo
+      const isImage = file!.mimetype.startsWith('image/');
+      processed = isImage
+        ? await this.fileProcessingService.processImage(file!.buffer, metadata)
+        : await this.fileProcessingService.processPdf(file!.buffer, metadata);
 
-    const tenantId = this.tenantContext.tenantId; // Para FilesService (INFRASTRUCTURE)
-    const processedUpload = await this.filesService.uploadFile(
-      tenantId,
-      processedFile,
-      'contracts',
-      residentId,
-    );
+      // 6. Upload PDF processado
+      const processedFile: Express.Multer.File = {
+        buffer: processed.pdfBuffer,
+        originalname: this.buildContractPdfFileName(
+          normalizedContractNumber,
+          contractId.slice(0, 8),
+        ),
+        mimetype: 'application/pdf',
+        size: processed.pdfBuffer.length,
+        fieldname: 'file',
+        encoding: '7bit',
+        stream: Readable.from(processed.pdfBuffer),
+        destination: '',
+        filename: '',
+        path: '',
+      };
+
+      const tenantId = this.tenantContext.tenantId; // Para FilesService (INFRASTRUCTURE)
+      processedUpload = await this.filesService.uploadFile(
+        tenantId,
+        processedFile,
+        'contracts',
+        residentId,
+      );
+    }
 
     // 7. Calcular status
     const status = this.calculateContractStatus(new Date(dto.endDate));
@@ -319,20 +328,22 @@ export class ResidentContractsService {
             : null,
           signatories: signatories as unknown as Prisma.InputJsonValue,
           notes: dto.notes,
-          originalFileUrl: originalUpload.fileUrl,
-          originalFileKey: originalUpload.fileUrl,
-          originalFileName: file.originalname,
-          originalFileSize: file.size,
-          originalFileMimeType: file.mimetype,
-          originalFileHash: processed.hashOriginal,
-          processedFileUrl: processedUpload.fileUrl,
-          processedFileKey: processedUpload.fileUrl,
-          processedFileName: this.buildContractPdfFileName(
-            normalizedContractNumber,
-            contractId.slice(0, 8),
-          ),
-          processedFileSize: processed.pdfBuffer.length,
-          processedFileHash: processed.hashFinal,
+          originalFileUrl: originalUpload?.fileUrl ?? null,
+          originalFileKey: originalUpload?.fileUrl ?? null,
+          originalFileName: file?.originalname ?? null,
+          originalFileSize: file?.size ?? null,
+          originalFileMimeType: file?.mimetype ?? null,
+          originalFileHash: processed?.hashOriginal ?? null,
+          processedFileUrl: processedUpload?.fileUrl ?? null,
+          processedFileKey: processedUpload?.fileUrl ?? null,
+          processedFileName: processedUpload
+            ? this.buildContractPdfFileName(
+                normalizedContractNumber,
+                contractId.slice(0, 8),
+              )
+            : null,
+          processedFileSize: processed?.pdfBuffer.length ?? null,
+          processedFileHash: processed?.hashFinal ?? null,
           publicToken, // Token público para validação
           uploadedBy: userId,
         },
@@ -356,8 +367,12 @@ export class ResidentContractsService {
     });
 
     // 10. Gerar URLs assinadas
-    const originalUrl = await this.filesService.getFileUrl(contract.originalFileUrl);
-    const processedUrl = await this.filesService.getFileUrl(contract.processedFileUrl);
+    const originalUrl = contract.originalFileUrl
+      ? await this.filesService.getFileUrl(contract.originalFileUrl)
+      : null;
+    const processedUrl = contract.processedFileUrl
+      ? await this.filesService.getFileUrl(contract.processedFileUrl)
+      : null;
 
     await this.financialContractTransactionsService.ensureCurrentCompetenceBestEffort({
       userId,
@@ -423,9 +438,9 @@ export class ResidentContractsService {
     // Gerar URLs assinadas para os PDFs processados
     const contractsWithUrls = await Promise.all(
       contracts.map(async (contract) => {
-        const processedUrl = await this.filesService.getFileUrl(
-          contract.processedFileUrl,
-        );
+        const processedUrl = contract.processedFileUrl
+          ? await this.filesService.getFileUrl(contract.processedFileUrl)
+          : null;
         return { ...contract, processedFileUrl: processedUrl };
       }),
     );
@@ -471,7 +486,9 @@ export class ResidentContractsService {
 
     const contractsWithUrls = await Promise.all(
       contracts.map(async (contract) => {
-        const processedUrl = await this.filesService.getFileUrl(contract.processedFileUrl);
+        const processedUrl = contract.processedFileUrl
+          ? await this.filesService.getFileUrl(contract.processedFileUrl)
+          : null;
         return { ...contract, processedFileUrl: processedUrl };
       }),
     );
@@ -497,8 +514,12 @@ export class ResidentContractsService {
       throw new NotFoundException('Contrato não encontrado');
     }
 
-    const originalUrl = await this.filesService.getFileUrl(contract.originalFileUrl);
-    const processedUrl = await this.filesService.getFileUrl(contract.processedFileUrl);
+    const originalUrl = contract.originalFileUrl
+      ? await this.filesService.getFileUrl(contract.originalFileUrl)
+      : null;
+    const processedUrl = contract.processedFileUrl
+      ? await this.filesService.getFileUrl(contract.processedFileUrl)
+      : null;
 
     return {
       ...contract,
@@ -863,8 +884,12 @@ export class ResidentContractsService {
       return created;
     });
 
-    const originalUrl = await this.filesService.getFileUrl(newContract.originalFileUrl);
-    const processedUrl = await this.filesService.getFileUrl(newContract.processedFileUrl);
+    const originalUrl = newContract.originalFileUrl
+      ? await this.filesService.getFileUrl(newContract.originalFileUrl)
+      : null;
+    const processedUrl = newContract.processedFileUrl
+      ? await this.filesService.getFileUrl(newContract.processedFileUrl)
+      : null;
 
     return {
       ...newContract,
