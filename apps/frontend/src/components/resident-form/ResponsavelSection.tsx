@@ -83,14 +83,10 @@ export function ResponsavelSection({ onBuscarCep }: ResponsavelSectionProps) {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Filho(a)">Filho(a)</SelectItem>
-                  <SelectItem value="Cônjuge">Cônjuge</SelectItem>
-                  <SelectItem value="Neto(a)">Neto(a)</SelectItem>
-                  <SelectItem value="Sobrinho(a)">Sobrinho(a)</SelectItem>
-                  <SelectItem value="Irmão(ã)">Irmão(ã)</SelectItem>
                   <SelectItem value="Curador(a)">Curador(a)</SelectItem>
                   <SelectItem value="Procurador(a)">Procurador(a)</SelectItem>
-                  <SelectItem value="Outro">Outro</SelectItem>
+                  <SelectItem value="Responsável Familiar (Convencional)">Responsável Familiar (Convencional)</SelectItem>
+                  <SelectItem value="Outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
             )}

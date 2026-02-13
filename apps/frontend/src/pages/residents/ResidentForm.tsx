@@ -97,6 +97,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Estados para modo edição
   const isEditMode = !!id
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState<string | undefined>(undefined)
+  const [photoChangeType, setPhotoChangeType] = useState<'unchanged' | 'removed' | 'new'>('unchanged')
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false)
   const [residentFullName, setResidentFullName] = useState<string | undefined>(undefined)
 
@@ -224,6 +225,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       origin?: string
     }
     setCurrentPhotoUrl(resident.fotoUrl || undefined)
+    setPhotoChangeType('unchanged')
 
     // Dados Pessoais
     if (resident.fullName) {
@@ -375,6 +377,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     (file: File | null, previewUrl?: string) => {
       setValue('foto', file)
       setCurrentPhotoUrl(previewUrl)
+      setPhotoChangeType(file ? 'new' : 'removed')
     },
     [setValue]
   )
@@ -385,9 +388,9 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
       setIsUploading(true)
 
       // Upload de arquivos
-      let fotoUrl = null
+      let fotoUrl: string | undefined
 
-      if (data.foto && data.foto instanceof File) {
+      if (photoChangeType === 'new' && data.foto && data.foto instanceof File) {
         setUploadProgress('Enviando foto...')
         fotoUrl = await uploadFile(data.foto, 'photos')
       }
@@ -414,7 +417,6 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
         birthState: data.ufNascimento || null,
         motherName: data.nomeMae || null,
         fatherName: data.nomePai || null,
-        fotoUrl: fotoUrl || currentPhotoUrl || null,
 
         // Endereço
         currentCep: data.cepAtual || null,
@@ -469,6 +471,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
         // Acomodação
         bedId: data.leitoNumero && data.leitoNumero.trim() ? data.leitoNumero.trim() : undefined,
+      }
+
+      if (photoChangeType === 'new' && fotoUrl) {
+        payload.fotoUrl = fotoUrl
+      } else if (isEditMode && photoChangeType === 'removed') {
+        payload.fotoUrl = null
       }
 
       if (isEditMode) {

@@ -15,6 +15,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 import { ChangeType, DependencyLevel, Gender, Prisma } from '@prisma/client';
+import { hasSignedUrlQuery } from '../common/utils/signed-url.util';
 
 @Injectable()
 export class ResidentsService {
@@ -24,6 +25,16 @@ export class ResidentsService {
     private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
+
+  private validateUnsignedPhotoUrl(fotoUrl?: string | null): void {
+    if (!fotoUrl) return;
+
+    if (hasSignedUrlQuery(fotoUrl)) {
+      throw new BadRequestException(
+        'fotoUrl inválida: envie apenas o path/base URL sem query string de assinatura.',
+      );
+    }
+  }
 
   /**
    * Cria registro de histórico para auditoria (RDC 502/2021)
@@ -329,6 +340,8 @@ export class ResidentsService {
    */
   async create(createResidentDto: CreateResidentDto, userId: string) {
     try {
+      this.validateUnsignedPhotoUrl(createResidentDto.fotoUrl);
+
       // Buscar o tenant (tabela SHARED - usa this.prisma)
       const tenant = await this.prisma.tenant.findUnique({
         where: { id: this.tenantContext.tenantId },
@@ -1027,6 +1040,10 @@ export class ResidentsService {
    */
   async update(id: string, updateResidentDto: UpdateResidentDto, userId: string) {
     try {
+      if (updateResidentDto.fotoUrl !== undefined) {
+        this.validateUnsignedPhotoUrl(updateResidentDto.fotoUrl);
+      }
+
       // Extrair changeReason do DTO (será validado no DTO layer)
       const changeReason = (updateResidentDto as UpdateResidentDto & { changeReason: string }).changeReason;
 

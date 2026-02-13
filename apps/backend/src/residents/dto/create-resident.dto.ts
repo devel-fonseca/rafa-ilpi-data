@@ -244,11 +244,11 @@ export class CreateResidentDto {
   @IsString()
   legalGuardianPhone?: string;
 
-  @ApiProperty({ example: 'Curador', enum: ['Curador', 'Procurador', 'Responsável Familiar (Convencional)'], required: false })
+  @ApiProperty({ example: 'Curador(a)', enum: ['Curador(a)', 'Procurador(a)', 'Responsável Familiar (Convencional)', 'Outros'], required: false })
   @EmptyToUndefined()
   @IsOptional()
-  @IsEnum(['Curador', 'Procurador', 'Responsável Familiar (Convencional)'])
-  legalGuardianType?: 'Curador' | 'Procurador' | 'Responsável Familiar (Convencional)';
+  @IsEnum(['Curador(a)', 'Procurador(a)', 'Responsável Familiar (Convencional)', 'Outros'])
+  legalGuardianType?: 'Curador(a)' | 'Procurador(a)' | 'Responsável Familiar (Convencional)' | 'Outros';
 
   @ApiProperty({ example: '01234-567', required: false })
   @IsOptional()
