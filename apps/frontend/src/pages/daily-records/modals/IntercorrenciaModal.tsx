@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -79,10 +80,11 @@ export function IntercorrenciaModal({
     control,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
   } = useForm<IntercorrenciaFormData>({
     resolver: zodResolver(intercorrenciaSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
       isDoencaNotificavel: false,
@@ -151,12 +153,20 @@ export function IntercorrenciaModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Intercorrência - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           {/* Horário */}
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
@@ -373,8 +383,13 @@ export function IntercorrenciaModal({
             <Button
               type="submit"
               variant={isEventoSentinela ? 'danger' : 'default'}
+              disabled={!isValid || isSubmitting}
             >
-              {isEventoSentinela ? '🚨 Registrar Evento Sentinela' : 'Adicionar'}
+              {isSubmitting
+                ? 'Salvando...'
+                : isEventoSentinela
+                  ? '🚨 Registrar Evento Sentinela'
+                  : 'Adicionar'}
             </Button>
           </DialogFooter>
         </form>

@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -70,20 +71,23 @@ export function HigieneModal({
     handleSubmit,
     control,
     watch,
-    formState: { errors },
+    getValues,
+    setValue,
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
   } = useForm<HigieneFormData>({
     resolver: zodResolver(higieneSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
       tipoBanho: 'Chuveiro',
       duracao: '5',
       condicaoPele: 'Normal',
-      localAlteracao: 'Sem alteração',
+      localAlteracao: '',
       hidratanteAplicado: false,
       higieneBucal: false,
       trocaFralda: false,
-      observacoes: 'Sem observações',
+      observacoes: '',
     },
   })
 
@@ -135,6 +139,9 @@ export function HigieneModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Higiene Corporal - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
@@ -176,6 +183,11 @@ export function HigieneModal({
         </div>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           {/* Etapa 1: Banho e Higiene Básica */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -255,13 +267,23 @@ export function HigieneModal({
                     render={({ field }) => (
                       <Checkbox
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={(checked) => {
+                          const isChecked = checked === true
+                          field.onChange(isChecked)
+
+                          if (isChecked && !getValues('quantidadeFraldas')) {
+                            setValue('quantidadeFraldas', '1', {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                          }
+                        }}
                         id="fralda"
                       />
                     )}
                   />
                   <Label htmlFor="fralda" className="font-normal cursor-pointer">
-                    Troca de fralda/roupa
+                    Troca de fralda
                   </Label>
                 </div>
 
@@ -370,9 +392,9 @@ export function HigieneModal({
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button type="submit" variant="success">
+                <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
                   <Check className="h-4 w-4 mr-1" />
-                  Adicionar
+                  {isSubmitting ? 'Salvando...' : 'Adicionar'}
                 </Button>
               )}
             </div>

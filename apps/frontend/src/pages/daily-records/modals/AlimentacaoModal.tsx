@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -101,10 +102,11 @@ export function AlimentacaoModal({
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
   } = useForm<AlimentacaoFormData>({
     resolver: zodResolver(alimentacaoSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
       refeicao: (defaultMealType || 'Almoço') as AlimentacaoFormData['refeicao'], // ✅ Pré-selecionar refeição se vier das tarefas
@@ -114,7 +116,7 @@ export function AlimentacaoModal({
       auxilioNecessario: false,
       volumeMl: '200',
       intercorrencia: 'Nenhuma',
-      observacoes: 'Sem observações',
+      observacoes: '',
     },
   })
 
@@ -162,6 +164,9 @@ export function AlimentacaoModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Alimentação - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
@@ -203,6 +208,11 @@ export function AlimentacaoModal({
         </div>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           {/* Etapa 1: Refeição, Cardápio, Consistência e Ingestão */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -448,9 +458,9 @@ export function AlimentacaoModal({
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button type="submit" variant="success">
+                <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
                   <Check className="h-4 w-4 mr-1" />
-                  Adicionar
+                  {isSubmitting ? 'Salvando...' : 'Adicionar'}
                 </Button>
               )}
             </div>

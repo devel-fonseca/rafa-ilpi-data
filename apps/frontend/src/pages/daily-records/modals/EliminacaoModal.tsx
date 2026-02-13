@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -73,12 +74,13 @@ export function EliminacaoModal({
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
     watch,
     setValue,
   } = useForm<EliminacaoFormData>({
     resolver: zodResolver(eliminacaoSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
       tipo: 'Fezes',
@@ -86,7 +88,7 @@ export function EliminacaoModal({
       consistencia: 'Formada',
       cor: 'Marrom (normal)',
       volume: 'Médio (normal)',
-      observacoes: 'Sem observações',
+      observacoes: '',
       trocaFralda: false,
     },
   })
@@ -151,6 +153,9 @@ export function EliminacaoModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Eliminações - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
@@ -190,6 +195,11 @@ export function EliminacaoModal({
         </div>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           {/* Step 1: Tipo e Horário */}
           {currentStep === 1 && (
             <>
@@ -451,7 +461,7 @@ export function EliminacaoModal({
                   )}
                 />
                 <Label htmlFor="trocaFralda" className="font-normal cursor-pointer">
-                  Troca de fralda/roupa
+                  Troca de fralda
                 </Label>
               </div>
 
@@ -485,8 +495,8 @@ export function EliminacaoModal({
                 Próximo
               </Button>
             ) : (
-              <Button type="submit" variant="success">
-                Adicionar
+              <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
+                {isSubmitting ? 'Salvando...' : 'Adicionar'}
               </Button>
             )}
           </DialogFooter>

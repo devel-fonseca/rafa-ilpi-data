@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -77,11 +78,12 @@ export function ComportamentoModal({
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
     watch,
   } = useForm<ComportamentoFormData>({
     resolver: zodResolver(comportamentoSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
       estadoEmocional: '',
@@ -122,12 +124,20 @@ export function ComportamentoModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Comportamento - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           <Alert className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/50">
             <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed">
@@ -208,7 +218,9 @@ export function ComportamentoModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="success">Adicionar</Button>
+            <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Adicionar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

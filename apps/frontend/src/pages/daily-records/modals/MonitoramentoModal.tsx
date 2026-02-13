@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -52,10 +53,11 @@ export function MonitoramentoModal({
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
   } = useForm<MonitoramentoFormData>({
     resolver: zodResolver(monitoramentoSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
     },
@@ -94,12 +96,20 @@ export function MonitoramentoModal({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Monitoramento Vital - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
@@ -209,7 +219,9 @@ export function MonitoramentoModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="success">Adicionar</Button>
+            <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Adicionar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

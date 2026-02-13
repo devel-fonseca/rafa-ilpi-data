@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -47,10 +48,11 @@ export function OutrosModal({
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid, isSubmitting, submitCount },
     reset,
   } = useForm<OutrosFormData>({
     resolver: zodResolver(outrosSchema),
+    mode: 'onChange',
     defaultValues: {
       time: getCurrentTime(),
     },
@@ -81,12 +83,20 @@ export function OutrosModal({
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Outros Registros - {residentName}</DialogTitle>
+          <DialogDescription className="text-sm">
+            Preencha os campos obrigatórios marcados com * para salvar este registro.
+          </DialogDescription>
           <p className="text-sm text-muted-foreground">
             Data: {formatDateOnlySafe(date)}
           </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {submitCount > 0 && !isValid && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+              Revise os campos obrigatórios destacados para continuar.
+            </div>
+          )}
           <div>
             <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
               Horário
@@ -122,7 +132,9 @@ export function OutrosModal({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" variant="success">Adicionar</Button>
+            <Button type="submit" variant="success" disabled={!isValid || isSubmitting}>
+              {isSubmitting ? 'Salvando...' : 'Adicionar'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
