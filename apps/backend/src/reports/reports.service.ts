@@ -1321,7 +1321,9 @@ export class ReportsService {
     if (!type) return 'Responsável';
     const types: Record<string, string> = {
       curador: 'Curador',
+      'curador(a)': 'Curador(a)',
       procurador: 'Procurador',
+      'procurador(a)': 'Procurador(a)',
       'responsável convencional': 'Responsável Familiar (Convencional)',
     };
     return types[type.toLowerCase()] || type;

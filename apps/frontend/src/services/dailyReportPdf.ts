@@ -369,9 +369,53 @@ class DailyReportPDFGenerator {
     let formatted = ''
 
     switch (record.type) {
-      case 'HIGIENE':
-        formatted = `Banho: ${getField('tipoBanho') || 'N/A'}, ${getField('duracao') || 0}min • Pele: ${getField('condicaoPele') || 'N/A'}`
+      case 'HIGIENE': {
+        const parts: string[] = []
+
+        const tipoBanho = getField('tipoBanho')
+        const duracao = getField('duracao')
+        const condicaoPele = getField('condicaoPele')
+        const localAlteracao = getField('localAlteracao')
+        const quantidadeFraldas = getField('quantidadeFraldas')
+        const higieneBucal = getBooleanField('higieneBucal')
+        const trocaFralda = getBooleanField('trocaFralda')
+        const hidratanteAplicado = getBooleanField('hidratanteAplicado')
+
+        if (tipoBanho) {
+          parts.push(
+            duracao && tipoBanho !== 'Sem banho'
+              ? `Banho: ${tipoBanho} (${duracao} min)`
+              : `Banho: ${tipoBanho}`,
+          )
+        }
+
+        if (condicaoPele && localAlteracao) {
+          parts.push(`Pele: ${condicaoPele} (${localAlteracao})`)
+        } else if (condicaoPele) {
+          parts.push(`Pele: ${condicaoPele}`)
+        } else if (localAlteracao) {
+          parts.push(`Local da alteração: ${localAlteracao}`)
+        }
+
+        if (higieneBucal === true) {
+          parts.push('Higiene bucal: Sim')
+        }
+
+        if (hidratanteAplicado === true) {
+          parts.push('Hidratante aplicado: Sim')
+        }
+
+        if (trocaFralda === true) {
+          parts.push(
+            quantidadeFraldas
+              ? `Troca de fralda: Sim (${quantidadeFraldas})`
+              : 'Troca de fralda: Sim',
+          )
+        }
+
+        formatted = parts.join(' • ') || 'Sem detalhes'
         break
+      }
       case 'ALIMENTACAO':
         formatted = `${getField('refeicao') || 'Refeição'} • Ingestão: ${getField('ingeriu') || 'N/A'} • ${getField('volumeMl') || 0}ml`
         break
