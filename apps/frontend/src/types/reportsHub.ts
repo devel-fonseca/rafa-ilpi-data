@@ -91,9 +91,9 @@ export const REPORT_CATEGORIES: ReportCategory[] = [
       {
         id: 'resident-report',
         label: 'Relatórios por Residente',
-        description: 'Prontuário individual com histórico',
+        description: 'Resumo assistencial consolidado por residente',
         reportType: 'BY_RESIDENT',
-        badge: 'prontuário',
+        badge: 'resumo',
       },
       {
         id: 'record-type-report',
@@ -200,6 +200,13 @@ export const REPORT_CATEGORIES: ReportCategory[] = [
         description: 'Ficha completa do residente',
         reportType: 'BY_RESIDENT',
         badge: 'PDF',
+      },
+      {
+        id: 'resident-care-summary',
+        label: 'Resumo Assistencial do Residente',
+        description: 'Documento consolidado para consulta institucional',
+        reportType: 'BY_RESIDENT',
+        badge: 'PDF/Tela',
       },
       {
         id: 'resident-list',

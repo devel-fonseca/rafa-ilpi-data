@@ -1,11 +1,12 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ReportsService } from './reports.service';
 import { MultiDayReportDto } from './dto/daily-report.dto';
 import { ResidentsListReportDto } from './dto/residents-list-report.dto';
+import { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -51,6 +52,23 @@ export class ReportsController {
     if (!user.tenantId) {
       throw new Error('TenantId não encontrado no token JWT');
     }
-    return this.reportsService.generateResidentsListReport(status || 'Ativo');
+    return this.reportsService.generateResidentsListReport(user.tenantId, status || 'Ativo');
+  }
+
+  @Get('resident-care-summary/:residentId')
+  @ApiOperation({ summary: 'Gerar resumo assistencial do residente' })
+  @ApiParam({ name: 'residentId', required: true, type: String, description: 'ID do residente (UUID)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resumo assistencial gerado com sucesso',
+  })
+  async getResidentCareSummary(
+    @CurrentUser() user: JwtPayload,
+    @Param('residentId') residentId: string,
+  ): Promise<ResidentCareSummaryReportDto> {
+    if (!user.tenantId) {
+      throw new Error('TenantId não encontrado no token JWT');
+    }
+    return this.reportsService.generateResidentCareSummaryReport(user.tenantId, residentId);
   }
 }

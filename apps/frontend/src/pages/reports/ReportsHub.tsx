@@ -113,6 +113,15 @@ export default function ReportsHub() {
         return
       }
 
+      if (filters.reportType === 'BY_RESIDENT') {
+        const params = new URLSearchParams()
+        if (filters.residentId) {
+          params.set('residentId', filters.residentId)
+        }
+        navigate(`/dashboard/relatorios/resumo-assistencial${params.toString() ? `?${params.toString()}` : ''}`)
+        return
+      }
+
       // TODO: Implementar chamada à API para outros tipos de relatórios
       console.log('Generating report with filters:', filters)
 
@@ -147,6 +156,16 @@ export default function ReportsHub() {
 
     if (itemId === 'shift-report') {
       setIsShiftDialogOpen(true)
+      return
+    }
+
+    if (
+      itemId === 'resident-report' ||
+      itemId === 'resident-profile' ||
+      itemId === 'resident-card' ||
+      itemId === 'resident-care-summary'
+    ) {
+      navigate('/dashboard/relatorios/resumo-assistencial')
       return
     }
 

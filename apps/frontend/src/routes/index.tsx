@@ -131,6 +131,7 @@ import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
 import ReportsHub from '@/pages/reports/ReportsHub'
 import DailyReportPage from '@/pages/reports/DailyReportPage'
 import ResidentsListReportPage from '@/pages/reports/ResidentsListReportPage'
+import ResidentCareSummaryReportPage from '@/pages/reports/ResidentCareSummaryReportPage'
 
 export const router = createBrowserRouter([
   {
@@ -590,7 +591,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'relatorios',
-        element: <Outlet />,
+        element: (
+          <ProtectedRoute requiredPermissions={[PermissionType.VIEW_REPORTS]}>
+            <Outlet />
+          </ProtectedRoute>
+        ),
         children: [
           {
             index: true,
@@ -603,6 +608,10 @@ export const router = createBrowserRouter([
           {
             path: 'residentes',
             element: <ResidentsListReportPage />,
+          },
+          {
+            path: 'resumo-assistencial',
+            element: <ResidentCareSummaryReportPage />,
           },
         ],
       },

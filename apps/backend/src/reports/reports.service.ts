@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { parseDateOnly, formatDateOnly, getDayRangeInTz } from '../utils/date.helpers';
+import { FieldEncryption } from '../prisma/middleware/field-encryption.class';
+import type { Prisma } from '@prisma/client';
 import type {
   DailyReportDto,
   DailyRecordReportDto,
@@ -12,13 +14,25 @@ import type {
   DailyComplianceMetricDto,
   MultiDayReportDto,
 } from './dto/daily-report.dto';
+import type { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
 
 @Injectable()
 export class ReportsService {
+  private readonly fieldEncryption = new FieldEncryption();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
   ) {}
+
+  private decryptMaybeEncrypted(
+    value: string | null | undefined,
+    tenantId: string,
+  ): string | null {
+    if (!value) return null;
+    if (!this.fieldEncryption.isEncrypted(value)) return value;
+    return this.fieldEncryption.decrypt(value, tenantId);
+  }
 
   private normalizeTime(value: string) {
     const [h, m] = value.split(':');
@@ -830,6 +844,7 @@ export class ReportsService {
   // ============================================================================
 
   async generateResidentsListReport(
+    tenantId: string,
     status: string = 'Ativo',
   ): Promise<{
     summary: {
@@ -979,5 +994,489 @@ export class ReportsService {
   private calculateDaysDifference(startDate: Date, endDate: Date): number {
     const diffTime = endDate.getTime() - startDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // ============================================================================
+  // RESUMO ASSISTENCIAL DO RESIDENTE
+  // ============================================================================
+
+  async generateResidentCareSummaryReport(
+    tenantId: string,
+    residentId: string,
+  ): Promise<ResidentCareSummaryReportDto> {
+    // Buscar residente com todas as relações necessárias
+    const resident = await this.tenantContext.client.resident.findUnique({
+      where: { id: residentId },
+      include: {
+        bed: {
+          select: { code: true },
+        },
+        bloodTypeRecord: {
+          where: { deletedAt: null },
+          select: { bloodType: true },
+        },
+        anthropometryRecords: {
+          where: { deletedAt: null },
+          orderBy: { measurementDate: 'desc' },
+          take: 1,
+          select: {
+            height: true,
+            weight: true,
+            bmi: true,
+            measurementDate: true,
+            createdAt: true,
+          },
+        },
+        dependencyAssessments: {
+          where: { deletedAt: null, endDate: null },
+          orderBy: { effectiveDate: 'desc' },
+          take: 1,
+          select: {
+            dependencyLevel: true,
+            effectiveDate: true,
+            notes: true,
+          },
+        },
+        clinicalProfile: {
+          where: { deletedAt: null },
+          select: {
+            healthStatus: true,
+            specialNeeds: true,
+            functionalAspects: true,
+          },
+        },
+        conditions: {
+          where: { deletedAt: null },
+          select: { condition: true, notes: true },
+          orderBy: { condition: 'asc' },
+        },
+        allergies: {
+          where: { deletedAt: null },
+          select: { substance: true, severity: true, reaction: true },
+          orderBy: { substance: 'asc' },
+        },
+        dietaryRestrictions: {
+          where: { deletedAt: null },
+          select: { description: true, restrictionType: true, notes: true },
+          orderBy: { description: 'asc' },
+        },
+        vaccinations: {
+          where: { deletedAt: null },
+          select: {
+            vaccine: true,
+            dose: true,
+            date: true,
+            manufacturer: true,
+            batch: true,
+            healthUnit: true,
+            municipality: true,
+            state: true,
+          },
+          orderBy: { date: 'desc' },
+        },
+        vitalSigns: {
+          where: { deletedAt: null },
+          orderBy: { timestamp: 'desc' },
+          take: 1,
+          select: {
+            systolicBloodPressure: true,
+            diastolicBloodPressure: true,
+            heartRate: true,
+            temperature: true,
+            oxygenSaturation: true,
+            bloodGlucose: true,
+            timestamp: true,
+          },
+        },
+        prescriptions: {
+          where: {
+            isActive: true,
+            deletedAt: null,
+          },
+          include: {
+            medications: {
+              where: {
+                deletedAt: null,
+                OR: [
+                  { endDate: null },
+                  { endDate: { gte: new Date() } },
+                ],
+              },
+              select: {
+                name: true,
+                dose: true,
+                route: true,
+                frequency: true,
+                scheduledTimes: true,
+                concentration: true,
+              },
+            },
+          },
+        },
+        scheduleConfigs: {
+          where: {
+            deletedAt: null,
+            isActive: true,
+          },
+          select: {
+            recordType: true,
+            frequency: true,
+            dayOfWeek: true,
+            dayOfMonth: true,
+            suggestedTimes: true,
+            metadata: true,
+          },
+          orderBy: [
+            { frequency: 'asc' },
+            { dayOfWeek: 'asc' },
+            { dayOfMonth: 'asc' },
+            { createdAt: 'asc' },
+          ],
+        },
+      },
+    });
+
+    if (!resident) {
+      throw new Error('Residente não encontrado');
+    }
+
+    const today = new Date();
+
+    // Processar dados básicos
+    const basicInfo = {
+      id: resident.id,
+      fullName: resident.fullName,
+      birthDate: formatDateOnly(resident.birthDate),
+      age: this.calculateAge(resident.birthDate, today),
+      cpf: resident.cpf || null,
+      cns: resident.cns || null,
+      photoUrl: resident.fotoUrl || null,
+      admissionDate: formatDateOnly(resident.admissionDate),
+      bedCode: resident.bed?.code || null,
+    };
+
+    // Processar responsável legal
+    const legalGuardian = resident.legalGuardianName
+      ? {
+          name: resident.legalGuardianName,
+          phone: resident.legalGuardianPhone || null,
+          email: resident.legalGuardianEmail || null,
+          relationship: this.formatGuardianType(resident.legalGuardianType),
+          guardianshipType: resident.legalGuardianType || null,
+        }
+      : null;
+
+    // Processar contatos de emergência
+    const emergencyContacts = this.parseEmergencyContacts(resident.emergencyContacts);
+
+    // Processar convênios
+    const healthInsurances = this.parseHealthPlans(resident.healthPlans);
+
+    // Processar tipo sanguíneo
+    const bloodType = resident.bloodTypeRecord
+      ? this.formatBloodType(resident.bloodTypeRecord.bloodType)
+      : null;
+
+    // Processar antropometria
+    const anthropometry = resident.anthropometryRecords[0]
+      ? {
+          height: resident.anthropometryRecords[0].height
+            ? Number(resident.anthropometryRecords[0].height)
+            : null,
+          weight: resident.anthropometryRecords[0].weight
+            ? Number(resident.anthropometryRecords[0].weight)
+            : null,
+          bmi: resident.anthropometryRecords[0].bmi
+            ? Number(resident.anthropometryRecords[0].bmi)
+            : null,
+          // measurementDate é DATE (civil, sem hora). Para hora real, usar createdAt.
+          recordedAt: resident.anthropometryRecords[0].createdAt
+            ? resident.anthropometryRecords[0].createdAt.toISOString()
+            : null,
+        }
+      : null;
+
+    // Processar sinais vitais
+    const vitalSigns = resident.vitalSigns[0]
+      ? {
+          systolicPressure: resident.vitalSigns[0].systolicBloodPressure || null,
+          diastolicPressure: resident.vitalSigns[0].diastolicBloodPressure || null,
+          heartRate: resident.vitalSigns[0].heartRate || null,
+          temperature: resident.vitalSigns[0].temperature || null,
+          oxygenSaturation: resident.vitalSigns[0].oxygenSaturation || null,
+          bloodGlucose: resident.vitalSigns[0].bloodGlucose || null,
+          recordedAt: resident.vitalSigns[0].timestamp?.toISOString() || null,
+        }
+      : null;
+
+    // Processar perfil clínico
+    const clinicalProfile = resident.clinicalProfile
+      ? {
+          healthStatus: resident.clinicalProfile.healthStatus || null,
+          specialNeeds: resident.clinicalProfile.specialNeeds || null,
+          functionalAspects: resident.clinicalProfile.functionalAspects || null,
+          independenceLevel: this.getIndependenceLevelFromAssessment(
+            resident.dependencyAssessments[0]?.dependencyLevel,
+          ),
+        }
+      : null;
+
+    // Processar avaliação de dependência
+    const dependencyAssessment = resident.dependencyAssessments[0]
+      ? {
+          level: this.formatDependencyLevel(resident.dependencyAssessments[0].dependencyLevel),
+          description: this.getDependencyDescription(
+            resident.dependencyAssessments[0].dependencyLevel,
+          ),
+          assessmentDate: formatDateOnly(resident.dependencyAssessments[0].effectiveDate),
+        }
+      : null;
+
+    // Processar condições crônicas
+    const chronicConditions = resident.conditions.map((c) => ({
+      name: c.condition,
+      details: this.decryptMaybeEncrypted(c.notes, tenantId),
+    }));
+
+    // Processar alergias
+    const allergies = resident.allergies.map((a) => ({
+      allergen: a.substance,
+      severity: this.formatAllergySeverity(a.severity),
+      reaction: this.decryptMaybeEncrypted(a.reaction, tenantId),
+    }));
+
+    // Processar restrições alimentares
+    const dietaryRestrictions = resident.dietaryRestrictions.map((r) => ({
+      restriction: r.description,
+      type: this.formatRestrictionType(r.restrictionType),
+      notes: this.decryptMaybeEncrypted(r.notes, tenantId),
+    }));
+
+    // Processar vacinações
+    const vaccinations = resident.vaccinations.map((v) => ({
+      vaccineName: v.vaccine,
+      doseNumber: v.dose || null,
+      applicationDate: formatDateOnly(v.date),
+      manufacturer: v.manufacturer || null,
+      batchNumber: v.batch || null,
+      applicationLocation: v.healthUnit
+        ? `${v.healthUnit}, ${v.municipality}/${v.state}`
+        : null,
+    }));
+
+    // Processar medicamentos em uso
+    const medications = resident.prescriptions.flatMap((p) =>
+      p.medications.map((m) => ({
+        name: `${m.name} ${m.concentration || ''}`.trim(),
+        dosage: m.dose || null,
+        route: this.formatAdministrationRoute(m.route),
+        frequency: this.formatMedicationFrequency(m.frequency),
+        schedules: this.parseScheduledTimes(m.scheduledTimes),
+      })),
+    );
+
+    const routineSchedules = resident.scheduleConfigs.map((config) => {
+      const suggestedTimes = this.parseSuggestedTimes(config.suggestedTimes);
+      const metadata = this.parseJsonObject(config.metadata);
+      const mealType =
+        metadata && typeof metadata.mealType === 'string'
+          ? metadata.mealType
+          : null;
+
+      return {
+        recordType: config.recordType,
+        frequency: config.frequency,
+        dayOfWeek: config.dayOfWeek ?? null,
+        dayOfMonth: config.dayOfMonth ?? null,
+        suggestedTimes,
+        mealType,
+      };
+    });
+
+    return {
+      generatedAt: new Date().toISOString(),
+      resident: basicInfo,
+      legalGuardian,
+      emergencyContacts,
+      healthInsurances,
+      bloodType,
+      anthropometry,
+      vitalSigns,
+      clinicalProfile,
+      dependencyAssessment,
+      chronicConditions,
+      allergies,
+      dietaryRestrictions,
+      vaccinations,
+      medications,
+      routineSchedules,
+    };
+  }
+
+  // ============================================================================
+  // HELPERS PARA RESUMO ASSISTENCIAL
+  // ============================================================================
+
+  private formatGuardianType(type: string | null): string {
+    if (!type) return 'Responsável';
+    const types: Record<string, string> = {
+      curador: 'Curador',
+      procurador: 'Procurador',
+      'responsável convencional': 'Responsável Familiar (Convencional)',
+    };
+    return types[type.toLowerCase()] || type;
+  }
+
+  private parseEmergencyContacts(contacts: unknown): Array<{
+    name: string;
+    phone: string;
+    relationship: string | null;
+  }> {
+    if (!contacts || !Array.isArray(contacts)) return [];
+    return contacts.map((c: { name?: string; phone?: string; relationship?: string }) => ({
+      name: c.name || 'N/A',
+      phone: c.phone || 'N/A',
+      relationship: c.relationship || null,
+    }));
+  }
+
+  private parseHealthPlans(plans: unknown): Array<{
+    name: string;
+    planNumber: string | null;
+  }> {
+    if (!plans || !Array.isArray(plans)) return [];
+    return plans.map((p: { name?: string; cardNumber?: string }) => ({
+      name: p.name || 'N/A',
+      planNumber: p.cardNumber || null,
+    }));
+  }
+
+  private formatBloodType(bloodType: string): {
+    bloodType: string;
+    rhFactor: string;
+    formatted: string;
+  } | null {
+    const bloodTypeMap: Record<string, { type: string; rh: string; formatted: string }> = {
+      A_POSITIVO: { type: 'A', rh: '+', formatted: 'A+' },
+      A_NEGATIVO: { type: 'A', rh: '-', formatted: 'A-' },
+      B_POSITIVO: { type: 'B', rh: '+', formatted: 'B+' },
+      B_NEGATIVO: { type: 'B', rh: '-', formatted: 'B-' },
+      AB_POSITIVO: { type: 'AB', rh: '+', formatted: 'AB+' },
+      AB_NEGATIVO: { type: 'AB', rh: '-', formatted: 'AB-' },
+      O_POSITIVO: { type: 'O', rh: '+', formatted: 'O+' },
+      O_NEGATIVO: { type: 'O', rh: '-', formatted: 'O-' },
+      NAO_INFORMADO: { type: 'Não informado', rh: '', formatted: 'Não informado' },
+    };
+    const bt = bloodTypeMap[bloodType];
+    if (!bt || bloodType === 'NAO_INFORMADO') return null;
+    return { bloodType: bt.type, rhFactor: bt.rh, formatted: bt.formatted };
+  }
+
+  private formatDependencyLevel(level: string): string {
+    const levels: Record<string, string> = {
+      GRAU_I: 'Grau I – Independente',
+      GRAU_II: 'Grau II – Parcialmente Dependente',
+      GRAU_III: 'Grau III – Totalmente Dependente',
+    };
+    return levels[level] || level;
+  }
+
+  private getDependencyDescription(level: string): string {
+    const descriptions: Record<string, string> = {
+      GRAU_I: 'Idoso independente, mesmo que requeira uso de equipamentos de autoajuda',
+      GRAU_II: 'Idoso com dependência em até três atividades de autocuidado',
+      GRAU_III: 'Idoso com dependência que requer assistência em todas as atividades',
+    };
+    return descriptions[level] || '';
+  }
+
+  private getIndependenceLevelFromAssessment(level: string | undefined): string | null {
+    if (!level) return null;
+    const map: Record<string, string> = {
+      GRAU_I: 'Independente',
+      GRAU_II: 'Parcialmente Dependente',
+      GRAU_III: 'Totalmente Dependente',
+    };
+    return map[level] || null;
+  }
+
+  private formatAllergySeverity(severity: string | null): string {
+    if (!severity) return 'Não informada';
+    const severities: Record<string, string> = {
+      LEVE: 'Leve',
+      MODERADA: 'Moderada',
+      GRAVE: 'Grave',
+      ANAFILAXIA: 'Anafilaxia',
+    };
+    return severities[severity] || severity;
+  }
+
+  private formatRestrictionType(type: string): string {
+    const types: Record<string, string> = {
+      ALERGIA_ALIMENTAR: 'Alergia Alimentar',
+      INTOLERANCIA: 'Intolerância',
+      RESTRICAO_MEDICA: 'Restrição Médica',
+      RESTRICAO_RELIGIOSA: 'Restrição Religiosa',
+      DISFAGIA: 'Disfagia',
+      DIABETES: 'Diabetes',
+      HIPERTENSAO: 'Hipertensão',
+      OUTRA: 'Outra',
+    };
+    return types[type] || type;
+  }
+
+  private formatAdministrationRoute(route: string): string | null {
+    if (!route) return null;
+    const routes: Record<string, string> = {
+      ORAL: 'Via Oral',
+      SUBLINGUAL: 'Sublingual',
+      TOPICA: 'Tópica',
+      TRANSDERMICA: 'Transdérmica',
+      INALATORIA: 'Inalatória',
+      NASAL: 'Nasal',
+      OCULAR: 'Ocular',
+      OTOLOGICA: 'Otológica',
+      RETAL: 'Retal',
+      VAGINAL: 'Vaginal',
+      INTRAVENOSA: 'Intravenosa',
+      INTRAMUSCULAR: 'Intramuscular',
+      SUBCUTANEA: 'Subcutânea',
+      INTRADERMICA: 'Intradérmica',
+    };
+    return routes[route] || route;
+  }
+
+  private formatMedicationFrequency(frequency: string): string | null {
+    if (!frequency) return null;
+    const frequencies: Record<string, string> = {
+      DOSE_UNICA: 'Dose única',
+      HORARIO_FIXO: 'Horários fixos',
+      INTERVALO_6H: 'A cada 6 horas',
+      INTERVALO_8H: 'A cada 8 horas',
+      INTERVALO_12H: 'A cada 12 horas',
+      INTERVALO_24H: 'A cada 24 horas',
+      UMA_VEZ_DIA: '1x ao dia',
+      DUAS_VEZES_DIA: '2x ao dia',
+      TRES_VEZES_DIA: '3x ao dia',
+      QUATRO_VEZES_DIA: '4x ao dia',
+      SE_NECESSARIO: 'Se necessário',
+      CONTINUO: 'Uso contínuo',
+    };
+    return frequencies[frequency] || frequency;
+  }
+
+  private parseSuggestedTimes(value: Prisma.JsonValue): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  private parseJsonObject(value: Prisma.JsonValue | null): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+  }
+
+  private parseScheduledTimes(times: unknown): string[] {
+    if (!times || !Array.isArray(times)) return [];
+    return times.filter((t): t is string => typeof t === 'string');
   }
 }
