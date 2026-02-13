@@ -2,22 +2,22 @@
   "folders": [
     {
       "name": "🏠 Root",
-      "path": "."
+      "path": ".",
     },
     {
       "name": "🔧 Backend",
-      "path": "apps/backend"
+      "path": "apps/backend",
     },
     {
       "name": "⚛️ Frontend",
-      "path": "apps/frontend"
-    }
+      "path": "apps/frontend",
+    },
   ],
   "settings": {
     // Editor
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": "explicit"
+      "source.fixAll.eslint": "explicit",
     },
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.tabSize": 2,
@@ -32,7 +32,7 @@
       "**/dist": true,
       "**/.git": true,
       "**/logs": true,
-      "**/*.log": true
+      "**/*.log": true,
     },
 
     // TypeScript
@@ -42,7 +42,7 @@
 
     // Prisma
     "[prisma]": {
-      "editor.defaultFormatter": "Prisma.prisma"
+      "editor.defaultFormatter": "Prisma.prisma",
     },
 
     // Terminal
@@ -57,9 +57,10 @@
       "**/.git": true,
       "**/logs": true,
       "**/*.log": true,
-      "**/coverage": true
+      "**/coverage": true,
     },
-    "claudeCode.useCtrlEnterToSend": false
+    "claudeCode.useCtrlEnterToSend": false,
+    "chatgpt.openOnStartup": true,
   },
   "extensions": {
     "recommendations": [
@@ -88,8 +89,8 @@
       "christian-kohler.path-intellisense",
       "streetsidesoftware.code-spell-checker",
       "wayou.vscode-todo-highlight",
-      "aaron-bond.better-comments"
-    ]
+      "aaron-bond.better-comments",
+    ],
   },
   "launch": {
     "version": "0.2.0",
@@ -106,7 +107,7 @@
         "protocol": "inspector",
         "port": 9229,
         "sourceMaps": true,
-        "outFiles": ["${workspaceFolder}/apps/backend/dist/**/*.js"]
+        "outFiles": ["${workspaceFolder}/apps/backend/dist/**/*.js"],
       },
       {
         "type": "chrome",
@@ -114,15 +115,15 @@
         "name": "⚛️ Debug Frontend",
         "url": "http://localhost:5173",
         "webRoot": "${workspaceFolder}/apps/frontend",
-        "sourceMaps": true
-      }
+        "sourceMaps": true,
+      },
     ],
     "compounds": [
       {
         "name": "🚀 Debug Full Stack",
-        "configurations": ["🔧 Debug Backend", "⚛️ Debug Frontend"]
-      }
-    ]
+        "configurations": ["🔧 Debug Backend", "⚛️ Debug Frontend"],
+      },
+    ],
   },
   "tasks": {
     "version": "2.0.0",
@@ -132,74 +133,74 @@
         "type": "shell",
         "command": "docker compose up -d",
         "problemMatcher": [],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "🛑 Stop Docker Compose",
         "type": "shell",
         "command": "docker compose down",
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🔧 Start Backend (Dev)",
         "type": "shell",
         "command": "npm run start:dev",
         "options": {
-          "cwd": "${workspaceFolder}/apps/backend"
+          "cwd": "${workspaceFolder}/apps/backend",
         },
         "problemMatcher": [],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "⚛️ Start Frontend (Dev)",
         "type": "shell",
         "command": "npm run dev",
         "options": {
-          "cwd": "${workspaceFolder}/apps/frontend"
+          "cwd": "${workspaceFolder}/apps/frontend",
         },
         "problemMatcher": [],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "🚀 Start Full Stack",
         "dependsOn": [
           "🐳 Start Docker Compose",
           "🔧 Start Backend (Dev)",
-          "⚛️ Start Frontend (Dev)"
+          "⚛️ Start Frontend (Dev)",
         ],
         "problemMatcher": [],
         "group": {
           "kind": "build",
-          "isDefault": true
-        }
+          "isDefault": true,
+        },
       },
       {
         "label": "🗄️ Prisma Studio",
         "type": "shell",
         "command": "npx prisma studio",
         "options": {
-          "cwd": "${workspaceFolder}/apps/backend"
+          "cwd": "${workspaceFolder}/apps/backend",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🔄 Prisma Migrate",
         "type": "shell",
         "command": "npx prisma migrate dev",
         "options": {
-          "cwd": "${workspaceFolder}/apps/backend"
+          "cwd": "${workspaceFolder}/apps/backend",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "🌱 Prisma Seed",
         "type": "shell",
         "command": "npx prisma db seed",
         "options": {
-          "cwd": "${workspaceFolder}/apps/backend"
+          "cwd": "${workspaceFolder}/apps/backend",
         },
-        "problemMatcher": []
-      }
-    ]
-  }
+        "problemMatcher": [],
+      },
+    ],
+  },
 }
