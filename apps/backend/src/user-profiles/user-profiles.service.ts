@@ -13,6 +13,7 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { FilesService } from '../files/files.service';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { hasSignedUrlQuery } from '../common/utils/signed-url.util';
 
 @Injectable()
 export class UserProfilesService {
@@ -22,6 +23,16 @@ export class UserProfilesService {
     private readonly filesService: FilesService,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
+
+  private validateUnsignedProfilePhoto(profilePhoto?: string | null): void {
+    if (!profilePhoto) return;
+
+    if (hasSignedUrlQuery(profilePhoto)) {
+      throw new BadRequestException(
+        'profilePhoto inválida: envie apenas o path/base URL sem query string de assinatura.',
+      );
+    }
+  }
 
   /**
    * Cria um perfil para um usuário
@@ -34,6 +45,8 @@ export class UserProfilesService {
     createUserProfileDto: CreateUserProfileDto,
     createdBy: string,
   ) {
+    this.validateUnsignedProfilePhoto(createUserProfileDto.profilePhoto);
+
     // Verificar se o usuário existe
     const user = await this.tenantContext.client.user.findFirst({
       where: {
@@ -195,6 +208,10 @@ export class UserProfilesService {
     currentUserId: string,
     currentUserRole: string,
   ) {
+    if (updateUserProfileDto.profilePhoto !== undefined) {
+      this.validateUnsignedProfilePhoto(updateUserProfileDto.profilePhoto);
+    }
+
     // Verificar se o perfil existe
     const profile = await this.tenantContext.client.userProfile.findFirst({
       where: {

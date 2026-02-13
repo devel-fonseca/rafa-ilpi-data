@@ -204,9 +204,10 @@ const UrlArraySchema = z.array(z.string().url()).default([]);
 
 // Responsável Legal – tipo
 const LegalGuardianTypeSchema = z.enum([
-  'curador',
-  'procurador',
-  'responsável convencional',
+  'Curador(a)',
+  'Procurador(a)',
+  'Responsável Familiar (Convencional)',
+  'Outros',
 ]);
 
 // Endereço (reutilizável)
