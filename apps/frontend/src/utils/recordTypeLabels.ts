@@ -292,7 +292,7 @@ export function renderRecordSummary(record: RecordSummaryInput): string {
     case 'VISITA': {
       const data = record.data
       const parts: string[] = [`Visitante: ${data.visitante ?? 'Não informado'}`]
-      if (data.observacoes && data.observacoes !== 'Sem observações') {
+      if (data.observacoes) {
         parts.push(data.observacoes.substring(0, 50))
       }
       return parts.join(' - ')

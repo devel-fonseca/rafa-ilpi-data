@@ -36,6 +36,7 @@ export function AdministerMedicationModal({
   medication,
 }: AdministerMedicationModalProps) {
   const { user } = useAuthStore()
+  const isTechnicalManager = user?.profile?.positionCode === 'TECHNICAL_MANAGER'
   const administerMutation = useAdministerMedication()
   const lockCreatedRef = useRef(false) // Rastrear se lock foi criado
 
@@ -61,8 +62,14 @@ export function AdministerMedicationModal({
   const wasAdministered = watch('wasAdministered')
 
   const onSubmit = async (data: AdministerMedicationDto) => {
+    const payload: AdministerMedicationDto = {
+      ...data,
+      // Apenas RT pode editar manualmente "Administrado por"
+      administeredBy: isTechnicalManager ? data.administeredBy : (user?.name || data.administeredBy),
+    }
+
     try {
-      await administerMutation.mutateAsync(data)
+      await administerMutation.mutateAsync(payload)
       toast.success('Administração registrada com sucesso!')
 
       // Desbloquear medicamento após administração bem-sucedida (Sprint 2)
@@ -189,19 +196,15 @@ export function AdministerMedicationModal({
 
             <div>
               <Label htmlFor="scheduledTime">Horário Programado *</Label>
-              <select
+              <Input
                 id="scheduledTime"
+                type="time"
+                readOnly
                 {...register('scheduledTime', {
                   required: 'Horário programado é obrigatório',
                 })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                {medication.scheduledTimes?.map((time: string) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
+                className="bg-muted/50 cursor-default"
+              />
               {errors.scheduledTime && (
                 <p className="text-sm text-danger mt-1">
                   {errors.scheduledTime.message}
@@ -245,10 +248,17 @@ export function AdministerMedicationModal({
                     required: 'Nome do profissional é obrigatório',
                   })}
                   placeholder="Nome do profissional"
+                  readOnly={!isTechnicalManager}
+                  className={!isTechnicalManager ? 'bg-muted/50 cursor-default' : undefined}
                 />
                 {errors.administeredBy && (
                   <p className="text-sm text-danger mt-1">
                     {errors.administeredBy.message}
+                  </p>
+                )}
+                {!isTechnicalManager && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Preenchido automaticamente com o usuário logado.
                   </p>
                 )}
               </div>
