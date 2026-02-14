@@ -3,13 +3,25 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateRoomDto, UpdateRoomDto } from './dto'
+import { EventsGateway } from '../events/events.gateway'
 
 @Injectable()
 export class RoomsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly eventsGateway: EventsGateway,
   ) {}
+
+  private emitDashboardOverviewUpdate(source: 'room.created' | 'room.updated' | 'room.deleted') {
+    const tenantId = this.tenantContext.tenantId
+    if (!tenantId) return
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    })
+  }
 
   async create(createRoomDto: CreateRoomDto) {
     // Validar que o floor existe
@@ -21,7 +33,7 @@ export class RoomsService {
       throw new NotFoundException(`Andar com ID ${createRoomDto.floorId} não encontrado`)
     }
 
-    return this.tenantContext.client.room.create({
+    const room = await this.tenantContext.client.room.create({
       data: {
         name: createRoomDto.name,
         code: createRoomDto.code,
@@ -38,6 +50,9 @@ export class RoomsService {
         tenantId: this.tenantContext.tenantId,
       },
     })
+
+    this.emitDashboardOverviewUpdate('room.created')
+    return room
   }
 
   async findAll(
@@ -158,10 +173,13 @@ export class RoomsService {
     if (updateRoomDto.hasBathroom !== undefined) dataToUpdate.hasBathroom = updateRoomDto.hasBathroom
     if (updateRoomDto.notes !== undefined) dataToUpdate.notes = updateRoomDto.notes
 
-    return this.tenantContext.client.room.update({
+    const room = await this.tenantContext.client.room.update({
       where: { id },
       data: dataToUpdate,
     })
+
+    this.emitDashboardOverviewUpdate('room.updated')
+    return room
   }
 
   async remove(id: string) {
@@ -179,10 +197,13 @@ export class RoomsService {
       )
     }
 
-    return this.tenantContext.client.room.update({
+    const room = await this.tenantContext.client.room.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    this.emitDashboardOverviewUpdate('room.deleted')
+    return room
   }
 
   private async updateCapacity(roomId: string, capacity: number) {

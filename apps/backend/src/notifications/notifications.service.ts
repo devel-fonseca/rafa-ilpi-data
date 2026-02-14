@@ -13,6 +13,7 @@ import { CreateNotificationDto } from './dto/create-notification.dto'
 import { QueryNotificationDto } from './dto/query-notification.dto'
 import { formatDateOnly } from '../utils/date.helpers'
 import { NotificationRecipientsResolverService } from './notification-recipients-resolver.service'
+import { EventsGateway } from '../events/events.gateway'
 
 @Injectable()
 export class NotificationsService {
@@ -22,7 +23,25 @@ export class NotificationsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly recipientsResolver: NotificationRecipientsResolverService,
+    private readonly eventsGateway: EventsGateway,
   ) {}
+
+  private emitDashboardOverviewUpdate(
+    source:
+      | 'notification.created'
+      | 'notification.read'
+      | 'notification.unread'
+      | 'notification.read-all'
+      | 'notification.deleted',
+  ) {
+    const tenantId = this.tenantContext.tenantId
+    if (!tenantId) return
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    })
+  }
 
   /**
    * Criar nova notificação
@@ -51,6 +70,7 @@ export class NotificationsService {
     })
 
     this.logger.log(`Notification created: ${notification.id}`)
+    this.emitDashboardOverviewUpdate('notification.created')
     return notification
   }
 
@@ -246,6 +266,7 @@ export class NotificationsService {
     })
 
     this.logger.log(`Notification ${id} marked as read by user ${userId}`)
+    this.emitDashboardOverviewUpdate('notification.read')
 
     // Retornar notificação com campo read adicionado
     return {
@@ -279,6 +300,7 @@ export class NotificationsService {
     })
 
     this.logger.log(`Notification ${id} marked as unread by user ${userId}`)
+    this.emitDashboardOverviewUpdate('notification.unread')
 
     // Retornar notificação com campo read adicionado
     return {
@@ -339,6 +361,9 @@ export class NotificationsService {
     }
 
     this.logger.log(`${unreadNotifications.length} notifications marked as read for user ${userId}`)
+    if (unreadNotifications.length > 0) {
+      this.emitDashboardOverviewUpdate('notification.read-all')
+    }
     return { count: unreadNotifications.length }
   }
 
@@ -363,6 +388,7 @@ export class NotificationsService {
     })
 
     this.logger.log(`Notification ${id} deleted by user ${userId}`)
+    this.emitDashboardOverviewUpdate('notification.deleted')
     return { success: true }
   }
 

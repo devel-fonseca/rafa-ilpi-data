@@ -3,13 +3,31 @@ import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateBuildingDto, UpdateBuildingDto, CreateBuildingStructureDto } from './dto'
 import { generateBuildingCode, generateFloorCode, generateRoomCode, generateBedCode } from '../utils/codeGenerator'
+import { EventsGateway } from '../events/events.gateway'
 
 @Injectable({ scope: Scope.REQUEST })
 export class BuildingsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly eventsGateway: EventsGateway,
   ) {}
+
+  private emitDashboardOverviewUpdate(
+    source:
+      | 'building.created'
+      | 'building.updated'
+      | 'building.deleted'
+      | 'building.structure-created'
+  ) {
+    const tenantId = this.tenantContext.tenantId
+    if (!tenantId) return
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    })
+  }
 
   async create(createBuildingDto: CreateBuildingDto) {
     // Se não foi fornecido código, gera automaticamente
@@ -26,13 +44,16 @@ export class BuildingsService {
       code = generateBuildingCode(createBuildingDto.name, existingCodes)
     }
 
-    return this.tenantContext.client.building.create({
+    const building = await this.tenantContext.client.building.create({
       data: {
         ...createBuildingDto,
         code,
         tenantId: this.tenantContext.tenantId,
       },
     })
+
+    this.emitDashboardOverviewUpdate('building.created')
+    return building
   }
 
   async findAll(skip: number = 0, take: number = 50) {
@@ -130,10 +151,13 @@ export class BuildingsService {
     // Validar que o building existe
     await this.findOne(id)
 
-    return this.tenantContext.client.building.update({
+    const building = await this.tenantContext.client.building.update({
       where: { id },
       data: updateBuildingDto,
     })
+
+    this.emitDashboardOverviewUpdate('building.updated')
+    return building
   }
 
   async remove(id: string) {
@@ -151,10 +175,13 @@ export class BuildingsService {
       )
     }
 
-    return this.tenantContext.client.building.update({
+    const building = await this.tenantContext.client.building.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    this.emitDashboardOverviewUpdate('building.deleted')
+    return building
   }
 
   async getStats() {
@@ -318,12 +345,15 @@ export class BuildingsService {
         }
       }
 
-      return {
+      const result = {
         building,
         floors: floorsCreated,
         rooms: roomsCreated,
         beds: bedsCreated,
       }
+
+      this.emitDashboardOverviewUpdate('building.structure-created')
+      return result
     } catch (error) {
       // Re-lançar erro com mensagem amigável
       if (error instanceof BadRequestException) {

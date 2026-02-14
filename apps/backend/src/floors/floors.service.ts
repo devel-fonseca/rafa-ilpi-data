@@ -3,13 +3,25 @@ import { PrismaService } from '../prisma/prisma.service'
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { CreateFloorDto, UpdateFloorDto } from './dto'
 import { Prisma } from '@prisma/client'
+import { EventsGateway } from '../events/events.gateway'
 
 @Injectable()
 export class FloorsService {
   constructor(
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly eventsGateway: EventsGateway,
   ) {}
+
+  private emitDashboardOverviewUpdate(source: 'floor.created' | 'floor.updated' | 'floor.deleted') {
+    const tenantId = this.tenantContext.tenantId
+    if (!tenantId) return
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    })
+  }
 
   async create(createFloorDto: CreateFloorDto) {
     // Validar que o building existe
@@ -23,7 +35,7 @@ export class FloorsService {
       )
     }
 
-    return this.tenantContext.client.floor.create({
+    const floor = await this.tenantContext.client.floor.create({
       data: {
         name: createFloorDto.name,
         code: createFloorDto.code,
@@ -34,6 +46,9 @@ export class FloorsService {
         tenantId: this.tenantContext.tenantId,
       },
     })
+
+    this.emitDashboardOverviewUpdate('floor.created')
+    return floor
   }
 
   async findAll(
@@ -149,10 +164,13 @@ export class FloorsService {
       delete (dataToUpdate as Record<string, unknown>).floorNumber
     }
 
-    return this.tenantContext.client.floor.update({
+    const floor = await this.tenantContext.client.floor.update({
       where: { id },
       data: dataToUpdate,
     })
+
+    this.emitDashboardOverviewUpdate('floor.updated')
+    return floor
   }
 
   async remove(id: string) {
@@ -170,10 +188,13 @@ export class FloorsService {
       )
     }
 
-    return this.tenantContext.client.floor.update({
+    const floor = await this.tenantContext.client.floor.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    this.emitDashboardOverviewUpdate('floor.deleted')
+    return floor
   }
 
   async getStats() {

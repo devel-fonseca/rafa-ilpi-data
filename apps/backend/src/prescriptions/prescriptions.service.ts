@@ -23,6 +23,7 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { EventsGateway } from '../events/events.gateway';
 import {
   PrescriptionType,
   ControlledClass,
@@ -41,8 +42,28 @@ export class PrescriptionsService {
     private readonly filesService: FilesService,
     private readonly fileProcessingService: FileProcessingService,
     private readonly notificationsService: NotificationsService,
+    private readonly eventsGateway: EventsGateway,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
+
+  private emitDashboardOverviewUpdate(
+    source:
+      | 'prescription.created'
+      | 'prescription.updated'
+      | 'prescription.deleted'
+      | 'medication.administered'
+      | 'medication.sos-administered'
+      | 'medication.administration-updated'
+      | 'medication.administration-deleted',
+  ) {
+    const tenantId = this.tenantContext.tenantId;
+    if (!tenantId) return;
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    });
+  }
 
   /**
    * Cria um registro de histórico para a prescrição
@@ -280,6 +301,8 @@ export class PrescriptionsService {
         tenantId: this.tenantContext.tenantId,
         userId,
       });
+
+      this.emitDashboardOverviewUpdate('prescription.created');
 
       return this.formatDateOnlyFields(prescription);
     } catch (error) {
@@ -648,6 +671,8 @@ export class PrescriptionsService {
         userId,
       });
 
+      this.emitDashboardOverviewUpdate('prescription.updated');
+
       return this.formatDateOnlyFields(updated);
     } catch (error) {
       this.logger.error('Erro ao atualizar prescrição', {
@@ -754,6 +779,8 @@ export class PrescriptionsService {
         { tenantId: this.tenantContext.tenantId, userId },
       );
 
+      this.emitDashboardOverviewUpdate('prescription.updated');
+
       return updated;
     } catch (error) {
       this.logger.error('Erro ao registrar revisão médica de prescrição', {
@@ -840,6 +867,8 @@ export class PrescriptionsService {
         tenantId: this.tenantContext.tenantId,
         userId,
       });
+
+      this.emitDashboardOverviewUpdate('prescription.deleted');
 
       return { message: 'Prescrição removida com sucesso' };
     } catch (error) {
@@ -1458,6 +1487,8 @@ export class PrescriptionsService {
       userId,
     });
 
+    this.emitDashboardOverviewUpdate('medication.administered');
+
     return administration;
   }
 
@@ -1536,6 +1567,8 @@ export class PrescriptionsService {
       tenantId: this.tenantContext.tenantId,
       userId,
     });
+
+    this.emitDashboardOverviewUpdate('medication.sos-administered');
 
     return administration;
   }
@@ -2209,6 +2242,8 @@ export class PrescriptionsService {
         userId: user.sub,
       });
 
+      this.emitDashboardOverviewUpdate('medication.administration-updated');
+
       return updated;
     });
   }
@@ -2272,6 +2307,8 @@ export class PrescriptionsService {
         userId: user.sub,
         deleteReason,
       });
+
+      this.emitDashboardOverviewUpdate('medication.administration-deleted');
 
       return { message: 'Administração excluída com sucesso' };
     });

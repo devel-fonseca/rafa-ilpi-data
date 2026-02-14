@@ -5,9 +5,10 @@ import { NotificationsHelperService } from './notifications-helper.service'
 import { NotificationsCronService } from './notifications.cron'
 import { NotificationRecipientsResolverService } from './notification-recipients-resolver.service'
 import { PrismaModule } from '../prisma/prisma.module'
+import { EventsModule } from '../events/events.module'
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EventsModule],
   controllers: [NotificationsController],
   providers: [
     NotificationsService,

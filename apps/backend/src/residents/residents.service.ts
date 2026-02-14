@@ -16,6 +16,7 @@ import { Logger } from 'winston';
 import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 import { ChangeType, DependencyLevel, Gender, Prisma } from '@prisma/client';
 import { hasSignedUrlQuery } from '../common/utils/signed-url.util';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class ResidentsService {
@@ -23,8 +24,25 @@ export class ResidentsService {
     private readonly prisma: PrismaService, // Para tabelas SHARED (public schema)
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
     private readonly filesService: FilesService,
+    private readonly eventsGateway: EventsGateway,
     @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
   ) {}
+
+  private emitDashboardOverviewUpdate(
+    source:
+      | 'resident.created'
+      | 'resident.updated'
+      | 'resident.deleted'
+      | 'resident.bed-transferred',
+  ) {
+    const tenantId = this.tenantContext.tenantId;
+    if (!tenantId) return;
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    });
+  }
 
   private validateUnsignedPhotoUrl(fotoUrl?: string | null): void {
     if (!fotoUrl) return;
@@ -554,6 +572,8 @@ export class ResidentsService {
         bedId: accommodation.bedId,
         versionNumber: 1,
       });
+
+      this.emitDashboardOverviewUpdate('resident.created');
 
       return this.formatDateOnlyFields(resident);
     } catch (error) {
@@ -1251,6 +1271,8 @@ export class ResidentsService {
         changedFieldsCount: this.calculateChangedFields(previousData, updated).length,
       });
 
+      this.emitDashboardOverviewUpdate('resident.updated');
+
       return this.formatDateOnlyFields(updated);
     } catch (error) {
       this.logger.error('Erro ao atualizar residente', {
@@ -1336,6 +1358,8 @@ export class ResidentsService {
         userId,
         versionNumber: deleted.versionNumber,
       });
+
+      this.emitDashboardOverviewUpdate('resident.deleted');
 
       return { message: 'Residente removido com sucesso' };
     } catch (error) {
@@ -1578,7 +1602,7 @@ export class ResidentsService {
         userId,
       });
 
-      return await this.tenantContext.client.$transaction(async (prisma) => {
+      const transferResult = await this.tenantContext.client.$transaction(async (prisma) => {
         // 1. Buscar residente com bed atual
         const resident = await prisma.resident.findFirst({
           where: {
@@ -1740,6 +1764,9 @@ export class ResidentsService {
           message: `Residente transferido de ${resident.bed?.code || 'leito anterior'} para ${toBed.code} com sucesso`,
         };
       });
+
+      this.emitDashboardOverviewUpdate('resident.bed-transferred');
+      return transferResult;
     } catch (error) {
       this.logger.error('Erro ao transferir residente de leito', {
         error: error.message,

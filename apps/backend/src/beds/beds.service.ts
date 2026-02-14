@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Scope } from '@nest
 import { TenantContextService } from '../prisma/tenant-context.service'
 import { Prisma } from '@prisma/client'
 import { plainToInstance } from 'class-transformer'
+import { EventsGateway } from '../events/events.gateway'
 import {
   CreateBedDto,
   UpdateBedDto,
@@ -27,7 +28,24 @@ import { FullMapResponseDto } from '../buildings/dto'
 export class BedsService {
   constructor(
     private readonly tenantContext: TenantContextService, // Para tabelas TENANT (schema isolado)
+    private readonly eventsGateway: EventsGateway,
   ) {}
+
+  private emitDashboardOverviewUpdate(
+    source:
+      | 'bed.created'
+      | 'bed.updated'
+      | 'bed.deleted'
+      | 'bed.status-changed',
+  ) {
+    const tenantId = this.tenantContext.tenantId
+    if (!tenantId) return
+
+    this.eventsGateway.emitDashboardOverviewUpdated({
+      tenantId,
+      source,
+    })
+  }
 
   async create(createBedDto: CreateBedDto) {
     // ✅ Validar que o room existe (usando tenant client)
@@ -48,13 +66,16 @@ export class BedsService {
       throw new BadRequestException(`Já existe um leito com o código ${createBedDto.code}`)
     }
 
-    return this.tenantContext.client.bed.create({
+    const bed = await this.tenantContext.client.bed.create({
       data: {
         ...createBedDto,
         tenantId: this.tenantContext.tenantId, // Schema isolation já funciona, mas campo ainda é obrigatório
         status: createBedDto.status || 'Disponível',
       },
     })
+
+    this.emitDashboardOverviewUpdate('bed.created')
+    return bed
   }
 
   async findAll(skip: number = 0, take: number = 50, roomId?: string, status?: string) {
@@ -175,10 +196,13 @@ export class BedsService {
       }
     }
 
-    return this.tenantContext.client.bed.update({
+    const bed = await this.tenantContext.client.bed.update({
       where: { id },
       data: updateBedDto,
     })
+
+    this.emitDashboardOverviewUpdate('bed.updated')
+    return bed
   }
 
   async remove(id: string) {
@@ -192,10 +216,13 @@ export class BedsService {
       )
     }
 
-    return this.tenantContext.client.bed.update({
+    const deletedBed = await this.tenantContext.client.bed.update({
       where: { id },
       data: { deletedAt: new Date() },
     })
+
+    this.emitDashboardOverviewUpdate('bed.deleted')
+    return deletedBed
   }
 
   async getOccupancyStats() {
@@ -401,7 +428,7 @@ export class BedsService {
     }
 
     // ✅ Usar $transaction do tenant client
-    return await this.tenantContext.client.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -429,6 +456,8 @@ export class BedsService {
         message: `Leito ${bed.code} reservado com sucesso`,
       }
     })
+    this.emitDashboardOverviewUpdate('bed.status-changed')
+    return result
   }
 
   /**
@@ -463,7 +492,7 @@ export class BedsService {
       notes += ` - Previsão de liberação: ${blockBedDto.expectedReleaseDate}`
     }
 
-    return await this.tenantContext.client.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -491,6 +520,8 @@ export class BedsService {
         message: `Leito ${bed.code} bloqueado para manutenção`,
       }
     })
+    this.emitDashboardOverviewUpdate('bed.status-changed')
+    return result
   }
 
   /**
@@ -517,7 +548,7 @@ export class BedsService {
       releaseBedDto.reason ||
       (bed.status === 'Manutenção' ? 'Manutenção concluída' : 'Reserva cancelada')
 
-    return await this.tenantContext.client.$transaction(async (prisma) => {
+    const result = await this.tenantContext.client.$transaction(async (prisma) => {
       // Atualizar status do leito
       const updatedBed = await prisma.bed.update({
         where: { id: bedId },
@@ -545,6 +576,8 @@ export class BedsService {
         message: `Leito ${bed.code} liberado e agora está disponível`,
       }
     })
+    this.emitDashboardOverviewUpdate('bed.status-changed')
+    return result
   }
 
   /**
