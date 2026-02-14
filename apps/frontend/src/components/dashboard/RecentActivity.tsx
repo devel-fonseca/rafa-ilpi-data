@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useRecentActivity, type AuditLog } from '@/hooks/useAudit'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Activity, UserPlus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -11,6 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { AdminDashboardOverviewData } from '@/hooks/useAdminDashboard'
+
+type AuditLog = AdminDashboardOverviewData['recentActivities'][number]
 
 const entityTypeLabels: Record<string, string> = {
   ADMIN_DASHBOARD: 'painel administrativo',
@@ -232,10 +234,17 @@ function getDayLabel(date: Date): string {
   return format(date, "dd 'de' MMMM", { locale: ptBR })
 }
 
-export function RecentActivity() {
+interface RecentActivityProps {
+  activities?: AuditLog[]
+  isLoading?: boolean
+}
+
+export function RecentActivity({
+  activities = [],
+  isLoading = false,
+}: RecentActivityProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
-  const { data: activities, isLoading } = useRecentActivity(50)
 
   if (isLoading) {
     return (

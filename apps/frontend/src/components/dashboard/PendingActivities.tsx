@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Activity, AlertCircle, Calendar, FileText, Bell } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -9,7 +8,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { tenantKey } from '@/lib/query-keys'
 
 interface PendingItem {
   id: string
@@ -22,6 +20,11 @@ interface PendingItem {
     id: string
     name: string
   }
+}
+
+interface PendingActivitiesProps {
+  items?: PendingItem[]
+  isLoading?: boolean
 }
 
 const priorityColors: Record<string, string> = {
@@ -42,50 +45,8 @@ function getPendingIcon(type: string) {
   return <Icon className="h-4 w-4" />
 }
 
-export function PendingActivities() {
-  const { data: pendingItems, isLoading } = useQuery({
-    queryKey: tenantKey('pending-activities'),
-    queryFn: async () => {
-      // Por enquanto, retornar dados mockados
-      // TODO: Implementar endpoint no backend
-      const mockData: PendingItem[] = [
-        {
-          id: '1',
-          type: 'PRESCRIPTION_EXPIRING',
-          title: 'Prescrição expirando em breve',
-          description: 'Losartana 50mg - Residente: Maria Silva',
-          priority: 'HIGH',
-          dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-          relatedEntity: { id: 'p1', name: 'Maria Silva' },
-        },
-        {
-          id: '2',
-          type: 'DAILY_RECORD_MISSING',
-          title: 'Registros diários pendentes',
-          description: '3 residentes sem registro de alimentação hoje',
-          priority: 'MEDIUM',
-          relatedEntity: { id: 'r1', name: 'Diversos residentes' },
-        },
-        {
-          id: '3',
-          type: 'VITAL_SIGNS_DUE',
-          title: 'Sinais vitais atrasados',
-          description: 'Pressão arterial - João Santos',
-          priority: 'MEDIUM',
-          dueDate: new Date().toISOString(),
-          relatedEntity: { id: 'r2', name: 'João Santos' },
-        },
-        {
-          id: '4',
-          type: 'NOTIFICATION_UNREAD',
-          title: '5 notificações não lidas',
-          description: 'Atualizações do sistema e lembretes',
-          priority: 'LOW',
-        },
-      ]
-      return mockData
-    },
-  })
+export function PendingActivities({ items = [], isLoading = false }: PendingActivitiesProps) {
+  const pendingItems = items
 
   if (isLoading) {
     return (

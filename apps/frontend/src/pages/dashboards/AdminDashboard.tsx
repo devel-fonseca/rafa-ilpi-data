@@ -1,11 +1,4 @@
 import { useAuthStore } from '@/stores/auth.store'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { getCurrentDate } from '@/utils/dateHelpers'
-import { useResidentStats } from '@/hooks/useResidents'
-import { useDailyRecordsCountByDate } from '@/hooks/useDailyRecords'
-import { usersApi } from '@/api/users.api'
-import { tenantKey } from '@/lib/query-keys'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
 import { OperationalComplianceSection } from '@/components/admin/OperationalComplianceSection'
 import { PlanStatusSection } from '@/components/admin/PlanStatusSection'
@@ -17,40 +10,27 @@ import { ResidentsGrowthChart } from '@/components/admin/ResidentsGrowthChart'
 import { MedicationAdministrationChart } from '@/components/admin/MedicationAdministrationChart'
 import { MandatoryRecordsChart } from '@/components/admin/MandatoryRecordsChart'
 import { OccupancyRateChart } from '@/components/admin/OccupancyRateChart'
-import { useAdminCompliance } from '@/hooks/useAdminCompliance'
-import { useResidentsGrowth, useMedicationsHistory, useScheduledRecordsHistory, useOccupancyRate } from '@/hooks/useAdminDashboard'
+import { useAdminDashboardOverview } from '@/hooks/useAdminDashboard'
+import { useAdminDashboardRealtime } from '@/hooks/useAdminDashboardRealtime'
 import { Page, PageHeader, CollapsibleSection } from '@/design-system/components'
 
 export function AdminDashboard() {
   const { user } = useAuthStore()
-  const today = getCurrentDate()
+  useAdminDashboardRealtime()
+  const { data: overview, isLoading } = useAdminDashboardOverview()
 
-  const { data: complianceStats, isLoading: isLoadingCompliance } = useAdminCompliance()
-  const { data: residentsStats } = useResidentStats()
+  const complianceStats = overview?.dailySummary
+  const residentsGrowth = overview?.residentsGrowth || []
+  const medicationsHistory = overview?.medicationsHistory || []
+  const recordsHistory = overview?.scheduledRecordsHistory || []
+  const occupancyRate = overview?.occupancyRate
+  const pendingActivities = overview?.pendingActivities || []
+  const recentActivities = overview?.recentActivities || []
 
-  const { data: prescriptionsStats } = useQuery({
-    queryKey: tenantKey('prescriptions', 'stats', 'dashboard'),
-    queryFn: async () => {
-      const response = await api.get('/prescriptions/stats/dashboard')
-      return response.data
-    },
-  })
-
-  const { data: usersCount } = useQuery({
-    queryKey: tenantKey('users', 'stats', 'count'),
-    queryFn: () => usersApi.countActiveUsers(),
-  })
-
-  const { data: totalRecordsToday = 0 } = useDailyRecordsCountByDate(today)
-
-  const { data: residentsGrowth, isLoading: isLoadingResidents } = useResidentsGrowth()
-  const { data: medicationsHistory, isLoading: isLoadingMedications } = useMedicationsHistory()
-  const { data: recordsHistory, isLoading: isLoadingRecords } = useScheduledRecordsHistory()
-  const { data: occupancyRate, isLoading: isLoadingOccupancy } = useOccupancyRate()
-
-  const totalResidents = residentsStats?.total || 0
-  const totalPrescriptions = prescriptionsStats?.totalActive || 0
-  const totalUsers = usersCount || 0
+  const totalResidents = overview?.footerStats.totalResidents || 0
+  const totalPrescriptions = overview?.footerStats.totalPrescriptions || 0
+  const totalUsers = overview?.footerStats.totalUsers || 0
+  const totalRecordsToday = overview?.footerStats.totalRecordsToday || 0
 
   return (
     <Page maxWidth="wide" spacing="compact">
@@ -79,7 +59,7 @@ export function AdminDashboard() {
       {/* Seção de Compliance Operacional */}
       <OperationalComplianceSection
         stats={complianceStats}
-        isLoading={isLoadingCompliance}
+        isLoading={isLoading}
       />
 
       {/* Gráficos de Análise */}
@@ -90,23 +70,23 @@ export function AdminDashboard() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <ResidentsGrowthChart
-            data={residentsGrowth?.data || []}
-            isLoading={isLoadingResidents}
+            data={residentsGrowth}
+            isLoading={isLoading}
           />
           <OccupancyRateChart
             data={occupancyRate?.data || []}
             hasBedsConfigured={occupancyRate?.hasBedsConfigured}
             capacityDeclared={occupancyRate?.capacityDeclared}
             capacityLicensed={occupancyRate?.capacityLicensed}
-            isLoading={isLoadingOccupancy}
+            isLoading={isLoading}
           />
           <MandatoryRecordsChart
-            data={recordsHistory?.data || []}
-            isLoading={isLoadingRecords}
+            data={recordsHistory}
+            isLoading={isLoading}
           />
           <MedicationAdministrationChart
-            data={medicationsHistory?.data || []}
-            isLoading={isLoadingMedications}
+            data={medicationsHistory}
+            isLoading={isLoading}
           />
         </div>
       </CollapsibleSection>
@@ -119,10 +99,10 @@ export function AdminDashboard() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Pending Activities */}
-          <PendingActivities />
+          <PendingActivities items={pendingActivities} isLoading={isLoading} />
 
           {/* Recent Activity */}
-          <RecentActivity />
+          <RecentActivity activities={recentActivities} isLoading={isLoading} />
         </div>
       </CollapsibleSection>
 

@@ -52,6 +52,63 @@ export interface OccupancyRateData {
   capacityLicensed: number | null
 }
 
+export interface AdminDashboardOverviewData {
+  timezone: string
+  generatedAt: string
+  dailySummary: {
+    activeResidents: number
+    residentsWithSchedules: number
+    medications: {
+      scheduled: number
+      administered: number
+      total: number
+    }
+    scheduledRecords?: {
+      expected: number
+      completed: number
+    }
+    mandatoryRecords: {
+      expected: number
+      completed: number
+    }
+  }
+  residentsGrowth: MonthlyResidentCount[]
+  medicationsHistory: DailyMedicationStats[]
+  scheduledRecordsHistory: DailyRecordStats[]
+  occupancyRate: OccupancyRateData
+  pendingActivities: Array<{
+    id: string
+    type: 'PRESCRIPTION_EXPIRING' | 'DAILY_RECORD_MISSING' | 'NOTIFICATION_UNREAD' | 'VITAL_SIGNS_DUE'
+    title: string
+    description: string
+    priority: 'HIGH' | 'MEDIUM' | 'LOW'
+    dueDate?: string
+    relatedEntity?: {
+      id: string
+      name: string
+    }
+  }>
+  recentActivities: Array<{
+    id: string
+    tenantId: string
+    entityType: string
+    entityId: string | null
+    action: string
+    userId: string
+    userName: string
+    details: Record<string, unknown>
+    ipAddress: string | null
+    userAgent: string | null
+    createdAt: string
+  }>
+  footerStats: {
+    totalResidents: number
+    totalUsers: number
+    totalRecordsToday: number
+    totalPrescriptions: number
+  }
+}
+
 // ============================================================================
 // HOOKS
 // ============================================================================
@@ -70,6 +127,24 @@ export function useResidentsGrowth() {
     staleTime: 5 * 60 * 1000, // 5 minutos - dados mudam lentamente
     refetchOnWindowFocus: false,
     refetchInterval: 10 * 60 * 1000, // Atualiza a cada 10 minutos
+    refetchIntervalInBackground: false,
+  })
+}
+
+/**
+ * Hook agregado do dashboard administrativo
+ * Reduz múltiplas requisições paralelas para uma única chamada de overview.
+ */
+export function useAdminDashboardOverview() {
+  return useQuery<AdminDashboardOverviewData>({
+    queryKey: tenantKey('admin-dashboard-overview'),
+    queryFn: async () => {
+      const response = await api.get('/admin-dashboard/overview')
+      return response.data
+    },
+    staleTime: 45 * 1000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 3 * 60 * 1000,
     refetchIntervalInBackground: false,
   })
 }
