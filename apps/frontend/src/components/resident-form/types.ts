@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { z } from 'zod'
+import { requiredString } from '@/lib/validation/requiredString'
 
 // ========== VALIDATION TYPES ==========
 
@@ -17,12 +18,6 @@ export interface CnsValidation {
 }
 
 // ========== SCHEMA ==========
-const requiredString = (label: string) =>
-  z.preprocess(
-    (value) => (typeof value === 'string' ? value : ''),
-    z.string().trim().min(1, `${label} é obrigatório`)
-  )
-
 export const residentSchema = z.object({
   // Status (opcional - apenas para modo edição)
   status: z.enum(['Ativo', 'Inativo', 'Falecido']).optional(),
@@ -32,7 +27,7 @@ export const residentSchema = z.object({
 
   // Dados Pessoais
   foto: z.any().optional(),
-  nome: requiredString('Nome').min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  nome: requiredString('Nome', 3, 'Nome deve ter pelo menos 3 caracteres'),
   nomeSocial: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cns: z.string().optional(),
