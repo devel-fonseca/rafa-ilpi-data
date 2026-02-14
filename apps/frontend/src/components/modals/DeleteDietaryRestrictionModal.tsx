@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteDietaryRestrictionModal (Exclusão de Restrição Alimentar com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

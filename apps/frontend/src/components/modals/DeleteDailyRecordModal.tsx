@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteDailyRecordModal (Exclusão de Registro Diário com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

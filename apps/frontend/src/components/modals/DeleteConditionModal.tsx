@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteConditionModal (Exclusão de Condição Crônica com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

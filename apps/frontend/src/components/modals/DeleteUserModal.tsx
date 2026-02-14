@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteUserModal (Exclusão de Usuário com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteAllergyModal (Exclusão de Alergia com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

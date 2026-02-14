@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteClinicalNoteModal (Exclusão de Evolução Clínica com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

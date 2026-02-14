@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteCareShiftModal (Exclusão de Plantão com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

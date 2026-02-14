@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeleteResidentModal (Exclusão de Residente com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────

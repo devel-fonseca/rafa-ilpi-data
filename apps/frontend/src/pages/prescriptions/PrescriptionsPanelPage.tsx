@@ -14,9 +14,9 @@ export default function PrescriptionsPanelPage() {
   const canSeePrescriptions = canViewPrescriptionCalendar()
 
   // Usar mês atual fixo
-  const today = new Date()
-  const monthStart = useMemo(() => format(startOfMonth(today), 'yyyy-MM-dd'), [])
-  const monthEnd = useMemo(() => format(endOfMonth(today), 'yyyy-MM-dd'), [])
+  const today = useMemo(() => new Date(), [])
+  const monthStart = useMemo(() => format(startOfMonth(today), 'yyyy-MM-dd'), [today])
+  const monthEnd = useMemo(() => format(endOfMonth(today), 'yyyy-MM-dd'), [today])
 
   // Buscar prescrições do mês atual
   const {

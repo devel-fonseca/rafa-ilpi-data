@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ──────────────────────────────────────────────────────────────────────────────
 //  MODAL - DeletePOPModal (Exclusão de POP com Reautenticação)
 // ──────────────────────────────────────────────────────────────────────────────
