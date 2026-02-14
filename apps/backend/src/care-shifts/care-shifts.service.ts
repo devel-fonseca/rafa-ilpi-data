@@ -32,6 +32,7 @@ import {
   parseDateOnly,
   formatDateOnly,
 } from '../utils/date.helpers';
+import { ACTIVE_STATUSES } from '../payments/types/subscription-status.enum';
 import {
   CreateShiftDto,
   UpdateShiftDto,
@@ -117,6 +118,54 @@ export class CareShiftsService {
 
     this.tenantTimezoneCache = tenant?.timezone || DEFAULT_TIMEZONE;
     return this.tenantTimezoneCache;
+  }
+
+  private async isShiftFeatureEnabled(): Promise<boolean> {
+    const [tenant, subscription] = await Promise.all([
+      this.tenantContext.publicClient.tenant.findUnique({
+        where: { id: this.tenantContext.tenantId },
+        select: { customFeatures: true },
+      }),
+      this.tenantContext.publicClient.subscription.findFirst({
+        where: {
+          tenantId: this.tenantContext.tenantId,
+          status: { in: ACTIVE_STATUSES },
+        },
+        include: { plan: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    if (!subscription) {
+      return true;
+    }
+
+    const trialStatuses = ['trialing', 'TRIAL'];
+    if (trialStatuses.includes(subscription.status)) {
+      return true;
+    }
+
+    const planFeatures =
+      (subscription.plan.features as Record<string, boolean>) || {};
+    const subscribedFeatures =
+      (subscription.subscribedFeatures as Record<string, boolean>) || {};
+    const customFeatures = (tenant?.customFeatures as Record<string, boolean>) || {};
+
+    const baseFeatures =
+      Object.keys(subscribedFeatures).length > 0
+        ? subscribedFeatures
+        : planFeatures;
+
+    const effectiveFeatures = { ...baseFeatures };
+    Object.entries(customFeatures).forEach(([key, value]) => {
+      if (value === false) {
+        delete effectiveFeatures[key];
+      } else if (value === true) {
+        effectiveFeatures[key] = true;
+      }
+    });
+
+    return effectiveFeatures.escalas_plantoes === true;
   }
 
   /**
@@ -273,6 +322,19 @@ export class CareShiftsService {
       };
     }
 
+    const shiftFeatureEnabled = await this.isShiftFeatureEnabled();
+    if (!shiftFeatureEnabled) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: true,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
+
     const referenceDateStr = parseDateOnly(
       options?.date || getCurrentDateInTz(tenantTimezone),
     );
@@ -299,6 +361,18 @@ export class CareShiftsService {
         shift.status === ShiftStatus.CONFIRMED ||
         shift.status === ShiftStatus.IN_PROGRESS,
       );
+
+    if (shifts.length === 0) {
+      return {
+        canRegister: true,
+        reason: null,
+        positionCode,
+        hasBypass: true,
+        isLeaderOrSubstitute: false,
+        activeShift: null,
+        currentShift: null,
+      };
+    }
 
     if (!userShifts.length) {
       return {
