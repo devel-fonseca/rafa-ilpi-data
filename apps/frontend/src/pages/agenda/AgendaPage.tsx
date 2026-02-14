@@ -17,6 +17,7 @@ import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { Page, PageHeader, Section } from '@/design-system/components'
 
 const STORAGE_KEY = 'agenda-preferences'
+const ENABLE_LEGACY_GENERAL_SCOPE = import.meta.env.VITE_AGENDA_ENABLE_LEGACY_GENERAL === 'true'
 
 // Todos os filtros por padrão
 const ALL_FILTERS = Object.values(ContentFilterType)
@@ -32,7 +33,7 @@ export default function AgendaPage() {
   // Estado da agenda
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewType, setViewType] = useState<ViewType>('daily')
-  const [scope, setScope] = useState<ScopeType>('general')
+  const [scope, setScope] = useState<ScopeType>('resident')
   const [residentId, setResidentId] = useState<string | null>(null)
   const [contentFilters, setContentFilters] = useState<ContentFilterType[]>(ALL_FILTERS)
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
@@ -54,7 +55,13 @@ export default function AgendaPage() {
       try {
         const prefs = JSON.parse(saved)
         if (prefs.viewType) setViewType(prefs.viewType)
-        if (prefs.scope) setScope(prefs.scope)
+        if (prefs.scope) {
+          const nextScope =
+            prefs.scope === 'general' && !ENABLE_LEGACY_GENERAL_SCOPE
+              ? 'resident'
+              : prefs.scope
+          setScope(nextScope)
+        }
         if (prefs.residentId) setResidentId(prefs.residentId)
         if (prefs.contentFilters) setContentFilters(prefs.contentFilters)
       } catch (error) {
@@ -74,6 +81,11 @@ export default function AgendaPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs))
   }, [viewType, scope, residentId, contentFilters])
 
+  const canQueryAgendaItems =
+    scope !== 'institutional' &&
+    (scope !== 'resident' || !!residentId) &&
+    (scope !== 'general' || ENABLE_LEGACY_GENERAL_SCOPE)
+
   // Buscar itens da agenda (para scopes 'general' e 'resident')
   const {
     data: agendaItems = [],
@@ -84,6 +96,7 @@ export default function AgendaPage() {
     residentId: scope === 'resident' ? residentId : null,
     filters: scope === 'resident' && residentId ? contentFilters : undefined,
     statusFilter,
+    enabled: canQueryAgendaItems,
   })
 
   // Buscar eventos institucionais (para scope 'institutional')
@@ -174,7 +187,12 @@ export default function AgendaPage() {
             scope={scope}
             residentId={residentId}
             contentFilters={contentFilters}
+            allowLegacyGeneralScope={ENABLE_LEGACY_GENERAL_SCOPE}
             onScopeChange={(newScope) => {
+              if (newScope === 'general' && !ENABLE_LEGACY_GENERAL_SCOPE) {
+                setScope('resident')
+                return
+              }
               setScope(newScope)
               if (newScope === 'general' || newScope === 'institutional') {
                 setResidentId(null)
@@ -285,6 +303,11 @@ export default function AgendaPage() {
         </div>
 
         {/* Conteúdo da Visualização */}
+        {scope === 'resident' && !residentId && (
+          <Card className="p-6 text-sm text-muted-foreground">
+            Selecione um residente para carregar a agenda.
+          </Card>
+        )}
         {viewType === 'daily' && scope === 'general' && (
           <DailyViewInstitutional
             items={items}
@@ -301,7 +324,7 @@ export default function AgendaPage() {
             onStatusFilterChange={setStatusFilter}
           />
         )}
-        {viewType === 'daily' && scope === 'resident' && (
+        {viewType === 'daily' && scope === 'resident' && residentId && (
           <DailyView
             items={items}
             isLoading={isLoading}
@@ -309,7 +332,7 @@ export default function AgendaPage() {
             onStatusFilterChange={setStatusFilter}
           />
         )}
-        {viewType === 'weekly' && (
+        {viewType === 'weekly' && (scope !== 'resident' || !!residentId) && (
           <WeeklyView
             items={items}
             selectedDate={selectedDate}
@@ -318,7 +341,7 @@ export default function AgendaPage() {
             onStatusFilterChange={setStatusFilter}
           />
         )}
-        {viewType === 'monthly' && scope !== 'institutional' && (
+        {viewType === 'monthly' && scope !== 'institutional' && (scope !== 'resident' || !!residentId) && (
           <MonthlyViewOptimized
             selectedDate={selectedDate}
             residentId={scope === 'resident' ? residentId : null}

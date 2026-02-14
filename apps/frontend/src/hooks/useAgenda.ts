@@ -14,6 +14,7 @@ interface GetAgendaItemsParams {
   residentId?: string | null
   filters?: ContentFilterType[]
   statusFilter?: StatusFilterType
+  enabled?: boolean
 }
 
 /**
@@ -25,7 +26,14 @@ interface GetAgendaItemsParams {
  * - 'weekly': busca a semana inteira (range query)
  * - 'monthly': busca o mês inteiro (range query)
  */
-export function useAgendaItems({ viewType, selectedDate, residentId, filters, statusFilter }: GetAgendaItemsParams) {
+export function useAgendaItems({
+  viewType,
+  selectedDate,
+  residentId,
+  filters,
+  statusFilter,
+  enabled = true,
+}: GetAgendaItemsParams) {
   // Calcular intervalo baseado no viewType
   const dateRange = useMemo(() => {
     if (viewType === 'daily') {
@@ -94,6 +102,7 @@ export function useAgendaItems({ viewType, selectedDate, residentId, filters, st
     staleTime: 1000 * 60, // 1 minuto
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    enabled,
   })
 }
 

@@ -1,9 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { api } from '@/services/api'
+import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
 
 import {
   ScopeType,
@@ -36,6 +35,7 @@ interface Props {
   scope: ScopeType
   residentId: string | null
   contentFilters: ContentFilterType[]
+  allowLegacyGeneralScope?: boolean
   onScopeChange: (scope: ScopeType) => void
   onResidentChange: (residentId: string | null) => void
   onContentFiltersChange: (filters: ContentFilterType[]) => void
@@ -45,18 +45,15 @@ export function AgendaFilters({
   scope,
   residentId,
   contentFilters,
+  allowLegacyGeneralScope = false,
   onScopeChange,
   onResidentChange,
   onContentFiltersChange,
 }: Props) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [showResults, setShowResults] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const resultsRef = useRef<HTMLDivElement>(null)
 
   // Buscar residentes ativos
-  const { data: residentsData } = useQuery<{ data: Resident[] }>({
+  const { data: residentsData, isLoading: isLoadingResidents } = useQuery<{ data: Resident[] }>({
     queryKey: ['residents', 'active'],
     queryFn: async () => {
       const response = await api.get('/residents', {
@@ -67,45 +64,6 @@ export function AgendaFilters({
   })
 
   const residents = residentsData?.data || []
-  const selectedResident = residents.find((r) => r.id === residentId)
-
-  const filteredResidents = searchTerm.trim()
-    ? residents.filter((resident) => {
-        const searchLower = searchTerm.toLowerCase()
-        return (
-          resident.fullName.toLowerCase().includes(searchLower) ||
-          resident.socialName?.toLowerCase().includes(searchLower) ||
-          resident.bed?.code.toLowerCase().includes(searchLower)
-        )
-      })
-    : []
-
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        resultsRef.current &&
-        !resultsRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowResults(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const handleSelectResident = (id: string) => {
-    onResidentChange(id)
-    setSearchTerm('')
-    setShowResults(false)
-  }
-
-  const handleClearResident = () => {
-    onResidentChange(null)
-    setSearchTerm('')
-  }
 
   const toggleFilter = (filter: ContentFilterType) => {
     if (contentFilters.includes(filter)) {
@@ -157,7 +115,9 @@ export function AgendaFilters({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="general">📋 Geral (Todos Residentes)</SelectItem>
+              {allowLegacyGeneralScope && (
+                <SelectItem value="general">📋 Geral (Todos Residentes) • Legado</SelectItem>
+              )}
               <SelectItem value="institutional">🏢 Institucional (Eventos da Instituição)</SelectItem>
               <SelectItem value="resident">👤 Por Residente</SelectItem>
             </SelectContent>
@@ -168,67 +128,14 @@ export function AgendaFilters({
         {scope === 'resident' && (
           <div className="flex-1">
             <Label className="text-sm font-medium mb-2 block">Residente</Label>
-            {selectedResident ? (
-              <div className="relative">
-                <Badge
-                  variant="outline"
-                  className="w-full justify-between px-3 py-2 h-10 text-left font-normal"
-                >
-                  <span className="truncate">{selectedResident.fullName}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5 ml-2"
-                    onClick={handleClearResident}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Buscar residente..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value)
-                      setShowResults(true)
-                    }}
-                    onFocus={() => setShowResults(true)}
-                    className="pl-9"
-                  />
-                </div>
-
-                {/* Dropdown de resultados */}
-                {showResults && filteredResidents.length > 0 && (
-                  <Card
-                    ref={resultsRef}
-                    className="absolute z-50 w-full mt-1 max-h-64 overflow-auto"
-                  >
-                    {filteredResidents.map((resident) => (
-                      <button
-                        key={resident.id}
-                        onClick={() => handleSelectResident(resident.id)}
-                        className="w-full px-4 py-3 hover:bg-accent text-left flex items-center gap-2 border-b last:border-0"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium">{resident.fullName}</p>
-                          {resident.bed && (
-                            <p className="text-xs text-muted-foreground">
-                              Leito: {resident.bed.code}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </Card>
-                )}
-              </div>
-            )}
+            <ResidentSearchSelect
+              residents={residents}
+              value={residentId}
+              onValueChange={onResidentChange}
+              isLoading={isLoadingResidents}
+              placeholder="Buscar residente por nome ou leito..."
+              emptyMessage="Nenhum residente encontrado."
+            />
           </div>
         )}
       </div>
