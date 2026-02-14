@@ -32,7 +32,7 @@ export interface TenantMetrics {
   active: number
   trial: number
   suspended: number
-  cancelled: number
+  canceled: number
 }
 
 export interface TrendData {
@@ -169,6 +169,37 @@ export interface EffectiveLimits {
     features: Record<string, boolean>
   }
   hasCustomizations: boolean
+}
+
+export interface FullBackup {
+  id: string
+  fileName: string
+  filePath: string
+  scope: 'full' | 'tenant'
+  tenantId: string | null
+  tenantName: string | null
+  tenantSchemaName: string | null
+  sizeBytes: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface BackupsListResponse {
+  data: FullBackup[]
+  meta: {
+    total: number
+    limit: number
+    scope?: string
+    tenantId?: string | null
+  }
+}
+
+export interface RestoreFullResult {
+  backupId: string | null
+  filePath: string
+  startedAt: string
+  finishedAt: string
+  durationMs: number
 }
 
 // ============================================
@@ -409,5 +440,89 @@ export const getTenantEffectiveLimits = async (
   const response = await api.get<EffectiveLimits>(
     `/superadmin/tenants/${tenantId}/effective-limits`
   )
+  return response.data
+}
+
+// ============================================
+// BACKUPS
+// ============================================
+
+/**
+ * Lista backups full disponíveis para download
+ */
+export const getBackups = async (
+  limit: number = 50,
+  options?: { scope?: 'full' | 'tenant' | 'all'; tenantId?: string },
+): Promise<BackupsListResponse> => {
+  const params = new URLSearchParams()
+  params.set('limit', String(limit))
+  if (options?.scope && options.scope !== 'all') params.set('scope', options.scope)
+  if (options?.tenantId) params.set('tenantId', options.tenantId)
+
+  const response = await api.get<BackupsListResponse>(`/superadmin/backups?${params.toString()}`)
+  return response.data
+}
+
+/**
+ * Dispara geração de novo backup full
+ */
+export const createFullBackup = async (): Promise<{
+  success: boolean
+  message: string
+  data: FullBackup
+}> => {
+  const response = await api.post<{
+    success: boolean
+    message: string
+    data: FullBackup
+  }>('/superadmin/backups/full')
+  return response.data
+}
+
+/**
+ * Dispara geração de backup de tenant
+ */
+export const createTenantBackup = async (tenantId: string): Promise<{
+  success: boolean
+  message: string
+  data: FullBackup
+}> => {
+  const response = await api.post<{
+    success: boolean
+    message: string
+    data: FullBackup
+  }>(`/superadmin/backups/tenant/${tenantId}`)
+  return response.data
+}
+
+/**
+ * Executa restore full a partir de backup salvo
+ */
+export const restoreFullBackup = async (backupId: string): Promise<{
+  success: boolean
+  message: string
+  data: RestoreFullResult
+}> => {
+  const response = await api.post<{
+    success: boolean
+    message: string
+    data: RestoreFullResult
+  }>(`/superadmin/backups/${backupId}/restore-full`)
+  return response.data
+}
+
+/**
+ * Executa restore de backup tenant
+ */
+export const restoreTenantBackup = async (backupId: string): Promise<{
+  success: boolean
+  message: string
+  data: RestoreFullResult
+}> => {
+  const response = await api.post<{
+    success: boolean
+    message: string
+    data: RestoreFullResult
+  }>(`/superadmin/backups/${backupId}/restore-tenant`)
   return response.data
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
-import { addDays } from 'date-fns'
+import { addDays, addMonths, addYears } from 'date-fns'
 import { PrismaService } from '../../prisma/prisma.service'
 import { EmailService } from '../../email/email.service'
 import { SubscriptionAdminService } from '../services/subscription-admin.service'
@@ -45,6 +45,40 @@ export class TrialToActiveConversionJob {
     private readonly asaasService: AsaasService,
   ) {}
 
+  private async tryAcquireSubscriptionLock(subscriptionId: string): Promise<boolean> {
+    const result = await this.prisma.$queryRawUnsafe<Array<{ locked: boolean }>>(
+      'SELECT pg_try_advisory_lock(hashtext($1)) AS locked',
+      subscriptionId,
+    )
+    return !!result[0]?.locked
+  }
+
+  private async releaseSubscriptionLock(subscriptionId: string): Promise<void> {
+    await this.prisma.$queryRawUnsafe(
+      'SELECT pg_advisory_unlock(hashtext($1))',
+      subscriptionId,
+    )
+  }
+
+  private mapPreferredPaymentMethodToAsaasBillingType(
+    method?: string | null,
+    billingCycle?: string | null,
+  ): AsaasBillingType {
+    if (method === 'PIX' && billingCycle === 'MONTHLY') {
+      return AsaasBillingType.BOLETO
+    }
+
+    switch (method) {
+      case 'PIX':
+        return AsaasBillingType.PIX
+      case 'CREDIT_CARD':
+        return AsaasBillingType.CREDIT_CARD
+      case 'BOLETO':
+      default:
+        return AsaasBillingType.BOLETO
+    }
+  }
+
   @Cron('0 2 * * *') // Todos os dias às 02:00
   async handleTrialConversion() {
     this.logger.log('🔄 Iniciando conversão de trials expirados...')
@@ -70,12 +104,58 @@ export class TrialToActiveConversionJob {
       let skipCount = 0
       let errorCount = 0
 
-      for (const subscription of expiredTrials) {
+      for (const expiredTrial of expiredTrials) {
+        const lockAcquired = await this.tryAcquireSubscriptionLock(expiredTrial.id)
+        if (!lockAcquired) {
+          this.logger.warn(
+            `⚠️ Trial ${expiredTrial.id} já está em processamento. Conversão ignorada nesta execução.`,
+          )
+          skipCount++
+          continue
+        }
+
+        let errorSubscriptionId = expiredTrial.id
+        let errorTenantId = expiredTrial.tenantId
+        let errorTenantName = expiredTrial.tenant?.name || 'tenant desconhecido'
+        let errorPlanName = expiredTrial.plan?.displayName || 'plano desconhecido'
+
         try {
+          const subscription = await this.prisma.subscription.findUnique({
+            where: { id: expiredTrial.id },
+            include: {
+              tenant: true,
+              plan: true,
+            },
+          })
+
+          if (!subscription) {
+            this.logger.warn(
+              `⚠️ Trial ${expiredTrial.id} não encontrado durante processamento.`
+            )
+            skipCount++
+            continue
+          }
+
+          errorSubscriptionId = subscription.id
+          errorTenantId = subscription.tenantId
+          errorTenantName = subscription.tenant.name
+          errorPlanName = subscription.plan.displayName
+
+          if (subscription.status !== 'trialing') {
+            this.logger.warn(
+              `⚠️ Trial ${subscription.id} não está mais em trial (status=${subscription.status}).`,
+            )
+            skipCount++
+            continue
+          }
+
+          if (!subscription.trialEndDate) {
+            throw new Error('Trial sem trialEndDate definido')
+          }
+
           // ✅ AJUSTE 2: Validar se NÃO foi cancelado
           // Previne cobrança indevida de trials cancelados (CRÍTICO para evitar estornos)
           if (
-            subscription.status === 'canceled' ||
             subscription.tenant.status === 'SUSPENDED' ||
             subscription.tenant.status === 'CANCELLED'
           ) {
@@ -86,19 +166,11 @@ export class TrialToActiveConversionJob {
             continue // Pula para o próximo
           }
 
-          // 1. Converter trial → active (via service)
           this.logger.log(
-            `🔄 Convertendo trial: ${subscription.tenant.name} (${subscription.plan.displayName})`,
+            `🔄 Processando conversão de trial: ${subscription.tenant.name} (${subscription.plan.displayName})`,
           )
 
-          const _updatedSubscription =
-            await this.subscriptionAdminService.convertTrialToActive(
-              subscription.id,
-            )
-
-          // 1.5. ✅ NOVO: Criar subscription recorrente no Asaas
-
-          // Calcular valor final ANTES do try-catch (usado no email posteriormente)
+          // Calcular valor final ANTES da provisão de billing
           const basePrice = subscription.customPrice
             ? Number(subscription.customPrice)
             : subscription.plan.price
@@ -110,127 +182,182 @@ export class TrialToActiveConversionJob {
             : 0
 
           const finalValue = basePrice * (1 - discount / 100)
+          let billingReady = false
+          let billingReadyReason = ''
 
-          try {
-            this.logger.log(
-              `💳 Criando subscription no Asaas para ${subscription.tenant.name}`,
-            )
+          // 1) Provisionar cobrança ANTES de ativar o plano
+          if (subscription.asaasSubscriptionId) {
+            billingReady = true
+            billingReadyReason = `Subscription Asaas já existente (${subscription.asaasSubscriptionId})`
+          } else {
+            try {
+              this.logger.log(
+                `💳 Criando subscription no Asaas para ${subscription.tenant.name}`,
+              )
 
-            // Garantir asaasCustomerId
-            let asaasCustomerId = subscription.tenant.asaasCustomerId
+              // Garantir asaasCustomerId
+              let asaasCustomerId = subscription.tenant.asaasCustomerId
 
-            if (!asaasCustomerId) {
-              const customer = await this.asaasService.createCustomer({
-                name: subscription.tenant.name,
-                cpfCnpj: subscription.tenant.cnpj?.replace(/\D/g, '') || '',
-                email: subscription.tenant.email,
-                phone: subscription.tenant.phone || undefined,
-                address: subscription.tenant.addressStreet || undefined,
-                addressNumber: subscription.tenant.addressNumber || undefined,
-                complement: subscription.tenant.addressComplement || undefined,
-                province: subscription.tenant.addressDistrict || undefined,
-                city: subscription.tenant.addressCity || undefined,
-                state: subscription.tenant.addressState || undefined,
-                postalCode: subscription.tenant.addressZipCode || undefined,
-              })
+              if (!asaasCustomerId) {
+                const customer = await this.asaasService.createCustomer({
+                  name: subscription.tenant.name,
+                  cpfCnpj: subscription.tenant.cnpj?.replace(/\D/g, '') || '',
+                  email: subscription.tenant.email,
+                  phone: subscription.tenant.phone || undefined,
+                  address: subscription.tenant.addressStreet || undefined,
+                  addressNumber: subscription.tenant.addressNumber || undefined,
+                  complement: subscription.tenant.addressComplement || undefined,
+                  province: subscription.tenant.addressDistrict || undefined,
+                  city: subscription.tenant.addressCity || undefined,
+                  state: subscription.tenant.addressState || undefined,
+                  postalCode: subscription.tenant.addressZipCode || undefined,
+                })
 
-              asaasCustomerId = customer.id
+                asaasCustomerId = customer.id
 
-              // Atualizar tenant
-              await this.prisma.tenant.update({
-                where: { id: subscription.tenantId },
-                data: { asaasCustomerId: customer.id },
-              })
-            }
+                await this.prisma.tenant.update({
+                  where: { id: subscription.tenantId },
+                  data: { asaasCustomerId: customer.id },
+                })
+              }
 
-            // Mapear billing cycle: ANNUAL → YEARLY, MONTHLY → MONTHLY
-            const cycle =
-              subscription.plan.billingCycle === 'ANNUAL'
-                ? AsaasSubscriptionCycle.YEARLY
-                : AsaasSubscriptionCycle.MONTHLY
+              const cycle =
+                subscription.plan.billingCycle === 'ANNUAL'
+                  ? AsaasSubscriptionCycle.YEARLY
+                  : AsaasSubscriptionCycle.MONTHLY
 
-            // Mapear payment method
-            const billingType =
-              (subscription.preferredPaymentMethod as keyof typeof AsaasBillingType) ||
-              'BOLETO'
+              const billingType = this.mapPreferredPaymentMethodToAsaasBillingType(
+                subscription.preferredPaymentMethod,
+                subscription.billingCycle,
+              )
 
-            // Calcular data de vencimento da primeira cobrança (+7 dias)
-            // Usar timezone de São Paulo para garantir consistência
-            const nextDueDate = addDays(new Date(), 7)
+              const nextDueDate = addDays(new Date(), 7)
+              const year = nextDueDate.getFullYear()
+              const month = String(nextDueDate.getMonth() + 1).padStart(2, '0')
+              const day = String(nextDueDate.getDate()).padStart(2, '0')
+              const nextDueDateStr = `${year}-${month}-${day}`
 
-            // Formatar como YYYY-MM-DD (sem conversão UTC para evitar mudança de dia)
-            const year = nextDueDate.getFullYear()
-            const month = String(nextDueDate.getMonth() + 1).padStart(2, '0')
-            const day = String(nextDueDate.getDate()).padStart(2, '0')
-            const nextDueDateStr = `${year}-${month}-${day}`
-
-            // Criar subscription recorrente no Asaas
-            const asaasSubscription = await this.asaasService.createSubscription(
-              {
+              const asaasSubscription = await this.asaasService.createSubscription({
                 customerId: asaasCustomerId,
-                billingType: AsaasBillingType[billingType],
+                billingType,
                 value: finalValue,
                 cycle,
                 description: `Assinatura ${subscription.plan.displayName} - ${subscription.tenant.name}`,
-                nextDueDate: nextDueDateStr, // Primeira cobrança em +7 dias
+                nextDueDate: nextDueDateStr,
                 externalReference: subscription.id,
-              },
-            )
+              })
 
-            // Atualizar subscription local
-            await this.prisma.subscription.update({
-              where: { id: subscription.id },
-              data: {
-                asaasSubscriptionId: asaasSubscription.id,
-                asaasCreatedAt: new Date(),
-                lastSyncedAt: new Date(),
-                asaasCreationError: null, // Limpar erro anterior
-              },
-            })
+              await this.prisma.subscription.update({
+                where: { id: subscription.id },
+                data: {
+                  asaasSubscriptionId: asaasSubscription.id,
+                  asaasCreatedAt: new Date(),
+                  lastSyncedAt: new Date(),
+                  asaasCreationError: null,
+                },
+              })
 
-            this.logger.log(
-              `✅ Asaas subscription created: ${asaasSubscription.id}`,
-            )
-          } catch (error) {
-            // ⚠️ CRÍTICO: NÃO bloquear tenant se criação no Asaas falhar
-            // Salvar erro para retry manual posterior
-            this.logger.error(
-              `❌ Erro ao criar subscription no Asaas: ${error.message}`,
-            )
+              billingReady = true
+              billingReadyReason = `Subscription Asaas criada (${asaasSubscription.id})`
+              this.logger.log(`✅ ${billingReadyReason}`)
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+              this.logger.error(
+                `❌ Erro ao criar subscription no Asaas para ${subscription.tenant.name}: ${errorMessage}`,
+              )
 
-            await this.prisma.subscription.update({
-              where: { id: subscription.id },
-              data: {
-                asaasCreationError: error.message,
-                lastSyncedAt: new Date(),
-              },
-            })
+              await this.prisma.subscription.update({
+                where: { id: subscription.id },
+                data: {
+                  asaasCreationError: errorMessage,
+                  lastSyncedAt: new Date(),
+                },
+              })
 
-            // Criar alerta para SuperAdmin
-            await this.alertsService.createSystemErrorAlert({
-              title: 'Falha ao Criar Subscription no Asaas',
-              message: `Erro ao criar subscription recorrente: ${subscription.tenant.name}`,
-              error: error instanceof Error ? error : new Error('Unknown error'),
-              metadata: {
-                job: 'trial-to-active-conversion',
-                tenantId: subscription.tenantId,
-                subscriptionId: subscription.id,
-                errorMessage: error.message,
-              },
-            })
+              // 1.1) Fallback real: se não há recorrência no Asaas, gerar primeira fatura manual
+              const existingInvoice = await this.prisma.invoice.findFirst({
+                where: {
+                  subscriptionId: subscription.id,
+                  status: { in: ['OPEN', 'PAID'] },
+                },
+                orderBy: { createdAt: 'desc' },
+              })
 
-            // Continuar com geração manual de fatura (fallback)
+              if (existingInvoice) {
+                billingReady = true
+                billingReadyReason = `Fatura existente (${existingInvoice.invoiceNumber})`
+              } else {
+                try {
+                  const fallbackInvoice =
+                    await this.invoiceService.createFirstInvoiceAfterTrial(
+                      subscription.id,
+                    )
+                  billingReady = true
+                  billingReadyReason = `Fatura fallback criada (${fallbackInvoice.invoiceNumber})`
+                  this.logger.warn(`⚠️ Fallback de cobrança aplicado: ${billingReadyReason}`)
+                } catch (fallbackError) {
+                  const fallbackErrorMessage =
+                    fallbackError instanceof Error
+                      ? fallbackError.message
+                      : 'Unknown fallback error'
+                  this.logger.error(
+                    `❌ Fallback de fatura também falhou para ${subscription.tenant.name}: ${fallbackErrorMessage}`,
+                  )
+
+                  await this.alertsService.createSystemErrorAlert({
+                    title: 'Falha na Provisão de Cobrança do Trial',
+                    message: `Não foi possível provisionar cobrança (Asaas + fallback) para ${subscription.tenant.name}`,
+                    error:
+                      fallbackError instanceof Error
+                        ? fallbackError
+                        : new Error('Unknown fallback error'),
+                    metadata: {
+                      job: 'trial-to-active-conversion',
+                      tenantId: subscription.tenantId,
+                      subscriptionId: subscription.id,
+                      asaasError: errorMessage,
+                      fallbackError: fallbackErrorMessage,
+                    },
+                  })
+                }
+              }
+            }
           }
 
-          // 2. ⚠️ NOTA: Primeira fatura é gerada AUTOMATICAMENTE pela Asaas Subscription
-          // Não precisamos gerar manualmente, pois o Asaas cria a primeira cobrança ao criar a subscription
-          // A fatura será sincronizada via webhook PAYMENT_CREATED (Fase 2)
+          // 2) Sem cobrança provisionada -> não ativar trial; marcar pendência financeira
+          if (!billingReady) {
+            const cycleEnd =
+              subscription.billingCycle === 'ANNUAL'
+                ? addYears(subscription.trialEndDate, 1)
+                : addMonths(subscription.trialEndDate, 1)
 
-          this.logger.log(
-            `ℹ️  Primeira fatura será gerada automaticamente pela subscription no Asaas`,
-          )
+            await this.prisma.subscription.update({
+              where: { id: subscription.id },
+              data: {
+                status: 'past_due',
+                currentPeriodStart: subscription.trialEndDate,
+                currentPeriodEnd: cycleEnd,
+                lastSyncedAt: new Date(),
+              },
+            })
 
-          // 3. Enviar email de confirmação (sem dados da fatura, pois virá via webhook)
+            await this.prisma.tenant.update({
+              where: { id: subscription.tenantId },
+              data: { status: 'SUSPENDED' },
+            })
+
+            this.logger.error(
+              `❌ Trial ${subscription.tenant.name} NÃO convertido: cobrança indisponível (subscription marcada como past_due).`,
+            )
+            errorCount++
+            continue
+          }
+
+          // 3) Com cobrança provisionada, converter trial -> active
+          await this.subscriptionAdminService.convertTrialToActive(subscription.id)
+          this.logger.log(`✅ Trial convertido com cobrança provisionada: ${billingReadyReason}`)
+
+          // 4) Enviar email de confirmação
           this.logger.log(
             `📧 Enviando email de confirmação para ${subscription.tenant.email}`,
           )
@@ -241,8 +368,8 @@ export class TrialToActiveConversionJob {
               tenantName: subscription.tenant.name,
               planName: subscription.plan.displayName,
               invoiceAmount: finalValue, // Valor calculado localmente
-              dueDate: new Date(), // Temporário - será atualizado via webhook
-              paymentUrl: '', // Virá via webhook PAYMENT_CREATED
+              dueDate: addDays(new Date(), 7),
+              paymentUrl: '',
               billingType: subscription.preferredPaymentMethod || undefined,
             },
           )
@@ -253,7 +380,7 @@ export class TrialToActiveConversionJob {
           successCount++
         } catch (error) {
           this.logger.error(
-            `❌ Erro ao converter trial ${subscription.id} (${subscription.tenant.name}):`,
+            `❌ Erro ao converter trial ${errorSubscriptionId} (${errorTenantName}):`,
             error,
           )
           errorCount++
@@ -261,17 +388,19 @@ export class TrialToActiveConversionJob {
           // Criar alerta de falha na conversão
           await this.alertsService.createSystemErrorAlert({
             title: 'Falha na Conversão de Trial para Ativo',
-            message: `Erro ao converter trial para plano ativo: ${subscription.tenant.name}`,
+            message: `Erro ao converter trial para plano ativo: ${errorTenantName}`,
             error: error instanceof Error ? error : new Error('Unknown error'),
             metadata: {
               job: 'trial-to-active-conversion',
-              tenantId: subscription.tenantId,
-              subscriptionId: subscription.id,
-              planName: subscription.plan.displayName,
+              tenantId: errorTenantId,
+              subscriptionId: errorSubscriptionId,
+              planName: errorPlanName,
               timestamp: new Date().toISOString(),
             },
           })
           // Continua para o próximo (não interrompe o job)
+        } finally {
+          await this.releaseSubscriptionLock(expiredTrial.id)
         }
       }
 

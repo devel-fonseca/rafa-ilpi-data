@@ -310,6 +310,15 @@ export class AdminController {
       throw new NotFoundException('Nenhuma subscription ativa encontrada')
     }
 
+    if (
+      dto.preferredPaymentMethod === 'PIX' &&
+      subscription.billingCycle === 'MONTHLY'
+    ) {
+      throw new BadRequestException(
+        'PIX não é suportado para cobrança mensal. Use BOLETO ou altere o ciclo para ANNUAL.',
+      )
+    }
+
     // Log de auditoria ANTES da operação
     this.logger.log(
       `[TENANT-SELF-SERVICE] Método de pagamento alterado: ${tenantId} (${subscription.preferredPaymentMethod || 'NENHUM'} → ${dto.preferredPaymentMethod}) user=${user.email}`

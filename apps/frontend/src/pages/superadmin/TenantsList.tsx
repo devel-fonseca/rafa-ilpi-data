@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Building2,
@@ -8,6 +8,10 @@ import {
   MoreVertical,
   Eye,
   Play,
+  LayoutList,
+  Rows3,
+  Save,
+  RotateCcw,
 } from 'lucide-react'
 import { useTenants, useReactivateTenant } from '@/hooks/useSuperAdmin'
 import { getPlans } from '@/api/superadmin.api'
@@ -40,6 +44,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import type { TenantFilters } from '@/api/superadmin.api'
+import { usePersistedState } from '@/hooks/usePersistedState'
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   ACTIVE: { label: 'Ativo', variant: 'default' },
@@ -50,10 +55,19 @@ const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secon
 
 export function TenantsList() {
   const { toast } = useToast()
-  const [filters, setFilters] = useState<TenantFilters>({
+  const [searchParams] = useSearchParams()
+  const [filters, setFilters] = usePersistedState<TenantFilters>('superadmin:tenants:filters:v1', {
     page: 1,
     limit: 20,
   })
+  const [savedView, setSavedView] = usePersistedState<TenantFilters | null>(
+    'superadmin:tenants:saved-view:v1',
+    null,
+  )
+  const [density, setDensity] = usePersistedState<'comfortable' | 'compact'>(
+    'superadmin:tenants:density:v1',
+    'comfortable',
+  )
 
   const { data, isLoading, isError, error } = useTenants(filters)
   const { data: plans } = useQuery({
@@ -62,6 +76,32 @@ export function TenantsList() {
     staleTime: 1000 * 60 * 10, // 10 minutos
   })
   const reactivateMutation = useReactivateTenant()
+
+  useEffect(() => {
+    const status = searchParams.get('status')
+    const search = searchParams.get('search')
+    const planId = searchParams.get('planId')
+
+    if (!status && !search && !planId) return
+
+    setFilters((prev) => ({
+      ...prev,
+      status:
+        status === null
+          ? prev.status
+          : status === 'ALL'
+            ? undefined
+            : status,
+      search: search || prev.search,
+      planId:
+        planId === null
+          ? prev.planId
+          : planId === 'ALL'
+            ? undefined
+            : planId,
+      page: 1,
+    }))
+  }, [searchParams, setFilters])
 
   const handleSearch = (value: string) => {
     setFilters((prev) => ({ ...prev, search: value, page: 1 }))
@@ -105,6 +145,31 @@ export function TenantsList() {
       })
     }
   }
+
+  const handleSaveView = () => {
+    setSavedView(filters)
+    toast({
+      title: 'Visão salva',
+      description: 'Filtros atuais salvos com sucesso.',
+    })
+  }
+
+  const handleApplyView = () => {
+    if (!savedView) return
+    setFilters({ ...savedView, page: 1 })
+    toast({
+      title: 'Visão aplicada',
+      description: 'Filtros salvos foram aplicados.',
+    })
+  }
+
+  const handleResetView = () => {
+    setFilters({ page: 1, limit: 20 })
+  }
+
+  const rowClassName = 'border-slate-200 hover:bg-slate-100/30'
+  const cellClassName = density === 'compact' ? 'px-2 py-1.5' : 'px-4 py-4'
+  const tableClassName = density === 'compact' ? 'text-xs' : 'text-sm'
 
   return (
     <div className="space-y-6">
@@ -178,6 +243,61 @@ export function TenantsList() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveView}
+                className="border-slate-200"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar visão
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleApplyView}
+                disabled={!savedView}
+                className="border-slate-200"
+              >
+                Aplicar visão
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetView}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Resetar
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 rounded-md border border-slate-200 p-1">
+              <Button
+                type="button"
+                variant={density === 'comfortable' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDensity('comfortable')}
+              >
+                <LayoutList className="h-4 w-4 mr-1" />
+                Confortável
+              </Button>
+              <Button
+                type="button"
+                variant={density === 'compact' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDensity('compact')}
+              >
+                <Rows3 className="h-4 w-4 mr-1" />
+                Compacto
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -203,7 +323,7 @@ export function TenantsList() {
           )}
 
           {data && data.data.length > 0 && (
-            <Table>
+            <Table className={tableClassName}>
               <TableHeader>
                 <TableRow className="border-slate-200 hover:bg-slate-100/50">
                   <TableHead className="text-slate-400">Tenant</TableHead>
@@ -234,24 +354,26 @@ export function TenantsList() {
                   return (
                     <TableRow
                       key={tenant.id}
-                      className="border-slate-200 hover:bg-slate-100/30"
+                      className={rowClassName}
                     >
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <div>
-                          <div className="font-medium text-slate-900">
+                          <div className={`font-medium text-slate-900 ${density === 'compact' ? 'text-sm' : ''}`}>
                             {tenant.name}
                           </div>
-                          <div className="text-sm text-slate-500">
-                            {tenant.email}
-                          </div>
+                          {density === 'comfortable' && (
+                            <div className="text-sm text-slate-500">
+                              {tenant.email}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <Badge variant={statusInfo.variant}>
                           {statusInfo.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-slate-400">
+                      <TableCell className={`${cellClassName} text-slate-400`}>
                         <div className="flex items-center gap-1.5">
                           <span>{activeSub?.plan.displayName || 'Sem plano'}</span>
                           {(tenant.customMaxUsers !== null ||
@@ -261,16 +383,16 @@ export function TenantsList() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right text-slate-400">
+                      <TableCell className={`${cellClassName} text-right text-slate-400`}>
                         {tenant._count?.users ?? 0}
                       </TableCell>
-                      <TableCell className="text-right text-slate-400">
+                      <TableCell className={`${cellClassName} text-right text-slate-400`}>
                         {tenant._count?.residents ?? 0}
                       </TableCell>
-                      <TableCell className="text-slate-400">
+                      <TableCell className={`${cellClassName} text-slate-400`}>
                         {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={`${cellClassName} text-right`}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button

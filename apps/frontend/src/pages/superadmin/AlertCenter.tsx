@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,9 +35,35 @@ import type { AlertType, AlertSeverity } from '@/api/alerts.api'
  * - Marcar todos como lidos
  */
 export function AlertCenter() {
+  const [searchParams] = useSearchParams()
   const [typeFilter, setTypeFilter] = useState<AlertType | 'ALL'>('ALL')
   const [severityFilter, setSeverityFilter] = useState<AlertSeverity | 'ALL'>('ALL')
   const [readFilter, setReadFilter] = useState<'ALL' | 'READ' | 'UNREAD'>('ALL')
+
+  useEffect(() => {
+    const type = searchParams.get('type')
+    const severity = searchParams.get('severity')
+    const read = searchParams.get('read')
+
+    if (
+      type === 'PAYMENT_FAILED' ||
+      type === 'SUBSCRIPTION_EXPIRING' ||
+      type === 'SUBSCRIPTION_CANCELLED' ||
+      type === 'USAGE_LIMIT_EXCEEDED' ||
+      type === 'TENANT_SUSPENDED' ||
+      type === 'SYSTEM_ERROR'
+    ) {
+      setTypeFilter(type)
+    }
+
+    if (severity === 'INFO' || severity === 'WARNING' || severity === 'CRITICAL') {
+      setSeverityFilter(severity)
+    }
+
+    if (read === 'READ' || read === 'UNREAD' || read === 'ALL') {
+      setReadFilter(read)
+    }
+  }, [searchParams])
 
   const filters = {
     type: typeFilter !== 'ALL' ? typeFilter : undefined,

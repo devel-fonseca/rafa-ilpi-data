@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Mail,
   Settings,
+  Database,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUnreadCount } from '@/hooks/useAlerts'
@@ -63,6 +64,11 @@ export function SuperAdminLayout() {
       label: 'Inadimplência',
       icon: AlertTriangle,
       badge: overdueMetrics?.totalOverdueInvoices,
+    },
+    {
+      to: '/superadmin/backups',
+      label: 'Backups',
+      icon: Database,
     },
     {
       to: '/superadmin/analytics',
@@ -129,7 +135,7 @@ export function SuperAdminLayout() {
       </header>
 
       {/* Sidebar + Content */}
-      <div className="flex">
+      <div className="flex w-full">
         {/* Sidebar - Azul Marinho com leve transparência */}
         <aside className="w-64 bg-[#1e293b] min-h-screen p-6">
           <nav className="space-y-2">
@@ -159,8 +165,10 @@ export function SuperAdminLayout() {
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 p-8 bg-slate-50">
-          <Outlet />
+        <main className="flex-1 min-w-0 overflow-x-hidden bg-slate-50 p-8">
+          <div className="mx-auto w-full max-w-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

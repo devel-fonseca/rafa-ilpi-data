@@ -11,6 +11,7 @@ import { SubscriptionAdminService } from './services/subscription-admin.service'
 import { PlansAdminService } from './services/plans-admin.service'
 import { AlertsService } from './services/alerts.service'
 import { CollectionsService } from './services/collections.service'
+import { BackupAdminService } from './services/backup-admin.service'
 import { SubscriptionAlertsJob } from './jobs/subscription-alerts.job'
 import { PaymentAlertsJob } from './jobs/payment-alerts.job'
 import { OverdueReportsJob } from './jobs/overdue-reports.job'
@@ -56,6 +57,7 @@ import { SuperAdminController } from './superadmin.controller'
     PlansAdminService,
     AlertsService,
     CollectionsService,
+    BackupAdminService,
     SubscriptionAlertsJob,
     PaymentAlertsJob,
     OverdueReportsJob,
@@ -63,6 +65,6 @@ import { SuperAdminController } from './superadmin.controller'
     TrialToActiveConversionJob,
     TenantStatsRefreshJob,
   ],
-  exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService, CollectionsService],
+  exports: [MetricsService, TenantAdminService, SubscriptionAdminService, PlansAdminService, AlertsService, CollectionsService, BackupAdminService],
 })
 export class SuperAdminModule {}

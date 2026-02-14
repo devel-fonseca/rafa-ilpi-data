@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Patch, Post, Delete, Param, Body } from '@nestjs/common'
+import { Controller, Get, Query, UseGuards, Patch, Post, Delete, Param, Body, Logger, Res } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { SuperAdminGuard } from './guards/superadmin.guard'
@@ -38,6 +38,10 @@ import { TrialExpirationAlertsJob } from './jobs/trial-expiration-alerts.job'
 import { TrialToActiveConversionJob } from './jobs/trial-to-active-conversion.job'
 import { AsaasSyncJob } from '../payments/jobs/asaas-sync.job'
 import { parseISO } from 'date-fns'
+import { parseDateOnly } from '../utils/date.helpers'
+import { BackupAdminService } from './services/backup-admin.service'
+import type { Response } from 'express'
+import { readFile } from 'fs/promises'
 
 /**
  * SuperAdminController
@@ -59,6 +63,8 @@ import { parseISO } from 'date-fns'
 @Controller('superadmin')
 @UseGuards(JwtAuthGuard, SuperAdminGuard)
 export class SuperAdminController {
+  private readonly logger = new Logger(SuperAdminController.name)
+
   constructor(
     private readonly metricsService: MetricsService,
     private readonly tenantAdminService: TenantAdminService,
@@ -75,6 +81,7 @@ export class SuperAdminController {
     private readonly trialAlertsJob: TrialExpirationAlertsJob,
     private readonly trialConversionJob: TrialToActiveConversionJob,
     private readonly asaasSyncJob: AsaasSyncJob,
+    private readonly backupAdminService: BackupAdminService,
   ) {}
 
   /**
@@ -133,6 +140,113 @@ export class SuperAdminController {
   async getTrends(@Query('months') months?: string) {
     const monthsNum = months ? parseInt(months, 10) : 12
     return this.metricsService.getTrends(monthsNum)
+  }
+
+  // ========================================
+  // DATABASE BACKUPS
+  // ========================================
+
+  /**
+   * POST /superadmin/backups/full
+   * Gera backup full do banco de dados
+   */
+  @Post('backups/full')
+  async createFullBackup() {
+    const backup = await this.backupAdminService.createFullBackup()
+    return {
+      success: true,
+      message: 'Backup full gerado com sucesso',
+      data: backup,
+    }
+  }
+
+  /**
+   * POST /superadmin/backups/tenant/:tenantId
+   * Gera backup do schema de um tenant específico
+   */
+  @Post('backups/tenant/:tenantId')
+  async createTenantBackup(@Param('tenantId') tenantId: string) {
+    const backup = await this.backupAdminService.createTenantBackup(tenantId)
+    return {
+      success: true,
+      message: 'Backup do tenant gerado com sucesso',
+      data: backup,
+    }
+  }
+
+  /**
+   * GET /superadmin/backups
+   * Lista backups disponíveis (mais recentes primeiro)
+   */
+  @Get('backups')
+  async listBackups(
+    @Query('limit') limit?: string,
+    @Query('scope') scope?: string,
+    @Query('tenantId') tenantId?: string,
+  ) {
+    const parsedLimitRaw = limit ? parseInt(limit, 10) : 50
+    const parsedLimit = Number.isFinite(parsedLimitRaw) ? parsedLimitRaw : 50
+    const parsedScope = scope === 'tenant' || scope === 'full' ? scope : undefined
+    const backups = await this.backupAdminService.listBackups(
+      parsedLimit,
+      parsedScope,
+      tenantId,
+    )
+    return {
+      data: backups,
+      meta: {
+        total: backups.length,
+        limit: parsedLimit,
+        scope: parsedScope || 'all',
+        tenantId: tenantId || null,
+      },
+    }
+  }
+
+  /**
+   * GET /superadmin/backups/:id/download
+   * Faz download de um backup por id
+   */
+  @Get('backups/:id/download')
+  async downloadBackup(@Param('id') id: string, @Res() res: Response) {
+    const backup = await this.backupAdminService.getBackupByIdOrThrow(id)
+    const fileBuffer = await readFile(backup.filePath)
+
+    res.set({
+      'Content-Type': 'application/sql',
+      'Content-Disposition': `attachment; filename="${backup.fileName}"`,
+      'Content-Length': fileBuffer.length,
+    })
+
+    res.send(fileBuffer)
+  }
+
+  /**
+   * POST /superadmin/backups/:id/restore-full
+   * Restaura backup full no banco configurado em DATABASE_URL
+   */
+  @Post('backups/:id/restore-full')
+  async restoreFullBackup(@Param('id') id: string) {
+    const result = await this.backupAdminService.restoreFullBackup(id)
+    return {
+      success: true,
+      message: 'Restore full executado com sucesso',
+      data: result,
+    }
+  }
+
+  /**
+   * POST /superadmin/backups/:id/restore-tenant
+   * Restaura backup de tenant no schema do tenant associado ao backup
+   */
+  @Post('backups/:id/restore-tenant')
+  async restoreTenantBackup(@Param('id') id: string) {
+    const result = await this.backupAdminService.restoreTenantBackup(id)
+    return {
+      success: true,
+      message: 'Restore de tenant executado com sucesso',
+      data: result,
+    }
   }
 
   // ========================================
@@ -495,8 +609,8 @@ export class SuperAdminController {
    * - Método com melhor taxa de conversão
    *
    * Query params:
-   * - startDate: filtrar por data inicial (ISO 8601)
-   * - endDate: filtrar por data final (ISO 8601)
+   * - startDate: filtrar por data inicial (YYYY-MM-DD)
+   * - endDate: filtrar por data final (YYYY-MM-DD)
    * - tenantId: filtrar por tenant específico
    */
   @Get('analytics/financial')
@@ -505,9 +619,16 @@ export class SuperAdminController {
     @Query('endDate') endDate?: string,
     @Query('tenantId') tenantId?: string,
   ) {
+    const normalizedStartDate = startDate ? parseDateOnly(startDate) : undefined
+    const normalizedEndDate = endDate ? parseDateOnly(endDate) : undefined
+
     const filters = {
-      startDate: startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined,
-      endDate: endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined,
+      startDate: normalizedStartDate
+        ? parseISO(`${normalizedStartDate}T00:00:00.000`)
+        : undefined,
+      endDate: normalizedEndDate
+        ? parseISO(`${normalizedEndDate}T23:59:59.999`)
+        : undefined,
       tenantId,
     }
 
@@ -539,17 +660,24 @@ export class SuperAdminController {
    * - Aging breakdown (0-30, 30-60, 60+ dias)
    *
    * Query params:
-   * - startDate: filtrar por data inicial (ISO 8601)
-   * - endDate: filtrar por data final (ISO 8601)
+   * - startDate: filtrar por data inicial (YYYY-MM-DD)
+   * - endDate: filtrar por data final (YYYY-MM-DD)
    */
   @Get('analytics/overdue/summary')
   async getOverdueSummary(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
+    const normalizedStartDate = startDate ? parseDateOnly(startDate) : undefined
+    const normalizedEndDate = endDate ? parseDateOnly(endDate) : undefined
+
     const filters = {
-      startDate: startDate ? parseISO(`${startDate}T12:00:00.000`) : undefined,
-      endDate: endDate ? parseISO(`${endDate}T12:00:00.000`) : undefined,
+      startDate: normalizedStartDate
+        ? parseISO(`${normalizedStartDate}T00:00:00.000`)
+        : undefined,
+      endDate: normalizedEndDate
+        ? parseISO(`${normalizedEndDate}T23:59:59.999`)
+        : undefined,
     }
 
     return this.analyticsService.getOverdueMetrics(filters)
@@ -810,17 +938,15 @@ export class SuperAdminController {
     let user: { name: string; email: string } | null = null
     if (acceptance.userId && acceptance.tenant?.schemaName) {
       try {
-        console.log('[getTenantPrivacyPolicyAcceptance] Buscando usuário:', {
-          userId: acceptance.userId,
-          schemaName: acceptance.tenant.schemaName,
-        })
+        const schemaName = acceptance.tenant.schemaName
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(schemaName)) {
+          throw new Error('schemaName inválido para consulta multi-tenant')
+        }
 
         const userResult = await this.prismaService.$queryRawUnsafe<[{ name: string; email: string }]>(
-          `SELECT name, email FROM "${acceptance.tenant.schemaName}"."users" WHERE id = $1::uuid LIMIT 1`,
+          `SELECT name, email FROM "${schemaName}"."users" WHERE id = $1::uuid LIMIT 1`,
           acceptance.userId
         )
-
-        console.log('[getTenantPrivacyPolicyAcceptance] Resultado da query:', userResult)
 
         if (userResult[0]) {
           user = {
@@ -829,16 +955,12 @@ export class SuperAdminController {
           }
         }
       } catch (error) {
-        console.error('[getTenantPrivacyPolicyAcceptance] Erro ao buscar usuário:', error)
+        this.logger.warn(
+          `Falha ao buscar usuário de aceite de privacidade para tenant ${tenantId}`,
+          error instanceof Error ? error.stack : undefined,
+        )
       }
-    } else {
-      console.log('[getTenantPrivacyPolicyAcceptance] Dados ausentes:', {
-        userId: acceptance.userId,
-        schemaName: acceptance.tenant?.schemaName,
-      })
     }
-
-    console.log('[getTenantPrivacyPolicyAcceptance] Retornando user:', user)
 
     return {
       ...acceptance,

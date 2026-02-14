@@ -33,6 +33,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
   const [open, setOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string>('')
   const [reason, setReason] = useState('')
+  const [reasonError, setReasonError] = useState<string>('')
   const { toast } = useToast()
   const changePlanMutation = useChangePlan()
 
@@ -46,6 +47,11 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
   const currentPlan = activeSub?.plan
 
   const handleSubmit = async () => {
+    if (reason.trim() && reason.trim().length < 10) {
+      setReasonError('Se informado, o motivo deve ter pelo menos 10 caracteres.')
+      return
+    }
+
     if (!selectedPlanId) {
       toast({
         title: 'Plano não selecionado',
@@ -78,6 +84,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
       setOpen(false)
       setSelectedPlanId('')
       setReason('')
+      setReasonError('')
     } catch (error: unknown) {
       toast({
         title: 'Falha ao alterar plano',
@@ -88,6 +95,11 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
   }
 
   const selectedPlan = plans?.find((p) => p.id === selectedPlanId)
+  const canSubmit =
+    !!selectedPlanId &&
+    selectedPlanId !== currentPlan?.id &&
+    (!reason.trim() || reason.trim().length >= 10) &&
+    !changePlanMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -105,7 +117,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
         <DialogHeader>
           <DialogTitle className="text-slate-900">Mudar Plano</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Altere o plano de assinatura de {tenant.name}
+            Altere o plano de assinatura de {tenant.name}. A mudança é imediata.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,11 +190,22 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
             <Textarea
               id="reason"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => {
+                setReason(e.target.value)
+                if (!e.target.value.trim() || e.target.value.trim().length >= 10) {
+                  setReasonError('')
+                }
+              }}
               placeholder="Ex: Upgrade por crescimento do cliente..."
               className="bg-white border-slate-200 text-slate-900"
               rows={3}
             />
+            {reasonError && <p className="text-sm text-danger">{reasonError}</p>}
+            {reason.trim() && !reasonError && reason.trim().length < 10 && (
+              <p className="text-sm text-slate-500">
+                Mínimo de 10 caracteres para registrar o motivo.
+              </p>
+            )}
           </div>
         </div>
 
@@ -194,6 +217,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
               setOpen(false)
               setSelectedPlanId('')
               setReason('')
+              setReasonError('')
             }}
             className="bg-white border-slate-200 text-slate-400 hover:bg-slate-100"
           >
@@ -202,7 +226,7 @@ export function ChangePlanDialog({ tenant }: ChangePlanDialogProps) {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={changePlanMutation.isPending || !selectedPlanId}
+            disabled={!canSubmit}
             className="bg-[#059669] hover:bg-slate-600 text-slate-900"
           >
             {changePlanMutation.isPending ? 'Alterando...' : 'Confirmar Mudança'}

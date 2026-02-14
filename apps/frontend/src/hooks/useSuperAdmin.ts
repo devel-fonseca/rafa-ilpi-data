@@ -38,6 +38,11 @@ import {
   getSubscription,
   customizeTenantLimits,
   getTenantEffectiveLimits,
+  getBackups,
+  createFullBackup,
+  createTenantBackup,
+  restoreFullBackup,
+  restoreTenantBackup,
   type TenantFilters,
   type UpdateTenantData,
   type SuspendData,
@@ -268,15 +273,15 @@ export function useCancelSubscription() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: CancelData }) =>
       cancelSubscription(id, data),
-    onSuccess: (cancelledSub) => {
+    onSuccess: (canceledSub) => {
       queryClient.invalidateQueries({
-        queryKey: ['superadmin', 'subscription', cancelledSub.id],
+        queryKey: ['superadmin', 'subscription', canceledSub.id],
       })
       queryClient.invalidateQueries({
-        queryKey: ['superadmin', 'tenant', cancelledSub.tenantId],
+        queryKey: ['superadmin', 'tenant', canceledSub.tenantId],
       })
       queryClient.invalidateQueries({
-        queryKey: ['superadmin', 'tenant', cancelledSub.tenantId, 'subscriptions'],
+        queryKey: ['superadmin', 'tenant', canceledSub.tenantId, 'subscriptions'],
       })
       // Invalidar métricas de churn e receita
       queryClient.invalidateQueries({ queryKey: ['superadmin', 'metrics'] })
@@ -347,6 +352,80 @@ export function useCustomizeTenantLimits() {
       queryClient.invalidateQueries({
         queryKey: ['superadmin', 'tenants'],
       })
+    },
+  })
+}
+
+// ============================================
+// BACKUPS
+// ============================================
+
+/**
+ * Hook para listar backups full disponíveis
+ */
+export function useBackups(
+  limit = 50,
+  options?: { scope?: 'full' | 'tenant' | 'all'; tenantId?: string },
+) {
+  return useQuery({
+    queryKey: ['superadmin', 'backups', { limit, ...options }],
+    queryFn: () => getBackups(limit, options),
+    staleTime: 1000 * 30, // 30 segundos
+  })
+}
+
+/**
+ * Hook para disparar geração de backup full
+ */
+export function useCreateFullBackup() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: createFullBackup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'backups'] })
+    },
+  })
+}
+
+/**
+ * Hook para disparar geração de backup por tenant
+ */
+export function useCreateTenantBackup() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (tenantId: string) => createTenantBackup(tenantId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'backups'] })
+    },
+  })
+}
+
+/**
+ * Hook para executar restore full
+ */
+export function useRestoreFullBackup() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (backupId: string) => restoreFullBackup(backupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'backups'] })
+    },
+  })
+}
+
+/**
+ * Hook para executar restore de tenant
+ */
+export function useRestoreTenantBackup() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (backupId: string) => restoreTenantBackup(backupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'backups'] })
     },
   })
 }

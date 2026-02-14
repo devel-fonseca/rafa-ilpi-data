@@ -141,7 +141,7 @@ export class MetricsService {
       active: 0,
       trial: 0,
       suspended: 0,
-      cancelled: 0,
+      canceled: 0,
     }
 
     tenants.forEach((group) => {
@@ -157,7 +157,7 @@ export class MetricsService {
           metrics.suspended = group._count
           break
         case 'CANCELLED':
-          metrics.cancelled = group._count
+          metrics.canceled = group._count
           break
       }
     })
@@ -279,7 +279,7 @@ export class MetricsService {
     })
 
     // Tenants que cancelaram durante o mês passado
-    const cancelledDuringMonth = await this.prisma.tenant.count({
+    const canceledDuringMonth = await this.prisma.tenant.count({
       where: {
         status: 'CANCELLED',
         updatedAt: {
@@ -293,6 +293,6 @@ export class MetricsService {
       return 0
     }
 
-    return (cancelledDuringMonth / tenantsStartOfMonth) * 100
+    return (canceledDuringMonth / tenantsStartOfMonth) * 100
   }
 }

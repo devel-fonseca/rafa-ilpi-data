@@ -5,6 +5,9 @@ import {
   Target,
   AlertTriangle,
   ArrowRight,
+  CreditCard,
+  ShieldAlert,
+  Clock3,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { MetricCard } from '@/components/superadmin/MetricCard'
@@ -12,13 +15,19 @@ import { RevenueChart } from '@/components/superadmin/RevenueChart'
 import {
   useOverviewMetrics,
   useTrendsMetrics,
+  useTenantMetrics,
 } from '@/hooks/useSuperAdminMetrics'
 import { useOverdueMetrics } from '@/hooks/useOverdueMetrics'
+import { useTenants } from '@/hooks/useSuperAdmin'
+import { useQuery } from '@tanstack/react-query'
+import { getUnreadCount } from '@/api/alerts.api'
 import { Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { addDays } from 'date-fns'
+import { getCurrentDate } from '@/utils/dateHelpers'
 
 /**
  * SuperAdminDashboard
@@ -44,6 +53,24 @@ export function SuperAdminDashboard() {
     error: errorTrends,
   } = useTrendsMetrics(12)
   const { data: overdueMetrics } = useOverdueMetrics()
+  const { data: tenantMetrics } = useTenantMetrics()
+  const { data: trialTenants } = useTenants({ status: 'TRIAL', limit: 200 })
+  const { data: criticalBillingFailures } = useQuery({
+    queryKey: ['superadmin', 'alerts', 'unread-count', 'payment-failed-critical'],
+    queryFn: () => getUnreadCount({ type: 'PAYMENT_FAILED', severity: 'CRITICAL' }),
+    staleTime: 1000 * 60 * 2,
+  })
+
+  const today = getCurrentDate()
+  const next7Days = addDays(new Date(`${today}T00:00:00`), 7)
+  const next7DateStr = next7Days.toISOString().slice(0, 10)
+  const trialExpiringIn7Days =
+    trialTenants?.data?.reduce((acc, tenant) => {
+      const trialSubscription = tenant.subscriptions.find((sub) => sub.status === 'trialing')
+      if (!trialSubscription?.trialEndDate) return acc
+      const trialEnd = String(trialSubscription.trialEndDate).slice(0, 10)
+      return trialEnd >= today && trialEnd <= next7DateStr ? acc + 1 : acc
+    }, 0) || 0
 
   // Loading state
   if (isLoadingOverview || isLoadingTrends) {
@@ -110,6 +137,66 @@ export function SuperAdminDashboard() {
           description={`${overview?.activeTenants || 0} ativos`}
           format="number"
         />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Link to="/superadmin/invoices?status=OPEN&onlyOverdue=true" className="block">
+          <Card className="border border-slate-200 hover:border-danger/30 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Faturas Vencidas</p>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {overdueMetrics?.totalOverdueInvoices || 0}
+                  </p>
+                </div>
+                <CreditCard className="h-5 w-5 text-danger" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/superadmin/tenants?status=TRIAL" className="block">
+          <Card className="border border-slate-200 hover:border-primary/60 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Trials vencendo em 7 dias</p>
+                  <p className="text-2xl font-bold text-slate-900">{trialExpiringIn7Days}</p>
+                </div>
+                <Clock3 className="h-5 w-5 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/superadmin/alerts?type=PAYMENT_FAILED&severity=CRITICAL" className="block">
+          <Card className="border border-slate-200 hover:border-danger/40 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Falhas de cobrança</p>
+                  <p className="text-2xl font-bold text-slate-900">{criticalBillingFailures || 0}</p>
+                </div>
+                <AlertTriangle className="h-5 w-5 text-danger" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/superadmin/tenants?status=SUSPENDED" className="block">
+          <Card className="border border-slate-200 hover:border-warning/60 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Tenants suspensos</p>
+                  <p className="text-2xl font-bold text-slate-900">{tenantMetrics?.suspended || 0}</p>
+                </div>
+                <ShieldAlert className="h-5 w-5 text-warning" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Overdue Alert Card */}

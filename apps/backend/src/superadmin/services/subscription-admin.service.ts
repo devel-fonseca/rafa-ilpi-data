@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { addDays, addMonths, addYears } from 'date-fns'
@@ -63,19 +64,23 @@ export class SubscriptionAdminService {
     await this.prisma.subscription.update({
       where: { id: currentSubscription.id },
       data: {
-        status: 'cancelled',
+        status: 'canceled',
       },
     })
 
-    // Criar nova subscription (newPlan já foi buscado acima)
+    // Criar nova subscription respeitando o ciclo do novo plano
     const now = new Date()
+    const cycleEnd =
+      newPlan.billingCycle === 'ANNUAL' ? addYears(now, 1) : addMonths(now, 1)
+
     const newSubscription = await this.prisma.subscription.create({
       data: {
         tenantId,
         planId: newPlanId,
         status: 'active',
         currentPeriodStart: now,
-        currentPeriodEnd: addDays(now, 30), // Padrão: 30 dias
+        currentPeriodEnd: cycleEnd,
+        billingCycle: newPlan.billingCycle,
         subscribedFeatures: newPlan.features as any, // Snapshot das features
       },
       include: { plan: true },
@@ -145,7 +150,7 @@ export class SubscriptionAdminService {
 
   /**
    * Cancelar subscription
-   * Muda status para cancelled e registra motivo
+   * Muda status para canceled e registra motivo
    */
   async cancel(subscriptionId: string, reason: string) {
     const subscription = await this.prisma.subscription.findUnique({
@@ -157,14 +162,14 @@ export class SubscriptionAdminService {
       throw new NotFoundException(`Subscription com ID ${subscriptionId} não encontrada`)
     }
 
-    if (subscription.status === 'cancelled') {
+    if (subscription.status === 'canceled') {
       throw new BadRequestException('Subscription já está cancelada')
     }
 
     const updated = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
-        status: 'cancelled',
+        status: 'canceled',
       },
     })
 
@@ -203,19 +208,25 @@ export class SubscriptionAdminService {
       throw new NotFoundException(`Subscription com ID ${subscriptionId} não encontrada`)
     }
 
-    if (subscription.status !== 'cancelled') {
+    if (subscription.status !== 'canceled') {
       throw new BadRequestException('Apenas subscriptions canceladas podem ser reativadas')
     }
 
     // Criar nova subscription (não reativar a antiga)
     const now = new Date()
+    const normalizedBillingCycle =
+      subscription.billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'
+    const cycleEnd =
+      normalizedBillingCycle === 'ANNUAL' ? addYears(now, 1) : addMonths(now, 1)
+
     const newSubscription = await this.prisma.subscription.create({
       data: {
         tenantId: subscription.tenantId,
         planId: subscription.planId,
         status: 'active',
         currentPeriodStart: now,
-        currentPeriodEnd: addDays(now, 30),
+        currentPeriodEnd: cycleEnd,
+        billingCycle: normalizedBillingCycle,
         subscribedFeatures: subscription.plan.features as any, // Snapshot das features do plano
       },
       include: { plan: true },

@@ -1,10 +1,17 @@
 import { AlertTriangle, TrendingDown, Clock, Percent } from 'lucide-react'
+import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useOverdueMetrics, useOverdueTenants, useOverdueTrends } from '@/hooks/useOverdueMetrics'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OverdueTenantsTable } from '@/components/superadmin/OverdueTenantsTable'
 import { OverdueTrendChart } from '@/components/superadmin/OverdueTrendChart'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { usePersistedState } from '@/hooks/usePersistedState'
+import { useToast } from '@/components/ui/use-toast'
+import { RotateCcw, Save } from 'lucide-react'
 
 /**
  * OverdueDashboard
@@ -13,9 +20,60 @@ import { OverdueTrendChart } from '@/components/superadmin/OverdueTrendChart'
  * Exibe métricas consolidadas, tendências temporais e lista de tenants inadimplentes.
  */
 export function OverdueDashboard() {
+  const [searchParams] = useSearchParams()
+  const { toast } = useToast()
+  const [options, setOptions] = usePersistedState<{
+    sortBy: 'amount' | 'days' | 'count'
+    limit: number
+    months: number
+  }>('superadmin:overdue:options:v1', {
+    sortBy: 'amount',
+    limit: 50,
+    months: 6,
+  })
+  const [savedView, setSavedView] = usePersistedState<typeof options | null>(
+    'superadmin:overdue:saved-view:v1',
+    null,
+  )
+
+  useEffect(() => {
+    const sortBy = searchParams.get('sortBy')
+    const limit = searchParams.get('limit')
+    const months = searchParams.get('months')
+
+    if (!sortBy && !limit && !months) return
+
+    setOptions((prev) => ({
+      sortBy:
+        sortBy === 'amount' || sortBy === 'days' || sortBy === 'count'
+          ? sortBy
+          : prev.sortBy,
+      limit: limit ? Math.max(10, Number(limit)) : prev.limit,
+      months: months ? Math.max(3, Math.min(12, Number(months))) : prev.months,
+    }))
+  }, [searchParams, setOptions])
+
   const { data: metrics, isLoading: isLoadingMetrics, error: errorMetrics } = useOverdueMetrics()
-  const { data: tenants, isLoading: isLoadingTenants } = useOverdueTenants({ limit: 50, sortBy: 'amount' })
-  const { data: trends, isLoading: isLoadingTrends } = useOverdueTrends({ months: 6 })
+  const { data: tenants, isLoading: isLoadingTenants } = useOverdueTenants({
+    limit: options.limit,
+    sortBy: options.sortBy,
+  })
+  const { data: trends, isLoading: isLoadingTrends } = useOverdueTrends({ months: options.months })
+
+  const handleSaveView = () => {
+    setSavedView(options)
+    toast({ title: 'Visão salva', description: 'Configuração do dashboard salva.' })
+  }
+
+  const handleApplyView = () => {
+    if (!savedView) return
+    setOptions(savedView)
+    toast({ title: 'Visão aplicada', description: 'Configuração salva aplicada.' })
+  }
+
+  const handleResetView = () => {
+    setOptions({ sortBy: 'amount', limit: 50, months: 6 })
+  }
 
   // Loading state
   if (isLoadingMetrics) {
@@ -75,6 +133,76 @@ export function OverdueDashboard() {
         <h1 className="text-3xl font-bold text-slate-900">Dashboard de Inadimplência</h1>
         <p className="text-slate-400 mt-1">Monitore faturas vencidas e tendências de inadimplência</p>
       </div>
+
+      <Card className="bg-white border-slate-200">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex gap-3">
+              <Select
+                value={options.sortBy}
+                onValueChange={(value: 'amount' | 'days' | 'count') =>
+                  setOptions((prev) => ({ ...prev, sortBy: value }))
+                }
+              >
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Ordenação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amount">Ordenar por valor em atraso</SelectItem>
+                  <SelectItem value="days">Ordenar por dias de atraso</SelectItem>
+                  <SelectItem value="count">Ordenar por qtd. faturas</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={String(options.limit)}
+                onValueChange={(value) =>
+                  setOptions((prev) => ({ ...prev, limit: Number(value) }))
+                }
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Limite" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="20">Top 20</SelectItem>
+                  <SelectItem value="50">Top 50</SelectItem>
+                  <SelectItem value="100">Top 100</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={String(options.months)}
+                onValueChange={(value) =>
+                  setOptions((prev) => ({ ...prev, months: Number(value) }))
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Período tendência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">Tendência 3 meses</SelectItem>
+                  <SelectItem value="6">Tendência 6 meses</SelectItem>
+                  <SelectItem value="12">Tendência 12 meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleSaveView}>
+                <Save className="h-4 w-4 mr-2" />
+                Salvar visão
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleApplyView} disabled={!savedView}>
+                Aplicar visão
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleResetView}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Resetar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Cards de Resumo */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -163,7 +291,7 @@ export function OverdueDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-slate-900">
-              Evolução da Inadimplência - Últimos 6 Meses
+              Evolução da Inadimplência - Últimos {options.months} Meses
             </CardTitle>
           </CardHeader>
           <CardContent>

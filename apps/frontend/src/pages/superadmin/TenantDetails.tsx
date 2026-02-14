@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   Download,
   Lock,
   Zap,
+  History,
 } from 'lucide-react'
 import { EditTenantDialog } from '@/components/superadmin/EditTenantDialog'
 import { ChangePlanDialog } from '@/components/superadmin/ChangePlanDialog'
@@ -28,6 +29,7 @@ import {
   useSubscriptionHistory,
   useReactivateTenant,
   useTenantEffectiveLimits,
+  useCreateTenantBackup,
 } from '@/hooks/useSuperAdmin'
 import { useTenantInvoices } from '@/hooks/useInvoices'
 import type { Invoice } from '@/api/invoices.api'
@@ -39,6 +41,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/components/ui/use-toast'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -48,7 +51,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
-import { formatDateOnlySafe, isDateBefore, getCurrentDate } from '@/utils/dateHelpers'
+import {
+  formatDateOnlySafe,
+  formatDateTimeSafe,
+  isDateBefore,
+  getCurrentDate,
+  normalizeUTCDate,
+} from '@/utils/dateHelpers'
 
 // Helper para obter nome humanizado de uma feature
 const getFeatureName = (key: string): string => FEATURES_MAP[key] || key
@@ -65,9 +74,40 @@ const SUBSCRIPTION_STATUS: Record<string, { label: string; variant: 'default' | 
   trialing: { label: 'Trial', variant: 'secondary' },
   past_due: { label: 'Vencida', variant: 'destructive' },
   canceled: { label: 'Cancelada', variant: 'outline' },
-  cancelled: { label: 'Cancelada', variant: 'outline' },
   unpaid: { label: 'Não paga', variant: 'destructive' },
   incomplete: { label: 'Incompleta', variant: 'outline' },
+}
+
+type TimelineEventType = 'all' | 'tenant' | 'subscription' | 'billing' | 'compliance'
+
+interface TimelineEvent {
+  id: string
+  type: Exclude<TimelineEventType, 'all'>
+  happenedAt: string
+  title: string
+  description?: string
+}
+
+const TIMELINE_EVENT_STYLES: Record<
+  Exclude<TimelineEventType, 'all'>,
+  { label: string; className: string }
+> = {
+  tenant: {
+    label: 'Tenant',
+    className: 'bg-slate-100 text-slate-700 border-slate-200',
+  },
+  subscription: {
+    label: 'Assinatura',
+    className: 'bg-blue-100 text-blue-700 border-blue-200',
+  },
+  billing: {
+    label: 'Cobrança',
+    className: 'bg-orange-100 text-orange-700 border-orange-200',
+  },
+  compliance: {
+    label: 'Compliance',
+    className: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  },
 }
 
 export function TenantDetails() {
@@ -77,6 +117,7 @@ export function TenantDetails() {
 
   const [contractModalOpen, setContractModalOpen] = useState(false)
   const [privacyPolicyModalOpen, setPrivacyPolicyModalOpen] = useState(false)
+  const [timelineFilter, setTimelineFilter] = useState<TimelineEventType>('all')
 
   const { data: tenant, isLoading } = useTenant(id!)
   const { data: stats } = useTenantStats(id!)
@@ -87,6 +128,133 @@ export function TenantDetails() {
   const { data: effectiveLimits } = useTenantEffectiveLimits(id!, !!id)
 
   const reactivateMutation = useReactivateTenant()
+  const createTenantBackupMutation = useCreateTenantBackup()
+
+  const timelineEvents = useMemo(() => {
+    if (!tenant) return []
+
+    const events: TimelineEvent[] = [
+      {
+        id: `tenant-created-${tenant.id}`,
+        type: 'tenant',
+        happenedAt: tenant.createdAt,
+        title: 'Tenant criado',
+        description: `${tenant.name} entrou na plataforma.`,
+      },
+    ]
+
+    subscriptions?.forEach((sub) => {
+      events.push({
+        id: `subscription-created-${sub.id}`,
+        type: 'subscription',
+        happenedAt: sub.createdAt,
+        title: `Assinatura criada (${sub.plan.displayName})`,
+        description: `Status inicial: ${SUBSCRIPTION_STATUS[sub.status]?.label || sub.status}.`,
+      })
+
+      if (sub.currentPeriodStart) {
+        events.push({
+          id: `subscription-period-start-${sub.id}-${sub.currentPeriodStart}`,
+          type: 'subscription',
+          happenedAt: sub.currentPeriodStart,
+          title: `Início de período - ${sub.plan.displayName}`,
+        })
+      }
+
+      if (sub.currentPeriodEnd) {
+        events.push({
+          id: `subscription-period-end-${sub.id}-${sub.currentPeriodEnd}`,
+          type: 'subscription',
+          happenedAt: sub.currentPeriodEnd,
+          title: `Fim de período - ${sub.plan.displayName}`,
+        })
+      }
+
+      if (sub.trialEndDate) {
+        events.push({
+          id: `subscription-trial-end-${sub.id}-${sub.trialEndDate}`,
+          type: 'subscription',
+          happenedAt: sub.trialEndDate,
+          title: 'Término do trial',
+          description: `Plano do trial: ${sub.plan.displayName}.`,
+        })
+      }
+    })
+
+    invoicesData?.forEach((invoice) => {
+      events.push({
+        id: `invoice-created-${invoice.id}`,
+        type: 'billing',
+        happenedAt: invoice.createdAt,
+        title: `Fatura emitida (${invoice.invoiceNumber})`,
+        description: `Valor: ${new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(invoice.amount)} • Status: ${invoice.status}.`,
+      })
+
+      events.push({
+        id: `invoice-due-${invoice.id}`,
+        type: 'billing',
+        happenedAt: invoice.dueDate,
+        title: `Vencimento da fatura ${invoice.invoiceNumber}`,
+      })
+
+      if (invoice.paidAt) {
+        events.push({
+          id: `invoice-paid-${invoice.id}`,
+          type: 'billing',
+          happenedAt: invoice.paidAt,
+          title: `Fatura paga (${invoice.invoiceNumber})`,
+          description: `Pagamento confirmado para ${invoice.tenant.name}.`,
+        })
+      }
+    })
+
+    if (contractAcceptance) {
+      events.push({
+        id: `terms-acceptance-${contractAcceptance.id}`,
+        type: 'compliance',
+        happenedAt: contractAcceptance.acceptedAt,
+        title: `Termos de uso aceitos (${contractAcceptance.termsVersion})`,
+        description: contractAcceptance.user?.name
+          ? `Aceito por ${contractAcceptance.user.name}.`
+          : undefined,
+      })
+    }
+
+    if (privacyPolicyAcceptance) {
+      events.push({
+        id: `privacy-acceptance-${privacyPolicyAcceptance.id}`,
+        type: 'compliance',
+        happenedAt: privacyPolicyAcceptance.acceptedAt,
+        title: `Política de privacidade aceita (${privacyPolicyAcceptance.policyVersion})`,
+        description: privacyPolicyAcceptance.user?.name
+          ? `Aceito por ${privacyPolicyAcceptance.user.name}.`
+          : undefined,
+      })
+    }
+
+    return events
+      .filter((event) => Boolean(event.happenedAt))
+      .sort(
+        (a, b) =>
+          normalizeUTCDate(b.happenedAt).getTime() - normalizeUTCDate(a.happenedAt).getTime(),
+      )
+  }, [
+    contractAcceptance,
+    invoicesData,
+    privacyPolicyAcceptance,
+    subscriptions,
+    tenant?.createdAt,
+    tenant?.id,
+    tenant?.name,
+  ])
+
+  const filteredTimelineEvents = useMemo(() => {
+    if (timelineFilter === 'all') return timelineEvents
+    return timelineEvents.filter((event) => event.type === timelineFilter)
+  }, [timelineEvents, timelineFilter])
 
   if (isLoading) {
     return (
@@ -137,6 +305,23 @@ export function TenantDetails() {
     }
   }
 
+  const handleCreateTenantBackup = async () => {
+    try {
+      const response = await createTenantBackupMutation.mutateAsync(tenant.id)
+      toast({
+        title: 'Backup do tenant gerado',
+        description: response.message,
+      })
+    } catch (err: unknown) {
+      const errorResponse = (err as { response?: { data?: { message?: string } } }).response
+      toast({
+        title: 'Falha ao gerar backup',
+        description: errorResponse?.data?.message || 'Não foi possível gerar o backup do tenant',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-full">
       {/* Header */}
@@ -171,6 +356,21 @@ export function TenantDetails() {
 
           <div className="flex gap-2 flex-wrap">
             <EditTenantDialog tenant={tenant} />
+            <Button
+              variant="outline"
+              onClick={handleCreateTenantBackup}
+              disabled={createTenantBackupMutation.isPending}
+              className="bg-white border-slate-200 text-slate-900 hover:bg-slate-50"
+            >
+              {createTenantBackupMutation.isPending ? (
+                <>Gerando backup...</>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Backup do Tenant
+                </>
+              )}
+            </Button>
             <ChangePlanDialog tenant={tenant} />
             {activeSub && (
               <>
@@ -487,6 +687,60 @@ export function TenantDetails() {
             <Calendar className="h-4 w-4" />
             Criado em {new Date(tenant.createdAt).toLocaleDateString('pt-BR')}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Timeline Unificada */}
+      <Card className="bg-white border-slate-200">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-slate-900 flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Timeline do Tenant
+          </CardTitle>
+          <Select
+            value={timelineFilter}
+            onValueChange={(value: TimelineEventType) => setTimelineFilter(value)}
+          >
+            <SelectTrigger className="w-full sm:w-[220px]">
+              <SelectValue placeholder="Filtrar eventos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os eventos</SelectItem>
+              <SelectItem value="tenant">Tenant</SelectItem>
+              <SelectItem value="subscription">Assinatura</SelectItem>
+              <SelectItem value="billing">Cobrança</SelectItem>
+              <SelectItem value="compliance">Compliance</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
+          {filteredTimelineEvents.length > 0 ? (
+            <div className="space-y-3">
+              {filteredTimelineEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-md border border-slate-200 bg-slate-50 p-3"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge className={TIMELINE_EVENT_STYLES[event.type].className}>
+                        {TIMELINE_EVENT_STYLES[event.type].label}
+                      </Badge>
+                      <p className="text-sm font-medium text-slate-900">{event.title}</p>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {formatDateTimeSafe(event.happenedAt)}
+                    </p>
+                  </div>
+                  {event.description && (
+                    <p className="mt-2 text-sm text-slate-600">{event.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-slate-500 py-6">Nenhum evento encontrado para o filtro selecionado.</p>
+          )}
         </CardContent>
       </Card>
 

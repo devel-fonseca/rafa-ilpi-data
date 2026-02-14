@@ -51,6 +51,11 @@ export function CreateInvoiceDialog({
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
+  const [errors, setErrors] = useState<{
+    tenant?: string
+    amount?: string
+    subscription?: string
+  }>({})
 
   const { data: tenantsData } = useTenants({ limit: 100 })
   const createMutation = useCreateInvoice()
@@ -75,12 +80,18 @@ export function CreateInvoiceDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedTenantId || !selectedSubscriptionId || !amount) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha tenant, subscription e valor.',
-        variant: 'destructive',
-      })
+    const newErrors: { tenant?: string; amount?: string; subscription?: string } = {}
+
+    if (!selectedTenantId) newErrors.tenant = 'Selecione um tenant.'
+    if (!selectedSubscriptionId) {
+      newErrors.subscription = 'Tenant selecionado não possui assinatura ativa.'
+    }
+    if (!amount || Number(amount) <= 0) {
+      newErrors.amount = 'Informe um valor maior que zero.'
+    }
+
+    setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) {
       return
     }
 
@@ -102,6 +113,7 @@ export function CreateInvoiceDialog({
       setSelectedSubscriptionId('')
       setAmount('')
       setDescription('')
+      setErrors({})
       onOpenChange(false)
     } catch (error: unknown) {
       const errorResponse = (error as { response?: { data?: { message?: string } } }).response;
@@ -114,6 +126,13 @@ export function CreateInvoiceDialog({
       })
     }
   }
+
+  const canSubmit =
+    !!selectedTenantId &&
+    !!selectedSubscriptionId &&
+    !!amount &&
+    Number(amount) > 0 &&
+    !createMutation.isPending
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -134,7 +153,13 @@ export function CreateInvoiceDialog({
               <Label htmlFor="tenant" className="text-slate-600">
                 Tenant *
               </Label>
-              <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
+              <Select
+                value={selectedTenantId}
+                onValueChange={(value) => {
+                  setSelectedTenantId(value)
+                  setErrors((prev) => ({ ...prev, tenant: undefined, subscription: undefined }))
+                }}
+              >
                 <SelectTrigger
                   id="tenant"
                   className="bg-white border-slate-200 text-slate-900"
@@ -153,6 +178,7 @@ export function CreateInvoiceDialog({
                     ))}
                 </SelectContent>
               </Select>
+              {errors.tenant && <p className="text-sm text-danger">{errors.tenant}</p>}
             </div>
 
             {/* Subscription Info (read-only) */}
@@ -192,6 +218,9 @@ export function CreateInvoiceDialog({
                 </div>
               </div>
             )}
+            {!activeSubscription && selectedTenantId && (
+              <p className="text-sm text-danger">{errors.subscription || 'Nenhuma assinatura ativa encontrada para este tenant.'}</p>
+            )}
 
             {/* Amount */}
             <div className="space-y-2">
@@ -204,10 +233,14 @@ export function CreateInvoiceDialog({
                 step="0.01"
                 min="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  setAmount(e.target.value)
+                  setErrors((prev) => ({ ...prev, amount: undefined }))
+                }}
                 placeholder="299.90"
                 className="bg-white border-slate-200 text-slate-900"
               />
+              {errors.amount && <p className="text-sm text-danger">{errors.amount}</p>}
             </div>
 
             {/* Description */}
@@ -246,7 +279,7 @@ export function CreateInvoiceDialog({
             </Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending || !selectedTenantId || !amount}
+              disabled={!canSubmit}
               className="bg-success/60 hover:bg-success/70"
             >
               {createMutation.isPending ? (
@@ -257,7 +290,7 @@ export function CreateInvoiceDialog({
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Gerar Fatura
+                  Gerar Fatura no Asaas
                 </>
               )}
             </Button>

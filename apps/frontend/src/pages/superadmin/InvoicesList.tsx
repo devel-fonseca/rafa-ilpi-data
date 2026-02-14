@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Receipt,
   Search,
@@ -8,6 +8,10 @@ import {
   Eye,
   ExternalLink,
   Plus,
+  LayoutList,
+  Rows3,
+  Save,
+  RotateCcw,
 } from 'lucide-react'
 import { useInvoices, type InvoiceStatus } from '@/hooks/useInvoices'
 import type { Invoice } from '@/api/invoices.api'
@@ -40,6 +44,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { usePersistedState } from '@/hooks/usePersistedState'
+import { useToast } from '@/components/ui/use-toast'
 
 const STATUS_LABELS: Record<InvoiceStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   DRAFT: { label: 'Rascunho', variant: 'outline' },
@@ -56,7 +62,17 @@ interface InvoiceFilters {
 }
 
 export function InvoicesList() {
-  const [filters, setFilters] = useState<InvoiceFilters>({})
+  const [searchParams] = useSearchParams()
+  const { toast } = useToast()
+  const [filters, setFilters] = usePersistedState<InvoiceFilters>('superadmin:invoices:filters:v1', {})
+  const [savedView, setSavedView] = usePersistedState<InvoiceFilters | null>(
+    'superadmin:invoices:saved-view:v1',
+    null,
+  )
+  const [density, setDensity] = usePersistedState<'comfortable' | 'compact'>(
+    'superadmin:invoices:density:v1',
+    'comfortable',
+  )
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
   const { data, isLoading, isError, error } = useInvoices({
@@ -64,12 +80,60 @@ export function InvoicesList() {
     limit: 50,
   })
 
+  useEffect(() => {
+    const status = searchParams.get('status')
+    const search = searchParams.get('search')
+    const onlyOverdue = searchParams.get('onlyOverdue')
+
+    if (!status && !search && !onlyOverdue) return
+
+    setFilters((prev) => ({
+      ...prev,
+      status:
+        status === null
+          ? prev.status
+          : status === 'ALL'
+            ? undefined
+            : (status as InvoiceStatus),
+      search: search || prev.search,
+      onlyOverdue:
+        onlyOverdue === null
+          ? prev.onlyOverdue
+          : onlyOverdue === 'true' || onlyOverdue === '1',
+    }))
+  }, [searchParams, setFilters])
+
   const handleStatusFilter = (status: string) => {
     setFilters((prev) => ({
       ...prev,
       status: status === 'ALL' ? undefined : (status as InvoiceStatus),
     }))
   }
+
+  const handleSaveView = () => {
+    setSavedView(filters)
+    toast({
+      title: 'Visão salva',
+      description: 'Filtros atuais de faturas foram salvos.',
+    })
+  }
+
+  const handleApplyView = () => {
+    if (!savedView) return
+    setFilters(savedView)
+    toast({
+      title: 'Visão aplicada',
+      description: 'Filtros salvos foram aplicados.',
+    })
+  }
+
+  const handleResetView = () => {
+    setFilters({})
+  }
+
+  const rowClassName = 'border-slate-200 hover:bg-slate-100/30'
+  const cellClassName = density === 'compact' ? 'px-2 py-1.5' : 'px-4 py-4'
+  const tableClassName = density === 'compact' ? 'text-xs' : 'text-sm'
 
   // Filtrar no frontend por search e overdue
   const filteredInvoices = data?.data?.filter((invoice: Invoice) => {
@@ -173,6 +237,56 @@ export function InvoicesList() {
               </Label>
             </div>
           </div>
+
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSaveView}
+                className="border-slate-200"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar visão
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleApplyView}
+                disabled={!savedView}
+                className="border-slate-200"
+              >
+                Aplicar visão
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={handleResetView}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Resetar
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-1 rounded-md border border-slate-200 p-1">
+              <Button
+                type="button"
+                variant={density === 'comfortable' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDensity('comfortable')}
+              >
+                <LayoutList className="h-4 w-4 mr-1" />
+                Confortável
+              </Button>
+              <Button
+                type="button"
+                variant={density === 'compact' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDensity('compact')}
+              >
+                <Rows3 className="h-4 w-4 mr-1" />
+                Compacto
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -199,7 +313,7 @@ export function InvoicesList() {
 
           {filteredInvoices && filteredInvoices.length > 0 && (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className={tableClassName}>
                 <TableHeader>
                   <TableRow className="border-slate-200 hover:bg-slate-100/50">
                     <TableHead className="text-slate-400 min-w-[140px]">Número</TableHead>
@@ -224,7 +338,8 @@ export function InvoicesList() {
 
                   const daysOverdue = isOverdue
                     ? Math.floor(
-                        (new Date(getCurrentDate()).getTime() - new Date(extractDateOnly(invoice.dueDate)).getTime()) /
+                        (Date.parse(`${getCurrentDate()}T00:00:00`) -
+                          Date.parse(`${extractDateOnly(invoice.dueDate)}T00:00:00`)) /
                           (1000 * 60 * 60 * 24),
                       )
                     : 0
@@ -234,29 +349,31 @@ export function InvoicesList() {
                   return (
                     <TableRow
                       key={invoice.id}
-                      className="border-slate-200 hover:bg-slate-100/30"
+                      className={rowClassName}
                     >
                       {/* Número */}
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <div className="font-mono text-xs text-slate-900">
                           {invoice.invoiceNumber}
                         </div>
                       </TableCell>
 
                       {/* Tenant */}
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <div>
-                          <div className="font-medium text-sm text-slate-900 truncate max-w-[180px]">
+                          <div className={`font-medium text-slate-900 truncate max-w-[180px] ${density === 'compact' ? 'text-xs' : 'text-sm'}`}>
                             {invoice.tenant.name}
                           </div>
-                          <div className="text-xs text-slate-500 truncate max-w-[180px]">
-                            {invoice.tenant.email}
-                          </div>
+                          {density === 'comfortable' && (
+                            <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                              {invoice.tenant.email}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 
                       {/* Status / Atraso */}
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <div className="flex flex-col gap-1">
                           <Badge variant={statusInfo.variant} className="w-fit text-xs">
                             {statusInfo.label}
@@ -277,40 +394,42 @@ export function InvoicesList() {
                       </TableCell>
 
                       {/* Plano */}
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <div className="flex flex-col gap-1">
-                          <span className="text-sm text-slate-900">
+                          <span className={density === 'compact' ? 'text-xs text-slate-900' : 'text-sm text-slate-900'}>
                             {invoice.subscription.plan.displayName}
                           </span>
-                          <div className="flex gap-1">
-                            {invoice.billingCycle === 'ANNUAL' && (
-                              <span className="text-xs text-success">Anual</span>
-                            )}
-                            {invoice.discountPercent && (
-                              <span className="text-xs text-success">
-                                -{invoice.discountPercent}%
-                              </span>
-                            )}
-                          </div>
+                          {density === 'comfortable' && (
+                            <div className="flex gap-1">
+                              {invoice.billingCycle === 'ANNUAL' && (
+                                <span className="text-xs text-success">Anual</span>
+                              )}
+                              {invoice.discountPercent && (
+                                <span className="text-xs text-success">
+                                  -{invoice.discountPercent}%
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 
                       {/* Valor */}
-                      <TableCell className="text-right">
+                      <TableCell className={`${cellClassName} text-right`}>
                         <span className="text-slate-900 font-medium text-sm">
                           R$ {Number(invoice.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                       </TableCell>
 
                       {/* Vencimento */}
-                      <TableCell>
+                      <TableCell className={cellClassName}>
                         <span className="text-sm text-slate-700">
                           {formatDateOnlySafe(invoice.dueDate)}
                         </span>
                       </TableCell>
 
                       {/* Ações */}
-                      <TableCell className="text-right">
+                      <TableCell className={`${cellClassName} text-right`}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
