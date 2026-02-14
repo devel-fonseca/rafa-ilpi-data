@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Prisma } from '@prisma/client'
 import { Logger } from '@nestjs/common'
 import { Logger as WinstonLogger } from 'winston'

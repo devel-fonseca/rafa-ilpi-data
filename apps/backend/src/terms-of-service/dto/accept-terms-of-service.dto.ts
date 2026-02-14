@@ -15,6 +15,15 @@ export class PrepareTermsAcceptanceDto {
   termsId: string;
 
   @ApiProperty({
+    example: 'uuid-do-plano',
+    description:
+      'ID do plano escolhido no onboarding. Vincula juridicamente o aceite ao plano selecionado.',
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  planId: string;
+
+  @ApiProperty({
     example: '192.168.1.1',
     description: 'Endereço IP do cliente',
   })

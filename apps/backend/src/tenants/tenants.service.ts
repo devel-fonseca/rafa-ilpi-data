@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
+  HttpException,
   Logger,
   InternalServerErrorException,
   ForbiddenException,
@@ -60,10 +61,16 @@ export class TenantsService {
       lgpdIsDataController,
       lgpdHasLegalBasis,
       lgpdAcknowledgesResponsibility,
-      privacyPolicyAccepted: _privacyPolicyAccepted,
+      privacyPolicyAccepted,
       billingCycle,
       paymentMethod,
     } = createTenantDto;
+
+    if (!privacyPolicyAccepted) {
+      throw new BadRequestException(
+        'É obrigatório aceitar a Política de Privacidade para concluir o cadastro.',
+      );
+    }
 
     // Decodificar e validar token de aceite do termo de uso
     let acceptanceData: Record<string, unknown>;
@@ -72,6 +79,13 @@ export class TenantsService {
     } catch (_error) {
       throw new BadRequestException(
         'Token de aceite do termo de uso inválido ou expirado',
+      );
+    }
+
+    const acceptedPlanId = acceptanceData.planId;
+    if (typeof acceptedPlanId !== 'string' || acceptedPlanId !== planId) {
+      throw new BadRequestException(
+        'Token de aceite inválido para o plano selecionado. Gere o aceite novamente e tente de novo.',
       );
     }
 
@@ -184,7 +198,7 @@ export class TenantsService {
             currentPeriodStart: now,
             currentPeriodEnd: trialEndDate,
             // Snapshot das features no momento da assinatura
-            subscribedFeatures: plan.features as any,
+            subscribedFeatures: plan.features as Prisma.InputJsonValue,
             // Novos campos de billing
             billingCycle,
             preferredPaymentMethod: paymentMethod,
@@ -355,6 +369,9 @@ export class TenantsService {
       };
     } catch (error) {
       this.logger.error('Erro ao criar tenant:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Erro ao criar ILPI');
     }
   }

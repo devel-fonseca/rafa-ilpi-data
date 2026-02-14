@@ -355,6 +355,7 @@ export class TermsOfServiceService {
     const token = this.jwtService.sign(
       {
         termsId: terms.id,
+        planId: dto.planId,
         termsVersion: terms.version,
         termsHash: renderedHash, // Hash do conteúdo renderizado
         termsContent: renderedContent, // Conteúdo com variáveis substituídas

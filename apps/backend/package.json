@@ -29,7 +29,12 @@
     "tenants:sync-schemas": "ts-node scripts/apply-tenant-migrations.ts",
     "tenants:sync-single": "ts-node scripts/apply-tenant-migrations.ts --schema",
     "financial:backfill-ledger": "ts-node scripts/backfill-financial-ledger.ts",
-    "financial:rebuild-ledger-account": "ts-node scripts/rebuild-financial-ledger-account.ts"
+    "financial:rebuild-ledger-account": "ts-node scripts/rebuild-financial-ledger-account.ts",
+    "backup:full:create": "ts-node scripts/superadmin-backup-full.ts create",
+    "backup:full:list": "ts-node scripts/superadmin-backup-full.ts list",
+    "backup:tenant:create": "ts-node scripts/superadmin-backup-full.ts create-tenant",
+    "backup:full:restore": "ts-node scripts/superadmin-backup-full.ts restore-full",
+    "backup:tenant:restore": "ts-node scripts/superadmin-backup-full.ts restore-tenant"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.930.0",
