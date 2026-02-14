@@ -20,8 +20,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useScrollToTop } from '@/hooks/useScrollToTop'
-import { getMyProfile } from '@/services/api'
 import { getSignedFileUrl } from '@/services/upload'
+import { useMyProfile } from '@/hooks/queries/useUserProfile'
 import { usePreferences } from '@/contexts/PreferencesContext'
 import { toast } from 'sonner'
 import { CookieConsent } from '@/components/common/CookieConsent'
@@ -38,6 +38,7 @@ export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [userPosition, setUserPosition] = useState<PositionCode | null>(null)
+  const { data: profile } = useMyProfile()
   const { user, logout } = useAuthStore()
   const { preferences, updatePreference } = usePreferences()
   const navigate = useNavigate()
@@ -61,27 +62,32 @@ export function DashboardLayout() {
   const canViewReports = hasPermission(PermissionType.VIEW_REPORTS)
   const canViewFinancialOperations = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
 
-  // Carregar foto do perfil e cargo do usuário
+  // Carregar/atualizar foto do perfil e cargo do usuário
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        const profile = await getMyProfile()
+        const profilePhoto = profile?.profilePhoto || user?.profile?.profilePhoto || null
+        const positionCode = profile?.positionCode || user?.profile?.positionCode || null
 
         // Carregar foto de perfil
-        if (profile.profilePhoto) {
+        if (profilePhoto) {
           // Se é URL completa, usa direto
-          if (profile.profilePhoto.startsWith('http')) {
-            setAvatarUrl(profile.profilePhoto)
+          if (profilePhoto.startsWith('http')) {
+            setAvatarUrl(profilePhoto)
           } else {
             // Se é caminho do MinIO, assina a URL
-            const signedUrl = await getSignedFileUrl(profile.profilePhoto)
+            const signedUrl = await getSignedFileUrl(profilePhoto)
             setAvatarUrl(signedUrl)
           }
+        } else {
+          setAvatarUrl(null)
         }
 
         // Carregar cargo
-        if (profile.positionCode) {
-          setUserPosition(profile.positionCode as PositionCode)
+        if (positionCode) {
+          setUserPosition(positionCode as PositionCode)
+        } else {
+          setUserPosition(null)
         }
       } catch (error) {
         console.error('Erro ao carregar perfil:', error)
@@ -89,7 +95,7 @@ export function DashboardLayout() {
     }
 
     loadUserProfile()
-  }, [])
+  }, [profile, user?.profile?.profilePhoto, user?.profile?.positionCode])
 
   const handleLogout = async () => {
     try {

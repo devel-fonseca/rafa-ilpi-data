@@ -114,6 +114,21 @@ export function useUploadAvatar() {
 
       // Atualizar cache imediatamente (optimistic update)
       queryClient.setQueryData(profileKeys.me(), updatedProfile)
+
+      // Atualizar também auth store para refletir avatar no header/dropdown imediatamente
+      useAuthStore.setState((state) => {
+        if (!state.user) return state
+        return {
+          ...state,
+          user: {
+            ...state.user,
+            profile: {
+              ...(state.user.profile || {}),
+              profilePhoto: updatedProfile?.profilePhoto ?? null,
+            },
+          },
+        }
+      })
     },
   })
 }
@@ -136,6 +151,21 @@ export function useRemoveAvatar() {
 
       // Atualizar cache imediatamente (optimistic update)
       queryClient.setQueryData(profileKeys.me(), updatedProfile)
+
+      // Atualizar também auth store para refletir remoção no header/dropdown imediatamente
+      useAuthStore.setState((state) => {
+        if (!state.user) return state
+        return {
+          ...state,
+          user: {
+            ...state.user,
+            profile: {
+              ...(state.user.profile || {}),
+              profilePhoto: null,
+            },
+          },
+        }
+      })
     },
   })
 }
