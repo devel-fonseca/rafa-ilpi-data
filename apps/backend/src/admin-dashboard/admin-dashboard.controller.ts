@@ -6,6 +6,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AdminDashboardService } from './admin-dashboard.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   DailyComplianceResponseDto,
   ResidentsGrowthResponseDto,
@@ -26,6 +28,23 @@ import { AuditEntity } from '../audit/audit.decorator';
 @AuditEntity('ADMIN_DASHBOARD')
 export class AdminDashboardController {
   constructor(private readonly adminDashboardService: AdminDashboardService) {}
+
+  @Get('overview')
+  @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  @ApiOperation({
+    summary: 'Obter visão agregada do dashboard administrativo',
+    description:
+      'Retorna em uma única chamada os dados de resumo diário, gráficos e estatísticas de rodapé para reduzir múltiplas queries do frontend.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Visão agregada retornada com sucesso',
+  })
+  @ApiResponse({ status: 401, description: 'Não autorizado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão para visualizar dashboard administrativo' })
+  async getOverview(@CurrentUser() user: JwtPayload) {
+    return this.adminDashboardService.getOverview(user.id);
+  }
 
   @Get('daily-summary')
   @RequirePermissions(PermissionType.VIEW_COMPLIANCE_DASHBOARD)

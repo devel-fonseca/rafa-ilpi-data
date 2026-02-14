@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable } from '@nestjs/common';
+import { addDays, endOfDay, startOfDay } from 'date-fns';
+import { AlertStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { getDayRangeInTz, getCurrentDateInTz } from '../utils/date.helpers';
@@ -24,20 +26,202 @@ export class AdminDashboardService {
     private readonly residentScheduleTasksService: ResidentScheduleTasksService,
   ) {}
 
-  async getDailySummary(): Promise<DailyComplianceResponseDto> {
-
-    // Buscar timezone do tenant (tabela SHARED)
+  private async getTenantTimezone(): Promise<string> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: this.tenantContext.tenantId },
       select: { timezone: true },
-    })
-    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+    });
+    return tenant?.timezone || 'America/Sao_Paulo';
+  }
+
+  private async getPendingActivities(
+    userId: string,
+    today: Date,
+    todayStr: string,
+  ) {
+    const [expiringPrescriptions, recordsStats, activeVitalAlerts, unreadCount] =
+      await Promise.all([
+        this.tenantContext.client.prescription.findMany({
+          where: {
+            isActive: true,
+            deletedAt: null,
+            validUntil: {
+              gte: startOfDay(today),
+              lte: endOfDay(addDays(today, 2)),
+            },
+          },
+          orderBy: { validUntil: 'asc' },
+          take: 3,
+          include: {
+            resident: {
+              select: { id: true, fullName: true },
+            },
+            medications: {
+              select: { name: true },
+              take: 1,
+            },
+          },
+        }),
+        this.residentScheduleTasksService.getScheduledRecordsStats(todayStr),
+        this.tenantContext.client.vitalSignAlert.findMany({
+          where: {
+            status: {
+              in: [
+                AlertStatus.ACTIVE,
+                AlertStatus.IN_TREATMENT,
+                AlertStatus.MONITORING,
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+          include: {
+            resident: {
+              select: { id: true, fullName: true },
+            },
+          },
+        }),
+        this.tenantContext.client.notification.count({
+          where: {
+            reads: {
+              none: { userId },
+            },
+            AND: [
+              {
+                OR: [{ expiresAt: { gt: new Date() } }, { expiresAt: null }],
+              },
+              {
+                OR: [
+                  { recipients: { none: {} } },
+                  { recipients: { some: { userId } } },
+                ],
+              },
+            ],
+          },
+        }),
+      ]);
+
+    const pendingItems: Array<{
+      id: string;
+      type:
+        | 'PRESCRIPTION_EXPIRING'
+        | 'DAILY_RECORD_MISSING'
+        | 'NOTIFICATION_UNREAD'
+        | 'VITAL_SIGNS_DUE';
+      title: string;
+      description: string;
+      priority: 'HIGH' | 'MEDIUM' | 'LOW';
+      dueDate?: string;
+      relatedEntity?: { id: string; name: string };
+    }> = [];
+
+    if (expiringPrescriptions.length > 0) {
+      const nextPrescription = expiringPrescriptions[0];
+      const medName = nextPrescription.medications[0]?.name || 'Prescrição';
+      pendingItems.push({
+        id: `prescription-expiring-${todayStr}`,
+        type: 'PRESCRIPTION_EXPIRING',
+        title:
+          expiringPrescriptions.length === 1
+            ? 'Prescrição expirando em breve'
+            : `${expiringPrescriptions.length} prescrições expirando em breve`,
+        description:
+          expiringPrescriptions.length === 1
+            ? `${medName} - Residente: ${nextPrescription.resident.fullName}`
+            : `${expiringPrescriptions.length} prescrições vencem nos próximos 2 dias`,
+        priority: 'HIGH',
+        dueDate: nextPrescription.validUntil?.toISOString(),
+        relatedEntity: {
+          id: nextPrescription.resident.id,
+          name: nextPrescription.resident.fullName,
+        },
+      });
+    }
+
+    if (recordsStats.pending > 0) {
+      pendingItems.push({
+        id: `daily-records-pending-${todayStr}`,
+        type: 'DAILY_RECORD_MISSING',
+        title: 'Registros diários pendentes',
+        description: `${recordsStats.pending} registros pendentes de rotinas obrigatórias hoje`,
+        priority: recordsStats.pending > 10 ? 'HIGH' : 'MEDIUM',
+      });
+    }
+
+    if (activeVitalAlerts.length > 0) {
+      const latestAlert = activeVitalAlerts[0];
+      pendingItems.push({
+        id: `vital-sign-alerts-${todayStr}`,
+        type: 'VITAL_SIGNS_DUE',
+        title:
+          activeVitalAlerts.length === 1
+            ? 'Sinais vitais atrasados'
+            : `${activeVitalAlerts.length} alertas de sinais vitais`,
+        description:
+          activeVitalAlerts.length === 1
+            ? `${latestAlert.title} - ${latestAlert.resident.fullName}`
+            : `${activeVitalAlerts.length} alertas clínicos aguardando acompanhamento`,
+        priority: 'MEDIUM',
+        dueDate: latestAlert.createdAt.toISOString(),
+        relatedEntity: {
+          id: latestAlert.resident.id,
+          name: latestAlert.resident.fullName,
+        },
+      });
+    }
+
+    if (unreadCount > 0) {
+      pendingItems.push({
+        id: `notifications-unread-${todayStr}`,
+        type: 'NOTIFICATION_UNREAD',
+        title: `${unreadCount} notificações não lidas`,
+        description: 'Atualizações do sistema e lembretes',
+        priority: 'LOW',
+      });
+    }
+
+    const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 } as const;
+
+    return pendingItems
+      .sort((a, b) => {
+        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        return aDate - bDate;
+      })
+      .slice(0, 10);
+  }
+
+  private async getRecentActivities(limit = 50) {
+    return this.tenantContext.client.auditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        tenantId: true,
+        entityType: true,
+        entityId: true,
+        action: true,
+        userId: true,
+        userName: true,
+        details: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getDailySummary(timezone?: string): Promise<DailyComplianceResponseDto> {
+    const resolvedTimezone = timezone || await this.getTenantTimezone();
 
     // Obter data HOJE no timezone do tenant (timezone-safe)
-    const todayStr = getCurrentDateInTz(timezone)
+    const todayStr = getCurrentDateInTz(resolvedTimezone)
 
     // Obter range do dia ATUAL (00:00 até 23:59:59.999) no timezone do tenant
-    const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone)
+    const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, resolvedTimezone)
 
     // 1. Contar residentes ativos (total)
     const activeResidents = await this.tenantContext.client.resident.count({
@@ -226,11 +410,14 @@ export class AdminDashboardService {
    * Formato: [{ day: '2026-01-21', scheduled: 45, administered: 48 }, ...]
    */
   async getMedicationsHistory(): Promise<MedicationsHistoryResponseDto> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: this.tenantContext.tenantId },
-      select: { timezone: true },
-    })
-    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+    const timezone = await this.getTenantTimezone();
+
+    return this.getMedicationsHistoryWithTimezone(timezone);
+  }
+
+  async getMedicationsHistoryWithTimezone(
+    timezone: string,
+  ): Promise<MedicationsHistoryResponseDto> {
 
     const daysData: DailyMedicationStatsDto[] = []
     const todayStr = getCurrentDateInTz(timezone) // Retorna string 'YYYY-MM-DD'
@@ -311,11 +498,14 @@ export class AdminDashboardService {
    * Formato: [{ day: '2026-01-21', expected: 35, completed: 32 }, ...]
    */
   async getMandatoryRecordsHistory(): Promise<MandatoryRecordsHistoryResponseDto> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: this.tenantContext.tenantId },
-      select: { timezone: true },
-    })
-    const timezone = tenant?.timezone || 'America/Sao_Paulo'
+    const timezone = await this.getTenantTimezone();
+
+    return this.getMandatoryRecordsHistoryWithTimezone(timezone);
+  }
+
+  async getMandatoryRecordsHistoryWithTimezone(
+    timezone: string,
+  ): Promise<MandatoryRecordsHistoryResponseDto> {
 
     const daysData: DailyRecordStatsDto[] = []
     const todayStr = getCurrentDateInTz(timezone)
@@ -424,5 +614,69 @@ export class AdminDashboardService {
       capacityDeclared: (tenantData as any)?.capacityDeclared ?? null,
       capacityLicensed: (tenantData as any)?.capacityLicensed ?? null,
     }
+  }
+
+  async getOverview(userId: string) {
+    const timezone = await this.getTenantTimezone();
+    const todayStr = getCurrentDateInTz(timezone);
+    const { start: today, end: tomorrow } = getDayRangeInTz(todayStr, timezone);
+
+    const [
+      dailySummary,
+      residentsGrowth,
+      medicationsHistory,
+      scheduledRecordsHistory,
+      occupancyRate,
+      totalResidents,
+      totalUsers,
+      totalPrescriptions,
+      totalRecordsToday,
+      pendingActivities,
+      recentActivities,
+    ] = await Promise.all([
+      this.getDailySummary(timezone),
+      this.getResidentsGrowth(),
+      this.getMedicationsHistoryWithTimezone(timezone),
+      this.getMandatoryRecordsHistoryWithTimezone(timezone),
+      this.getOccupancyRate(),
+      this.tenantContext.client.resident.count({
+        where: { deletedAt: null },
+      }),
+      this.tenantContext.client.user.count({
+        where: { deletedAt: null, isActive: true },
+      }),
+      this.tenantContext.client.prescription.count({
+        where: { deletedAt: null, isActive: true },
+      }),
+      this.tenantContext.client.dailyRecord.count({
+        where: {
+          deletedAt: null,
+          date: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      }),
+      this.getPendingActivities(userId, today, todayStr),
+      this.getRecentActivities(50),
+    ]);
+
+    return {
+      timezone,
+      generatedAt: new Date().toISOString(),
+      dailySummary,
+      residentsGrowth: residentsGrowth.data,
+      medicationsHistory: medicationsHistory.data,
+      scheduledRecordsHistory: scheduledRecordsHistory.data,
+      occupancyRate,
+      pendingActivities,
+      recentActivities,
+      footerStats: {
+        totalResidents,
+        totalUsers,
+        totalRecordsToday,
+        totalPrescriptions,
+      },
+    };
   }
 }
