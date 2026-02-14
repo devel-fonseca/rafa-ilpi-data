@@ -19,37 +19,37 @@ DROP TYPE "PermissionType_old";
 COMMIT;
 
 -- DropForeignKey
-ALTER TABLE "audit_logs" DROP CONSTRAINT "audit_logs_tenant_id_fkey";
+ALTER TABLE "audit_logs" DROP CONSTRAINT IF EXISTS "audit_logs_tenant_id_fkey";
 
 -- DropForeignKey
-ALTER TABLE "bed_status_history" DROP CONSTRAINT "bed_status_history_changedBy_fkey";
+ALTER TABLE "bed_status_history" DROP CONSTRAINT IF EXISTS "bed_status_history_changedBy_fkey";
 
 -- DropForeignKey
-ALTER TABLE "bed_status_history" DROP CONSTRAINT "bed_status_history_tenantId_fkey";
+ALTER TABLE "bed_status_history" DROP CONSTRAINT IF EXISTS "bed_status_history_tenantId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "financial_transactions" DROP CONSTRAINT "financial_transactions_residentContractId_fkey";
+ALTER TABLE "financial_transactions" DROP CONSTRAINT IF EXISTS "financial_transactions_residentContractId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "financial_transactions" DROP CONSTRAINT "financial_transactions_residentId_fkey";
+ALTER TABLE "financial_transactions" DROP CONSTRAINT IF EXISTS "financial_transactions_residentId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "incident_monthly_indicators" DROP CONSTRAINT "incident_monthly_indicators_calculatedBy_fkey";
+ALTER TABLE "incident_monthly_indicators" DROP CONSTRAINT IF EXISTS "incident_monthly_indicators_calculatedBy_fkey";
 
 -- DropForeignKey
-ALTER TABLE "incident_monthly_indicators" DROP CONSTRAINT "incident_monthly_indicators_tenantId_fkey";
+ALTER TABLE "incident_monthly_indicators" DROP CONSTRAINT IF EXISTS "incident_monthly_indicators_tenantId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "medications" DROP CONSTRAINT "medications_updatedBy_fkey";
+ALTER TABLE "medications" DROP CONSTRAINT IF EXISTS "medications_updatedBy_fkey";
 
 -- DropForeignKey
-ALTER TABLE "rooms" DROP CONSTRAINT "rooms_tenantId_fkey";
+ALTER TABLE "rooms" DROP CONSTRAINT IF EXISTS "rooms_tenantId_fkey";
 
 -- DropForeignKey
-ALTER TABLE "sos_medications" DROP CONSTRAINT "sos_medications_updatedBy_fkey";
+ALTER TABLE "sos_medications" DROP CONSTRAINT IF EXISTS "sos_medications_updatedBy_fkey";
 
 -- DropIndex
-DROP INDEX "audit_logs_tenant_id_created_at_idx";
+DROP INDEX IF EXISTS "audit_logs_tenant_id_created_at_idx";
 
 -- AlterTable
 ALTER TABLE "bed_status_history" ALTER COLUMN "id" DROP DEFAULT;
@@ -111,7 +111,7 @@ ALTER TABLE "resident_blood_types" ALTER COLUMN "id" DROP DEFAULT,
 ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "resident_contracts" ADD COLUMN     "publicToken" VARCHAR(64) NOT NULL,
+ALTER TABLE "resident_contracts" ADD COLUMN IF NOT EXISTS "publicToken" VARCHAR(64),
 ALTER COLUMN "originalFileUrl" DROP NOT NULL,
 ALTER COLUMN "originalFileKey" DROP NOT NULL,
 ALTER COLUMN "originalFileName" DROP NOT NULL,
@@ -132,19 +132,19 @@ ALTER TABLE "resident_dependency_assessments" ALTER COLUMN "id" DROP DEFAULT,
 ALTER COLUMN "updatedAt" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "resident_documents" ADD COLUMN     "originalFileHash" VARCHAR(64),
-ADD COLUMN     "originalFileKey" TEXT,
-ADD COLUMN     "originalFileMimeType" TEXT,
-ADD COLUMN     "originalFileName" TEXT,
-ADD COLUMN     "originalFileSize" INTEGER,
-ADD COLUMN     "originalFileUrl" TEXT,
-ADD COLUMN     "processedFileHash" VARCHAR(64),
-ADD COLUMN     "processedFileKey" TEXT,
-ADD COLUMN     "processedFileName" TEXT,
-ADD COLUMN     "processedFileSize" INTEGER,
-ADD COLUMN     "processedFileUrl" TEXT,
-ADD COLUMN     "processingMetadata" JSONB,
-ADD COLUMN     "publicToken" VARCHAR(64);
+ALTER TABLE "resident_documents" ADD COLUMN IF NOT EXISTS "originalFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "originalFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileMimeType" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "originalFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "processedFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "processedFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processingMetadata" JSONB,
+ADD COLUMN IF NOT EXISTS "publicToken" VARCHAR(64);
 
 -- AlterTable
 ALTER TABLE "shift_templates" ALTER COLUMN "id" DROP DEFAULT;
@@ -159,19 +159,19 @@ ALTER TABLE "sos_medication_history" ALTER COLUMN "id" DROP DEFAULT;
 ALTER TABLE "sos_medications" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "tenant_documents" ADD COLUMN     "originalFileHash" VARCHAR(64),
-ADD COLUMN     "originalFileKey" TEXT,
-ADD COLUMN     "originalFileMimeType" VARCHAR(100),
-ADD COLUMN     "originalFileName" TEXT,
-ADD COLUMN     "originalFileSize" INTEGER,
-ADD COLUMN     "originalFileUrl" TEXT,
-ADD COLUMN     "processedFileHash" VARCHAR(64),
-ADD COLUMN     "processedFileKey" TEXT,
-ADD COLUMN     "processedFileName" TEXT,
-ADD COLUMN     "processedFileSize" INTEGER,
-ADD COLUMN     "processedFileUrl" TEXT,
-ADD COLUMN     "processingMetadata" JSONB,
-ADD COLUMN     "publicToken" VARCHAR(64);
+ALTER TABLE "tenant_documents" ADD COLUMN IF NOT EXISTS "originalFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "originalFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileMimeType" VARCHAR(100),
+ADD COLUMN IF NOT EXISTS "originalFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "originalFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "processedFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "processedFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processingMetadata" JSONB,
+ADD COLUMN IF NOT EXISTS "publicToken" VARCHAR(64);
 
 -- AlterTable
 ALTER TABLE "tenant_stats" ALTER COLUMN "id" DROP DEFAULT;
@@ -183,22 +183,22 @@ ALTER TABLE "terms_of_service" ALTER COLUMN "id" DROP DEFAULT;
 ALTER TABLE "terms_of_service_acceptances" ALTER COLUMN "id" DROP DEFAULT;
 
 -- AlterTable
-ALTER TABLE "vaccinations" ADD COLUMN     "originalFileHash" VARCHAR(64),
-ADD COLUMN     "originalFileKey" TEXT,
-ADD COLUMN     "originalFileMimeType" VARCHAR(100),
-ADD COLUMN     "originalFileName" TEXT,
-ADD COLUMN     "originalFileSize" INTEGER,
-ADD COLUMN     "originalFileUrl" TEXT,
-ADD COLUMN     "processedFileHash" VARCHAR(64),
-ADD COLUMN     "processedFileKey" TEXT,
-ADD COLUMN     "processedFileName" TEXT,
-ADD COLUMN     "processedFileSize" INTEGER,
-ADD COLUMN     "processedFileUrl" TEXT,
-ADD COLUMN     "processingMetadata" JSONB,
-ADD COLUMN     "publicToken" VARCHAR(64);
+ALTER TABLE "vaccinations" ADD COLUMN IF NOT EXISTS "originalFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "originalFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileMimeType" VARCHAR(100),
+ADD COLUMN IF NOT EXISTS "originalFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "originalFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "originalFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileHash" VARCHAR(64),
+ADD COLUMN IF NOT EXISTS "processedFileKey" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileName" TEXT,
+ADD COLUMN IF NOT EXISTS "processedFileSize" INTEGER,
+ADD COLUMN IF NOT EXISTS "processedFileUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "processingMetadata" JSONB,
+ADD COLUMN IF NOT EXISTS "publicToken" VARCHAR(64);
 
 -- CreateTable
-CREATE TABLE "tenant_shift_config" (
+CREATE TABLE IF NOT EXISTS "tenant_shift_config" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "shiftTemplateId" UUID NOT NULL,
@@ -218,7 +218,7 @@ CREATE TABLE "tenant_shift_config" (
 );
 
 -- CreateTable
-CREATE TABLE "teams" (
+CREATE TABLE IF NOT EXISTS "teams" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "name" VARCHAR(100) NOT NULL,
@@ -235,7 +235,7 @@ CREATE TABLE "teams" (
 );
 
 -- CreateTable
-CREATE TABLE "team_members" (
+CREATE TABLE IF NOT EXISTS "team_members" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "teamId" UUID NOT NULL,
@@ -250,7 +250,7 @@ CREATE TABLE "team_members" (
 );
 
 -- CreateTable
-CREATE TABLE "shifts" (
+CREATE TABLE IF NOT EXISTS "shifts" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "date" DATE NOT NULL,
@@ -271,7 +271,7 @@ CREATE TABLE "shifts" (
 );
 
 -- CreateTable
-CREATE TABLE "shift_assignments" (
+CREATE TABLE IF NOT EXISTS "shift_assignments" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "shiftId" UUID NOT NULL,
@@ -286,7 +286,7 @@ CREATE TABLE "shift_assignments" (
 );
 
 -- CreateTable
-CREATE TABLE "shift_substitutions" (
+CREATE TABLE IF NOT EXISTS "shift_substitutions" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "shiftId" UUID NOT NULL,
@@ -303,7 +303,7 @@ CREATE TABLE "shift_substitutions" (
 );
 
 -- CreateTable
-CREATE TABLE "shift_history" (
+CREATE TABLE IF NOT EXISTS "shift_history" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "shiftId" UUID NOT NULL,
@@ -320,7 +320,7 @@ CREATE TABLE "shift_history" (
 );
 
 -- CreateTable
-CREATE TABLE "shift_handovers" (
+CREATE TABLE IF NOT EXISTS "shift_handovers" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "shiftId" UUID NOT NULL,
@@ -334,7 +334,7 @@ CREATE TABLE "shift_handovers" (
 );
 
 -- CreateTable
-CREATE TABLE "compliance_assessments" (
+CREATE TABLE IF NOT EXISTS "compliance_assessments" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "versionId" UUID NOT NULL,
@@ -359,7 +359,7 @@ CREATE TABLE "compliance_assessments" (
 );
 
 -- CreateTable
-CREATE TABLE "compliance_assessment_responses" (
+CREATE TABLE IF NOT EXISTS "compliance_assessment_responses" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "assessmentId" UUID NOT NULL,
@@ -378,7 +378,7 @@ CREATE TABLE "compliance_assessment_responses" (
 );
 
 -- CreateTable
-CREATE TABLE "institutional_events" (
+CREATE TABLE IF NOT EXISTS "institutional_events" (
     "id" UUID NOT NULL,
     "tenantId" UUID NOT NULL,
     "eventType" "InstitutionalEventType" NOT NULL,
@@ -410,163 +410,163 @@ CREATE TABLE "institutional_events" (
 );
 
 -- CreateIndex
-CREATE INDEX "tenant_shift_config_tenantId_idx" ON "tenant_shift_config"("tenantId");
+CREATE INDEX IF NOT EXISTS "tenant_shift_config_tenantId_idx" ON "tenant_shift_config"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "tenant_shift_config_isEnabled_idx" ON "tenant_shift_config"("isEnabled");
+CREATE INDEX IF NOT EXISTS "tenant_shift_config_isEnabled_idx" ON "tenant_shift_config"("isEnabled");
 
 -- CreateIndex
-CREATE INDEX "tenant_shift_config_deletedAt_idx" ON "tenant_shift_config"("deletedAt");
+CREATE INDEX IF NOT EXISTS "tenant_shift_config_deletedAt_idx" ON "tenant_shift_config"("deletedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "tenant_shift_config_shiftTemplateId_deletedAt_key" ON "tenant_shift_config"("shiftTemplateId", "deletedAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "tenant_shift_config_shiftTemplateId_deletedAt_key" ON "tenant_shift_config"("shiftTemplateId", "deletedAt");
 
 -- CreateIndex
-CREATE INDEX "teams_tenantId_isActive_idx" ON "teams"("tenantId", "isActive");
+CREATE INDEX IF NOT EXISTS "teams_tenantId_isActive_idx" ON "teams"("tenantId", "isActive");
 
 -- CreateIndex
-CREATE INDEX "teams_deletedAt_idx" ON "teams"("deletedAt");
+CREATE INDEX IF NOT EXISTS "teams_deletedAt_idx" ON "teams"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "team_members_tenantId_teamId_idx" ON "team_members"("tenantId", "teamId");
+CREATE INDEX IF NOT EXISTS "team_members_tenantId_teamId_idx" ON "team_members"("tenantId", "teamId");
 
 -- CreateIndex
-CREATE INDEX "team_members_userId_idx" ON "team_members"("userId");
+CREATE INDEX IF NOT EXISTS "team_members_userId_idx" ON "team_members"("userId");
 
 -- CreateIndex
-CREATE INDEX "team_members_removedAt_idx" ON "team_members"("removedAt");
+CREATE INDEX IF NOT EXISTS "team_members_removedAt_idx" ON "team_members"("removedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "team_members_teamId_userId_removedAt_key" ON "team_members"("teamId", "userId", "removedAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "team_members_teamId_userId_removedAt_key" ON "team_members"("teamId", "userId", "removedAt");
 
 -- CreateIndex
-CREATE INDEX "shifts_tenantId_date_idx" ON "shifts"("tenantId", "date");
+CREATE INDEX IF NOT EXISTS "shifts_tenantId_date_idx" ON "shifts"("tenantId", "date");
 
 -- CreateIndex
-CREATE INDEX "shifts_tenantId_date_status_idx" ON "shifts"("tenantId", "date", "status");
+CREATE INDEX IF NOT EXISTS "shifts_tenantId_date_status_idx" ON "shifts"("tenantId", "date", "status");
 
 -- CreateIndex
-CREATE INDEX "shifts_teamId_idx" ON "shifts"("teamId");
+CREATE INDEX IF NOT EXISTS "shifts_teamId_idx" ON "shifts"("teamId");
 
 -- CreateIndex
-CREATE INDEX "shifts_status_idx" ON "shifts"("status");
+CREATE INDEX IF NOT EXISTS "shifts_status_idx" ON "shifts"("status");
 
 -- CreateIndex
-CREATE INDEX "shifts_deletedAt_idx" ON "shifts"("deletedAt");
+CREATE INDEX IF NOT EXISTS "shifts_deletedAt_idx" ON "shifts"("deletedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "shifts_tenantId_date_shiftTemplateId_deletedAt_key" ON "shifts"("tenantId", "date", "shiftTemplateId", "deletedAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "shifts_tenantId_date_shiftTemplateId_deletedAt_key" ON "shifts"("tenantId", "date", "shiftTemplateId", "deletedAt");
 
 -- CreateIndex
-CREATE INDEX "shift_assignments_tenantId_shiftId_idx" ON "shift_assignments"("tenantId", "shiftId");
+CREATE INDEX IF NOT EXISTS "shift_assignments_tenantId_shiftId_idx" ON "shift_assignments"("tenantId", "shiftId");
 
 -- CreateIndex
-CREATE INDEX "shift_assignments_userId_idx" ON "shift_assignments"("userId");
+CREATE INDEX IF NOT EXISTS "shift_assignments_userId_idx" ON "shift_assignments"("userId");
 
 -- CreateIndex
-CREATE INDEX "shift_assignments_removedAt_idx" ON "shift_assignments"("removedAt");
+CREATE INDEX IF NOT EXISTS "shift_assignments_removedAt_idx" ON "shift_assignments"("removedAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "shift_assignments_shiftId_userId_removedAt_key" ON "shift_assignments"("shiftId", "userId", "removedAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "shift_assignments_shiftId_userId_removedAt_key" ON "shift_assignments"("shiftId", "userId", "removedAt");
 
 -- CreateIndex
-CREATE INDEX "shift_substitutions_tenantId_shiftId_idx" ON "shift_substitutions"("tenantId", "shiftId");
+CREATE INDEX IF NOT EXISTS "shift_substitutions_tenantId_shiftId_idx" ON "shift_substitutions"("tenantId", "shiftId");
 
 -- CreateIndex
-CREATE INDEX "shift_substitutions_shiftId_type_idx" ON "shift_substitutions"("shiftId", "type");
+CREATE INDEX IF NOT EXISTS "shift_substitutions_shiftId_type_idx" ON "shift_substitutions"("shiftId", "type");
 
 -- CreateIndex
-CREATE INDEX "shift_history_tenantId_shiftId_versionNumber_idx" ON "shift_history"("tenantId", "shiftId", "versionNumber" DESC);
+CREATE INDEX IF NOT EXISTS "shift_history_tenantId_shiftId_versionNumber_idx" ON "shift_history"("tenantId", "shiftId", "versionNumber" DESC);
 
 -- CreateIndex
-CREATE INDEX "shift_history_tenantId_changedAt_idx" ON "shift_history"("tenantId", "changedAt" DESC);
+CREATE INDEX IF NOT EXISTS "shift_history_tenantId_changedAt_idx" ON "shift_history"("tenantId", "changedAt" DESC);
 
 -- CreateIndex
-CREATE INDEX "shift_history_changedBy_idx" ON "shift_history"("changedBy");
+CREATE INDEX IF NOT EXISTS "shift_history_changedBy_idx" ON "shift_history"("changedBy");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "shift_handovers_shiftId_key" ON "shift_handovers"("shiftId");
+CREATE UNIQUE INDEX IF NOT EXISTS "shift_handovers_shiftId_key" ON "shift_handovers"("shiftId");
 
 -- CreateIndex
-CREATE INDEX "shift_handovers_tenantId_idx" ON "shift_handovers"("tenantId");
+CREATE INDEX IF NOT EXISTS "shift_handovers_tenantId_idx" ON "shift_handovers"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "shift_handovers_shiftId_idx" ON "shift_handovers"("shiftId");
+CREATE INDEX IF NOT EXISTS "shift_handovers_shiftId_idx" ON "shift_handovers"("shiftId");
 
 -- CreateIndex
-CREATE INDEX "shift_handovers_handedOverBy_idx" ON "shift_handovers"("handedOverBy");
+CREATE INDEX IF NOT EXISTS "shift_handovers_handedOverBy_idx" ON "shift_handovers"("handedOverBy");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessments_tenantId_assessmentDate_idx" ON "compliance_assessments"("tenantId", "assessmentDate" DESC);
+CREATE INDEX IF NOT EXISTS "compliance_assessments_tenantId_assessmentDate_idx" ON "compliance_assessments"("tenantId", "assessmentDate" DESC);
 
 -- CreateIndex
-CREATE INDEX "compliance_assessments_status_idx" ON "compliance_assessments"("status");
+CREATE INDEX IF NOT EXISTS "compliance_assessments_status_idx" ON "compliance_assessments"("status");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessments_versionId_idx" ON "compliance_assessments"("versionId");
+CREATE INDEX IF NOT EXISTS "compliance_assessments_versionId_idx" ON "compliance_assessments"("versionId");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessments_performedBy_idx" ON "compliance_assessments"("performedBy");
+CREATE INDEX IF NOT EXISTS "compliance_assessments_performedBy_idx" ON "compliance_assessments"("performedBy");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessments_deletedAt_idx" ON "compliance_assessments"("deletedAt");
+CREATE INDEX IF NOT EXISTS "compliance_assessments_deletedAt_idx" ON "compliance_assessments"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessment_responses_assessmentId_idx" ON "compliance_assessment_responses"("assessmentId");
+CREATE INDEX IF NOT EXISTS "compliance_assessment_responses_assessmentId_idx" ON "compliance_assessment_responses"("assessmentId");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessment_responses_tenantId_idx" ON "compliance_assessment_responses"("tenantId");
+CREATE INDEX IF NOT EXISTS "compliance_assessment_responses_tenantId_idx" ON "compliance_assessment_responses"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "compliance_assessment_responses_questionId_idx" ON "compliance_assessment_responses"("questionId");
+CREATE INDEX IF NOT EXISTS "compliance_assessment_responses_questionId_idx" ON "compliance_assessment_responses"("questionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "compliance_assessment_responses_assessmentId_questionNumber_key" ON "compliance_assessment_responses"("assessmentId", "questionNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "compliance_assessment_responses_assessmentId_questionNumber_key" ON "compliance_assessment_responses"("assessmentId", "questionNumber");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_tenantId_idx" ON "institutional_events"("tenantId");
+CREATE INDEX IF NOT EXISTS "institutional_events_tenantId_idx" ON "institutional_events"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_scheduledDate_idx" ON "institutional_events"("scheduledDate");
+CREATE INDEX IF NOT EXISTS "institutional_events_scheduledDate_idx" ON "institutional_events"("scheduledDate");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_eventType_idx" ON "institutional_events"("eventType");
+CREATE INDEX IF NOT EXISTS "institutional_events_eventType_idx" ON "institutional_events"("eventType");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_visibility_idx" ON "institutional_events"("visibility");
+CREATE INDEX IF NOT EXISTS "institutional_events_visibility_idx" ON "institutional_events"("visibility");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_status_idx" ON "institutional_events"("status");
+CREATE INDEX IF NOT EXISTS "institutional_events_status_idx" ON "institutional_events"("status");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_deletedAt_idx" ON "institutional_events"("deletedAt");
+CREATE INDEX IF NOT EXISTS "institutional_events_deletedAt_idx" ON "institutional_events"("deletedAt");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_tenantId_scheduledDate_idx" ON "institutional_events"("tenantId", "scheduledDate");
+CREATE INDEX IF NOT EXISTS "institutional_events_tenantId_scheduledDate_idx" ON "institutional_events"("tenantId", "scheduledDate");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_tenantId_eventType_scheduledDate_idx" ON "institutional_events"("tenantId", "eventType", "scheduledDate");
+CREATE INDEX IF NOT EXISTS "institutional_events_tenantId_eventType_scheduledDate_idx" ON "institutional_events"("tenantId", "eventType", "scheduledDate");
 
 -- CreateIndex
-CREATE INDEX "institutional_events_expiryDate_idx" ON "institutional_events"("expiryDate");
+CREATE INDEX IF NOT EXISTS "institutional_events_expiryDate_idx" ON "institutional_events"("expiryDate");
 
 -- CreateIndex
-CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs"("created_at" DESC);
+CREATE INDEX IF NOT EXISTS "audit_logs_created_at_idx" ON "audit_logs"("created_at" DESC);
 
 -- CreateIndex
-CREATE UNIQUE INDEX "resident_contracts_publicToken_key" ON "resident_contracts"("publicToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "resident_contracts_publicToken_key" ON "resident_contracts"("publicToken");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "resident_documents_publicToken_key" ON "resident_documents"("publicToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "resident_documents_publicToken_key" ON "resident_documents"("publicToken");
 
 -- CreateIndex
-CREATE INDEX "resident_documents_publicToken_idx" ON "resident_documents"("publicToken");
+CREATE INDEX IF NOT EXISTS "resident_documents_publicToken_idx" ON "resident_documents"("publicToken");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "tenant_documents_publicToken_key" ON "tenant_documents"("publicToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "tenant_documents_publicToken_key" ON "tenant_documents"("publicToken");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "vaccinations_publicToken_key" ON "vaccinations"("publicToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "vaccinations_publicToken_key" ON "vaccinations"("publicToken");
 
 -- RenameForeignKey
 ALTER TABLE "resident_anthropometry_history" RENAME CONSTRAINT "resident_anthropometry_history_anthropometryId_fkey" TO "resident_anthropometry_history_residentAnthropometryId_fkey";
@@ -575,73 +575,234 @@ ALTER TABLE "resident_anthropometry_history" RENAME CONSTRAINT "resident_anthrop
 ALTER TABLE "resident_dependency_assessment_history" RENAME CONSTRAINT "resident_dependency_assessment_history_assessmentId_fkey" TO "resident_dependency_assessment_history_residentDependencyA_fkey";
 
 -- AddForeignKey
-ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'password_reset_tokens_userId_fkey'
+  ) THEN
+    ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "user_history" ADD CONSTRAINT "user_history_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_history_userId_fkey'
+  ) THEN
+    ALTER TABLE "user_history" ADD CONSTRAINT "user_history_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_userId_fkey'
+  ) THEN
+    ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "team_members" ADD CONSTRAINT "team_members_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'team_members_teamId_fkey'
+  ) THEN
+    ALTER TABLE "team_members" ADD CONSTRAINT "team_members_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shifts" ADD CONSTRAINT "shifts_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shifts_teamId_fkey'
+  ) THEN
+    ALTER TABLE "shifts" ADD CONSTRAINT "shifts_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_assignments" ADD CONSTRAINT "shift_assignments_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_assignments_shiftId_fkey'
+  ) THEN
+    ALTER TABLE "shift_assignments" ADD CONSTRAINT "shift_assignments_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_substitutions_shiftId_fkey'
+  ) THEN
+    ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_originalTeamId_fkey" FOREIGN KEY ("originalTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_substitutions_originalTeamId_fkey'
+  ) THEN
+    ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_originalTeamId_fkey" FOREIGN KEY ("originalTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_newTeamId_fkey" FOREIGN KEY ("newTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_substitutions_newTeamId_fkey'
+  ) THEN
+    ALTER TABLE "shift_substitutions" ADD CONSTRAINT "shift_substitutions_newTeamId_fkey" FOREIGN KEY ("newTeamId") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_history" ADD CONSTRAINT "shift_history_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_history_shiftId_fkey'
+  ) THEN
+    ALTER TABLE "shift_history" ADD CONSTRAINT "shift_history_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shift_handovers" ADD CONSTRAINT "shift_handovers_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'shift_handovers_shiftId_fkey'
+  ) THEN
+    ALTER TABLE "shift_handovers" ADD CONSTRAINT "shift_handovers_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "shifts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "message_recipients" ADD CONSTRAINT "message_recipients_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'message_recipients_userId_fkey'
+  ) THEN
+    ALTER TABLE "message_recipients" ADD CONSTRAINT "message_recipients_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "compliance_assessment_responses" ADD CONSTRAINT "compliance_assessment_responses_assessmentId_fkey" FOREIGN KEY ("assessmentId") REFERENCES "compliance_assessments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'compliance_assessment_responses_assessmentId_fkey'
+  ) THEN
+    ALTER TABLE "compliance_assessment_responses" ADD CONSTRAINT "compliance_assessment_responses_assessmentId_fkey" FOREIGN KEY ("assessmentId") REFERENCES "compliance_assessments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "daily_records" ADD CONSTRAINT "daily_records_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'daily_records_userId_fkey'
+  ) THEN
+    ALTER TABLE "daily_records" ADD CONSTRAINT "daily_records_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'institutional_events_tenantId_fkey'
+  ) THEN
+    ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'institutional_events_createdBy_fkey'
+  ) THEN
+    ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'institutional_events_updatedBy_fkey'
+  ) THEN
+    ALTER TABLE "institutional_events" ADD CONSTRAINT "institutional_events_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "medications" ADD CONSTRAINT "medications_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'medications_updatedBy_fkey'
+  ) THEN
+    ALTER TABLE "medications" ADD CONSTRAINT "medications_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "sos_medications" ADD CONSTRAINT "sos_medications_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'sos_medications_updatedBy_fkey'
+  ) THEN
+    ALTER TABLE "sos_medications" ADD CONSTRAINT "sos_medications_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "medication_administrations" ADD CONSTRAINT "medication_administrations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'medication_administrations_userId_fkey'
+  ) THEN
+    ALTER TABLE "medication_administrations" ADD CONSTRAINT "medication_administrations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "sos_administrations" ADD CONSTRAINT "sos_administrations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'sos_administrations_userId_fkey'
+  ) THEN
+    ALTER TABLE "sos_administrations" ADD CONSTRAINT "sos_administrations_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "notification_reads" ADD CONSTRAINT "notification_reads_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'notification_reads_userId_fkey'
+  ) THEN
+    ALTER TABLE "notification_reads" ADD CONSTRAINT "notification_reads_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "vital_signs" ADD CONSTRAINT "vital_signs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'vital_signs_userId_fkey'
+  ) THEN
+    ALTER TABLE "vital_signs" ADD CONSTRAINT "vital_signs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- RenameIndex
 ALTER INDEX "financial_bank_account_ledger_tenant_account_date_created_idx" RENAME TO "financial_bank_account_ledger_tenantId_bankAccountId_effect_idx";

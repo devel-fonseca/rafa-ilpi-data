@@ -11,36 +11,32 @@ ALTER TYPE "PermissionType" ADD VALUE IF NOT EXISTS 'VIEW_FINANCIAL_DASHBOARD';
 
 -- 2) Create financial enums if needed
 DO $$
+DECLARE
+  target_schema TEXT := current_schema();
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'FinancialCategoryType') THEN
-    CREATE TYPE "FinancialCategoryType" AS ENUM ('INCOME', 'EXPENSE');
+  IF to_regtype(format('%I.%I', target_schema, 'FinancialCategoryType')) IS NULL THEN
+    EXECUTE format('CREATE TYPE %I."FinancialCategoryType" AS ENUM (''INCOME'', ''EXPENSE'')', target_schema);
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'FinancialAccountType') THEN
-    CREATE TYPE "FinancialAccountType" AS ENUM ('CHECKING', 'SAVINGS', 'PAYMENT');
+  IF to_regtype(format('%I.%I', target_schema, 'FinancialAccountType')) IS NULL THEN
+    EXECUTE format('CREATE TYPE %I."FinancialAccountType" AS ENUM (''CHECKING'', ''SAVINGS'', ''PAYMENT'')', target_schema);
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'FinancialTransactionType') THEN
-    CREATE TYPE "FinancialTransactionType" AS ENUM ('INCOME', 'EXPENSE');
+  IF to_regtype(format('%I.%I', target_schema, 'FinancialTransactionType')) IS NULL THEN
+    EXECUTE format('CREATE TYPE %I."FinancialTransactionType" AS ENUM (''INCOME'', ''EXPENSE'')', target_schema);
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'FinancialTransactionStatus') THEN
-    CREATE TYPE "FinancialTransactionStatus" AS ENUM (
-      'PENDING',
-      'PAID',
-      'OVERDUE',
-      'CANCELLED',
-      'REFUNDED',
-      'PARTIALLY_PAID'
+  IF to_regtype(format('%I.%I', target_schema, 'FinancialTransactionStatus')) IS NULL THEN
+    EXECUTE format(
+      'CREATE TYPE %I."FinancialTransactionStatus" AS ENUM (''PENDING'', ''PAID'', ''OVERDUE'', ''CANCELLED'', ''REFUNDED'', ''PARTIALLY_PAID'')',
+      target_schema
     );
   END IF;
 
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'FinancialReconciliationStatus') THEN
-    CREATE TYPE "FinancialReconciliationStatus" AS ENUM (
-      'PENDING',
-      'IN_PROGRESS',
-      'RECONCILED',
-      'DISCREPANCY'
+  IF to_regtype(format('%I.%I', target_schema, 'FinancialReconciliationStatus')) IS NULL THEN
+    EXECUTE format(
+      'CREATE TYPE %I."FinancialReconciliationStatus" AS ENUM (''PENDING'', ''IN_PROGRESS'', ''RECONCILED'', ''DISCREPANCY'')',
+      target_schema
     );
   END IF;
 END $$;
