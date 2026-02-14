@@ -135,6 +135,10 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
     mode: 'onChange',
     defaultValues: {
       status: 'Ativo',
+      nome: '',
+      cpf: '',
+      dataNascimento: '',
+      dataAdmissao: '',
       leitoNumero: '',
       contatosEmergencia: [],
       convenios: [],

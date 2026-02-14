@@ -17,6 +17,11 @@ export interface CnsValidation {
 }
 
 // ========== SCHEMA ==========
+const requiredString = (label: string) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' ? value : ''),
+    z.string().trim().min(1, `${label} é obrigatório`)
+  )
 
 export const residentSchema = z.object({
   // Status (opcional - apenas para modo edição)
@@ -27,11 +32,11 @@ export const residentSchema = z.object({
 
   // Dados Pessoais
   foto: z.any().optional(),
-  nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  nome: requiredString('Nome').min(3, 'Nome deve ter pelo menos 3 caracteres'),
   nomeSocial: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   cns: z.string().optional(),
-  cpf: z.string().min(1, 'CPF é obrigatório'),
+  cpf: requiredString('CPF'),
   rg: z.string().optional(),
   orgaoExpedidor: z.string().optional(),
   escolaridade: z.string().optional(),
@@ -43,8 +48,7 @@ export const residentSchema = z.object({
     }),
   estadoCivil: z.string().optional(),
   religiao: z.string().optional(),
-  dataNascimento: z.string()
-    .min(1, 'Data de nascimento é obrigatória')
+  dataNascimento: requiredString('Data de nascimento')
     .refine((dateStr) => {
       if (!dateStr) return true
 
@@ -130,7 +134,7 @@ export const residentSchema = z.object({
     .optional(),
 
   // Admissão
-  dataAdmissao: z.string().min(1, 'Data de admissão é obrigatória'),
+  dataAdmissao: requiredString('Data de admissão'),
   tipoAdmissao: z.string().optional(),
   motivoAdmissao: z.string().optional(),
   condicoesAdmissao: z.string().optional(),
