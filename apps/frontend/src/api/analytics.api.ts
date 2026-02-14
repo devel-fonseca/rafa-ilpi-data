@@ -48,8 +48,8 @@ export interface MrrBreakdown {
 }
 
 export interface FinancialMetricsFilters {
-  startDate?: string // ISO 8601
-  endDate?: string // ISO 8601
+  startDate?: string // YYYY-MM-DD (data civil)
+  endDate?: string // YYYY-MM-DD (data civil)
   tenantId?: string
 }
 

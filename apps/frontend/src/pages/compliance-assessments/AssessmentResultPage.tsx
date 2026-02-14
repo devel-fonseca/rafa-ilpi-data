@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'

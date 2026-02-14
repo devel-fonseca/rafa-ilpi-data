@@ -31,7 +31,7 @@ export function AssessmentFormPage() {
   const saveResponseMutation = useSaveResponse(id!)
   const completeAssessmentMutation = useCompleteAssessment()
 
-  const questions = questionsData?.questions || []
+  const questions = useMemo(() => questionsData?.questions ?? [], [questionsData?.questions])
   const currentQuestion = questions[currentQuestionIndex]
 
   // Mapear respostas existentes
@@ -69,7 +69,7 @@ export function AssessmentFormPage() {
     else if (firstUnansweredIndex === -1 && currentQuestionIndex === 0 && questions.length > 0) {
       setCurrentQuestionIndex(questions.length - 1)
     }
-  }, [assessment?.id, questions.length]) // Executar apenas quando assessment ID ou número de questões mudar
+  }, [assessment, currentQuestionIndex, questions, responsesMap])
 
   // Handler de salvar resposta com debounce
   const handleSaveResponse = useCallback(

@@ -56,6 +56,7 @@ Documentação de integrações com serviços externos:
 | [CHANGELOG.md](../CHANGELOG.md) | Histórico cronológico de todas as mudanças |
 | [TODO.md](../TODO.md) | Tarefas ativas e pendentes |
 | [CLINICAL-NOTE-DOCUMENTS.md](CLINICAL-NOTE-DOCUMENTS.md) | Documentação detalhada dos documentos Tiptap |
+| [SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md](flows/SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md) | Runbook operacional de backup/restore (portal + CLI) |
 
 ---
 

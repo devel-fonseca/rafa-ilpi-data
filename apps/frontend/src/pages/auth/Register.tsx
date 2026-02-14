@@ -434,6 +434,7 @@ export default function Register() {
       // Preparar aceite do termo de uso com variáveis
       const acceptanceResponse = await api.post('/terms-of-service/accept/prepare', {
         termsId: formData.termsId,
+        planId: formData.planId,
         ipAddress,
         userAgent,
         variables,

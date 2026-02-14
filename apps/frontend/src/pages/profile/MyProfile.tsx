@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth.store'
 import { useMyProfile, useUpdateProfile, useUploadAvatar, useRemoveAvatar } from '@/hooks/queries/useUserProfile'

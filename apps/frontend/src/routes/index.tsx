@@ -101,6 +101,7 @@ import { PlansList } from '@/pages/superadmin/PlansList'
 import { PlanDetails } from '@/pages/superadmin/PlanDetails'
 import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
 import { OverdueDashboard } from '@/pages/superadmin/OverdueDashboard'
+import { BackupsPage } from '@/pages/superadmin/BackupsPage'
 import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
 import { ContractDetails } from '@/pages/superadmin/contracts/ContractDetails'
 import { ContractNew } from '@/pages/superadmin/contracts/ContractNew'
@@ -652,6 +653,10 @@ export const router = createBrowserRouter([
       {
         path: 'overdue',
         element: <OverdueDashboard />,
+      },
+      {
+        path: 'backups',
+        element: <BackupsPage />,
       },
       {
         path: 'alerts',

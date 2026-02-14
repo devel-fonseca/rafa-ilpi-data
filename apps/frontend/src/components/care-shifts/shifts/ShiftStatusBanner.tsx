@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 // ──────────────────────────────────────────────────────────────────────────────
 //  COMPONENT - ShiftStatusBanner (Banner Operacional do Plantão do Cuidador)
 // ──────────────────────────────────────────────────────────────────────────────

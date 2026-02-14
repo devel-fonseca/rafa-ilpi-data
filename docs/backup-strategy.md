@@ -1,5 +1,12 @@
 # Estratégia de Backup - RAFA ILPI
 
+## Status deste documento
+
+Este material permanece como **plano avançado** (roadmap) para execução com equipe dedicada.
+
+Para a operação atual (backup/restore já implementados no projeto), use como referência principal:
+- `docs/flows/SUPERADMIN-BACKUP-RESTORE-RUNBOOK.md`
+
 ## 📋 Visão Geral
 
 Sistema multi-tenant com dados sensíveis de saúde (LGPD Art. 11) requer estratégia de backup robusta, automatizada e segura.
