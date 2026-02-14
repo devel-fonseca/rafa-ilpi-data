@@ -167,17 +167,68 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         return 0;
       }
 
-      const keys = await this.client.keys(pattern);
-      if (keys.length === 0) {
-        this.logger.debug(`Cache CLEAR: Nenhuma chave encontrada para pattern "${pattern}"`);
+      // Usar SCAN ao invés de KEYS para evitar bloqueio do Redis em bases grandes
+      let cursor = '0';
+      let totalDeleted = 0;
+
+      do {
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          500,
+        );
+        cursor = nextCursor;
+
+        if (keys.length > 0) {
+          const deleted = await this.client.del(...keys);
+          totalDeleted += deleted;
+        }
+      } while (cursor !== '0');
+
+      this.logger.log(
+        `Cache CLEAR: ${totalDeleted} chave(s) deletada(s) (pattern: "${pattern}")`,
+      );
+      return totalDeleted;
+    } catch (error) {
+      this.logger.error(`Erro ao limpar cache (pattern: ${pattern}): ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Conta quantas chaves existem para um padrão sem removê-las
+   *
+   * @param pattern - Padrão glob (ex: "user:*", "tenant:abc-*")
+   * @returns Número de chaves encontradas
+   */
+  async countByPattern(pattern: string): Promise<number> {
+    try {
+      if (!this.isConnected) {
+        this.logger.warn(`Cache COUNT ignorado: Redis desconectado (pattern: ${pattern})`);
         return 0;
       }
 
-      const result = await this.client.del(...keys);
-      this.logger.log(`Cache CLEAR: ${result} chave(s) deletada(s) (pattern: "${pattern}")`);
-      return result;
+      let cursor = '0';
+      let total = 0;
+
+      do {
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          500,
+        );
+        cursor = nextCursor;
+        total += keys.length;
+      } while (cursor !== '0');
+
+      this.logger.debug(`Cache COUNT: ${total} chave(s) para pattern "${pattern}"`);
+      return total;
     } catch (error) {
-      this.logger.error(`Erro ao limpar cache (pattern: ${pattern}): ${error.message}`);
+      this.logger.error(`Erro ao contar cache (pattern: ${pattern}): ${error.message}`);
       return 0;
     }
   }

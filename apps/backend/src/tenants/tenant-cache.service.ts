@@ -207,8 +207,9 @@ export class TenantCacheService {
     totalCached: number;
     cachePattern: string;
   }> {
-    // Nota: KEYS é custoso em produção, use apenas para debugging
-    const keys = await this.cacheService.clear(`${this.CACHE_PREFIX}*`);
+    const keys = await this.cacheService.countByPattern(
+      `${this.CACHE_PREFIX}*`,
+    );
     return {
       totalCached: keys,
       cachePattern: `${this.CACHE_PREFIX}*`,
