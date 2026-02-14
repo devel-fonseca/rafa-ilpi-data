@@ -63,7 +63,7 @@ export function MonthlyViewInstitutional({ items, selectedDate, isLoading }: Pro
       pending: 0,
       completed: 0,
       missed: 0,
-      cancelled: 0,
+      canceled: 0,
     }
 
     items.forEach(item => {

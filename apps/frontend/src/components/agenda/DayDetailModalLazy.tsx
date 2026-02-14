@@ -62,8 +62,8 @@ export function DayDetailModalLazy({
           return item.status === 'completed'
         case 'missed':
           return item.status === 'missed'
-        case 'cancelled':
-          return item.status === 'cancelled'
+        case 'canceled':
+          return item.status === 'canceled'
         default:
           return true
       }

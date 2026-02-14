@@ -306,8 +306,8 @@ export class AgendaService {
             return item.status === 'completed';
           case StatusFilterType.MISSED:
             return item.status === 'missed';
-          case StatusFilterType.CANCELLED:
-            return item.status === 'cancelled';
+          case StatusFilterType.CANCELED:
+            return item.status === 'canceled';
           default:
             return true;
         }
@@ -701,12 +701,12 @@ export class AgendaService {
     return mapping[recordType] || 'other_records';
   }
 
-  private mapEventStatus(status: string): 'pending' | 'completed' | 'missed' | 'cancelled' {
-    const mapping: Record<string, 'pending' | 'completed' | 'missed' | 'cancelled'> = {
+  private mapEventStatus(status: string): 'pending' | 'completed' | 'missed' | 'canceled' {
+    const mapping: Record<string, 'pending' | 'completed' | 'missed' | 'canceled'> = {
       SCHEDULED: 'pending',
       COMPLETED: 'completed',
       MISSED: 'missed',
-      CANCELLED: 'cancelled',
+      CANCELLED: 'canceled',
     };
     return mapping[status] || 'pending';
   }
@@ -856,7 +856,7 @@ export class AgendaService {
           pending: 0,
           completed: 0,
           missed: 0,
-          cancelled: 0,
+          canceled: 0,
         },
         categoryBreakdown: {
           medications: 0,
@@ -985,7 +985,7 @@ export class AgendaService {
         pending: 0,
         completed: 0,
         missed: 0,
-        cancelled: 0,
+        canceled: 0,
       },
     };
 
@@ -995,7 +995,7 @@ export class AgendaService {
       totals.statusBreakdown.pending += day.statusBreakdown.pending;
       totals.statusBreakdown.completed += day.statusBreakdown.completed;
       totals.statusBreakdown.missed += day.statusBreakdown.missed;
-      totals.statusBreakdown.cancelled += day.statusBreakdown.cancelled;
+      totals.statusBreakdown.canceled += day.statusBreakdown.canceled;
     });
 
     this.logger.log(

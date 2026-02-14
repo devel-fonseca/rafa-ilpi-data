@@ -9,7 +9,7 @@ export interface DaySummary {
     pending: number;
     completed: number;
     missed: number;
-    cancelled: number;
+    canceled: number;
   };
   categoryBreakdown: {
     medications: number;
@@ -40,7 +40,7 @@ export interface CalendarSummaryResponse {
       pending: number;
       completed: number;
       missed: number;
-      cancelled: number;
+      canceled: number;
     };
   };
 }

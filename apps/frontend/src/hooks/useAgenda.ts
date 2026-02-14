@@ -165,10 +165,10 @@ export function useInstitutionalEvents({ viewType, selectedDate }: GetInstitutio
         // Mapear status do backend para o formato esperado
         const statusMap: Record<string, AgendaItem['status']> = {
           'COMPLETED': 'completed',
-          'CANCELLED': 'cancelled',
+          'CANCELLED': 'canceled',
           'MISSED': 'missed',
           'completed': 'completed',
-          'cancelled': 'cancelled',
+          'canceled': 'canceled',
           'missed': 'missed',
           'pending': 'pending',
         }

@@ -75,7 +75,7 @@ export interface AgendaItem {
   description?: string
   scheduledDate: string | Date
   scheduledTime: string
-  status: 'pending' | 'completed' | 'missed' | 'cancelled'
+  status: 'pending' | 'completed' | 'missed' | 'canceled'
   completedAt?: string | Date
   completedBy?: string
   metadata?: AgendaItemMetadata
@@ -99,7 +99,7 @@ export interface AgendaItem {
 
 export type ViewType = 'daily' | 'weekly' | 'monthly' | 'period'
 export type ScopeType = 'general' | 'institutional' | 'resident' | 'prescriptions'
-export type StatusFilterType = 'all' | 'pending' | 'completed' | 'missed' | 'cancelled'
+export type StatusFilterType = 'all' | 'pending' | 'completed' | 'missed' | 'canceled'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // TIPOS PARA EVENTOS INSTITUCIONAIS
@@ -130,7 +130,7 @@ export interface InstitutionalEvent {
   scheduledDate: string | Date
   scheduledTime?: string
   allDay: boolean
-  status: 'pending' | 'completed' | 'missed' | 'cancelled'
+  status: 'pending' | 'completed' | 'missed' | 'canceled'
   completedAt?: string | Date
   notes?: string
 
@@ -327,7 +327,7 @@ export const STATUS_BADGES: Record<AgendaItem['status'], {
     text: 'text-red-800 dark:text-red-200',
     label: 'Perdido',
   },
-  cancelled: {
+  canceled: {
     bg: 'bg-gray-100 dark:bg-gray-900',
     text: 'text-gray-800 dark:text-gray-200',
     label: 'Cancelado',

@@ -23,7 +23,7 @@ export interface AgendaItem {
   description?: string;
   scheduledDate: Date;
   scheduledTime: string;
-  status: 'pending' | 'completed' | 'missed' | 'cancelled';
+  status: 'pending' | 'completed' | 'missed' | 'canceled';
   completedAt?: Date;
   completedBy?: string;
   metadata?: Record<string, unknown>;

@@ -31,7 +31,7 @@ export enum StatusFilterType {
   PENDING = 'pending',
   COMPLETED = 'completed',
   MISSED = 'missed',
-  CANCELLED = 'cancelled',
+  CANCELED = 'canceled',
 }
 
 export class GetAgendaItemsDto {
@@ -83,7 +83,7 @@ export class GetAgendaItemsDto {
    * pending = apenas pendentes
    * completed = apenas concluídos
    * missed = apenas perdidos
-   * cancelled = apenas cancelados
+   * canceled = apenas cancelados
    */
   @IsOptional()
   @IsEnum(StatusFilterType)

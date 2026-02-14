@@ -81,9 +81,13 @@ export function useDailyEvents(date: string) {
         scheduledTime: event.scheduledTime || '00:00',
         title: event.title,
         description: event.description,
-        status: event.status === 'completed' ? 'COMPLETED' :
-                event.status === 'cancelled' ? 'CANCELLED' :
-                event.status === 'missed' ? 'MISSED' : 'SCHEDULED',
+        status: (() => {
+          const normalizedStatus = String(event.status || '').toUpperCase()
+          if (normalizedStatus === 'COMPLETED') return 'COMPLETED'
+          if (normalizedStatus === 'CANCELED' || normalizedStatus === 'CANCELLED') return 'CANCELLED'
+          if (normalizedStatus === 'MISSED') return 'MISSED'
+          return 'SCHEDULED'
+        })(),
       }))
 
       // ────────────────────────────────────────────────────────────────
