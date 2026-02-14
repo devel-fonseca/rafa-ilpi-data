@@ -4,13 +4,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { FileDown, Loader2, UserCircle2 } from 'lucide-react'
 import { residentsAPI } from '@/api/residents.api'
@@ -18,6 +11,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { getResidentCareSummaryReport } from '@/services/reportsApi'
 import { ResidentCareSummaryReportView } from '@/components/reports/ResidentCareSummaryReportView'
 import { downloadResidentCareSummaryReportPDF } from '@/services/residentCareSummaryReportPdf'
+import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
 
 export default function ResidentCareSummaryReportPage() {
   const navigate = useNavigate()
@@ -133,23 +127,19 @@ export default function ResidentCareSummaryReportPage() {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
             <div className="space-y-2">
-              <Label htmlFor="resident-select">Residente</Label>
-              <Select
-                value={selectedResidentId}
-                onValueChange={setSelectedResidentId}
-                disabled={isLoadingResidents || residents.length === 0}
-              >
-                <SelectTrigger id="resident-select">
-                  <SelectValue placeholder={isLoadingResidents ? 'Carregando residentes...' : 'Selecione o residente'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {residents.map((resident) => (
-                    <SelectItem key={resident.id} value={resident.id}>
-                      {resident.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Residente</Label>
+              <ResidentSearchSelect
+                residents={residents}
+                value={selectedResidentId || null}
+                onValueChange={(resident) => setSelectedResidentId(resident || '')}
+                isLoading={isLoadingResidents}
+                disabled={residents.length === 0}
+                placeholder={
+                  isLoadingResidents
+                    ? 'Carregando residentes...'
+                    : 'Digite o nome do residente para selecionar'
+                }
+              />
               {!isLoadingResidents && residents.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                   Nenhum residente ativo encontrado.
