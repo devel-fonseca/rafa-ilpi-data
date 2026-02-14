@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
 import type {
@@ -7,10 +7,20 @@ import type {
   AdministrationRoute,
 } from '@/api/prescriptions.api'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarCheck2,
+  CheckCircle2,
+  ClipboardCheck,
+  Loader2,
+  Pill,
+} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
+import { PendingActivities } from '@/components/dashboard/PendingActivities'
+import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { TasksSection } from '@/components/caregiver/TasksSection'
 import { MedicationsSection } from '@/components/caregiver/MedicationsSection'
 import { EventsSection } from '@/components/caregiver/EventsSection'
@@ -23,6 +33,10 @@ import { invalidateAfterDailyRecordMutation } from '@/utils/queryInvalidation'
 import { Page, PageHeader, Section, EmptyState } from '@/design-system/components'
 import type { CreateDailyRecordInput, DailyRecordData } from '@/types/daily-records'
 import { useCanRegister } from '@/hooks/useCanRegister'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useAdminDashboardOverview } from '@/hooks/useAdminDashboard'
+import { useAdminDashboardRealtime } from '@/hooks/useAdminDashboardRealtime'
+import { getRecordTypeLabel } from '@/utils/recordTypeLabels'
 
 // Modais de registro (reutilizando de DailyRecordsPage)
 import { HigieneModal } from '@/pages/daily-records/modals/HigieneModal'
@@ -44,11 +58,26 @@ type MedicationWithPreselectedTime = Medication & {
   preselectedScheduledTime?: string
 }
 
+type CaregiverOperationalActivity = {
+  id: string
+  type: 'record' | 'medication' | 'event'
+  title: string
+  description: string
+  timeLabel: string
+  sortKey: number
+}
+
 export function CaregiverDashboard() {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
   const { data, isLoading, error, refetch } = useCaregiverTasks()
   const today = getCurrentDate()
+  const { hasPermission } = usePermissions()
+  const canViewDashboardOverview = hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  useAdminDashboardRealtime({ enabled: canViewDashboardOverview })
+  const { data: overview, isLoading: isLoadingOverview } = useAdminDashboardOverview({
+    enabled: canViewDashboardOverview,
+  })
 
   // Hook para verificar se pode fazer registros (baseado no plantão)
   const {
@@ -60,6 +89,102 @@ export function CaregiverDashboard() {
     isLeaderOrSubstitute,
     hasBypass,
   } = useCanRegister()
+
+  const caregiverPendingActivities = data
+    ? [
+        ...(data.stats.recordsPending > 0
+          ? [{
+              id: `caregiver-records-pending-${today}`,
+              type: 'DAILY_RECORD_MISSING' as const,
+              title: 'Registros AVDs pendentes do plantão',
+              description: `${data.stats.recordsPending} registros obrigatórios aguardando lançamento`,
+              priority: 'HIGH' as const,
+            }]
+          : []),
+        ...(data.stats.medicationsCount > 0
+          ? [{
+              id: `caregiver-medications-pending-${today}`,
+              type: 'MEDICATION_PENDING' as const,
+              title: 'Medicações pendentes do plantão',
+              description: `${data.stats.medicationsCount} administrações ainda não concluídas`,
+              priority: 'HIGH' as const,
+            }]
+          : []),
+        ...(data.scheduledEvents.filter((event) => event.status === 'SCHEDULED').length > 0
+          ? [{
+              id: `caregiver-events-pending-${today}`,
+              type: 'SCHEDULED_EVENT_PENDING' as const,
+              title: 'Eventos pontuais pendentes',
+              description: `${data.scheduledEvents.filter((event) => event.status === 'SCHEDULED').length} eventos aguardando execução`,
+              priority: 'MEDIUM' as const,
+            }]
+          : []),
+      ]
+    : []
+
+  const pendingActivities =
+    overview?.pendingActivities && overview.pendingActivities.length > 0
+      ? overview.pendingActivities
+      : caregiverPendingActivities
+  const recentActivities = overview?.recentActivities || []
+  const isActivitiesLoading = canViewDashboardOverview && isLoadingOverview
+  const caregiverOperationalActivities = useMemo<CaregiverOperationalActivity[]>(() => {
+    if (!data) {
+      return []
+    }
+
+    const buildSortKeyFromTime = (time?: string) => {
+      if (!time) return 0
+      const dateTime = new Date(`${today}T${time}:00`)
+      return Number.isNaN(dateTime.getTime()) ? 0 : dateTime.getTime()
+    }
+
+    const completedRecords: CaregiverOperationalActivity[] = data.recurringTasks
+      .filter((task) => task.isCompleted)
+      .map((task) => ({
+        id: `record-${task.configId || task.recordType}-${task.residentId}-${task.suggestedTimes?.[0] || ''}`,
+        type: 'record',
+        title: `${getRecordTypeLabel(task.recordType || '').label} concluído`,
+        description: `${task.residentName}${task.completedBy ? ` • por ${task.completedBy}` : ''}`,
+        timeLabel: task.completedAt
+          ? new Date(task.completedAt).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : task.suggestedTimes?.[0] || '--:--',
+        sortKey: task.completedAt
+          ? new Date(task.completedAt).getTime()
+          : buildSortKeyFromTime(task.suggestedTimes?.[0]),
+      }))
+
+    const administeredMedications: CaregiverOperationalActivity[] = data.medications
+      .filter((medication) => medication.wasAdministered)
+      .map((medication) => ({
+        id: `medication-${medication.medicationId}-${medication.residentId}-${medication.scheduledTime}`,
+        type: 'medication',
+        title: `Medicação administrada`,
+        description: `${medication.medicationName} • ${medication.residentName}`,
+        timeLabel: medication.actualTime || medication.scheduledTime || '--:--',
+        sortKey: buildSortKeyFromTime(
+          medication.actualTime || medication.scheduledTime,
+        ),
+      }))
+
+    const completedEvents: CaregiverOperationalActivity[] = data.scheduledEvents
+      .filter((event) => event.status === 'COMPLETED')
+      .map((event) => ({
+        id: `event-${event.eventId || event.title}-${event.scheduledTime || ''}`,
+        type: 'event',
+        title: event.title || 'Evento concluído',
+        description: event.residentName,
+        timeLabel: event.scheduledTime || '--:--',
+        sortKey: buildSortKeyFromTime(event.scheduledTime),
+      }))
+
+    return [...completedRecords, ...administeredMedications, ...completedEvents]
+      .sort((a, b) => b.sortKey - a.sortKey)
+      .slice(0, 8)
+  }, [data, today])
 
   // Estado para modals
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(
@@ -385,6 +510,70 @@ export function CaregiverDashboard() {
           />
         </Section>
       )}
+
+      <Section title="Minhas Pendências do Plantão">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <PendingActivities
+            items={pendingActivities}
+            isLoading={isActivitiesLoading}
+          />
+          {canViewDashboardOverview ? (
+            <RecentActivity
+              activities={recentActivities}
+              isLoading={isActivitiesLoading}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Histórico do meu turno</CardTitle>
+              </CardHeader>
+              <CardContent className="py-4">
+                {caregiverOperationalActivities.length === 0 ? (
+                  <div className="py-6 text-sm text-muted-foreground">
+                    Ainda não há ações concluídas neste turno.
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground px-2 pb-1">
+                      Últimas 8 ações concluídas por você neste turno
+                    </p>
+                    {caregiverOperationalActivities.map((activity) => {
+                      const Icon =
+                        activity.type === 'record'
+                          ? ClipboardCheck
+                          : activity.type === 'medication'
+                            ? Pill
+                            : CalendarCheck2
+
+                      return (
+                        <div
+                          key={activity.id}
+                          className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-primary bg-primary/10">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {activity.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {activity.description}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {activity.timeLabel}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </Section>
 
       {/* Mini Prontuário Modal */}
       {selectedResidentId && (

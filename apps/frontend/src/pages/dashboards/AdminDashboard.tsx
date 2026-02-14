@@ -94,7 +94,7 @@ export function AdminDashboard() {
       {/* Atividades Recentes e Pendentes */}
       <CollapsibleSection
         id="admin-recent-activities"
-        title="Pendências e Histórico"
+        title="Pendências e Histórico Gerencial"
         defaultCollapsed={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

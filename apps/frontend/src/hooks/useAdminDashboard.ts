@@ -78,7 +78,13 @@ export interface AdminDashboardOverviewData {
   occupancyRate: OccupancyRateData
   pendingActivities: Array<{
     id: string
-    type: 'PRESCRIPTION_EXPIRING' | 'DAILY_RECORD_MISSING' | 'NOTIFICATION_UNREAD' | 'VITAL_SIGNS_DUE'
+    type:
+      | 'PRESCRIPTION_EXPIRING'
+      | 'DAILY_RECORD_MISSING'
+      | 'NOTIFICATION_UNREAD'
+      | 'VITAL_SIGNS_DUE'
+      | 'MEDICATION_PENDING'
+      | 'SCHEDULED_EVENT_PENDING'
     title: string
     description: string
     priority: 'HIGH' | 'MEDIUM' | 'LOW'
@@ -135,7 +141,7 @@ export function useResidentsGrowth() {
  * Hook agregado do dashboard administrativo
  * Reduz múltiplas requisições paralelas para uma única chamada de overview.
  */
-export function useAdminDashboardOverview() {
+export function useAdminDashboardOverview(options?: { enabled?: boolean }) {
   return useQuery<AdminDashboardOverviewData>({
     queryKey: tenantKey('admin-dashboard-overview'),
     queryFn: async () => {
@@ -143,6 +149,7 @@ export function useAdminDashboardOverview() {
       return response.data
     },
     staleTime: 45 * 1000,
+    enabled: options?.enabled ?? true,
     refetchOnWindowFocus: true,
     refetchInterval: 3 * 60 * 1000,
     refetchIntervalInBackground: false,

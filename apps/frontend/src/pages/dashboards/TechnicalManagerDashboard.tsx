@@ -24,6 +24,8 @@ import { EventsSection } from '@/components/caregiver/EventsSection'
 import { useTechnicalManagerTasks } from '@/hooks/useTechnicalManagerTasks'
 import { useAdminCompliance } from '@/hooks/useAdminCompliance'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useAdminDashboardOverview } from '@/hooks/useAdminDashboard'
+import { useAdminDashboardRealtime } from '@/hooks/useAdminDashboardRealtime'
 import { Page, PageHeader, Section, CollapsibleSection } from '@/design-system/components'
 import { AdministerMedicationModal } from '@/pages/prescriptions/components/AdministerMedicationModal'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
@@ -48,6 +50,14 @@ export function TechnicalManagerDashboard() {
   // Permissões
   const { hasPermission } = usePermissions()
   const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
+  const canViewDashboardOverview =
+    user?.profile?.positionCode === 'TECHNICAL_MANAGER' ||
+    user?.profile?.positionCode === 'ADMINISTRATOR' ||
+    hasPermission(PermissionType.VIEW_COMPLIANCE_DASHBOARD)
+  useAdminDashboardRealtime({ enabled: canViewDashboardOverview })
+  const { data: overview, isLoading: isLoadingOverview } = useAdminDashboardOverview({
+    enabled: canViewDashboardOverview,
+  })
 
   // Estados para modais
   const [selectedResidentId, setSelectedResidentId] = useState<string | null>(null)
@@ -77,6 +87,8 @@ export function TechnicalManagerDashboard() {
   const totalResidents = residentsStats?.total || 0
   const totalPrescriptions = prescriptionsStats?.totalActive || 0
   const totalUsers = usersCount || 0
+  const pendingActivities = overview?.pendingActivities || []
+  const recentActivities = overview?.recentActivities || []
 
   // Handler para administrar medicação
   const handleAdministerMedication = (
@@ -184,15 +196,21 @@ export function TechnicalManagerDashboard() {
       {/* Activities Grid - Recent & Pending */}
       <CollapsibleSection
         id="technical-manager-recent-activities"
-        title="Pendências e Histórico"
+        title="Pendências e Histórico Assistencial"
         defaultCollapsed={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Pending Activities */}
-          <PendingActivities />
+          <PendingActivities
+            items={pendingActivities}
+            isLoading={isLoadingOverview}
+          />
 
           {/* Recent Activity */}
-          <RecentActivity />
+          <RecentActivity
+            activities={recentActivities}
+            isLoading={isLoadingOverview}
+          />
         </div>
       </CollapsibleSection>
 

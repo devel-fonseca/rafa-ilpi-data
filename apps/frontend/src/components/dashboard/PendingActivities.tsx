@@ -11,7 +11,13 @@ import {
 
 interface PendingItem {
   id: string
-  type: 'PRESCRIPTION_EXPIRING' | 'DAILY_RECORD_MISSING' | 'NOTIFICATION_UNREAD' | 'VITAL_SIGNS_DUE'
+  type:
+    | 'PRESCRIPTION_EXPIRING'
+    | 'DAILY_RECORD_MISSING'
+    | 'NOTIFICATION_UNREAD'
+    | 'VITAL_SIGNS_DUE'
+    | 'MEDICATION_PENDING'
+    | 'SCHEDULED_EVENT_PENDING'
   title: string
   description: string
   priority: 'HIGH' | 'MEDIUM' | 'LOW'
@@ -38,6 +44,8 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   DAILY_RECORD_MISSING: Calendar,
   NOTIFICATION_UNREAD: Bell,
   VITAL_SIGNS_DUE: Activity,
+  MEDICATION_PENDING: Activity,
+  SCHEDULED_EVENT_PENDING: Calendar,
 }
 
 function getPendingIcon(type: string) {

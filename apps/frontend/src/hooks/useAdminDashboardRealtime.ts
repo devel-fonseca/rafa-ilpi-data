@@ -23,12 +23,13 @@ type DashboardOverviewUpdatedPayload = {
  * Invalida o overview do dashboard admin quando chegam eventos
  * que impactam pendências e histórico recente.
  */
-export function useAdminDashboardRealtime() {
+export function useAdminDashboardRealtime(options?: { enabled?: boolean }) {
   const { socket } = useWebSocketContext()
   const queryClient = useQueryClient()
   const lastInvalidationRef = useRef(0)
 
   useEffect(() => {
+    if (options?.enabled === false) return
     if (!socket) return
 
     const shouldDebugSource = (source?: string) => {
@@ -90,5 +91,5 @@ export function useAdminDashboardRealtime() {
         socket.off(eventName, handlers[eventName])
       })
     }
-  }, [socket, queryClient])
+  }, [socket, queryClient, options?.enabled])
 }
