@@ -98,9 +98,16 @@ export function PhotoViewer({
    * Se photoUrlSmall/photoUrlMedium não forem passados, deriva automaticamente de photoUrl
    */
   const selectBestThumbnail = (): string | undefined => {
-    // Usar URLs explícitas se passadas, senão derivar de photoUrl
-    const smallUrl = photoUrlSmall || deriveThumbnailUrl(photoUrl, '_small')
-    const mediumUrl = photoUrlMedium || deriveThumbnailUrl(photoUrl, '_medium')
+    // Usar URLs explícitas quando fornecidas pelo backend.
+    // Derivação automática só é segura para a categoria "photos" (residentes),
+    // que efetivamente possui _small/_medium gerados no upload.
+    const canDeriveThumbnails =
+      !!photoUrl &&
+      photoUrl.includes('/photos/') &&
+      !photoUrl.includes('/user-photos/')
+
+    const smallUrl = photoUrlSmall || (canDeriveThumbnails ? deriveThumbnailUrl(photoUrl, '_small') : undefined)
+    const mediumUrl = photoUrlMedium || (canDeriveThumbnails ? deriveThumbnailUrl(photoUrl, '_medium') : undefined)
 
     // Mapeamento: tamanho → melhor thumbnail
     switch (size) {
@@ -108,7 +115,7 @@ export function PhotoViewer({
       case 'sm': // 64px - usa small (64px)
         return smallUrl || mediumUrl || photoUrl
       case 'md': // 128px - usa medium (150px)
-        return mediumUrl || photoUrl
+        return mediumUrl || smallUrl || photoUrl
       case 'lg': // 192px - usa original (300px)
       case 'xl': // 256px - usa original (300px)
       default:

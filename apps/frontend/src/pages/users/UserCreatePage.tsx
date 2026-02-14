@@ -188,7 +188,11 @@ export default function UserCreatePage() {
       const newUser = await addUserToTenant(currentUser.tenantId, {
         name: formData.name,
         email: formData.email,
+        cpf: cleanCPF(formData.cpf) || '',
         role: roleMapping[formData.role],
+        phone: formData.phone?.trim() || undefined,
+        department: formData.department?.trim() || undefined,
+        positionCode: formData.positionCode || undefined,
         sendInviteEmail: formData.sendInviteEmail,
         temporaryPassword: formData.temporaryPassword || undefined,
       })
@@ -217,7 +221,13 @@ export default function UserCreatePage() {
       toast.success('Usuário criado com sucesso!')
       navigate('/dashboard/usuarios')
     } catch (error: unknown) {
-      const errorMessage = 'Erro ao criar usuário'
+      const err = error as {
+        response?: { data?: { message?: string | string[] } }
+      }
+      const backendMessage = err.response?.data?.message
+      const errorMessage = Array.isArray(backendMessage)
+        ? backendMessage.join(' • ')
+        : backendMessage || 'Erro ao criar usuário'
 
       if (errorMessage.includes('Limite de usuários') || errorMessage.includes('plano')) {
         toast.error(errorMessage, {

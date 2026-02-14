@@ -393,7 +393,11 @@ export async function getTenantUsers(tenantId: string) {
 export async function addUserToTenant(tenantId: string, data: {
   name: string
   email: string
+  cpf: string
   role: 'ADMIN' | 'MANAGER' | 'USER' | 'VIEWER'
+  phone?: string
+  department?: string
+  positionCode?: string
   sendInviteEmail?: boolean
   temporaryPassword?: string
 }) {

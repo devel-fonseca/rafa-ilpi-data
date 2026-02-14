@@ -19,7 +19,7 @@ import { AddUserToTenantDto, UserRole } from './dto/add-user.dto';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import * as crypto from 'crypto';
-import { TenantStatus, Prisma, PositionCode } from '@prisma/client';
+import { TenantStatus, Prisma, PositionCode, FinancialCategoryType } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { execSync } from 'child_process';
 
@@ -296,6 +296,9 @@ export class TenantsService {
         const userProfile = await tx.userProfile.findFirst({
           where: { userId: user.id },
         });
+
+        // Inicializa defaults do módulo financeiro para novos tenants
+        await this.seedFinancialDefaultsForTenant(tx, tenant.id, user.id);
 
         return { user, userProfile };
       });
@@ -973,6 +976,194 @@ export class TenantsService {
         END IF;
       END $$;
     `);
+  }
+
+  /**
+   * Cria categorias e métodos de pagamento padrão do financeiro operacional
+   * para um tenant recém-criado. Idempotente: cria apenas itens ausentes.
+   */
+  private async seedFinancialDefaultsForTenant(
+    tx: Prisma.TransactionClient,
+    tenantId: string,
+    seedUserId: string,
+  ): Promise<void> {
+    const categorySeed: Array<{
+      name: string;
+      type: FinancialCategoryType;
+      description?: string;
+      parentName?: string;
+    }> = [
+      { name: 'Receitas Operacionais', type: FinancialCategoryType.INCOME },
+      {
+        name: 'Mensalidades de residentes',
+        type: FinancialCategoryType.INCOME,
+        parentName: 'Receitas Operacionais',
+      },
+      {
+        name: 'Taxas de adesão/matrícula',
+        type: FinancialCategoryType.INCOME,
+        parentName: 'Receitas Operacionais',
+      },
+      { name: 'Receitas Não Operacionais', type: FinancialCategoryType.INCOME },
+      {
+        name: 'Doações e contribuições',
+        type: FinancialCategoryType.INCOME,
+        parentName: 'Receitas Não Operacionais',
+      },
+      { name: 'Despesas Operacionais', type: FinancialCategoryType.EXPENSE },
+      {
+        name: 'Alimentação e nutrição',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Operacionais',
+      },
+      {
+        name: 'Medicamentos e insumos',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Operacionais',
+      },
+      { name: 'Despesas Administrativas', type: FinancialCategoryType.EXPENSE },
+      {
+        name: 'Folha administrativa',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Administrativas',
+      },
+      {
+        name: 'Contabilidade e jurídico',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Administrativas',
+      },
+      { name: 'Despesas Fixas', type: FinancialCategoryType.EXPENSE },
+      {
+        name: 'Energia elétrica',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Fixas',
+      },
+      {
+        name: 'Água e gás',
+        type: FinancialCategoryType.EXPENSE,
+        parentName: 'Despesas Fixas',
+      },
+    ];
+
+    const paymentMethodSeed = [
+      {
+        name: 'PIX',
+        code: 'pix',
+        description: 'Pagamento instantâneo via PIX',
+        requiresManualConfirmation: true,
+        allowsInstallments: false,
+        maxInstallments: 1,
+      },
+      {
+        name: 'Boleto',
+        code: 'bank_slip',
+        description: 'Boleto bancário',
+        requiresManualConfirmation: true,
+        allowsInstallments: false,
+        maxInstallments: 1,
+      },
+      {
+        name: 'Transferência bancária',
+        code: 'bank_transfer',
+        description: 'TED/DOC/Transferência',
+        requiresManualConfirmation: true,
+        allowsInstallments: false,
+        maxInstallments: 1,
+      },
+      {
+        name: 'Cartão de crédito',
+        code: 'credit_card',
+        description: 'Pagamento em cartão de crédito',
+        requiresManualConfirmation: true,
+        allowsInstallments: true,
+        maxInstallments: 12,
+      },
+      {
+        name: 'Dinheiro',
+        code: 'cash',
+        description: 'Pagamento em espécie',
+        requiresManualConfirmation: true,
+        allowsInstallments: false,
+        maxInstallments: 1,
+      },
+    ];
+
+    const existingCategories = await tx.financialCategory.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    const categoryMap = new Map(existingCategories.map((c) => [c.name, c.id]));
+
+    for (const category of categorySeed.filter((entry) => !entry.parentName)) {
+      if (categoryMap.has(category.name)) {
+        continue;
+      }
+
+      const created = await tx.financialCategory.create({
+        data: {
+          tenantId,
+          name: category.name,
+          description: category.description,
+          type: category.type,
+          isSystemDefault: true,
+          isActive: true,
+          createdBy: seedUserId,
+          updatedBy: seedUserId,
+        },
+        select: { id: true, name: true },
+      });
+
+      categoryMap.set(created.name, created.id);
+    }
+
+    for (const category of categorySeed.filter((entry) => entry.parentName)) {
+      if (categoryMap.has(category.name)) {
+        continue;
+      }
+
+      const parentId = categoryMap.get(category.parentName!);
+      if (!parentId) {
+        continue;
+      }
+
+      const created = await tx.financialCategory.create({
+        data: {
+          tenantId,
+          name: category.name,
+          description: category.description,
+          type: category.type,
+          parentCategoryId: parentId,
+          isSystemDefault: true,
+          isActive: true,
+          createdBy: seedUserId,
+          updatedBy: seedUserId,
+        },
+        select: { id: true, name: true },
+      });
+
+      categoryMap.set(created.name, created.id);
+    }
+
+    const existingMethods = await tx.financialPaymentMethod.findMany({
+      where: { deletedAt: null },
+      select: { code: true },
+    });
+    const existingCodes = new Set(existingMethods.map((method) => method.code));
+
+    for (const method of paymentMethodSeed) {
+      if (existingCodes.has(method.code)) {
+        continue;
+      }
+
+      await tx.financialPaymentMethod.create({
+        data: {
+          tenantId,
+          ...method,
+          isActive: true,
+        },
+      });
+    }
   }
 
   /**

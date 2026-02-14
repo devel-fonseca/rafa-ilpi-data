@@ -294,13 +294,7 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
             : 'Adicionar informações do perfil clínico',
         }
       case 'parametros':
-        return {
-          canShow: canEditProfile,
-          onClick: handleCreateAnthropometry,
-          icon: <Plus className="h-4 w-4 mr-2" />,
-          label: 'Nova Medição',
-          tooltip: 'Registrar nova medição de peso, altura e IMC',
-        }
+        return null
       case 'dependencia':
         return {
           canShow: canEditProfile,
@@ -460,9 +454,17 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
 
             {/* Antropometria */}
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Ruler className="h-5 w-5 text-primary" />
-                <h4 className="font-medium">Medidas Antropométricas</h4>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Ruler className="h-5 w-5 text-primary" />
+                  <h4 className="font-medium">Medidas Antropométricas</h4>
+                </div>
+                {canEditProfile && (
+                  <Button size="sm" variant="outline" onClick={handleCreateAnthropometry}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Medição
+                  </Button>
+                )}
               </div>
 
               {sortedAnthropometryRecords.length > 0 ? (
