@@ -51,12 +51,12 @@ export function DraggableRecordTypeCard({
   // Para dispositivos touch, mostrar botões de ação rápida
   if (isTouchDevice && onQuickAdd) {
     return (
-      <Card className="transition-all hover:shadow-md">
+      <Card className="transition-all hover:shadow-sm">
         <CardContent className="p-2">
           <div className="space-y-1.5">
             <Badge
               variant="secondary"
-              className={`${typeInfo.color} ${typeInfo.bgColor} border-2 w-full justify-center text-xs py-1`}
+              className={`${typeInfo.color} ${typeInfo.bgColor} border-2 w-full justify-center text-xs py-1 whitespace-normal text-center leading-tight`}
             >
               {typeInfo.label}
             </Badge>
@@ -112,8 +112,8 @@ export function DraggableRecordTypeCard({
           ref={setNodeRef}
           {...listeners}
           {...attributes}
-          className={`cursor-grab active:cursor-grabbing transition-all ${
-            isDragging ? 'opacity-50 scale-95' : 'hover:shadow-md hover:scale-105'
+          className={`cursor-grab active:cursor-grabbing transition-all min-w-0 ${
+            isDragging ? 'opacity-50' : 'hover:shadow-sm'
           }`}
         >
           <CardContent className="p-3">
@@ -121,7 +121,7 @@ export function DraggableRecordTypeCard({
               <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <Badge
                 variant="secondary"
-                className={`${typeInfo.color} ${typeInfo.bgColor} border-2 flex-1 justify-center`}
+                className={`${typeInfo.color} ${typeInfo.bgColor} border-2 flex-1 justify-center whitespace-normal text-center leading-tight`}
               >
                 {typeInfo.label}
               </Badge>

@@ -141,7 +141,7 @@ export function ResidentScheduleTab({
     >
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold">Agenda do Residente</h3>
             <p className="text-sm text-muted-foreground">
@@ -152,7 +152,7 @@ export function ResidentScheduleTab({
 
         {/* Sub-Tabs */}
         <Tabs defaultValue="configs" className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
             <TabsTrigger value="configs">Programação da Rotina</TabsTrigger>
             <TabsTrigger value="events">Agendamentos Pontuais</TabsTrigger>
           </TabsList>
@@ -168,9 +168,9 @@ export function ResidentScheduleTab({
                     Arraste um card para a lista abaixo ou use os botões para adicionar uma configuração
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-0">
                   <TooltipProvider>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2">
                       {ALLOWED_RECORD_TYPES.map((recordType) => (
                         <DraggableRecordTypeCard
                           key={recordType}

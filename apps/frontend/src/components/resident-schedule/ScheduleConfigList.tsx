@@ -103,7 +103,7 @@ function FrequencyDropZone({
   return (
     <Card
       ref={setNodeRef}
-      className={`transition-all border-2 ${
+      className={`transition-all border-2 min-w-0 ${
         isOver
           ? `${frequencyColorActive[frequency]} scale-[1.02] shadow-lg`
           : configs.length === 0
@@ -111,7 +111,7 @@ function FrequencyDropZone({
           : frequencyColor[frequency]
       }`}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 px-4 sm:px-6">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <span className="text-lg">{frequencyIcon[frequency]}</span>
           {FREQUENCY_LABELS[frequency]}
@@ -125,7 +125,7 @@ function FrequencyDropZone({
         )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-3 sm:px-4">
         {isOver && configs.length > 0 && (
           <Card className="p-4 mb-3 border-2 border-dashed border-primary/40 bg-primary/5 animate-pulse">
             <div className="text-center text-primary/80 font-semibold text-sm">
@@ -161,9 +161,9 @@ function FrequencyDropZone({
           )}
           {sortedConfigs.map((config) => (
             <Card key={config.id} className="p-3 bg-card hover:bg-accent/50 transition-colors">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
                     <Badge variant="secondary" className="font-medium text-xs">
                       {getRecordTypeLabel(config.recordType).label}
                     </Badge>
@@ -174,11 +174,11 @@ function FrequencyDropZone({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     {(config.frequency === 'WEEKLY' || config.frequency === 'MONTHLY') && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
                         <Calendar className="h-3 w-3" />
-                        <span>
+                        <span className="truncate">
                           {config.frequency === 'WEEKLY' && config.dayOfWeek !== undefined
                             ? WEEKDAY_LABELS[config.dayOfWeek]
                             : config.frequency === 'MONTHLY' && config.dayOfMonth !== undefined
@@ -188,9 +188,9 @@ function FrequencyDropZone({
                       </div>
                     )}
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 min-w-0">
                       <Clock className="h-3 w-3" />
-                      <span>{config.suggestedTimes.join(', ')}</span>
+                      <span className="truncate">{config.suggestedTimes.join(', ')}</span>
                     </div>
                   </div>
 
@@ -202,7 +202,7 @@ function FrequencyDropZone({
                 </div>
 
                 {canManage && (
-                  <div className="flex items-center gap-1 ml-3">
+                  <div className="flex items-center gap-1 ml-1 sm:ml-2">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -324,7 +324,7 @@ export function ScheduleConfigList({
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4">
         <FrequencyDropZone
           frequency="DAILY"
           configs={dailyConfigs}

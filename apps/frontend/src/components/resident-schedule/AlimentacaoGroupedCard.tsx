@@ -29,10 +29,10 @@ export function AlimentacaoGroupedCard({
   });
 
   return (
-    <Card className="p-4 bg-card hover:bg-accent/50 transition-colors border-2 border-severity-warning/30">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+    <Card className="p-3 sm:p-4 bg-card hover:bg-accent/50 transition-colors border-2 border-severity-warning/30">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <Utensils className="h-5 w-5 text-severity-warning" />
             <span className="font-semibold text-base">Alimentação</span>
             <Badge variant="secondary" className="text-xs">
@@ -46,10 +46,10 @@ export function AlimentacaoGroupedCard({
               const metadata = config.metadata as { mealType?: string };
               const mealType = MEAL_TYPES.find((m) => m.value === metadata?.mealType);
               return (
-                <div key={config.id} className="flex items-center gap-2">
+                <div key={config.id} className="grid grid-cols-[20px_1fr_auto] items-center gap-2">
                   <span className="text-base">{mealType?.icon || '🍽️'}</span>
-                  <span className="font-medium">{mealType?.label || metadata?.mealType}:</span>
-                  <span className="ml-auto">{config.suggestedTimes[0]}</span>
+                  <span className="font-medium truncate">{mealType?.label || metadata?.mealType}:</span>
+                  <span className="font-medium">{config.suggestedTimes[0]}</span>
                 </div>
               );
             })}
@@ -86,7 +86,7 @@ export function AlimentacaoGroupedCard({
         </div>
 
         {canManage && (
-          <div className="flex items-start gap-1 ml-3 flex-shrink-0">
+          <div className="flex items-start gap-1 ml-1 sm:ml-2 flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
