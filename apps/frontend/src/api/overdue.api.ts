@@ -1,4 +1,5 @@
 import { api } from '@/services/api'
+import { extractDateOnly } from '@/utils/dateHelpers'
 
 /**
  * Overdue/Inadimplência API Client
@@ -60,8 +61,8 @@ export interface OverdueTrend {
  * Filtros para métricas de overdue
  */
 export interface OverdueFilters {
-  startDate?: Date | string
-  endDate?: Date | string
+  startDate?: string // YYYY-MM-DD (data civil)
+  endDate?: string // YYYY-MM-DD (data civil)
 }
 
 /**
@@ -91,17 +92,11 @@ export const getOverdueSummary = async (filters?: OverdueFilters): Promise<Overd
   const params = new URLSearchParams()
 
   if (filters?.startDate) {
-    const date = typeof filters.startDate === 'string'
-      ? filters.startDate
-      : filters.startDate.toISOString()
-    params.append('startDate', date)
+    params.append('startDate', extractDateOnly(filters.startDate))
   }
 
   if (filters?.endDate) {
-    const date = typeof filters.endDate === 'string'
-      ? filters.endDate
-      : filters.endDate.toISOString()
-    params.append('endDate', date)
+    params.append('endDate', extractDateOnly(filters.endDate))
   }
 
   const queryString = params.toString()

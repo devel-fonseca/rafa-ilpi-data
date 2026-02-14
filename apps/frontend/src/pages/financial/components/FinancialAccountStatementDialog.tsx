@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'

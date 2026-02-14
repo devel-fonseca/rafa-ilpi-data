@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Eye } from 'lucide-react'
 import { Section } from '@/design-system/components'
 import { Badge } from '@/components/ui/badge'

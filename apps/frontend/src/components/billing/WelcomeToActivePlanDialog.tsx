@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMySubscription } from '@/hooks/useTenant'
 import { useTenantInvoices } from '@/hooks/useBilling'
+import { useAuthStore } from '@/stores/auth.store'
 import {
   Dialog,
   DialogContent,
@@ -28,13 +29,24 @@ import { useNavigate } from 'react-router-dom'
 export function WelcomeToActivePlanDialog() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const { user } = useAuthStore()
   const { data: subscriptionData } = useMySubscription()
   const { data: invoicesData } = useTenantInvoices({ status: 'OPEN', limit: 1 })
 
+  const pendingInvoice = invoicesData?.data?.[0]
+  const storageKey =
+    user?.tenantId && pendingInvoice?.id
+      ? `welcome-active-plan-seen:${user.tenantId}:${pendingInvoice.id}`
+      : null
+
   useEffect(() => {
+    // Modal de cobrança é exibido apenas para quem administra a instituição
+    if (user?.profile?.positionCode !== 'ADMINISTRATOR') {
+      return
+    }
+
     // Verificar se já foi exibido
-    const hasSeenWelcome = localStorage.getItem('welcome-active-plan-seen')
-    if (hasSeenWelcome === 'true') {
+    if (storageKey && localStorage.getItem(storageKey) === 'true') {
       return
     }
 
@@ -50,22 +62,32 @@ export function WelcomeToActivePlanDialog() {
 
     // Condições para exibir:
     // 1. Trial expirou (trialEndDate < hoje)
-    // 2. Status mudou para 'active'
-    // 3. Há fatura pendente
+    // 2. Expiração foi RECENTE (até 48h) para evitar popup após restore de snapshots antigos
+    // 3. Status está 'active'
+    // 4. Há fatura pendente
+    const trialEndDateMs = trialEndDate?.getTime() || 0
+    const todayMs = today.getTime()
+    const maxActivationWindowMs = 48 * 60 * 60 * 1000 // 48 horas
+    const isRecentTrialConversion =
+      trialEndDateMs > 0 &&
+      todayMs > trialEndDateMs &&
+      todayMs - trialEndDateMs <= maxActivationWindowMs
+
     const shouldShow =
-      trialEndDate &&
-      trialEndDate < today &&
+      isRecentTrialConversion &&
       subscription.status === 'active' &&
       pendingInvoice
 
     if (shouldShow) {
       setOpen(true)
     }
-  }, [subscriptionData, invoicesData])
+  }, [invoicesData, storageKey, subscriptionData, user?.profile?.positionCode])
 
   const handleClose = () => {
     setOpen(false)
-    localStorage.setItem('welcome-active-plan-seen', 'true')
+    if (storageKey) {
+      localStorage.setItem(storageKey, 'true')
+    }
   }
 
   const handleViewInvoice = () => {
@@ -78,7 +100,6 @@ export function WelcomeToActivePlanDialog() {
   }
 
   const { plan } = subscriptionData
-  const pendingInvoice = invoicesData.data[0]
   const dueDate = new Date(pendingInvoice.dueDate)
   const dueDateFormatted = dueDate.toLocaleDateString('pt-BR', {
     day: '2-digit',

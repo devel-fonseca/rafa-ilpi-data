@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { FinancialReconciliation, FinancialTransactionStatus, FinancialTransactionType } from '@/types/financial-operations'

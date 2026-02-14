@@ -4,7 +4,9 @@ import { AsaasService } from './asaas.service'
 import { CreateInvoiceDto, InvoiceCreationMode } from '../dto/create-invoice.dto'
 import { Invoice, InvoiceStatus, Prisma } from '@prisma/client'
 import { AsaasBillingType } from '../gateways/payment-gateway.interface'
-import { addDays } from 'date-fns'
+import { addDays, format, parseISO } from 'date-fns'
+import { toZonedTime } from 'date-fns-tz'
+import { DEFAULT_TIMEZONE, parseDateOnly } from '../../utils/date.helpers'
 
 /**
  * Service para gerenciar faturas (invoices)
@@ -17,6 +19,18 @@ export class InvoiceService {
     private readonly prisma: PrismaService,
     private readonly asaasService: AsaasService,
   ) {}
+
+  private toDateOnlyInTenantTimezone(
+    date: Date,
+    timezone: string = DEFAULT_TIMEZONE,
+  ): string {
+    const zonedDate = toZonedTime(date, timezone)
+    return format(zonedDate, 'yyyy-MM-dd')
+  }
+
+  private dateOnlyToDbDate(dateOnly: string): Date {
+    return parseISO(`${parseDateOnly(dateOnly)}T12:00:00.000`)
+  }
 
   /**
    * Gera uma nova fatura para um tenant/subscription
@@ -100,6 +114,9 @@ export class InvoiceService {
     // Isso dá tempo para o cliente se organizar e permite melhor gestão de fluxo de caixa
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + 40) // 40 dias a partir de hoje
+    const tenantTimezone = subscription.tenant.timezone || DEFAULT_TIMEZONE
+    const dueDateOnly = this.toDateOnlyInTenantTimezone(dueDate, tenantTimezone)
+    const dueDateDb = this.dateOnlyToDbDate(dueDateOnly)
 
     // Criar cobrança no Asaas
     // Se billingType não for especificado, usar UNDEFINED (permite cliente escolher)
@@ -107,7 +124,7 @@ export class InvoiceService {
       customerId: asaasCustomerId,
       billingType: dto.billingType || AsaasBillingType.UNDEFINED,
       value: dto.amount,
-      dueDate,
+      dueDate: dueDateOnly,
       description: dto.description || `Fatura ${invoiceNumber} - ${subscription.plan.displayName}`,
       externalReference: invoiceNumber,
     })
@@ -126,7 +143,7 @@ export class InvoiceService {
         description: dto.description || null,
         currency: 'BRL',
         status: this.mapAsaasStatusToInvoiceStatus(payment.status),
-        dueDate,
+        dueDate: dueDateDb,
         asaasInvoiceId: payment.id,
         paymentUrl: payment.invoiceUrl || payment.bankSlipUrl,
       },
@@ -397,6 +414,9 @@ export class InvoiceService {
 
     // Data de vencimento: hoje + 7 dias (padrão boleto/PIX)
     const dueDate = addDays(new Date(), 7)
+    const tenantTimezone = subscription.tenant.timezone || DEFAULT_TIMEZONE
+    const dueDateOnly = this.toDateOnlyInTenantTimezone(dueDate, tenantTimezone)
+    const dueDateDb = this.dateOnlyToDbDate(dueDateOnly)
 
     // ✅ AJUSTE 4: Mapear método escolhido no onboarding
     // Evita fricção e melhora conversão de pagamento
@@ -460,7 +480,7 @@ export class InvoiceService {
         billingCycle: subscription.plan.billingCycle,
         currency: 'BRL',
         status: InvoiceStatus.OPEN,
-        dueDate,
+        dueDate: dueDateDb,
         description: `Primeira fatura - ${subscription.plan.displayName}`,
       },
     })
@@ -470,7 +490,7 @@ export class InvoiceService {
       customerId: asaasCustomerId,
       billingType, // ✅ BOLETO | CREDIT_CARD (não UNDEFINED!)
       value: amount,
-      dueDate,
+      dueDate: dueDateOnly,
       description: invoice.description || 'Primeira fatura',
       externalReference: invoiceNumber,
     })
@@ -546,7 +566,7 @@ export class InvoiceService {
         subscriptionId,
         amount: asaasPaymentData.value as number,
         status,
-        dueDate: new Date(asaasPaymentData.dueDate as string),
+        dueDate: this.dateOnlyToDbDate(asaasPaymentData.dueDate as string),
         paidAt: asaasPaymentData.paymentDate ? new Date(asaasPaymentData.paymentDate as string) : null,
         asaasInvoiceId: asaasPaymentData.id as string,
         asaasInvoiceUrl: (asaasPaymentData.invoiceUrl as string) || null,

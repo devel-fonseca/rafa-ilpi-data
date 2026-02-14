@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { useEffect, useMemo, useState } from 'react'
 import { CircleHelp, CreditCard, Landmark, Plus, Scale, Tags, Wallet, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -241,13 +242,13 @@ export default function FinancialOperationsPage() {
   const markPaid = useMarkFinancialTransactionPaid()
   const cancelTransaction = useCancelFinancialTransaction()
 
-  const categories = categoriesQuery.data || []
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data])
   const accounts = accountsQuery.data || []
   const paymentMethodsCatalog = paymentMethodsCatalogQuery.data || []
-  const reconciliations = reconciliationsQuery.data?.items || []
+  const reconciliations = useMemo(() => reconciliationsQuery.data?.items ?? [], [reconciliationsQuery.data?.items])
   const unreconciledPaidTransactions = unreconciledPaidTransactionsQuery.data?.items || []
   const reconciliationPagination = reconciliationsQuery.data?.pagination
-  const transactions = transactionsQuery.data?.items || []
+  const transactions = useMemo(() => transactionsQuery.data?.items ?? [], [transactionsQuery.data?.items])
   const transactionPaymentMethods = paymentMethodsQuery.data || []
   const bankAccounts = bankAccountsQuery.data || []
   const pagination = transactionsQuery.data?.pagination

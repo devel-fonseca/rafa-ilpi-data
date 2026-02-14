@@ -79,7 +79,7 @@ export interface CreatePaymentData {
   customerId: string
   billingType: AsaasBillingType
   value: number
-  dueDate: Date
+  dueDate: string // Data civil no formato YYYY-MM-DD
   description: string
   externalReference?: string
   installmentCount?: number

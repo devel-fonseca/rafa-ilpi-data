@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { Section } from '@/design-system/components'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

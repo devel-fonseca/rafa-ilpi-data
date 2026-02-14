@@ -1,6 +1,7 @@
 import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import axios, { AxiosInstance, AxiosError } from 'axios'
+import { parseDateOnly } from '../../utils/date.helpers'
 import {
   IPaymentGateway,
   CreateCustomerData,
@@ -131,7 +132,7 @@ export class AsaasService implements IPaymentGateway {
         customer: data.customerId,
         billingType: data.billingType,
         value: data.value,
-        dueDate: data.dueDate.toISOString().split('T')[0], // YYYY-MM-DD
+        dueDate: parseDateOnly(data.dueDate), // YYYY-MM-DD (data civil, sem conversão UTC)
         description: data.description,
         externalReference: data.externalReference,
         installmentCount: data.installmentCount,

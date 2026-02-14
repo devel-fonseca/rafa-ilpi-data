@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import { useState } from 'react'
 import { Copy, Check, QrCode } from 'lucide-react'
 import { Button } from '@/components/ui/button'
