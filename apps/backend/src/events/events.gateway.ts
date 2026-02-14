@@ -261,4 +261,51 @@ export class EventsGateway
       timestamp: new Date().toISOString(),
     });
   }
+
+  /**
+   * Broadcast de atualização do overview do dashboard administrativo.
+   * Deve ser disparado quando entidades que alimentam pendências/histórico mudarem.
+   */
+  emitDashboardOverviewUpdated(data: {
+    tenantId: string;
+    source:
+      | 'notification.created'
+      | 'notification.read'
+      | 'notification.unread'
+      | 'notification.read-all'
+      | 'notification.deleted'
+      | 'prescription.created'
+      | 'prescription.updated'
+      | 'prescription.deleted'
+      | 'resident.created'
+      | 'resident.updated'
+      | 'resident.deleted'
+      | 'resident.bed-transferred'
+      | 'bed.created'
+      | 'bed.updated'
+      | 'bed.deleted'
+      | 'bed.status-changed'
+      | 'building.created'
+      | 'building.updated'
+      | 'building.deleted'
+      | 'building.structure-created'
+      | 'floor.created'
+      | 'floor.updated'
+      | 'floor.deleted'
+      | 'room.created'
+      | 'room.updated'
+      | 'room.deleted'
+      | 'medication.administered'
+      | 'medication.sos-administered'
+      | 'medication.administration-updated'
+      | 'medication.administration-deleted'
+      | 'daily-record.created'
+      | 'alert.created'
+      | 'manual';
+  }) {
+    this.emitToTenant(data.tenantId, 'dashboard:overview-updated', {
+      source: data.source,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
