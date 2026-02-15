@@ -33,11 +33,14 @@ import { PermissionType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuditEntity, AuditAction } from '../audit/audit.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Institutional Events')
 @ApiBearerAuth()
 @Controller('institutional-events')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('agenda')
 @AuditEntity('INSTITUTIONAL_EVENTS')
 export class InstitutionalEventsController {
   constructor(

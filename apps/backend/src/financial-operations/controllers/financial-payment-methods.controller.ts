@@ -4,6 +4,8 @@ import { PermissionType } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import {
   CreatePaymentMethodDto,
   QueryPaymentMethodsDto,
@@ -14,7 +16,8 @@ import { FinancialPaymentMethodsService } from '../services/financial-payment-me
 @ApiTags('Financial Operations - Payment Methods')
 @ApiBearerAuth()
 @Controller('financial/payment-methods')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialPaymentMethodsController {
   constructor(
     private readonly paymentMethodsService: FinancialPaymentMethodsService,
@@ -49,4 +52,3 @@ export class FinancialPaymentMethodsController {
     return this.paymentMethodsService.update(id, dto);
   }
 }
-

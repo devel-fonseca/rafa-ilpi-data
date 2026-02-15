@@ -21,6 +21,8 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import {
   CreateCategoryDto,
   QueryCategoriesDto,
@@ -31,7 +33,8 @@ import { FinancialCategoriesService } from '../services/financial-categories.ser
 @ApiTags('Financial Operations - Categories')
 @ApiBearerAuth()
 @Controller('financial/categories')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialCategoriesController {
   constructor(private readonly categoriesService: FinancialCategoriesService) {}
 

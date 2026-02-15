@@ -40,11 +40,14 @@ import { RequiresReauthentication } from '../auth/decorators/requires-reauthenti
 import { ReauthenticationGuard } from '../auth/guards/reauthentication.guard';
 import { ShiftValidationGuard } from '../care-shifts/guards';
 import { CareShiftsService } from '../care-shifts/care-shifts.service';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Daily Records')
 @ApiBearerAuth()
 @Controller('daily-records')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('registros_diarios')
 @AuditEntity('DAILY_RECORD')
 export class DailyRecordsController {
   constructor(

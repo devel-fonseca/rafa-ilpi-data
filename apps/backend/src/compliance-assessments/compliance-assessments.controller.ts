@@ -34,11 +34,14 @@ import { PermissionType } from '@prisma/client';
 import { AuditAction, AuditEntity } from '../audit/audit.decorator';
 import { Request, Response } from 'express';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Compliance Assessments - RDC 502/2021')
 @ApiBearerAuth()
 @Controller('compliance-assessments')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('autodiagnostico_rdc')
 @AuditEntity('COMPLIANCE_ASSESSMENT')
 export class ComplianceAssessmentsController {
   constructor(private readonly assessmentsService: ComplianceAssessmentsService) {}

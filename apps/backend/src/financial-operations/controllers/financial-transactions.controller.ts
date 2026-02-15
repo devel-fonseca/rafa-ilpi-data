@@ -20,6 +20,8 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import {
   CreateTransactionDto,
   GenerateContractTransactionsDto,
@@ -32,7 +34,8 @@ import { FinancialTransactionsService } from '../services/financial-transactions
 @ApiTags('Financial Operations - Transactions')
 @ApiBearerAuth()
 @Controller('financial/transactions')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialTransactionsController {
   constructor(private readonly transactionsService: FinancialTransactionsService) {}
 

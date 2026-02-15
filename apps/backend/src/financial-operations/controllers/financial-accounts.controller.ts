@@ -6,6 +6,8 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import {
   CreateAccountDto,
   QueryAccountsDto,
@@ -17,7 +19,8 @@ import { FinancialAccountsService } from '../services/financial-accounts.service
 @ApiTags('Financial Operations - Accounts')
 @ApiBearerAuth()
 @Controller('financial/accounts')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialAccountsController {
   constructor(private readonly accountsService: FinancialAccountsService) {}
 

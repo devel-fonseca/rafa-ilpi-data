@@ -16,9 +16,12 @@ import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
 import { PermissionType } from '@prisma/client'
+import { FeatureGuard } from '../common/guards/feature.guard'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 
 @Controller('buildings')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('quartos')
 @AuditEntity('Building')
 export class BuildingsController {
   constructor(private readonly buildingsService: BuildingsService) {}

@@ -25,9 +25,12 @@ import { CreateTenantDocumentDto, UpdateTenantDocumentDto } from './dto'
 import { CreateTenantDocumentWithUrlDto } from './dto/create-tenant-document-with-url.dto'
 import { getRequiredDocuments, getAllDocumentTypes, getDocumentLabel, MAX_FILE_SIZE } from './config/document-requirements.config'
 import { LegalNature, PermissionType, DocumentStatus } from '@prisma/client'
+import { FeatureGuard } from '../common/guards/feature.guard'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 
 @Controller('institutional-documents')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('documentos_institucionais')
 export class InstitutionalDocumentsController {
   constructor(private readonly service: InstitutionalProfileService) {}
 

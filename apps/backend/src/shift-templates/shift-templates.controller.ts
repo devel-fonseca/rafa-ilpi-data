@@ -21,10 +21,13 @@ import { RequireAnyPermission } from '../permissions/decorators/require-permissi
 import { RequestWithUser } from '../common/types/request-with-user.type';
 import { ShiftTemplatesService } from './shift-templates.service';
 import { UpdateTenantShiftConfigDto } from './dto';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Shift Templates - Turnos Fixos')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('escalas_plantoes')
 @Controller('shift-templates')
 export class ShiftTemplatesController {
   constructor(

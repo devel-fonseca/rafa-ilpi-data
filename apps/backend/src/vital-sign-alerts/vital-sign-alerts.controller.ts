@@ -20,9 +20,12 @@ import {
   QueryVitalSignAlertsDto,
 } from './dto'
 import { AuditEntity, AuditAction } from '../audit/audit.decorator'
+import { FeatureGuard } from '../common/guards/feature.guard'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 
 @Controller('vital-sign-alerts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+@RequireFeatures('sinais_vitais')
 @AuditEntity('VITAL_SIGN_ALERT')
 export class VitalSignAlertsController {
   constructor(

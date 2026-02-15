@@ -39,6 +39,8 @@ import {
   getTemplateCount,
 } from './config/pop-templates.config'
 import { PopCategory } from '@prisma/client'
+import { FeatureGuard } from '../common/guards/feature.guard'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 
 /**
  * Controller de POPs (Procedimentos Operacionais Padrão)
@@ -52,7 +54,8 @@ import { PopCategory } from '@prisma/client'
  * - Templates
  */
 @Controller('pops')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('pops')
 export class PopsController {
   constructor(
     private readonly popsService: PopsService,

@@ -7,10 +7,13 @@ import { ReportsService } from './reports.service';
 import { MultiDayReportDto } from './dto/daily-report.dto';
 import { ResidentsListReportDto } from './dto/residents-list-report.dto';
 import { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+@RequireFeatures('relatorios')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}

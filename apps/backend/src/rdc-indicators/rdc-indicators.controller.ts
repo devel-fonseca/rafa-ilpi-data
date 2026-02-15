@@ -14,11 +14,14 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('RDC Indicators')
 @ApiBearerAuth()
 @Controller('rdc-indicators')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('indicadores_mensais')
 @AuditEntity('RDC_INDICATOR')
 export class RdcIndicatorsController {
   constructor(private readonly rdcIndicatorsService: RdcIndicatorsService) {}

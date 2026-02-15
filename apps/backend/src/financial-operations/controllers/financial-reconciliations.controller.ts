@@ -19,6 +19,8 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import {
   CreateReconciliationDto,
   QueryReconciliationsDto,
@@ -29,7 +31,8 @@ import { FinancialReconciliationsService } from '../services/financial-reconcili
 @ApiTags('Financial Operations - Closures')
 @ApiBearerAuth()
 @Controller('financial/reconciliations')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialReconciliationsController {
   constructor(
     private readonly reconciliationsService: FinancialReconciliationsService,

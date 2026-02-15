@@ -16,7 +16,7 @@ import { ACTIVE_STATUSES } from '../../payments/types/subscription-status.enum';
  *
  * Casos especiais:
  * - SUPERADMIN (tenantId = null): Acesso total sem validação
- * - TRIAL (status = 'trialing'): Acesso total durante período de teste
+ * - TRIAL: respeita as features efetivas (plano + customizações)
  * - Core Features: residentes, usuarios, prontuario sempre permitidos
  *
  * @example
@@ -71,7 +71,12 @@ export class FeatureGuard implements CanActivate {
         tenantId: user.tenantId,
         status: { in: ACTIVE_STATUSES },
       },
-      include: { plan: true },
+      include: {
+        plan: true,
+        tenant: {
+          select: { customFeatures: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -81,14 +86,28 @@ export class FeatureGuard implements CanActivate {
       );
     }
 
-    // 5. Durante TRIAL, liberar todas as features
-    const trialStatuses = ['trialing', 'TRIAL'];
-    if (trialStatuses.includes(subscription.status)) {
-      return true;
-    }
+    // 5. Resolver features efetivas:
+    // subscribedFeatures (snapshot) -> plan.features -> customFeatures (override)
+    const subscribedFeatures =
+      (subscription.subscribedFeatures as Record<string, boolean>) || {};
+    const planFeatures =
+      (subscription.plan.features as Record<string, boolean>) || {};
+    const customFeatures =
+      (subscription.tenant?.customFeatures as Record<string, boolean>) || {};
 
-    // 6. Validar se TODAS as features requeridas estão habilitadas no plano
-    const planFeatures = subscription.plan.features as Record<string, unknown>;
+    const baseFeatures =
+      Object.keys(subscribedFeatures).length > 0
+        ? subscribedFeatures
+        : planFeatures;
+
+    const effectiveFeatures: Record<string, boolean> = { ...baseFeatures };
+    Object.entries(customFeatures).forEach(([key, value]) => {
+      if (value === false) {
+        delete effectiveFeatures[key];
+      } else if (value === true) {
+        effectiveFeatures[key] = true;
+      }
+    });
 
     // Filtrar apenas features não-core para validação
     const nonCoreFeatures = requiredFeatures.filter(
@@ -96,7 +115,7 @@ export class FeatureGuard implements CanActivate {
     );
 
     const missingFeatures = nonCoreFeatures.filter(
-      (feature) => planFeatures[feature] !== true,
+      (feature) => effectiveFeatures[feature] !== true,
     );
 
     if (missingFeatures.length > 0) {

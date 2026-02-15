@@ -31,10 +31,13 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequireAnyPermission } from '../permissions/decorators/require-permissions.decorator';
 import { RequestWithUser } from '../common/types/request-with-user.type';
 import { PermissionType } from '@prisma/client';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Teams - Equipes de Cuidadores')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('escalas_plantoes')
 @Controller('teams')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}

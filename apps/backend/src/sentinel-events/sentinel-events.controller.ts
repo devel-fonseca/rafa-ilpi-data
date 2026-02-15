@@ -23,11 +23,14 @@ import { PermissionsGuard } from '../permissions/guards/permissions.guard';
 import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
 import { PermissionType } from '@prisma/client';
 import { AuditEntity } from '../audit/audit.decorator';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('Sentinel Events')
 @ApiBearerAuth()
 @Controller('sentinel-events')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('eventos_sentinela')
 @AuditEntity('SENTINEL_EVENT')
 export class SentinelEventsController {
   constructor(private readonly sentinelEventsService: SentinelEventsService) {}

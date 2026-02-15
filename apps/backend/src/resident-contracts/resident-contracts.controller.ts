@@ -36,6 +36,8 @@ import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
 import { ContractDocumentStatus, PermissionType } from '@prisma/client';
 import { parseISO } from 'date-fns';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 /**
  * Controlador geral de contratos (multi-residente)
@@ -45,7 +47,8 @@ import { parseISO } from 'date-fns';
 @ApiTags('Resident Contracts')
 @ApiBearerAuth()
 @Controller('resident-contracts')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('contratos')
 @AuditEntity('RESIDENT_CONTRACT')
 export class ResidentContractsGeneralController {
   constructor(private readonly contractsService: ResidentContractsService) {}
@@ -114,7 +117,8 @@ export class ResidentContractsGeneralController {
 @ApiTags('Resident Contracts')
 @ApiBearerAuth()
 @Controller('residents/:residentId/contracts')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('contratos')
 @AuditEntity('RESIDENT_CONTRACT')
 export class ResidentContractsController {
   constructor(private readonly contractsService: ResidentContractsService) {}

@@ -26,11 +26,14 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('SOS Medications')
 @ApiBearerAuth()
 @Controller('sos-medications')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
+@RequireFeatures('medicacoes')
 @AuditEntity('SOS_MEDICATION')
 export class SOSMedicationsController {
   constructor(

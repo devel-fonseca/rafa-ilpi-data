@@ -4,13 +4,16 @@ import { PermissionType } from '@prisma/client';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RequirePermissions } from '../../permissions/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../../permissions/guards/permissions.guard';
+import { FeatureGuard } from '../../common/guards/feature.guard';
+import { RequireFeatures } from '../../common/decorators/require-features.decorator';
 import { QueryReferenceDataDto } from '../dto';
 import { FinancialReferenceDataService } from '../services/financial-reference-data.service';
 
 @ApiTags('Financial Operations - Reference Data')
 @ApiBearerAuth()
 @Controller('financial/reference-data')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('financeiro_operacional')
 export class FinancialReferenceDataController {
   constructor(
     private readonly referenceDataService: FinancialReferenceDataService,
@@ -30,4 +33,3 @@ export class FinancialReferenceDataController {
     return this.referenceDataService.listBankAccounts(query.activeOnly);
   }
 }
-

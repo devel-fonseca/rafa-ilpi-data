@@ -31,10 +31,13 @@ import { RequirePermissions } from '../permissions/decorators/require-permission
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PermissionType } from '@prisma/client';
 import { parseDateOnly } from '../utils/date.helpers';
+import { FeatureGuard } from '../common/guards/feature.guard';
+import { RequireFeatures } from '../common/decorators/require-features.decorator';
 
 @ApiTags('vital-signs')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
+@RequireFeatures('sinais_vitais')
 @Controller('vital-signs')
 export class VitalSignsController {
   constructor(private readonly vitalSignsService: VitalSignsService) {}

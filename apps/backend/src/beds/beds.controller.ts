@@ -20,14 +20,17 @@ import { AuditAction, AuditEntity } from '../audit/audit.decorator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../permissions/guards/permissions.guard'
 import { PermissionType } from '@prisma/client'
+import { FeatureGuard } from '../common/guards/feature.guard'
+import { RequireFeatures } from '../common/decorators/require-features.decorator'
 
 @Controller('beds')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
 @AuditEntity('Bed')
 export class BedsController {
   constructor(private readonly bedsService: BedsService) {}
 
   @Post()
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('CREATE')
   create(
@@ -37,6 +40,7 @@ export class BedsController {
   }
 
   @Get()
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findAll(
     @Query('skip') skip?: string,
@@ -53,12 +57,14 @@ export class BedsController {
   }
 
   @Get('stats/occupancy')
+  @RequireFeatures('mapa_leitos')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getOccupancyStats() {
     return this.bedsService.getOccupancyStats()
   }
 
   @Get('map/full')
+  @RequireFeatures('mapa_leitos')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getFullMap(
     @Query('buildingId') buildingId?: string
@@ -67,6 +73,7 @@ export class BedsController {
   }
 
   @Get('status-history')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   getBedStatusHistory(
     @Query('bedId') bedId?: string,
@@ -81,12 +88,14 @@ export class BedsController {
   }
 
   @Get(':id')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.VIEW_BEDS)
   findOne(@Param('id') id: string) {
     return this.bedsService.findOne(id)
   }
 
   @Patch(':id')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('UPDATE')
   update(
@@ -97,6 +106,7 @@ export class BedsController {
   }
 
   @Delete(':id')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('DELETE')
   remove(@Param('id') id: string) {
@@ -104,6 +114,7 @@ export class BedsController {
   }
 
   @Post(':id/reserve')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('RESERVE_BED')
   @HttpCode(HttpStatus.OK)
@@ -116,6 +127,7 @@ export class BedsController {
   }
 
   @Post(':id/block')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('BLOCK_BED')
   @HttpCode(HttpStatus.OK)
@@ -128,6 +140,7 @@ export class BedsController {
   }
 
   @Post(':id/release')
+  @RequireFeatures('gestao_leitos')
   @RequirePermissions(PermissionType.MANAGE_INFRASTRUCTURE)
   @AuditAction('RELEASE_BED')
   @HttpCode(HttpStatus.OK)
