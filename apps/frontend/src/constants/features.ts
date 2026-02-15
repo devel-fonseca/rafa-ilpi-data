@@ -49,6 +49,8 @@ export const FEATURES_MAP: Record<string, string> = {
   'gestao_leitos': 'Gestão de Leitos',
   'pops': 'POPs (Procedimentos Operacionais Padrão)',
   'contratos': 'Contratos do residente',
+  'financeiro_operacional': 'Financeiro Operacional',
+  'relatorios': 'Relatórios',
 
   // Comunicação
   'mensagens': 'Mensagens internas',
@@ -84,6 +86,8 @@ export const FEATURES_MAP: Record<string, string> = {
   'Gestão de Leitos': 'Gestão de Leitos',
   'POPs (Procedimentos Operacionais Padrão)': 'POPs (Procedimentos Operacionais Padrão)',
   'Contratos do residente': 'Contratos do residente',
+  'Financeiro Operacional': 'Financeiro Operacional',
+  'Relatórios': 'Relatórios',
 
   // Comunicação
   'Mensagens internas': 'Mensagens internas',
@@ -146,6 +150,8 @@ export const AVAILABLE_FEATURES = [
   'Gestão de Leitos',
   'POPs (Procedimentos Operacionais Padrão)',
   'Contratos do residente',
+  'Financeiro Operacional',
+  'Relatórios',
 
   // ═══════════════════════════════════════════════════════════════
   // COMUNICAÇÃO

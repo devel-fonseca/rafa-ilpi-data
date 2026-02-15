@@ -551,11 +551,13 @@ export const router = createBrowserRouter([
       {
         path: 'financeiro',
         element: (
-          <ProtectedRoute
-            requiredPermissions={[PermissionType.VIEW_FINANCIAL_OPERATIONS]}
-          >
-            <FinancialOperationsPage />
-          </ProtectedRoute>
+          <FeatureGate featureKey="financeiro_operacional">
+            <ProtectedRoute
+              requiredPermissions={[PermissionType.VIEW_FINANCIAL_OPERATIONS]}
+            >
+              <FinancialOperationsPage />
+            </ProtectedRoute>
+          </FeatureGate>
         ),
       },
       {
@@ -593,9 +595,11 @@ export const router = createBrowserRouter([
       {
         path: 'relatorios',
         element: (
-          <ProtectedRoute requiredPermissions={[PermissionType.VIEW_REPORTS]}>
-            <Outlet />
-          </ProtectedRoute>
+          <FeatureGate featureKey="relatorios">
+            <ProtectedRoute requiredPermissions={[PermissionType.VIEW_REPORTS]}>
+              <Outlet />
+            </ProtectedRoute>
+          </FeatureGate>
         ),
         children: [
           {
