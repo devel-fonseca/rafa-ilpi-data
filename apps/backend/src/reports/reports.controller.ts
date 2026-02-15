@@ -9,16 +9,20 @@ import { ResidentsListReportDto } from './dto/residents-list-report.dto';
 import { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
 import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+import { PermissionType } from '@prisma/client';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, FeatureGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard)
 @RequireFeatures('relatorios')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('daily')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
   @ApiOperation({ summary: 'Gerar relatório diário ou multi-dia' })
   @ApiQuery({ name: 'startDate', required: true, type: String, description: 'Data inicial (YYYY-MM-DD)' })
   @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Data final (YYYY-MM-DD). Se não fornecida, retorna apenas startDate' })
@@ -41,6 +45,7 @@ export class ReportsController {
   }
 
   @Get('residents')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
   @ApiOperation({ summary: 'Gerar relatório de lista de residentes' })
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filtrar por status (Ativo, Inativo, Falecido). Padrão: Ativo' })
   @ApiResponse({
@@ -59,6 +64,7 @@ export class ReportsController {
   }
 
   @Get('resident-care-summary/:residentId')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
   @ApiOperation({ summary: 'Gerar resumo assistencial do residente' })
   @ApiParam({ name: 'residentId', required: true, type: String, description: 'ID do residente (UUID)' })
   @ApiResponse({
