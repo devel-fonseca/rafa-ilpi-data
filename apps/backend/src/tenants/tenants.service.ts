@@ -22,6 +22,7 @@ import * as crypto from 'crypto';
 import { TenantStatus, Prisma, PositionCode, FinancialCategoryType } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { execSync } from 'child_process';
+import { normalizeFeatureRecord } from '../common/utils/feature-keys.util';
 
 @Injectable()
 export class TenantsService {
@@ -1312,8 +1313,9 @@ export class TenantsService {
     // 3. customFeatures: overrides do SuperAdmin (adição/remoção manual)
     const subscribedFeatures = (subscription.subscribedFeatures as Record<string, boolean>) || {};
     const planFeatures = (plan.features as Record<string, boolean>) || {};
-    const customFeatures =
-      (tenant.customFeatures as Record<string, boolean>) || {};
+    const customFeatures = normalizeFeatureRecord(
+      tenant.customFeatures as Record<string, boolean>,
+    );
 
     // Base: usar features assinadas, ou features do plano como fallback
     const baseFeatures = Object.keys(subscribedFeatures).length > 0

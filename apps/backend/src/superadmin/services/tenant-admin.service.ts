@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { Prisma, TenantStatus } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ACTIVE_STATUSES } from '../../payments/types/subscription-status.enum'
+import { normalizeFeatureRecord } from '../../common/utils/feature-keys.util'
 
 interface FindAllFilters {
   status?: TenantStatus
@@ -329,7 +330,7 @@ export class TenantAdminService {
             ? Prisma.JsonNull
             : customization.customFeatures === undefined
               ? undefined
-              : customization.customFeatures,
+              : normalizeFeatureRecord(customization.customFeatures),
       },
       include: {
         subscriptions: {

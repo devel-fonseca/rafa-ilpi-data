@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACTIVE_STATUSES } from '../../payments/types/subscription-status.enum';
+import { normalizeFeatureRecord } from '../utils/feature-keys.util';
 
 /**
  * FeatureGuard - Guard para validar acesso baseado em features do plano
@@ -92,8 +93,9 @@ export class FeatureGuard implements CanActivate {
       (subscription.subscribedFeatures as Record<string, boolean>) || {};
     const planFeatures =
       (subscription.plan.features as Record<string, boolean>) || {};
-    const customFeatures =
-      (subscription.tenant?.customFeatures as Record<string, boolean>) || {};
+    const customFeatures = normalizeFeatureRecord(
+      subscription.tenant?.customFeatures as Record<string, boolean>,
+    );
 
     const baseFeatures =
       Object.keys(subscribedFeatures).length > 0

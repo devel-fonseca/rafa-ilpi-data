@@ -43,6 +43,7 @@ import {
   AddMemberDto,
   CreateHandoverDto,
 } from './dto';
+import { normalizeFeatureRecord } from '../common/utils/feature-keys.util';
 
 /**
  * Valores padronizados para TeamMember.role
@@ -149,7 +150,9 @@ export class CareShiftsService {
       (subscription.plan.features as Record<string, boolean>) || {};
     const subscribedFeatures =
       (subscription.subscribedFeatures as Record<string, boolean>) || {};
-    const customFeatures = (tenant?.customFeatures as Record<string, boolean>) || {};
+    const customFeatures = normalizeFeatureRecord(
+      tenant?.customFeatures as Record<string, boolean>,
+    );
 
     const baseFeatures =
       Object.keys(subscribedFeatures).length > 0
