@@ -22,14 +22,18 @@ import {
 } from 'lucide-react'
 import { formatDateOnlySafe } from '@/utils/dateHelpers'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { useFeatures } from '@/hooks/useFeatures'
 
 export default function ResidentContractView() {
   const navigate = useNavigate()
   const { residentId, contractId } = useParams()
   const { hasPermission } = usePermissions()
+  const { hasFeature } = useFeatures()
 
   const canViewContracts = hasPermission(PermissionType.VIEW_CONTRACTS)
-  const canViewFinancial = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
+  const canViewFinancial =
+    hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS) &&
+    hasFeature('financeiro_operacional')
 
   // Buscar contrato
   const { data: contract, isLoading, error } = useQuery<ResidentContract>({

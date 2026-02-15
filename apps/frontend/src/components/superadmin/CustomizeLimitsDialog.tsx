@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Settings2, X, Plus, Lock } from 'lucide-react'
 import {
   Dialog,
@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCustomizeTenantLimits, useTenantEffectiveLimits } from '@/hooks/useSuperAdmin'
 import { useToast } from '@/components/ui/use-toast'
-import { AVAILABLE_FEATURES, CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
+import { CORE_FEATURES, FEATURES_MAP } from '@/constants/features'
 import type { Tenant } from '@/api/superadmin.api'
 
 // Helper para obter nome humanizado de uma feature
@@ -123,6 +123,18 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
   const baseFeatures = Object.keys(subscribedFeatures).length > 0
     ? subscribedFeatures
     : basePlanFeatures
+
+  const availableFeatureKeys = useMemo(
+    () =>
+      Object.keys(FEATURES_MAP).filter(
+        (featureKey) =>
+          !featureKey.includes(' ') &&
+          !(CORE_FEATURES as readonly string[]).includes(featureKey) &&
+          !(baseFeatures && baseFeatures[featureKey] === true) &&
+          customFeatures[featureKey] !== true
+      ),
+    [baseFeatures, customFeatures]
+  )
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -361,10 +373,15 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
                               : 'bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer pr-1'
                           }
                           onClick={() => {
-                            setCustomFeatures((prev) => ({
-                              ...prev,
-                              [feature]: isRemoved ? undefined : false,
-                            }))
+                            setCustomFeatures((prev) => {
+                              const next = { ...prev }
+                              if (isRemoved) {
+                                delete next[feature]
+                              } else {
+                                next[feature] = false
+                              }
+                              return next
+                            })
                           }}
                         >
                           {getFeatureName(feature)}
@@ -426,28 +443,13 @@ export function CustomizeLimitsDialog({ tenant }: CustomizeLimitsDialogProps) {
             )}
 
             {/* Features Disponíveis para Adicionar */}
-            {AVAILABLE_FEATURES.filter(
-              (f) =>
-                !(CORE_FEATURES as readonly string[]).includes(f) &&
-                !(baseFeatures && baseFeatures[f] === true) &&
-                customFeatures[f] !== true
-            ).length > 0 && (
+            {availableFeatureKeys.length > 0 && (
               <div className="p-3 bg-white rounded-md border border-slate-200">
                 <p className="text-xs font-medium text-slate-600 mb-2">
-                  ➕ Adicionar Features ({AVAILABLE_FEATURES.filter(
-                    (f) =>
-                      !(CORE_FEATURES as readonly string[]).includes(f) &&
-                      !(baseFeatures && baseFeatures[f] === true) &&
-                      customFeatures[f] !== true
-                  ).length} disponíveis):
+                  ➕ Adicionar Features ({availableFeatureKeys.length} disponíveis):
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {AVAILABLE_FEATURES.filter(
-                    (f) =>
-                      !(CORE_FEATURES as readonly string[]).includes(f) &&
-                      !(baseFeatures && baseFeatures[f] === true) &&
-                      customFeatures[f] !== true
-                  ).map((feature, idx) => (
+                  {availableFeatureKeys.map((feature, idx) => (
                     <Badge
                       key={idx}
                       variant="outline"

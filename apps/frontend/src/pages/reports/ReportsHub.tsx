@@ -31,6 +31,7 @@ import { useAuthStore } from '@/stores/auth.store'
 import { useQuery } from '@tanstack/react-query'
 import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
 import { getCurrentDate } from '@/utils/dateHelpers'
+import { useFeatures } from '@/hooks/useFeatures'
 
 // ========== COMPONENT ==========
 
@@ -41,10 +42,13 @@ export default function ReportsHub() {
   const [recentReports, setRecentReports] = React.useState<RecentReport[]>([])
   const [isShiftDialogOpen, setIsShiftDialogOpen] = React.useState(false)
   const [selectedShiftTemplateId, setSelectedShiftTemplateId] = React.useState('')
+  const { hasFeature } = useFeatures()
+  const hasCareShiftsFeature = hasFeature('escalas_plantoes')
 
   const { data: availableShifts = [], isLoading: isLoadingShifts } = useQuery({
     queryKey: ['available-shift-templates'],
     queryFn: getAvailableShiftTemplates,
+    enabled: hasCareShiftsFeature,
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 
@@ -155,6 +159,10 @@ export default function ReportsHub() {
     }
 
     if (itemId === 'shift-report') {
+      if (!hasCareShiftsFeature) {
+        navigate('/dashboard/relatorios/diario')
+        return
+      }
       setIsShiftDialogOpen(true)
       return
     }

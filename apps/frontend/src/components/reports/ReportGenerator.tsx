@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { useQuery } from '@tanstack/react-query'
 import { getAvailableShiftTemplates } from '@/api/care-shifts/shift-templates.api'
 import type { ReportFilters, ReportType, ShiftType, RecordTypeFilter, ReportFormat } from '@/types/reportsHub'
+import { useFeatures } from '@/hooks/useFeatures'
 
 // ========== VALIDATION SCHEMA ==========
 
@@ -72,10 +73,14 @@ export function ReportGenerator({
   isLoading = false,
   residents = [],
 }: ReportGeneratorProps) {
+  const { hasFeature } = useFeatures()
+  const hasCareShiftsFeature = hasFeature('escalas_plantoes')
+
   // Buscar templates de turnos disponíveis
   const { data: availableShifts = [], isLoading: isLoadingShifts } = useQuery({
     queryKey: ['available-shift-templates'],
     queryFn: getAvailableShiftTemplates,
+    enabled: hasCareShiftsFeature,
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 
