@@ -6,6 +6,23 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2026-02-15] - Feature Gate Completo (Backend + Frontend) + Ajuste Trial 🔐
+
+### ✨ Adicionado
+
+- **Novas features no sistema:** `financeiro_operacional` (Financeiro Operacional) e `relatorios` (Relatórios) registradas em `features.ts` (FEATURES_MAP, AVAILABLE_FEATURES, mapeamento idempotente)
+- **FeatureGate frontend:** Rotas `/financeiro` e `/relatorios` protegidas com `<FeatureGate>` em `routes/index.tsx`
+- **@RequireFeatures backend em 22+ controllers:** Proteção completa adicionada a todos os módulos que tinham apenas FeatureGate no frontend:
+  - `registros_diarios`, `sinais_vitais`, `pops`, `eventos_sentinela`, `autodiagnostico_rdc`, `indicadores_mensais`, `documentos_institucionais`, `agenda`, `relatorios`, `contratos`
+  - `financeiro_operacional` (6 controllers), `quartos` (3 controllers), `gestao_leitos`/`mapa_leitos`, `escalas_plantoes` (2 controllers), `medicacoes` (2 controllers auxiliares)
+
+### 📝 Alterado
+
+- **FeatureGuard (feature.guard.ts):** Removido bypass total de trial — agora trial respeita features efetivas do plano + customizações do SuperAdmin. Guard calcula features em 3 camadas: `subscribedFeatures` → `plan.features` → `tenant.customFeatures`. SUPERADMIN mantém bypass total
+- **UpgradePlanCard:** Visual atualizado com ícone de cadeado amarelo e card de dica "💡 Faça upgrade..." — consistente com modal do Hub de Conformidade
+
+---
+
 ## [2026-02-07] - Correção de Comparação de Datas em Tarefas Diárias 🔧
 
 ### 🔧 Corrigido

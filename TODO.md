@@ -1,6 +1,6 @@
 # TODO - Tarefas Ativas
 
-**Última atualização:** 30/12/2025
+**Última atualização:** 15/02/2026
 
 > **Nota:** Este arquivo contém APENAS tarefas ativas e pendentes.
 > Histórico completo de implementações está em [CHANGELOG.md](CHANGELOG.md).
@@ -245,4 +245,4 @@ _Nenhuma tarefa em andamento no momento._
 
 ---
 
-**Última revisão:** 30/12/2025 por Claude Sonnet 4.5
+**Última revisão:** 15/02/2026 por Claude Opus 4.6
