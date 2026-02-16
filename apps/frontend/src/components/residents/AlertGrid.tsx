@@ -49,6 +49,12 @@ export function AlertGrid({ alerts }: AlertGridProps) {
           description={selectedAlert.description}
           type={selectedAlert.type}
           residents={selectedAlert.residents}
+          actionType={
+            selectedAlert.action.filter === 'without-bed' ? 'assign-bed'
+            : selectedAlert.action.filter === 'without-guardian' ? 'assign-guardian'
+            : selectedAlert.action.filter === 'without-emergency-contact' ? 'assign-emergency-contact'
+            : undefined
+          }
         />
       )}
     </>
