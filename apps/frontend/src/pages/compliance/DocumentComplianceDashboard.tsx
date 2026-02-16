@@ -19,7 +19,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { formatDate, formatLegalNature } from '@/utils/formatters'
-import { Page, PageHeader } from '@/design-system/components'
+import { Page, PageHeader, StatCard } from '@/design-system/components'
 import { useNavigate } from 'react-router-dom'
 import { DocumentUploadModal } from '@/pages/institutional-profile/DocumentUploadModal'
 import { DocumentViewerModal } from '@/components/shared/DocumentViewerModal'
@@ -42,35 +42,6 @@ const statusIcons = {
   VENCENDO: AlertTriangle,
   VENCIDO: XCircle,
   PENDENTE: Clock,
-}
-
-/**
- * Componente de card de estatística
- */
-interface StatCardProps {
-  title: string
-  value: number
-  icon: React.ElementType
-  iconColor: string
-  bgColor: string
-}
-
-function StatCard({ title, value, icon: Icon, iconColor, bgColor }: StatCardProps) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold mt-2">{value}</p>
-          </div>
-          <div className={`h-12 w-12 rounded-full ${bgColor} flex items-center justify-center`}>
-            <Icon className={`h-6 w-6 ${iconColor}`} />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
 }
 
 /**
@@ -220,36 +191,31 @@ export default function DocumentComplianceDashboard() {
             title="Total de Documentos"
             value={totalDocuments}
             icon={FileText}
-            iconColor="text-primary"
-            bgColor="bg-primary/10"
+            variant="primary"
           />
           <StatCard
             title="Documentos OK"
             value={okDocuments}
             icon={CheckCircle}
-            iconColor="text-success"
-            bgColor="bg-success/10"
+            variant="success"
           />
           <StatCard
             title="Vencendo"
             value={expiringDocuments}
             icon={AlertTriangle}
-            iconColor="text-warning"
-            bgColor="bg-warning/10"
+            variant="warning"
           />
           <StatCard
             title="Vencidos"
             value={expiredDocuments}
             icon={XCircle}
-            iconColor="text-danger"
-            bgColor="bg-danger/10"
+            variant="danger"
           />
           <StatCard
             title="Pendentes"
             value={pendingDocuments}
             icon={Clock}
-            iconColor="text-muted-foreground"
-            bgColor="bg-muted"
+            variant="secondary"
           />
         </div>
 
