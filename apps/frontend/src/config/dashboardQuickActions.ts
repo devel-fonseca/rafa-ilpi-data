@@ -140,14 +140,6 @@ const DASHBOARD_QUICK_ACTIONS: Record<
   ],
   caregiver: [
     {
-      id: 'agenda_today',
-      title: 'Agenda de Hoje',
-      description: 'Ver atividades e horários do dia',
-      icon: Calendar,
-      to: '/dashboard/agenda',
-      visibleFor: [PositionCode.CAREGIVER],
-    },
-    {
       id: 'daily_records',
       title: 'Registros Diários',
       description: 'Registrar atividades do dia',
@@ -156,11 +148,11 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       visibleFor: [PositionCode.CAREGIVER],
     },
     {
-      id: 'resident_panel',
-      title: 'Painel do Residente',
-      description: 'Visualização rápida de informações',
-      icon: Users,
-      to: '/dashboard/painel-residente',
+      id: 'prescriptions',
+      title: 'Prescrições',
+      description: 'Painel de prescrições',
+      icon: Pill,
+      to: '/dashboard/prescricoes/painel',
       visibleFor: [PositionCode.CAREGIVER],
     },
   ],

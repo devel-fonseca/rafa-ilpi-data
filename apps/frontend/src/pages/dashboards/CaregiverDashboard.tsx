@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCaregiverTasks } from '@/hooks/useCaregiverTasks'
 import { CaregiverStatsCards } from '@/components/caregiver/CaregiverStatsCards'
 import { UniversalSearch } from '@/components/common/UniversalSearch'
+import { DashboardQuickActions } from '@/components/dashboard/DashboardQuickActions'
 import { PendingActivities } from '@/components/dashboard/PendingActivities'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
 import { TasksSection } from '@/components/caregiver/TasksSection'
@@ -416,12 +417,20 @@ export function CaregiverDashboard() {
         </div>
       )}
 
-      {/* Busca Universal */}
-      <UniversalSearch
-        onAfterSelectResident={() => {
-          // Componente UniversalSearch já controla o modal internamente
-        }}
-      />
+      {/* Toolbar + Busca */}
+      <div className="mb-6 pb-3 border-b border-border/60 flex flex-col lg:flex-row lg:items-center gap-3">
+        <DashboardQuickActions
+          context="caregiver"
+          positionCode={user?.profile?.positionCode}
+          mode="toolbar"
+          className="lg:shrink-0"
+        />
+        <UniversalSearch
+          variant="plain"
+          className="mb-0 flex-1 min-w-0"
+          onAfterSelectResident={() => {}}
+        />
+      </div>
 
       {/* Cards de estatísticas */}
       <Section title="Estatísticas do Dia">

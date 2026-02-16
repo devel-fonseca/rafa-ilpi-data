@@ -62,6 +62,9 @@ export function DashboardLayout() {
   const canViewReports = hasPermission(PermissionType.VIEW_REPORTS)
   const canViewFinancialOperations = hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS)
 
+  // Cuidadores não veem sidebar (usam toolbar no dashboard)
+  const isCaregiver = user?.profile?.positionCode === 'CAREGIVER'
+
   // Carregar/atualizar foto do perfil e cargo do usuário
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -152,15 +155,17 @@ export function DashboardLayout() {
           <div className="flex justify-between items-center h-16">
             {/* Mobile: Menu + Logo + Name */}
             <div className="flex items-center gap-3 md:flex-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden"
-                aria-label="Abrir menu de navegação"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+              {!isCaregiver && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="md:hidden"
+                  aria-label="Abrir menu de navegação"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              )}
               <Building2 className="h-8 w-8 text-primary" />
               <div className="hidden sm:block">
                 <h1 className="text-xl font-semibold text-foreground">
@@ -342,7 +347,7 @@ export function DashboardLayout() {
       {/* Sidebar + Content */}
       <div className="flex min-h-[calc(100vh-4rem)]">
         {/* Desktop Sidebar */}
-        <aside className={`hidden md:block bg-card border-r transition-all duration-300 ${
+        <aside className={`hidden ${isCaregiver ? '' : 'md:block'} bg-card border-r transition-all duration-300 ${
           preferences.sidebarCollapsed ? 'w-16' : 'w-64'
         }`}>
           <nav className="p-2 space-y-1">
@@ -747,6 +752,7 @@ export function DashboardLayout() {
         </aside>
 
         {/* Mobile Sidebar */}
+        {!isCaregiver && (
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
           <SheetContent side="left" className="w-64 p-0 md:hidden">
             <nav className="p-4 space-y-1">
@@ -980,6 +986,7 @@ export function DashboardLayout() {
             </nav>
           </SheetContent>
         </Sheet>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
