@@ -367,6 +367,55 @@ describe('Resident Versioning System (E2E)', () => {
       expect(history[2].changeType).toBe('UPDATE')
       expect(history[3].changeType).toBe('UPDATE')
     })
+
+    it('deve preservar emergencyContacts quando update parcial não envia esse campo', async () => {
+      const cpf = `9${Date.now().toString().slice(-10)}`
+
+      const createdResident = await request(app.getHttpServer())
+        .post('/residents')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          admissionDate: '2024-01-01',
+          cpf,
+          fullName: 'Teste Contato Emergência',
+          gender: 'FEMININO',
+          birthDate: '1950-05-15',
+          status: 'Ativo',
+          emergencyContacts: [
+            {
+              name: 'Contato Original',
+              phone: '(11) 99999-9999',
+              relationship: 'Filha',
+            },
+          ],
+        })
+        .expect(201)
+
+      const partialUpdate = await request(app.getHttpServer())
+        .patch(`/residents/${createdResident.body.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          fullName: 'Teste Contato Emergência Atualizado',
+          changeReason: 'Atualização parcial sem alterar contatos de emergência',
+        })
+        .expect(200)
+
+      expect(partialUpdate.body.emergencyContacts).toHaveLength(1)
+      expect(partialUpdate.body.emergencyContacts[0].name).toBe('Contato Original')
+      expect(partialUpdate.body.emergencyContacts[0].phone).toBe('(11) 99999-9999')
+      expect(partialUpdate.body.emergencyContacts[0].relationship).toBe('Filha')
+
+      const latestHistory = await prisma.residentHistory.findFirst({
+        where: {
+          residentId: createdResident.body.id,
+          versionNumber: 2,
+        },
+      })
+
+      expect(latestHistory).not.toBeNull()
+      expect(latestHistory!.changedFields).toContain('fullName')
+      expect(latestHistory!.changedFields).not.toContain('emergencyContacts')
+    })
   })
 
   describe('3. DELETE - Remoção com changeReason Obrigatório', () => {

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useFormContext, Controller } from 'react-hook-form'
+import { Info } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import { BedSearchCombobox } from '@/components/beds/BedSearchCombobox'
 import type { ResidentFormData } from './types'
@@ -120,9 +127,21 @@ export function AdmissaoSection({ readOnly = false }: AdmissaoSectionProps) {
 
       {/* Acomodação */}
       <div>
-        <h4 className="font-medium text-sm text-muted-foreground mb-4">
-          Acomodação
-        </h4>
+        <div className="flex items-center gap-1.5 mb-4">
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Acomodação
+          </h4>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger type="button">
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Vincule um leito ao residente para organizar a assistência e facilitar o acompanhamento da rotina.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <Controller
           name="leitoNumero"
           control={control}

@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useFormContext, Controller } from 'react-hook-form'
+import { Info } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -12,6 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { PhotoUploadNew } from '@/components/form/PhotoUploadNew'
 import { MaskedInput } from '@/components/form/MaskedInput'
 import type { ResidentFormData, CpfValidation, CnsValidation } from './types'
@@ -92,9 +99,21 @@ export function IdentificacaoSection({
       {/* Data de Nascimento e CNS - uma linha */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 md:col-span-4">
-          <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
-            Data de Nascimento
-          </Label>
+          <div className="flex items-center gap-1.5">
+            <Label className="after:content-['*'] after:ml-0.5 after:text-danger">
+              Data de Nascimento
+            </Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger type="button">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Residentes devem ter 60 anos ou mais (art. 2º, RDC nº 502/2021).</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <Controller
             name="dataNascimento"
             control={control}

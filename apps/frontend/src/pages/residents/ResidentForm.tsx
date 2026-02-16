@@ -174,12 +174,12 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
   // Calcula feedback de idade
   const getBirthDateFeedback = (): { message: string; isError: boolean } | null => {
     if (!watchDataNascimento || watchDataNascimento.length !== 10) {
-      return { message: 'Critério etário: 60 anos ou mais (art. 2º, RDC nº 502/2021).', isError: false }
+      return null
     }
 
     const [day, month, year] = watchDataNascimento.split('/').map(Number)
     if (!day || !month || !year || year < 1900) {
-      return { message: 'Critério etário: 60 anos ou mais (art. 2º, RDC nº 502/2021).', isError: false }
+      return null
     }
 
     const birthDate = new Date(year, month - 1, day)
@@ -195,7 +195,7 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
 
     if (age < 60) {
       return {
-        message: 'Residente deve ter idade igual ou superior a 60 anos (RDC 502/2021 Art. 2º)',
+        message: 'Idade inferior a 60 anos',
         isError: true,
       }
     }
@@ -750,8 +750,15 @@ export function ResidentForm({ readOnly = false }: ResidentFormProps = {}) {
                 <Card className="bg-info/10 border-info/30">
                   <CardContent className="p-4">
                     <p className="text-xs text-info">
-                      O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo{' '}
-                      <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.
+                      {activeSection === 'responsavel'
+                        ? 'Registre o responsável legal para assegurar a representação do residente quando necessária.'
+                        : activeSection === 'contatos'
+                        ? 'Cadastre um contato para viabilizar comunicação imediata em intercorrências.'
+                        : activeSection === 'convenios'
+                        ? 'Cadastre o convênio, se houver, para manter as informações administrativas atualizadas.'
+                        : <>O preenchimento dos dados é exigido pelo <strong>Art. 33 da RDC 502/2021 (ANVISA)</strong> e pelo{' '}
+                          <strong>Art. 50, XV do Estatuto da Pessoa Idosa</strong>.</>
+                      }
                     </p>
                   </CardContent>
                 </Card>

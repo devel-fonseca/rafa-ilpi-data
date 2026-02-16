@@ -62,7 +62,7 @@ export class CreateResidentDto {
   @ApiProperty({ example: 'Ativo', enum: ['Ativo', 'Inativo', 'Falecido'] })
   @IsEnum(['Ativo', 'Inativo', 'Falecido'])
   @IsOptional()
-  status?: 'Ativo' | 'Inativo' | 'Falecido' = 'Ativo';
+  status?: 'Ativo' | 'Inativo' | 'Falecido';
 
   // 1. Dados Pessoais
   @ApiProperty({ example: 'João da Silva' })
@@ -136,7 +136,7 @@ export class CreateResidentDto {
   @ApiProperty({ example: 'Brasileira' })
   @IsString()
   @IsOptional()
-  nationality?: string = 'Brasileira';
+  nationality?: string;
 
   @ApiProperty({ example: 'São Paulo', required: false })
   @IsOptional()
@@ -215,7 +215,7 @@ export class CreateResidentDto {
   @ValidateNested({ each: true })
   @Type(() => EmergencyContactDto)
   @IsOptional()
-  emergencyContacts?: EmergencyContactDto[] = [];
+  emergencyContacts?: EmergencyContactDto[];
 
   // 4. Responsável Legal
   @ApiProperty({ example: 'Ana Silva', required: false })
@@ -361,7 +361,7 @@ export class CreateResidentDto {
   @ValidateNested({ each: true })
   @Type(() => HealthPlanDto)
   @IsOptional()
-  healthPlans?: HealthPlanDto[] = [];
+  healthPlans?: HealthPlanDto[];
 
   // 8. Pertences - Movido para módulo ResidentBelongings
   // Agora gerenciado via /residents/:id/belongings com termos formais
