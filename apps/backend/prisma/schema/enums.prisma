@@ -820,6 +820,7 @@ enum ContractDocumentStatus {
   VIGENTE // Contrato vigente/ativo
   VENCENDO_EM_30_DIAS // Contrato vence em 30 dias ou menos
   VENCIDO // Contrato vencido
+  RESCINDIDO // Contrato encerrado por rescisão
 
   @@map("ContractDocumentStatus")
 }

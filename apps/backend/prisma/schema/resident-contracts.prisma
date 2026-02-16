@@ -23,7 +23,8 @@ model ResidentContract {
   residentId             String                 @db.Uuid
   contractNumber         String                 @db.VarChar(100)
   startDate              DateTime               @db.Date
-  endDate                DateTime               @db.Date
+  endDate                DateTime?              @db.Date
+  isIndefinite           Boolean                @default(false)
   monthlyAmount          Decimal                @db.Decimal(10, 2)
   dueDay                 Int
   lateFeePercent         Decimal                @default(0) @db.Decimal(5, 2)
@@ -47,8 +48,12 @@ model ResidentContract {
   publicToken            String                 @unique @db.VarChar(64) // Token público para validação de autenticidade
   notes                  String?                @db.Text
   version                Int                    @default(1)
+  versionMajor           Int                    @default(1)
+  versionMinor           Int                    @default(0)
   replacedById           String?                @db.Uuid
   replacedAt             DateTime?              @db.Timestamptz(3)
+  rescindedAt            DateTime?              @db.Timestamptz(3)
+  rescissionReason       String?                @db.Text
   uploadedBy             String                 @db.Uuid
   createdAt              DateTime               @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime               @updatedAt @db.Timestamptz(3)
@@ -69,9 +74,12 @@ model ResidentContract {
   @@index([residentId])
   @@index([endDate])
   @@index([status])
+  @@index([isIndefinite])
+  @@index([rescindedAt])
   @@index([deletedAt])
   @@index([replacedById])
   @@index([version])
+  @@index([versionMajor, versionMinor])
   @@index([processedFileHash])
   @@map("resident_contracts")
 }

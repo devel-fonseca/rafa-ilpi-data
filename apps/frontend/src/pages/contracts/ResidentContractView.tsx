@@ -1,6 +1,16 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { getContractDetails, getContractHistory, type ResidentContract, type ContractHistory } from '@/services/residentContractsApi'
+import { useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  attachContractFile,
+  correctContractFile,
+  getContractDetails,
+  getContractHistory,
+  renewContract,
+  rescindContract,
+  type ResidentContract,
+  type ContractHistory,
+} from '@/services/residentContractsApi'
 import { useFinancialTransactions } from '@/hooks/useFinancialOperations'
 import { tenantKey } from '@/lib/query-keys'
 import { Page, PageHeader } from '@/design-system/components'
@@ -13,6 +23,7 @@ import {
   AlertCircle,
   FileText,
   Download,
+  Pencil,
   Calendar,
   DollarSign,
   User,
@@ -29,8 +40,14 @@ export default function ResidentContractView() {
   const { residentId, contractId } = useParams()
   const { hasPermission } = usePermissions()
   const { hasFeature } = useFeatures()
+  const queryClient = useQueryClient()
+  const attachInputRef = useRef<HTMLInputElement>(null)
+  const correctInputRef = useRef<HTMLInputElement>(null)
+  const [isBusy, setIsBusy] = useState(false)
 
   const canViewContracts = hasPermission(PermissionType.VIEW_CONTRACTS)
+  const canUpdateContracts = hasPermission(PermissionType.UPDATE_CONTRACTS)
+  const canReplaceContracts = hasPermission(PermissionType.REPLACE_CONTRACTS)
   const canViewFinancial =
     hasPermission(PermissionType.VIEW_FINANCIAL_OPERATIONS) &&
     hasFeature('financeiro_operacional')
@@ -70,6 +87,8 @@ export default function ResidentContractView() {
         return 'bg-warning/10 text-warning border-warning/30'
       case 'VENCIDO':
         return 'bg-danger/10 text-danger border-danger/30'
+      case 'RESCINDIDO':
+        return 'bg-danger/20 text-danger border-danger/40'
       default:
         return 'bg-muted text-muted-foreground border-border'
     }
@@ -84,6 +103,8 @@ export default function ResidentContractView() {
         return 'Vencendo em 30 dias'
       case 'VENCIDO':
         return 'Vencido'
+      case 'RESCINDIDO':
+        return 'Rescindido'
       default:
         return status
     }
@@ -96,6 +117,8 @@ export default function ResidentContractView() {
         return 'Residente'
       case 'RESPONSAVEL_LEGAL':
         return 'Responsável Legal'
+      case 'RESPONSAVEL_CONTRATUAL':
+        return 'Responsável Contratual'
       case 'TESTEMUNHA':
         return 'Testemunha'
       case 'ILPI':
@@ -192,6 +215,84 @@ export default function ResidentContractView() {
     }
   }
 
+  const invalidateContractQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-contracts') }),
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-contracts', residentId, contractId) }),
+      queryClient.invalidateQueries({ queryKey: tenantKey('resident-contracts', residentId, contractId, 'history') }),
+    ])
+  }
+
+  const attachMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const reason = window.prompt('Motivo (opcional) para anexar o arquivo agora:') || undefined
+      return attachContractFile(residentId!, contractId!, file, reason)
+    },
+    onSuccess: () => invalidateContractQueries(),
+  })
+
+  const correctMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const reason = window.prompt('Motivo da correção (mín. 10 caracteres):')
+      if (!reason || reason.trim().length < 10) {
+        throw new Error('Motivo de correção inválido')
+      }
+      return correctContractFile(residentId!, contractId!, file, reason.trim())
+    },
+    onSuccess: () => invalidateContractQueries(),
+  })
+
+  const renewMutation = useMutation({
+    mutationFn: async () => {
+      const startDate = window.prompt('Nova data de início (YYYY-MM-DD):')
+      if (!startDate) {
+        throw new Error('Data de início obrigatória')
+      }
+      const indefinite = (window.prompt('Prazo indeterminado? (s/n)', 'n') || 'n').toLowerCase() === 's'
+      const endDate = indefinite ? undefined : (window.prompt('Nova data de fim (YYYY-MM-DD):') || undefined)
+      if (!indefinite && !endDate) {
+        throw new Error('Data de fim obrigatória para prazo determinado')
+      }
+      const reason = window.prompt('Motivo da renovação (mín. 10 caracteres):')
+      if (!reason || reason.trim().length < 10) {
+        throw new Error('Motivo de renovação inválido')
+      }
+      return renewContract(residentId!, contractId!, {
+        startDate,
+        endDate,
+        isIndefinite: indefinite,
+        reason: reason.trim(),
+      })
+    },
+    onSuccess: () => invalidateContractQueries(),
+  })
+
+  const rescindMutation = useMutation({
+    mutationFn: async () => {
+      const reason = window.prompt('Motivo da rescisão (mín. 10 caracteres):')
+      if (!reason || reason.trim().length < 10) {
+        throw new Error('Motivo de rescisão inválido')
+      }
+      const rescindedAt = window.prompt('Data da rescisão (YYYY-MM-DD, opcional):') || undefined
+      return rescindContract(residentId!, contractId!, {
+        reason: reason.trim(),
+        rescindedAt,
+      })
+    },
+    onSuccess: () => invalidateContractQueries(),
+  })
+
+  const runWithBusyState = async (task: () => Promise<unknown>) => {
+    try {
+      setIsBusy(true)
+      await task()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
   if (!canViewContracts) {
     return (
       <Page maxWidth="default">
@@ -237,12 +338,72 @@ export default function ResidentContractView() {
         subtitle={`Residente: ${contract.resident?.fullName || 'Não informado'}`}
         backButton={{ onClick: () => navigate('/dashboard/contratos') }}
         actions={
-          contract.processedFileUrl ? (
-            <Button onClick={handleDownloadProcessed}>
-              <Download className="mr-2 h-4 w-4" />
-              Ver contrato
-            </Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            {contract.processedFileUrl ? (
+              <Button onClick={handleDownloadProcessed}>
+                <Download className="mr-2 h-4 w-4" />
+                Ver contrato
+              </Button>
+            ) : null}
+            {canReplaceContracts && !contract.processedFileUrl && (
+              <>
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    runWithBusyState(() => attachMutation.mutateAsync(file))
+                    event.currentTarget.value = ''
+                  }}
+                />
+                <Button variant="outline" onClick={() => attachInputRef.current?.click()} disabled={isBusy}>
+                  Anexar Arquivo
+                </Button>
+              </>
+            )}
+            {canReplaceContracts && contract.processedFileUrl && contract.status !== 'RESCINDIDO' && (
+              <>
+                <input
+                  ref={correctInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    runWithBusyState(() => correctMutation.mutateAsync(file))
+                    event.currentTarget.value = ''
+                  }}
+                />
+                <Button variant="outline" onClick={() => correctInputRef.current?.click()} disabled={isBusy}>
+                  Corrigir Versão
+                </Button>
+              </>
+            )}
+            {canUpdateContracts && contract.status !== 'RESCINDIDO' && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/dashboard/contratos/${residentId}/${contractId}/editar`)}
+                disabled={isBusy}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            )}
+            {canUpdateContracts && contract.status !== 'RESCINDIDO' && (
+              <Button variant="outline" onClick={() => runWithBusyState(() => renewMutation.mutateAsync())} disabled={isBusy}>
+                Renovar
+              </Button>
+            )}
+            {canUpdateContracts && contract.status !== 'RESCINDIDO' && (
+              <Button variant="destructive" onClick={() => runWithBusyState(() => rescindMutation.mutateAsync())} disabled={isBusy}>
+                Rescindir
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -280,7 +441,11 @@ export default function ResidentContractView() {
                   <p className="text-sm text-muted-foreground mb-1">Data de Fim</p>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <p className="font-medium">{formatDateOnlySafe(contract.endDate)}</p>
+                    <p className="font-medium">
+                      {contract.isIndefinite
+                        ? 'Prazo indeterminado'
+                        : (contract.endDate ? formatDateOnlySafe(contract.endDate) : 'Não informado')}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -400,7 +565,7 @@ export default function ResidentContractView() {
                 </span>
                 <span className="mx-2">•</span>
                 <span>
-                  Versão: <span className="text-foreground font-medium">v{contract.version}</span>
+                  Versão: <span className="text-foreground font-medium">v{contract.versionLabel || contract.version}</span>
                 </span>
               </div>
             </CardContent>

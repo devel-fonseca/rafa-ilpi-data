@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   FinancialCategoryType,
+  ContractDocumentStatus,
   FinancialTransactionStatus,
   FinancialTransactionType,
   Prisma,
@@ -100,9 +101,13 @@ export class FinancialContractTransactionsService {
         tenantId: this.tenantContext.tenantId,
         deletedAt: null,
         replacedById: null,
+        status: { not: ContractDocumentStatus.RESCINDIDO },
         ...(input.contractId ? { id: input.contractId } : {}),
         startDate: { lte: competenceEnd },
-        endDate: { gte: competenceStart },
+        OR: [
+          { isIndefinite: true },
+          { endDate: { gte: competenceStart } },
+        ],
       },
       select: {
         id: true,
@@ -211,4 +216,3 @@ export class FinancialContractTransactionsService {
     }
   }
 }
-

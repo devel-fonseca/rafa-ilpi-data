@@ -34,6 +34,10 @@ import { ResidentContractsService } from './resident-contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ReplaceContractFileDto } from './dto/replace-contract-file.dto';
+import { AttachContractFileDto } from './dto/attach-contract-file.dto';
+import { CorrectContractDto } from './dto/correct-contract.dto';
+import { RenewContractDto } from './dto/renew-contract.dto';
+import { RescindContractDto } from './dto/rescind-contract.dto';
 import { ContractDocumentStatus, PermissionType } from '@prisma/client';
 import { parseISO } from 'date-fns';
 import { FeatureGuard } from '../common/guards/feature.guard';
@@ -412,6 +416,88 @@ export class ResidentContractsController {
       file,
       dto,
     );
+  }
+
+  @Post(':id/attach-file')
+  @RequirePermissions(PermissionType.REPLACE_CONTRACTS)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @AuditAction('UPDATE')
+  @ApiOperation({
+    summary: 'Anexar arquivo posteriormente',
+    description:
+      'Permite anexar arquivo em contrato que foi cadastrado inicialmente sem documento.',
+  })
+  async attachFile(
+    @Param('id') contractId: string,
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
+        .addMaxSizeValidator({ maxSize: 10 * 1024 * 1024 })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+    )
+    file: Express.Multer.File,
+    @Body() dto: AttachContractFileDto,
+  ) {
+    return this.contractsService.attachFile(contractId, user.id, file, dto);
+  }
+
+  @Post(':id/correct')
+  @RequirePermissions(PermissionType.REPLACE_CONTRACTS)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @AuditAction('REPLACE')
+  @ApiOperation({
+    summary: 'Corrigir documento do contrato (versão menor x.y)',
+    description:
+      'Cria uma nova versão menor (major igual, minor +1) para correções do documento.',
+  })
+  async correctContract(
+    @Param('id') contractId: string,
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: /(jpg|jpeg|png|webp|pdf)$/ })
+        .addMaxSizeValidator({ maxSize: 10 * 1024 * 1024 })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+    )
+    file: Express.Multer.File,
+    @Body() dto: CorrectContractDto,
+  ) {
+    return this.contractsService.correctContract(contractId, user.id, file, dto);
+  }
+
+  @Post(':id/renew')
+  @RequirePermissions(PermissionType.UPDATE_CONTRACTS)
+  @AuditAction('REPLACE')
+  @ApiOperation({
+    summary: 'Renovar contrato (versão major x.0)',
+    description:
+      'Cria nova vigência como nova versão major (major +1, minor 0).',
+  })
+  async renewContract(
+    @Param('id') contractId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: RenewContractDto,
+  ) {
+    return this.contractsService.renewContract(contractId, user.id, dto);
+  }
+
+  @Post(':id/rescind')
+  @RequirePermissions(PermissionType.UPDATE_CONTRACTS)
+  @AuditAction('UPDATE')
+  @ApiOperation({
+    summary: 'Rescindir contrato',
+    description:
+      'Encerra o contrato com status RESCINDIDO, data efetiva e motivo obrigatório.',
+  })
+  async rescindContract(
+    @Param('id') contractId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: RescindContractDto,
+  ) {
+    return this.contractsService.rescindContract(contractId, user.id, dto);
   }
 
   /**

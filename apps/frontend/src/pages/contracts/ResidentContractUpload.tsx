@@ -11,6 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Select,
   SelectContent,
@@ -18,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, AlertCircle, Upload, FileText, X } from 'lucide-react'
+import { Loader2, AlertCircle, Upload, FileText, X, CircleHelp } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { ContractualResponsiblesManager } from './components/ContractualResponsiblesManager'
@@ -34,6 +41,7 @@ export default function ResidentContractUpload() {
   const [contractNumber, setContractNumber] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [isIndefinite, setIsIndefinite] = useState(false)
   const [monthlyAmount, setMonthlyAmount] = useState('')
   const [dueDay, setDueDay] = useState('10')
   const [lateFeePercent, setLateFeePercent] = useState('2')
@@ -45,6 +53,12 @@ export default function ResidentContractUpload() {
 
   const [contractualResponsibles, setContractualResponsibles] = useState<Array<{ name: string; cpf: string; role: 'RESPONSAVEL_CONTRATUAL' }>>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const parseFlexibleDecimal = (raw: string): number => {
+    const normalized = raw.replace(/\./g, '').replace(',', '.').trim()
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : NaN
+  }
 
   // Verificar permissão
   const canCreateContracts = hasPermission(PermissionType.CREATE_CONTRACTS)
@@ -121,7 +135,7 @@ export default function ResidentContractUpload() {
     if (!residentId) newErrors.residentId = 'Selecione um residente'
     if (!contractNumber.trim()) newErrors.contractNumber = 'Informe o número do contrato'
     if (!startDate) newErrors.startDate = 'Informe a data de início'
-    if (!endDate) newErrors.endDate = 'Informe a data de fim'
+    if (!isIndefinite && !endDate) newErrors.endDate = 'Informe a data de fim'
     if (!monthlyAmount) newErrors.monthlyAmount = 'Informe o valor mensal'
     if (!dueDay) newErrors.dueDay = 'Informe o dia de vencimento'
     // Arquivo é opcional
@@ -153,6 +167,13 @@ export default function ResidentContractUpload() {
       newErrors.interestMonthlyPercent = 'Juros deve estar entre 0 e 100% ao mês'
     }
 
+    if (adjustmentRate) {
+      const adjustmentRateNumber = parseFlexibleDecimal(adjustmentRate)
+      if (Number.isNaN(adjustmentRateNumber) || adjustmentRateNumber < 0 || adjustmentRateNumber > 100) {
+        newErrors.adjustmentRate = 'Taxa de reajuste deve estar entre 0 e 100%'
+      }
+    }
+
     // Validar dia de vencimento
     if (dueDay && (Number(dueDay) < 1 || Number(dueDay) > 28)) {
       newErrors.dueDay = 'Dia de vencimento deve estar entre 1 e 28'
@@ -179,14 +200,15 @@ export default function ResidentContractUpload() {
     const data: CreateContractDto = {
       contractNumber: contractNumber.trim(),
       startDate,
-      endDate,
+      endDate: isIndefinite ? undefined : endDate,
+      isIndefinite,
       monthlyAmount: Number(monthlyAmount),
       dueDay: Number(dueDay),
       lateFeePercent: Number(lateFeePercent || 0),
       interestMonthlyPercent: Number(interestMonthlyPercent || 0),
       signatories: contractualResponsibles,
       adjustmentIndex: adjustmentIndex || undefined,
-      adjustmentRate: adjustmentRate ? Number(adjustmentRate) : undefined,
+      adjustmentRate: adjustmentRate ? parseFlexibleDecimal(adjustmentRate) : undefined,
       lastAdjustmentDate: lastAdjustmentDate || undefined,
       notes: notes || undefined,
     }
@@ -288,16 +310,34 @@ export default function ResidentContractUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endDate">Data de Fim *</Label>
+                <Label htmlFor="endDate">Data de Fim {isIndefinite ? '(opcional)' : '*'}</Label>
                 <Input
                   id="endDate"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
+                  disabled={isIndefinite}
                   className={errors.endDate ? 'border-danger' : ''}
                 />
                 {errors.endDate && <p className="text-sm text-danger">{errors.endDate}</p>}
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-md border p-3">
+              <Checkbox
+                id="isIndefinite"
+                checked={isIndefinite}
+                onCheckedChange={(checked) => {
+                  const next = checked === true
+                  setIsIndefinite(next)
+                  if (next) {
+                    setEndDate('')
+                  }
+                }}
+              />
+              <Label htmlFor="isIndefinite" className="cursor-pointer">
+                Contrato por prazo indeterminado
+              </Label>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -389,15 +429,36 @@ export default function ResidentContractUpload() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="adjustmentRate">Taxa do Último Reajuste (%)</Label>
+                <Label htmlFor="adjustmentRate" className="flex items-center gap-1">
+                  <span>Taxa do Último Reajuste (%)</span>
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-foreground">
+                          <CircleHelp className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Acumulado 12 meses</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
                 <Input
                   id="adjustmentRate"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={adjustmentRate}
-                  onChange={(e) => setAdjustmentRate(e.target.value)}
-                  placeholder="Ex: 5.5"
+                  onChange={(e) =>
+                    setAdjustmentRate(
+                      e.target.value
+                        .replace(/[^\d,.-]/g, '')
+                        .replace(/\./g, ',')
+                    )
+                  }
+                  placeholder="Ex: 5,31964"
                 />
+                {errors.adjustmentRate && <p className="text-sm text-danger">{errors.adjustmentRate}</p>}
               </div>
 
               <div className="space-y-2">

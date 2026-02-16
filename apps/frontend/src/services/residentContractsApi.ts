@@ -6,12 +6,13 @@ export interface ResidentContract {
   residentId: string
   contractNumber: string
   startDate: string
-  endDate: string
+  endDate?: string | null
+  isIndefinite?: boolean
   monthlyAmount: number
   dueDay: number
   lateFeePercent: number
   interestMonthlyPercent: number
-  status: 'VIGENTE' | 'VENCENDO_EM_30_DIAS' | 'VENCIDO'
+  status: 'VIGENTE' | 'VENCENDO_EM_30_DIAS' | 'VENCIDO' | 'RESCINDIDO'
   adjustmentIndex?: string
   adjustmentRate?: number
   lastAdjustmentDate?: string
@@ -31,6 +32,11 @@ export interface ResidentContract {
   processedFileSize?: number | null
   processedFileHash?: string | null
   version: number
+  versionMajor?: number
+  versionMinor?: number
+  versionLabel?: string
+  rescindedAt?: string | null
+  rescissionReason?: string | null
   replacedById?: string
   replacedAt?: string
   uploadedBy: string
@@ -69,7 +75,8 @@ export interface ContractHistory {
 export interface CreateContractDto {
   contractNumber: string
   startDate: string
-  endDate: string
+  endDate?: string
+  isIndefinite?: boolean
   monthlyAmount: number
   dueDay: number
   lateFeePercent?: number
@@ -86,6 +93,10 @@ export interface CreateContractDto {
 }
 
 export interface UpdateContractDto {
+  contractNumber?: string
+  startDate?: string
+  endDate?: string
+  isIndefinite?: boolean
   monthlyAmount?: number
   dueDay?: number
   lateFeePercent?: number
@@ -98,6 +109,27 @@ export interface UpdateContractDto {
 
 export interface ReplaceContractFileDto {
   reason: string
+}
+
+export interface RenewContractDto {
+  reason: string
+  startDate: string
+  endDate?: string
+  isIndefinite?: boolean
+  contractNumber?: string
+  monthlyAmount?: number
+  dueDay?: number
+  lateFeePercent?: number
+  interestMonthlyPercent?: number
+  adjustmentIndex?: string
+  adjustmentRate?: number
+  lastAdjustmentDate?: string
+  notes?: string
+}
+
+export interface RescindContractDto {
+  reason: string
+  rescindedAt?: string
 }
 
 export interface ValidateContractDto {
@@ -196,6 +228,62 @@ export async function replaceContractFile(
       'Content-Type': 'multipart/form-data',
     },
   })
+  return response.data
+}
+
+export async function attachContractFile(
+  residentId: string,
+  contractId: string,
+  file: File,
+  reason?: string
+): Promise<ResidentContract> {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (reason?.trim()) {
+    formData.append('reason', reason.trim())
+  }
+
+  const response = await api.post(`/residents/${residentId}/contracts/${contractId}/attach-file`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return response.data
+}
+
+export async function correctContractFile(
+  residentId: string,
+  contractId: string,
+  file: File,
+  reason: string
+): Promise<ResidentContract> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('reason', reason)
+
+  const response = await api.post(`/residents/${residentId}/contracts/${contractId}/correct`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+  return response.data
+}
+
+export async function renewContract(
+  residentId: string,
+  contractId: string,
+  data: RenewContractDto
+): Promise<ResidentContract> {
+  const response = await api.post(`/residents/${residentId}/contracts/${contractId}/renew`, data)
+  return response.data
+}
+
+export async function rescindContract(
+  residentId: string,
+  contractId: string,
+  data: RescindContractDto
+): Promise<ResidentContract> {
+  const response = await api.post(`/residents/${residentId}/contracts/${contractId}/rescind`, data)
   return response.data
 }
 

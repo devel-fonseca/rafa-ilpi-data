@@ -27,6 +27,7 @@ import {
   Search,
   Plus,
   Eye,
+  Pencil,
   FileText,
   Loader2,
   AlertCircle,
@@ -76,6 +77,8 @@ export default function ResidentContractsList() {
         return 'bg-warning/10 text-warning border-warning/30'
       case 'VENCIDO':
         return 'bg-danger/10 text-danger border-danger/30'
+      case 'RESCINDIDO':
+        return 'bg-danger/20 text-danger border-danger/40'
       default:
         return 'bg-muted text-muted-foreground border-border'
     }
@@ -90,6 +93,8 @@ export default function ResidentContractsList() {
         return 'Vencendo em 30 dias'
       case 'VENCIDO':
         return 'Vencido'
+      case 'RESCINDIDO':
+        return 'Rescindido'
       default:
         return status
     }
@@ -209,6 +214,7 @@ export default function ResidentContractsList() {
                 <SelectItem value="VIGENTE">Vigente</SelectItem>
                 <SelectItem value="VENCENDO_EM_30_DIAS">Vencendo em 30 dias</SelectItem>
                 <SelectItem value="VENCIDO">Vencido</SelectItem>
+                <SelectItem value="RESCINDIDO">Rescindido</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -298,7 +304,9 @@ export default function ResidentContractsList() {
                             {formatDateOnlySafe(contract.startDate)}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            até {formatDateOnlySafe(contract.endDate)}
+                            {contract.isIndefinite
+                              ? 'Prazo indeterminado'
+                              : `até ${formatDateOnlySafe(contract.endDate || '')}`}
                           </span>
                         </div>
                       </div>
@@ -323,22 +331,36 @@ export default function ResidentContractsList() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        v{contract.version}
+                        v{contract.versionLabel || contract.version}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          navigate(
-                            `/dashboard/contratos/${contract.residentId}/${contract.id}`
-                          )
-                        }
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Visualizar
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {contract.status !== 'RESCINDIDO' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              navigate(`/dashboard/contratos/${contract.residentId}/${contract.id}/editar`)
+                            }
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Editar
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            navigate(
+                              `/dashboard/contratos/${contract.residentId}/${contract.id}`
+                            )
+                          }
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Visualizar
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

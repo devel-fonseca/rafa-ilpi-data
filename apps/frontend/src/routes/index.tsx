@@ -124,6 +124,7 @@ import { OnboardingWizard } from '@/pages/onboarding/OnboardingWizard'
 import ResidentContractsList from '@/pages/contracts/ResidentContractsList'
 import ResidentContractUpload from '@/pages/contracts/ResidentContractUpload'
 import ResidentContractView from '@/pages/contracts/ResidentContractView'
+import ResidentContractEdit from '@/pages/contracts/ResidentContractEdit'
 
 // Care Shifts Pages
 import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
@@ -589,6 +590,16 @@ export const router = createBrowserRouter([
           {
             path: ':residentId/:contractId',
             element: <ResidentContractView />,
+          },
+          {
+            path: ':residentId/:contractId/editar',
+            element: (
+              <ProtectedRoute
+                requiredPermissions={[PermissionType.UPDATE_CONTRACTS]}
+              >
+                <ResidentContractEdit />
+              </ProtectedRoute>
+            ),
           },
         ],
       },

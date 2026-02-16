@@ -12,6 +12,8 @@ import {
   IsEnum,
   MaxLength,
   IsInt,
+  ValidateIf,
+  IsBoolean,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -51,9 +53,24 @@ export class CreateContractDto {
   @IsDateString()
   startDate: string;
 
-  @ApiProperty({ example: '2026-01-01', description: 'Data de fim da vigência (YYYY-MM-DD)' })
+  @ApiProperty({
+    example: '2026-01-01',
+    required: false,
+    description: 'Data de fim da vigência (YYYY-MM-DD). Obrigatória se não for prazo indeterminado',
+  })
+  @ValidateIf((dto: CreateContractDto) => !dto.isIndefinite)
   @IsDateString()
-  endDate: string;
+  endDate?: string;
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    description: 'Contrato com prazo indeterminado (sem data de fim)',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isIndefinite?: boolean;
 
   @ApiProperty({ example: 3500.0, description: 'Valor da mensalidade em reais' })
   @IsNumber()
