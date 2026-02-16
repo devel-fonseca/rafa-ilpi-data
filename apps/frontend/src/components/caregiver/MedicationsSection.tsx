@@ -3,6 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   Pill,
   CheckCircle2,
   Eye,
@@ -199,15 +205,21 @@ export function MedicationsSection({
                 )}
 
                 {/* Botão Visualizar */}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onViewResident(medication.residentId)}
-                  className="px-2"
-                  title="Ver detalhes do residente"
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onViewResident(medication.residentId)}
+                        className="px-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Visualização rápida do residente</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           ))}
@@ -262,8 +274,8 @@ export function MedicationsSection({
                 </>
               ) : (
                 <>
-                  <strong>Visualização apenas.</strong> Apenas enfermeiros e
-                  responsáveis técnicos podem administrar medicações.
+                  <strong>Visualização apenas.</strong> O Responsável Técnico
+                  pode conceder autorização para administrar medicações.
                 </>
               )}
             </AlertDescription>
