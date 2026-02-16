@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatDateLongSafe, getCurrentDate } from '@/utils/dateHelpers'
-import { Download, Plus, Loader2, Eye, AlertCircle, Activity, UtensilsCrossed, Heart, Droplets, Utensils } from 'lucide-react'
+import { Plus, Loader2, Eye, AlertCircle, Activity, UtensilsCrossed, Heart, Droplets, Utensils } from 'lucide-react'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import type { Allergy } from '@/api/allergies.api'
@@ -31,10 +31,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { api, getTenantInfo, getResidentInfo } from '@/services/api'
+import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth.store'
-import { generateDailyRecordsPDF } from '@/services/pdfGenerator'
 import { HigieneModal } from './modals/HigieneModal'
 import { AlimentacaoModal } from './modals/AlimentacaoModal'
 import { HidratacaoModal } from './modals/HidratacaoModal'
@@ -172,58 +171,6 @@ export default function ResidentRecordsPage() {
     setViewModalOpen(true)
   }
 
-  const handleExportPDF = async () => {
-    try {
-      if (!residentId || !resident || !user?.tenantId) {
-        toast.error('Dados insuficientes para exportar PDF')
-        return
-      }
-
-      if (!records || records.length === 0) {
-        toast.warning('Não há registros para exportar')
-        return
-      }
-
-      toast.info('Gerando PDF...')
-
-      // Buscar dados do tenant e residente completos
-      const [tenantInfo, residentInfo] = await Promise.all([
-        getTenantInfo(user.tenantId),
-        getResidentInfo(residentId),
-      ])
-
-      // Gerar PDF
-      await generateDailyRecordsPDF({
-        tenant: {
-          name: tenantInfo.name || 'ILPI',
-          addressStreet: tenantInfo.addressStreet,
-          addressNumber: tenantInfo.addressNumber,
-          addressCity: tenantInfo.addressCity,
-          addressState: tenantInfo.addressState,
-        },
-        resident: {
-          fullName: residentInfo.fullName,
-          birthDate: residentInfo.birthDate,
-          cns: residentInfo.cns,
-          admissionDate: residentInfo.admissionDate,
-          emergencyContacts: residentInfo.emergencyContacts || [],
-          weight: residentInfo.weight,
-          height: residentInfo.height,
-          roomId: residentInfo.roomId,
-          bedId: residentInfo.bedId,
-        },
-        date: selectedDate,
-        records: records,
-      })
-
-      toast.success('PDF gerado com sucesso!')
-    } catch (error: unknown) {
-      console.error('Erro ao gerar PDF:', error)
-      const errorMessage = (error as { message?: string })?.message
-      toast.error(errorMessage || 'Erro ao gerar PDF')
-    }
-  }
-
   const handleBack = () => {
     navigate('/dashboard/registros-diarios')
   }
@@ -253,13 +200,11 @@ export default function ResidentRecordsPage() {
       <PageHeader
         title="Registros Diários"
         subtitle={`${resident?.fullName} | ${formatDateLongSafe(selectedDate + 'T00:00:00')}`}
-        backButton={{ onClick: handleBack }}
-        actions={
-          <Button variant="outline" onClick={handleExportPDF}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
-        }
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Registros Diários', href: '/dashboard/registros-diarios' },
+          { label: resident?.fullName || 'Residente' },
+        ]}
       />
 
       {/* Cards de Resumo Clínico em Grid */}
