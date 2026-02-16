@@ -20,6 +20,11 @@ export default function ResidentsHub() {
         <PageHeader
           title="Hub de Gestão de Residentes"
           subtitle="Centro de controle e monitoramento"
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Gestão de Residentes' },
+          ]}
+
         />
         <div className="flex justify-center items-center h-64">
           <div className="text-muted-foreground">Carregando...</div>
@@ -33,6 +38,10 @@ export default function ResidentsHub() {
       <PageHeader
         title="Gestão de Residentes"
         subtitle="Centro de controle e monitoramento de todos os residentes"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Gestão de Residentes' },
+        ]}
       />
 
       {/* Cards de Métricas Principais */}
@@ -69,7 +78,7 @@ export default function ResidentsHub() {
       </div>
 
       {/* Ações Rápidas */}
-      <Section title="Ações Rápidas">
+      <Section>
         <QuickActionGrid />
       </Section>
 
