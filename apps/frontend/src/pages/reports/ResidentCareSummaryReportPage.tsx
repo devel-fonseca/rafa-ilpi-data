@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,7 +14,6 @@ import { downloadResidentCareSummaryReportPDF } from '@/services/residentCareSum
 import { ResidentSearchSelect } from '@/components/residents/ResidentSearchSelect'
 
 export default function ResidentCareSummaryReportPage() {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [selectedResidentId, setSelectedResidentId] = useState(searchParams.get('residentId') || '')
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
@@ -97,9 +96,6 @@ export default function ResidentCareSummaryReportPage() {
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Resumo Assistencial do Residente' },
         ]}
-        backButton={{
-          onClick: () => navigate('/dashboard/relatorios'),
-        }}
         actions={
           report && !isLoadingReport && !reportError ? (
             <Button

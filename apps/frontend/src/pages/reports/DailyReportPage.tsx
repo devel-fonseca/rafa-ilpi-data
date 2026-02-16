@@ -82,9 +82,6 @@ export default function DailyReportPage() {
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Relatório Diário' },
         ]}
-        backButton={{
-          onClick: () => navigate('/dashboard/relatorios'),
-        }}
         actions={
           multiDayReport && !isLoading && !error && !noShiftDialogOpen ? (
             <Button

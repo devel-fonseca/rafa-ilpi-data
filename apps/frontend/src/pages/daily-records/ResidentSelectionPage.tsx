@@ -32,6 +32,10 @@ export default function ResidentSelectionPage() {
       <PageHeader
         title="Registros Diários"
         subtitle="Selecione um residente para visualizar ou adicionar registros"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Registros Diários' },
+        ]}
       />
       <ResidentSelectionGrid
         residents={residentsData?.data || []}

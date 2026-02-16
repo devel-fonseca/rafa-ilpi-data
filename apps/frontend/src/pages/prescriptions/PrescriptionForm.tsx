@@ -168,7 +168,11 @@ export default function PrescriptionForm() {
         <PageHeader
           title={isEditing ? 'Editar Prescrição' : 'Nova Prescrição'}
           subtitle="Preencha os dados da prescrição médica"
-          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: isEditing ? 'Editar' : 'Nova' },
+          ]}
         />
 
         {/* Stepper */}

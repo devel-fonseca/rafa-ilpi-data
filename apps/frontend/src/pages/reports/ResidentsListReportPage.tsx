@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Page, PageHeader } from '@/design-system/components'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,6 @@ import { downloadResidentsListReportPDF } from '@/services/residentsListReportPd
 import { useAuthStore } from '@/stores/auth.store'
 
 export default function ResidentsListReportPage() {
-  const navigate = useNavigate()
   const { user } = useAuthStore()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
@@ -66,9 +64,6 @@ export default function ResidentsListReportPage() {
           { label: 'Relatórios e Documentos', href: '/dashboard/relatorios' },
           { label: 'Lista de Residentes' },
         ]}
-        backButton={{
-          onClick: () => navigate('/dashboard/relatorios'),
-        }}
         actions={
           report && !isLoading && !error ? (
             <Button

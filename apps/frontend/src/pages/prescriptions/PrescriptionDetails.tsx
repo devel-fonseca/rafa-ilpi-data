@@ -308,7 +308,11 @@ export default function PrescriptionDetails() {
         <PageHeader
           title="Detalhes da Prescrição"
           subtitle="Carregando informações..."
-          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: 'Detalhes' },
+          ]}
         />
         <EmptyState
           icon={FileText}
@@ -326,7 +330,11 @@ export default function PrescriptionDetails() {
         <PageHeader
           title="Detalhes da Prescrição"
           subtitle="Prescrição não encontrada"
-          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: 'Detalhes' },
+          ]}
         />
         <EmptyState
           icon={AlertCircle}
@@ -349,6 +357,11 @@ export default function PrescriptionDetails() {
       <PageHeader
         title="Detalhes da Prescrição"
         subtitle={`Prescrição de ${prescriptionData.resident?.fullName}`}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Prescrições', href: '/dashboard/prescricoes' },
+          { label: prescriptionData.resident?.fullName || 'Detalhes' },
+        ]}
         badge={
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant={prescriptionData.isActive ? 'default' : 'secondary'}>
@@ -360,7 +373,6 @@ export default function PrescriptionDetails() {
             </Badge>
           </div>
         }
-        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
         actions={
           canManagePrescriptions && (
             <Button onClick={() => navigate(`/dashboard/prescricoes/${id}/edit`)}>

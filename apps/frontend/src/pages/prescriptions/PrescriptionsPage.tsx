@@ -13,6 +13,11 @@ import { Page, PageHeader, Section, EmptyState } from '@/design-system/component
 export function PrescriptionsPage() {
   const navigate = useNavigate()
   const { isTechnicalManager } = usePermissions()
+
+  const prescriptionsBreadcrumbs = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Prescrições' },
+  ]
   const { stats, alerts, expiring, controlled, isLoading, refetchAll } =
     usePrescriptionsDashboard()
 
@@ -29,6 +34,8 @@ export function PrescriptionsPage() {
         <PageHeader
           title="Gerenciamento de Prescrições"
           subtitle="Dashboard completo de medicamentos e prescrições médicas"
+          breadcrumbs={prescriptionsBreadcrumbs}
+
         />
         <EmptyState
           icon={Loader2}
@@ -45,6 +52,8 @@ export function PrescriptionsPage() {
       <PageHeader
         title="Gerenciamento de Prescrições"
         subtitle="Dashboard completo de medicamentos e prescrições médicas"
+        breadcrumbs={prescriptionsBreadcrumbs}
+        backButton={{ onClick: () => navigate('/dashboard') }}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={refetchAll}>

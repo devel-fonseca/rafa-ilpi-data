@@ -88,7 +88,11 @@ export default function PrescriptionEdit() {
         <PageHeader
           title="Editar Prescrição"
           subtitle="Carregando informações..."
-          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: 'Editar' },
+          ]}
         />
         <EmptyState
           icon={FileText}
@@ -106,7 +110,11 @@ export default function PrescriptionEdit() {
         <PageHeader
           title="Editar Prescrição"
           subtitle="Prescrição não encontrada"
-          backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: 'Editar' },
+          ]}
         />
         <EmptyState
           icon={AlertCircle}
@@ -129,13 +137,18 @@ export default function PrescriptionEdit() {
       <PageHeader
         title="Editar Prescrição"
         subtitle={`Altere o status da prescrição de ${prescriptionData.resident?.fullName}`}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Prescrições', href: '/dashboard/prescricoes' },
+          { label: prescriptionData.resident?.fullName || 'Detalhes', href: `/dashboard/prescricoes/${id}` },
+          { label: 'Editar' },
+        ]}
         badge={
           <Badge variant="outline">
             {PRESCRIPTION_TYPE_LABELS[prescriptionData.prescriptionType] ||
               prescriptionData.prescriptionType}
           </Badge>
         }
-        backButton={{ onClick: () => navigate(`/dashboard/prescricoes/${id}`) }}
         actions={
           <Button
             onClick={handleSave}

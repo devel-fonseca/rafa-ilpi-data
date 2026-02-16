@@ -37,6 +37,11 @@ export default function PrescriptionsPanelPage() {
         <PageHeader
           title="Painel de Prescrições"
           subtitle="Visualize prescrições por validade e status de revisão"
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Prescrições', href: '/dashboard/prescricoes' },
+            { label: 'Painel' },
+          ]}
         />
         <AccessDenied
           message="Esta funcionalidade é restrita a Responsáveis Técnicos e Enfermeiros"

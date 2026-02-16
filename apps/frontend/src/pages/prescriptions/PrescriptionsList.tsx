@@ -252,7 +252,11 @@ export default function PrescriptionsList() {
       <PageHeader
         title="Prescrições"
         subtitle="Gerencie as prescrições da ILPI"
-        backButton={{ onClick: () => navigate('/dashboard/prescricoes') }}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Prescrições', href: '/dashboard/prescricoes' },
+          { label: 'Lista' },
+        ]}
         actions={
           canCreatePrescriptions && (
             <Button onClick={() => navigate('/dashboard/prescricoes/new')}>
