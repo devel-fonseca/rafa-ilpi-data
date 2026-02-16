@@ -217,6 +217,10 @@ export default function MessagesListPage() {
       <PageHeader
         title="Mensagens"
         subtitle="Gerencie sua comunicação interna"
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Mensagens' },
+        ]}
         actions={
           <div className="flex gap-2">
             {activeTab === 'inbox' && !isArchivedView && stats && stats.unread > 0 && (
@@ -274,70 +278,81 @@ export default function MessagesListPage() {
       <Section title="Caixa de Mensagens">
         <Card>
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={activeTab === 'inbox' ? 'default' : 'outline'}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 flex">
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('inbox');
                     setSelectedMessageId(null);
                   }}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    activeTab === 'inbox'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
                 >
-                  <Inbox className="h-4 w-4 mr-2" />
                   Caixa de Entrada
-                </Button>
-                <Button
-                  variant={activeTab === 'sent' ? 'default' : 'outline'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('sent');
                     setSelectedMessageId(null);
                   }}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors border-l ${
+                    activeTab === 'sent'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
                 >
-                  <Send className="h-4 w-4 mr-2" />
                   Enviadas
-                </Button>
-                <Separator orientation="vertical" className="h-9 mx-1" />
-                <div className="flex rounded-md border overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setFolderView('active')}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                      folderView === 'active'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-muted'
-                    }`}
-                  >
-                    Ativas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFolderView('archived')}
-                    className={`px-3 py-1.5 text-sm font-medium transition-colors border-l ${
-                      folderView === 'archived'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background hover:bg-muted'
-                    }`}
-                  >
-                    Arquivadas
-                  </button>
-                </div>
+                </button>
               </div>
-              <div className="relative w-[280px] flex-shrink-0">
-                <Input
-                  placeholder="Buscar mensagens..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pr-10"
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                  onClick={handleSearch}
+              </div>
+              <div className="flex rounded-md border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setFolderView('active')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    folderView === 'active'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
                 >
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                  Ativas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFolderView('archived')}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors border-l ${
+                    folderView === 'archived'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  Arquivadas
+                </button>
+              </div>
+              <div className="flex-1 flex justify-end">
+                <div className="relative w-[280px]">
+                  <Input
+                    placeholder="Buscar mensagens..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="pr-10"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={handleSearch}
+                  >
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>

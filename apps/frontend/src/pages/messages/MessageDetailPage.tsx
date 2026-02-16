@@ -141,6 +141,11 @@ export default function MessageDetailPage() {
       <Page>
         <PageHeader
           title="Mensagem não encontrada"
+          breadcrumbs={[
+            { label: 'Dashboard', href: '/dashboard' },
+            { label: 'Mensagens', href: '/dashboard/mensagens' },
+            { label: 'Não encontrada' },
+          ]}
           backButton={{ onClick: () => navigate('/dashboard/mensagens') }}
         />
         <Section>
@@ -167,6 +172,11 @@ export default function MessageDetailPage() {
         subtitle={format(new Date(message.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", {
           locale: ptBR,
         })}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Mensagens', href: '/dashboard/mensagens' },
+          { label: message.subject },
+        ]}
         backButton={{ onClick: () => navigate('/dashboard/mensagens') }}
         actions={
           message.type === MessageType.BROADCAST ? (

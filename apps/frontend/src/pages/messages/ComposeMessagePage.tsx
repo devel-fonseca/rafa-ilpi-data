@@ -139,7 +139,11 @@ export default function ComposeMessagePage() {
               ? 'Resposta em uma conversa existente'
               : 'Componha uma mensagem interna'
         }
-        backButton={{ onClick: () => navigate('/dashboard/mensagens') }}
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Mensagens', href: '/dashboard/mensagens' },
+          { label: isReplyMode ? 'Responder' : 'Nova Mensagem' },
+        ]}
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pb-24 md:pb-0">
