@@ -149,10 +149,10 @@ const DASHBOARD_QUICK_ACTIONS: Record<
     },
     {
       id: 'prescriptions',
-      title: 'Prescrições',
-      description: 'Painel de prescrições',
+      title: 'Medicamentos',
+      description: 'Administração de medicamentos',
       icon: Pill,
-      to: '/dashboard/prescricoes/painel',
+      to: '/dashboard/prescricoes/administracao',
       visibleFor: [PositionCode.CAREGIVER],
     },
   ],

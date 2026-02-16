@@ -9,6 +9,7 @@ import { AdministerMedicationModal } from './AdministerMedicationModal'
 import { ViewMedicationAdministrationModal } from './ViewMedicationAdministrationModal'
 import { getCurrentDate, extractDateOnly } from '@/utils/dateHelpers'
 import { useMedicationLock } from '@/hooks/useMedicationLock'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { toast } from 'sonner'
 
 type ShiftType = 'morning' | 'afternoon' | 'night'
@@ -113,6 +114,10 @@ export function TodayActions() {
     isActive: true,
   })
 
+  // Permissão para administrar medicações
+  const { hasPermission } = usePermissions()
+  const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
+
   // Hook de locks de medicamentos (Sprint 2 - WebSocket)
   const { isLocked, lockedBy, isLockedByCurrentUser } = useMedicationLock()
 
@@ -145,7 +150,14 @@ export function TodayActions() {
       })
       setIsViewModalOpen(true)
     } else {
-      // Sem administração → abrir modal de registro
+      // Sem administração → verificar permissão antes de abrir modal de registro
+      if (!canAdministerMedications) {
+        toast.error('Sem permissão', {
+          description: 'Você não possui autorização para administrar medicações. O Responsável Técnico pode conceder essa permissão.',
+          duration: 4000,
+        })
+        return
+      }
       setSelectedMedication({
         ...action.medication,
         preselectedScheduledTime: action.scheduledTime,
