@@ -1037,6 +1037,7 @@ export class DailyRecordsService {
         type: true,
         date: true,
         time: true,
+        data: true,
         recordedBy: true,
         createdAt: true,
       },
@@ -1049,6 +1050,46 @@ export class DailyRecordsService {
     });
 
     return latestRecords;
+  }
+
+  /**
+   * Busca o último registro de antropometria (tipo PESO) de um residente
+   * Usado como fallback quando a tabela clínica não estiver acessível por permissão.
+   */
+  async findLatestAnthropometryByResident(residentId: string) {
+    // Verificar se residente existe
+    const resident = await this.tenantContext.client.resident.findFirst({
+      where: {
+        id: residentId,
+        deletedAt: null,
+      },
+    });
+
+    if (!resident) {
+      throw new NotFoundException('Residente não encontrado');
+    }
+
+    return this.tenantContext.client.dailyRecord.findFirst({
+      where: {
+        residentId,
+        type: RecordType.PESO,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        type: true,
+        date: true,
+        time: true,
+        data: true,
+        recordedBy: true,
+        createdAt: true,
+      },
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
   }
 
   /**

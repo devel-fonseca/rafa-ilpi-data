@@ -1,4 +1,5 @@
-import { Loader2, Calendar, Clock, Repeat, CheckCircle2, Plus, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Loader2, Calendar, Clock, Repeat, CheckCircle2, Plus, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule';
@@ -8,24 +9,16 @@ interface DailyTasksPanelProps {
   residentId: string | null;
   selectedDate: string;
   onRegisterRecord?: (recordType: string, mealType?: string) => void;
+  pageSize?: number;
 }
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  VACCINATION: 'Vacinação',
-  CONSULTATION: 'Consulta',
-  EXAM: 'Exame',
-  PROCEDURE: 'Procedimento',
-  OTHER: 'Outro',
-};
-
-const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  SCHEDULED: 'default',
-  COMPLETED: 'secondary',
-  CANCELLED: 'outline',
-  MISSED: 'destructive',
-};
-
-export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: DailyTasksPanelProps) {
+export function DailyTasksPanel({
+  residentId,
+  selectedDate,
+  onRegisterRecord,
+  pageSize = 8,
+}: DailyTasksPanelProps) {
+  const [currentPage, setCurrentPage] = useState(1);
   const dateStr = selectedDate;
 
   const { data: tasks = [], isLoading, refetch, isFetching } = useDailyTasksByResident(
@@ -35,23 +28,34 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
   );
 
   // Agrupar tarefas por tipo e ordenar (pendentes primeiro por horário, depois concluídas)
-  const recurringTasks = tasks
-    .filter((task) => task.type === 'RECURRING')
-    .sort((a, b) => {
-      // Pendentes primeiro
-      if (a.isCompleted && !b.isCompleted) return 1;
-      if (!a.isCompleted && b.isCompleted) return -1;
+  const recurringTasks = useMemo(() => (
+    tasks
+      .filter((task) => task.type === 'RECURRING')
+      .sort((a, b) => {
+        // Pendentes primeiro
+        if (a.isCompleted && !b.isCompleted) return 1;
+        if (!a.isCompleted && b.isCompleted) return -1;
 
-      // Se ambas pendentes, ordenar pelo horário individual (ou primeiro sugerido como fallback)
-      if (!a.isCompleted && !b.isCompleted) {
-        const timeA = a.scheduledTime || a.suggestedTimes?.[0] || '23:59';
-        const timeB = b.scheduledTime || b.suggestedTimes?.[0] || '23:59';
-        return timeA.localeCompare(timeB);
-      }
+        // Se ambas pendentes, ordenar pelo horário individual (ou primeiro sugerido como fallback)
+        if (!a.isCompleted && !b.isCompleted) {
+          const timeA = a.scheduledTime || a.suggestedTimes?.[0] || '23:59';
+          const timeB = b.scheduledTime || b.suggestedTimes?.[0] || '23:59';
+          return timeA.localeCompare(timeB);
+        }
 
-      return 0;
-    });
-  const eventTasks = tasks.filter((task) => task.type === 'EVENT');
+        return 0;
+      })
+  ), [tasks]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [residentId, selectedDate, recurringTasks.length, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(recurringTasks.length / pageSize));
+  const paginatedRecurringTasks = recurringTasks.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   if (!residentId) {
     return (
@@ -100,7 +104,7 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
       )}
 
       {/* Registros Programados Recorrentes */}
-      {recurringTasks.length > 0 && (
+      {recurringTasks.length > 0 ? (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Repeat className="h-4 w-4 text-primary dark:text-primary" />
@@ -110,8 +114,8 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
             </Badge>
           </div>
 
-          <div className="space-y-2">
-            {recurringTasks.map((task, index) => (
+          <div className="max-h-[430px] overflow-y-auto pr-1 space-y-2">
+            {paginatedRecurringTasks.map((task, index) => (
               <div
                 key={`recurring-${task.configId}-${index}`}
                 className={`p-3 border rounded-lg hover:bg-accent/50 transition-colors ${
@@ -162,64 +166,41 @@ export function DailyTasksPanel({ residentId, selectedDate, onRegisterRecord }: 
               </div>
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Agendamentos Pontuais */}
-      {eventTasks.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="h-4 w-4 text-success dark:text-success" />
-            <h3 className="font-semibold text-sm">Agendamentos</h3>
-            <Badge variant="secondary" className="ml-auto">
-              {eventTasks.length}
-            </Badge>
-          </div>
-
-          <div className="space-y-2">
-            {eventTasks.map((task, index) => (
-              <div
-                key={`event-${task.eventId}-${index}`}
-                className="p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-medium">
-                      {task.eventType && EVENT_TYPE_LABELS[task.eventType]}
-                    </Badge>
-                    {task.status && (
-                      <Badge
-                        variant={STATUS_VARIANTS[task.status] || 'default'}
-                        className="text-xs"
-                      >
-                        {task.status === 'SCHEDULED' && 'Agendado'}
-                        {task.status === 'COMPLETED' && 'Concluído'}
-                        {task.status === 'CANCELLED' && 'Cancelado'}
-                        {task.status === 'MISSED' && 'Perdido'}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {task.status === 'COMPLETED' && (
-                    <CheckCircle2 className="h-4 w-4 text-success dark:text-success" />
-                  )}
-                </div>
-
-                <p className="font-medium text-sm mb-1">{task.title}</p>
-
-                {task.scheduledTime && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>{task.scheduledTime}</span>
-                  </div>
-                )}
-
-                {task.description && (
-                  <p className="text-xs text-muted-foreground mt-2">{task.description}</p>
-                )}
+          {totalPages > 1 && (
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span>
+                Mostrando {(currentPage - 1) * pageSize + 1}-
+                {Math.min(currentPage * pageSize, recurringTasks.length)} de {recurringTasks.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          <p className="text-sm">Nenhuma tarefa recorrente para hoje</p>
         </div>
       )}
     </div>

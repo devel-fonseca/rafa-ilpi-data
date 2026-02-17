@@ -163,6 +163,21 @@ export class DailyRecordsController {
     );
   }
 
+  @Get('resident/:residentId/latest-anthropometry')
+  @ApiOperation({
+    summary: 'Buscar último registro antropométrico (PESO) de um residente',
+    description: 'Retorna apenas o registro mais recente do tipo PESO para fallback de visualização.',
+  })
+  @ApiResponse({ status: 200, description: 'Último registro antropométrico encontrado' })
+  @ApiResponse({ status: 404, description: 'Residente não encontrado' })
+  @ApiParam({ name: 'residentId', description: 'ID do residente (UUID)' })
+  async findLatestAnthropometryByResident(
+    @Param('residentId', ParseUUIDPipe) residentId: string,
+    @CurrentUser() _user: JwtPayload,
+  ) {
+    return this.dailyRecordsService.findLatestAnthropometryByResident(residentId);
+  }
+
   @Get('resident/:residentId/last-vital-sign')
   @ApiOperation({
     summary: 'Buscar o último Sinal Vital de um residente',
