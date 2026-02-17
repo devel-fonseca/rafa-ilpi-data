@@ -26,9 +26,6 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
 
 // Extend jsPDF type for autoTable
 interface AutoTableOptions {
@@ -39,12 +36,6 @@ interface AutoTableOptions {
   headStyles?: Record<string, unknown>
   styles?: Record<string, unknown>
   [key: string]: unknown
-}
-
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: AutoTableOptions) => jsPDF
-  }
 }
 
 interface VitalSignData {
@@ -160,7 +151,9 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
   }
 
   // Exportar para CSV
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
+    const XLSX = await import('xlsx')
+
     const csvData = sortedData.map((item) => ({
       'Data/Hora': formatDateTimeSafe(item.timestamp),
       'PA Sistólica': item.systolicBloodPressure || '',
@@ -180,7 +173,12 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
   }
 
   // Exportar para PDF
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    const [{ default: jsPDF }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
+
     const pdf = new jsPDF()
 
     // Título
@@ -201,7 +199,7 @@ export function VitalSignsTable({ data, residentName }: VitalSignsTableProps) {
       item.bloodGlucose ? `${item.bloodGlucose}` : '-',
     ])
 
-    pdf.autoTable({
+    ;(pdf as unknown as { autoTable: (options: AutoTableOptions) => unknown }).autoTable({
       head: [['Data/Hora', 'PA', 'Temp', 'FC', 'SpO₂', 'Glicemia']],
       body: tableData,
       startY: 35,

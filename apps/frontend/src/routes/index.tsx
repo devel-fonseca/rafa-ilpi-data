@@ -1,3 +1,4 @@
+import { Suspense, lazy, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import { DashboardLayout } from '@/layouts/DashboardLayout'
 import { SuperAdminLayout } from '@/layouts/SuperAdminLayout'
@@ -20,18 +21,11 @@ import { PrivacyPolicyPage } from '@/pages/public/PrivacyPolicyPage'
 
 // Dashboard Pages
 import Dashboard from '@/pages/Dashboard'
-import { ConformidadePage } from '@/pages/dashboards/ConformidadePage'
-import { ConformidadeRDCPage } from '@/pages/dashboards/ConformidadeRDCPage'
-import { EventosSentinelaPage } from '@/pages/dashboards/EventosSentinelaPage'
 
 // Compliance Assessments Pages
 import { AssessmentFormPage } from '@/pages/compliance-assessments/AssessmentFormPage'
 import { AssessmentListPage } from '@/pages/compliance-assessments/AssessmentListPage'
 import { AssessmentResultPage } from '@/pages/compliance-assessments/AssessmentResultPage'
-
-// Compliance Pages
-import DocumentComplianceDashboard from '@/pages/compliance/DocumentComplianceDashboard'
-import InstitutionalDocumentManagement from '@/pages/compliance/InstitutionalDocumentManagement'
 
 // Residents Pages
 import ResidentsList from '@/pages/residents/ResidentsList'
@@ -47,7 +41,6 @@ import ResidentPanelPage from '@/pages/residents/ResidentPanelPage'
 import { ResidentSelectionPage, ResidentRecordsPage } from '@/pages/daily-records'
 
 // Vital Signs Pages
-import { VitalSignsPage } from '@/pages/vital-signs'
 
 // Agenda Pages
 import AgendaPage from '@/pages/agenda/AgendaPage'
@@ -92,27 +85,6 @@ import PopViewer from '@/pages/pops/PopViewer'
 import PopHistoryPage from '@/pages/pops/PopHistoryPage'
 
 // SuperAdmin Pages
-import { SuperAdminDashboard } from '@/pages/superadmin/Dashboard'
-import { TenantsList } from '@/pages/superadmin/TenantsList'
-import { TenantDetails } from '@/pages/superadmin/TenantDetails'
-import { InvoicesList } from '@/pages/superadmin/InvoicesList'
-import { FinancialAnalytics } from '@/pages/superadmin/FinancialAnalytics'
-import { AlertCenter } from '@/pages/superadmin/AlertCenter'
-import { PlansList } from '@/pages/superadmin/PlansList'
-import { PlanDetails } from '@/pages/superadmin/PlanDetails'
-import { InvoiceDetails } from '@/pages/superadmin/InvoiceDetails'
-import { OverdueDashboard } from '@/pages/superadmin/OverdueDashboard'
-import { BackupsPage } from '@/pages/superadmin/BackupsPage'
-import { ContractsList } from '@/pages/superadmin/contracts/ContractsList'
-import { ContractDetails } from '@/pages/superadmin/contracts/ContractDetails'
-import { ContractNew } from '@/pages/superadmin/contracts/ContractNew'
-import { ContractEdit } from '@/pages/superadmin/contracts/ContractEdit'
-import { EmailTemplatesList, EmailTemplateEditor, EmailTemplatePreview, EmailTemplateVersions } from '@/pages/superadmin/email-templates'
-import EmailLogs from '@/pages/superadmin/EmailLogs'
-import TenantMessages from '@/pages/superadmin/TenantMessages'
-import TenantMessageForm from '@/pages/superadmin/TenantMessageForm'
-import TenantMessageView from '@/pages/superadmin/TenantMessageView'
-import { SystemSettings } from '@/pages/superadmin/SystemSettings'
 
 // Settings Pages
 import { BillingPage } from '@/pages/settings/BillingPage'
@@ -131,11 +103,102 @@ import ResidentContractEdit from '@/pages/contracts/ResidentContractEdit'
 import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
 
 // Reports Pages
-import ReportsHub from '@/pages/reports/ReportsHub'
-import DailyReportPage from '@/pages/reports/DailyReportPage'
-import ResidentsListReportPage from '@/pages/reports/ResidentsListReportPage'
-import ResidentCareSummaryReportPage from '@/pages/reports/ResidentCareSummaryReportPage'
-import ShiftHistoryReportPage from '@/pages/reports/ShiftHistoryReportPage'
+
+const routeLoaderFallback = (
+  <div className="flex items-center justify-center h-48 text-muted-foreground">
+    Carregando...
+  </div>
+)
+
+const withSuspense = (element: ReactNode) => (
+  <Suspense fallback={routeLoaderFallback}>{element}</Suspense>
+)
+
+const ConformidadePage = lazy(() =>
+  import('@/pages/dashboards/ConformidadePage').then((m) => ({ default: m.ConformidadePage })),
+)
+const ConformidadeRDCPage = lazy(() =>
+  import('@/pages/dashboards/ConformidadeRDCPage').then((m) => ({ default: m.ConformidadeRDCPage })),
+)
+const EventosSentinelaPage = lazy(() =>
+  import('@/pages/dashboards/EventosSentinelaPage').then((m) => ({ default: m.EventosSentinelaPage })),
+)
+const DocumentComplianceDashboard = lazy(() => import('@/pages/compliance/DocumentComplianceDashboard'))
+const InstitutionalDocumentManagement = lazy(() => import('@/pages/compliance/InstitutionalDocumentManagement'))
+const VitalSignsPage = lazy(() =>
+  import('@/pages/vital-signs').then((m) => ({ default: m.VitalSignsPage })),
+)
+
+const ReportsHub = lazy(() => import('@/pages/reports/ReportsHub'))
+const DailyReportPage = lazy(() => import('@/pages/reports/DailyReportPage'))
+const ResidentsListReportPage = lazy(() => import('@/pages/reports/ResidentsListReportPage'))
+const ResidentCareSummaryReportPage = lazy(() => import('@/pages/reports/ResidentCareSummaryReportPage'))
+const ShiftHistoryReportPage = lazy(() => import('@/pages/reports/ShiftHistoryReportPage'))
+
+const SuperAdminDashboard = lazy(() =>
+  import('@/pages/superadmin/Dashboard').then((m) => ({ default: m.SuperAdminDashboard })),
+)
+const TenantsList = lazy(() =>
+  import('@/pages/superadmin/TenantsList').then((m) => ({ default: m.TenantsList })),
+)
+const TenantDetails = lazy(() =>
+  import('@/pages/superadmin/TenantDetails').then((m) => ({ default: m.TenantDetails })),
+)
+const InvoicesList = lazy(() =>
+  import('@/pages/superadmin/InvoicesList').then((m) => ({ default: m.InvoicesList })),
+)
+const FinancialAnalytics = lazy(() =>
+  import('@/pages/superadmin/FinancialAnalytics').then((m) => ({ default: m.FinancialAnalytics })),
+)
+const AlertCenter = lazy(() =>
+  import('@/pages/superadmin/AlertCenter').then((m) => ({ default: m.AlertCenter })),
+)
+const PlansList = lazy(() =>
+  import('@/pages/superadmin/PlansList').then((m) => ({ default: m.PlansList })),
+)
+const PlanDetails = lazy(() =>
+  import('@/pages/superadmin/PlanDetails').then((m) => ({ default: m.PlanDetails })),
+)
+const InvoiceDetails = lazy(() =>
+  import('@/pages/superadmin/InvoiceDetails').then((m) => ({ default: m.InvoiceDetails })),
+)
+const OverdueDashboard = lazy(() =>
+  import('@/pages/superadmin/OverdueDashboard').then((m) => ({ default: m.OverdueDashboard })),
+)
+const BackupsPage = lazy(() =>
+  import('@/pages/superadmin/BackupsPage').then((m) => ({ default: m.BackupsPage })),
+)
+const ContractsList = lazy(() =>
+  import('@/pages/superadmin/contracts/ContractsList').then((m) => ({ default: m.ContractsList })),
+)
+const ContractDetails = lazy(() =>
+  import('@/pages/superadmin/contracts/ContractDetails').then((m) => ({ default: m.ContractDetails })),
+)
+const ContractNew = lazy(() =>
+  import('@/pages/superadmin/contracts/ContractNew').then((m) => ({ default: m.ContractNew })),
+)
+const ContractEdit = lazy(() =>
+  import('@/pages/superadmin/contracts/ContractEdit').then((m) => ({ default: m.ContractEdit })),
+)
+const EmailTemplatesList = lazy(() =>
+  import('@/pages/superadmin/email-templates').then((m) => ({ default: m.EmailTemplatesList })),
+)
+const EmailTemplateEditor = lazy(() =>
+  import('@/pages/superadmin/email-templates').then((m) => ({ default: m.EmailTemplateEditor })),
+)
+const EmailTemplatePreview = lazy(() =>
+  import('@/pages/superadmin/email-templates').then((m) => ({ default: m.EmailTemplatePreview })),
+)
+const EmailTemplateVersions = lazy(() =>
+  import('@/pages/superadmin/email-templates').then((m) => ({ default: m.EmailTemplateVersions })),
+)
+const EmailLogs = lazy(() => import('@/pages/superadmin/EmailLogs'))
+const TenantMessages = lazy(() => import('@/pages/superadmin/TenantMessages'))
+const TenantMessageForm = lazy(() => import('@/pages/superadmin/TenantMessageForm'))
+const TenantMessageView = lazy(() => import('@/pages/superadmin/TenantMessageView'))
+const SystemSettings = lazy(() =>
+  import('@/pages/superadmin/SystemSettings').then((m) => ({ default: m.SystemSettings })),
+)
 
 export const router = createBrowserRouter([
   {
@@ -232,14 +295,14 @@ export const router = createBrowserRouter([
         path: 'residentes/:residentId/pertences',
         element: <BelongingsPage />,
       },
-      {
-        path: 'sinais-vitais/:residentId',
-        element: (
-          <FeatureGate featureKey="sinais_vitais">
-            <VitalSignsPage />
-          </FeatureGate>
-        ),
-      },
+          {
+            path: 'sinais-vitais/:residentId',
+            element: (
+              <FeatureGate featureKey="sinais_vitais">
+                {withSuspense(<VitalSignsPage />)}
+              </FeatureGate>
+            ),
+          },
       {
         path: 'registros-diarios',
         element: (
@@ -284,7 +347,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <ConformidadePage />,
+            element: withSuspense(<ConformidadePage />),
           },
           {
             path: 'documentos',
@@ -293,7 +356,7 @@ export const router = createBrowserRouter([
                 <ProtectedRoute
                   requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
                 >
-                  <DocumentComplianceDashboard />
+                  {withSuspense(<DocumentComplianceDashboard />)}
                 </ProtectedRoute>
               </FeatureGate>
             ),
@@ -305,7 +368,7 @@ export const router = createBrowserRouter([
                 <ProtectedRoute
                   requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
                 >
-                  <InstitutionalDocumentManagement />
+                  {withSuspense(<InstitutionalDocumentManagement />)}
                 </ProtectedRoute>
               </FeatureGate>
             ),
@@ -316,7 +379,7 @@ export const router = createBrowserRouter([
               <ProtectedRoute
                 requiredPermissions={[PermissionType.VIEW_COMPLIANCE_DASHBOARD]}
               >
-                <ConformidadeRDCPage />
+                {withSuspense(<ConformidadeRDCPage />)}
               </ProtectedRoute>
             ),
           },
@@ -327,7 +390,7 @@ export const router = createBrowserRouter([
                 <ProtectedRoute
                   requiredPermissions={[PermissionType.VIEW_SENTINEL_EVENTS]}
                 >
-                  <EventosSentinelaPage />
+                  {withSuspense(<EventosSentinelaPage />)}
                 </ProtectedRoute>
               </FeatureGate>
             ),
@@ -377,7 +440,7 @@ export const router = createBrowserRouter([
               <ProtectedRoute
                 requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
               >
-                <DocumentComplianceDashboard />
+                {withSuspense(<DocumentComplianceDashboard />)}
               </ProtectedRoute>
             ),
           },
@@ -387,7 +450,7 @@ export const router = createBrowserRouter([
               <ProtectedRoute
                 requiredPermissions={[PermissionType.VIEW_INSTITUTIONAL_PROFILE]}
               >
-                <InstitutionalDocumentManagement />
+                {withSuspense(<InstitutionalDocumentManagement />)}
               </ProtectedRoute>
             ),
           },
@@ -621,23 +684,23 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <ReportsHub />,
+            element: withSuspense(<ReportsHub />),
           },
           {
             path: 'diario',
-            element: <DailyReportPage />,
+            element: withSuspense(<DailyReportPage />),
           },
           {
             path: 'residentes',
-            element: <ResidentsListReportPage />,
+            element: withSuspense(<ResidentsListReportPage />),
           },
           {
             path: 'resumo-assistencial',
-            element: <ResidentCareSummaryReportPage />,
+            element: withSuspense(<ResidentCareSummaryReportPage />),
           },
           {
             path: 'historico-plantao/:shiftId',
-            element: <ShiftHistoryReportPage />,
+            element: withSuspense(<ShiftHistoryReportPage />),
           },
         ],
       },
@@ -653,103 +716,103 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <SuperAdminDashboard />,
+        element: withSuspense(<SuperAdminDashboard />),
       },
       {
         path: 'tenants',
-        element: <TenantsList />,
+        element: withSuspense(<TenantsList />),
       },
       {
         path: 'tenants/:id',
-        element: <TenantDetails />,
+        element: withSuspense(<TenantDetails />),
       },
       {
         path: 'invoices',
-        element: <InvoicesList />,
+        element: withSuspense(<InvoicesList />),
       },
       {
         path: 'invoices/:id',
-        element: <InvoiceDetails />,
+        element: withSuspense(<InvoiceDetails />),
       },
       {
         path: 'analytics',
-        element: <FinancialAnalytics />,
+        element: withSuspense(<FinancialAnalytics />),
       },
       {
         path: 'overdue',
-        element: <OverdueDashboard />,
+        element: withSuspense(<OverdueDashboard />),
       },
       {
         path: 'backups',
-        element: <BackupsPage />,
+        element: withSuspense(<BackupsPage />),
       },
       {
         path: 'alerts',
-        element: <AlertCenter />,
+        element: withSuspense(<AlertCenter />),
       },
       {
         path: 'plans',
-        element: <PlansList />,
+        element: withSuspense(<PlansList />),
       },
       {
         path: 'plans/:id',
-        element: <PlanDetails />,
+        element: withSuspense(<PlanDetails />),
       },
       {
         path: 'terms',
-        element: <ContractsList />,
+        element: withSuspense(<ContractsList />),
       },
       {
         path: 'terms/new',
-        element: <ContractNew />,
+        element: withSuspense(<ContractNew />),
       },
       {
         path: 'terms/:id/edit',
-        element: <ContractEdit />,
+        element: withSuspense(<ContractEdit />),
       },
       {
         path: 'terms/:id',
-        element: <ContractDetails />,
+        element: withSuspense(<ContractDetails />),
       },
       {
         path: 'email-templates',
-        element: <EmailTemplatesList />,
+        element: withSuspense(<EmailTemplatesList />),
       },
       {
         path: 'email-templates/:id/edit',
-        element: <EmailTemplateEditor />,
+        element: withSuspense(<EmailTemplateEditor />),
       },
       {
         path: 'email-templates/:id/preview',
-        element: <EmailTemplatePreview />,
+        element: withSuspense(<EmailTemplatePreview />),
       },
       {
         path: 'email-templates/:id/versions',
-        element: <EmailTemplateVersions />,
+        element: withSuspense(<EmailTemplateVersions />),
       },
       {
         path: 'email-logs',
-        element: <EmailLogs />,
+        element: withSuspense(<EmailLogs />),
       },
       {
         path: 'tenant-messages',
-        element: <TenantMessages />,
+        element: withSuspense(<TenantMessages />),
       },
       {
         path: 'tenant-messages/new',
-        element: <TenantMessageForm />,
+        element: withSuspense(<TenantMessageForm />),
       },
       {
         path: 'tenant-messages/:id',
-        element: <TenantMessageView />,
+        element: withSuspense(<TenantMessageView />),
       },
       {
         path: 'tenant-messages/:id/edit',
-        element: <TenantMessageForm />,
+        element: withSuspense(<TenantMessageForm />),
       },
       {
         path: 'settings',
-        element: <SystemSettings />,
+        element: withSuspense(<SystemSettings />),
       },
     ],
   },

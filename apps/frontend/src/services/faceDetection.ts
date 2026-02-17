@@ -9,10 +9,12 @@
  * - Fallback para crop centralizado se não detectar rosto
  */
 
-import * as blazeface from '@tensorflow-models/blazeface'
-import * as tf from '@tensorflow/tfjs'
+type BlazeFaceModule = typeof import('@tensorflow-models/blazeface')
+type TensorflowModule = typeof import('@tensorflow/tfjs')
 
-let model: blazeface.BlazeFaceModel | null = null
+let blazefaceModule: BlazeFaceModule | null = null
+let tfModule: TensorflowModule | null = null
+let model: import('@tensorflow-models/blazeface').BlazeFaceModel | null = null
 let isLoading = false
 let loadError = false
 
@@ -20,7 +22,7 @@ let loadError = false
  * Carrega o modelo BlazeFace (lazy loading)
  * Modelo é pequeno (~1MB) e rápido de carregar
  */
-export async function loadFaceDetectionModel(): Promise<blazeface.BlazeFaceModel | null> {
+export async function loadFaceDetectionModel(): Promise<import('@tensorflow-models/blazeface').BlazeFaceModel | null> {
   // Se já teve erro antes, não tenta novamente
   if (loadError) {
     console.warn('⚠️ Detecção facial desabilitada devido a erro anterior')
@@ -41,12 +43,21 @@ export async function loadFaceDetectionModel(): Promise<blazeface.BlazeFaceModel
     isLoading = true
     console.log('🔄 Carregando modelo BlazeFace...')
 
+    if (!blazefaceModule || !tfModule) {
+      const [blazefaceImported, tfImported] = await Promise.all([
+        import('@tensorflow-models/blazeface'),
+        import('@tensorflow/tfjs'),
+      ])
+      blazefaceModule = blazefaceImported
+      tfModule = tfImported
+    }
+
     // Configurar backend do TensorFlow.js
-    await tf.ready()
-    console.log('🔄 TensorFlow.js backend:', tf.getBackend())
+    await tfModule.ready()
+    console.log('🔄 TensorFlow.js backend:', tfModule.getBackend())
 
     // Carregar modelo com timeout de 10 segundos
-    const loadPromise = blazeface.load()
+    const loadPromise = blazefaceModule.load()
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Timeout ao carregar modelo')), 10000)
     )
