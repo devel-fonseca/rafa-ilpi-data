@@ -36,6 +36,7 @@ export { LoadingSpinner } from './LoadingSpinner'
 
 // Componentes de overlay
 export { ActionDetailsSheet, type ActionDetailsSheetProps } from './overlay'
+export { HybridTooltip, type HybridTooltipProps } from './overlay'
 
 // Componentes de ações
 export {
