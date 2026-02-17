@@ -36,9 +36,10 @@ interface MissedEventActionsModalProps {
   scheduledTime: string;
   residentName: string;
   notificationId?: string;
+  initialMode?: ActionMode;
 }
 
-type ActionMode = 'choose' | 'reschedule' | 'complete';
+export type ActionMode = 'choose' | 'reschedule' | 'complete';
 
 const rescheduleSchema = z.object({
   scheduledDate: z.string().min(1, 'Data é obrigatória'),
@@ -59,8 +60,9 @@ export function MissedEventActionsModal({
   scheduledTime,
   residentName,
   notificationId,
+  initialMode = 'choose',
 }: MissedEventActionsModalProps) {
-  const [mode, setMode] = useState<ActionMode>('choose');
+  const [mode, setMode] = useState<ActionMode>(initialMode);
   const updateMutation = useUpdateScheduledEvent();
 
   const form = useForm<RescheduleFormData>({
@@ -100,7 +102,6 @@ export function MissedEventActionsModal({
         id: eventId,
         data: {
           status: 'COMPLETED',
-          completedAt: new Date().toISOString(),
         },
       });
 
@@ -118,7 +119,7 @@ export function MissedEventActionsModal({
   };
 
   const handleClose = () => {
-    setMode('choose');
+    setMode(initialMode);
     form.reset();
     onOpenChange(false);
   };

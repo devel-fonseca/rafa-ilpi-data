@@ -405,6 +405,7 @@ export function CaregiverDashboard() {
           shift={currentShift || activeShift}
           isLeaderOrSubstitute={isLeaderOrSubstitute}
           loading={isLoadingShift}
+          timezone={overview?.timezone}
           onCheckInSuccess={() => refetch()}
           onHandoverSuccess={() => refetch()}
         />
@@ -501,11 +502,10 @@ export function CaregiverDashboard() {
 
       {/* Seção: Agendamentos Pontuais (full width) */}
       {data.scheduledEvents.length > 0 ? (
-        <Section title="Agendamentos de Hoje">
+        <Section title="Agendamentos">
           <EventsSection
             title="Eventos"
             events={data.scheduledEvents}
-            onViewResident={(residentId) => setSelectedResidentId(residentId)}
             isLoading={isLoading}
           />
         </Section>
@@ -514,7 +514,6 @@ export function CaregiverDashboard() {
           <EventsSection
             title="Eventos"
             events={data.scheduledEvents}
-            onViewResident={(residentId) => setSelectedResidentId(residentId)}
             isLoading={isLoading}
           />
         </Section>

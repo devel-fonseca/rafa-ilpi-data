@@ -1,6 +1,13 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Syringe,
   Stethoscope,
@@ -9,7 +16,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  Eye,
+  RefreshCw,
   XCircle,
   Ban,
   FileText,
@@ -18,7 +25,10 @@ import {
   ClipboardCheck,
   Wrench,
 } from 'lucide-react'
-import type { DailyTask } from '@/hooks/useResidentSchedule'
+import type { DailyTask } from '@/types/resident-schedule'
+import { usePermissions, PermissionType } from '@/hooks/usePermissions'
+import { getCurrentDate, getCurrentTime, formatDateOnlySafe } from '@/utils/dateHelpers'
+import { MissedEventActionsModal, type ActionMode } from '@/components/resident-schedule/MissedEventActionsModal'
 
 // ──────────────────────────────────────────────────────────────────────────
 // ÍCONES POR TIPO DE EVENTO
@@ -123,7 +133,6 @@ const STATUS_CONFIG: Record<
 interface Props {
   title: string
   events: DailyTask[]
-  onViewResident: (residentId: string) => void
   isLoading?: boolean
 }
 
@@ -134,9 +143,20 @@ interface Props {
 export function EventsSection({
   title,
   events,
-  onViewResident,
   isLoading,
 }: Props) {
+  const { hasPermission } = usePermissions()
+  const canManage = hasPermission(PermissionType.MANAGE_RESIDENT_SCHEDULE)
+
+  // Estado do modal de ações (concluir / reagendar)
+  const [modalEvent, setModalEvent] = useState<DailyTask | null>(null)
+  const [modalMode, setModalMode] = useState<ActionMode>('choose')
+
+  const openModal = (event: DailyTask, mode: ActionMode) => {
+    setModalEvent(event)
+    setModalMode(mode)
+  }
+
   // Ordenar por horário
   const sortedEvents = [...events].sort((a, b) => {
     if (!a.scheduledTime) return 1
@@ -253,10 +273,16 @@ export function EventsSection({
                     </p>
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {event.scheduledDate && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDateOnlySafe(event.scheduledDate)}
+                        </span>
+                      )}
                       {event.scheduledTime && (
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          Horário: {event.scheduledTime}
+                          {event.scheduledTime}
                         </span>
                       )}
                     </div>
@@ -269,17 +295,56 @@ export function EventsSection({
                   </div>
                 </div>
 
-                {/* Right: Action - Apenas para eventos de residentes */}
-                {event.residentId && (
-                  <div className="ml-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onViewResident(event.residentId)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      Ver Residente
-                    </Button>
+                {/* Right: Actions */}
+                {canManage && event.eventId && (
+                  <div className="ml-4 flex flex-col gap-2 items-end">
+                    {/* SCHEDULED → Concluir (com validação de horário) */}
+                    {event.status === 'SCHEDULED' && (() => {
+                      const today = getCurrentDate()
+                      const now = getCurrentTime()
+                      const isFutureDate = event.scheduledDate ? event.scheduledDate > today : false
+                      const isBeforeTime = event.scheduledDate === today && event.scheduledTime ? now < event.scheduledTime : false
+                      const isDisabled = isFutureDate || isBeforeTime
+
+                      return (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-success border-success/30 hover:bg-success/10"
+                                  onClick={() => openModal(event, 'complete')}
+                                  disabled={isDisabled}
+                                >
+                                  <CheckCircle2 className="w-4 h-4 mr-1" />
+                                  Concluir
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isDisabled
+                                ? 'Disponível a partir do horário agendado'
+                                : 'Marcar como concluído'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
+                    })()}
+
+                    {/* MISSED → Reagendar (abre modal com opções) */}
+                    {event.status === 'MISSED' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-primary border-primary/30 hover:bg-primary/10"
+                        onClick={() => openModal(event, 'choose')}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Reagendar
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -287,6 +352,20 @@ export function EventsSection({
           })}
         </div>
       </CardContent>
+
+      {/* Modal de Ações (Concluir / Reagendar) */}
+      {modalEvent && modalEvent.eventId && (
+        <MissedEventActionsModal
+          open={!!modalEvent}
+          onOpenChange={(open) => { if (!open) setModalEvent(null) }}
+          eventId={modalEvent.eventId}
+          eventTitle={modalEvent.title || ''}
+          scheduledDate={modalEvent.scheduledDate || ''}
+          scheduledTime={modalEvent.scheduledTime || ''}
+          residentName={modalEvent.residentName}
+          initialMode={modalMode}
+        />
+      )}
     </Card>
   )
 }

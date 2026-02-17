@@ -5,7 +5,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ScheduleFrequency } from '@prisma/client';
-import { getCurrentDateInTz, DEFAULT_TIMEZONE } from '../utils/date.helpers';
+import { getCurrentDateInTz, DEFAULT_TIMEZONE, formatDateOnly } from '../utils/date.helpers';
 
 export interface DailyTask {
   type: 'RECURRING' | 'EVENT';
@@ -25,6 +25,7 @@ export interface DailyTask {
   // Para eventos agendados
   eventId?: string;
   eventType?: string;
+  scheduledDate?: string; // YYYY-MM-DD (data civil do evento)
   title?: string;
   status?: string;
   description?: string;
@@ -306,6 +307,7 @@ export class ResidentScheduleTasksService {
       residentName: event.resident.fullName,
       eventId: event.id,
       eventType: event.eventType,
+      scheduledDate: formatDateOnly(event.scheduledDate),
       scheduledTime: event.scheduledTime,
       title: event.title,
       status: event.status,
@@ -472,6 +474,7 @@ export class ResidentScheduleTasksService {
       residentName: event.resident.fullName,
       eventId: event.id,
       eventType: event.eventType,
+      scheduledDate: formatDateOnly(event.scheduledDate),
       scheduledTime: event.scheduledTime,
       title: event.title,
       status: event.status,

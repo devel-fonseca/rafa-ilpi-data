@@ -55,7 +55,6 @@ export default function Dashboard() {
           <EventsSection
             title="Eventos"
             events={scheduledEvents}
-            onViewResident={() => {}} // Sem ação no dashboard genérico
             isLoading={isLoading}
           />
         </Section>
@@ -64,7 +63,6 @@ export default function Dashboard() {
           <EventsSection
             title="Eventos"
             events={scheduledEvents}
-            onViewResident={() => {}} // Sem ação no dashboard genérico
             isLoading={isLoading}
           />
         </Section>

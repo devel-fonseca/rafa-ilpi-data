@@ -112,6 +112,7 @@ export interface DailyTask {
   // Event fields
   eventId?: string
   eventType?: string
+  scheduledDate?: string // YYYY-MM-DD (data civil do evento)
   scheduledTime?: string
   title?: string
   status?: string
@@ -163,7 +164,6 @@ export interface UpdateScheduledEventInput {
   vaccineData?: VaccineData
   status?: ScheduledEventStatus
   completedRecordId?: string
-  completedAt?: string
   notes?: string
 }
 

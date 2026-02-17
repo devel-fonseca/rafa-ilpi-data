@@ -133,11 +133,6 @@ export function TechnicalManagerDashboard() {
     }
   }
 
-  // Handler para visualizar residente
-  const handleViewResident = (residentId: string) => {
-    setSelectedResidentId(residentId)
-  }
-
   return (
     <Page maxWidth="wide" spacing="compact">
       <PageHeader
@@ -146,7 +141,7 @@ export function TechnicalManagerDashboard() {
       />
 
       {/* Equipes de Plantão Hoje - Protagonismo máximo no topo */}
-      <TodayShiftsInfo />
+      <TodayShiftsInfo timezone={overview?.timezone} />
 
       {/* Toolbar + Busca na mesma linha */}
       <div className="mb-6 pb-3 border-b border-border/60 flex flex-col lg:flex-row lg:items-center gap-3">
@@ -178,7 +173,6 @@ export function TechnicalManagerDashboard() {
           <EventsSection
             title="Eventos"
             events={managerTasks?.scheduledEvents || []}
-            onViewResident={handleViewResident}
             isLoading={isLoadingTasks}
           />
         </CollapsibleSection>

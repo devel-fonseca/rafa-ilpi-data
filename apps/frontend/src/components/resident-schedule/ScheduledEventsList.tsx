@@ -120,7 +120,6 @@ export function ScheduledEventsList({
         id: event.id,
         data: {
           status: 'COMPLETED',
-          completedAt: new Date().toISOString(),
         },
       });
 
