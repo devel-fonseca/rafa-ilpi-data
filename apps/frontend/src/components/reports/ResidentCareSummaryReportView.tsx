@@ -133,19 +133,6 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
       ]) || 'Não informado'
     : 'Não informado'
 
-  const vitalSignsLine = report.vitalSigns
-    ? joinParts([
-        report.vitalSigns.systolicPressure !== null && report.vitalSigns.diastolicPressure !== null
-          ? `PA ${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
-          : null,
-        report.vitalSigns.heartRate !== null ? `FC ${report.vitalSigns.heartRate} bpm` : null,
-        report.vitalSigns.oxygenSaturation !== null ? `SpO₂ ${report.vitalSigns.oxygenSaturation}%` : null,
-        report.vitalSigns.temperature !== null ? `Temp ${formatNumber(report.vitalSigns.temperature, 1)}°C` : null,
-        report.vitalSigns.bloodGlucose !== null ? `Glicemia ${report.vitalSigns.bloodGlucose} mg/dL` : null,
-        report.vitalSigns.recordedAt ? `Registro ${formatDateTime(report.vitalSigns.recordedAt)}` : null,
-      ]) || 'Não informado'
-    : 'Não informado'
-
   const anthropometryValues = report.anthropometry
     ? {
         height: report.anthropometry.height !== null ? `${formatNumber(report.anthropometry.height, 2)} m` : '-',
@@ -162,24 +149,42 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
 
   const vitalSignsValues = report.vitalSigns
     ? {
-        bloodPressure:
+        bloodPressureValue:
           report.vitalSigns.systolicPressure !== null &&
           report.vitalSigns.diastolicPressure !== null
             ? `${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
             : '-',
-        heartRate: report.vitalSigns.heartRate !== null ? `${report.vitalSigns.heartRate} bpm` : '-',
-        temperature: report.vitalSigns.temperature !== null ? `${formatNumber(report.vitalSigns.temperature, 1)}°C` : '-',
-        oxygenSaturation: report.vitalSigns.oxygenSaturation !== null ? `${report.vitalSigns.oxygenSaturation}%` : '-',
-        bloodGlucose: report.vitalSigns.bloodGlucose !== null ? `${report.vitalSigns.bloodGlucose} mg/dL` : '-',
-        recordedAt: report.vitalSigns.recordedAt ? formatDateTime(report.vitalSigns.recordedAt) : '-',
+        bloodPressureRecordedAt: report.vitalSigns.bloodPressureRecordedAt
+          ? formatDateTime(report.vitalSigns.bloodPressureRecordedAt)
+          : null,
+        heartRateValue: report.vitalSigns.heartRate !== null ? `${report.vitalSigns.heartRate} bpm` : '-',
+        heartRateRecordedAt: report.vitalSigns.heartRateRecordedAt
+          ? formatDateTime(report.vitalSigns.heartRateRecordedAt)
+          : null,
+        temperatureValue: report.vitalSigns.temperature !== null ? `${formatNumber(report.vitalSigns.temperature, 1)}°C` : '-',
+        temperatureRecordedAt: report.vitalSigns.temperatureRecordedAt
+          ? formatDateTime(report.vitalSigns.temperatureRecordedAt)
+          : null,
+        oxygenSaturationValue: report.vitalSigns.oxygenSaturation !== null ? `${report.vitalSigns.oxygenSaturation}%` : '-',
+        oxygenSaturationRecordedAt: report.vitalSigns.oxygenSaturationRecordedAt
+          ? formatDateTime(report.vitalSigns.oxygenSaturationRecordedAt)
+          : null,
+        bloodGlucoseValue: report.vitalSigns.bloodGlucose !== null ? `${report.vitalSigns.bloodGlucose} mg/dL` : '-',
+        bloodGlucoseRecordedAt: report.vitalSigns.bloodGlucoseRecordedAt
+          ? formatDateTime(report.vitalSigns.bloodGlucoseRecordedAt)
+          : null,
       }
     : {
-        bloodPressure: '-',
-        heartRate: '-',
-        temperature: '-',
-        oxygenSaturation: '-',
-        bloodGlucose: '-',
-        recordedAt: vitalSignsLine || '-',
+        bloodPressureValue: '-',
+        bloodPressureRecordedAt: null,
+        heartRateValue: '-',
+        heartRateRecordedAt: null,
+        temperatureValue: '-',
+        temperatureRecordedAt: null,
+        oxygenSaturationValue: '-',
+        oxygenSaturationRecordedAt: null,
+        bloodGlucoseValue: '-',
+        bloodGlucoseRecordedAt: null,
       }
 
   const dependencyLine = report.dependencyAssessment
@@ -373,17 +378,40 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
                       <TableHead className="w-[9%]">SpO₂</TableHead>
                       <TableHead className="w-[13%]">Temperatura</TableHead>
                       <TableHead className="w-[14%]">Glicemia</TableHead>
-                      <TableHead className="w-[35%]">Registro</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell className="w-[19%]">{vitalSignsValues.bloodPressure}</TableCell>
-                      <TableCell className="w-[10%]">{vitalSignsValues.heartRate}</TableCell>
-                      <TableCell className="w-[9%]">{vitalSignsValues.oxygenSaturation}</TableCell>
-                      <TableCell className="w-[13%]">{vitalSignsValues.temperature}</TableCell>
-                      <TableCell className="w-[14%]">{vitalSignsValues.bloodGlucose}</TableCell>
-                      <TableCell className="w-[35%]">{vitalSignsValues.recordedAt}</TableCell>
+                      <TableCell className="w-[19%]">
+                        <p>{vitalSignsValues.bloodPressureValue}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vitalSignsValues.bloodPressureRecordedAt || '-'}
+                        </p>
+                      </TableCell>
+                      <TableCell className="w-[10%]">
+                        <p>{vitalSignsValues.heartRateValue}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vitalSignsValues.heartRateRecordedAt || '-'}
+                        </p>
+                      </TableCell>
+                      <TableCell className="w-[9%]">
+                        <p>{vitalSignsValues.oxygenSaturationValue}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vitalSignsValues.oxygenSaturationRecordedAt || '-'}
+                        </p>
+                      </TableCell>
+                      <TableCell className="w-[13%]">
+                        <p>{vitalSignsValues.temperatureValue}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vitalSignsValues.temperatureRecordedAt || '-'}
+                        </p>
+                      </TableCell>
+                      <TableCell className="w-[14%]">
+                        <p>{vitalSignsValues.bloodGlucoseValue}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vitalSignsValues.bloodGlucoseRecordedAt || '-'}
+                        </p>
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

@@ -89,11 +89,15 @@ export interface ResidentCareSummaryAnthropometry {
 export interface ResidentCareSummaryVitalSigns {
   systolicPressure: number | null
   diastolicPressure: number | null
+  bloodPressureRecordedAt: string | null
   heartRate: number | null
+  heartRateRecordedAt: string | null
   temperature: number | null
+  temperatureRecordedAt: string | null
   oxygenSaturation: number | null
+  oxygenSaturationRecordedAt: string | null
   bloodGlucose: number | null
-  recordedAt: string | null
+  bloodGlucoseRecordedAt: string | null
 }
 
 export interface ResidentCareSummaryClinicalProfile {

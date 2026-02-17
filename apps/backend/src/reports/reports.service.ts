@@ -1343,20 +1343,6 @@ export class ReportsService {
           },
           orderBy: { date: 'desc' },
         },
-        vitalSigns: {
-          where: { deletedAt: null },
-          orderBy: { timestamp: 'desc' },
-          take: 1,
-          select: {
-            systolicBloodPressure: true,
-            diastolicBloodPressure: true,
-            heartRate: true,
-            temperature: true,
-            oxygenSaturation: true,
-            bloodGlucose: true,
-            timestamp: true,
-          },
-        },
         prescriptions: {
           where: {
             isActive: true,
@@ -1465,18 +1451,99 @@ export class ReportsService {
         }
       : null;
 
-    // Processar sinais vitais
-    const vitalSigns = resident.vitalSigns[0]
-      ? {
-          systolicPressure: resident.vitalSigns[0].systolicBloodPressure || null,
-          diastolicPressure: resident.vitalSigns[0].diastolicBloodPressure || null,
-          heartRate: resident.vitalSigns[0].heartRate || null,
-          temperature: resident.vitalSigns[0].temperature || null,
-          oxygenSaturation: resident.vitalSigns[0].oxygenSaturation || null,
-          bloodGlucose: resident.vitalSigns[0].bloodGlucose || null,
-          recordedAt: resident.vitalSigns[0].timestamp?.toISOString() || null,
-        }
-      : null;
+    // Processar sinais vitais consolidados por parâmetro (mesma lógica da Visualização Rápida)
+    const [
+      lastBloodPressure,
+      lastBloodGlucose,
+      lastTemperature,
+      lastOxygenSaturation,
+      lastHeartRate,
+    ] = await Promise.all([
+      this.tenantContext.client.vitalSign.findFirst({
+        where: {
+          residentId,
+          deletedAt: null,
+          systolicBloodPressure: { not: null },
+          diastolicBloodPressure: { not: null },
+        },
+        select: {
+          systolicBloodPressure: true,
+          diastolicBloodPressure: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+      this.tenantContext.client.vitalSign.findFirst({
+        where: {
+          residentId,
+          deletedAt: null,
+          bloodGlucose: { not: null },
+        },
+        select: {
+          bloodGlucose: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+      this.tenantContext.client.vitalSign.findFirst({
+        where: {
+          residentId,
+          deletedAt: null,
+          temperature: { not: null },
+        },
+        select: {
+          temperature: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+      this.tenantContext.client.vitalSign.findFirst({
+        where: {
+          residentId,
+          deletedAt: null,
+          oxygenSaturation: { not: null },
+        },
+        select: {
+          oxygenSaturation: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+      this.tenantContext.client.vitalSign.findFirst({
+        where: {
+          residentId,
+          deletedAt: null,
+          heartRate: { not: null },
+        },
+        select: {
+          heartRate: true,
+          timestamp: true,
+        },
+        orderBy: [{ timestamp: 'desc' }, { createdAt: 'desc' }],
+      }),
+    ]);
+
+    const vitalSigns =
+      lastBloodPressure ||
+      lastBloodGlucose ||
+      lastTemperature ||
+      lastOxygenSaturation ||
+      lastHeartRate
+        ? {
+            systolicPressure: lastBloodPressure?.systolicBloodPressure || null,
+            diastolicPressure: lastBloodPressure?.diastolicBloodPressure || null,
+            bloodPressureRecordedAt: lastBloodPressure?.timestamp?.toISOString() || null,
+            heartRate: lastHeartRate?.heartRate || null,
+            heartRateRecordedAt: lastHeartRate?.timestamp?.toISOString() || null,
+            temperature: lastTemperature?.temperature || null,
+            temperatureRecordedAt: lastTemperature?.timestamp?.toISOString() || null,
+            oxygenSaturation: lastOxygenSaturation?.oxygenSaturation || null,
+            oxygenSaturationRecordedAt:
+              lastOxygenSaturation?.timestamp?.toISOString() || null,
+            bloodGlucose: lastBloodGlucose?.bloodGlucose || null,
+            bloodGlucoseRecordedAt: lastBloodGlucose?.timestamp?.toISOString() || null,
+          }
+        : null;
 
     // Processar perfil clínico
     const clinicalProfile = resident.clinicalProfile

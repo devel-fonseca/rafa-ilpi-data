@@ -65,11 +65,15 @@ export interface AnthropometryDto {
 export interface VitalSignsDto {
   systolicPressure: number | null
   diastolicPressure: number | null
+  bloodPressureRecordedAt: string | null // ISO datetime
   heartRate: number | null
+  heartRateRecordedAt: string | null // ISO datetime
   temperature: number | null
+  temperatureRecordedAt: string | null // ISO datetime
   oxygenSaturation: number | null
+  oxygenSaturationRecordedAt: string | null // ISO datetime
   bloodGlucose: number | null
-  recordedAt: string | null // ISO datetime
+  bloodGlucoseRecordedAt: string | null // ISO datetime
 }
 
 // ========== PERFIL CLÍNICO ==========

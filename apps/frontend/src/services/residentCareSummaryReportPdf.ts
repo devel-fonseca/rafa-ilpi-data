@@ -303,7 +303,7 @@ class ResidentCareSummaryReportPDFGenerator {
     this.y = (withLastTable.lastAutoTable?.finalY || this.y + 8) + 3
   }
 
-  private addVitalSignsTable(values: [string, string, string, string, string, string]) {
+  private addVitalSignsTable(values: [string, string, string, string, string]) {
     this.ensureSpace(12)
     this.doc.setFont('helvetica', 'bold')
     this.doc.setFontSize(FONTS.bodyLarge)
@@ -311,7 +311,7 @@ class ResidentCareSummaryReportPDFGenerator {
 
     autoTable(this.doc, {
       startY: this.y + 2,
-      head: [['Pressão Arterial', 'FC', 'SpO2', 'Temperatura', 'Glicemia', 'Registro']],
+      head: [['Pressão Arterial', 'FC', 'SpO2', 'Temperatura', 'Glicemia']],
       body: [values],
       theme: 'grid',
       styles: {
@@ -327,13 +327,12 @@ class ResidentCareSummaryReportPDFGenerator {
       },
       tableWidth: this.pageWidth - PAGE_MARGIN * 2,
       columnStyles: {
-        // Mesma proporção da tela: 19% | 10% | 9% | 13% | 14% | 35%
-        0: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.19 },
-        1: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.1 },
-        2: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.09 },
-        3: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.13 },
-        4: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.14 },
-        5: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.35 },
+        // 5 colunas equilibradas para valor + horário em cada célula
+        0: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.24 },
+        1: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.16 },
+        2: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.16 },
+        3: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.18 },
+        4: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.26 },
       },
       margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
       rowPageBreak: 'avoid',
@@ -402,19 +401,6 @@ class ResidentCareSummaryReportPDFGenerator {
           report.anthropometry.weight !== null ? `Peso ${formatNumber(report.anthropometry.weight, 1)} kg` : null,
           report.anthropometry.bmi !== null ? `IMC ${formatNumber(report.anthropometry.bmi, 1)}` : null,
           report.anthropometry.recordedAt ? `Registro ${formatDateTime(report.anthropometry.recordedAt)}` : null,
-        ]) || 'Não informado'
-      : 'Não informado'
-
-    const vitalSignsLine = report.vitalSigns
-      ? joinParts([
-          report.vitalSigns.systolicPressure !== null && report.vitalSigns.diastolicPressure !== null
-            ? `PA ${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
-            : null,
-          report.vitalSigns.heartRate !== null ? `FC ${report.vitalSigns.heartRate} bpm` : null,
-          report.vitalSigns.oxygenSaturation !== null ? `SpO2 ${report.vitalSigns.oxygenSaturation}%` : null,
-          report.vitalSigns.temperature !== null ? `Temp ${formatNumber(report.vitalSigns.temperature, 1)}°C` : null,
-          report.vitalSigns.bloodGlucose !== null ? `Glicemia ${report.vitalSigns.bloodGlucose} mg/dL` : null,
-          report.vitalSigns.recordedAt ? `Registro ${formatDateTime(report.vitalSigns.recordedAt)}` : null,
         ]) || 'Não informado'
       : 'Não informado'
 
@@ -557,18 +543,25 @@ class ResidentCareSummaryReportPDFGenerator {
         ]
       : ['-', '-', '-', anthropometryLine || '-']
 
-    const vitalSignsTableValues: [string, string, string, string, string, string] = report.vitalSigns
+    const vitalSignsTableValues: [string, string, string, string, string] = report.vitalSigns
       ? [
           report.vitalSigns.systolicPressure !== null && report.vitalSigns.diastolicPressure !== null
-            ? `${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
+            ? `${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}\n${report.vitalSigns.bloodPressureRecordedAt ? formatDateTime(report.vitalSigns.bloodPressureRecordedAt) : '-'}`
             : '-',
-          report.vitalSigns.heartRate !== null ? `${report.vitalSigns.heartRate} bpm` : '-',
-          report.vitalSigns.oxygenSaturation !== null ? `${report.vitalSigns.oxygenSaturation}%` : '-',
-          report.vitalSigns.temperature !== null ? `${formatNumber(report.vitalSigns.temperature, 1)}°C` : '-',
-          report.vitalSigns.bloodGlucose !== null ? `${report.vitalSigns.bloodGlucose} mg/dL` : '-',
-          report.vitalSigns.recordedAt ? formatDateTime(report.vitalSigns.recordedAt) : '-',
+          report.vitalSigns.heartRate !== null
+            ? `${report.vitalSigns.heartRate} bpm\n${report.vitalSigns.heartRateRecordedAt ? formatDateTime(report.vitalSigns.heartRateRecordedAt) : '-'}`
+            : '-',
+          report.vitalSigns.oxygenSaturation !== null
+            ? `${report.vitalSigns.oxygenSaturation}%\n${report.vitalSigns.oxygenSaturationRecordedAt ? formatDateTime(report.vitalSigns.oxygenSaturationRecordedAt) : '-'}`
+            : '-',
+          report.vitalSigns.temperature !== null
+            ? `${formatNumber(report.vitalSigns.temperature, 1)}°C\n${report.vitalSigns.temperatureRecordedAt ? formatDateTime(report.vitalSigns.temperatureRecordedAt) : '-'}`
+            : '-',
+          report.vitalSigns.bloodGlucose !== null
+            ? `${report.vitalSigns.bloodGlucose} mg/dL\n${report.vitalSigns.bloodGlucoseRecordedAt ? formatDateTime(report.vitalSigns.bloodGlucoseRecordedAt) : '-'}`
+            : '-',
         ]
-      : ['-', '-', '-', '-', '-', vitalSignsLine || '-']
+      : ['-', '-', '-', '-', '-']
 
     this.addAnthropometryTable(anthropometryTableValues)
     this.addVitalSignsTable(vitalSignsTableValues)
