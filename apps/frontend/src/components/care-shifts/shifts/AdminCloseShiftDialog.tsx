@@ -189,6 +189,11 @@ export function AdminCloseShiftDialog({
       isLoading={isReauthenticating}
       error={reauthError}
       actionDescription="Encerramento administrativo de plantão"
+      alertDescription="Você está prestes a encerrar este plantão administrativamente. Esta ação registra o encerramento formal com sua autoria e justificativa, garantindo a rastreabilidade do processo."
+      fieldLabel="Digite sua senha para confirmar sua identidade"
+      submitLabel="Confirmar e encerrar plantão"
+      infoTitle="ℹ️ Por que preciso confirmar minha identidade?"
+      infoDescription="O encerramento administrativo é um registro institucional que assegura a rastreabilidade e a conformidade do processo. Sua confirmação vincula este registro à sua autoria profissional."
     />
     </>
   );

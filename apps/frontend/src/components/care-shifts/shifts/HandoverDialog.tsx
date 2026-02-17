@@ -220,6 +220,11 @@ export function HandoverDialog({
       isLoading={isReauthenticating}
       error={reauthError}
       actionDescription="Passagem de plantão"
+      alertDescription="Você está prestes a registrar a passagem de plantão, formalizando a transmissão das informações assistenciais ao próximo turno. Para garantir a rastreabilidade e a segurança dos registros, confirme sua senha para continuar."
+      fieldLabel="Digite sua senha para confirmar sua identidade"
+      submitLabel="Confirmar e registrar passagem"
+      infoTitle="ℹ️ Por que preciso confirmar minha identidade?"
+      infoDescription="A passagem de plantão é um registro institucional que assegura a continuidade do cuidado e a rastreabilidade das informações assistenciais. Sua confirmação vincula este registro à sua autoria profissional."
     />
     </>
   );

@@ -47,6 +47,12 @@ export interface ReauthenticationModalProps {
   isLoading?: boolean;
   error?: Error | null;
   actionDescription?: string;
+  alertTitle?: string;
+  alertDescription?: string;
+  submitLabel?: string;
+  infoTitle?: string;
+  infoDescription?: string;
+  fieldLabel?: string;
 }
 
 /**
@@ -81,6 +87,12 @@ export function ReauthenticationModal({
   isLoading = false,
   error = null,
   actionDescription,
+  alertTitle,
+  alertDescription,
+  submitLabel,
+  infoTitle,
+  infoDescription,
+  fieldLabel,
 }: ReauthenticationModalProps) {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -129,12 +141,13 @@ export function ReauthenticationModal({
         <Alert variant="destructive" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50">
           <AlertTriangle className="h-4 w-4 !text-amber-600 dark:!text-amber-500" />
           <AlertTitle className="text-amber-900 dark:text-amber-100">
-            Confirmação de Identidade
+            {alertTitle ?? 'Confirmação de Identidade'}
           </AlertTitle>
           <AlertDescription className="text-amber-800 dark:text-amber-200">
-            {actionDescription
-              ? `Você está prestes a executar: ${actionDescription}. Esta ação pode ter impacto significativo no sistema.`
-              : 'Esta ação pode ter impacto significativo no sistema e requer reautenticação.'}
+            {alertDescription
+              ?? (actionDescription
+                ? `Você está prestes a executar: ${actionDescription}. Esta ação pode ter impacto significativo no sistema.`
+                : 'Esta ação pode ter impacto significativo no sistema e requer reautenticação.')}
           </AlertDescription>
         </Alert>
 
@@ -147,7 +160,7 @@ export function ReauthenticationModal({
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <Lock className="h-4 w-4" />
-                    Digite sua senha para continuar
+                    {fieldLabel ?? 'Digite sua senha para continuar'}
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
@@ -200,18 +213,17 @@ export function ReauthenticationModal({
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Verificando...' : 'Confirmar Identidade'}
+                {isLoading ? 'Verificando...' : (submitLabel ?? 'Confirmar Identidade')}
               </Button>
             </DialogFooter>
           </form>
         </Form>
 
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-100">
-          <p className="font-medium">ℹ️ Por que preciso reautenticar?</p>
+          <p className="font-medium">{infoTitle ?? 'ℹ️ Por que preciso reautenticar?'}</p>
           <p className="mt-1 text-xs opacity-90">
-            Operações críticas (exclusões, exportações sensíveis, alterações estruturais) exigem
-            reautenticação para evitar ações acidentais ou não autorizadas. Sua sessão de
-            reautenticação será válida por 5 minutos.
+            {infoDescription
+              ?? 'Operações críticas (exclusões, exportações sensíveis, alterações estruturais) exigem reautenticação para evitar ações acidentais ou não autorizadas. Sua sessão de reautenticação será válida por 5 minutos.'}
           </p>
         </div>
       </DialogContent>
