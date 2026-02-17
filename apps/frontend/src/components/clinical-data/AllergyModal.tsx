@@ -32,6 +32,8 @@ const allergySchema = z.object({
   reaction: z.string().optional(),
   severity: z.enum(['LEVE', 'MODERADA', 'GRAVE', 'ANAFILAXIA']).optional(),
   notes: z.string().optional(),
+  contraindications: z.string().optional(),
+  changeReason: z.string().optional(),
 })
 
 type AllergyFormData = z.infer<typeof allergySchema>
@@ -62,6 +64,7 @@ export function AllergyModal({
     handleSubmit,
     formState: { errors },
     reset,
+    setError,
   } = useForm<AllergyFormData>({
     resolver: zodResolver(allergySchema),
     defaultValues: {
@@ -69,6 +72,8 @@ export function AllergyModal({
       reaction: allergy?.reaction || '',
       severity: allergy?.severity || undefined,
       notes: allergy?.notes || '',
+      contraindications: allergy?.contraindications || '',
+      changeReason: '',
     },
   })
 
@@ -79,6 +84,8 @@ export function AllergyModal({
         reaction: allergy.reaction || '',
         severity: allergy.severity || undefined,
         notes: allergy.notes || '',
+        contraindications: allergy.contraindications || '',
+        changeReason: '',
       })
     } else if (open && !allergy) {
       reset({
@@ -86,6 +93,8 @@ export function AllergyModal({
         reaction: '',
         severity: undefined,
         notes: '',
+        contraindications: '',
+        changeReason: '',
       })
     }
   }, [open, allergy, reset])
@@ -93,6 +102,14 @@ export function AllergyModal({
   const onSubmit = async (data: AllergyFormData) => {
     try {
       if (isEditing && allergy) {
+        if (!data.changeReason?.trim()) {
+          setError('changeReason', {
+            type: 'manual',
+            message: 'Motivo da edição é obrigatório',
+          })
+          return
+        }
+
         await updateMutation.mutateAsync({
           id: allergy.id,
           data: {
@@ -100,6 +117,8 @@ export function AllergyModal({
             reaction: data.reaction || undefined,
             severity: data.severity || undefined,
             notes: data.notes || undefined,
+            contraindications: data.contraindications || undefined,
+            changeReason: data.changeReason.trim(),
           },
         })
       } else {
@@ -109,6 +128,7 @@ export function AllergyModal({
           reaction: data.reaction || undefined,
           severity: data.severity || undefined,
           notes: data.notes || undefined,
+          contraindications: data.contraindications || undefined,
         })
       }
 
@@ -120,7 +140,7 @@ export function AllergyModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Alergia' : 'Registrar Nova Alergia'}
@@ -209,6 +229,42 @@ export function AllergyModal({
               </p>
             )}
           </div>
+
+          <div>
+            <Label htmlFor="contraindications">Contraindicações</Label>
+            <Textarea
+              id="contraindications"
+              {...register('contraindications')}
+              placeholder="Ex: Evitar dipirona e anti-inflamatórios não esteroidais..."
+              className="min-h-[80px]"
+              disabled={isLoading}
+            />
+            {errors.contraindications && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.contraindications.message}
+              </p>
+            )}
+          </div>
+
+          {isEditing && (
+            <div>
+              <Label htmlFor="changeReason">
+                Motivo da edição <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="changeReason"
+                {...register('changeReason')}
+                placeholder="Descreva o motivo da alteração deste registro..."
+                className="min-h-[80px]"
+                disabled={isLoading}
+              />
+              {errors.changeReason && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.changeReason.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button

@@ -40,6 +40,8 @@ const dietaryRestrictionSchema = z.object({
   ]),
   description: z.string().min(1, 'Descrição é obrigatória'),
   notes: z.string().optional(),
+  contraindications: z.string().optional(),
+  changeReason: z.string().optional(),
 })
 
 type DietaryRestrictionFormData = z.infer<typeof dietaryRestrictionSchema>
@@ -70,12 +72,15 @@ export function DietaryRestrictionModal({
     handleSubmit,
     formState: { errors },
     reset,
+    setError,
   } = useForm<DietaryRestrictionFormData>({
     resolver: zodResolver(dietaryRestrictionSchema),
     defaultValues: {
       restrictionType: restriction?.restrictionType || 'RESTRICAO_MEDICA',
       description: restriction?.description || '',
       notes: restriction?.notes || '',
+      contraindications: restriction?.contraindications || '',
+      changeReason: '',
     },
   })
 
@@ -85,12 +90,16 @@ export function DietaryRestrictionModal({
         restrictionType: restriction.restrictionType,
         description: restriction.description,
         notes: restriction.notes || '',
+        contraindications: restriction.contraindications || '',
+        changeReason: '',
       })
     } else if (open && !restriction) {
       reset({
         restrictionType: 'RESTRICAO_MEDICA',
         description: '',
         notes: '',
+        contraindications: '',
+        changeReason: '',
       })
     }
   }, [open, restriction, reset])
@@ -98,12 +107,22 @@ export function DietaryRestrictionModal({
   const onSubmit = async (data: DietaryRestrictionFormData) => {
     try {
       if (isEditing && restriction) {
+        if (!data.changeReason?.trim()) {
+          setError('changeReason', {
+            type: 'manual',
+            message: 'Motivo da edição é obrigatório',
+          })
+          return
+        }
+
         await updateMutation.mutateAsync({
           id: restriction.id,
           data: {
             restrictionType: data.restrictionType,
             description: data.description,
             notes: data.notes || undefined,
+            contraindications: data.contraindications || undefined,
+            changeReason: data.changeReason.trim(),
           },
         })
       } else {
@@ -112,6 +131,7 @@ export function DietaryRestrictionModal({
           restrictionType: data.restrictionType,
           description: data.description,
           notes: data.notes || undefined,
+          contraindications: data.contraindications || undefined,
         })
       }
 
@@ -123,7 +143,7 @@ export function DietaryRestrictionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Restrição Alimentar' : 'Registrar Nova Restrição Alimentar'}
@@ -202,6 +222,42 @@ export function DietaryRestrictionModal({
               </p>
             )}
           </div>
+
+          <div>
+            <Label htmlFor="contraindications">Contraindicações</Label>
+            <Textarea
+              id="contraindications"
+              {...register('contraindications')}
+              placeholder="Ex: Evitar embutidos, ultraprocessados e adição de sal..."
+              className="min-h-[100px]"
+              disabled={isLoading}
+            />
+            {errors.contraindications && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.contraindications.message}
+              </p>
+            )}
+          </div>
+
+          {isEditing && (
+            <div>
+              <Label htmlFor="changeReason">
+                Motivo da edição <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="changeReason"
+                {...register('changeReason')}
+                placeholder="Descreva o motivo da alteração deste registro..."
+                className="min-h-[80px]"
+                disabled={isLoading}
+              />
+              {errors.changeReason && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.changeReason.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button

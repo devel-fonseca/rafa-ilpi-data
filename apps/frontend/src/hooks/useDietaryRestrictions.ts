@@ -8,7 +8,7 @@ import {
   deleteDietaryRestriction,
   type DietaryRestriction,
   type CreateDietaryRestrictionDto,
-  type UpdateDietaryRestrictionDto,
+  type UpdateDietaryRestrictionVersionedDto,
 } from '@/api/dietary-restrictions.api'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -90,7 +90,7 @@ export function useUpdateDietaryRestriction() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateDietaryRestrictionDto }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateDietaryRestrictionVersionedDto }) =>
       updateDietaryRestriction(id, data),
     onSuccess: (updatedRestriction) => {
       // Invalidar queries relacionadas

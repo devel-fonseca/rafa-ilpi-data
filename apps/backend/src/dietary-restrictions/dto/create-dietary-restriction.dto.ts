@@ -32,4 +32,12 @@ export class CreateDietaryRestrictionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indicação de contraindicações assistenciais relacionadas',
+    example: 'Evitar alimentos ultraprocessados e embutidos',
+  })
+  @IsOptional()
+  @IsString()
+  contraindications?: string;
 }

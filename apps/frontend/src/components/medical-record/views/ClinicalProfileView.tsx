@@ -703,6 +703,11 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                         <span className="text-foreground/80">Observações:</span> {allergy.notes}
                       </p>
                     )}
+                    {allergy.contraindications && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="text-foreground/80">Contraindicações:</span> {allergy.contraindications}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 ml-4">
                     {canUpdateAllergies && (
@@ -767,6 +772,11 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                         <span className="text-foreground/80">Observações:</span> {condition.notes}
                       </p>
                     )}
+                    {condition.contraindications && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="text-foreground/80">Contraindicações:</span> {condition.contraindications}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 ml-4">
                     {canUpdateConditions && (
@@ -827,6 +837,11 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                     {restriction.notes && (
                       <p className="text-xs text-muted-foreground mt-1">
                         <span className="text-foreground/80">Observações:</span> {restriction.notes}
+                      </p>
+                    )}
+                    {restriction.contraindications && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="text-foreground/80">Contraindicações:</span> {restriction.contraindications}
                       </p>
                     )}
                   </div>

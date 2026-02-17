@@ -8,7 +8,7 @@ import {
   deleteCondition,
   type Condition,
   type CreateConditionDto,
-  type UpdateConditionDto,
+  type UpdateConditionVersionedDto,
 } from '@/api/conditions.api'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -90,7 +90,7 @@ export function useUpdateCondition() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateConditionDto }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateConditionVersionedDto }) =>
       updateCondition(id, data),
     onSuccess: (updatedCondition) => {
       // Invalidar queries relacionadas

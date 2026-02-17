@@ -44,6 +44,7 @@ export class ConditionsService {
         condition: createDto.condition,
         icdCode: createDto.icdCode,
         notes: createDto.notes,
+        contraindications: createDto.contraindications,
         versionNumber: 1,
         createdBy: userId,
       },
@@ -163,6 +164,7 @@ export class ConditionsService {
       condition: condition.condition,
       icdCode: condition.icdCode,
       notes: condition.notes,
+      contraindications: condition.contraindications,
       residentId: condition.residentId,
       versionNumber: condition.versionNumber,
     };
@@ -196,6 +198,7 @@ export class ConditionsService {
         condition: updatedCondition.condition,
         icdCode: updatedCondition.icdCode,
         notes: updatedCondition.notes,
+        contraindications: updatedCondition.contraindications,
         residentId: updatedCondition.residentId,
         versionNumber: updatedCondition.versionNumber,
       };
@@ -255,6 +258,7 @@ export class ConditionsService {
       condition: condition.condition,
       icdCode: condition.icdCode,
       notes: condition.notes,
+      contraindications: condition.contraindications,
       residentId: condition.residentId,
       versionNumber: condition.versionNumber,
       deletedAt: null,

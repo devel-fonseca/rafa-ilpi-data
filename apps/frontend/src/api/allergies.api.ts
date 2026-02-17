@@ -12,6 +12,7 @@ export interface Allergy {
   reaction: string | null
   severity: AllergySeverity | null
   notes: string | null
+  contraindications: string | null
   recordedBy: string
   createdAt: string
   updatedAt: string
@@ -29,6 +30,7 @@ export interface CreateAllergyDto {
   reaction?: string
   severity?: AllergySeverity
   notes?: string
+  contraindications?: string
 }
 
 export interface UpdateAllergyDto {
@@ -36,6 +38,7 @@ export interface UpdateAllergyDto {
   reaction?: string
   severity?: AllergySeverity
   notes?: string
+  contraindications?: string
 }
 
 /**

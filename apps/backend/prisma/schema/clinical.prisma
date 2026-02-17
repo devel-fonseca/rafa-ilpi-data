@@ -87,6 +87,7 @@ model Allergy {
 
   // Observações
   notes String? @db.Text
+  contraindications String? @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
   versionNumber Int       @default(1)
@@ -152,6 +153,7 @@ model Condition {
   condition String // Nome da condição
   icdCode   String? @db.VarChar(10) // CID-10 (opcional)
   notes     String? @db.Text // Observações clínicas
+  contraindications String? @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
   versionNumber Int       @default(1)
@@ -217,6 +219,7 @@ model DietaryRestriction {
   restrictionType RestrictionType
   description     String // Ex: "Sem glúten", "Dieta hipossódica"
   notes           String?         @db.Text // Observações do nutricionista
+  contraindications String? @db.Text // Indicação de contraindicações assistenciais
 
   // Auditoria e Versionamento
   versionNumber Int       @default(1) // Número da versão atual (incrementa a cada UPDATE)

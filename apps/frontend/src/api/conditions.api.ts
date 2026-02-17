@@ -9,6 +9,7 @@ export interface Condition {
   condition: string
   icdCode: string | null
   notes: string | null
+  contraindications: string | null
   recordedBy: string
   createdAt: string
   updatedAt: string
@@ -25,12 +26,14 @@ export interface CreateConditionDto {
   condition: string
   icdCode?: string
   notes?: string
+  contraindications?: string
 }
 
 export interface UpdateConditionDto {
   condition?: string
   icdCode?: string
   notes?: string
+  contraindications?: string
 }
 
 /**

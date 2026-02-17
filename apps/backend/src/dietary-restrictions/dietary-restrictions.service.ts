@@ -44,6 +44,7 @@ export class DietaryRestrictionsService {
         restrictionType: createDto.restrictionType,
         description: createDto.description,
         notes: createDto.notes,
+        contraindications: createDto.contraindications,
         versionNumber: 1,
         createdBy: userId,
       },
@@ -163,6 +164,7 @@ export class DietaryRestrictionsService {
       restrictionType: dietaryRestriction.restrictionType,
       description: dietaryRestriction.description,
       notes: dietaryRestriction.notes,
+      contraindications: dietaryRestriction.contraindications,
       residentId: dietaryRestriction.residentId,
       versionNumber: dietaryRestriction.versionNumber,
     };
@@ -196,6 +198,7 @@ export class DietaryRestrictionsService {
         restrictionType: updated.restrictionType,
         description: updated.description,
         notes: updated.notes,
+        contraindications: updated.contraindications,
         residentId: updated.residentId,
         versionNumber: updated.versionNumber,
       };
@@ -255,6 +258,7 @@ export class DietaryRestrictionsService {
       restrictionType: dietaryRestriction.restrictionType,
       description: dietaryRestriction.description,
       notes: dietaryRestriction.notes,
+      contraindications: dietaryRestriction.contraindications,
       residentId: dietaryRestriction.residentId,
       versionNumber: dietaryRestriction.versionNumber,
       deletedAt: null,

@@ -45,6 +45,7 @@ export class AllergiesService {
         reaction: createDto.reaction,
         severity: createDto.severity,
         notes: createDto.notes,
+        contraindications: createDto.contraindications,
         versionNumber: 1,
         createdBy: userId,
       },
@@ -167,6 +168,7 @@ export class AllergiesService {
       reaction: allergy.reaction,
       severity: allergy.severity,
       notes: allergy.notes,
+      contraindications: allergy.contraindications,
       residentId: allergy.residentId,
       versionNumber: allergy.versionNumber,
     };
@@ -203,6 +205,7 @@ export class AllergiesService {
         reaction: updatedAllergy.reaction,
         severity: updatedAllergy.severity,
         notes: updatedAllergy.notes,
+        contraindications: updatedAllergy.contraindications,
         residentId: updatedAllergy.residentId,
         versionNumber: updatedAllergy.versionNumber,
       };
@@ -263,6 +266,7 @@ export class AllergiesService {
       reaction: allergy.reaction,
       severity: allergy.severity,
       notes: allergy.notes,
+      contraindications: allergy.contraindications,
       residentId: allergy.residentId,
       versionNumber: allergy.versionNumber,
       deletedAt: null,

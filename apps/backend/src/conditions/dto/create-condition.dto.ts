@@ -33,4 +33,12 @@ export class CreateConditionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indicação de contraindicações assistenciais relacionadas',
+    example: 'Evitar uso de corticoide sem avaliação médica prévia',
+  })
+  @IsOptional()
+  @IsString()
+  contraindications?: string;
 }

@@ -8,6 +8,7 @@ export interface Allergy {
   reaction?: string
   severity?: 'LEVE' | 'MODERADA' | 'GRAVE' | 'ANAFILAXIA'
   notes?: string
+  contraindications?: string
 }
 
 export interface Resident {

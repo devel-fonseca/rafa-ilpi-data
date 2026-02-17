@@ -41,4 +41,12 @@ export class CreateAllergyDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Indicação de contraindicações assistenciais relacionadas',
+    example: 'Evitar anti-inflamatórios não esteroidais e dipirona',
+  })
+  @IsOptional()
+  @IsString()
+  contraindications?: string;
 }

@@ -15,6 +15,7 @@ import { Activity } from 'lucide-react'
 import { useBloodType, useLatestAnthropometry } from '@/hooks/useResidentHealth'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
 import { useConsolidatedVitalSigns } from '@/hooks/useConsolidatedVitalSigns'
+import { useConditionsByResident } from '@/hooks/useConditions'
 import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
 import { ConsolidatedVitalSignsGrid } from '@/components/residents/ConsolidatedVitalSignsGrid'
 import type { ResidentSummaryViewProps } from '../types'
@@ -56,6 +57,9 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
 
   // Buscar restrições alimentares
   const { data: dietaryRestrictions } = useDietaryRestrictionsByResident(residentId)
+
+  // Buscar condições crônicas da tabela atual
+  const { data: conditions = [] } = useConditionsByResident(residentId)
 
   // Buscar sinais vitais consolidados (mesma fonte da Visualização Rápida)
   const { data: consolidatedVitalSigns } = useConsolidatedVitalSigns(residentId)
@@ -126,7 +130,7 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
           <TooltipProvider delayDuration={200}>
             <div className="flex flex-wrap gap-2">
               {resident.allergies.map((allergy) => {
-                const hasDetails = allergy.reaction || allergy.severity || allergy.notes
+                const hasDetails = allergy.reaction || allergy.severity || allergy.notes || allergy.contraindications
 
                 return hasDetails ? (
                   <Tooltip key={allergy.id}>
@@ -159,6 +163,11 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
                             <span className="font-medium">Observações:</span> {allergy.notes}
                           </p>
                         )}
+                        {allergy.contraindications && (
+                          <p className="text-xs">
+                            <span className="font-medium">Contraindicações:</span> {allergy.contraindications}
+                          </p>
+                        )}
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -180,7 +189,51 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
       {/* Condições Crônicas - sempre visível */}
       <div className="border-t pt-6" ref={healthConditionsCardRef}>
         <div className="text-sm text-muted-foreground mb-1">Condições Crônicas</div>
-        {resident.chronicConditions ? (() => {
+        {conditions.length > 0 ? (
+          <TooltipProvider delayDuration={200}>
+            <div className="flex flex-wrap gap-2">
+              {conditions.map((condition) => {
+                const hasDetails = condition.icdCode || condition.notes || condition.contraindications
+
+                return hasDetails ? (
+                  <Tooltip key={condition.id}>
+                    <TooltipTrigger asChild>
+                      <div className="inline-block">
+                        <Badge variant="outline" className="text-xs cursor-help">
+                          {condition.condition}
+                        </Badge>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={8}>
+                      <div className="space-y-1.5 max-w-xs">
+                        <p className="font-semibold text-sm">{condition.condition}</p>
+                        {condition.icdCode && (
+                          <p className="text-xs">
+                            <span className="font-medium">CID:</span> {condition.icdCode}
+                          </p>
+                        )}
+                        {condition.notes && (
+                          <p className="text-xs">
+                            <span className="font-medium">Observações:</span> {condition.notes}
+                          </p>
+                        )}
+                        {condition.contraindications && (
+                          <p className="text-xs">
+                            <span className="font-medium">Contraindicações:</span> {condition.contraindications}
+                          </p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Badge key={condition.id} variant="outline" className="text-xs">
+                    {condition.condition}
+                  </Badge>
+                )
+              })}
+            </div>
+          </TooltipProvider>
+        ) : resident.chronicConditions ? (() => {
           const { text: truncatedConditions, isTruncated: conditionsTruncated } = truncateText(resident.chronicConditions)
           return (
             <>
@@ -211,7 +264,7 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
           <TooltipProvider delayDuration={200}>
             <div className="flex flex-wrap gap-2">
               {dietaryRestrictions.map((restriction) => {
-                const hasDetails = restriction.notes
+                const hasDetails = restriction.notes || restriction.contraindications
 
                 return hasDetails ? (
                   <Tooltip key={restriction.id}>
@@ -235,6 +288,11 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
                         {restriction.notes && (
                           <p className="text-xs">
                             <span className="font-medium">Observações:</span> {restriction.notes}
+                          </p>
+                        )}
+                        {restriction.contraindications && (
+                          <p className="text-xs">
+                            <span className="font-medium">Contraindicações:</span> {restriction.contraindications}
                           </p>
                         )}
                       </div>

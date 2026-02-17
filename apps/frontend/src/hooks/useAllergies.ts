@@ -8,7 +8,7 @@ import {
   deleteAllergy,
   type Allergy,
   type CreateAllergyDto,
-  type UpdateAllergyDto,
+  type UpdateAllergyVersionedDto,
 } from '@/api/allergies.api'
 import { tenantKey } from '@/lib/query-keys'
 
@@ -90,7 +90,7 @@ export function useUpdateAllergy() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateAllergyDto }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateAllergyVersionedDto }) =>
       updateAllergy(id, data),
     onSuccess: (updatedAllergy) => {
       // Invalidar queries relacionadas

@@ -19,6 +19,7 @@ export interface DietaryRestriction {
   restrictionType: RestrictionType
   description: string
   notes: string | null
+  contraindications: string | null
   versionNumber: number
   createdBy: string
   updatedBy: string | null
@@ -42,12 +43,14 @@ export interface CreateDietaryRestrictionDto {
   restrictionType: RestrictionType
   description: string
   notes?: string
+  contraindications?: string
 }
 
 export interface UpdateDietaryRestrictionDto {
   restrictionType?: RestrictionType
   description?: string
   notes?: string
+  contraindications?: string
 }
 
 /**

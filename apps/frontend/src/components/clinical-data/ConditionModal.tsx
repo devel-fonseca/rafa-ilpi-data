@@ -24,6 +24,8 @@ const conditionSchema = z.object({
   condition: z.string().min(1, 'Condição é obrigatória'),
   icdCode: z.string().optional(),
   notes: z.string().optional(),
+  contraindications: z.string().optional(),
+  changeReason: z.string().optional(),
 })
 
 type ConditionFormData = z.infer<typeof conditionSchema>
@@ -53,12 +55,15 @@ export function ConditionModal({
     handleSubmit,
     formState: { errors },
     reset,
+    setError,
   } = useForm<ConditionFormData>({
     resolver: zodResolver(conditionSchema),
     defaultValues: {
       condition: condition?.condition || '',
       icdCode: condition?.icdCode || '',
       notes: condition?.notes || '',
+      contraindications: condition?.contraindications || '',
+      changeReason: '',
     },
   })
 
@@ -68,12 +73,16 @@ export function ConditionModal({
         condition: condition.condition,
         icdCode: condition.icdCode || '',
         notes: condition.notes || '',
+        contraindications: condition.contraindications || '',
+        changeReason: '',
       })
     } else if (open && !condition) {
       reset({
         condition: '',
         icdCode: '',
         notes: '',
+        contraindications: '',
+        changeReason: '',
       })
     }
   }, [open, condition, reset])
@@ -81,12 +90,22 @@ export function ConditionModal({
   const onSubmit = async (data: ConditionFormData) => {
     try {
       if (isEditing && condition) {
+        if (!data.changeReason?.trim()) {
+          setError('changeReason', {
+            type: 'manual',
+            message: 'Motivo da edição é obrigatório',
+          })
+          return
+        }
+
         await updateMutation.mutateAsync({
           id: condition.id,
           data: {
             condition: data.condition,
             icdCode: data.icdCode || undefined,
             notes: data.notes || undefined,
+            contraindications: data.contraindications || undefined,
+            changeReason: data.changeReason.trim(),
           },
         })
       } else {
@@ -95,6 +114,7 @@ export function ConditionModal({
           condition: data.condition,
           icdCode: data.icdCode || undefined,
           notes: data.notes || undefined,
+          contraindications: data.contraindications || undefined,
         })
       }
 
@@ -106,7 +126,7 @@ export function ConditionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Condição Crônica' : 'Registrar Nova Condição Crônica'}
@@ -165,6 +185,42 @@ export function ConditionModal({
               </p>
             )}
           </div>
+
+          <div>
+            <Label htmlFor="contraindications">Contraindicações</Label>
+            <Textarea
+              id="contraindications"
+              {...register('contraindications')}
+              placeholder="Ex: Evitar sedativos sem avaliação médica prévia..."
+              className="min-h-[100px]"
+              disabled={isLoading}
+            />
+            {errors.contraindications && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.contraindications.message}
+              </p>
+            )}
+          </div>
+
+          {isEditing && (
+            <div>
+              <Label htmlFor="changeReason">
+                Motivo da edição <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="changeReason"
+                {...register('changeReason')}
+                placeholder="Descreva o motivo da alteração deste registro..."
+                className="min-h-[80px]"
+                disabled={isLoading}
+              />
+              {errors.changeReason && (
+                <p className="text-sm text-destructive mt-1">
+                  {errors.changeReason.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button

@@ -36,6 +36,14 @@ export class UpdateAllergyDto {
   @IsString()
   notes?: string;
 
+  @ApiPropertyOptional({
+    description: 'Indicação de contraindicações assistenciais relacionadas',
+    example: 'Evitar anti-inflamatórios não esteroidais e dipirona',
+  })
+  @IsOptional()
+  @IsString()
+  contraindications?: string;
+
   @ApiProperty({
     description: 'Motivo da alteração (obrigatório para auditoria)',
     example: 'Atualização de severidade após nova avaliação médica',

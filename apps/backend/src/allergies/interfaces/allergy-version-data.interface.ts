@@ -6,9 +6,10 @@ import { AllergySeverity } from '@prisma/client';
  */
 export interface AllergyVersionData {
   substance: string;
-  reaction: string;
-  severity: AllergySeverity;
+  reaction: string | null;
+  severity: AllergySeverity | null;
   notes: string | null;
+  contraindications: string | null;
   residentId: string;
   versionNumber: number;
   deletedAt?: Date | null;
