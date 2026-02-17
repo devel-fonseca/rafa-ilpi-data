@@ -427,7 +427,13 @@ class ResidentCareSummaryReportPDFGenerator {
 
     const chronicConditionsText = report.chronicConditions.length > 0
       ? report.chronicConditions
-          .map((condition) => joinParts([condition.name, condition.details || 'Sem detalhes adicionais']))
+          .map((condition) =>
+            joinParts([
+              condition.name,
+              condition.details ? `Detalhes: ${condition.details}` : null,
+              condition.contraindications ? `Contraindicações: ${condition.contraindications}` : null,
+            ]),
+          )
           .join('\n')
       : 'Não informado'
 
@@ -438,6 +444,7 @@ class ResidentCareSummaryReportPDFGenerator {
               allergy.allergen,
               allergy.severity,
               allergy.reaction ? `Reação: ${allergy.reaction}` : null,
+              allergy.contraindications ? `Contraindicações: ${allergy.contraindications}` : null,
             ]),
           )
           .join('\n')
@@ -445,7 +452,14 @@ class ResidentCareSummaryReportPDFGenerator {
 
     const dietaryRestrictionsText = report.dietaryRestrictions.length > 0
       ? report.dietaryRestrictions
-          .map((restriction) => joinParts([restriction.restriction, restriction.type, restriction.notes]))
+          .map((restriction) =>
+            joinParts([
+              restriction.restriction,
+              restriction.type,
+              restriction.notes ? `Observações: ${restriction.notes}` : null,
+              restriction.contraindications ? `Contraindicações: ${restriction.contraindications}` : null,
+            ]),
+          )
           .join('\n')
       : 'Não informado'
 

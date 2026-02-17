@@ -191,7 +191,11 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
 
   const chronicConditionsLines = report.chronicConditions.length > 0
     ? report.chronicConditions.map((condition) =>
-        joinParts([condition.name, condition.details || 'Sem detalhes adicionais']),
+        joinParts([
+          condition.name,
+          condition.details ? `Detalhes: ${condition.details}` : null,
+          condition.contraindications ? `Contraindicações: ${condition.contraindications}` : null,
+        ]),
       )
     : ['Não informado']
 
@@ -201,13 +205,19 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
           allergy.allergen,
           allergy.severity,
           allergy.reaction ? `Reação: ${allergy.reaction}` : null,
+          allergy.contraindications ? `Contraindicações: ${allergy.contraindications}` : null,
         ]),
       )
     : ['Não informado']
 
   const dietaryRestrictionsLines = report.dietaryRestrictions.length > 0
     ? report.dietaryRestrictions.map((restriction) =>
-        joinParts([restriction.restriction, restriction.type, restriction.notes]),
+        joinParts([
+          restriction.restriction,
+          restriction.type,
+          restriction.notes ? `Observações: ${restriction.notes}` : null,
+          restriction.contraindications ? `Contraindicações: ${restriction.contraindications}` : null,
+        ]),
       )
     : ['Não informado']
 

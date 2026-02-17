@@ -112,18 +112,21 @@ export interface ResidentCareSummaryDependencyAssessment {
 export interface ResidentCareSummaryChronicCondition {
   name: string
   details: string | null
+  contraindications: string | null
 }
 
 export interface ResidentCareSummaryAllergy {
   allergen: string
   severity: string
   reaction: string | null
+  contraindications: string | null
 }
 
 export interface ResidentCareSummaryDietaryRestriction {
   restriction: string
   type: string
   notes: string | null
+  contraindications: string | null
 }
 
 export interface ResidentCareSummaryVaccination {

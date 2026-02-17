@@ -94,6 +94,7 @@ export interface DependencyAssessmentDto {
 export interface ChronicConditionDto {
   name: string
   details: string | null
+  contraindications: string | null
 }
 
 // ========== ALERGIAS ==========
@@ -102,6 +103,7 @@ export interface AllergyDto {
   allergen: string
   severity: string
   reaction: string | null
+  contraindications: string | null
 }
 
 // ========== RESTRIÇÕES ALIMENTARES ==========
@@ -110,6 +112,7 @@ export interface DietaryRestrictionDto {
   restriction: string
   type: string
   notes: string | null
+  contraindications: string | null
 }
 
 // ========== IMUNIZAÇÕES ==========

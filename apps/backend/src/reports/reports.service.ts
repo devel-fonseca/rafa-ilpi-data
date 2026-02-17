@@ -1316,17 +1316,17 @@ export class ReportsService {
         },
         conditions: {
           where: { deletedAt: null },
-          select: { condition: true, notes: true },
+          select: { condition: true, notes: true, contraindications: true },
           orderBy: { condition: 'asc' },
         },
         allergies: {
           where: { deletedAt: null },
-          select: { substance: true, severity: true, reaction: true },
+          select: { substance: true, severity: true, reaction: true, contraindications: true },
           orderBy: { substance: 'asc' },
         },
         dietaryRestrictions: {
           where: { deletedAt: null },
-          select: { description: true, restrictionType: true, notes: true },
+          select: { description: true, restrictionType: true, notes: true, contraindications: true },
           orderBy: { description: 'asc' },
         },
         vaccinations: {
@@ -1505,6 +1505,7 @@ export class ReportsService {
     const chronicConditions = resident.conditions.map((c) => ({
       name: c.condition,
       details: this.decryptMaybeEncrypted(c.notes, tenantId),
+      contraindications: this.decryptMaybeEncrypted(c.contraindications, tenantId),
     }));
 
     // Processar alergias
@@ -1512,6 +1513,7 @@ export class ReportsService {
       allergen: a.substance,
       severity: this.formatAllergySeverity(a.severity),
       reaction: this.decryptMaybeEncrypted(a.reaction, tenantId),
+      contraindications: this.decryptMaybeEncrypted(a.contraindications, tenantId),
     }));
 
     // Processar restrições alimentares
@@ -1519,6 +1521,7 @@ export class ReportsService {
       restriction: r.description,
       type: this.formatRestrictionType(r.restrictionType),
       notes: this.decryptMaybeEncrypted(r.notes, tenantId),
+      contraindications: this.decryptMaybeEncrypted(r.contraindications, tenantId),
     }));
 
     // Processar vacinações
