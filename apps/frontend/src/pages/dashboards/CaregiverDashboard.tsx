@@ -142,8 +142,8 @@ export function CaregiverDashboard() {
 
     const completedRecords: CaregiverOperationalActivity[] = data.recurringTasks
       .filter((task) => task.isCompleted)
-      .map((task) => ({
-        id: `record-${task.configId || task.recordType}-${task.residentId}-${task.suggestedTimes?.[0] || ''}`,
+      .map((task, index) => ({
+        id: `record-${task.configId || task.recordType}-${task.residentId}-${task.scheduledTime || task.suggestedTimes?.[0] || ''}-${task.completedAt || ''}-${index}`,
         type: 'record',
         title: `${getRecordTypeLabel(task.recordType || '').label} concluído`,
         description: `${task.residentName}${task.completedBy ? ` • por ${task.completedBy}` : ''}`,
@@ -519,7 +519,7 @@ export function CaregiverDashboard() {
         </Section>
       )}
 
-      <Section title="Minhas Pendências do Plantão">
+      <Section title="">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <PendingActivities
             items={pendingActivities}
@@ -533,7 +533,7 @@ export function CaregiverDashboard() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Histórico do meu turno</CardTitle>
+                <CardTitle>Histórico</CardTitle>
               </CardHeader>
               <CardContent className="py-4">
                 {caregiverOperationalActivities.length === 0 ? (
@@ -543,7 +543,7 @@ export function CaregiverDashboard() {
                 ) : (
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground px-2 pb-1">
-                      Últimas 8 ações concluídas por você neste turno
+                      Últimas 8 ações
                     </p>
                     {caregiverOperationalActivities.map((activity) => {
                       const Icon =
