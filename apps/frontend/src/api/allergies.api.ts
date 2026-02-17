@@ -17,10 +17,15 @@ export interface Allergy {
   createdAt: string
   updatedAt: string
   deletedAt: string | null
-  user: {
+  user?: {
     id: string
     name: string
-    email: string
+    email?: string
+  }
+  createdByUser?: {
+    id: string
+    name: string
+    email?: string
   }
 }
 

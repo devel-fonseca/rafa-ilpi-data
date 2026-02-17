@@ -1,6 +1,6 @@
-import { Utensils } from 'lucide-react'
+import { Eye } from 'lucide-react'
+import { formatDateLongSafe, formatDateTimeSafe, formatTimeSafe } from '@/utils/dateHelpers'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import { ActionDetailsSheet } from '@/design-system/components'
 import type { DietaryRestriction } from '@/api/dietary-restrictions.api'
 
@@ -32,14 +32,25 @@ export function DietaryRestrictionViewModal({
     <ActionDetailsSheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Visualizar Restrição Alimentar"
-      description="Restrições dietéticas e orientações nutricionais"
-      icon={<Utensils className="h-4 w-4" />}
-      bodyClassName="space-y-4"
+      title="Restrições Alimentares - Detalhes"
+      description="Visualização completa do registro da restrição alimentar"
+      icon={<Eye className="h-4 w-4" />}
+      summary={(
+        <div className="bg-muted/20 p-4 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <span>{formatDateLongSafe(restriction.createdAt)}</span>
+            <span>•</span>
+            <span>Horário {formatTimeSafe(restriction.createdAt)}</span>
+            <span>•</span>
+            <span>Por <span className="font-medium text-foreground">{restriction.creator?.name || 'Usuário não informado'}</span></span>
+          </div>
+        </div>
+      )}
+      bodyClassName="space-y-6"
     >
       <div>
-        <Label>Tipo de Restrição</Label>
-        <div className="mt-1">
+        <h3 className="font-semibold text-sm text-muted-foreground mb-3">Tipo de Restrição</h3>
+        <div>
           <Badge variant="outline">
             {restrictionTypeLabel[restriction.restrictionType] || restriction.restrictionType}
           </Badge>
@@ -47,18 +58,26 @@ export function DietaryRestrictionViewModal({
       </div>
 
       <div>
-        <Label>Descrição</Label>
-        <p className="mt-1 text-sm">{restriction.description}</p>
+        <h3 className="font-semibold text-sm text-muted-foreground mb-3">Descrição</h3>
+        <Badge variant="outline" className="font-normal text-sm">{restriction.description}</Badge>
       </div>
 
       <div>
-        <Label>Observações</Label>
-        <p className="mt-1 text-sm">{restriction.notes || 'Não informado'}</p>
+        <h3 className="font-semibold text-sm text-muted-foreground mb-2">Observações</h3>
+        <div className="bg-muted/20 p-3 rounded-lg border">
+          <p className="text-sm whitespace-pre-wrap">{restriction.notes || 'Não informado'}</p>
+        </div>
       </div>
 
       <div>
-        <Label>Contraindicações</Label>
-        <p className="mt-1 text-sm">{restriction.contraindications || 'Não informado'}</p>
+        <h3 className="font-semibold text-sm text-muted-foreground mb-2">Contraindicações</h3>
+        <div className="bg-muted/20 p-3 rounded-lg border">
+          <p className="text-sm whitespace-pre-wrap">{restriction.contraindications || 'Não informado'}</p>
+        </div>
+      </div>
+
+      <div className="pt-4 border-t text-xs text-muted-foreground">
+        Registrado em {formatDateTimeSafe(restriction.createdAt)}
       </div>
     </ActionDetailsSheet>
   )
