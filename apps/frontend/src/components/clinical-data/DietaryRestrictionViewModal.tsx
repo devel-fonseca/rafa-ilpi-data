@@ -27,6 +27,7 @@ export function DietaryRestrictionViewModal({
   restriction,
 }: DietaryRestrictionViewModalProps) {
   if (!restriction) return null
+  const wasUpdated = Boolean(restriction.updatedAt && restriction.updatedAt !== restriction.createdAt)
 
   return (
     <ActionDetailsSheet
@@ -78,6 +79,7 @@ export function DietaryRestrictionViewModal({
 
       <div className="pt-4 border-t text-xs text-muted-foreground">
         Registrado em {formatDateTimeSafe(restriction.createdAt)}
+        {wasUpdated && <> • Alterado em {formatDateTimeSafe(restriction.updatedAt)}</>}
       </div>
     </ActionDetailsSheet>
   )

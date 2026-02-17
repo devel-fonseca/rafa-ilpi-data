@@ -20,6 +20,7 @@ const severityLabel: Record<string, string> = {
 export function AllergyViewModal({ open, onOpenChange, allergy }: AllergyViewModalProps) {
   if (!allergy) return null
   const createdByName = allergy.user?.name || allergy.createdByUser?.name || 'Usuário não informado'
+  const wasUpdated = Boolean(allergy.updatedAt && allergy.updatedAt !== allergy.createdAt)
 
   return (
     <ActionDetailsSheet
@@ -80,6 +81,7 @@ export function AllergyViewModal({ open, onOpenChange, allergy }: AllergyViewMod
 
       <div className="pt-4 border-t text-xs text-muted-foreground">
         Registrado em {formatDateTimeSafe(allergy.createdAt)}
+        {wasUpdated && <> • Alterado em {formatDateTimeSafe(allergy.updatedAt)}</>}
       </div>
     </ActionDetailsSheet>
   )

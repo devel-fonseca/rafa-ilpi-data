@@ -17,6 +17,7 @@ export function ConditionViewModal({
 }: ConditionViewModalProps) {
   if (!condition) return null
   const createdByName = condition.user?.name || condition.createdByUser?.name || 'Usuário não informado'
+  const wasUpdated = Boolean(condition.updatedAt && condition.updatedAt !== condition.createdAt)
 
   return (
     <ActionDetailsSheet
@@ -70,6 +71,7 @@ export function ConditionViewModal({
 
       <div className="pt-4 border-t text-xs text-muted-foreground">
         Registrado em {formatDateTimeSafe(condition.createdAt)}
+        {wasUpdated && <> • Alterado em {formatDateTimeSafe(condition.updatedAt)}</>}
       </div>
     </ActionDetailsSheet>
   )
