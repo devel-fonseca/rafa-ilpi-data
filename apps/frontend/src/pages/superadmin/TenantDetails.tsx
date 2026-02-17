@@ -246,9 +246,7 @@ export function TenantDetails() {
     invoicesData,
     privacyPolicyAcceptance,
     subscriptions,
-    tenant?.createdAt,
-    tenant?.id,
-    tenant?.name,
+    tenant,
   ])
 
   const filteredTimelineEvents = useMemo(() => {

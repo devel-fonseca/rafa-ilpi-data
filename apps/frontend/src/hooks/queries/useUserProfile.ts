@@ -51,18 +51,7 @@ export function useMyProfile() {
   return useQuery({
     queryKey: profileKeys.me(),
     queryFn: async () => {
-      console.log('🔍 useMyProfile - Buscando perfil do usuário:', {
-        userId: user?.id,
-        userName: user?.name,
-        userEmail: user?.email
-      })
-      const result = await getMyProfile()
-      console.log('✅ useMyProfile - Perfil recebido:', {
-        profileUserId: result.user.id,
-        profileUserName: result.user.name,
-        profileUserEmail: result.user.email
-      })
-      return result
+      return getMyProfile()
     },
     enabled: !!user, // Só busca se tiver usuário logado
     staleTime: 1000 * 60, // 1 minuto

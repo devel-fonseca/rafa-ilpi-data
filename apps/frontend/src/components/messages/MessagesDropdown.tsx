@@ -67,8 +67,8 @@ export function MessagesDropdown() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-[420px]">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
+      <DropdownMenuContent align="end" className="w-[360px]">
+        <div className="flex items-center justify-between px-3 py-2 border-b">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
             <h3 className="font-semibold">Mensagens</h3>
@@ -80,7 +80,7 @@ export function MessagesDropdown() {
           )}
         </div>
 
-        <ScrollArea className="max-h-[calc(100vh-200px)] min-h-[300px]">
+        <ScrollArea className="max-h-[360px] min-h-[180px]">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-muted-foreground">
               Carregando...
@@ -95,7 +95,7 @@ export function MessagesDropdown() {
                 <button
                   key={message.id}
                   onClick={() => handleMessageClick(message.id)}
-                  className="w-full px-4 py-3 hover:bg-accent transition-colors text-left"
+                  className="w-full px-3 py-2 hover:bg-accent transition-colors text-left"
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
@@ -121,9 +121,6 @@ export function MessagesDropdown() {
                       </div>
                       <p className="text-sm font-medium text-foreground truncate">
                         {message.subject}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {message.body}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(message.createdAt), {

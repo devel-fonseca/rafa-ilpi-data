@@ -4,6 +4,7 @@ import autoTable from 'jspdf-autotable'
 import type { ShiftHistoryReport } from '@/services/reportsApi'
 import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 import { getShiftHistoryRecordTypeLabel } from '@/utils/shiftHistoryRecordTypeLabel'
+import { formatDateOnlySafe, formatDateTimeSafe } from '@/utils/dateHelpers'
 
 interface PDFGenerationOptions {
   ilpiName: string
@@ -34,20 +35,15 @@ const COLORS = {
 }
 
 function formatDateOnly(dateString: string): string {
-  const date = new Date(`${dateString}T12:00:00.000Z`)
-  return date.toLocaleDateString('pt-BR')
+  return formatDateOnlySafe(`${dateString}T12:00:00.000Z`)
 }
 
 function formatDateTime(dateString: string): string {
-  const date = new Date(dateString)
-  if (Number.isNaN(date.getTime())) return dateString
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  try {
+    return formatDateTimeSafe(dateString)
+  } catch {
+    return dateString
+  }
 }
 
 class ShiftHistoryReportPDFGenerator {
