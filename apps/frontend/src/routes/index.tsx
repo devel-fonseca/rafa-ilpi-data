@@ -135,6 +135,7 @@ import ReportsHub from '@/pages/reports/ReportsHub'
 import DailyReportPage from '@/pages/reports/DailyReportPage'
 import ResidentsListReportPage from '@/pages/reports/ResidentsListReportPage'
 import ResidentCareSummaryReportPage from '@/pages/reports/ResidentCareSummaryReportPage'
+import ShiftHistoryReportPage from '@/pages/reports/ShiftHistoryReportPage'
 
 export const router = createBrowserRouter([
   {
@@ -633,6 +634,10 @@ export const router = createBrowserRouter([
           {
             path: 'resumo-assistencial',
             element: <ResidentCareSummaryReportPage />,
+          },
+          {
+            path: 'historico-plantao/:shiftId',
+            element: <ShiftHistoryReportPage />,
           },
         ],
       },

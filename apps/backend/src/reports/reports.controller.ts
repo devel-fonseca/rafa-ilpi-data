@@ -7,6 +7,7 @@ import { ReportsService } from './reports.service';
 import { MultiDayReportDto } from './dto/daily-report.dto';
 import { ResidentsListReportDto } from './dto/residents-list-report.dto';
 import { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
+import { ShiftHistoryReportDto } from './dto/shift-history-report.dto';
 import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -79,5 +80,25 @@ export class ReportsController {
       throw new Error('TenantId não encontrado no token JWT');
     }
     return this.reportsService.generateResidentCareSummaryReport(user.tenantId, residentId);
+  }
+
+  @Get('shift-history/:shiftId')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @ApiOperation({ summary: 'Gerar relatório do histórico de um plantão' })
+  @ApiParam({ name: 'shiftId', required: true, type: String, description: 'ID do plantão (UUID)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Relatório do histórico do plantão gerado com sucesso',
+    type: ShiftHistoryReportDto,
+  })
+  async getShiftHistoryReport(
+    @CurrentUser() user: JwtPayload,
+    @Param('shiftId') shiftId: string,
+  ): Promise<ShiftHistoryReportDto> {
+    if (!user.tenantId) {
+      throw new Error('TenantId não encontrado no token JWT');
+    }
+
+    return this.reportsService.generateShiftHistoryReport(user.tenantId, shiftId);
   }
 }

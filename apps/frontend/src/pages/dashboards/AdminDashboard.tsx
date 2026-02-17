@@ -40,7 +40,7 @@ export function AdminDashboard() {
       />
 
       {/* Equipes de Plantão Hoje - Protagonismo máximo no topo */}
-      <TodayShiftsInfo />
+      <TodayShiftsInfo timezone={overview?.timezone} />
 
       {/* Toolbar + Busca na mesma linha */}
       <div className="mb-6 pb-3 border-b border-border/60 flex flex-col lg:flex-row lg:items-center gap-3">

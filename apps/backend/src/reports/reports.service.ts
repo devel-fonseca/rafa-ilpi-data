@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-restricted-syntax */
 import { Injectable } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../prisma/tenant-context.service';
 import { parseDateOnly, formatDateOnly, getDayRangeInTz } from '../utils/date.helpers';
@@ -17,6 +18,7 @@ import type {
   MultiDayReportDto,
 } from './dto/daily-report.dto';
 import type { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
+import type { ShiftHistoryReportDto } from './dto/shift-history-report.dto';
 
 @Injectable()
 export class ReportsService {
@@ -839,6 +841,271 @@ export class ReportsService {
         status: shift.status,
       };
     });
+  }
+
+  // ============================================================================
+  // RELATÓRIO DE HISTÓRICO DE PLANTÃO
+  // ============================================================================
+
+  async generateShiftHistoryReport(
+    tenantId: string,
+    shiftId: string,
+  ): Promise<ShiftHistoryReportDto> {
+    const shift = await this.tenantContext.client.shift.findFirst({
+      where: {
+        id: shiftId,
+        deletedAt: null,
+        status: { in: ['COMPLETED', 'ADMIN_CLOSED'] },
+      },
+      include: {
+        team: {
+          select: {
+            name: true,
+          },
+        },
+        handover: true,
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException('Plantão não encontrado no histórico.');
+    }
+
+    if (!shift.handover) {
+      throw new BadRequestException('Plantão sem registro de passagem/encerramento.');
+    }
+
+    const [template, config] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: shift.shiftTemplateId },
+        select: { name: true, startTime: true, endTime: true },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: {
+          shiftTemplateId: shift.shiftTemplateId,
+          deletedAt: null,
+        },
+        select: {
+          customName: true,
+          customStartTime: true,
+          customEndTime: true,
+        },
+      }),
+    ]);
+
+    const shiftName = config?.customName || template?.name || 'Turno';
+    const startTime = config?.customStartTime || template?.startTime || '00:00';
+    const endTime = config?.customEndTime || template?.endTime || '00:00';
+
+    const snapshot = (shift.handover.activitiesSnapshot || {}) as Record<string, any>;
+
+    type RawActivity = {
+      activityId: string | null;
+      registeredTime: string;
+      recordType: string;
+      residentId: string | null;
+      recordDetails: string | null;
+      userId: string | null;
+      timestamp: string | null;
+    };
+
+    const shiftMembersActivities: RawActivity[] = [];
+    const otherUsersActivities: RawActivity[] = [];
+
+    const pushActivities = (
+      target: RawActivity[],
+      items: any[] | undefined,
+      recordTypeResolver: (item: any) => string,
+    ) => {
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        target.push({
+          activityId: item.id || null,
+          registeredTime: item.time || item.scheduledTime || '--:--',
+          recordType: recordTypeResolver(item),
+          residentId: item.residentId || null,
+          recordDetails: null,
+          userId: item.userId || null,
+          timestamp: item.createdAt || null,
+        });
+      }
+    };
+
+    const buildMedicationDetails = (item: any) => {
+      const parts = [item?.medicationName, item?.concentration, item?.dose]
+        .map((value: unknown) => (typeof value === 'string' ? value.trim() : ''))
+        .filter((value) => value.length > 0);
+      return parts.length > 0 ? parts.join(' | ') : null;
+    };
+
+    if (snapshot.breakdown?.fromShiftMembers || snapshot.breakdown?.fromOthers) {
+      pushActivities(
+        shiftMembersActivities,
+        snapshot.breakdown?.fromShiftMembers?.dailyRecords,
+        (item) => item.type || 'REGISTRO_DIARIO',
+      );
+      pushActivities(
+        shiftMembersActivities,
+        snapshot.breakdown?.fromShiftMembers?.medicationAdministrations?.continuous,
+        () => 'MEDICACAO_CONTINUA',
+      );
+      pushActivities(
+        shiftMembersActivities,
+        snapshot.breakdown?.fromShiftMembers?.medicationAdministrations?.sos,
+        () => 'MEDICACAO_SOS',
+      );
+
+      pushActivities(
+        otherUsersActivities,
+        snapshot.breakdown?.fromOthers?.dailyRecords,
+        (item) => item.type || 'REGISTRO_DIARIO',
+      );
+      pushActivities(
+        otherUsersActivities,
+        snapshot.breakdown?.fromOthers?.medicationAdministrations?.continuous,
+        () => 'MEDICACAO_CONTINUA',
+      );
+      pushActivities(
+        otherUsersActivities,
+        snapshot.breakdown?.fromOthers?.medicationAdministrations?.sos,
+        () => 'MEDICACAO_SOS',
+      );
+
+      const applyMedicationDetails = (rows: RawActivity[], sourceItems: any[] | undefined) => {
+        if (!Array.isArray(sourceItems)) return;
+        const detailById = new Map<string, string | null>();
+        for (const item of sourceItems) {
+          if (item?.id) {
+            detailById.set(String(item.id), buildMedicationDetails(item));
+          }
+        }
+        for (const row of rows) {
+          const detail = row.activityId ? detailById.get(String(row.activityId)) : null;
+          if (detail) row.recordDetails = detail;
+        }
+      };
+
+      applyMedicationDetails(
+        shiftMembersActivities.filter((row) => row.recordType === 'MEDICACAO_CONTINUA'),
+        snapshot.breakdown?.fromShiftMembers?.medicationAdministrations?.continuous,
+      );
+      applyMedicationDetails(
+        shiftMembersActivities.filter((row) => row.recordType === 'MEDICACAO_SOS'),
+        snapshot.breakdown?.fromShiftMembers?.medicationAdministrations?.sos,
+      );
+      applyMedicationDetails(
+        otherUsersActivities.filter((row) => row.recordType === 'MEDICACAO_CONTINUA'),
+        snapshot.breakdown?.fromOthers?.medicationAdministrations?.continuous,
+      );
+      applyMedicationDetails(
+        otherUsersActivities.filter((row) => row.recordType === 'MEDICACAO_SOS'),
+        snapshot.breakdown?.fromOthers?.medicationAdministrations?.sos,
+      );
+    } else if (Array.isArray(snapshot.byType)) {
+      // Fallback para snapshots legados sem breakdown por origem:
+      // assume registros da equipe do plantão (comportamento histórico anterior).
+      for (const typeGroup of snapshot.byType) {
+        const recordType = typeGroup?.type || 'REGISTRO_DIARIO';
+        if (!Array.isArray(typeGroup?.records)) continue;
+        for (const record of typeGroup.records) {
+          shiftMembersActivities.push({
+            activityId: record.id || null,
+            registeredTime: record.time || '--:--',
+            recordType,
+            residentId: record.residentId || null,
+            recordDetails: null,
+            userId: record.userId || null,
+            timestamp: record.createdAt || null,
+          });
+        }
+      }
+    }
+
+    const normalizeTime = (value: string) => {
+      const [h = '00', m = '00'] = String(value).split(':');
+      return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+    };
+
+    const sortRows = (rows: RawActivity[]) =>
+      rows.sort((a, b) => {
+        const byTime = normalizeTime(a.registeredTime).localeCompare(
+          normalizeTime(b.registeredTime),
+        );
+        if (byTime !== 0) return byTime;
+        return (a.timestamp || '').localeCompare(b.timestamp || '');
+      });
+
+    sortRows(shiftMembersActivities);
+    sortRows(otherUsersActivities);
+
+    const userIds = new Set<string>();
+    const residentIds = new Set<string>();
+    if (shift.handover.handedOverBy) userIds.add(shift.handover.handedOverBy);
+    if (shift.handover.receivedBy) userIds.add(shift.handover.receivedBy);
+    for (const row of [...shiftMembersActivities, ...otherUsersActivities]) {
+      if (row.userId) userIds.add(row.userId);
+      if (row.residentId) residentIds.add(row.residentId);
+    }
+
+    const [users, residents] = await Promise.all([
+      userIds.size > 0
+        ? this.tenantContext.client.user.findMany({
+            where: { id: { in: Array.from(userIds) } },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve([]),
+      residentIds.size > 0
+        ? this.tenantContext.client.resident.findMany({
+            where: { id: { in: Array.from(residentIds) } },
+            select: { id: true, fullName: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const userMap = new Map(users.map((user) => [user.id, user.name]));
+    const residentMap = new Map(residents.map((resident) => [resident.id, resident.fullName]));
+
+    const toViewRows = (rows: RawActivity[]) =>
+      rows.map((row) => ({
+        registeredTime: normalizeTime(row.registeredTime),
+        recordType: row.recordType,
+        residentName: row.residentId
+          ? residentMap.get(row.residentId) || 'Residente não identificado'
+          : 'Residente não identificado',
+        recordDetails: row.recordDetails,
+        recordedBy: row.userId ? userMap.get(row.userId) || 'Usuário' : 'Usuário',
+        timestamp: row.timestamp,
+      }));
+
+    const shiftMemberRows = toViewRows(shiftMembersActivities);
+    const otherUserRows = toViewRows(otherUsersActivities);
+    const totalActivities =
+      snapshot?.totals?.totalActivities ||
+      shiftMemberRows.length + otherUserRows.length;
+
+    return {
+      summary: {
+        shiftId: shift.id,
+        date: formatDateOnly(shift.date),
+        shiftName,
+        startTime,
+        endTime,
+        teamName: shift.team?.name || null,
+        status: shift.status,
+        closedAt: shift.handover.createdAt.toISOString(),
+        closedBy: userMap.get(shift.handover.handedOverBy) || 'Usuário',
+        handoverType: shift.status === 'ADMIN_CLOSED' ? 'ADMIN_CLOSED' : 'COMPLETED',
+        receivedBy: shift.handover.receivedBy
+          ? userMap.get(shift.handover.receivedBy) || 'Usuário'
+          : null,
+        report: shift.handover.report,
+        totalActivities,
+        shiftMembersActivities:
+          snapshot?.totals?.bySource?.shiftMembers || shiftMemberRows.length,
+        otherUsersActivities: snapshot?.totals?.bySource?.others || otherUserRows.length,
+      },
+      shiftMembersActivities: shiftMemberRows,
+      otherUsersActivities: otherUserRows,
+    };
   }
 
   // ============================================================================

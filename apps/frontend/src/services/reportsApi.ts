@@ -172,6 +172,43 @@ export interface ResidentCareSummaryReport {
 }
 
 // ============================================================================
+// Types para Relatório de Histórico de Plantão
+// ============================================================================
+
+export interface ShiftHistoryActivityRow {
+  registeredTime: string
+  recordType: string
+  residentName: string
+  recordDetails?: string | null
+  recordedBy: string
+  timestamp: string | null
+}
+
+export interface ShiftHistoryReportSummary {
+  shiftId: string
+  date: string
+  shiftName: string
+  startTime: string
+  endTime: string
+  teamName: string | null
+  status: string
+  closedAt: string
+  closedBy: string
+  handoverType: 'COMPLETED' | 'ADMIN_CLOSED'
+  receivedBy: string | null
+  report: string
+  totalActivities: number
+  shiftMembersActivities: number
+  otherUsersActivities: number
+}
+
+export interface ShiftHistoryReport {
+  summary: ShiftHistoryReportSummary
+  shiftMembersActivities: ShiftHistoryActivityRow[]
+  otherUsersActivities: ShiftHistoryActivityRow[]
+}
+
+// ============================================================================
 // API Functions
 // ============================================================================
 
@@ -203,5 +240,12 @@ export async function getResidentCareSummaryReport(
   residentId: string,
 ): Promise<ResidentCareSummaryReport> {
   const response = await api.get(`/reports/resident-care-summary/${residentId}`)
+  return response.data
+}
+
+export async function getShiftHistoryReport(
+  shiftId: string,
+): Promise<ShiftHistoryReport> {
+  const response = await api.get(`/reports/shift-history/${shiftId}`)
   return response.data
 }
