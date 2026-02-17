@@ -112,7 +112,56 @@ export interface ActivitiesSnapshot {
       time: string;
     }>;
   }>;
+  totals?: {
+    totalActivities: number;
+    dailyRecords: number;
+    intercurrences: number;
+    medicationAdministrations: {
+      continuous: number;
+      sos: number;
+      administered: number;
+      notAdministered: number;
+      total: number;
+    };
+    bySource: {
+      shiftMembers: number;
+      others: number;
+    };
+  };
+  breakdown?: {
+    fromShiftMembers: {
+      dailyRecords: SnapshotActivityItem[];
+      intercurrences: SnapshotActivityItem[];
+      medicationAdministrations: {
+        continuous: SnapshotMedicationItem[];
+        sos: SnapshotActivityItem[];
+      };
+    };
+    fromOthers: {
+      dailyRecords: SnapshotActivityItem[];
+      intercurrences: SnapshotActivityItem[];
+      medicationAdministrations: {
+        continuous: SnapshotMedicationItem[];
+        sos: SnapshotActivityItem[];
+      };
+    };
+  };
   generatedAt: string;
+}
+
+export interface SnapshotActivityItem {
+  id: string;
+  residentId: string;
+  type?: string;
+  time: string;
+  userId: string;
+  source: 'SHIFT_MEMBER' | 'OTHER_USER';
+}
+
+export interface SnapshotMedicationItem extends SnapshotActivityItem {
+  scheduledTime: string;
+  actualTime: string | null;
+  wasAdministered: boolean;
 }
 
 /**

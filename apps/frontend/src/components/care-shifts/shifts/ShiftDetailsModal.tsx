@@ -240,6 +240,23 @@ export function ShiftDetailsModal({
                         </Badge>
                       ))}
                     </div>
+
+                    {shift.handover.activitiesSnapshot.totals && (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Intercorrências: {shift.handover.activitiesSnapshot.totals.intercurrences}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Medicações: {shift.handover.activitiesSnapshot.totals.medicationAdministrations.total}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Equipe do plantão: {shift.handover.activitiesSnapshot.totals.bySource.shiftMembers}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Outros usuários: {shift.handover.activitiesSnapshot.totals.bySource.others}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

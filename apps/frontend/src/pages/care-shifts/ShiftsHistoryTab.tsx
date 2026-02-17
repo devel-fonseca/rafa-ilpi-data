@@ -3,6 +3,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { History, Loader2, FileText, Clock } from 'lucide-react';
@@ -28,15 +29,17 @@ import {
 import { ShiftDetailsModal } from '@/components/care-shifts/shifts/ShiftDetailsModal';
 import { useShifts } from '@/hooks/care-shifts/useShifts';
 import { useRDCCalculation } from '@/hooks/care-shifts/useRDCCalculation';
-import type { Shift, ShiftStatus } from '@/types/care-shifts/care-shifts';
+import { ShiftStatus, type Shift } from '@/types/care-shifts/care-shifts';
 
 type PeriodPreset = '7' | '30' | '90' | 'custom';
 
 /**
  * Aba de histórico de plantões para Admin/RT
- * Permite visualizar plantões passados (COMPLETED) e seus relatórios de passagem
+ * Permite visualizar plantões passados (COMPLETED e ADMIN_CLOSED)
+ * e seus relatórios de passagem/encerramento.
  */
 export function ShiftsHistoryTab() {
+  const navigate = useNavigate();
   const today = getCurrentDate();
 
   // Estado dos filtros
@@ -70,13 +73,15 @@ export function ShiftsHistoryTab() {
   // Buscar cálculo RDC para a data inicial
   const { data: rdcCalculation } = useRDCCalculation({ date: startDate });
 
-  // Filtrar apenas plantões COMPLETED
-  const completedShifts = (allShifts || []).filter(
-    (shift) => shift.status === ('COMPLETED' as ShiftStatus),
+  // Filtrar apenas plantões em estado final do histórico operacional
+  const finishedShifts = (allShifts || []).filter(
+    (shift) =>
+      shift.status === ShiftStatus.COMPLETED ||
+      shift.status === ShiftStatus.ADMIN_CLOSED,
   );
 
   // Agrupar por data (mais recentes primeiro)
-  const shiftsByDate = completedShifts.reduce(
+  const shiftsByDate = finishedShifts.reduce(
     (acc, shift) => {
       const dateKey = extractDateOnly(shift.date);
       if (!acc[dateKey]) {
@@ -93,6 +98,10 @@ export function ShiftsHistoryTab() {
   const handleViewDetails = (shift: Shift) => {
     setSelectedShift(shift);
     setDetailsOpen(true);
+  };
+
+  const handleOpenReport = (shift: Shift) => {
+    navigate(`/dashboard/relatorios/historico-plantao/${shift.id}`);
   };
 
   const handlePresetChange = (value: PeriodPreset) => {
@@ -132,7 +141,7 @@ export function ShiftsHistoryTab() {
             Histórico de Plantões
           </CardTitle>
           <CardDescription>
-            Visualize plantões concluídos e seus relatórios de passagem
+            Visualize plantões concluídos/encerrados e seus relatórios
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -193,7 +202,7 @@ export function ShiftsHistoryTab() {
           <CardContent className="py-12 text-center">
             <History className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">
-              Nenhum plantão concluído encontrado para o período selecionado.
+              Nenhum plantão concluído ou encerrado encontrado para o período selecionado.
             </p>
           </CardContent>
         </Card>
@@ -217,6 +226,7 @@ export function ShiftsHistoryTab() {
                       key={shift.id}
                       shift={shift}
                       onViewDetails={() => handleViewDetails(shift)}
+                      onOpenReport={() => handleOpenReport(shift)}
                     />
                   ))}
                 </div>
@@ -246,9 +256,10 @@ export function ShiftsHistoryTab() {
 interface ShiftHistoryCardProps {
   shift: Shift;
   onViewDetails: () => void;
+  onOpenReport: () => void;
 }
 
-function ShiftHistoryCard({ shift, onViewDetails }: ShiftHistoryCardProps) {
+function ShiftHistoryCard({ shift, onViewDetails, onOpenReport }: ShiftHistoryCardProps) {
   const activeMembers = shift.members?.filter((m) => !m.removedAt) || [];
   const hasHandover = !!shift.handover;
 
@@ -275,8 +286,10 @@ function ShiftHistoryCard({ shift, onViewDetails }: ShiftHistoryCardProps) {
               ({shift.shiftTemplate?.startTime} - {shift.shiftTemplate?.endTime})
             </span>
           </div>
-          <Badge variant="secondary">
-            Concluído
+          <Badge variant={shift.status === ShiftStatus.ADMIN_CLOSED ? 'outline' : 'secondary'}>
+            {shift.status === ShiftStatus.ADMIN_CLOSED
+              ? 'Encerrado Administrativamente'
+              : 'Concluído'}
           </Badge>
         </div>
 
@@ -315,9 +328,14 @@ function ShiftHistoryCard({ shift, onViewDetails }: ShiftHistoryCardProps) {
             </span>
           )}
           {!hasHandover && <span />}
-          <Button variant="outline" size="sm" onClick={onViewDetails}>
-            Ver Detalhes
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onOpenReport}>
+              Ver Relatório
+            </Button>
+            <Button variant="outline" size="sm" onClick={onViewDetails}>
+              Ver Detalhes
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

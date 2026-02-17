@@ -16,6 +16,7 @@ interface ShiftStatusBannerProps {
   shift: Shift | null;
   isLeaderOrSubstitute?: boolean;
   loading?: boolean;
+  timezone?: string;
   onCheckInSuccess?: () => void;
   onHandoverSuccess?: () => void;
 }
@@ -28,6 +29,7 @@ export function ShiftStatusBanner({
   shift,
   isLeaderOrSubstitute = false,
   loading = false,
+  timezone,
   onCheckInSuccess,
   onHandoverSuccess,
 }: ShiftStatusBannerProps) {
@@ -85,8 +87,8 @@ export function ShiftStatusBanner({
 
   // Detectar se plantão IN_PROGRESS já passou do horário (PENDING_CLOSURE efetivo)
   const effectivePendingClosure = status === ShiftStatus.PENDING_CLOSURE ||
-    (status === ShiftStatus.IN_PROGRESS && isShiftPendingClosure(shift));
-  const minutesOverdue = getMinutesSinceExpectedEnd(shift);
+    (status === ShiftStatus.IN_PROGRESS && isShiftPendingClosure(shift, timezone));
+  const minutesOverdue = getMinutesSinceExpectedEnd(shift, timezone);
 
   // Formatar tempo excedido
   const formatOverdueTime = (minutes: number): string => {

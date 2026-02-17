@@ -17,7 +17,10 @@ export function formatShiftStatusLabel(status: string | ShiftStatus): string {
   return SHIFT_STATUS_LABELS[status as ShiftStatus] ?? status;
 }
 
-function getShiftWindowUtc(shift: Shift): { start: Date; end: Date } | null {
+function getShiftWindowUtc(
+  shift: Shift,
+  timezone: string = SYSTEM_TIMEZONE,
+): { start: Date; end: Date } | null {
   const template = shift.shiftTemplate;
   if (!template) return null;
 
@@ -36,13 +39,16 @@ function getShiftWindowUtc(shift: Shift): { start: Date; end: Date } | null {
   }
 
   return {
-    start: fromZonedTime(localStart, SYSTEM_TIMEZONE),
-    end: fromZonedTime(localEnd, SYSTEM_TIMEZONE),
+    start: fromZonedTime(localStart, timezone),
+    end: fromZonedTime(localEnd, timezone),
   };
 }
 
-export function isShiftInCurrentWindow(shift: Shift): boolean {
-  const window = getShiftWindowUtc(shift);
+export function isShiftInCurrentWindow(
+  shift: Shift,
+  timezone: string = SYSTEM_TIMEZONE,
+): boolean {
+  const window = getShiftWindowUtc(shift, timezone);
   if (!window) return false;
 
   const now = new Date();
@@ -58,13 +64,16 @@ export function isShiftInCurrentWindow(shift: Shift): boolean {
  * @param shift - O plantão a ser verificado
  * @returns true se o plantão deveria estar pendente de encerramento
  */
-export function isShiftPendingClosure(shift: Shift): boolean {
+export function isShiftPendingClosure(
+  shift: Shift,
+  timezone: string = SYSTEM_TIMEZONE,
+): boolean {
   // Só verifica plantões IN_PROGRESS
   if (shift.status !== ShiftStatus.IN_PROGRESS) {
     return false;
   }
 
-  const window = getShiftWindowUtc(shift);
+  const window = getShiftWindowUtc(shift, timezone);
   if (!window) return false;
 
   return isAfter(new Date(), window.end);
@@ -76,8 +85,11 @@ export function isShiftPendingClosure(shift: Shift): boolean {
  * @param shift - O plantão
  * @returns Número de minutos desde o término esperado, ou 0 se ainda não terminou
  */
-export function getMinutesSinceExpectedEnd(shift: Shift): number {
-  const window = getShiftWindowUtc(shift);
+export function getMinutesSinceExpectedEnd(
+  shift: Shift,
+  timezone: string = SYSTEM_TIMEZONE,
+): number {
+  const window = getShiftWindowUtc(shift, timezone);
   if (!window) return 0;
 
   const now = new Date();

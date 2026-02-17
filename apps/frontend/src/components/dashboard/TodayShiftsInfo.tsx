@@ -7,7 +7,7 @@ import { Clock, Loader2, PlayCircle, AlertCircle, AlertTriangle, Users, History,
 import { useNavigate } from 'react-router-dom'
 import { useShifts } from '@/hooks/care-shifts/useShifts'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
-import { getCurrentDate } from '@/utils/dateHelpers'
+import { getCurrentDate, SYSTEM_TIMEZONE } from '@/utils/dateHelpers'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ShiftStatus, type Shift } from '@/types/care-shifts/care-shifts'
@@ -19,10 +19,15 @@ import { format, parseISO, subDays } from 'date-fns'
  * Banner operacional que mostra o status dos plantões de hoje.
  * Destaca visualmente o plantão em andamento com protagonismo.
  */
-export function TodayShiftsInfo() {
+interface TodayShiftsInfoProps {
+  timezone?: string
+}
+
+export function TodayShiftsInfo({ timezone }: TodayShiftsInfoProps = {}) {
   const navigate = useNavigate()
   const { hasPermission } = usePermissions()
-  const today = getCurrentDate()
+  const effectiveTimezone = timezone || SYSTEM_TIMEZONE
+  const today = getCurrentDate(effectiveTimezone)
   const yesterday = format(subDays(parseISO(today), 1), 'yyyy-MM-dd')
   const canAdminCloseShift = hasPermission(PermissionType.UPDATE_CARE_SHIFTS)
 
@@ -39,25 +44,25 @@ export function TodayShiftsInfo() {
   // Inclui: status PENDING_CLOSURE ou IN_PROGRESS que passou do horário
   const pendingClosureShifts = shiftsWithTeam.filter((s) => {
     if (s.status === ShiftStatus.PENDING_CLOSURE) return true
-    if (s.status === ShiftStatus.IN_PROGRESS && isShiftPendingClosure(s)) return true
+    if (s.status === ShiftStatus.IN_PROGRESS && isShiftPendingClosure(s, effectiveTimezone)) return true
     return false
   })
 
   // Identificar plantão em andamento (dentro do horário)
   const activeShift = shiftsWithTeam.find((s) =>
-    s.status === ShiftStatus.IN_PROGRESS && !isShiftPendingClosure(s)
+    s.status === ShiftStatus.IN_PROGRESS && !isShiftPendingClosure(s, effectiveTimezone)
   )
 
   // Plantões aguardando check-in (dentro da janela de horário)
   const pendingShifts = shiftsWithTeam.filter((s) => {
     if (s.status !== ShiftStatus.CONFIRMED) return false
-    return isShiftInCurrentWindow(s)
+    return isShiftInCurrentWindow(s, effectiveTimezone)
   })
 
   // Próximos plantões confirmados (fora da janela)
   const upcomingShifts = shiftsWithTeam.filter((s) => {
     if (s.status !== ShiftStatus.CONFIRMED) return false
-    return !isShiftInCurrentWindow(s)
+    return !isShiftInCurrentWindow(s, effectiveTimezone)
   })
 
   if (isLoading) {
@@ -108,6 +113,7 @@ export function TodayShiftsInfo() {
       <div className="space-y-3">
         <PendingClosureBanner
           shift={pendingClosureShifts[0]}
+          timezone={effectiveTimezone}
           onNavigate={navigate}
           canAdminCloseShift={canAdminCloseShift}
         />
@@ -175,6 +181,7 @@ interface ShiftBannerProps {
   shift: Shift
   onNavigate: (path: string) => void
   canAdminCloseShift?: boolean
+  timezone?: string
 }
 
 function ActiveShiftBanner({ shift, onNavigate }: ShiftBannerProps) {
@@ -422,14 +429,19 @@ function UpcomingShiftsBanner({ shifts, onNavigate }: UpcomingShiftsBannerProps)
  * Banner de alerta crítico para plantões com encerramento pendente.
  * Exibe um aviso vermelho para chamar atenção do RT/Admin.
  */
-function PendingClosureBanner({ shift, onNavigate, canAdminCloseShift = false }: ShiftBannerProps) {
+function PendingClosureBanner({
+  shift,
+  onNavigate,
+  canAdminCloseShift = false,
+  timezone,
+}: ShiftBannerProps) {
   const template = shift.shiftTemplate
   const team = shift.team
   const startTime = template.tenantConfig?.customStartTime || template.startTime
   const endTime = template.tenantConfig?.customEndTime || template.endTime
   const shiftName = template.tenantConfig?.customName || template.name
   const memberCount = shift.members?.filter(m => !m.removedAt).length || 0
-  const minutesOverdue = getMinutesSinceExpectedEnd(shift)
+  const minutesOverdue = getMinutesSinceExpectedEnd(shift, timezone)
 
   // Formatar tempo excedido
   const formatOverdueTime = (minutes: number): string => {

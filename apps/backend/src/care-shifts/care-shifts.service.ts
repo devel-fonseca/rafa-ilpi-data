@@ -20,7 +20,6 @@ import {
   isBefore,
   isAfter,
   parse,
-  format,
   addDays,
   subDays,
 } from 'date-fns';
@@ -1816,7 +1815,11 @@ export class CareShiftsService {
     }
 
     // 7. Gerar snapshot de atividades do turno
-    const activitiesSnapshot = await this.generateActivitiesSnapshot(shift.id, shiftDate);
+    const activitiesSnapshot = await this.generateActivitiesSnapshot(
+      shift.id,
+      shiftDate,
+      shift.shiftTemplateId,
+    );
 
     // 8. Criar transação para handover + atualização do shift
     await this.tenantContext.client.$transaction(async (tx) => {
@@ -2010,7 +2013,11 @@ export class CareShiftsService {
     // `shift.date` (campo @db.Date) já chega como Date no Prisma client.
     // Evita parseDateOnly(string) para não quebrar com input Date.
     const shiftDate = shift.date;
-    const activitiesSnapshot = await this.generateActivitiesSnapshot(shift.id, shiftDate);
+    const activitiesSnapshot = await this.generateActivitiesSnapshot(
+      shift.id,
+      shiftDate,
+      shift.shiftTemplateId,
+    );
 
     // 4. Encerrar administrativamente
     await this.tenantContext.client.$transaction(async (tx) => {
@@ -2055,7 +2062,14 @@ export class CareShiftsService {
    * Gerar snapshot de atividades do turno
    * Busca registros diários associados ao plantão
    */
-  private async generateActivitiesSnapshot(shiftId: string, shiftDate: Date) {
+  private async generateActivitiesSnapshot(
+    shiftId: string,
+    shiftDate: Date,
+    shiftTemplateId: string,
+  ) {
+    type ActivitySource = 'SHIFT_MEMBER' | 'OTHER_USER';
+    type LegacyRecord = { id: string; residentId: string; time: string };
+
     // Buscar membros do plantão
     const members = await this.tenantContext.client.shiftAssignment.findMany({
       where: {
@@ -2066,49 +2080,231 @@ export class CareShiftsService {
     });
 
     const memberIds = members.map((m) => m.userId);
+    const memberIdSet = new Set(memberIds);
 
-    // Buscar registros diários feitos pelos membros do plantão nesta data
-    const dailyRecords = await this.tenantContext.client.dailyRecord.findMany({
-      where: {
-        userId: { in: memberIds },
-        date: shiftDate,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        residentId: true,
-        type: true,
-        date: true,
-        time: true,
-        userId: true,
-      },
-      orderBy: { time: 'asc' },
+    const tenantTimezone = await this.getTenantTimezone();
+    const { startTime, endTime } = await this.getEffectiveShiftTimes(shiftTemplateId);
+    const shiftWindow = this.buildShiftWindow(
+      shiftDate,
+      startTime,
+      endTime,
+      tenantTimezone,
+    );
+
+    const shiftStartDate = formatDateOnly(shiftDate);
+    const shiftEndDate = formatInTimeZone(shiftWindow.end, tenantTimezone, 'yyyy-MM-dd');
+    const snapshotDates = shiftStartDate === shiftEndDate
+      ? [shiftStartDate]
+      : [shiftStartDate, shiftEndDate];
+    const snapshotDateValues = snapshotDates.map((date) => parseISO(`${date}T00:00:00.000Z`));
+
+    const [dailyRecordsRaw, medicationAdministrationsRaw, sosAdministrationsRaw] = await Promise.all([
+      // Buscar TODOS os registros diários da data (não só membros do plantão)
+      this.tenantContext.client.dailyRecord.findMany({
+        where: {
+          date: { in: snapshotDateValues },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          residentId: true,
+          type: true,
+          date: true,
+          time: true,
+          userId: true,
+          createdAt: true,
+        },
+        orderBy: { time: 'asc' },
+      }),
+      // Medicações contínuas
+      this.tenantContext.client.medicationAdministration.findMany({
+        where: {
+          date: { in: snapshotDateValues },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          residentId: true,
+          date: true,
+          scheduledTime: true,
+          actualTime: true,
+          wasAdministered: true,
+          userId: true,
+          createdAt: true,
+          medication: {
+            select: {
+              name: true,
+              concentration: true,
+              dose: true,
+            },
+          },
+        },
+        orderBy: { scheduledTime: 'asc' },
+      }),
+      // Medicações SOS
+      this.tenantContext.client.sOSAdministration.findMany({
+        where: {
+          date: { in: snapshotDateValues },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          residentId: true,
+          date: true,
+          time: true,
+          userId: true,
+          createdAt: true,
+          sosMedication: {
+            select: {
+              name: true,
+              concentration: true,
+              dose: true,
+            },
+          },
+        },
+        orderBy: { time: 'asc' },
+      }),
+    ]);
+
+    const isWithinShiftWindow = (recordDate: Date, recordTime: string) => {
+      const recordDateTime = this.buildRecordDateTime(
+        recordDate,
+        recordTime,
+        shiftWindow,
+        tenantTimezone,
+      );
+      return (
+        !isBefore(recordDateTime, shiftWindow.start) &&
+        !isAfter(recordDateTime, shiftWindow.end)
+      );
+    };
+
+    const dailyRecords = dailyRecordsRaw.filter((record) =>
+      isWithinShiftWindow(record.date, record.time),
+    );
+    const medicationAdministrations = medicationAdministrationsRaw.filter((item) =>
+      isWithinShiftWindow(item.date, item.actualTime || item.scheduledTime),
+    );
+    const sosAdministrations = sosAdministrationsRaw.filter((item) =>
+      isWithinShiftWindow(item.date, item.time),
+    );
+
+    const toSource = (userId: string): ActivitySource =>
+      memberIdSet.has(userId) ? 'SHIFT_MEMBER' : 'OTHER_USER';
+
+    const dailyItems = dailyRecords.map((record) => ({
+      id: record.id,
+      residentId: record.residentId,
+      type: record.type,
+      time: record.time,
+      userId: record.userId,
+      createdAt: record.createdAt.toISOString(),
+      source: toSource(record.userId),
+    }));
+
+    const intercurrenceItems = dailyItems.filter((record) => record.type === 'INTERCORRENCIA');
+
+    const medicationItems = medicationAdministrations.map((item) => ({
+      id: item.id,
+      residentId: item.residentId,
+      time: item.actualTime || item.scheduledTime,
+      scheduledTime: item.scheduledTime,
+      actualTime: item.actualTime,
+      wasAdministered: item.wasAdministered,
+      userId: item.userId,
+      createdAt: item.createdAt.toISOString(),
+      medicationName: item.medication?.name || null,
+      concentration: item.medication?.concentration || null,
+      dose: item.medication?.dose || null,
+      source: toSource(item.userId),
+    }));
+
+    const sosMedicationItems = sosAdministrations.map((item) => ({
+      id: item.id,
+      residentId: item.residentId,
+      time: item.time,
+      userId: item.userId,
+      createdAt: item.createdAt.toISOString(),
+      medicationName: item.sosMedication?.name || null,
+      concentration: item.sosMedication?.concentration || null,
+      dose: item.sosMedication?.dose || null,
+      source: toSource(item.userId),
+    }));
+
+    const shiftMemberDaily = dailyItems.filter((item) => item.source === 'SHIFT_MEMBER');
+    const otherUserDaily = dailyItems.filter((item) => item.source === 'OTHER_USER');
+    const shiftMemberIntercurrences = intercurrenceItems.filter((item) => item.source === 'SHIFT_MEMBER');
+    const otherUserIntercurrences = intercurrenceItems.filter((item) => item.source === 'OTHER_USER');
+    const shiftMemberMedications = medicationItems.filter((item) => item.source === 'SHIFT_MEMBER');
+    const otherUserMedications = medicationItems.filter((item) => item.source === 'OTHER_USER');
+    const shiftMemberSos = sosMedicationItems.filter((item) => item.source === 'SHIFT_MEMBER');
+    const otherUserSos = sosMedicationItems.filter((item) => item.source === 'OTHER_USER');
+
+    const legacyByTypeMap = new Map<string, LegacyRecord[]>();
+    const pushLegacy = (type: string, record: LegacyRecord) => {
+      const list = legacyByTypeMap.get(type) || [];
+      list.push(record);
+      legacyByTypeMap.set(type, list);
+    };
+
+    dailyItems.forEach((item) => {
+      pushLegacy(item.type, { id: item.id, residentId: item.residentId, time: item.time });
+    });
+    medicationItems.forEach((item) => {
+      pushLegacy('MEDICACAO_CONTINUA', { id: item.id, residentId: item.residentId, time: item.time });
+    });
+    sosMedicationItems.forEach((item) => {
+      pushLegacy('MEDICACAO_SOS', { id: item.id, residentId: item.residentId, time: item.time });
     });
 
-    // Agrupar por tipo de registro
-    const byType = dailyRecords.reduce(
-      (acc, record) => {
-        const recordType = record.type;
-        if (!acc[recordType]) acc[recordType] = [];
-        acc[recordType].push(record);
-        return acc;
-      },
-      {} as Record<string, typeof dailyRecords>,
-    );
+    const totalActivities = dailyItems.length + medicationItems.length + sosMedicationItems.length;
 
     return {
       shiftId,
-      date: format(shiftDate, 'yyyy-MM-dd'),
-      totalRecords: dailyRecords.length,
-      byType: Object.entries(byType).map(([type, records]) => ({
+      date: formatDateOnly(shiftDate),
+      // Campos legados (mantidos para retrocompatibilidade com frontend atual)
+      totalRecords: totalActivities,
+      byType: Array.from(legacyByTypeMap.entries()).map(([type, records]) => ({
         type,
         count: records.length,
-        records: records.map((r) => ({
-          id: r.id,
-          residentId: r.residentId,
-          time: r.time,
-        })),
+        records,
       })),
+      // Novo resumo estruturado para documentação e auditoria
+      totals: {
+        totalActivities,
+        dailyRecords: dailyItems.length,
+        intercurrences: intercurrenceItems.length,
+        medicationAdministrations: {
+          continuous: medicationItems.length,
+          sos: sosMedicationItems.length,
+          administered: medicationItems.filter((item) => item.wasAdministered).length,
+          notAdministered: medicationItems.filter((item) => !item.wasAdministered).length,
+          total: medicationItems.length + sosMedicationItems.length,
+        },
+        bySource: {
+          shiftMembers:
+            shiftMemberDaily.length + shiftMemberMedications.length + shiftMemberSos.length,
+          others: otherUserDaily.length + otherUserMedications.length + otherUserSos.length,
+        },
+      },
+      breakdown: {
+        fromShiftMembers: {
+          dailyRecords: shiftMemberDaily,
+          intercurrences: shiftMemberIntercurrences,
+          medicationAdministrations: {
+            continuous: shiftMemberMedications,
+            sos: shiftMemberSos,
+          },
+        },
+        fromOthers: {
+          dailyRecords: otherUserDaily,
+          intercurrences: otherUserIntercurrences,
+          medicationAdministrations: {
+            continuous: otherUserMedications,
+            sos: otherUserSos,
+          },
+        },
+      },
       generatedAt: new Date().toISOString(),
     };
   }

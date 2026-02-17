@@ -303,9 +303,9 @@ export function formatDateTimeShortSafe(utcDateString: string | Date): string {
  *
  * @returns String no formato yyyy-MM-dd
  */
-export function getCurrentDate(): string {
+export function getCurrentDate(timezone: string = SYSTEM_TIMEZONE): string {
   const now = new Date()
-  const localNow = toZonedTime(now, SYSTEM_TIMEZONE)
+  const localNow = toZonedTime(now, timezone)
   return formatDateFns(localNow, 'yyyy-MM-dd')
 }
 
@@ -319,9 +319,9 @@ export function getCurrentDate(): string {
  *
  * @returns String no formato HH:mm
  */
-export function getCurrentTime(): string {
+export function getCurrentTime(timezone: string = SYSTEM_TIMEZONE): string {
   const now = new Date()
-  const localNow = toZonedTime(now, SYSTEM_TIMEZONE)
+  const localNow = toZonedTime(now, timezone)
   return formatDateFns(localNow, 'HH:mm')
 }
 
