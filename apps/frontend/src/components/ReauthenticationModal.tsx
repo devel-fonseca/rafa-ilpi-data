@@ -129,7 +129,7 @@ export function ReauthenticationModal({
         <Alert variant="destructive" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50">
           <AlertTriangle className="h-4 w-4 !text-amber-600 dark:!text-amber-500" />
           <AlertTitle className="text-amber-900 dark:text-amber-100">
-            Operação de Alto Risco
+            Confirmação de Identidade
           </AlertTitle>
           <AlertDescription className="text-amber-800 dark:text-amber-200">
             {actionDescription

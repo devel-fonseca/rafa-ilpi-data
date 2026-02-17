@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAdminCloseShift } from '@/hooks/care-shifts';
+import { useReauthentication } from '@/hooks/useReauthentication';
+import { ReauthenticationModal } from '@/components/ReauthenticationModal';
 import type { Shift } from '@/types/care-shifts/care-shifts';
 
 interface AdminCloseShiftDialogProps {
@@ -46,6 +48,14 @@ export function AdminCloseShiftDialog({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
   const adminClose = useAdminCloseShift();
+  const {
+    isModalOpen: isReauthModalOpen,
+    openReauthModal,
+    closeReauthModal,
+    reauthenticate,
+    isReauthenticating,
+    reauthError,
+  } = useReauthentication();
 
   const isReasonValid = reason.trim().length >= MIN_REASON_LENGTH;
   const remainingChars = MIN_REASON_LENGTH - reason.trim().length;
@@ -61,8 +71,18 @@ export function AdminCloseShiftDialog({
       setOpen(false);
       setReason('');
       onSuccess?.();
-    } catch {
-      // Erro já tratado pelo hook com toast
+    } catch (error) {
+      const errorData = (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } })
+        .response?.data;
+      const requiresReauth =
+        errorData?.code === 'REAUTHENTICATION_REQUIRED' ||
+        errorData?.requiresReauth;
+
+      if (requiresReauth) {
+        openReauthModal(() => {
+          void handleClose();
+        });
+      }
     }
   };
 
@@ -74,6 +94,7 @@ export function AdminCloseShiftDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
@@ -161,5 +182,14 @@ export function AdminCloseShiftDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <ReauthenticationModal
+      open={isReauthModalOpen}
+      onOpenChange={closeReauthModal}
+      onSubmit={reauthenticate}
+      isLoading={isReauthenticating}
+      error={reauthError}
+      actionDescription="Encerramento administrativo de plantão"
+    />
+    </>
   );
 }

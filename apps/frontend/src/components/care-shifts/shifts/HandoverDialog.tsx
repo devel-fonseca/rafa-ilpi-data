@@ -20,6 +20,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useHandoverShift } from '@/hooks/care-shifts';
 import { getHandoverReportTemplate } from '@/api/care-shifts';
+import { useReauthentication } from '@/hooks/useReauthentication';
+import { ReauthenticationModal } from '@/components/ReauthenticationModal';
 import type { Shift, ShiftStatus } from '@/types/care-shifts/care-shifts';
 
 interface HandoverDialogProps {
@@ -44,6 +46,14 @@ export function HandoverDialog({
   // Pré-preencher com notas existentes do plantão
   const [report, setReport] = useState(shift.notes ?? '');
   const handover = useHandoverShift();
+  const {
+    isModalOpen: isReauthModalOpen,
+    openReauthModal,
+    closeReauthModal,
+    reauthenticate,
+    isReauthenticating,
+    reauthError,
+  } = useReauthentication();
 
   // Só mostra o botão se o plantão estiver IN_PROGRESS
   if (shift.status !== ('IN_PROGRESS' as ShiftStatus)) {
@@ -66,8 +76,18 @@ export function HandoverDialog({
       setOpen(false);
       setReport('');
       onSuccess?.();
-    } catch {
-      // Erro já tratado pelo hook com toast
+    } catch (error) {
+      const errorData = (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } })
+        .response?.data;
+      const requiresReauth =
+        errorData?.code === 'REAUTHENTICATION_REQUIRED' ||
+        errorData?.requiresReauth;
+
+      if (requiresReauth) {
+        openReauthModal(() => {
+          void handleHandover();
+        });
+      }
     }
   };
 
@@ -93,6 +113,7 @@ export function HandoverDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
@@ -192,5 +213,14 @@ export function HandoverDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <ReauthenticationModal
+      open={isReauthModalOpen}
+      onOpenChange={closeReauthModal}
+      onSubmit={reauthenticate}
+      isLoading={isReauthenticating}
+      error={reauthError}
+      actionDescription="Passagem de plantão"
+    />
+    </>
   );
 }

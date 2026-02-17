@@ -448,6 +448,15 @@ export function useHandoverShift() {
       toast.success('Passagem de plantão realizada com sucesso!');
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
+      const requiresReauth =
+        (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } }).response?.data?.code ===
+          'REAUTHENTICATION_REQUIRED' ||
+        (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } }).response?.data?.requiresReauth;
+
+      if (requiresReauth) {
+        return;
+      }
+
       const message =
         error.response?.data?.message ||
         'Erro ao fazer passagem de plantão. Verifique se você tem permissão.';
@@ -484,6 +493,15 @@ export function useAdminCloseShift() {
       toast.success('Plantão encerrado administrativamente com sucesso.');
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
+      const requiresReauth =
+        (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } }).response?.data?.code ===
+          'REAUTHENTICATION_REQUIRED' ||
+        (error as { response?: { data?: { code?: string; requiresReauth?: boolean } } }).response?.data?.requiresReauth;
+
+      if (requiresReauth) {
+        return;
+      }
+
       const message =
         error.response?.data?.message ||
         'Erro ao encerrar plantão administrativamente.';

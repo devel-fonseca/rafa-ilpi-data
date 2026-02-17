@@ -423,6 +423,8 @@ export class CareShiftsController {
 
   @Post(':id/handover')
   @RequireAnyPermission(PermissionType.CHECKIN_CARE_SHIFTS, PermissionType.UPDATE_CARE_SHIFTS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard, ReauthenticationGuard)
   @ApiOperation({
     summary: 'Fazer passagem de plantão',
     description:
@@ -509,6 +511,8 @@ export class CareShiftsController {
 
   @Post(':id/admin-close')
   @RequireAnyPermission(PermissionType.UPDATE_CARE_SHIFTS)
+  @RequiresReauthentication()
+  @UseGuards(JwtAuthGuard, PermissionsGuard, FeatureGuard, ReauthenticationGuard)
   @ApiOperation({
     summary: 'Encerrar plantão administrativamente',
     description:
