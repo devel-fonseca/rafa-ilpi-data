@@ -14,9 +14,9 @@ import {
 import { Activity } from 'lucide-react'
 import { useBloodType, useLatestAnthropometry } from '@/hooks/useResidentHealth'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
-import { useLastVitalSign } from '@/hooks/useVitalSigns'
+import { useConsolidatedVitalSigns } from '@/hooks/useConsolidatedVitalSigns'
 import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
-import { formatDateTimeSafe } from '@/utils/dateHelpers'
+import { ConsolidatedVitalSignsGrid } from '@/components/residents/ConsolidatedVitalSignsGrid'
 import type { ResidentSummaryViewProps } from '../types'
 
 // ========== CONSTANTS ==========
@@ -57,8 +57,8 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
   // Buscar restrições alimentares
   const { data: dietaryRestrictions } = useDietaryRestrictionsByResident(residentId)
 
-  // Buscar último sinal vital
-  const { data: lastVitalSign } = useLastVitalSign(residentId)
+  // Buscar sinais vitais consolidados (mesma fonte da Visualização Rápida)
+  const { data: consolidatedVitalSigns } = useConsolidatedVitalSigns(residentId)
 
   const scrollToHealthConditions = () => {
     if (healthConditionsCardRef.current) {
@@ -107,49 +107,11 @@ export function ResidentSummaryView({ resident, residentId, onVitalSignsClick }:
                   Ver Histórico
                 </Button>
               </div>
-              {lastVitalSign ? (
-                <div className="space-y-2">
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                    <div className="text-center p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">PA</div>
-                      <div className="font-medium text-sm">
-                        {lastVitalSign.systolicBloodPressure && lastVitalSign.diastolicBloodPressure
-                          ? `${lastVitalSign.systolicBloodPressure}/${lastVitalSign.diastolicBloodPressure}`
-                          : '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">FC</div>
-                      <div className="font-medium text-sm">
-                        {lastVitalSign.heartRate ? `${lastVitalSign.heartRate} bpm` : '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">Temp</div>
-                      <div className="font-medium text-sm">
-                        {lastVitalSign.temperature ? `${lastVitalSign.temperature}°C` : '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">SpO₂</div>
-                      <div className="font-medium text-sm">
-                        {lastVitalSign.oxygenSaturation ? `${lastVitalSign.oxygenSaturation}%` : '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground">Glicemia</div>
-                      <div className="font-medium text-sm">
-                        {lastVitalSign.bloodGlucose ? `${lastVitalSign.bloodGlucose} mg/dL` : '-'}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-muted/30 rounded-lg">
-                      <div className="text-xs text-muted-foreground">Registro</div>
-                      <div className="font-medium text-xs">
-                        {formatDateTimeSafe(lastVitalSign.timestamp)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {consolidatedVitalSigns ? (
+                <ConsolidatedVitalSignsGrid
+                  consolidatedVitalSigns={consolidatedVitalSigns}
+                  gridClassName="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+                />
               ) : (
                 <div className="text-sm text-muted-foreground italic">
                   Nenhum registro de sinais vitais

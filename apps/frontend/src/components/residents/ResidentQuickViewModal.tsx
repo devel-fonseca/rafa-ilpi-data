@@ -40,6 +40,7 @@ import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { useBloodType } from '@/hooks/useResidentHealth'
 import { useConsolidatedVitalSigns } from '@/hooks/useConsolidatedVitalSigns'
 import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
+import { ConsolidatedVitalSignsGrid } from '@/components/residents/ConsolidatedVitalSignsGrid'
 import { Check } from 'lucide-react'
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -329,103 +330,11 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
                 <div className="space-y-3">
                   {/* Sinais Vitais Consolidados */}
                   {consolidatedVitalSigns && (
-                    <div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {/* Tipo Sanguíneo - Destaque */}
-                        <div className="text-center bg-primary/5 rounded-lg p-2">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">Tipo</p>
-                          <p className="text-sm font-bold text-primary">
-                            {bloodTypeLabel}
-                          </p>
-                        </div>
-
-                        {/* PA */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">PA</p>
-                          {consolidatedVitalSigns.bloodPressure ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.bloodPressure.systolic}/
-                                {consolidatedVitalSigns.bloodPressure.diastolic}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.bloodPressure.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-
-                        {/* Glicemia */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">Glicemia</p>
-                          {consolidatedVitalSigns.bloodGlucose ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.bloodGlucose.value}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.bloodGlucose.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-
-                        {/* Temperatura */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">Temp</p>
-                          {consolidatedVitalSigns.temperature ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.temperature.value}°
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.temperature.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-
-                        {/* SpO2 */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">SpO2</p>
-                          {consolidatedVitalSigns.oxygenSaturation ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.oxygenSaturation.value}%
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.oxygenSaturation.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-
-                        {/* FC */}
-                        <div className="text-center">
-                          <p className="text-[10px] text-muted-foreground mb-0.5">FC</p>
-                          {consolidatedVitalSigns.heartRate ? (
-                            <>
-                              <p className="text-sm font-semibold">
-                                {consolidatedVitalSigns.heartRate.value}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {format(new Date(consolidatedVitalSigns.heartRate.timestamp), 'dd/MM HH:mm')}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">--</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <ConsolidatedVitalSignsGrid
+                      consolidatedVitalSigns={consolidatedVitalSigns}
+                      includeBloodType
+                      bloodTypeLabel={bloodTypeLabel}
+                    />
                   )}
 
                   {/* Alergias */}
