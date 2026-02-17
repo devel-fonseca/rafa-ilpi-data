@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Loader2, Plus, Edit, Trash2, Droplet, Ruler, Activity, AlertTriangle, History } from 'lucide-react'
+import { Loader2, Plus, Eye, Edit, Trash2, Droplet, Ruler, Activity, AlertTriangle, History } from 'lucide-react'
 import { useClinicalProfile, useClinicalProfileHistory } from '@/hooks/useClinicalProfiles'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
@@ -53,6 +53,9 @@ import { EditClinicalProfileModal } from '@/components/clinical-data/EditClinica
 import { AllergyModal } from '@/components/clinical-data/AllergyModal'
 import { ConditionModal } from '@/components/clinical-data/ConditionModal'
 import { DietaryRestrictionModal } from '@/components/clinical-data/DietaryRestrictionModal'
+import { AllergyViewModal } from '@/components/clinical-data/AllergyViewModal'
+import { ConditionViewModal } from '@/components/clinical-data/ConditionViewModal'
+import { DietaryRestrictionViewModal } from '@/components/clinical-data/DietaryRestrictionViewModal'
 import { BloodTypeModal } from '@/components/clinical-data/BloodTypeModal'
 import { AnthropometryModal } from '@/components/clinical-data/AnthropometryModal'
 import { DependencyAssessmentModal } from '@/components/clinical-data/DependencyAssessmentModal'
@@ -159,6 +162,12 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
   const [deleteConditionModalOpen, setDeleteConditionModalOpen] = useState(false)
   const [deletingRestriction, setDeletingRestriction] = useState<DietaryRestriction | undefined>()
   const [deleteRestrictionModalOpen, setDeleteRestrictionModalOpen] = useState(false)
+  const [viewingAllergy, setViewingAllergy] = useState<Allergy | undefined>()
+  const [viewingCondition, setViewingCondition] = useState<Condition | undefined>()
+  const [viewingRestriction, setViewingRestriction] = useState<DietaryRestriction | undefined>()
+  const [allergyViewOpen, setAllergyViewOpen] = useState(false)
+  const [conditionViewOpen, setConditionViewOpen] = useState(false)
+  const [restrictionViewOpen, setRestrictionViewOpen] = useState(false)
   const [profileHistoryOpen, setProfileHistoryOpen] = useState(false)
   const [historyAllergyId, setHistoryAllergyId] = useState<string | null>(null)
   const [historyConditionId, setHistoryConditionId] = useState<string | null>(null)
@@ -285,14 +294,29 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
     setAllergyHistoryOpen(true)
   }
 
+  const handleViewAllergy = (allergy: Allergy) => {
+    setViewingAllergy(allergy)
+    setAllergyViewOpen(true)
+  }
+
   const handleOpenConditionHistory = (condition: Condition) => {
     setHistoryConditionId(condition.id)
     setConditionHistoryOpen(true)
   }
 
+  const handleViewCondition = (condition: Condition) => {
+    setViewingCondition(condition)
+    setConditionViewOpen(true)
+  }
+
   const handleOpenRestrictionHistory = (restriction: DietaryRestriction) => {
     setHistoryRestrictionId(restriction.id)
     setRestrictionHistoryOpen(true)
+  }
+
+  const handleViewRestriction = (restriction: DietaryRestriction) => {
+    setViewingRestriction(restriction)
+    setRestrictionViewOpen(true)
   }
 
   const handleCreateAnthropometry = () => {
@@ -459,12 +483,24 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
   }
 
   const renderEntityActionButtons = (actions: {
+    onView?: () => void
     onEdit?: () => void
     onHistory?: () => void
     onDelete?: () => void
   }) => {
     return (
       <div className="flex items-center gap-1 ml-4">
+        {actions.onView && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={actions.onView}
+            title="Ver"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        )}
         {actions.onEdit && (
           <Button
             size="sm"
@@ -859,6 +895,7 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                     )}
                   </div>
                   {renderEntityActionButtons({
+                    onView: () => handleViewAllergy(allergy),
                     onEdit: canUpdateAllergies ? () => handleEditAllergy(allergy) : undefined,
                     onHistory: canViewAllergies ? () => handleOpenAllergyHistory(allergy) : undefined,
                     onDelete: canDeleteAllergies
@@ -913,6 +950,7 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                     )}
                   </div>
                   {renderEntityActionButtons({
+                    onView: () => handleViewCondition(condition),
                     onEdit: canUpdateConditions ? () => handleEditCondition(condition) : undefined,
                     onHistory: canViewConditions ? () => handleOpenConditionHistory(condition) : undefined,
                     onDelete: canDeleteConditions
@@ -965,6 +1003,7 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                     )}
                   </div>
                   {renderEntityActionButtons({
+                    onView: () => handleViewRestriction(restriction),
                     onEdit: canUpdateRestrictions ? () => handleEditRestriction(restriction) : undefined,
                     onHistory: canViewRestrictions ? () => handleOpenRestrictionHistory(restriction) : undefined,
                     onDelete: canDeleteRestrictions
@@ -1057,6 +1096,33 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
         open={deleteRestrictionModalOpen}
         onOpenChange={setDeleteRestrictionModalOpen}
         onSuccess={() => {}}
+      />
+
+      <AllergyViewModal
+        open={allergyViewOpen}
+        onOpenChange={(open) => {
+          setAllergyViewOpen(open)
+          if (!open) setViewingAllergy(undefined)
+        }}
+        allergy={viewingAllergy}
+      />
+
+      <ConditionViewModal
+        open={conditionViewOpen}
+        onOpenChange={(open) => {
+          setConditionViewOpen(open)
+          if (!open) setViewingCondition(undefined)
+        }}
+        condition={viewingCondition}
+      />
+
+      <DietaryRestrictionViewModal
+        open={restrictionViewOpen}
+        onOpenChange={(open) => {
+          setRestrictionViewOpen(open)
+          if (!open) setViewingRestriction(undefined)
+        }}
+        restriction={viewingRestriction}
       />
 
       <GenericHistoryDrawer
