@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import {
   createClinicalProfile,
   getClinicalProfileByResident,
+  getClinicalProfileHistory,
   updateClinicalProfile,
   deleteClinicalProfile,
   type ClinicalProfile,
@@ -33,6 +34,21 @@ export function useClinicalProfile(
     enabled: queryEnabled,
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
+  })
+}
+
+/**
+ * Hook para buscar histórico do perfil clínico
+ */
+export function useClinicalProfileHistory(
+  clinicalProfileId: string | null,
+  enabled: boolean = true,
+) {
+  return useQuery({
+    queryKey: tenantKey('clinical-profiles', 'history', clinicalProfileId || 'none'),
+    queryFn: () => getClinicalProfileHistory(clinicalProfileId!),
+    enabled: !!clinicalProfileId && enabled,
+    staleTime: 1000 * 60 * 2,
   })
 }
 

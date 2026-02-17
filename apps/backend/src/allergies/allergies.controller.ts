@@ -77,7 +77,7 @@ export class AllergiesController {
     @Param('id') id: string,
     @Body() updateDto: UpdateAllergyDto,
   ) {
-    return this.allergiesService.update(user.id, id, updateDto);
+    return this.allergiesService.update(user.id, user.name, id, updateDto);
   }
 
   @Delete(':id')
@@ -99,7 +99,7 @@ export class AllergiesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteAllergyDto,
   ) {
-    return this.allergiesService.remove(user.id, id, deleteDto.deleteReason);
+    return this.allergiesService.remove(user.id, user.name, id, deleteDto.deleteReason);
   }
 
   @Get(':id/history')

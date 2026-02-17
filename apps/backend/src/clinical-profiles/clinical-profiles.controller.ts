@@ -106,6 +106,7 @@ export class ClinicalProfilesController {
   ) {
     return this.clinicalProfilesService.update(
       user.id,
+      user.name,
       id,
       updateDto,
     );
@@ -130,6 +131,7 @@ export class ClinicalProfilesController {
   ) {
     return this.clinicalProfilesService.remove(
       user.id,
+      user.name,
       id,
       deleteDto.deleteReason,
     );

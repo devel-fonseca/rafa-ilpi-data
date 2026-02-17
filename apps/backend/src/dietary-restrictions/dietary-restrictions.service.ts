@@ -141,6 +141,7 @@ export class DietaryRestrictionsService {
    */
   async update(
     userId: string,
+    userName: string,
     id: string,
     updateDto: UpdateDietaryRestrictionDto,
   ) {
@@ -215,6 +216,7 @@ export class DietaryRestrictionsService {
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 
@@ -237,6 +239,7 @@ export class DietaryRestrictionsService {
    */
   async remove(
     userId: string,
+    userName: string,
     id: string,
     deleteReason: string,
   ) {
@@ -292,6 +295,7 @@ export class DietaryRestrictionsService {
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 

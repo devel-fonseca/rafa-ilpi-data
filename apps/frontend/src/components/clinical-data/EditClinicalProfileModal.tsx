@@ -2,22 +2,15 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, ShieldAlert } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ShieldAlert } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   useCreateClinicalProfile,
   useUpdateClinicalProfile,
 } from '@/hooks/useClinicalProfiles'
 import type { ClinicalProfile } from '@/api/clinical-profiles.api'
+import { ClinicalRecordSheet } from './ClinicalRecordSheet'
 
 const clinicalProfileSchema = z.object({
   healthStatus: z.string().optional(),
@@ -48,6 +41,7 @@ export function EditClinicalProfileModal({
   const updateMutation = useUpdateClinicalProfile()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
+  const formId = 'clinical-profile-form'
 
   const {
     register,
@@ -115,18 +109,18 @@ export function EditClinicalProfileModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar' : 'Adicionar'} Perfil Clínico
-          </DialogTitle>
-          <DialogDescription>
-            Informações clínicas completas do residente
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <ClinicalRecordSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`${isEditing ? 'Editar' : 'Adicionar'} Perfil Clínico`}
+      description="Informações clínicas completas do residente"
+      formId={formId}
+      isLoading={isLoading}
+      isEditing={isEditing}
+      createActionLabel="Adicionar"
+      editActionLabel="Salvar Alterações"
+    >
+      <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Estado de Saúde */}
           <div>
             <Label htmlFor="healthStatus">Estado de Saúde</Label>
@@ -203,10 +197,7 @@ export function EditClinicalProfileModal({
                   placeholder="Ex: Atualização do perfil clínico após avaliação médica..."
                   className={`min-h-[100px] ${errors.changeReason ? 'border-danger focus:border-danger' : ''}`}
                   disabled={isLoading}
-                  onChange={(e) => {
-                    register('changeReason').onChange(e)
-                    clearErrors('changeReason')
-                  }}
+                  onChange={() => clearErrors('changeReason')}
                 />
                 {errors.changeReason && (
                   <p className="text-sm text-danger mt-2">{errors.changeReason.message}</p>
@@ -219,22 +210,7 @@ export function EditClinicalProfileModal({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Salvar Alterações' : 'Adicionar'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </ClinicalRecordSheet>
   )
 }

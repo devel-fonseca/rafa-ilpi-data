@@ -170,6 +170,7 @@ export class ClinicalProfilesService {
    */
   async update(
     userId: string,
+    userName: string,
     id: string,
     updateDto: UpdateClinicalProfileDto,
   ) {
@@ -247,6 +248,7 @@ export class ClinicalProfilesService {
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 
@@ -269,6 +271,7 @@ export class ClinicalProfilesService {
    */
   async remove(
     userId: string,
+    userName: string,
     id: string,
     deleteReason: string,
   ) {
@@ -323,6 +326,7 @@ export class ClinicalProfilesService {
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 

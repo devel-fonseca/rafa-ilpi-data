@@ -79,6 +79,7 @@ export class ConditionsController {
   ) {
     return this.conditionsService.update(
       user.id,
+      user.name,
       id,
       updateDto,
     );
@@ -103,7 +104,7 @@ export class ConditionsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() deleteDto: DeleteConditionDto,
   ) {
-    return this.conditionsService.remove(user.id, id, deleteDto.deleteReason);
+    return this.conditionsService.remove(user.id, user.name, id, deleteDto.deleteReason);
   }
 
   @Get(':id/history')

@@ -2,18 +2,10 @@ import { useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ShieldAlert } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -26,6 +18,7 @@ import {
   useUpdateAllergy,
 } from '@/hooks/useAllergies'
 import type { Allergy, AllergySeverity } from '@/api/allergies.api'
+import { ClinicalRecordSheet } from './ClinicalRecordSheet'
 
 const allergySchema = z.object({
   substance: z.string().min(1, 'Substância é obrigatória'),
@@ -57,6 +50,7 @@ export function AllergyModal({
   const updateMutation = useUpdateAllergy()
 
   const isLoading = createMutation.isPending || updateMutation.isPending
+  const formId = 'allergy-form'
 
   const {
     control,
@@ -102,10 +96,11 @@ export function AllergyModal({
   const onSubmit = async (data: AllergyFormData) => {
     try {
       if (isEditing && allergy) {
-        if (!data.changeReason?.trim()) {
+        const reason = data.changeReason?.trim() || ''
+        if (reason.length < 10) {
           setError('changeReason', {
             type: 'manual',
-            message: 'Motivo da edição é obrigatório',
+            message: 'O motivo da edição deve ter pelo menos 10 caracteres',
           })
           return
         }
@@ -118,7 +113,7 @@ export function AllergyModal({
             severity: data.severity || undefined,
             notes: data.notes || undefined,
             contraindications: data.contraindications || undefined,
-            changeReason: data.changeReason.trim(),
+            changeReason: reason,
           },
         })
       } else {
@@ -139,18 +134,18 @@ export function AllergyModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Alergia' : 'Registrar Nova Alergia'}
-          </DialogTitle>
-          <DialogDescription>
-            Registro de alergias e reações adversas
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <ClinicalRecordSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? 'Editar Alergia' : 'Registrar Nova Alergia'}
+      description="Registro de alergias e reações adversas"
+      formId={formId}
+      isLoading={isLoading}
+      isEditing={isEditing}
+      createActionLabel="Registrar Alergia"
+      editActionLabel="Salvar Alterações"
+    >
+      <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="substance">
               Substância <span className="text-destructive">*</span>
@@ -247,41 +242,43 @@ export function AllergyModal({
           </div>
 
           {isEditing && (
-            <div>
-              <Label htmlFor="changeReason">
-                Motivo da edição <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="changeReason"
-                {...register('changeReason')}
-                placeholder="Descreva o motivo da alteração deste registro..."
-                className="min-h-[80px]"
-                disabled={isLoading}
-              />
-              {errors.changeReason && (
-                <p className="text-sm text-destructive mt-1">
-                  {errors.changeReason.message}
-                </p>
-              )}
+            <div className="bg-warning/5 dark:bg-warning/20 border border-warning/30 dark:border-warning/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <ShieldAlert className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-warning/90 dark:text-warning">
+                    Este registro integra trilha de auditoria permanente
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    O motivo da edição será registrado no histórico.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="changeReason">
+                  Motivo da edição <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="changeReason"
+                  {...register('changeReason')}
+                  placeholder="Descreva o motivo da alteração (mínimo 10 caracteres)..."
+                  className="min-h-[96px] mt-2 resize-none"
+                  disabled={isLoading}
+                />
+                {errors.changeReason ? (
+                  <p className="text-sm text-destructive mt-1">
+                    {errors.changeReason.message}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Campo obrigatório. A justificativa comporá o registro permanente da instituição.
+                  </p>
+                )}
+              </div>
             </div>
           )}
-
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Salvar Alterações' : 'Registrar Alergia'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+      </form>
+    </ClinicalRecordSheet>
   )
 }

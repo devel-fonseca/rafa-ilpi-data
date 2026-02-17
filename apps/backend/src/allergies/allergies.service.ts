@@ -142,6 +142,7 @@ export class AllergiesService {
    */
   async update(
     userId: string,
+    userName: string,
     id: string,
     updateDto: UpdateAllergyDto,
   ) {
@@ -222,6 +223,7 @@ export class AllergiesService {
           changedFields,
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 
@@ -244,6 +246,7 @@ export class AllergiesService {
    */
   async remove(
     userId: string,
+    userName: string,
     id: string,
     deleteReason: string,
   ) {
@@ -300,6 +303,7 @@ export class AllergiesService {
           changedFields: ['deletedAt'],
           changedAt: new Date(),
           changedBy: userId,
+          changedByName: userName,
         },
       });
 

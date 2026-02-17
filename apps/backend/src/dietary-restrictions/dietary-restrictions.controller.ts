@@ -103,6 +103,7 @@ export class DietaryRestrictionsController {
   ) {
     return this.dietaryRestrictionsService.update(
       user.id,
+      user.name,
       id,
       updateDto,
     );
@@ -129,6 +130,7 @@ export class DietaryRestrictionsController {
   ) {
     return this.dietaryRestrictionsService.remove(
       user.id,
+      user.name,
       id,
       deleteDto.deleteReason,
     );

@@ -26,11 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Loader2, Plus, Edit, Trash2, Droplet, Ruler, Activity, AlertTriangle } from 'lucide-react'
-import { useClinicalProfile } from '@/hooks/useClinicalProfiles'
+import { Loader2, Plus, Edit, Trash2, Droplet, Ruler, Activity, AlertTriangle, History } from 'lucide-react'
+import { useClinicalProfile, useClinicalProfileHistory } from '@/hooks/useClinicalProfiles'
 import { useAllergiesByResident } from '@/hooks/useAllergies'
 import { useConditionsByResident } from '@/hooks/useConditions'
 import { useDietaryRestrictionsByResident } from '@/hooks/useDietaryRestrictions'
+import { useAllergyHistory } from '@/hooks/useAllergyVersioning'
+import { useConditionHistory } from '@/hooks/useConditionVersioning'
+import { useDietaryRestrictionHistory } from '@/hooks/useDietaryRestrictionVersioning'
 import {
   useResidentHealthSummary,
   useAnthropometryRecords,
@@ -57,6 +60,7 @@ import { DeleteAllergyModal } from '@/components/modals/DeleteAllergyModal'
 import { DeleteConditionModal } from '@/components/modals/DeleteConditionModal'
 import { DeleteDietaryRestrictionModal } from '@/components/modals/DeleteDietaryRestrictionModal'
 import { DeleteReasonModal } from '@/components/modals/DeleteReasonModal'
+import { GenericHistoryDrawer } from '@/components/shared/GenericHistoryDrawer'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { Allergy } from '@/api/allergies.api'
@@ -155,19 +159,30 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
   const [deleteConditionModalOpen, setDeleteConditionModalOpen] = useState(false)
   const [deletingRestriction, setDeletingRestriction] = useState<DietaryRestriction | undefined>()
   const [deleteRestrictionModalOpen, setDeleteRestrictionModalOpen] = useState(false)
+  const [profileHistoryOpen, setProfileHistoryOpen] = useState(false)
+  const [historyAllergyId, setHistoryAllergyId] = useState<string | null>(null)
+  const [historyConditionId, setHistoryConditionId] = useState<string | null>(null)
+  const [historyRestrictionId, setHistoryRestrictionId] = useState<string | null>(null)
+  const [allergyHistoryOpen, setAllergyHistoryOpen] = useState(false)
+  const [conditionHistoryOpen, setConditionHistoryOpen] = useState(false)
+  const [restrictionHistoryOpen, setRestrictionHistoryOpen] = useState(false)
 
   // Permissões
   const { hasPermission } = usePermissions()
   const canCreateProfile = hasPermission(PermissionType.CREATE_CLINICAL_PROFILE)
+  const canViewProfile = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
   const canUpdateProfile = hasPermission(PermissionType.UPDATE_CLINICAL_PROFILE)
   const canEditProfile = canCreateProfile || canUpdateProfile
   const canCreateAllergies = hasPermission(PermissionType.CREATE_ALLERGIES)
+  const canViewAllergies = hasPermission(PermissionType.VIEW_ALLERGIES)
   const canUpdateAllergies = hasPermission(PermissionType.UPDATE_ALLERGIES)
   const canDeleteAllergies = hasPermission(PermissionType.DELETE_ALLERGIES)
   const canCreateConditions = hasPermission(PermissionType.CREATE_CONDITIONS)
+  const canViewConditions = hasPermission(PermissionType.VIEW_CONDITIONS)
   const canUpdateConditions = hasPermission(PermissionType.UPDATE_CONDITIONS)
   const canDeleteConditions = hasPermission(PermissionType.DELETE_CONDITIONS)
   const canCreateRestrictions = hasPermission(PermissionType.CREATE_DIETARY_RESTRICTIONS)
+  const canViewRestrictions = hasPermission(PermissionType.VIEW_DIETARY_RESTRICTIONS)
   const canUpdateRestrictions = hasPermission(PermissionType.UPDATE_DIETARY_RESTRICTIONS)
   const canDeleteRestrictions = hasPermission(PermissionType.DELETE_DIETARY_RESTRICTIONS)
 
@@ -194,6 +209,15 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
   )
 
   const deleteAnthropometryMutation = useDeleteAnthropometry()
+  const clinicalProfileHistoryQuery = useClinicalProfileHistory(
+    profileHistoryOpen ? (clinicalProfile?.id || null) : null,
+    profileHistoryOpen
+  )
+  const allergyHistoryQuery = useAllergyHistory(allergyHistoryOpen ? historyAllergyId : null)
+  const conditionHistoryQuery = useConditionHistory(conditionHistoryOpen ? historyConditionId : null)
+  const restrictionHistoryQuery = useDietaryRestrictionHistory(
+    restrictionHistoryOpen ? historyRestrictionId : null
+  )
   const sortedAnthropometryRecords = useMemo(
     () =>
       [...anthropometryRecords].sort(
@@ -201,6 +225,18 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
           new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime()
       ),
     [anthropometryRecords]
+  )
+  const selectedHistoryAllergyName = useMemo(
+    () => allergies.find((item) => item.id === historyAllergyId)?.substance,
+    [allergies, historyAllergyId]
+  )
+  const selectedHistoryConditionName = useMemo(
+    () => conditions.find((item) => item.id === historyConditionId)?.condition,
+    [conditions, historyConditionId]
+  )
+  const selectedHistoryRestrictionName = useMemo(
+    () => dietaryRestrictions.find((item) => item.id === historyRestrictionId)?.description,
+    [dietaryRestrictions, historyRestrictionId]
   )
 
   const isLoading = (
@@ -244,6 +280,21 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
     setRestrictionModalOpen(true)
   }
 
+  const handleOpenAllergyHistory = (allergy: Allergy) => {
+    setHistoryAllergyId(allergy.id)
+    setAllergyHistoryOpen(true)
+  }
+
+  const handleOpenConditionHistory = (condition: Condition) => {
+    setHistoryConditionId(condition.id)
+    setConditionHistoryOpen(true)
+  }
+
+  const handleOpenRestrictionHistory = (restriction: DietaryRestriction) => {
+    setHistoryRestrictionId(restriction.id)
+    setRestrictionHistoryOpen(true)
+  }
+
   const handleCreateAnthropometry = () => {
     setEditingAnthropometry(null)
     setAnthropometryModalOpen(true)
@@ -258,6 +309,42 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
     setDeletingAnthropometry(record)
     setDeleteAnthropometryModalOpen(true)
   }
+
+  const formatHistoryFieldLabel = (field: string) => {
+    const labels: Record<string, string> = {
+      substance: 'Substância',
+      reaction: 'Reação',
+      severity: 'Severidade',
+      notes: 'Observações',
+      contraindications: 'Contraindicações',
+      condition: 'Condição',
+      icdCode: 'CID',
+      restrictionType: 'Tipo de restrição',
+      description: 'Descrição',
+    }
+    return labels[field] || field
+  }
+
+  const formatHistoryFieldValue = (field: string, value: unknown) => {
+    if (value === null || value === undefined || value === '') return 'Não informado'
+    if (field === 'severity' && typeof value === 'string') {
+      return ALLERGY_SEVERITY_LABELS[value as keyof typeof ALLERGY_SEVERITY_LABELS]?.label || value
+    }
+    if (field === 'restrictionType' && typeof value === 'string') {
+      return RESTRICTION_TYPE_LABELS[value] || value
+    }
+    return String(value)
+  }
+
+  const renderHistoryFieldChange = (field: string, prevValue: unknown, newValue: unknown) => (
+    <div key={field} className="grid grid-cols-3 gap-2 items-start">
+      <span className="text-xs text-muted-foreground">{formatHistoryFieldLabel(field)}</span>
+      <span className="text-xs text-muted-foreground line-through">
+        {formatHistoryFieldValue(field, prevValue)}
+      </span>
+      <span className="text-xs font-medium">{formatHistoryFieldValue(field, newValue)}</span>
+    </div>
+  )
 
   const confirmDeleteAnthropometry = async (reason: string) => {
     if (!deletingAnthropometry) return
@@ -332,24 +419,86 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
     }
   }
 
-  const renderActionButton = () => {
+  const renderHeaderActions = () => {
     const config = getActionButtonConfig()
-    if (!config || !config.canShow) return null
+    const canShowPrimary = !!config && config.canShow
+    const canShowProfileHistory = activeSection === 'perfil' && canViewProfile && !!clinicalProfile
+
+    if (!canShowPrimary && !canShowProfileHistory) return null
 
     return (
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button size="sm" variant="outline" onClick={config.onClick}>
-              {config.icon}
-              {config.label}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={8}>
-            <p className="text-sm">{config.tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div className="flex items-center gap-2">
+        {canShowPrimary && config && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" variant="outline" onClick={config.onClick}>
+                  {config.icon}
+                  {config.label}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={8}>
+                <p className="text-sm">{config.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
+        {canShowProfileHistory && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setProfileHistoryOpen(true)}
+          >
+            <History className="h-4 w-4 mr-2" />
+            Histórico
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  const renderEntityActionButtons = (actions: {
+    onEdit?: () => void
+    onHistory?: () => void
+    onDelete?: () => void
+  }) => {
+    return (
+      <div className="flex items-center gap-1 ml-4">
+        {actions.onEdit && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={actions.onEdit}
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
+        {actions.onHistory && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0"
+            onClick={actions.onHistory}
+            title="Ver histórico"
+          >
+            <History className="h-4 w-4" />
+          </Button>
+        )}
+        {actions.onDelete && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 w-8 p-0 text-danger hover:text-danger"
+            onClick={actions.onDelete}
+            title="Excluir"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
     )
   }
 
@@ -383,7 +532,7 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
             </SelectContent>
           </Select>
 
-          {renderActionButton()}
+          {renderHeaderActions()}
         </div>
 
         {/* ========== SEÇÃO: PERFIL CLÍNICO ========== */}
@@ -709,31 +858,16 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 ml-4">
-                    {canUpdateAllergies && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleEditAllergy(allergy)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteAllergies && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-danger hover:text-danger"
-                        onClick={() => {
+                  {renderEntityActionButtons({
+                    onEdit: canUpdateAllergies ? () => handleEditAllergy(allergy) : undefined,
+                    onHistory: canViewAllergies ? () => handleOpenAllergyHistory(allergy) : undefined,
+                    onDelete: canDeleteAllergies
+                      ? () => {
                           setDeletingAllergy(allergy)
                           setDeleteAllergyModalOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                        }
+                      : undefined,
+                  })}
                 </div>
               ))}
             </div>
@@ -778,31 +912,16 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 ml-4">
-                    {canUpdateConditions && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleEditCondition(condition)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteConditions && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-danger hover:text-danger"
-                        onClick={() => {
+                  {renderEntityActionButtons({
+                    onEdit: canUpdateConditions ? () => handleEditCondition(condition) : undefined,
+                    onHistory: canViewConditions ? () => handleOpenConditionHistory(condition) : undefined,
+                    onDelete: canDeleteConditions
+                      ? () => {
                           setDeletingCondition(condition)
                           setDeleteConditionModalOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                        }
+                      : undefined,
+                  })}
                 </div>
               ))}
             </div>
@@ -845,31 +964,16 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 ml-4">
-                    {canUpdateRestrictions && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleEditRestriction(restriction)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDeleteRestrictions && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-danger hover:text-danger"
-                        onClick={() => {
+                  {renderEntityActionButtons({
+                    onEdit: canUpdateRestrictions ? () => handleEditRestriction(restriction) : undefined,
+                    onHistory: canViewRestrictions ? () => handleOpenRestrictionHistory(restriction) : undefined,
+                    onDelete: canDeleteRestrictions
+                      ? () => {
                           setDeletingRestriction(restriction)
                           setDeleteRestrictionModalOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                        }
+                      : undefined,
+                  })}
                 </div>
               ))}
             </div>
@@ -953,6 +1057,59 @@ export function ClinicalProfileView({ residentId }: MedicalViewProps) {
         open={deleteRestrictionModalOpen}
         onOpenChange={setDeleteRestrictionModalOpen}
         onSuccess={() => {}}
+      />
+
+      <GenericHistoryDrawer
+        open={profileHistoryOpen}
+        onOpenChange={setProfileHistoryOpen}
+        data={clinicalProfileHistoryQuery.data}
+        isLoading={clinicalProfileHistoryQuery.isLoading}
+        error={clinicalProfileHistoryQuery.error}
+        title="Histórico do Perfil Clínico"
+        entityName="perfil clínico"
+        renderFieldChange={renderHistoryFieldChange}
+      />
+
+      <GenericHistoryDrawer
+        open={allergyHistoryOpen}
+        onOpenChange={(open) => {
+          setAllergyHistoryOpen(open)
+          if (!open) setHistoryAllergyId(null)
+        }}
+        data={allergyHistoryQuery.data}
+        isLoading={allergyHistoryQuery.isLoading}
+        error={allergyHistoryQuery.error}
+        title="Histórico de Alergia"
+        entityName={selectedHistoryAllergyName}
+        renderFieldChange={renderHistoryFieldChange}
+      />
+
+      <GenericHistoryDrawer
+        open={conditionHistoryOpen}
+        onOpenChange={(open) => {
+          setConditionHistoryOpen(open)
+          if (!open) setHistoryConditionId(null)
+        }}
+        data={conditionHistoryQuery.data}
+        isLoading={conditionHistoryQuery.isLoading}
+        error={conditionHistoryQuery.error}
+        title="Histórico de Condição"
+        entityName={selectedHistoryConditionName}
+        renderFieldChange={renderHistoryFieldChange}
+      />
+
+      <GenericHistoryDrawer
+        open={restrictionHistoryOpen}
+        onOpenChange={(open) => {
+          setRestrictionHistoryOpen(open)
+          if (!open) setHistoryRestrictionId(null)
+        }}
+        data={restrictionHistoryQuery.data}
+        isLoading={restrictionHistoryQuery.isLoading}
+        error={restrictionHistoryQuery.error}
+        title="Histórico de Restrição Alimentar"
+        entityName={selectedHistoryRestrictionName}
+        renderFieldChange={renderHistoryFieldChange}
       />
 
       <DeleteReasonModal

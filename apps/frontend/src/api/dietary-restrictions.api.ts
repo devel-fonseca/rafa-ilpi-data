@@ -42,15 +42,15 @@ export interface CreateDietaryRestrictionDto {
   residentId: string
   restrictionType: RestrictionType
   description: string
-  notes?: string
-  contraindications?: string
+  notes?: string | null
+  contraindications?: string | null
 }
 
 export interface UpdateDietaryRestrictionDto {
   restrictionType?: RestrictionType
   description?: string
-  notes?: string
-  contraindications?: string
+  notes?: string | null
+  contraindications?: string | null
 }
 
 /**
