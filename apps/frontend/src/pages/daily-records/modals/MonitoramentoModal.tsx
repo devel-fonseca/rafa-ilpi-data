@@ -141,23 +141,6 @@ export function MonitoramentoModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Temp (°C)</Label>
-              <Controller
-                name="temperatura"
-                control={control}
-                render={({ field }) => (
-                  <MaskedInput
-                    mask="99.9"
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                    placeholder="36.5"
-                    className="mt-2"
-                  />
-                )}
-              />
-            </div>
-
-            <div>
               <Label>FC (bpm)</Label>
               <Controller
                 name="frequenciaCardiaca"
@@ -173,11 +156,9 @@ export function MonitoramentoModal({
                 )}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>SpO2 (%)</Label>
+              <Label>SpO₂ (%)</Label>
               <Controller
                 name="saturacaoO2"
                 control={control}
@@ -187,6 +168,25 @@ export function MonitoramentoModal({
                     value={field.value || ''}
                     onChange={field.onChange}
                     placeholder="96"
+                    className="mt-2"
+                  />
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Temp (°C)</Label>
+              <Controller
+                name="temperatura"
+                control={control}
+                render={({ field }) => (
+                  <MaskedInput
+                    mask="99.9"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder="36.5"
                     className="mt-2"
                   />
                 )}

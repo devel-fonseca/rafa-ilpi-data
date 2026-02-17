@@ -481,7 +481,7 @@ function SingleDayCard({ report, isExpanded, onToggle, dayOfWeek }: SingleDayCar
       case 'HIDRATACAO':
         return `${getField('tipo') || 'Líquido'} • ${getField('volumeMl') || 0}ml`
       case 'MONITORAMENTO':
-        return `PA: ${getField('pressaoArterial') || 'N/A'} • FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm • Tax: ${getField('temperatura') || 'N/A'}°C • SpO2: ${getField('saturacaoO2') || 'N/A'}% • Gli: ${getField('glicemia') || 'N/A'} mg/dL`
+        return `PA: ${getField('pressaoArterial') || 'N/A'} • FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm • SpO₂: ${getField('saturacaoO2') || 'N/A'}% • Temp: ${getField('temperatura') || 'N/A'}°C • Glicemia: ${getField('glicemia') || 'N/A'} mg/dL`
       case 'INTERCORRENCIA':
         return (
           <div className="space-y-1">

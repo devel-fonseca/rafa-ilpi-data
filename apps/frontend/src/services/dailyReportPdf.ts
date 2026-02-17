@@ -424,7 +424,7 @@ class DailyReportPDFGenerator {
         formatted = `${getField('tipo') || 'Líquido'} • ${getField('volumeMl') || 0}ml`
         break
       case 'MONITORAMENTO':
-        formatted = `PA: ${getField('pressaoArterial') || 'N/A'} • FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm • Tax: ${getField('temperatura') || 'N/A'}°C • SpO2: ${getField('saturacaoO2') || 'N/A'}% • Gli: ${getField('glicemia') || 'N/A'} mg/dL`
+        formatted = `PA: ${getField('pressaoArterial') || 'N/A'} • FC: ${getField('frequenciaCardiaca') || 'N/A'} bpm • SpO2: ${getField('saturacaoO2') || 'N/A'}% • Temp: ${getField('temperatura') || 'N/A'}°C • Glicemia: ${getField('glicemia') || 'N/A'} mg/dL`
         break
       case 'INTERCORRENCIA':
         formatted = `${getField('descricao') || 'N/A'}`

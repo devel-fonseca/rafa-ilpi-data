@@ -311,7 +311,7 @@ class ResidentCareSummaryReportPDFGenerator {
 
     autoTable(this.doc, {
       startY: this.y + 2,
-      head: [['Pressão Arterial', 'FC', 'Temperatura', 'SpO2', 'Glicemia', 'Registro']],
+      head: [['Pressão Arterial', 'FC', 'SpO2', 'Temperatura', 'Glicemia', 'Registro']],
       body: [values],
       theme: 'grid',
       styles: {
@@ -327,11 +327,11 @@ class ResidentCareSummaryReportPDFGenerator {
       },
       tableWidth: this.pageWidth - PAGE_MARGIN * 2,
       columnStyles: {
-        // Mesma proporção da tela: 19% | 10% | 13% | 9% | 14% | 35%
+        // Mesma proporção da tela: 19% | 10% | 9% | 13% | 14% | 35%
         0: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.19 },
         1: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.1 },
-        2: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.13 },
-        3: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.09 },
+        2: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.09 },
+        3: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.13 },
         4: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.14 },
         5: { cellWidth: (this.pageWidth - PAGE_MARGIN * 2) * 0.35 },
       },
@@ -411,8 +411,8 @@ class ResidentCareSummaryReportPDFGenerator {
             ? `PA ${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
             : null,
           report.vitalSigns.heartRate !== null ? `FC ${report.vitalSigns.heartRate} bpm` : null,
+          report.vitalSigns.oxygenSaturation !== null ? `SpO2 ${report.vitalSigns.oxygenSaturation}%` : null,
           report.vitalSigns.temperature !== null ? `Temp ${formatNumber(report.vitalSigns.temperature, 1)}°C` : null,
-          report.vitalSigns.oxygenSaturation !== null ? `SpO₂ ${report.vitalSigns.oxygenSaturation}%` : null,
           report.vitalSigns.bloodGlucose !== null ? `Glicemia ${report.vitalSigns.bloodGlucose} mg/dL` : null,
           report.vitalSigns.recordedAt ? `Registro ${formatDateTime(report.vitalSigns.recordedAt)}` : null,
         ]) || 'Não informado'
@@ -549,8 +549,8 @@ class ResidentCareSummaryReportPDFGenerator {
             ? `${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
             : '-',
           report.vitalSigns.heartRate !== null ? `${report.vitalSigns.heartRate} bpm` : '-',
-          report.vitalSigns.temperature !== null ? `${formatNumber(report.vitalSigns.temperature, 1)}°C` : '-',
           report.vitalSigns.oxygenSaturation !== null ? `${report.vitalSigns.oxygenSaturation}%` : '-',
+          report.vitalSigns.temperature !== null ? `${formatNumber(report.vitalSigns.temperature, 1)}°C` : '-',
           report.vitalSigns.bloodGlucose !== null ? `${report.vitalSigns.bloodGlucose} mg/dL` : '-',
           report.vitalSigns.recordedAt ? formatDateTime(report.vitalSigns.recordedAt) : '-',
         ]

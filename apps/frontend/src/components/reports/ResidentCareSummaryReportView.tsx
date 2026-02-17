@@ -139,8 +139,8 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
           ? `PA ${report.vitalSigns.systolicPressure}/${report.vitalSigns.diastolicPressure}`
           : null,
         report.vitalSigns.heartRate !== null ? `FC ${report.vitalSigns.heartRate} bpm` : null,
-        report.vitalSigns.temperature !== null ? `Temp ${formatNumber(report.vitalSigns.temperature, 1)}°C` : null,
         report.vitalSigns.oxygenSaturation !== null ? `SpO₂ ${report.vitalSigns.oxygenSaturation}%` : null,
+        report.vitalSigns.temperature !== null ? `Temp ${formatNumber(report.vitalSigns.temperature, 1)}°C` : null,
         report.vitalSigns.bloodGlucose !== null ? `Glicemia ${report.vitalSigns.bloodGlucose} mg/dL` : null,
         report.vitalSigns.recordedAt ? `Registro ${formatDateTime(report.vitalSigns.recordedAt)}` : null,
       ]) || 'Não informado'
@@ -360,8 +360,8 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
                     <TableRow>
                       <TableHead className="w-[19%]">Pressão Arterial</TableHead>
                       <TableHead className="w-[10%]">FC</TableHead>
-                      <TableHead className="w-[13%]">Temperatura</TableHead>
                       <TableHead className="w-[9%]">SpO₂</TableHead>
+                      <TableHead className="w-[13%]">Temperatura</TableHead>
                       <TableHead className="w-[14%]">Glicemia</TableHead>
                       <TableHead className="w-[35%]">Registro</TableHead>
                     </TableRow>
@@ -370,8 +370,8 @@ export function ResidentCareSummaryReportView({ report }: ResidentCareSummaryRep
                     <TableRow>
                       <TableCell className="w-[19%]">{vitalSignsValues.bloodPressure}</TableCell>
                       <TableCell className="w-[10%]">{vitalSignsValues.heartRate}</TableCell>
-                      <TableCell className="w-[13%]">{vitalSignsValues.temperature}</TableCell>
                       <TableCell className="w-[9%]">{vitalSignsValues.oxygenSaturation}</TableCell>
+                      <TableCell className="w-[13%]">{vitalSignsValues.temperature}</TableCell>
                       <TableCell className="w-[14%]">{vitalSignsValues.bloodGlucose}</TableCell>
                       <TableCell className="w-[35%]">{vitalSignsValues.recordedAt}</TableCell>
                     </TableRow>

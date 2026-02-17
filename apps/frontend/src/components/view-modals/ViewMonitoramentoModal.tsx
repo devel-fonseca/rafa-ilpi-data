@@ -51,13 +51,6 @@ export function ViewMonitoramentoModal({
             </div>
           )}
 
-          {hasVitalSign(data.temperatura) && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Temperatura</p>
-              <p className="text-sm font-medium">{String(data.temperatura)} °C</p>
-            </div>
-          )}
-
           {hasVitalSign(data.frequenciaCardiaca) && (
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Frequência Cardíaca</p>
@@ -69,6 +62,13 @@ export function ViewMonitoramentoModal({
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Saturação O₂</p>
               <p className="text-sm font-medium">{String(data.saturacaoO2)} %</p>
+            </div>
+          )}
+
+          {hasVitalSign(data.temperatura) && (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Temperatura</p>
+              <p className="text-sm font-medium">{String(data.temperatura)} °C</p>
             </div>
           )}
 
