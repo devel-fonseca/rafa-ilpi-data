@@ -55,8 +55,11 @@ export function useResidentHealthSummary(
 /**
  * Hook para buscar tipo sanguíneo do residente
  */
-export function useBloodType(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useBloodType(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ResidentBloodType | null>({
     queryKey: tenantKey('resident-health', 'blood-type', residentId),
@@ -64,7 +67,7 @@ export function useBloodType(residentId: string | undefined) {
       if (!residentId) throw new Error('residentId is required')
       return getBloodType(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     staleTime: 1000 * 60 * 10, // 10 minutos - raramente muda
     refetchOnWindowFocus: true,
   })
@@ -149,8 +152,11 @@ export function useAnthropometryRecords(
 /**
  * Hook para buscar última medição antropométrica
  */
-export function useLatestAnthropometry(residentId: string | undefined) {
-  const enabled = !!residentId && residentId !== 'new'
+export function useLatestAnthropometry(
+  residentId: string | undefined,
+  enabled: boolean = true,
+) {
+  const queryEnabled = !!residentId && residentId !== 'new' && enabled
 
   return useQuery<ResidentAnthropometry | null>({
     queryKey: tenantKey('resident-health', 'anthropometry', 'latest', residentId),
@@ -158,7 +164,7 @@ export function useLatestAnthropometry(residentId: string | undefined) {
       if (!residentId) throw new Error('residentId is required')
       return getLatestAnthropometry(residentId)
     },
-    enabled,
+    enabled: queryEnabled,
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
   })

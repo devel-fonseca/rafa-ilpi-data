@@ -178,6 +178,10 @@ export interface ResidentStats {
   grauIII: number
   masculino: number
   feminino: number
+  totalBeds: number
+  occupiedBeds: number
+  availableBeds: number
+  occupancyRate: number
 }
 
 /**

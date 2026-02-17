@@ -38,6 +38,7 @@ import { extractDateOnly } from '@/utils/dateHelpers'
 import { useDailyTasksByResident } from '@/hooks/useResidentSchedule'
 import { usePermissions, PermissionType } from '@/hooks/usePermissions'
 import { useBloodType } from '@/hooks/useResidentHealth'
+import { useConsolidatedVitalSigns } from '@/hooks/useConsolidatedVitalSigns'
 import { BLOOD_TYPE_LABELS } from '@/api/resident-health.api'
 import { Check } from 'lucide-react'
 
@@ -117,29 +118,10 @@ interface Resident {
   hasControlledMedication?: boolean
   bed?: Bed | null
   room?: Room | null
-}
-
-interface ConsolidatedVitalSigns {
-  bloodPressure: {
-    systolic: number
-    diastolic: number
-    timestamp: string
-  } | null
-  bloodGlucose: {
-    value: number
-    timestamp: string
-  } | null
-  temperature: {
-    value: number
-    timestamp: string
-  } | null
-  oxygenSaturation: {
-    value: number
-    timestamp: string
-  } | null
-  heartRate: {
-    value: number
-    timestamp: string
+  bloodTypeRecord?: {
+    bloodType: string
+    source?: string | null
+    confirmedAt?: string | null
   } | null
 }
 
@@ -203,6 +185,7 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
   const today = format(new Date(), 'yyyy-MM-dd')
   const { hasPermission } = usePermissions()
   const canAdministerMedications = hasPermission(PermissionType.ADMINISTER_MEDICATIONS)
+  const canViewClinicalProfile = hasPermission(PermissionType.VIEW_CLINICAL_PROFILE)
 
   // Buscar dados básicos do residente (já retorna bed, room, allergies)
   const { data: resident, isLoading: isLoadingResident } = useQuery<Resident>({
@@ -249,27 +232,15 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
   ) || []
 
   // Buscar tipo sanguíneo da nova tabela
-  const { data: bloodTypeData } = useBloodType(residentId)
+  const { data: bloodTypeData } = useBloodType(residentId, canViewClinicalProfile)
 
   // Buscar sinais vitais consolidados
-  const { data: consolidatedVitalSigns } = useQuery<ConsolidatedVitalSigns | null>({
-    queryKey: tenantKey('daily-records', 'resident', residentId, 'consolidated-vital-signs'),
-    queryFn: async () => {
-      try {
-        const response = await api.get(`/daily-records/resident/${residentId}/consolidated-vital-signs`)
-        console.log('🔍 Consolidated Vital Signs:', response.data)
-        return response.data || null
-      } catch (error) {
-        console.error('❌ Error fetching consolidated vital signs:', error)
-        return null
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  })
+  const { data: consolidatedVitalSigns } = useConsolidatedVitalSigns(residentId)
 
   // Obter label do tipo sanguíneo da nova tabela
-  const bloodTypeLabel = bloodTypeData?.bloodType
-    ? BLOOD_TYPE_LABELS[bloodTypeData.bloodType as keyof typeof BLOOD_TYPE_LABELS]
+  const effectiveBloodType = bloodTypeData?.bloodType || resident?.bloodTypeRecord?.bloodType
+  const bloodTypeLabel = effectiveBloodType
+    ? BLOOD_TYPE_LABELS[effectiveBloodType as keyof typeof BLOOD_TYPE_LABELS]
     : 'Não informado'
 
   // Carregar foto se existir
@@ -299,9 +270,6 @@ export function ResidentQuickViewModal({ residentId, onClose, onRegister, onAdmi
         .map((n) => n[0])
         .join('')
     : '?'
-
-  // Debug: verificar se consolidatedVitalSigns existe
-  console.log('🩺 Rendering with consolidatedVitalSigns:', consolidatedVitalSigns)
 
   return (
     <Dialog open onOpenChange={onClose}>

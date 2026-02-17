@@ -1030,6 +1030,42 @@ export class ResidentsService {
         },
       });
 
+      // Buscar tipo sanguíneo (tabela nova resident_blood_types)
+      const bloodTypeRecord = await this.tenantContext.client.residentBloodType.findFirst({
+        where: {
+          residentId: id,
+          deletedAt: null,
+        },
+        select: {
+          bloodType: true,
+          source: true,
+          confirmedAt: true,
+        },
+        orderBy: [
+          { confirmedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
+      });
+
+      // Buscar última antropometria (rota de residente é acessível ao cuidador)
+      const latestAnthropometry = await this.tenantContext.client.residentAnthropometry.findFirst({
+        where: {
+          residentId: id,
+          deletedAt: null,
+        },
+        select: {
+          height: true,
+          weight: true,
+          bmi: true,
+          measurementDate: true,
+          createdAt: true,
+        },
+        orderBy: [
+          { measurementDate: 'desc' },
+          { createdAt: 'desc' },
+        ],
+      });
+
       // Retornar dados do residente com URLs assinadas e datas formatadas
       return this.formatDateOnlyFields({
         ...resident,
@@ -1043,6 +1079,8 @@ export class ResidentsService {
         dietaryRestrictions, // Adicionar restrições alimentares
         conditions, // Adicionar condições crônicas
         hasControlledMedication: !!hasControlledMedication, // Retornar boolean
+        bloodTypeRecord,
+        latestAnthropometry,
       });
     } catch (error) {
       this.logger.error('Erro ao buscar residente', {
@@ -1441,6 +1479,21 @@ export class ResidentsService {
       where: { ...where, gender: 'FEMININO' },
     });
 
+    // Ocupação de leitos (base correta para taxa de ocupação institucional)
+    const totalBeds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null },
+    });
+
+    const occupiedBeds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null, status: 'Ocupado' },
+    });
+
+    const availableBeds = await this.tenantContext.client.bed.count({
+      where: { deletedAt: null, status: 'Disponível' },
+    });
+
+    const occupancyRate = totalBeds > 0 ? Number(((occupiedBeds / totalBeds) * 100).toFixed(1)) : 0;
+
     return {
       total,
       ativos,
@@ -1450,6 +1503,10 @@ export class ResidentsService {
       grauIII,
       masculino,
       feminino,
+      totalBeds,
+      occupiedBeds,
+      availableBeds,
+      occupancyRate,
     };
   }
 

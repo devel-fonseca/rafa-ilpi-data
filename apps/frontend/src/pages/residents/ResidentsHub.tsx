@@ -13,6 +13,9 @@ export default function ResidentsHub() {
   const { residents } = useResidents({ page: 1, limit: 1000 })
 
   const isLoading = alertsLoading || statsLoading
+  const occupancyRate = stats?.occupancyRate ?? metrics.occupancyRate
+  const occupiedBeds = stats?.occupiedBeds ?? metrics.totalWithBed
+  const totalBeds = stats?.totalBeds ?? (metrics.totalWithBed + metrics.totalWithoutBed)
 
   if (isLoading) {
     return (
@@ -70,10 +73,10 @@ export default function ResidentsHub() {
 
         <StatCard
           title="Taxa de Ocupação"
-          value={`${metrics.occupancyRate}%`}
+          value={`${occupancyRate}%`}
           icon={Percent}
           variant="warning"
-          description={`${metrics.totalWithBed} de ${metrics.totalWithBed + metrics.totalWithoutBed} com leito`}
+          description={`${occupiedBeds} de ${totalBeds} leitos ocupados`}
         />
       </div>
 

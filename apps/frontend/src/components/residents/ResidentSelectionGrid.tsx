@@ -16,6 +16,7 @@ import { formatBedFromResident } from '@/utils/formatters'
 import type { LatestRecord } from '@/hooks/useDailyRecords'
 import { extractDateOnly, getCurrentDate, formatDateOnlySafe } from '@/utils/dateHelpers'
 import { ResidentQuickViewModal } from '@/components/residents/ResidentQuickViewModal'
+import { getRecordTypeLabel as getDailyRecordTypeLabel } from '@/utils/recordTypeLabels'
 
 const ITEMS_PER_PAGE = 12
 
@@ -125,23 +126,6 @@ export function ResidentSelectionGrid({
     const endIndex = startIndex + ITEMS_PER_PAGE
     return filteredResidents.slice(startIndex, endIndex)
   }, [filteredResidents, currentPage])
-
-  // Tradução dos tipos de registro
-  const getRecordTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      HIGIENE: 'Higiene',
-      ALIMENTACAO: 'Alimentação',
-      HIDRATACAO: 'Hidratação',
-      MONITORAMENTO: 'Monitor. Vitais',
-      ELIMINACAO: 'Eliminação',
-      COMPORTAMENTO: 'Comportamento',
-      INTERCORRENCIA: 'Intercorrência',
-      ATIVIDADES: 'Atividades',
-      VISITA: 'Visita',
-      OUTROS: 'Outros',
-    }
-    return labels[type] || type
-  }
 
   if (isLoading) {
     return (
@@ -321,7 +305,7 @@ export function ResidentSelectionGrid({
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>
-                          {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
+                          {getDailyRecordTypeLabel(lastRecord.type).label} às {lastRecord.time}
                         </span>
                       </div>
                       {extractDateOnly(lastRecord.date) !== getCurrentDate() && (
@@ -423,7 +407,7 @@ export function ResidentSelectionGrid({
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 <span>
-                                  {getRecordTypeLabel(lastRecord.type)} às {lastRecord.time}
+                                  {getDailyRecordTypeLabel(lastRecord.type).label} às {lastRecord.time}
                                   {extractDateOnly(lastRecord.date) !== getCurrentDate() && (
                                     <span className="ml-1">
                                       em {formatDateOnlySafe(lastRecord.date)}
