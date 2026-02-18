@@ -39,6 +39,106 @@ export interface ResidentsListReport {
 }
 
 // ============================================================================
+// Types para Relatório Institucional de Perfil dos Residentes
+// ============================================================================
+
+export interface InstitutionalResidentProfileSummary {
+  generatedAt: string
+  referenceDate: string
+  totalResidents: number
+  averageAge: number
+  minAge: number
+  maxAge: number
+  averageStayDays: number
+  residentsWithLegalGuardian: number
+  residentsWithoutBed: number
+}
+
+export interface InstitutionalResidentGenderDistribution {
+  label: string
+  count: number
+  percentage: number
+}
+
+export interface InstitutionalResidentDependencyDistribution {
+  level: string
+  count: number
+  percentage: number
+  requiredCaregivers: number
+}
+
+export interface InstitutionalResidentClinicalIndicators {
+  residentsWithConditions: number
+  totalConditions: number
+  residentsWithAllergies: number
+  totalAllergies: number
+  severeAllergies: number
+  residentsWithDietaryRestrictions: number
+  totalDietaryRestrictions: number
+  residentsWithContraindications: number
+}
+
+export interface InstitutionalResidentTopCondition {
+  condition: string
+  count: number
+  percentage: number
+}
+
+export interface InstitutionalResidentCareLoadSummary {
+  totalActiveMedications: number
+  residentsWithPolypharmacy: number
+  totalRoutineSchedules: number
+}
+
+export interface InstitutionalResidentRoutineLoadByType {
+  recordType: string
+  count: number
+}
+
+export interface InstitutionalResidentProfileRow {
+  id: string
+  fullName: string
+  age: number
+  bedCode: string | null
+  dependencyLevel: string
+  mobilityAid: boolean
+  dependencyAssessmentDate: string | null
+  conditionsCount: number
+  allergiesCount: number
+  dietaryRestrictionsCount: number
+  activeMedicationsCount: number
+  routineSchedulesCount: number
+  hasContraindications: boolean
+}
+
+export interface InstitutionalResidentProfileReport {
+  summary: InstitutionalResidentProfileSummary
+  genderDistribution: InstitutionalResidentGenderDistribution[]
+  dependencyDistribution: InstitutionalResidentDependencyDistribution[]
+  clinicalIndicators: InstitutionalResidentClinicalIndicators
+  topConditions: InstitutionalResidentTopCondition[]
+  careLoadSummary: InstitutionalResidentCareLoadSummary
+  routineLoadByType: InstitutionalResidentRoutineLoadByType[]
+  trendMonths: number
+  dependencyTrend: Array<{
+    month: string
+    totalResidents: number
+    grauI: number
+    grauII: number
+    grauIII: number
+    notInformed: number
+    requiredCaregivers: number
+  }>
+  careLoadTrend: Array<{
+    month: string
+    dailyRecordsCount: number
+    medicationAdministrationsCount: number
+    recordsPerResident: number
+  }>
+  residents: InstitutionalResidentProfileRow[]
+}
+
+// ============================================================================
 // Types para Resumo Assistencial do Residente
 // ============================================================================
 
@@ -254,6 +354,24 @@ export async function getResidentsListReport(
 ): Promise<ResidentsListReport> {
   const params = new URLSearchParams({ status })
   const response = await api.get(`/reports/residents?${params.toString()}`)
+  return response.data
+}
+
+export async function getInstitutionalResidentProfileReport(
+  asOfDate?: string,
+  trendMonths?: number,
+): Promise<InstitutionalResidentProfileReport> {
+  const params = new URLSearchParams()
+  if (asOfDate) {
+    params.set('asOfDate', asOfDate)
+  }
+  if (trendMonths) {
+    params.set('trendMonths', String(trendMonths))
+  }
+  const query = params.toString()
+  const response = await api.get(
+    `/reports/institutional/resident-profile${query ? `?${query}` : ''}`,
+  )
   return response.data
 }
 

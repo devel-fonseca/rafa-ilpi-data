@@ -196,11 +196,15 @@ export default function ReportsHub() {
 
     if (
       itemId === 'resident-report' ||
-      itemId === 'resident-profile' ||
       itemId === 'resident-card' ||
       itemId === 'resident-care-summary'
     ) {
       navigate('/dashboard/relatorios/resumo-assistencial')
+      return
+    }
+
+    if (itemId === 'resident-profile') {
+      navigate('/dashboard/relatorios/perfil-residentes')
       return
     }
 

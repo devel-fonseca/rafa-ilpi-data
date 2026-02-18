@@ -136,6 +136,9 @@ const DailyReportPage = lazy(() => import('@/pages/reports/DailyReportPage'))
 const ResidentsListReportPage = lazy(() => import('@/pages/reports/ResidentsListReportPage'))
 const ResidentCareSummaryReportPage = lazy(() => import('@/pages/reports/ResidentCareSummaryReportPage'))
 const ShiftHistoryReportPage = lazy(() => import('@/pages/reports/ShiftHistoryReportPage'))
+const InstitutionalResidentProfileReportPage = lazy(
+  () => import('@/pages/reports/InstitutionalResidentProfileReportPage'),
+)
 
 const SuperAdminDashboard = lazy(() =>
   import('@/pages/superadmin/Dashboard').then((m) => ({ default: m.SuperAdminDashboard })),
@@ -727,6 +730,10 @@ export const router = createBrowserRouter([
           {
             path: 'resumo-assistencial',
             element: withSuspense(<ResidentCareSummaryReportPage />),
+          },
+          {
+            path: 'perfil-residentes',
+            element: withSuspense(<InstitutionalResidentProfileReportPage />),
           },
           {
             path: 'historico-plantao/:shiftId',
