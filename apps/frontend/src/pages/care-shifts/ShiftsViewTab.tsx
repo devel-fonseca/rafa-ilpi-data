@@ -220,11 +220,6 @@ export function ShiftsViewTab() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         shift={selectedShift}
-        minimumRequired={
-          selectedShift
-            ? getMinimumRequired(selectedShift.shiftTemplateId)
-            : 0
-        }
       />
 
       <AssignTeamModal

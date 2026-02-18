@@ -14,7 +14,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { CoverageStatusBadge } from '../compliance/CoverageStatusBadge';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatDateTimeSafe } from '@/utils/dateHelpers';
@@ -26,7 +25,6 @@ interface ShiftDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shift: Shift | undefined;
-  minimumRequired?: number;
 }
 
 /**
@@ -36,7 +34,6 @@ export function ShiftDetailsModal({
   open,
   onOpenChange,
   shift,
-  minimumRequired = 0,
 }: ShiftDetailsModalProps) {
   if (!shift) return null;
 
@@ -100,10 +97,6 @@ export function ShiftDetailsModal({
             <p className="text-sm text-muted-foreground">Status</p>
             <div className="flex items-center gap-2">
               <Badge variant="outline">{formatShiftStatusLabel(shift.status)}</Badge>
-              <CoverageStatusBadge
-                assignedCount={assignedCount}
-                minimumRequired={minimumRequired}
-              />
             </div>
           </div>
 

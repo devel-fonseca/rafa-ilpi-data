@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { format, addDays, subDays } from 'date-fns';
 import { CalendarClock, History, Loader2, Users } from 'lucide-react';
 import { Page, PageHeader } from '@/design-system/components';
@@ -33,7 +32,6 @@ function isHistoricShift(shift: Shift, today: string) {
 }
 
 export default function MyShiftsPage() {
-  const navigate = useNavigate();
   const today = getCurrentDate();
   const [startDate, setStartDate] = useState(
     format(subDays(normalizeUTCDate(today), 30), 'yyyy-MM-dd'),
@@ -89,14 +87,6 @@ export default function MyShiftsPage() {
           <Button size="sm" variant="outline" onClick={() => openShiftDetails(shift)}>
             Ver
           </Button>
-          {(shift.status === ShiftStatus.COMPLETED || shift.status === ShiftStatus.ADMIN_CLOSED) && (
-            <Button
-              size="sm"
-              onClick={() => navigate(`/dashboard/relatorios/historico-plantao/${shift.id}`)}
-            >
-              Relatório
-            </Button>
-          )}
         </div>
       </td>
     </tr>
@@ -262,7 +252,6 @@ export default function MyShiftsPage() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         shift={selectedShift}
-        minimumRequired={0}
       />
     </Page>
   );

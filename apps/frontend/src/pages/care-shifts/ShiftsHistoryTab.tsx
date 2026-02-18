@@ -28,7 +28,6 @@ import {
 } from '@/components/ui/select';
 import { ShiftDetailsModal } from '@/components/care-shifts/shifts/ShiftDetailsModal';
 import { useShifts } from '@/hooks/care-shifts/useShifts';
-import { useRDCCalculation } from '@/hooks/care-shifts/useRDCCalculation';
 import { ShiftStatus, type Shift } from '@/types/care-shifts/care-shifts';
 
 type PeriodPreset = '7' | '30' | '90' | 'custom';
@@ -70,9 +69,6 @@ export function ShiftsHistoryTab() {
   // Buscar plantões
   const { data: allShifts, isLoading } = useShifts({ startDate, endDate });
 
-  // Buscar cálculo RDC para a data inicial
-  const { data: rdcCalculation } = useRDCCalculation({ date: startDate });
-
   // Filtrar apenas plantões em estado final do histórico operacional
   const finishedShifts = (allShifts || []).filter(
     (shift) =>
@@ -111,15 +107,6 @@ export function ShiftsHistoryTab() {
       setCustomStartDate(format(subDays(normalizeUTCDate(today), days), 'yyyy-MM-dd'));
       setCustomEndDate(today);
     }
-  };
-
-  // Função para obter o mínimo RDC para um turno específico
-  const getMinimumRequired = (shiftTemplateId: string): number => {
-    if (!rdcCalculation) return 0;
-    const calc = rdcCalculation.calculations.find(
-      (c) => c.shiftTemplate.id === shiftTemplateId,
-    );
-    return calc?.minimumRequired || 0;
   };
 
   const formatDate = (dateString: string) => {
@@ -241,9 +228,6 @@ export function ShiftsHistoryTab() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         shift={selectedShift}
-        minimumRequired={
-          selectedShift ? getMinimumRequired(selectedShift.shiftTemplateId) : 0
-        }
       />
     </div>
   );
