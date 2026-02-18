@@ -6,6 +6,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { MultiDayReport, DailyReport, DailyRecordReport } from '@/types/reports'
+import type { RecordTypeFilter, ReportPeriodType, ReportType } from '@/types/reportsHub'
 import { formatShiftStatusLabel } from '@/utils/shiftStatus'
 
 // ========== TYPES ==========
@@ -15,6 +16,9 @@ interface PDFGenerationOptions {
   cnpj: string
   userName: string
   printDate: string
+  reportType?: ReportType
+  periodType?: ReportPeriodType
+  recordType?: RecordTypeFilter
 }
 
 // ========== CONSTANTS ==========
@@ -78,6 +82,137 @@ class DailyReportPDFGenerator {
       format: 'a4',
     })
     this.options = options
+  }
+
+  private abbreviateRecordedBy(name: string | null | undefined): string {
+    if (!name) return 'Não informado'
+    const trimmed = name.trim()
+    if (trimmed.length <= 16) return trimmed
+
+    const parts = trimmed.split(/\s+/).filter(Boolean)
+    if (parts.length <= 1) return trimmed
+
+    const first = parts[0]
+    const abbreviatedRest = parts
+      .slice(1)
+      .map((part) => `${part.charAt(0).toUpperCase()}.`)
+      .join(' ')
+
+    return `${first} ${abbreviatedRest}`.trim()
+  }
+
+  private getRecordTypeLabel(type: string): string {
+    const labelMap: Record<string, string> = {
+      HIGIENE: 'Higiene',
+      ALIMENTACAO: 'Alimentação',
+      HIDRATACAO: 'Hidratação',
+      MONITORAMENTO: 'Monitoramento',
+      INTERCORRENCIA: 'Intercorrência',
+      COMPORTAMENTO: 'Comportamento',
+      HUMOR: 'Humor',
+      SONO: 'Sono',
+      ELIMINACAO: 'Eliminação',
+      PESO: 'Peso/Altura',
+      ATIVIDADES: 'Atividades',
+      VISITA: 'Visita',
+      OUTROS: 'Outros',
+    }
+    return labelMap[type] || type
+  }
+
+  private addMonthlyConsolidatedTable(
+    reports: DailyReport[],
+    startY: number,
+  ): number {
+    const recordType = this.options.recordType
+    const rows = reports
+      .map((report) => {
+        const day = String(new Date(`${report.summary.date}T12:00:00.000Z`).getDate()).padStart(2, '0')
+
+        if (recordType === 'MEDICACAO') {
+          const due = report.summary.totalMedicationsScheduled
+          const done = report.summary.totalMedicationsAdministered
+          const pending = Math.max(due - done, 0)
+          const residents = new Set(
+            report.medicationAdministrations.map((item) => `${item.residentCpf}-${item.residentName}`),
+          ).size
+          return [day, String(report.medicationAdministrations.length), String(residents), `${due > 0 ? Math.round((done / due) * 100) : 0}%`, String(pending), '0']
+        }
+
+        if (recordType === 'AGENDAMENTOS_PONTUAIS') {
+          const total = report.scheduledEvents.length
+          const completed = report.scheduledEvents.filter((event) => event.status === 'COMPLETED').length
+          const missed = report.scheduledEvents.filter((event) => event.status === 'MISSED').length
+          const residents = new Set(
+            report.scheduledEvents.map((item) => `${item.residentCpf}-${item.residentName}`),
+          ).size
+          return [day, String(total), String(residents), `${total > 0 ? Math.round((completed / total) * 100) : 0}%`, String(missed), '0']
+        }
+
+        if (recordType === 'IMUNIZACOES') {
+          const total = report.immunizations.length
+          const complete = report.immunizations.filter(
+            (item) =>
+              item.vaccineOrProphylaxis &&
+              item.dose &&
+              item.batch &&
+              item.manufacturer &&
+              item.healthEstablishmentWithCnes &&
+              item.municipalityState,
+          ).length
+          const residents = new Set(
+            report.immunizations.map((item) => `${item.residentCpf}-${item.residentName}`),
+          ).size
+          return [day, String(total), String(residents), `${total > 0 ? Math.round((complete / total) * 100) : 0}%`, String(Math.max(total - complete, 0)), '0']
+        }
+
+        const due = (report.summary.compliance || []).reduce((sum, metric) => sum + metric.due, 0)
+        const done = (report.summary.compliance || []).reduce((sum, metric) => sum + metric.done, 0)
+        const overdue = (report.summary.compliance || []).reduce((sum, metric) => sum + metric.overdue, 0)
+        const adHoc = (report.summary.compliance || []).reduce((sum, metric) => sum + metric.adHoc, 0)
+        const residents = new Set(report.dailyRecords.map((item) => item.residentId)).size
+        return [
+          day,
+          String(report.summary.totalDailyRecords),
+          String(residents),
+          `${due > 0 ? Math.round((done / due) * 100) : 0}%`,
+          String(overdue),
+          String(adHoc),
+        ]
+      })
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('MENSAL CONSOLIDADO', PAGE_MARGIN, startY)
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [['Dia', 'Registros', 'Residentes Únicos', '% Cumprimento', 'Pendentes', 'Extras']],
+      body: rows,
+      theme: 'grid',
+      styles: {
+        fontSize: FONTS.body,
+        cellPadding: 2,
+        lineColor: COLORS.border,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: COLORS.headerBg,
+        textColor: COLORS.textPrimary,
+        fontStyle: 'bold',
+        fontSize: FONTS.bodyLarge,
+        halign: 'left',
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.zebraEven,
+      },
+      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      didDrawPage: undefined,
+    })
+
+    return (this.doc as any).lastAutoTable.finalY
   }
 
   private addHeader(
@@ -306,7 +441,7 @@ class DailyReportPDFGenerator {
       record.bedCode,
       record.time,
       this.formatRecordDetails(record),
-      record.recordedBy,
+      this.abbreviateRecordedBy(record.recordedBy),
     ])
 
     autoTable(this.doc, {
@@ -557,7 +692,7 @@ class DailyReportPDFGenerator {
       med.bedCode,
       med.actualTime || med.scheduledTime,
       `${med.medicationName} ${med.concentration || ''} ${med.dose || ''} – ${med.wasAdministered ? 'Administrado' : 'Não administrado'}`,
-      med.administeredBy || '-',
+      this.abbreviateRecordedBy(med.administeredBy || '-'),
     ])
 
     autoTable(this.doc, {
@@ -584,6 +719,143 @@ class DailyReportPDFGenerator {
         2: { cellWidth: 15 },
         3: { cellWidth: 'auto' },
         4: { cellWidth: 35 },
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.zebraEven,
+      },
+      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      rowPageBreak: 'avoid',
+      didDrawPage: undefined,
+    })
+
+    return (this.doc as any).lastAutoTable.finalY
+  }
+
+  private addScheduledEventsTable(report: DailyReport, startY: number): number {
+    const scheduledEvents = report.scheduledEvents || []
+
+    if (scheduledEvents.length === 0) {
+      return startY
+    }
+
+    const eventTypeLabel: Record<string, string> = {
+      VACCINATION: 'Vacinação',
+      CONSULTATION: 'Consulta',
+      EXAM: 'Exame',
+      PROCEDURE: 'Procedimento',
+      OTHER: 'Outro',
+    }
+
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('AGENDAMENTOS PONTUAIS DOS RESIDENTES', PAGE_MARGIN, startY)
+
+    const rows = scheduledEvents.map((event) => [
+      event.residentName,
+      event.bedCode,
+      event.time,
+      eventTypeLabel[event.eventType] || event.eventType,
+      event.title,
+      event.status === 'COMPLETED' ? 'Concluído' : 'Perdido',
+    ])
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [['Residente', 'Leito', 'Hora', 'Tipo', 'Título', 'Status']],
+      body: rows,
+      theme: 'grid',
+      styles: {
+        fontSize: FONTS.body,
+        cellPadding: 2,
+        lineColor: COLORS.border,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: COLORS.headerBg,
+        textColor: COLORS.textPrimary,
+        fontStyle: 'bold',
+        fontSize: FONTS.bodyLarge,
+        halign: 'left',
+      },
+      columnStyles: {
+        0: { cellWidth: 50 },
+        1: { cellWidth: 16 },
+        2: { cellWidth: 14 },
+        3: { cellWidth: 24 },
+        4: { cellWidth: 'auto' },
+        5: { cellWidth: 22 },
+      },
+      alternateRowStyles: {
+        fillColor: COLORS.zebraEven,
+      },
+      margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      rowPageBreak: 'avoid',
+      didDrawPage: undefined,
+    })
+
+    return (this.doc as any).lastAutoTable.finalY
+  }
+
+  private addImmunizationsTable(report: DailyReport, startY: number): number {
+    const immunizations = report.immunizations || []
+
+    if (immunizations.length === 0) {
+      return startY
+    }
+
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('IMUNIZAÇÕES', PAGE_MARGIN, startY)
+
+    const rows = immunizations.map((item) => [
+      item.residentName,
+      item.bedCode,
+      item.vaccineOrProphylaxis,
+      item.dose,
+      item.batch,
+      item.manufacturer,
+      item.healthEstablishmentWithCnes,
+      item.municipalityState,
+    ])
+
+    autoTable(this.doc, {
+      startY: startY + 4,
+      head: [[
+        'Residente',
+        'Leito',
+        'Vacina/Profilaxia',
+        'Dose',
+        'Lote',
+        'Fabricante',
+        'Estabelecimento de Saúde + CNES',
+        'Município/UF',
+      ]],
+      body: rows,
+      theme: 'grid',
+      styles: {
+        fontSize: FONTS.body,
+        cellPadding: 2,
+        lineColor: COLORS.border,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: COLORS.headerBg,
+        textColor: COLORS.textPrimary,
+        fontStyle: 'bold',
+        fontSize: FONTS.bodyLarge,
+        halign: 'left',
+      },
+      columnStyles: {
+        0: { cellWidth: 34 },
+        1: { cellWidth: 14 },
+        2: { cellWidth: 28 },
+        3: { cellWidth: 12 },
+        4: { cellWidth: 12 },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 46 },
+        7: { cellWidth: 20 },
       },
       alternateRowStyles: {
         fillColor: COLORS.zebraEven,
@@ -623,14 +895,27 @@ class DailyReportPDFGenerator {
       currentY = HEADER_HEIGHT + 5
     }
 
-    // Shifts Table
-    currentY = this.addShiftsTable(report, currentY) + 5
-
-    // Check page break
     if (currentY > pageHeight - FOOTER_HEIGHT - 40) {
       this.doc.addPage()
       currentY = HEADER_HEIGHT + 5
     }
+
+    currentY = this.addScheduledEventsTable(report, currentY) + 5
+
+    if (currentY > pageHeight - FOOTER_HEIGHT - 40) {
+      this.doc.addPage()
+      currentY = HEADER_HEIGHT + 5
+    }
+
+    currentY = this.addImmunizationsTable(report, currentY) + 5
+
+    // Shifts Table
+    if (currentY > pageHeight - FOOTER_HEIGHT - 40) {
+      this.doc.addPage()
+      currentY = HEADER_HEIGHT + 5
+    }
+
+    currentY = this.addShiftsTable(report, currentY) + 5
 
     // Category tables
     const categoriesBeforeMedications = [
@@ -665,18 +950,6 @@ class DailyReportPDFGenerator {
           5
         return
       }
-
-      this.doc.setFontSize(FONTS.bodyLarge)
-      this.doc.setFont('helvetica', 'bold')
-      this.doc.setTextColor(...COLORS.textPrimary)
-      this.doc.text(category.title, PAGE_MARGIN, currentY)
-
-      this.doc.setFontSize(FONTS.body)
-      this.doc.setFont('helvetica', 'normal')
-      this.doc.setTextColor(...COLORS.textSecondary)
-      this.doc.text('Nenhum registro nesta categoria para o dia.', PAGE_MARGIN, currentY + 5)
-
-      currentY += 12
     }
 
     for (const category of categoriesBeforeMedications) {
@@ -696,6 +969,397 @@ class DailyReportPDFGenerator {
     }
   }
 
+  private getMonthlyRowsForDay(report: DailyReport) {
+    const recordType = this.options.recordType
+
+    if (recordType === 'MEDICACAO') {
+      return report.medicationAdministrations.map((item) => ({
+        residentName: item.residentName,
+        bedCode: item.bedCode,
+        type: 'Medicação',
+        title: '',
+        status: '',
+        time: item.actualTime || item.scheduledTime || '--:--',
+        recordedBy: this.abbreviateRecordedBy(item.administeredBy || 'Não informado'),
+        details: `${item.medicationName} ${item.concentration || ''} ${item.dose || ''} • Via: ${item.route || 'N/A'} • ${item.wasAdministered ? 'Administrado' : 'Não administrado'}`,
+      }))
+    }
+
+    if (recordType === 'AGENDAMENTOS_PONTUAIS') {
+      const eventTypeLabel: Record<string, string> = {
+        VACCINATION: 'Vacinação',
+        CONSULTATION: 'Consulta',
+        EXAM: 'Exame',
+        PROCEDURE: 'Procedimento',
+        OTHER: 'Outro',
+      }
+      return report.scheduledEvents.map((item) => ({
+        residentName: item.residentName,
+        bedCode: item.bedCode,
+        type: eventTypeLabel[item.eventType] || item.eventType,
+        title: item.title,
+        status: item.status === 'COMPLETED' ? 'Concluído' : 'Perdido',
+        time: item.time || '--:--',
+        recordedBy: 'Sistema',
+        details: `${item.title}${item.notes ? ` • ${item.notes}` : ''} • ${item.status === 'COMPLETED' ? 'Concluído' : 'Perdido'}`,
+      }))
+    }
+
+    if (recordType === 'IMUNIZACOES') {
+      return report.immunizations.map((item) => ({
+        residentName: item.residentName,
+        bedCode: item.bedCode,
+        type: 'Imunização',
+        title: '',
+        status: '',
+        vaccineOrProphylaxis: item.vaccineOrProphylaxis,
+        dose: item.dose,
+        batch: item.batch,
+        manufacturer: item.manufacturer,
+        healthEstablishmentWithCnes: item.healthEstablishmentWithCnes,
+        municipalityState: item.municipalityState,
+        time: '--:--',
+        recordedBy: 'Não informado',
+        details: `${item.vaccineOrProphylaxis} • Dose: ${item.dose} • Lote: ${item.batch} • Fabricante: ${item.manufacturer} • ${item.healthEstablishmentWithCnes} • ${item.municipalityState}`,
+      }))
+    }
+
+    return report.dailyRecords.map((record) => ({
+      residentName: record.residentName,
+      bedCode: record.bedCode,
+      type: this.getRecordTypeLabel(record.type),
+      title: '',
+      status: '',
+      time: record.time,
+      recordedBy: this.abbreviateRecordedBy(record.recordedBy || 'Não informado'),
+      details: this.formatRecordDetails(record),
+    }))
+  }
+
+  private generateMonthlyByRecordTypeReport(reports: DailyReport[]) {
+    const sortedReports = [...reports].sort((a, b) => a.summary.date.localeCompare(b.summary.date))
+    const reportsWithRows = sortedReports
+      .map((report) => ({ report, rows: this.getMonthlyRowsForDay(report) }))
+      .filter((entry) => entry.rows.length > 0)
+
+    const totalRecords = reportsWithRows.reduce((sum, entry) => sum + entry.rows.length, 0)
+    const uniqueResidents = new Set(
+      reportsWithRows.flatMap((entry) =>
+        entry.rows.map((row) => `${row.residentName}-${row.bedCode}`),
+      ),
+    ).size
+
+    const summary = (() => {
+      const recordType = this.options.recordType
+      if (recordType === 'MEDICACAO') {
+        const due = reportsWithRows.reduce(
+          (sum, entry) => sum + entry.report.summary.totalMedicationsScheduled,
+          0,
+        )
+        const done = reportsWithRows.reduce(
+          (sum, entry) => sum + entry.report.summary.totalMedicationsAdministered,
+          0,
+        )
+        return { compliance: due > 0 ? Math.round((done / due) * 100) : 0, pending: Math.max(due - done, 0), extras: 0 }
+      }
+      if (recordType === 'AGENDAMENTOS_PONTUAIS') {
+        const total = reportsWithRows.reduce((sum, entry) => sum + entry.report.scheduledEvents.length, 0)
+        const completed = reportsWithRows.reduce(
+          (sum, entry) =>
+            sum + entry.report.scheduledEvents.filter((event) => event.status === 'COMPLETED').length,
+          0,
+        )
+        const missed = reportsWithRows.reduce(
+          (sum, entry) =>
+            sum + entry.report.scheduledEvents.filter((event) => event.status === 'MISSED').length,
+          0,
+        )
+        return { compliance: total > 0 ? Math.round((completed / total) * 100) : 0, pending: missed, extras: 0 }
+      }
+      if (recordType === 'IMUNIZACOES') {
+        const total = reportsWithRows.reduce((sum, entry) => sum + entry.report.immunizations.length, 0)
+        const complete = reportsWithRows.reduce(
+          (sum, entry) =>
+            sum +
+            entry.report.immunizations.filter(
+              (item) =>
+                item.vaccineOrProphylaxis &&
+                item.dose &&
+                item.batch &&
+                item.manufacturer &&
+                item.healthEstablishmentWithCnes &&
+                item.municipalityState,
+            ).length,
+          0,
+        )
+        return { compliance: total > 0 ? Math.round((complete / total) * 100) : 0, pending: Math.max(total - complete, 0), extras: 0 }
+      }
+
+      const due = reportsWithRows.reduce(
+        (sum, entry) =>
+          sum + (entry.report.summary.compliance || []).reduce((acc, metric) => acc + metric.due, 0),
+        0,
+      )
+      const done = reportsWithRows.reduce(
+        (sum, entry) =>
+          sum + (entry.report.summary.compliance || []).reduce((acc, metric) => acc + metric.done, 0),
+        0,
+      )
+      const overdue = reportsWithRows.reduce(
+        (sum, entry) =>
+          sum + (entry.report.summary.compliance || []).reduce((acc, metric) => acc + metric.overdue, 0),
+        0,
+      )
+      const adHoc = reportsWithRows.reduce(
+        (sum, entry) =>
+          sum + (entry.report.summary.compliance || []).reduce((acc, metric) => acc + metric.adHoc, 0),
+        0,
+      )
+      return { compliance: due > 0 ? Math.round((done / due) * 100) : 0, pending: overdue, extras: adHoc }
+    })()
+
+    const summaryLabels = (() => {
+      if (this.options.recordType === 'MEDICACAO') {
+        return {
+          compliance: 'Aderência medicamentosa',
+          pending: 'Não administradas',
+          extras: 'Doses extras',
+        }
+      }
+      if (this.options.recordType === 'AGENDAMENTOS_PONTUAIS') {
+        return {
+          compliance: 'Conformidade de agendamentos',
+          pending: 'Agendamentos perdidos',
+          extras: '',
+        }
+      }
+      if (this.options.recordType === 'IMUNIZACOES') {
+        return {
+          compliance: 'Conformidade de imunizações',
+          pending: 'Incompletas',
+          extras: 'Aplicações extras',
+        }
+      }
+      return {
+        compliance: '% cumprimento',
+        pending: 'Pendentes',
+        extras: 'Extras',
+      }
+    })()
+
+    if (reportsWithRows.length === 0) {
+      this.doc.setFontSize(FONTS.bodyLarge)
+      this.doc.setFont('helvetica', 'bold')
+      this.doc.text('RESUMO EXECUTIVO MENSAL', PAGE_MARGIN, HEADER_HEIGHT + 6)
+      this.doc.setFontSize(FONTS.body)
+      this.doc.setFont('helvetica', 'normal')
+      this.doc.text('Nenhum registro encontrado no mês selecionado.', PAGE_MARGIN, HEADER_HEIGHT + 14)
+      return
+    }
+
+    this.doc.setFontSize(FONTS.bodyLarge)
+    this.doc.setFont('helvetica', 'bold')
+    this.doc.setTextColor(...COLORS.textPrimary)
+    this.doc.text('RESUMO EXECUTIVO MENSAL', PAGE_MARGIN, HEADER_HEIGHT + 6)
+
+    const summaryBody = this.options.recordType === 'IMUNIZACOES'
+      ? [['Imunizações no mês', String(totalRecords)]]
+      : this.options.recordType === 'AGENDAMENTOS_PONTUAIS'
+        ? [
+            ['Dias com registros', String(reportsWithRows.length)],
+            ['Registros', String(totalRecords)],
+            ['Residentes únicos', String(uniqueResidents)],
+            [summaryLabels.compliance, `${summary.compliance}%`],
+            [summaryLabels.pending, String(summary.pending)],
+          ]
+        : [
+            ['Dias com registros', String(reportsWithRows.length)],
+            ['Registros', String(totalRecords)],
+            ['Residentes únicos', String(uniqueResidents)],
+            [summaryLabels.compliance, `${summary.compliance}%`],
+            [summaryLabels.pending, String(summary.pending)],
+            [summaryLabels.extras, String(summary.extras)],
+          ]
+
+    autoTable(this.doc, {
+      startY: HEADER_HEIGHT + 10,
+      head: [],
+      body: summaryBody,
+      theme: 'grid',
+      styles: {
+        fontSize: FONTS.body,
+        cellPadding: 2,
+        lineColor: COLORS.border,
+        lineWidth: 0.1,
+        fillColor: COLORS.headerBg,
+      },
+      columnStyles: {
+        0: { cellWidth: 110, fontStyle: 'bold' },
+        1: { cellWidth: 50, halign: 'left', fontStyle: 'bold' },
+      },
+      tableWidth: 160,
+      margin: {
+        left: (this.doc.internal.pageSize.getWidth() - 160) / 2,
+        right: PAGE_MARGIN,
+        top: HEADER_HEIGHT + 5,
+        bottom: FOOTER_HEIGHT + 5,
+      },
+    })
+
+    const pageHeight = this.doc.internal.pageSize.getHeight()
+    let currentY = (this.doc as any).lastAutoTable.finalY + 6
+
+    reportsWithRows.forEach(({ report, rows }) => {
+      if (currentY > pageHeight - FOOTER_HEIGHT - 20) {
+        this.doc.addPage()
+        currentY = HEADER_HEIGHT + 6
+      }
+
+      const dayTitle = formatDate(report.summary.date)
+      this.doc.setFontSize(FONTS.subtitle)
+      this.doc.setFont('helvetica', 'bold')
+      this.doc.setTextColor(...COLORS.textPrimary)
+      this.doc.text(dayTitle, PAGE_MARGIN, currentY)
+
+      const columnStylesByType = (() => {
+        if (this.options.recordType === 'MEDICACAO') {
+          return {
+            0: { cellWidth: 42 }, // Residente
+            1: { cellWidth: 20 }, // Leito
+            2: { cellWidth: 20 }, // Tipo
+            3: { cellWidth: 12 }, // Hora
+            4: { cellWidth: 28 }, // Registrado por
+            5: { cellWidth: 'auto' }, // Detalhes
+          }
+        }
+        if (this.options.recordType === 'AGENDAMENTOS_PONTUAIS') {
+          return {
+            0: { cellWidth: 40 },
+            1: { cellWidth: 18 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 12 },
+            4: { cellWidth: 24 },
+            5: { cellWidth: 'auto' },
+          }
+        }
+        if (this.options.recordType === 'IMUNIZACOES') {
+          return {
+            0: { cellWidth: 40 },
+            1: { cellWidth: 20 },
+            2: { cellWidth: 18 },
+            3: { cellWidth: 12 },
+            4: { cellWidth: 24 },
+            5: { cellWidth: 'auto' },
+          }
+        }
+        return {
+          0: { cellWidth: 42 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 22 },
+          3: { cellWidth: 12 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 'auto' },
+        }
+      })()
+
+      const isImmunizations = this.options.recordType === 'IMUNIZACOES'
+      const isScheduledEvents = this.options.recordType === 'AGENDAMENTOS_PONTUAIS'
+      const head = isImmunizations
+        ? [[
+            'Residente',
+            'Leito',
+            'Vacina/Profilaxia',
+            'Dose',
+            'Lote',
+            'Fabricante',
+            'Estab. (CNES)',
+            'Município/UF',
+          ]]
+        : isScheduledEvents
+          ? [['Residente', 'Leito', 'Tipo', 'Hora', 'Status', 'Título']]
+          : [['Residente', 'Leito', 'Tipo', 'Hora', 'Registrado por', 'Detalhes']]
+
+      const body = isImmunizations
+        ? rows.map((row) => [
+            row.residentName,
+            row.bedCode,
+            row.vaccineOrProphylaxis || '-',
+            row.dose || '-',
+            row.batch || '-',
+            row.manufacturer || '-',
+            row.healthEstablishmentWithCnes || '-',
+            row.municipalityState || '-',
+          ])
+        : isScheduledEvents
+          ? rows.map((row) => [
+              row.residentName,
+              row.bedCode,
+              row.type || '-',
+              row.time || '--:--',
+              row.status || '-',
+              row.title || row.details || '-',
+            ])
+          : rows.map((row) => [
+              row.residentName,
+              row.bedCode,
+              row.type,
+              row.time,
+              row.recordedBy,
+              row.details,
+            ])
+
+      const columnStyles = isImmunizations
+        ? {
+            0: { cellWidth: 40 }, // Residente
+            1: { cellWidth: 20 }, // Leito
+            2: { cellWidth: 34 }, // Vacina/Profilaxia
+            3: { cellWidth: 18 }, // Dose
+            4: { cellWidth: 22 }, // Lote
+            5: { cellWidth: 24 }, // Fabricante
+            6: { cellWidth: 68 }, // Estab. (CNES)
+            7: { cellWidth: 28 }, // Município/UF
+          }
+        : isScheduledEvents
+          ? {
+              0: { cellWidth: 45 }, // Residente
+              1: { cellWidth: 20 }, // Leito
+              2: { cellWidth: 26 }, // Tipo
+              3: { cellWidth: 14 }, // Hora
+              4: { cellWidth: 20 }, // Status
+              5: { cellWidth: 'auto' }, // Título
+            }
+          : columnStylesByType
+
+      autoTable(this.doc, {
+        startY: currentY + 4,
+        head,
+        body,
+        theme: 'grid',
+        styles: {
+          fontSize: FONTS.body,
+          cellPadding: 2.2,
+          lineColor: COLORS.border,
+          lineWidth: 0.1,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: COLORS.headerBg,
+          textColor: COLORS.textPrimary,
+          fontStyle: 'bold',
+          fontSize: FONTS.bodyLarge,
+          halign: 'left',
+        },
+        columnStyles,
+        alternateRowStyles: {
+          fillColor: COLORS.zebraEven,
+        },
+        margin: { left: PAGE_MARGIN, right: PAGE_MARGIN, top: HEADER_HEIGHT + 5, bottom: FOOTER_HEIGHT + 5 },
+      })
+
+      currentY = (this.doc as any).lastAutoTable.finalY + 6
+    })
+  }
+
   public generate(multiDayReport: MultiDayReport): jsPDF {
     const { reports, startDate, endDate } = multiDayReport
     const isMultiDay = reports.length > 1
@@ -703,15 +1367,24 @@ class DailyReportPDFGenerator {
     // First pass: count total pages (approximate)
     this.totalPages = reports.length * 3 // Estimativa inicial
 
-    // Generate reports for each day
-    reports.forEach((report, index) => {
-      if (index > 0) {
-        // New page for each day
-        this.doc.addPage()
-      }
+    const shouldRenderMonthlyByRecordType =
+      this.options.reportType === 'BY_RECORD_TYPE' &&
+      this.options.periodType === 'MONTH' &&
+      reports.length > 0
 
-      this.generateDayReport(report)
-    })
+    if (shouldRenderMonthlyByRecordType) {
+      this.generateMonthlyByRecordTypeReport(reports)
+    } else {
+      // Generate reports for each day
+      reports.forEach((report, index) => {
+        if (index > 0) {
+          // New page for each day
+          this.doc.addPage()
+        }
+
+        this.generateDayReport(report)
+      })
+    }
 
     this.totalPages = this.doc.getNumberOfPages()
     if (typeof (this.doc as any).putTotalPages === 'function') {
