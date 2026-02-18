@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   Calendar,
+  ClipboardList,
   FileText,
   LayoutGrid,
   Landmark,
@@ -53,6 +54,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       description: 'Central de relatórios e documentos',
       icon: FileText,
       to: '/dashboard/relatorios',
+      visibleFor: [PositionCode.ADMINISTRATOR],
+    },
+    {
+      id: 'shift_reports',
+      title: 'Relatórios de Plantão',
+      description: 'Leitura cronológica dos plantões encerrados',
+      icon: ClipboardList,
+      to: '/dashboard/relatorios-plantao',
       visibleFor: [PositionCode.ADMINISTRATOR],
     },
     {
@@ -122,6 +131,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       visibleFor: [PositionCode.TECHNICAL_MANAGER],
     },
     {
+      id: 'shift_reports',
+      title: 'Relatórios de Plantão',
+      description: 'Leitura cronológica dos plantões encerrados',
+      icon: ClipboardList,
+      to: '/dashboard/relatorios-plantao',
+      visibleFor: [PositionCode.TECHNICAL_MANAGER],
+    },
+    {
       id: 'financial_operations',
       title: 'Financeiro',
       description: 'Lançamentos e categorias financeiras',
@@ -153,6 +170,14 @@ const DASHBOARD_QUICK_ACTIONS: Record<
       description: 'Administração de medicamentos',
       icon: Pill,
       to: '/dashboard/prescricoes/administracao',
+      visibleFor: [PositionCode.CAREGIVER],
+    },
+    {
+      id: 'shift_reports',
+      title: 'Relatórios de Plantão',
+      description: 'Ler relatórios dos plantões passados',
+      icon: ClipboardList,
+      to: '/dashboard/relatorios-plantao',
       visibleFor: [PositionCode.CAREGIVER],
     },
   ],

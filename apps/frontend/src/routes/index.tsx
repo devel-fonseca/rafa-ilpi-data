@@ -102,6 +102,7 @@ import ResidentContractEdit from '@/pages/contracts/ResidentContractEdit'
 // Care Shifts Pages
 import CareShiftsPage from '@/pages/care-shifts/CareShiftsPage'
 import MyShiftsPage from '@/pages/care-shifts/MyShiftsPage'
+import MyShiftReportsPage from '@/pages/care-shifts/MyShiftReportsPage'
 
 // Reports Pages
 
@@ -353,6 +354,22 @@ export const router = createBrowserRouter([
             </ProtectedRoute>
           </FeatureGate>
         ),
+      },
+      {
+        path: 'relatorios-plantao',
+        element: (
+          <FeatureGate featureKey="escalas_plantoes">
+            <ProtectedRoute
+              requiredPermissions={[PermissionType.VIEW_CARE_SHIFTS]}
+            >
+              <MyShiftReportsPage />
+            </ProtectedRoute>
+          </FeatureGate>
+        ),
+      },
+      {
+        path: 'meus-plantoes/relatorios',
+        element: <Navigate to="/dashboard/relatorios-plantao" replace />,
       },
       {
         path: 'conformidade',
