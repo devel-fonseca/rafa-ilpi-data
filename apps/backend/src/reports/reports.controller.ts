@@ -8,6 +8,7 @@ import { MultiDayReportDto } from './dto/daily-report.dto';
 import { ResidentsListReportDto } from './dto/residents-list-report.dto';
 import { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
 import { ShiftHistoryReportDto } from './dto/shift-history-report.dto';
+import { InstitutionalResidentProfileReportDto } from './dto/institutional-resident-profile-report.dto';
 import { FeatureGuard } from '../common/guards/feature.guard';
 import { RequireFeatures } from '../common/decorators/require-features.decorator';
 import { PermissionsGuard } from '../permissions/guards/permissions.guard';
@@ -132,5 +133,31 @@ export class ReportsController {
     }
 
     return this.reportsService.generateShiftHistoryReport(user.tenantId, shiftId);
+  }
+
+  @Get('institutional/resident-profile')
+  @RequirePermissions(PermissionType.VIEW_REPORTS)
+  @ApiOperation({ summary: 'Gerar relatório institucional de perfil dos residentes (visão atual + tendência)' })
+  @ApiQuery({ name: 'asOfDate', required: false, type: String, description: 'Data de referência (YYYY-MM-DD). Padrão: hoje' })
+  @ApiQuery({ name: 'trendMonths', required: false, type: Number, description: 'Quantidade de meses para tendência (6 a 12). Padrão: 6' })
+  @ApiResponse({
+    status: 200,
+    description: 'Relatório institucional de perfil dos residentes gerado com sucesso',
+    type: InstitutionalResidentProfileReportDto,
+  })
+  async getInstitutionalResidentProfileReport(
+    @CurrentUser() user: JwtPayload,
+    @Query('asOfDate') asOfDate?: string,
+    @Query('trendMonths') trendMonths?: string,
+  ): Promise<InstitutionalResidentProfileReportDto> {
+    if (!user.tenantId) {
+      throw new Error('TenantId não encontrado no token JWT');
+    }
+
+    return this.reportsService.generateInstitutionalResidentProfileReport(
+      user.tenantId,
+      asOfDate,
+      trendMonths ? Number(trendMonths) : undefined,
+    );
   }
 }

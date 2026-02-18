@@ -21,6 +21,7 @@ import type {
 } from './dto/daily-report.dto';
 import type { ResidentCareSummaryReportDto } from './dto/resident-care-summary-report.dto';
 import type { ShiftHistoryReportDto } from './dto/shift-history-report.dto';
+import type { InstitutionalResidentProfileReportDto } from './dto/institutional-resident-profile-report.dto';
 
 @Injectable()
 export class ReportsService {
@@ -1404,6 +1405,281 @@ export class ReportsService {
     };
   }
 
+  async generateInstitutionalResidentProfileReport(
+    tenantId: string,
+    asOfDate?: string,
+    trendMonths?: number,
+  ): Promise<InstitutionalResidentProfileReportDto> {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { timezone: true },
+    });
+    const timezone = tenant?.timezone || 'America/Sao_Paulo';
+    const referenceDateOnly = asOfDate ? parseDateOnly(asOfDate) : getCurrentDateInTz(timezone);
+    const referenceDate = new Date(`${referenceDateOnly}T12:00:00.000Z`);
+    const normalizedTrendMonths = this.normalizeTrendMonths(trendMonths);
+
+    const residents = await this.tenantContext.client.resident.findMany({
+      where: {
+        status: 'Ativo',
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        gender: true,
+        birthDate: true,
+        admissionDate: true,
+        legalGuardianName: true,
+        bed: { select: { code: true } },
+        dependencyAssessments: {
+          where: {
+            deletedAt: null,
+            effectiveDate: { lte: referenceDate },
+            OR: [{ endDate: null }, { endDate: { gte: referenceDate } }],
+          },
+          select: {
+            dependencyLevel: true,
+            mobilityAid: true,
+            effectiveDate: true,
+          },
+          orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+        },
+        conditions: {
+          where: { deletedAt: null },
+          select: {
+            condition: true,
+            contraindications: true,
+          },
+        },
+        allergies: {
+          where: { deletedAt: null },
+          select: {
+            severity: true,
+            contraindications: true,
+          },
+        },
+        dietaryRestrictions: {
+          where: { deletedAt: null },
+          select: {
+            contraindications: true,
+          },
+        },
+        prescriptions: {
+          where: { isActive: true, deletedAt: null },
+          select: {
+            medications: {
+              where: {
+                deletedAt: null,
+                OR: [{ endDate: null }, { endDate: { gte: referenceDate } }],
+              },
+              select: { id: true },
+            },
+          },
+        },
+        scheduleConfigs: {
+          where: {
+            deletedAt: null,
+            isActive: true,
+          },
+          select: {
+            recordType: true,
+          },
+        },
+      },
+      orderBy: { fullName: 'asc' },
+    });
+
+    const totalResidents = residents.length;
+    const genders = new Map<string, number>();
+    const dependencyByKey = new Map<string, number>([
+      ['GRAU_I', 0],
+      ['GRAU_II', 0],
+      ['GRAU_III', 0],
+      ['NAO_INFORMADO', 0],
+    ]);
+    const routineByType = new Map<string, number>();
+    const conditionMap = new Map<string, { label: string; count: number }>();
+
+    let totalAge = 0;
+    let minAge = 0;
+    let maxAge = 0;
+    let totalStayDays = 0;
+    let residentsWithLegalGuardian = 0;
+    let residentsWithoutBed = 0;
+
+    let residentsWithConditions = 0;
+    let totalConditions = 0;
+    let residentsWithAllergies = 0;
+    let totalAllergies = 0;
+    let severeAllergies = 0;
+    let residentsWithDietaryRestrictions = 0;
+    let totalDietaryRestrictions = 0;
+    let residentsWithContraindications = 0;
+    let totalActiveMedications = 0;
+    let residentsWithPolypharmacy = 0;
+    let totalRoutineSchedules = 0;
+
+    const residentRows = residents.map((resident) => {
+      const age = this.calculateAge(resident.birthDate, referenceDate);
+      const stayDays = this.calculateDaysDifference(resident.admissionDate, referenceDate);
+      totalAge += age;
+      totalStayDays += stayDays;
+      minAge = minAge === 0 ? age : Math.min(minAge, age);
+      maxAge = Math.max(maxAge, age);
+
+      if (resident.legalGuardianName) residentsWithLegalGuardian += 1;
+      if (!resident.bed?.code) residentsWithoutBed += 1;
+
+      const genderLabel = this.formatGenderCompact(resident.gender);
+      genders.set(genderLabel, (genders.get(genderLabel) || 0) + 1);
+
+      const assessment = resident.dependencyAssessments[0];
+      const dependencyKey = assessment?.dependencyLevel || 'NAO_INFORMADO';
+      dependencyByKey.set(dependencyKey, (dependencyByKey.get(dependencyKey) || 0) + 1);
+
+      const conditionCount = resident.conditions.length;
+      const allergyCount = resident.allergies.length;
+      const dietaryCount = resident.dietaryRestrictions.length;
+      const activeMedicationCount = resident.prescriptions.reduce(
+        (sum, prescription) => sum + prescription.medications.length,
+        0,
+      );
+      const routineSchedulesCount = resident.scheduleConfigs.length;
+
+      if (conditionCount > 0) residentsWithConditions += 1;
+      if (allergyCount > 0) residentsWithAllergies += 1;
+      if (dietaryCount > 0) residentsWithDietaryRestrictions += 1;
+
+      totalConditions += conditionCount;
+      totalAllergies += allergyCount;
+      totalDietaryRestrictions += dietaryCount;
+      totalActiveMedications += activeMedicationCount;
+      totalRoutineSchedules += routineSchedulesCount;
+
+      severeAllergies += resident.allergies.filter((allergy) =>
+        allergy.severity === 'GRAVE' || allergy.severity === 'ANAFILAXIA').length;
+
+      if (activeMedicationCount >= 5) residentsWithPolypharmacy += 1;
+
+      for (const schedule of resident.scheduleConfigs) {
+        routineByType.set(schedule.recordType, (routineByType.get(schedule.recordType) || 0) + 1);
+      }
+
+      const residentUniqueConditions = new Set<string>();
+      for (const condition of resident.conditions) {
+        const key = condition.condition.trim().toLocaleLowerCase('pt-BR');
+        if (residentUniqueConditions.has(key)) continue;
+        residentUniqueConditions.add(key);
+        const current = conditionMap.get(key);
+        if (current) {
+          current.count += 1;
+        } else {
+          conditionMap.set(key, { label: condition.condition, count: 1 });
+        }
+      }
+
+      const hasContraindications =
+        resident.conditions.some((condition) => !!condition.contraindications?.trim()) ||
+        resident.allergies.some((allergy) => !!allergy.contraindications?.trim()) ||
+        resident.dietaryRestrictions.some((restriction) => !!restriction.contraindications?.trim());
+      if (hasContraindications) residentsWithContraindications += 1;
+
+      return {
+        id: resident.id,
+        fullName: resident.fullName,
+        age,
+        bedCode: resident.bed?.code || null,
+        dependencyLevel: this.formatDependencyLevelCompact(assessment?.dependencyLevel),
+        mobilityAid: Boolean(assessment?.mobilityAid),
+        dependencyAssessmentDate: assessment?.effectiveDate
+          ? formatDateOnly(assessment.effectiveDate)
+          : null,
+        conditionsCount: conditionCount,
+        allergiesCount: allergyCount,
+        dietaryRestrictionsCount: dietaryCount,
+        activeMedicationsCount: activeMedicationCount,
+        routineSchedulesCount,
+        hasContraindications,
+      };
+    });
+
+    const byGender = Array.from(genders.entries())
+      .map(([label, count]) => ({
+        label,
+        count,
+        percentage: totalResidents > 0 ? Math.round((count / totalResidents) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const dependencyOrder = ['GRAU_I', 'GRAU_II', 'GRAU_III', 'NAO_INFORMADO'];
+    const dependencyDistribution = dependencyOrder
+      .map((key) => {
+        const count = dependencyByKey.get(key) || 0;
+        return {
+          level: this.formatDependencyLevelCompact(key),
+          count,
+          percentage: totalResidents > 0 ? Math.round((count / totalResidents) * 100) : 0,
+          requiredCaregivers: this.getRequiredCaregiversByDependencyLevel(key, count),
+        };
+      })
+      .filter((item) => item.count > 0 || item.level === 'Não informado');
+
+    const topConditions = Array.from(conditionMap.values())
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .slice(0, 10)
+      .map((item) => ({
+        condition: item.label,
+        count: item.count,
+        percentage: totalResidents > 0 ? Math.round((item.count / totalResidents) * 100) : 0,
+      }));
+
+    const routineLoadByType = Array.from(routineByType.entries())
+      .map(([recordType, count]) => ({ recordType, count }))
+      .sort((a, b) => b.count - a.count || a.recordType.localeCompare(b.recordType));
+
+    const { dependencyTrend, careLoadTrend } =
+      await this.generateInstitutionalResidentProfileTrends(referenceDate, normalizedTrendMonths);
+
+    return {
+      summary: {
+        generatedAt: new Date().toISOString(),
+        referenceDate: referenceDateOnly,
+        totalResidents,
+        averageAge: totalResidents > 0 ? Math.round((totalAge / totalResidents) * 10) / 10 : 0,
+        minAge: totalResidents > 0 ? minAge : 0,
+        maxAge: totalResidents > 0 ? maxAge : 0,
+        averageStayDays: totalResidents > 0 ? Math.round(totalStayDays / totalResidents) : 0,
+        residentsWithLegalGuardian,
+        residentsWithoutBed,
+      },
+      genderDistribution: byGender,
+      dependencyDistribution,
+      clinicalIndicators: {
+        residentsWithConditions,
+        totalConditions,
+        residentsWithAllergies,
+        totalAllergies,
+        severeAllergies,
+        residentsWithDietaryRestrictions,
+        totalDietaryRestrictions,
+        residentsWithContraindications,
+      },
+      topConditions,
+      careLoadSummary: {
+        totalActiveMedications,
+        residentsWithPolypharmacy,
+        totalRoutineSchedules,
+      },
+      routineLoadByType,
+      trendMonths: normalizedTrendMonths,
+      dependencyTrend,
+      careLoadTrend,
+      residents: residentRows,
+    };
+  }
+
   private calculateAge(birthDate: Date, referenceDate: Date): number {
     let age = referenceDate.getFullYear() - birthDate.getFullYear();
     const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
@@ -1416,6 +1692,193 @@ export class ReportsService {
   private calculateDaysDifference(startDate: Date, endDate: Date): number {
     const diffTime = endDate.getTime() - startDate.getTime();
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  private formatDependencyLevelCompact(level: string | null | undefined): string {
+    const levels: Record<string, string> = {
+      GRAU_I: 'Grau I',
+      GRAU_II: 'Grau II',
+      GRAU_III: 'Grau III',
+      NAO_INFORMADO: 'Não informado',
+    };
+    if (!level) return 'Não informado';
+    return levels[level] || level;
+  }
+
+  private formatGenderCompact(gender: string | null | undefined): string {
+    const genders: Record<string, string> = {
+      MASCULINO: 'Masculino',
+      FEMININO: 'Feminino',
+      OUTRO: 'Outro',
+      NAO_INFORMADO: 'Não informado',
+    };
+    if (!gender) return 'Não informado';
+    return genders[gender] || gender;
+  }
+
+  private getRequiredCaregiversByDependencyLevel(level: string, count: number): number {
+    if (count <= 0) return 0;
+    if (level === 'GRAU_I') return Math.ceil(count / 20);
+    if (level === 'GRAU_II') return Math.ceil(count / 10);
+    if (level === 'GRAU_III') return Math.ceil(count / 6);
+    return 0;
+  }
+
+  private normalizeTrendMonths(value: number | undefined): number {
+    if (!value || Number.isNaN(value)) return 6;
+    return Math.min(12, Math.max(6, Math.round(value)));
+  }
+
+  private formatYearMonth(date: Date): string {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  private buildMonthlyWindows(referenceDate: Date, trendMonths: number): Array<{
+    month: string;
+    startDate: Date;
+    endDate: Date;
+  }> {
+    const referenceYear = referenceDate.getUTCFullYear();
+    const referenceMonth = referenceDate.getUTCMonth();
+    const windows: Array<{ month: string; startDate: Date; endDate: Date }> = [];
+
+    for (let offset = trendMonths - 1; offset >= 0; offset -= 1) {
+      const startDate = new Date(Date.UTC(referenceYear, referenceMonth - offset, 1, 12, 0, 0));
+      const endDate = new Date(Date.UTC(referenceYear, referenceMonth - offset + 1, 0, 12, 0, 0));
+      windows.push({
+        month: this.formatYearMonth(startDate),
+        startDate,
+        endDate,
+      });
+    }
+
+    return windows;
+  }
+
+  private async generateInstitutionalResidentProfileTrends(
+    referenceDate: Date,
+    trendMonths: number,
+  ): Promise<{
+    dependencyTrend: Array<{
+      month: string;
+      totalResidents: number;
+      grauI: number;
+      grauII: number;
+      grauIII: number;
+      notInformed: number;
+      requiredCaregivers: number;
+    }>;
+    careLoadTrend: Array<{
+      month: string;
+      dailyRecordsCount: number;
+      medicationAdministrationsCount: number;
+      recordsPerResident: number;
+    }>;
+  }> {
+    const windows = this.buildMonthlyWindows(referenceDate, trendMonths);
+    const dependencyTrend: Array<{
+      month: string;
+      totalResidents: number;
+      grauI: number;
+      grauII: number;
+      grauIII: number;
+      notInformed: number;
+      requiredCaregivers: number;
+    }> = [];
+    const careLoadTrend: Array<{
+      month: string;
+      dailyRecordsCount: number;
+      medicationAdministrationsCount: number;
+      recordsPerResident: number;
+    }> = [];
+
+    for (const window of windows) {
+      const [activeResidents, dailyRecordsCount, medicationAdministrationsCount] = await Promise.all([
+        this.tenantContext.client.resident.findMany({
+          where: {
+            deletedAt: null,
+            admissionDate: { lte: window.endDate },
+            OR: [{ dischargeDate: null }, { dischargeDate: { gte: window.endDate } }],
+          },
+          select: {
+            id: true,
+            dependencyAssessments: {
+              where: {
+                deletedAt: null,
+                effectiveDate: { lte: window.endDate },
+                OR: [{ endDate: null }, { endDate: { gte: window.endDate } }],
+              },
+              select: { dependencyLevel: true },
+              orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+              take: 1,
+            },
+          },
+        }),
+        this.tenantContext.client.dailyRecord.count({
+          where: {
+            deletedAt: null,
+            date: {
+              gte: window.startDate,
+              lte: window.endDate,
+            },
+          },
+        }),
+        this.tenantContext.client.medicationAdministration.count({
+          where: {
+            deletedAt: null,
+            date: {
+              gte: window.startDate,
+              lte: window.endDate,
+            },
+          },
+        }),
+      ]);
+
+      const dependencyCounts = {
+        GRAU_I: 0,
+        GRAU_II: 0,
+        GRAU_III: 0,
+        NAO_INFORMADO: 0,
+      };
+
+      for (const resident of activeResidents) {
+        const level = resident.dependencyAssessments[0]?.dependencyLevel || 'NAO_INFORMADO';
+        if (level === 'GRAU_I' || level === 'GRAU_II' || level === 'GRAU_III') {
+          dependencyCounts[level] += 1;
+        } else {
+          dependencyCounts.NAO_INFORMADO += 1;
+        }
+      }
+
+      const requiredCaregivers =
+        this.getRequiredCaregiversByDependencyLevel('GRAU_I', dependencyCounts.GRAU_I) +
+        this.getRequiredCaregiversByDependencyLevel('GRAU_II', dependencyCounts.GRAU_II) +
+        this.getRequiredCaregiversByDependencyLevel('GRAU_III', dependencyCounts.GRAU_III);
+
+      dependencyTrend.push({
+        month: window.month,
+        totalResidents: activeResidents.length,
+        grauI: dependencyCounts.GRAU_I,
+        grauII: dependencyCounts.GRAU_II,
+        grauIII: dependencyCounts.GRAU_III,
+        notInformed: dependencyCounts.NAO_INFORMADO,
+        requiredCaregivers,
+      });
+
+      careLoadTrend.push({
+        month: window.month,
+        dailyRecordsCount,
+        medicationAdministrationsCount,
+        recordsPerResident:
+          activeResidents.length > 0
+            ? Math.round((dailyRecordsCount / activeResidents.length) * 10) / 10
+            : 0,
+      });
+    }
+
+    return { dependencyTrend, careLoadTrend };
   }
 
   // ============================================================================
