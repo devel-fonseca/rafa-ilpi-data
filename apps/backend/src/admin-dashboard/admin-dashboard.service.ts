@@ -34,6 +34,71 @@ export class AdminDashboardService {
     return tenant?.timezone || 'America/Sao_Paulo';
   }
 
+  /**
+   * Monta série dos últimos 6 meses com data de snapshot para cada mês.
+   * - Mês atual: usa a data civil de hoje no timezone do tenant.
+   * - Meses anteriores: usa o último dia civil do mês.
+   */
+  private buildLastSixMonthsSnapshots(timezone: string): {
+    month: string;
+    snapshotDate: Date;
+  }[] {
+    const todayStr = getCurrentDateInTz(timezone);
+    // Meio-dia para evitar qualquer ambiguidade de timezone em campos DATE
+    const todayDate = new Date(`${todayStr}T12:00:00.000`);
+
+    const snapshots: { month: string; snapshotDate: Date }[] = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(
+        todayDate.getFullYear(),
+        todayDate.getMonth() - i,
+        1,
+        12,
+        0,
+        0,
+        0,
+      );
+
+      const month = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`;
+      const isCurrentMonth = i === 0;
+      const snapshotDate = isCurrentMonth
+        ? todayDate
+        : new Date(
+            monthStart.getFullYear(),
+            monthStart.getMonth() + 1,
+            0,
+            12,
+            0,
+            0,
+            0,
+          );
+
+      snapshots.push({ month, snapshotDate });
+    }
+
+    return snapshots;
+  }
+
+  /**
+   * Conta residentes que estavam ativos na data civil informada.
+   * Regra clínica:
+   * - admissionDate <= data_snapshot
+   * - dischargeDate IS NULL OU dischargeDate > data_snapshot
+   */
+  private async countResidentsActiveOn(snapshotDate: Date): Promise<number> {
+    return this.tenantContext.client.resident.count({
+      where: {
+        deletedAt: null,
+        admissionDate: { lte: snapshotDate },
+        OR: [
+          { dischargeDate: null },
+          { dischargeDate: { gt: snapshotDate } },
+        ],
+      },
+    });
+  }
+
   private async getPendingActivities(
     userId: string,
     today: Date,
@@ -357,47 +422,15 @@ export class AdminDashboardService {
    * Formato: [{ month: '2025-08', count: 12 }, ...]
    */
   async getResidentsGrowth(): Promise<ResidentsGrowthResponseDto> {
-    // Gerar últimos 6 meses (incluindo o mês atual)
+    const timezone = await this.getTenantTimezone();
+    const snapshots = this.buildLastSixMonthsSnapshots(timezone);
     const monthsData: MonthlyResidentCountDto[] = []
-    const today = new Date()
 
-    for (let i = 5; i >= 0; i--) {
-      const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1)
-      const year = targetDate.getFullYear()
-      const month = String(targetDate.getMonth() + 1).padStart(2, '0')
-      const monthStr = `${year}-${month}`
-
-      // Contar residentes ativos no último dia do mês
-      // (ou hoje, se for o mês atual)
-      const isCurrentMonth = i === 0
-      let countDate: Date
-
-      if (isCurrentMonth) {
-        countDate = new Date()
-      } else {
-        // Último dia do mês
-        countDate = new Date(year, targetDate.getMonth() + 1, 0)
-      }
-
-      // Contar residentes que estavam ativos naquela data
-      // (createdAt <= countDate AND (status = 'Ativo' OR updatedAt >= countDate))
-      const count = await this.tenantContext.client.resident.count({
-        where: {
-          createdAt: { lte: countDate },
-          OR: [
-            { status: 'Ativo' },
-            {
-              AND: [
-                { status: { not: 'Ativo' } },
-                { updatedAt: { gte: countDate } }
-              ]
-            }
-          ]
-        },
-      })
+    for (const { month, snapshotDate } of snapshots) {
+      const count = await this.countResidentsActiveOn(snapshotDate);
 
       monthsData.push({
-        month: monthStr,
+        month,
         count,
       })
     }
@@ -550,42 +583,13 @@ export class AdminDashboardService {
 
     const hasBedsConfigured = totalBeds > 0
 
-    // Gerar últimos 6 meses (incluindo o mês atual)
+    const timezone = await this.getTenantTimezone();
+    const snapshots = this.buildLastSixMonthsSnapshots(timezone);
     const monthsData: MonthlyOccupancyDto[] = []
-    const today = new Date()
 
-    for (let i = 5; i >= 0; i--) {
-      const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1)
-      const year = targetDate.getFullYear()
-      const month = String(targetDate.getMonth() + 1).padStart(2, '0')
-      const monthStr = `${year}-${month}`
-
-      // Determinar data de contagem (último dia do mês ou hoje se for mês atual)
-      const isCurrentMonth = i === 0
-      let countDate: Date
-
-      if (isCurrentMonth) {
-        countDate = new Date()
-      } else {
-        // Último dia do mês
-        countDate = new Date(year, targetDate.getMonth() + 1, 0)
-      }
-
-      // Contar residentes ativos naquela data
-      const residents = await this.tenantContext.client.resident.count({
-        where: {
-          createdAt: { lte: countDate },
-          OR: [
-            { status: 'Ativo' },
-            {
-              AND: [
-                { status: { not: 'Ativo' } },
-                { updatedAt: { gte: countDate } }
-              ]
-            }
-          ]
-        },
-      })
+    for (const { month, snapshotDate } of snapshots) {
+      // Contar residentes ativos naquela data (regra clínica de admissão/alta)
+      const residents = await this.countResidentsActiveOn(snapshotDate);
 
       // Contar leitos disponíveis naquela data
       // Para simplificar, usamos contagem atual de leitos (assumindo estrutura não muda muito)
@@ -593,7 +597,7 @@ export class AdminDashboardService {
       const capacity = await this.tenantContext.client.bed.count({
         where: {
           deletedAt: null,
-          createdAt: { lte: countDate }, // Leitos que existiam naquela data
+          createdAt: { lte: endOfDay(snapshotDate) }, // Leitos que existiam naquela data civil
         },
       })
 
@@ -601,7 +605,7 @@ export class AdminDashboardService {
       const occupancyRate = capacity > 0 ? (residents / capacity) * 100 : null
 
       monthsData.push({
-        month: monthStr,
+        month,
         residents,
         capacity,
         occupancyRate: occupancyRate !== null ? parseFloat(occupancyRate.toFixed(1)) : null,
