@@ -1,6 +1,7 @@
 import {
   Injectable,
   Scope,
+  Logger,
   NotFoundException,
   BadRequestException,
   ConflictException,
@@ -13,6 +14,9 @@ import {
   Prisma,
   ShiftStatus,
   PositionCode,
+  SystemNotificationType,
+  NotificationCategory,
+  NotificationSeverity,
 } from '@prisma/client';
 import {
   parseISO,
@@ -43,6 +47,7 @@ import {
   CreateHandoverDto,
 } from './dto';
 import { normalizeFeatureRecord } from '../common/utils/feature-keys.util';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
  * Valores padronizados para TeamMember.role
@@ -80,6 +85,19 @@ const SHIFT_REQUIRED_POSITIONS: PositionCode[] = [
   PositionCode.NURSING_ASSISTANT,
 ];
 
+const SHIFT_MANAGEMENT_ACTION_URL = '/dashboard/escala-cuidados';
+
+type ShiftNotificationAction = 'SHIFT_ASSIGNED' | 'SHIFT_CANCELLED';
+
+interface ShiftNotificationContext {
+  shiftId: string;
+  shiftDate: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  teamName: string;
+}
+
 export interface ShiftRegistrationContext {
   canRegister: boolean;
   reason: string | null;
@@ -102,9 +120,13 @@ export interface ShiftRegistrationContext {
  */
 @Injectable({ scope: Scope.REQUEST })
 export class CareShiftsService {
+  private readonly logger = new Logger(CareShiftsService.name);
   private tenantTimezoneCache: string | null = null;
 
-  constructor(private readonly tenantContext: TenantContextService) {}
+  constructor(
+    private readonly tenantContext: TenantContextService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   private async getTenantTimezone(): Promise<string> {
     if (this.tenantTimezoneCache) {
@@ -199,6 +221,158 @@ export class CareShiftsService {
     const endTime = tenantConfig?.customEndTime || shiftTemplate.endTime;
 
     return { startTime, endTime };
+  }
+
+  private async getActiveShiftRecipientIds(shiftId: string): Promise<string[]> {
+    const assignments = await this.tenantContext.client.shiftAssignment.findMany({
+      where: {
+        shiftId,
+        removedAt: null,
+      },
+      select: { userId: true },
+    });
+    return this.filterActiveUserIds(assignments.map((item) => item.userId));
+  }
+
+  private async filterActiveUserIds(userIds: string[]): Promise<string[]> {
+    const uniqueIds = [...new Set(userIds)];
+    if (uniqueIds.length === 0) {
+      return [];
+    }
+
+    const activeUsers = await this.tenantContext.client.user.findMany({
+      where: {
+        id: { in: uniqueIds },
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    return activeUsers.map((user) => user.id);
+  }
+
+  private async buildShiftNotificationContext(input: {
+    shiftId: string;
+    shiftDate: Date | string;
+    shiftTemplateId: string;
+    teamId?: string | null;
+    teamName?: string | null;
+  }): Promise<ShiftNotificationContext | null> {
+    const [shiftTemplate, tenantConfig, team] = await Promise.all([
+      this.tenantContext.publicClient.shiftTemplate.findUnique({
+        where: { id: input.shiftTemplateId },
+        select: {
+          id: true,
+          name: true,
+          startTime: true,
+          endTime: true,
+        },
+      }),
+      this.tenantContext.client.tenantShiftConfig.findFirst({
+        where: {
+          shiftTemplateId: input.shiftTemplateId,
+          deletedAt: null,
+        },
+        select: {
+          customName: true,
+          customStartTime: true,
+          customEndTime: true,
+        },
+      }),
+      input.teamName || !input.teamId
+        ? Promise.resolve(null)
+        : this.tenantContext.client.team.findFirst({
+            where: {
+              id: input.teamId,
+              deletedAt: null,
+            },
+            select: { name: true },
+          }),
+    ]);
+
+    if (!shiftTemplate) {
+      return null;
+    }
+
+    return {
+      shiftId: input.shiftId,
+      shiftDate: formatDateOnly(input.shiftDate),
+      shiftName: tenantConfig?.customName || shiftTemplate.name,
+      startTime: tenantConfig?.customStartTime || shiftTemplate.startTime,
+      endTime: tenantConfig?.customEndTime || shiftTemplate.endTime,
+      teamName: input.teamName || team?.name || 'Sem equipe',
+    };
+  }
+
+  private async notifyShiftRecipients(params: {
+    action: ShiftNotificationAction;
+    recipientIds: string[];
+    shiftContext: ShiftNotificationContext | null;
+    actorUserId: string;
+    reason?: string;
+  }): Promise<void> {
+    const { action, recipientIds, shiftContext, actorUserId, reason } = params;
+
+    if (!shiftContext || recipientIds.length === 0) {
+      return;
+    }
+
+    const actor = await this.tenantContext.client.user.findUnique({
+      where: { id: actorUserId },
+      select: { name: true },
+    });
+    const actorName = actor?.name || 'Sistema';
+
+    const title =
+      action === 'SHIFT_ASSIGNED'
+        ? 'Novo Plantão Designado'
+        : 'Plantão Cancelado';
+
+    const baseMessage =
+      action === 'SHIFT_ASSIGNED'
+        ? `Você foi designado para o plantão ${shiftContext.shiftName} (${shiftContext.startTime}-${shiftContext.endTime}) em ${shiftContext.shiftDate}.`
+        : `Sua designação no plantão ${shiftContext.shiftName} (${shiftContext.startTime}-${shiftContext.endTime}) de ${shiftContext.shiftDate} foi cancelada.`;
+
+    const reasonMessage = reason ? ` Motivo: ${reason}.` : '';
+
+    try {
+      await this.notificationsService.createDirectedNotification(
+        this.tenantContext.tenantId,
+        recipientIds,
+        {
+          type: SystemNotificationType.SYSTEM_UPDATE,
+          category: NotificationCategory.SYSTEM,
+          severity:
+            action === 'SHIFT_ASSIGNED'
+              ? NotificationSeverity.INFO
+              : NotificationSeverity.WARNING,
+          title,
+          message: `${baseMessage} Equipe: ${shiftContext.teamName}. Atualizado por ${actorName}.${reasonMessage}`,
+          actionUrl: SHIFT_MANAGEMENT_ACTION_URL,
+          entityType: 'SHIFT',
+          entityId: shiftContext.shiftId,
+          metadata: {
+            action,
+            shiftId: shiftContext.shiftId,
+            shiftDate: shiftContext.shiftDate,
+            shiftName: shiftContext.shiftName,
+            startTime: shiftContext.startTime,
+            endTime: shiftContext.endTime,
+            teamName: shiftContext.teamName,
+            actorUserId,
+            actorName,
+            reason: reason || null,
+          },
+        },
+      );
+    } catch (error) {
+      this.logger.error('Erro ao enviar notificação de plantão', {
+        action,
+        shiftId: shiftContext.shiftId,
+        recipients: recipientIds.length,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   /**
@@ -541,9 +715,12 @@ export class CareShiftsService {
       );
     }
 
+    let validatedTeam: { id: string; name: string } | null = null;
+
     // Se teamId fornecido, validar equipe
     if (teamId) {
-      await this.validateTeam(teamId);
+      const team = await this.validateTeam(teamId);
+      validatedTeam = { id: team.id, name: team.name };
     }
 
     // Criar plantão
@@ -575,6 +752,22 @@ export class CareShiftsService {
     // Se tem equipe, adicionar membros automaticamente
     if (teamId) {
       await this.assignTeamMembersToShift(shift.id, teamId, userId);
+
+      const recipients = await this.getActiveShiftRecipientIds(shift.id);
+      const shiftContext = await this.buildShiftNotificationContext({
+        shiftId: shift.id,
+        shiftDate: shift.date,
+        shiftTemplateId: shift.shiftTemplateId,
+        teamId: teamId,
+        teamName: validatedTeam?.name || shift.team?.name || null,
+      });
+
+      await this.notifyShiftRecipients({
+        action: 'SHIFT_ASSIGNED',
+        recipientIds: recipients,
+        shiftContext,
+        actorUserId: userId,
+      });
     }
 
     return this.findOne(shift.id); // Retornar com membros atualizados
@@ -844,7 +1037,15 @@ export class CareShiftsService {
    */
   async remove(id: string, userId: string) {
     // Verificar se plantão existe
-    await this.findOne(id);
+    const shift = await this.findOne(id);
+    const recipients = await this.getActiveShiftRecipientIds(id);
+    const shiftContext = await this.buildShiftNotificationContext({
+      shiftId: id,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: shift.teamId,
+      teamName: shift.team?.name || null,
+    });
 
     // Soft delete
     await this.tenantContext.client.shift.update({
@@ -853,6 +1054,13 @@ export class CareShiftsService {
         deletedAt: new Date(),
         updatedBy: userId,
       },
+    });
+
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_CANCELLED',
+      recipientIds: recipients,
+      shiftContext,
+      actorUserId: userId,
     });
 
     return { message: 'Plantão deletado com sucesso' };
@@ -868,7 +1076,7 @@ export class CareShiftsService {
     const shift = await this.findOne(shiftId);
 
     // Validar equipe
-    await this.validateTeam(teamId);
+    const team = await this.validateTeam(teamId);
 
     // Atualizar plantão (via transação para incluir histórico)
     await this.tenantContext.client.$transaction(async (tx) => {
@@ -898,6 +1106,21 @@ export class CareShiftsService {
     // Adicionar membros da equipe
     await this.assignTeamMembersToShift(shiftId, teamId, userId);
 
+    const recipients = await this.getActiveShiftRecipientIds(shiftId);
+    const shiftContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId,
+      teamName: team.name,
+    });
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_ASSIGNED',
+      recipientIds: recipients,
+      shiftContext,
+      actorUserId: userId,
+    });
+
     return this.findOne(shiftId);
   }
 
@@ -922,7 +1145,8 @@ export class CareShiftsService {
     }
 
     // Validar nova equipe
-    await this.validateTeam(newTeamId);
+    const newTeam = await this.validateTeam(newTeamId);
+    const previousRecipients = await this.getActiveShiftRecipientIds(shiftId);
 
     await this.tenantContext.client.$transaction(async (tx) => {
       // Remover membros da equipe original (soft delete)
@@ -975,6 +1199,37 @@ export class CareShiftsService {
     // Adicionar membros da nova equipe
     await this.assignTeamMembersToShift(shiftId, newTeamId, userId);
 
+    const cancelledContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: originalTeamId,
+      teamName: shift.team?.name || null,
+    });
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_CANCELLED',
+      recipientIds: previousRecipients,
+      shiftContext: cancelledContext,
+      actorUserId: userId,
+      reason,
+    });
+
+    const newRecipients = await this.getActiveShiftRecipientIds(shiftId);
+    const assignedContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: newTeamId,
+      teamName: newTeam.name,
+    });
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_ASSIGNED',
+      recipientIds: newRecipients,
+      shiftContext: assignedContext,
+      actorUserId: userId,
+      reason,
+    });
+
     return this.findOne(shiftId);
   }
 
@@ -992,6 +1247,13 @@ export class CareShiftsService {
 
     // Verificar se plantão existe
     const shift = await this.findOne(shiftId);
+    const shiftContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: shift.teamId,
+      teamName: shift.team?.name || null,
+    });
 
     // ✅ 1. Validar que usuário original está no plantão
     const originalMember = await this.tenantContext.client.shiftAssignment.findFirst({
@@ -1125,6 +1387,24 @@ export class CareShiftsService {
       );
     });
 
+    const removedRecipientIds = await this.filterActiveUserIds([originalUserId]);
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_CANCELLED',
+      recipientIds: removedRecipientIds,
+      shiftContext,
+      actorUserId: userId,
+      reason,
+    });
+
+    const addedRecipientIds = await this.filterActiveUserIds([newUserId]);
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_ASSIGNED',
+      recipientIds: addedRecipientIds,
+      shiftContext,
+      actorUserId: userId,
+      reason,
+    });
+
     return this.findOne(shiftId);
   }
 
@@ -1138,6 +1418,13 @@ export class CareShiftsService {
 
     // Verificar se plantão existe
     const shift = await this.findOne(shiftId);
+    const shiftContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: shift.teamId,
+      teamName: shift.team?.name || null,
+    });
 
     // Buscar usuário
     const user = await this.tenantContext.client.user.findUnique({
@@ -1260,6 +1547,15 @@ export class CareShiftsService {
       );
     });
 
+    const recipientIds = await this.filterActiveUserIds([memberId]);
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_ASSIGNED',
+      recipientIds,
+      shiftContext,
+      actorUserId: userId,
+      reason,
+    });
+
     return this.findOne(shiftId);
   }
 
@@ -1269,6 +1565,13 @@ export class CareShiftsService {
   async removeMember(shiftId: string, memberId: string, userId: string) {
     // Verificar se plantão existe
     const shift = await this.findOne(shiftId);
+    const shiftContext = await this.buildShiftNotificationContext({
+      shiftId,
+      shiftDate: shift.date,
+      shiftTemplateId: shift.shiftTemplateId,
+      teamId: shift.teamId,
+      teamName: shift.team?.name || null,
+    });
 
     // Buscar membro ativo
     const member = await this.tenantContext.client.shiftAssignment.findFirst({
@@ -1312,6 +1615,14 @@ export class CareShiftsService {
         shift as Prisma.InputJsonValue,
         shift as Prisma.InputJsonValue,
       );
+    });
+
+    const recipientIds = await this.filterActiveUserIds([memberId]);
+    await this.notifyShiftRecipients({
+      action: 'SHIFT_CANCELLED',
+      recipientIds,
+      shiftContext,
+      actorUserId: userId,
     });
 
     return { message: 'Membro removido do plantão com sucesso' };
@@ -1588,6 +1899,21 @@ export class CareShiftsService {
             changedFields: [],
             changedBy: userId,
           },
+        });
+
+        const recipients = await this.getActiveShiftRecipientIds(shift.id);
+        const shiftContext = await this.buildShiftNotificationContext({
+          shiftId: shift.id,
+          shiftDate: shift.date,
+          shiftTemplateId,
+          teamId,
+          teamName: team.name,
+        });
+        await this.notifyShiftRecipients({
+          action: 'SHIFT_ASSIGNED',
+          recipientIds: recipients,
+          shiftContext,
+          actorUserId: userId,
         });
 
         results.created.push({
